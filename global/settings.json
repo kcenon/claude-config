@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "description": "Claude Code 글로벌 설정 - 모든 프로젝트에 적용",
+  "version": "1.0.0",
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'FILE=\"${CLAUDE_FILE_PATH:-}\"; if [ -z \"$FILE\" ]; then exit 0; fi; if echo \"$FILE\" | grep -qE \"\\.(env|pem|key|p12|pfx)$\"; then echo \"[BLOCKED] 민감 파일 접근 차단: $FILE\" >&2; exit 2; fi; if echo \"$FILE\" | grep -qiE \"(secrets|credentials|passwords|private)[/\\\\]\"; then echo \"[BLOCKED] 민감 디렉토리 접근 차단: $FILE\" >&2; exit 2; fi; exit 0'",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'CMD=\"${CLAUDE_TOOL_INPUT:-}\"; if echo \"$CMD\" | grep -qE \"rm\\s+(-rf|--recursive)\\s+/($|[^a-zA-Z])\"; then echo \"[BLOCKED] 위험한 삭제 명령어 차단\" >&2; exit 2; fi; if echo \"$CMD\" | grep -qE \"chmod\\s+(777|a\\+rwx)\"; then echo \"[BLOCKED] 위험한 권한 변경 차단\" >&2; exit 2; fi; if echo \"$CMD\" | grep -qE \"(curl|wget).*\\|.*sh\"; then echo \"[BLOCKED] 원격 스크립트 실행 차단\" >&2; exit 2; fi; exit 0'",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'echo \"[Session] Claude Code 세션 시작: $(date +\"%Y-%m-%d %H:%M:%S\")\" >> \"${HOME}/.claude/session.log\" 2>/dev/null; exit 0'",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'echo \"[Session] Claude Code 세션 종료: $(date +\"%Y-%m-%d %H:%M:%S\")\" >> \"${HOME}/.claude/session.log\" 2>/dev/null; find /tmp -maxdepth 1 -name \"claude_*\" -mmin +60 -delete 2>/dev/null; find /tmp -maxdepth 1 -name \"tmp.*\" -user \"$(whoami)\" -mmin +60 -delete 2>/dev/null; exit 0'",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+
+  "permissions": {
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/secrets/**)",
+      "Read(**/credentials/**)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/*.p12)",
+      "Read(**/*password*)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Write(**/.env)",
+      "Write(**/.env.*)",
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Edit(**/.env)",
+      "Edit(**/.env.*)"
+    ]
+  }
+}
