@@ -1,6 +1,6 @@
 # GitHub Issue Guidelines (5W1H Principle)
 
-> **Version**: 1.1.0
+> **Version**: 1.2.0
 > **Extracted from**: workflow.md
 > **Purpose**: Comprehensive framework for creating actionable GitHub issues
 
@@ -180,6 +180,410 @@ When creating GitHub issues, follow the **5W1H framework** to ensure comprehensi
 | **Task** | What, How (criteria) | Why, When, Where, Who |
 | **Epic** | What, Why, When | Where, How, Who |
 | **Hotfix** | What, Why, Where, How | When (ASAP), Who |
+
+### Priority Labels
+
+Use priority labels to indicate urgency and importance:
+
+| Label | Description | Response Time | Examples |
+|-------|-------------|---------------|----------|
+| `priority/critical` | System down, security breach, data loss | Immediate (< 4h) | Production outage, security vulnerability |
+| `priority/high` | Major feature broken, blocking release | Same day (< 24h) | Core functionality failure, critical bug |
+| `priority/medium` | Important but not urgent, planned work | This sprint | Feature requests, non-critical bugs |
+| `priority/low` | Nice to have, minor improvements | Backlog | Minor UI issues, documentation updates |
+
+**Priority Selection Guidelines:**
+
+1. **Critical**: Assign only when business operations are severely impacted
+2. **High**: Use for issues blocking other work or affecting many users
+3. **Medium**: Default for most planned features and improvements
+4. **Low**: For issues that can wait without significant impact
+
+### Type Labels
+
+Classify issues by their nature:
+
+| Label | Description | When to Use |
+|-------|-------------|-------------|
+| `type/bug` | Something isn't working | Unexpected behavior, errors, crashes |
+| `type/feature` | New functionality | Adding new capabilities |
+| `type/enhancement` | Improvement to existing feature | Better UX, performance, etc. |
+| `type/docs` | Documentation only | README, API docs, comments |
+| `type/refactor` | Code restructuring | No behavior change, cleaner code |
+| `type/test` | Test-related changes | Adding/fixing tests |
+| `type/chore` | Maintenance tasks | Dependencies, configs, cleanup |
+| `type/security` | Security-related | Vulnerabilities, hardening |
+
+### Area Labels
+
+Identify affected codebase areas (customize per project):
+
+| Label | Description | Examples |
+|-------|-------------|----------|
+| `area/api` | API layer | REST endpoints, GraphQL resolvers |
+| `area/auth` | Authentication/Authorization | Login, permissions, tokens |
+| `area/ui` | User interface | Components, styling, UX |
+| `area/db` | Database layer | Schema, queries, migrations |
+| `area/infra` | Infrastructure | CI/CD, deployment, Docker |
+| `area/core` | Core business logic | Domain models, services |
+| `area/config` | Configuration | Settings, environment variables |
+| `area/deps` | Dependencies | Package updates, vulnerabilities |
+
+**Defining Project-Specific Areas:**
+
+```markdown
+<!-- Recommended: 5-10 areas based on your architecture -->
+area/api          # API endpoints
+area/auth         # Authentication
+area/billing      # Payment & subscriptions
+area/notifications # Email, push, SMS
+area/analytics    # Metrics, tracking
+area/admin        # Admin dashboard
+```
+
+### Status Labels
+
+Track issue lifecycle:
+
+| Label | Description | When to Apply |
+|-------|-------------|---------------|
+| `status/needs-triage` | Awaiting review | Auto-applied to new issues |
+| `status/confirmed` | Verified and accepted | After triage review |
+| `status/in-progress` | Actively being worked | When work starts |
+| `status/needs-info` | Waiting for reporter | Missing details |
+| `status/blocked` | Cannot proceed | Dependency or external blocker |
+| `status/wontfix` | Will not be addressed | Out of scope, by design |
+| `status/duplicate` | Already reported | Link to original issue |
+
+### Label Combinations
+
+```markdown
+<!-- Bug report -->
+Labels: `type/bug`, `priority/high`, `area/auth`, `status/confirmed`
+
+<!-- New feature -->
+Labels: `type/feature`, `priority/medium`, `area/api`, `area/db`
+
+<!-- Security issue -->
+Labels: `type/security`, `priority/critical`, `area/auth`
+
+<!-- Documentation -->
+Labels: `type/docs`, `priority/low`, `area/api`
+
+<!-- Technical debt -->
+Labels: `type/refactor`, `priority/medium`, `area/core`
+```
+
+### Size Labels
+
+Estimate effort for sprint planning:
+
+| Label | Effort | Time Estimate | Examples |
+|-------|--------|---------------|----------|
+| `size/XS` | Trivial | < 1 hour | Typo fix, config change |
+| `size/S` | Small | 1-4 hours | Simple bug fix, minor feature |
+| `size/M` | Medium | 1-2 days | Standard feature, moderate bug |
+| `size/L` | Large | 3-5 days | Complex feature, significant refactor |
+| `size/XL` | Extra Large | 1+ week | Major feature, architecture change |
+
+**Size Estimation Guidelines:**
+
+1. **Include**: Development, testing, code review, documentation
+2. **Exclude**: Waiting time, meetings, deployment
+3. **When uncertain**: Choose the larger size
+4. **Re-estimate**: Update if scope changes during work
+
+```markdown
+<!-- Size estimation examples -->
+size/XS  → Fix typo in error message
+size/S   → Add input validation to form
+size/M   → Implement password reset flow
+size/L   → Add OAuth2 integration
+size/XL  → Migrate from REST to GraphQL
+```
+
+### Label Naming Convention
+
+| Rule | Example | Rationale |
+|------|---------|-----------|
+| Use `/` as separator | `type/bug`, `area/api` | Clear categorization |
+| Lowercase only | `priority/high` not `Priority/High` | Consistency |
+| Singular nouns | `type/bug` not `type/bugs` | Simplicity |
+| No spaces | `area/user-management` | URL-safe |
+
+## Issue Hierarchy
+
+Structure issues in a hierarchy for complex projects:
+
+```
+Epic (Large initiative, multiple sprints)
+├── Story (User-facing feature, fits in one sprint)
+│   ├── Task (Technical work item, 1-3 days)
+│   │   └── Subtask (Checkbox items within a task)
+│   └── Task
+└── Story
+    └── Task
+```
+
+### Hierarchy Definitions
+
+| Level | Scope | Duration | Example |
+|-------|-------|----------|---------|
+| **Epic** | Major initiative or theme | Multiple sprints | "User Authentication System" |
+| **Story** | User-facing functionality | 1 sprint or less | "As a user, I can reset my password" |
+| **Task** | Technical implementation | 1-3 days | "Implement password reset API endpoint" |
+| **Subtask** | Granular checklist item | < 1 day | "Add email validation" |
+
+### Hierarchy Labels
+
+| Label | Description |
+|-------|-------------|
+| `hierarchy/epic` | Top-level initiative |
+| `hierarchy/story` | User story |
+| `hierarchy/task` | Technical task |
+
+## Issue Linking
+
+Use consistent syntax to connect related issues:
+
+### Linking Keywords
+
+| Keyword | Purpose | Example |
+|---------|---------|---------|
+| `Parent:` | Link to parent Epic/Story | `Parent: #100` |
+| `Child:` | Link to child issues | `Child: #101, #102` |
+| `Blocks:` | This issue blocks others | `Blocks: #103` |
+| `Blocked by:` | This issue is blocked | `Blocked by: #99` |
+| `Related:` | Related but not dependent | `Related: #105, #106` |
+| `Duplicate of:` | Mark as duplicate | `Duplicate of: #50` |
+
+### Auto-Close Keywords (in PRs)
+
+These keywords in PR descriptions automatically close issues when merged:
+
+| Keyword | Usage |
+|---------|-------|
+| `Closes #123` | Closes issue #123 |
+| `Fixes #123` | Fixes issue #123 |
+| `Resolves #123` | Resolves issue #123 |
+
+```markdown
+## Example Issue with Links
+
+Parent: #100 (Epic: User Authentication)
+Blocked by: #110 (Database migration)
+Related: #115 (Login UI design)
+
+## What
+Implement JWT token refresh endpoint...
+```
+
+## GitHub Issue Templates
+
+Create templates in `.github/ISSUE_TEMPLATE/` for consistent issue creation.
+
+### Directory Structure
+
+```
+.github/
+└── ISSUE_TEMPLATE/
+    ├── bug_report.yml
+    ├── feature_request.yml
+    ├── task.yml
+    └── config.yml
+```
+
+### Bug Report Template (bug_report.yml)
+
+```yaml
+name: Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug]: "
+labels: ["type/bug", "status/needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill out the sections below.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Clear description of the bug
+      placeholder: Describe the bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - Low
+        - Medium
+        - High
+        - Critical
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, browser, version, etc.
+      placeholder: |
+        - OS: macOS 14.0
+        - Browser: Chrome 120
+        - Version: v2.1.0
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, logs, related issues
+```
+
+### Feature Request Template (feature_request.yml)
+
+```yaml
+name: Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["type/feature", "status/needs-triage"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What feature do you want?
+      description: Clear description of the feature
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why do you need this?
+      description: Problem this solves or value it provides
+    validations:
+      required: true
+
+  - type: textarea
+    id: how
+    attributes:
+      label: Proposed solution
+      description: How should this work? (optional)
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other solutions you've considered
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - Low
+        - Medium
+        - High
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How will we know this is complete?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+```
+
+### Task Template (task.yml)
+
+```yaml
+name: Task
+description: Create a technical task
+title: "[Task]: "
+labels: ["type/task"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What needs to be done?
+      description: Clear description of the task
+    validations:
+      required: true
+
+  - type: textarea
+    id: approach
+    attributes:
+      label: Technical approach
+      description: How will this be implemented?
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size estimate
+      options:
+        - XS (< 1 hour)
+        - S (1-4 hours)
+        - M (1-2 days)
+        - L (3-5 days)
+        - XL (1+ week)
+
+  - type: input
+    id: parent
+    attributes:
+      label: Parent issue
+      description: Link to parent Epic or Story
+      placeholder: "#123"
+```
+
+### Config Template (config.yml)
+
+```yaml
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://docs.example.com
+    about: Check the documentation before opening an issue
+  - name: Discussions
+    url: https://github.com/org/repo/discussions
+    about: For questions and general discussion
+```
 
 ---
 *Part of the workflow guidelines module*
