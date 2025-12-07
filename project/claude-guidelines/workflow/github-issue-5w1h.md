@@ -1,6 +1,6 @@
 # GitHub Issue Guidelines (5W1H Principle)
 
-> **Version**: 1.2.0
+> **Version**: 1.3.0
 > **Extracted from**: workflow.md
 > **Purpose**: Comprehensive framework for creating actionable GitHub issues
 
@@ -301,6 +301,134 @@ size/M   → Implement password reset flow
 size/L   → Add OAuth2 integration
 size/XL  → Migrate from REST to GraphQL
 ```
+
+## Issue Splitting Rules
+
+**MANDATORY**: Issues estimated to exceed **2-3 days** of work MUST be split into smaller, manageable issues.
+
+### Why Split Large Issues?
+
+1. **Better tracking**: Smaller issues provide clearer progress visibility
+2. **Easier review**: Smaller PRs are easier to review and less error-prone
+3. **Reduced risk**: Large issues have higher risk of scope creep and delays
+4. **Parallel work**: Split issues can be worked on by multiple team members
+5. **Incremental value**: Deliver value sooner with smaller, deployable units
+
+### When to Split
+
+| Estimated Duration | Action Required |
+|--------------------|-----------------|
+| ≤ 2 days (`size/XS`, `size/S`, `size/M`) | No split needed |
+| 3-5 days (`size/L`) | **Consider splitting** - evaluate if natural boundaries exist |
+| 1+ week (`size/XL`) | **Must split** - break down into smaller tasks immediately |
+
+### How to Split Issues
+
+#### Step 1: Identify Natural Boundaries
+
+Look for these splitting points:
+
+- **By layer**: Frontend / Backend / Database
+- **By functionality**: CRUD operations (Create, Read, Update, Delete)
+- **By component**: Individual UI components or services
+- **By phase**: Setup → Implementation → Testing → Documentation
+- **By dependency**: Independent features vs. dependent features
+
+#### Step 2: Apply the INVEST Criteria
+
+Each split issue should be:
+
+| Criteria | Description |
+|----------|-------------|
+| **I**ndependent | Minimal dependencies on other issues |
+| **N**egotiable | Flexible in implementation details |
+| **V**aluable | Delivers some value when completed |
+| **E**stimable | Can be reasonably estimated |
+| **S**mall | Fits within 2 days of work |
+| **T**estable | Has clear acceptance criteria |
+
+#### Step 3: Create Parent-Child Structure
+
+```markdown
+## Parent Issue (Epic/Story)
+- Title: [Feature]: User Authentication System
+- Labels: `hierarchy/epic`, `size/XL`
+- Description: Overview of the complete feature
+
+### Child Issues (Tasks)
+1. [Task]: Set up authentication database schema (#201)
+   - size/S, 1-2 days
+2. [Task]: Implement JWT token generation (#202)
+   - size/M, 1-2 days
+3. [Task]: Create login/logout API endpoints (#203)
+   - size/M, 1-2 days
+4. [Task]: Add authentication middleware (#204)
+   - size/S, 1 day
+5. [Task]: Write integration tests for auth flow (#205)
+   - size/M, 1-2 days
+```
+
+### Splitting Patterns by Issue Type
+
+#### Feature Development
+
+```markdown
+Original: "Implement user dashboard" (size/XL, ~2 weeks)
+
+Split into:
+1. Create dashboard layout component (size/S)
+2. Implement user stats widget (size/M)
+3. Implement recent activity widget (size/M)
+4. Implement notifications widget (size/M)
+5. Add dashboard API endpoints (size/M)
+6. Write E2E tests for dashboard (size/S)
+```
+
+#### Bug Fix (Complex)
+
+```markdown
+Original: "Fix data synchronization issues" (size/L, ~4 days)
+
+Split into:
+1. Investigate and document sync failure scenarios (size/S)
+2. Fix race condition in data fetching (size/M)
+3. Add retry logic for failed syncs (size/S)
+4. Add monitoring for sync failures (size/S)
+```
+
+#### Refactoring
+
+```markdown
+Original: "Refactor authentication module" (size/XL, ~1 week)
+
+Split into:
+1. Extract auth service from monolith (size/M)
+2. Add unit tests for extracted service (size/M)
+3. Migrate existing code to use new service (size/M)
+4. Remove deprecated auth code (size/S)
+5. Update documentation (size/S)
+```
+
+### Issue Splitting Checklist
+
+Before creating a large issue, verify:
+
+- [ ] **Estimated duration**: Is it > 2-3 days?
+- [ ] **Splittable**: Can it be broken into independent units?
+- [ ] **Dependencies mapped**: Are inter-issue dependencies clear?
+- [ ] **Parent created**: Is there an Epic/Story to track the whole feature?
+- [ ] **Each child valid**: Does each child meet INVEST criteria?
+- [ ] **Total coverage**: Do all children together complete the parent?
+
+### Anti-Patterns to Avoid
+
+| Anti-Pattern | Problem | Better Approach |
+|--------------|---------|-----------------|
+| Arbitrary splitting | "Part 1", "Part 2" without logic | Split by functionality or layer |
+| Over-splitting | 20 tiny issues for a simple feature | Keep reasonable granularity (3-7 issues) |
+| Missing parent | Child issues without tracking Epic | Always create parent for visibility |
+| Circular dependencies | Issues that block each other | Reorder or restructure splits |
+| Incomplete splits | Some work not captured in any child | Audit split completeness |
 
 ### Label Naming Convention
 
