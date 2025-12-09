@@ -247,6 +247,10 @@ def determine_modules_to_load(context):
 | `API documentation` | `documentation`, `communication` | Docs only |
 | `code review` | Load ALL standards | Comprehensive check |
 | `hot fix production` | `security`, `testing`, `monitoring` | High risk |
+| `create issue` | `github-issue-5w1h`, `workflow` | Issue creation |
+| `issue label` | `github-issue-5w1h` | Labeling guidance |
+| `create PR` | `github-pr-5w1h`, `workflow` | PR creation |
+| `gh issue` | `github-issue-5w1h` | CLI command |
 
 ## 🔧 Override Mechanisms
 

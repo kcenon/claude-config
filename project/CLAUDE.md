@@ -43,7 +43,7 @@ These guidelines define general conventions and practices for working in this re
 | 02a | → [Question Handling](claude-guidelines/workflow/question-handling.md) | Translate, analyze, present |
 | 02b | → [Problem Solving](claude-guidelines/workflow/problem-solving.md) | Systematic approach, minimal changes |
 | 02c | → [Performance Analysis](claude-guidelines/workflow/performance-analysis.md) | Codebase performance analysis |
-| 02d | → [GitHub Issue Guidelines](claude-guidelines/workflow/github-issue-5w1h.md) | 5W1H framework for issues |
+| 02d | → [GitHub Issue Guidelines](claude-guidelines/workflow/github-issue-5w1h.md) | 5W1H framework, labeling, automation |
 | 02e | → [GitHub PR Guidelines](claude-guidelines/workflow/github-pr-5w1h.md) | 5W1H framework for PRs |
 | 03 | [Problem‑Solving Principles](claude-guidelines/problem-solving.md) | Systematic approach, minimal changes |
 | 04 | [Response Language and Documentation](claude-guidelines/communication.md) | Korean responses, English code |
