@@ -1,10 +1,45 @@
 # GitHub Issue Guidelines (5W1H Principle)
 
-> **Version**: 1.3.0
+> **Version**: 1.4.0
 > **Extracted from**: workflow.md
 > **Purpose**: Comprehensive framework for creating actionable GitHub issues
 
 When creating GitHub issues, follow the **5W1H framework** to ensure comprehensive and actionable documentation.
+
+## Language and Attribution Policy
+
+### Language Requirement
+
+**All issues MUST be written in English** for:
+- Global accessibility and collaboration
+- Consistency with codebase and documentation standards
+- Integration with automated tools and CI/CD systems
+
+```markdown
+<!-- ✅ Correct: English issue -->
+## What
+The user authentication endpoint returns 500 error when...
+
+<!-- ❌ Incorrect: Non-English issue -->
+## 내용
+사용자 인증 엔드포인트에서 500 에러가...
+```
+
+### No AI/Claude Attribution
+
+**Exclude all AI-related references** from issues:
+
+```markdown
+<!-- ❌ Do NOT include -->
+🤖 Generated with Claude Code
+Created with AI assistance
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+This policy ensures:
+- Professional appearance in public repositories
+- Focus on the technical content
+- Compliance with organizational standards
 
 ## 1. What
 
@@ -711,6 +746,94 @@ contact_links:
   - name: Discussions
     url: https://github.com/org/repo/discussions
     about: For questions and general discussion
+```
+
+## Issue-PR Bidirectional Linking
+
+### Updating Issues with PR Information
+
+**MANDATORY**: When a PR is created for an issue, update the issue with PR information.
+
+#### Why Update Issues?
+
+1. **Traceability**: Easy to find the solution from the problem description
+2. **Status visibility**: Stakeholders can track progress without navigating to PRs
+3. **Review coordination**: Reviewers can access related context quickly
+4. **Historical record**: Complete documentation of how issues were resolved
+
+#### How to Update Issues
+
+When creating a PR that addresses an issue, add a comment to the issue:
+
+```markdown
+## Implementation PR
+
+PR #[number] has been created to address this issue.
+
+**PR**: #245
+**Status**: In Review
+**Branch**: `feature/auth-jwt-implementation`
+
+### Summary of Changes
+- Implemented JWT token generation
+- Added authentication middleware
+- Created login/logout endpoints
+
+### Expected Timeline
+- Review: 2024-12-10
+- Merge: 2024-12-11 (pending approval)
+```
+
+#### Automated Updates
+
+GitHub automatically links PRs to issues when using keywords in PR descriptions:
+
+| PR Description | Effect on Issue |
+|---------------|-----------------|
+| `Closes #123` | Issue closed when PR is merged |
+| `Fixes #123` | Issue closed when PR is merged |
+| `Resolves #123` | Issue closed when PR is merged |
+| `Relates to #123` | Link created, issue stays open |
+
+**Best Practice**: Use `Closes` keywords in PR AND manually update the issue with PR details for complete visibility.
+
+#### Issue Update Template
+
+Add this comment when a PR is created:
+
+```markdown
+## 📋 Implementation Update
+
+| Field | Value |
+|-------|-------|
+| **PR** | #[PR_NUMBER] |
+| **Branch** | `[BRANCH_NAME]` |
+| **Status** | 🔄 In Progress / 👀 In Review / ✅ Merged |
+| **Assignee** | @[USERNAME] |
+
+### Implementation Notes
+<!-- Brief notes about the implementation approach -->
+
+### Remaining Work
+- [ ] Item 1
+- [ ] Item 2
+```
+
+#### Multiple PRs for Single Issue
+
+For large issues requiring multiple PRs:
+
+```markdown
+## 📋 Implementation Progress
+
+### Related PRs
+| PR | Description | Status |
+|----|-------------|--------|
+| #201 | Database schema changes | ✅ Merged |
+| #205 | Backend API implementation | 👀 In Review |
+| #210 | Frontend integration | 🔄 In Progress |
+
+### Overall Progress: 66% (2/3 PRs merged)
 ```
 
 ---

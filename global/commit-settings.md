@@ -1,8 +1,8 @@
-# Commit and PR Settings
+# Commit, Issue, and PR Settings
 
 ## Claude Attribution Policy
 
-**Do NOT include Claude-related information** in commits and pull requests.
+**Do NOT include Claude-related information** in commits, issues, and pull requests.
 
 ### Commit Messages
 
@@ -16,6 +16,16 @@ When creating git commits, **exclude** the following:
 ❌ Any AI/Claude attribution
 ```
 
+### GitHub Issues
+
+When creating issues, **exclude** the following:
+
+```
+❌ 🤖 Generated with Claude Code
+❌ Created with AI assistance
+❌ Any mention of Claude or AI tools
+```
+
 ### Pull Request Descriptions
 
 When creating pull requests, **exclude** the following:
@@ -25,6 +35,15 @@ When creating pull requests, **exclude** the following:
 ❌ Any mention of Claude or AI assistance
 ❌ AI-related footers or attributions
 ```
+
+## Language Policy
+
+**All GitHub Issues and Pull Requests MUST be written in English.**
+
+This ensures:
+- Global accessibility and collaboration
+- Consistency with codebase standards
+- Integration with automated tools
 
 ## Correct Commit Format
 

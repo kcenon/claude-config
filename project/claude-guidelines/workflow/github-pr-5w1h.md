@@ -1,10 +1,61 @@
 # GitHub Pull Request Guidelines (5W1H Principle)
 
-> **Version**: 1.1.0
+> **Version**: 1.2.0
 > **Extracted from**: workflow.md
 > **Purpose**: Framework for creating effective pull requests
 
 When creating Pull Requests, follow the **5W1H framework** to ensure reviewers can quickly understand and effectively evaluate your changes.
+
+## Language and Attribution Policy
+
+### Language Requirement
+
+**All PRs MUST be written in English** for:
+- Global accessibility and collaboration
+- Consistency with codebase and documentation standards
+- Integration with automated tools and CI/CD systems
+- Effective code review across international teams
+
+```markdown
+<!-- ✅ Correct: English PR -->
+## Summary
+Implements JWT-based authentication for the REST API...
+
+<!-- ❌ Incorrect: Non-English PR -->
+## 요약
+REST API를 위한 JWT 기반 인증을 구현...
+```
+
+### No AI/Claude Attribution
+
+**Exclude all AI-related references** from PRs:
+
+```markdown
+<!-- ❌ Do NOT include -->
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+Created with AI assistance
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+<!-- ❌ Do NOT include in footer -->
+---
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+```
+
+This policy ensures:
+- Professional appearance in public repositories
+- Focus on the technical content
+- Compliance with organizational standards
+
+### Correct PR Footer Example
+
+```markdown
+## Checklist
+- [x] Code follows project style guidelines
+- [x] Self-review completed
+- [x] Tests added/updated
+```
+
+**Do NOT add any AI attribution after the checklist.**
 
 ## 1. What
 
@@ -58,6 +109,66 @@ authentication to protect user resources and enable personalized features.
 ### Alternative Approaches Considered
 1. Session-based auth - Rejected due to stateless API requirement
 2. OAuth only - Deferred to future PR for social login
+```
+
+### Issue Linking Requirements (MANDATORY)
+
+**Every PR MUST link to at least one issue** unless it's a trivial fix (typo, formatting).
+
+#### Required Actions When Creating a PR
+
+1. **In PR Description**: Use closing keywords to link issues
+2. **In Related Issue**: Add a comment with PR information
+
+#### Closing Keywords
+
+Use these keywords in PR descriptions to automatically close issues on merge:
+
+| Keyword | Example | Effect |
+|---------|---------|--------|
+| `Closes` | `Closes #123` | Closes issue when PR merges |
+| `Fixes` | `Fixes #123` | Closes issue when PR merges |
+| `Resolves` | `Resolves #123` | Closes issue when PR merges |
+
+For related but not closing issues:
+
+| Keyword | Example | Effect |
+|---------|---------|--------|
+| `Relates to` | `Relates to #123` | Links without closing |
+| `Part of` | `Part of #123` | Indicates partial implementation |
+| `See also` | `See also #123, #124` | Related references |
+
+#### Issue Update Requirement
+
+**MANDATORY**: After creating a PR, add a comment to the linked issue(s):
+
+```markdown
+## 📋 Implementation Update
+
+| Field | Value |
+|-------|-------|
+| **PR** | #[PR_NUMBER] |
+| **Branch** | `[BRANCH_NAME]` |
+| **Status** | 👀 In Review |
+
+### Summary
+Brief description of the implementation approach.
+```
+
+#### Multiple Issues Example
+
+```markdown
+## Related Issues
+
+### Primary
+- Closes #142 (Implement user authentication)
+
+### Secondary
+- Relates to #125 (Frontend login page) - This PR provides backend endpoints
+- Part of #100 (Epic: User Management) - First step of the epic
+
+### Blocking
+- Blocks #150 (Password reset feature) - Needs auth endpoints from this PR
 ```
 
 ## 3. Who
@@ -265,7 +376,11 @@ v2.0.0 (Sprint 15)
 - [ ] Documentation updated
 - [ ] No sensitive data exposed
 - [ ] Commits are atomic and well-described
+- [ ] Related issue(s) linked with closing keywords
+- [ ] Comment added to related issue(s) with PR information
 ```
+
+> **Note**: Do NOT add any AI attribution (Claude, GPT, etc.) after this checklist.
 
 ## Quick Reference
 
@@ -300,6 +415,9 @@ v2.0.0 (Sprint 15)
 - [ ] **When**: No timing/dependency issues
 - [ ] **Where**: Changes scoped correctly, no unrelated modifications
 - [ ] **How**: Implementation is sound, tests adequate
+- [ ] **Issue Link**: Related issue(s) properly linked
+- [ ] **Language**: PR written in English
+- [ ] **Attribution**: No AI/Claude references in PR
 
 ### PR vs Issue: Key Differences
 
