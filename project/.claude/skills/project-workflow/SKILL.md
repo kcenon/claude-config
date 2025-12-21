@@ -17,22 +17,22 @@ description: Provides workflow guidelines for problem-solving, git commits, GitH
 
 ### Workflow
 
-- [Workflow Guidelines](../../../claude-guidelines/workflow.md)
-- [Question Handling](../../../claude-guidelines/workflow/question-handling.md)
-- [Problem Solving](../../../claude-guidelines/workflow/problem-solving.md)
-- [Performance Analysis](../../../claude-guidelines/workflow/performance-analysis.md)
+- [Workflow Guidelines](reference/workflow.md)
+- [Question Handling](reference/question-handling.md)
+- [Problem Solving](reference/workflow-problem-solving.md)
+- [Performance Analysis](reference/performance-analysis.md)
 
 ### GitHub
 
-- [GitHub Issue Guidelines (5W1H)](../../../claude-guidelines/workflow/github-issue-5w1h.md)
-- [GitHub PR Guidelines (5W1H)](../../../claude-guidelines/workflow/github-pr-5w1h.md)
-- [Git Commit Format](../../../claude-guidelines/git-commit-format.md)
+- [GitHub Issue Guidelines (5W1H)](reference/github-issue-5w1h.md)
+- [GitHub PR Guidelines (5W1H)](reference/github-pr-5w1h.md)
+- [Git Commit Format](reference/git-commit-format.md)
 
 ### Project Management
 
-- [Problem-Solving Principles](../../../claude-guidelines/problem-solving.md)
-- [Build and Dependency Management](../../../claude-guidelines/project-management/build.md)
-- [Testing Strategy](../../../claude-guidelines/project-management/testing.md)
+- [Problem-Solving Principles](reference/problem-solving.md)
+- [Build and Dependency Management](reference/build.md)
+- [Testing Strategy](reference/testing.md)
 
 ## Core Principles
 

@@ -47,10 +47,10 @@ Profiling → Identify bottlenecks → Optimize → Verify
 
 ## Reference
 
-- [Performance Guidelines](../../../claude-guidelines/coding-standards/performance.md)
-- [Memory Management](../../../claude-guidelines/coding-standards/memory.md)
-- [Concurrency](../../../claude-guidelines/coding-standards/concurrency.md)
-- [Monitoring](../../../claude-guidelines/operations/monitoring.md)
+- [Performance Guidelines](reference/performance.md)
+- [Memory Management](reference/memory.md)
+- [Concurrency](reference/concurrency.md)
+- [Monitoring](reference/monitoring.md)
 
 ## Caution
 

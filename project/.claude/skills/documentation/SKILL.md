@@ -18,15 +18,15 @@ description: Provides documentation standards for README, API docs, code comment
 
 ### Documentation Standards
 
-- [Documentation Standards](../../../claude-guidelines/project-management/documentation.md)
+- [Documentation Standards](reference/documentation.md)
 
 ### Language Conventions
 
-- [Code and Documentation Language](../../../claude-guidelines/communication.md)
+- [Code and Documentation Language](reference/communication.md)
 
 ### Project Cleanup
 
-- [Cleanup and Finalization](../../../claude-guidelines/operations/cleanup.md)
+- [Cleanup and Finalization](reference/cleanup.md)
 
 ## Core Principles
 
