@@ -60,6 +60,15 @@ claude_config_backup/
 │
 ├── project/                     # 프로젝트 설정 백업
 │   ├── CLAUDE.md               # 프로젝트 메인 설정
+│   ├── .claude/
+│   │   ├── settings.json       # Hook 설정 (자동 포맷팅)
+│   │   └── skills/             # Claude Code Skills
+│   │       ├── coding-guidelines/
+│   │       │   └── SKILL.md    # 코딩 표준 스킬
+│   │       ├── security-audit/
+│   │       │   └── SKILL.md    # 보안 감사 스킬
+│   │       └── performance-review/
+│   │           └── SKILL.md    # 성능 리뷰 스킬
 │   └── claude-guidelines/      # 가이드라인 모듈
 │       ├── api-architecture/   # API 및 아키텍처
 │       │   ├── api-design.md
@@ -98,6 +107,46 @@ claude_config_backup/
 ├── README.md                    # 상세 가이드 (영문)
 ├── README.ko.md                 # 상세 가이드 (한글)
 └── QUICKSTART.md               # 빠른 시작 가이드
+```
+
+---
+
+## Skills
+
+이 설정은 작업 컨텍스트에 따라 가이드라인을 자동 검색하는 Claude Code Skills를 포함합니다.
+
+### 사용 가능한 Skills
+
+| Skill | 설명 | 트리거 키워드 |
+|-------|------|---------------|
+| **coding-guidelines** | 코딩 표준, 품질, 에러 처리 | implement, add, create, fix, refactor, review |
+| **security-audit** | 보안 가이드라인, OWASP Top 10, 입력 검증 | auth, token, password, secret, security, XSS, CSRF |
+| **performance-review** | 성능 최적화, 프로파일링, 캐싱 | slow, optimize, benchmark, profile, latency, cache |
+
+### Skills 동작 방식
+
+1. Skills는 `.claude/skills/` 디렉토리에서 자동 검색됩니다
+2. 각 skill은 name과 description을 정의하는 YAML frontmatter가 있는 `SKILL.md`를 가집니다
+3. Skills는 요청의 트리거 키워드에 따라 활성화됩니다
+4. Skills는 상세 가이드라인에 대한 빠른 참조 링크를 제공합니다
+
+### Skill 구조
+
+```yaml
+---
+name: skill-name
+description: 자동 검색을 위한 설명 (최대 1024자)
+allowed-tools: Read, Grep, Glob  # 선택사항: 도구 제한
+---
+
+# Skill 제목
+
+## 사용 시점
+- 사용 케이스 1
+- 사용 케이스 2
+
+## 빠른 참조
+- [가이드라인 링크](path/to/guideline.md)
 ```
 
 ---

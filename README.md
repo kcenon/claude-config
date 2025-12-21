@@ -62,7 +62,14 @@ claude_config_backup/
 ├── project/                     # Project settings backup
 │   ├── CLAUDE.md               # Project main configuration
 │   ├── .claude/
-│   │   └── settings.json       # Hook settings (auto-formatting)
+│   │   ├── settings.json       # Hook settings (auto-formatting)
+│   │   └── skills/             # Claude Code Skills
+│   │       ├── coding-guidelines/
+│   │       │   └── SKILL.md    # Coding standards skill
+│   │       ├── security-audit/
+│   │       │   └── SKILL.md    # Security audit skill
+│   │       └── performance-review/
+│   │           └── SKILL.md    # Performance review skill
 │   └── claude-guidelines/      # Guideline modules
 │       ├── api-architecture/   # API & Architecture
 │       │   ├── api-design.md
@@ -134,6 +141,46 @@ This configuration includes automated Hook settings for enhanced security and pr
 - Rust: `rustfmt`
 
 For detailed configuration, see [HOOKS.md](HOOKS.md).
+
+---
+
+## Skills
+
+This configuration includes Claude Code Skills for auto-discovery of guidelines based on task context.
+
+### Available Skills
+
+| Skill | Description | Trigger Keywords |
+|-------|-------------|------------------|
+| **coding-guidelines** | Coding standards, quality, error handling | implement, add, create, fix, refactor, review |
+| **security-audit** | Security guidelines, OWASP Top 10, input validation | auth, token, password, secret, security, XSS, CSRF |
+| **performance-review** | Performance optimization, profiling, caching | slow, optimize, benchmark, profile, latency, cache |
+
+### How Skills Work
+
+1. Skills are auto-discovered from `.claude/skills/` directory
+2. Each skill has a `SKILL.md` with YAML frontmatter defining name and description
+3. Skills are activated based on trigger keywords in your request
+4. Skills provide quick reference links to detailed guidelines
+
+### Skill Structure
+
+```yaml
+---
+name: skill-name
+description: Description for auto-discovery (max 1024 chars)
+allowed-tools: Read, Grep, Glob  # Optional: restrict tools
+---
+
+# Skill Title
+
+## When to Use
+- Use case 1
+- Use case 2
+
+## Quick Reference
+- [Link to guideline](path/to/guideline.md)
+```
 
 ---
 
