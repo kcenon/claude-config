@@ -67,8 +67,14 @@ claude_config_backup/
 │   │       │   └── SKILL.md    # 코딩 표준 스킬
 │   │       ├── security-audit/
 │   │       │   └── SKILL.md    # 보안 감사 스킬
-│   │       └── performance-review/
-│   │           └── SKILL.md    # 성능 리뷰 스킬
+│   │       ├── performance-review/
+│   │       │   └── SKILL.md    # 성능 리뷰 스킬
+│   │       ├── api-design/
+│   │       │   └── SKILL.md    # API 및 아키텍처 스킬
+│   │       ├── project-workflow/
+│   │       │   └── SKILL.md    # 워크플로우 및 프로젝트 관리 스킬
+│   │       └── documentation/
+│   │           └── SKILL.md    # 문서화 표준 스킬
 │   └── claude-guidelines/      # 가이드라인 모듈
 │       ├── api-architecture/   # API 및 아키텍처
 │       │   ├── api-design.md
@@ -122,6 +128,9 @@ claude_config_backup/
 | **coding-guidelines** | 코딩 표준, 품질, 에러 처리 | implement, add, create, fix, refactor, review |
 | **security-audit** | 보안 가이드라인, OWASP Top 10, 입력 검증 | auth, token, password, secret, security, XSS, CSRF |
 | **performance-review** | 성능 최적화, 프로파일링, 캐싱 | slow, optimize, benchmark, profile, latency, cache |
+| **api-design** | API 설계, 아키텍처, 로깅, 관찰성 | REST, GraphQL, API, microservice, endpoint, SOLID |
+| **project-workflow** | 워크플로우, git 커밋, 이슈, PR, 테스트 | commit, PR, issue, build, test, workflow, git |
+| **documentation** | README, API 문서, 주석, 정리 | document, README, comment, changelog, format, lint |
 
 ### Skills 동작 방식
 

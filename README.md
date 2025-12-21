@@ -68,8 +68,14 @@ claude_config_backup/
 │   │       │   └── SKILL.md    # Coding standards skill
 │   │       ├── security-audit/
 │   │       │   └── SKILL.md    # Security audit skill
-│   │       └── performance-review/
-│   │           └── SKILL.md    # Performance review skill
+│   │       ├── performance-review/
+│   │       │   └── SKILL.md    # Performance review skill
+│   │       ├── api-design/
+│   │       │   └── SKILL.md    # API and architecture skill
+│   │       ├── project-workflow/
+│   │       │   └── SKILL.md    # Workflow and project management skill
+│   │       └── documentation/
+│   │           └── SKILL.md    # Documentation standards skill
 │   └── claude-guidelines/      # Guideline modules
 │       ├── api-architecture/   # API & Architecture
 │       │   ├── api-design.md
@@ -155,6 +161,9 @@ This configuration includes Claude Code Skills for auto-discovery of guidelines 
 | **coding-guidelines** | Coding standards, quality, error handling | implement, add, create, fix, refactor, review |
 | **security-audit** | Security guidelines, OWASP Top 10, input validation | auth, token, password, secret, security, XSS, CSRF |
 | **performance-review** | Performance optimization, profiling, caching | slow, optimize, benchmark, profile, latency, cache |
+| **api-design** | API design, architecture, logging, observability | REST, GraphQL, API, microservice, endpoint, SOLID |
+| **project-workflow** | Workflow, git commits, issues, PRs, testing | commit, PR, issue, build, test, workflow, git |
+| **documentation** | README, API docs, comments, cleanup | document, README, comment, changelog, format, lint |
 
 ### How Skills Work
 
