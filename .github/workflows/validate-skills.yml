@@ -1,0 +1,140 @@
+name: Validate Skills
+
+on:
+  push:
+    paths:
+      - 'project/.claude/skills/**'
+      - 'plugin/skills/**'
+      - 'scripts/validate_skills.sh'
+  pull_request:
+    paths:
+      - 'project/.claude/skills/**'
+      - 'plugin/skills/**'
+      - 'scripts/validate_skills.sh'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Validate SKILL.md files
+        run: ./scripts/validate_skills.sh
+
+      - name: Check YAML syntax (additional verification)
+        run: |
+          for skill in $(find . -name "SKILL.md" -path "*/skills/*"); do
+            echo "Checking $skill..."
+            python3 << PYEOF
+import yaml
+import sys
+
+with open('$skill', 'r') as f:
+    content = f.read()
+
+lines = content.split('\n')
+if lines[0] != '---':
+    print(f"Error: {sys.argv[0]} - No YAML frontmatter")
+    sys.exit(1)
+
+end_idx = -1
+for i, line in enumerate(lines[1:], 1):
+    if line == '---':
+        end_idx = i
+        break
+
+if end_idx == -1:
+    print(f"Error: No closing frontmatter delimiter")
+    sys.exit(1)
+
+frontmatter = '\n'.join(lines[1:end_idx])
+try:
+    data = yaml.safe_load(frontmatter)
+    if not data.get('name'):
+        print(f"Error: Missing 'name' field")
+        sys.exit(1)
+    if not data.get('description'):
+        print(f"Error: Missing 'description' field")
+        sys.exit(1)
+    print(f"Valid: {data.get('name')}")
+except yaml.YAMLError as e:
+    print(f"YAML Error: {e}")
+    sys.exit(1)
+PYEOF
+          done
+          echo "All SKILL.md files are valid!"
+
+      - name: Check description length
+        run: |
+          failed=0
+          for skill in $(find . -name "SKILL.md" -path "*/skills/*"); do
+            python3 << PYEOF
+import sys
+
+with open('$skill', 'r') as f:
+    content = f.read()
+
+lines = content.split('\n')
+for line in lines[1:]:
+    if line == '---':
+        break
+    if line.startswith('description:'):
+        desc = line[12:].strip()
+        if len(desc) > 1024:
+            print(f"Error: $skill description exceeds 1024 characters ({len(desc)})")
+            sys.exit(1)
+        break
+PYEOF
+            if [ $? -ne 0 ]; then
+              failed=1
+            fi
+          done
+          if [ $failed -eq 1 ]; then
+            echo "Some SKILL.md files have description length issues"
+            exit 1
+          fi
+          echo "All descriptions are within limits!"
+
+      - name: Check name format
+        run: |
+          failed=0
+          for skill in $(find . -name "SKILL.md" -path "*/skills/*"); do
+            python3 << PYEOF
+import sys
+import re
+
+with open('$skill', 'r') as f:
+    content = f.read()
+
+lines = content.split('\n')
+for line in lines[1:]:
+    if line == '---':
+        break
+    if line.startswith('name:'):
+        name = line[5:].strip()
+        if not re.match(r'^[a-z0-9-]+$', name):
+            print(f"Error: $skill name '{name}' contains invalid characters")
+            sys.exit(1)
+        if len(name) > 64:
+            print(f"Error: $skill name exceeds 64 characters ({len(name)})")
+            sys.exit(1)
+        break
+PYEOF
+            if [ $? -ne 0 ]; then
+              failed=1
+            fi
+          done
+          if [ $failed -eq 1 ]; then
+            echo "Some SKILL.md files have name format issues"
+            exit 1
+          fi
+          echo "All names are valid!"

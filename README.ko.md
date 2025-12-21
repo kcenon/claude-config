@@ -134,7 +134,16 @@ claude_config_backup/
 │   ├── install.sh              # 새 시스템에 설치
 │   ├── backup.sh               # 현재 설정 백업
 │   ├── sync.sh                 # 설정 동기화
-│   └── verify.sh               # 백업 무결성 검증
+│   ├── verify.sh               # 백업 무결성 검증
+│   └── validate_skills.sh      # SKILL.md 파일 검증
+│
+├── hooks/                       # Git hooks
+│   ├── pre-commit              # 커밋 전 스킬 검증
+│   └── install-hooks.sh        # Hook 설치 스크립트
+│
+├── .github/
+│   └── workflows/
+│       └── validate-skills.yml # CI 스킬 검증
 │
 ├── plugin/                      # Claude Code Plugin (Beta)
 │   ├── .claude-plugin/
@@ -345,6 +354,48 @@ cd ~/claude_config_backup
 ```bash
 ./scripts/verify.sh
 ```
+
+---
+
+### 5. validate_skills.sh
+
+**목적:** SKILL.md 파일의 형식 준수 여부 검증
+
+**기능:**
+- YAML frontmatter 검증
+- name 필드 확인 (소문자, 숫자, 하이픈, 최대 64자)
+- description 필드 확인 (비어있지 않음, 최대 1024자)
+- 파일 라인 수 확인 (500줄 초과 시 경고)
+- reference 디렉토리 존재 확인
+- 선택적 PyYAML 구문 검증
+
+**사용법:**
+```bash
+./scripts/validate_skills.sh
+```
+
+**검증 규칙:**
+| 필드 | 규칙 |
+|------|------|
+| Frontmatter | `---`로 시작하고 끝나야 함 |
+| name | `[a-z0-9-]+`, 최대 64자 |
+| description | 비어있지 않음, 최대 1024자 |
+| 파일 길이 | 500줄 초과 시 경고 |
+
+---
+
+## Pre-commit Hook
+
+SKILL.md 파일을 커밋 전 자동으로 검증하려면 pre-commit hook을 설치하세요:
+
+```bash
+./hooks/install-hooks.sh
+```
+
+Hook이 수행하는 작업:
+- SKILL.md 파일 변경 감지
+- `validate_skills.sh` 자동 실행
+- 유효하지 않은 SKILL.md 파일이 있으면 커밋 차단
 
 ---
 
