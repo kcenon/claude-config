@@ -275,6 +275,7 @@ cd ~/claude_config_backup
 **Features:**
 - Install global settings (`~/.claude/`)
 - Install project settings (specified directory)
+- Install skills directory (`.claude/skills/`)
 - Auto-backup existing files
 - Select installation type (global/project/both)
 
@@ -296,6 +297,7 @@ cd ~/claude_config_backup
 **Features:**
 - Backup global settings
 - Backup project settings
+- Backup skills directory (`.claude/skills/`)
 - Create timestamped backups
 - Option to replace existing backup
 
@@ -317,6 +319,7 @@ cd ~/claude_config_backup
 
 **Features:**
 - Bidirectional sync (backup ↔ system)
+- Skills directory sync support
 - Compare file differences
 - Preview changes
 - Safe backup creation
@@ -340,6 +343,7 @@ cd ~/claude_config_backup
 **Features:**
 - Directory structure verification
 - Required files existence check
+- Skills directory and SKILL.md validation
 - Script execution permission check
 - Statistics display
 

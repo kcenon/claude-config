@@ -103,6 +103,13 @@ if [ "$BACKUP_TYPE" = "2" ] || [ "$BACKUP_TYPE" = "3" ]; then
             cp -r "$PROJECT_DIR/claude-guidelines"/* "$TEMP_BACKUP/project/claude-guidelines/"
             success "claude-guidelines 백업됨"
         fi
+
+        # Skills 디렉토리 백업
+        if [ -d "$PROJECT_DIR/.claude/skills" ]; then
+            mkdir -p "$TEMP_BACKUP/project/.claude/skills"
+            cp -r "$PROJECT_DIR/.claude/skills"/* "$TEMP_BACKUP/project/.claude/skills/"
+            success "skills 디렉토리 백업됨"
+        fi
     fi
 fi
 
@@ -158,6 +165,9 @@ if [ -f "$BACKUP_DIR/project/CLAUDE.md" ]; then
 fi
 if [ -d "$BACKUP_DIR/project/claude-guidelines" ] && [ "$(ls -A $BACKUP_DIR/project/claude-guidelines)" ]; then
     echo "    - claude-guidelines/"
+fi
+if [ -d "$BACKUP_DIR/project/.claude/skills" ] && [ "$(ls -A $BACKUP_DIR/project/.claude/skills)" ]; then
+    echo "    - .claude/skills/"
 fi
 
 echo ""

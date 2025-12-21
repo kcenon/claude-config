@@ -165,6 +165,15 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ]; then
             cp "$BACKUP_DIR/project/.claude/settings.json" "$PROJECT_DIR/.claude/"
             success "프로젝트 Hook 설정 (.claude/settings.json) 설치 완료!"
         fi
+
+        # Skills 디렉토리 설치
+        if [ -d "$BACKUP_DIR/project/.claude/skills" ]; then
+            if [ -d "$PROJECT_DIR/.claude/skills" ]; then
+                create_backup "$PROJECT_DIR/.claude/skills"
+            fi
+            cp -r "$BACKUP_DIR/project/.claude/skills" "$PROJECT_DIR/.claude/"
+            success "Skills 디렉토리 설치 완료!"
+        fi
     fi
 
     success "프로젝트 설정 설치 완료!"
@@ -198,6 +207,9 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ]; then
     echo "    - $PROJECT_DIR/CLAUDE.md"
     echo "    - $PROJECT_DIR/claude-guidelines/"
     echo "    - $PROJECT_DIR/.claude/settings.json (Hook 설정)"
+    if [ -d "$BACKUP_DIR/project/.claude/skills" ]; then
+        echo "    - $PROJECT_DIR/.claude/skills/ (Skills)"
+    fi
 fi
 
 echo ""
