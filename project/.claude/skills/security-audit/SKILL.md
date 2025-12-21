@@ -1,20 +1,54 @@
 ---
 name: security-audit
-description: Security best practices and audit guidelines for identifying vulnerabilities, secure coding, and compliance requirements.
+description: Provides security guidelines for input validation, authentication, authorization, and secure coding practices. Use when implementing auth, handling user input, working with credentials, or conducting security reviews.
+allowed-tools: Read, Grep, Glob
 ---
 
-# Security Audit
+# Security Audit Skill
 
 ## When to Use
 
-- Performing security audits or reviews
-- Implementing authentication and authorization
-- Handling sensitive data and secrets
-- Validating input and preventing injection attacks
-- Checking for OWASP Top 10 vulnerabilities
+- Implementing authentication/authorization
+- Handling user input
+- Working with sensitive data (passwords, tokens, keys)
+- Security review requests
+- Designing API endpoints
 
-## Quick Reference
+## Security Checklist
 
-- [Security and Sensitive Information](../../../claude-guidelines/security.md)
-- [Exception and Error Handling](../../../claude-guidelines/coding-standards/error-handling.md)
-- [API Design](../../../claude-guidelines/api-architecture/api-design.md)
+### Input Validation
+
+- [ ] Validate all user input
+- [ ] Prevent SQL Injection
+- [ ] Prevent XSS
+- [ ] Prevent Command Injection
+
+### Authentication
+
+- [ ] Secure password hashing
+- [ ] Session management
+- [ ] JWT security settings
+
+### Authorization
+
+- [ ] Permission verification
+- [ ] Resource access control
+
+## Reference
+
+- [Security Guidelines](../../../claude-guidelines/security.md)
+- [Error Handling (Security)](../../../claude-guidelines/coding-standards/error-handling.md)
+- [API Security](../../../claude-guidelines/api-architecture/api-design.md)
+
+## OWASP Top 10 Reference
+
+1. Injection
+2. Broken Authentication
+3. Sensitive Data Exposure
+4. XML External Entities (XXE)
+5. Broken Access Control
+6. Security Misconfiguration
+7. Cross-Site Scripting (XSS)
+8. Insecure Deserialization
+9. Using Components with Known Vulnerabilities
+10. Insufficient Logging & Monitoring
