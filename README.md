@@ -135,7 +135,16 @@ claude_config_backup/
 │   ├── install.sh              # Install to new system
 │   ├── backup.sh               # Backup current settings
 │   ├── sync.sh                 # Sync settings
-│   └── verify.sh               # Verify backup integrity
+│   ├── verify.sh               # Verify backup integrity
+│   └── validate_skills.sh      # Validate SKILL.md files
+│
+├── hooks/                       # Git hooks
+│   ├── pre-commit              # Pre-commit skill validation
+│   └── install-hooks.sh        # Hook installation script
+│
+├── .github/
+│   └── workflows/
+│       └── validate-skills.yml # CI skill validation
 │
 ├── plugin/                      # Claude Code Plugin (Beta)
 │   ├── .claude-plugin/
@@ -378,6 +387,48 @@ cd ~/claude_config_backup
 ```bash
 ./scripts/verify.sh
 ```
+
+---
+
+### 5. validate_skills.sh
+
+**Purpose:** Validate SKILL.md files for format compliance
+
+**Features:**
+- YAML frontmatter validation
+- Name field check (lowercase, numbers, hyphens, max 64 chars)
+- Description field check (non-empty, max 1024 chars)
+- File line count check (warning if > 500 lines)
+- Reference directory existence check
+- Optional PyYAML syntax validation
+
+**Usage:**
+```bash
+./scripts/validate_skills.sh
+```
+
+**Validation Rules:**
+| Field | Rule |
+|-------|------|
+| Frontmatter | Must start and end with `---` |
+| name | `[a-z0-9-]+`, max 64 characters |
+| description | Non-empty, max 1024 characters |
+| File length | Warning if > 500 lines |
+
+---
+
+## Pre-commit Hook
+
+Install the pre-commit hook to automatically validate SKILL.md files before commit:
+
+```bash
+./hooks/install-hooks.sh
+```
+
+The hook will:
+- Detect changes to SKILL.md files
+- Run `validate_skills.sh` automatically
+- Block commits with invalid SKILL.md files
 
 ---
 
