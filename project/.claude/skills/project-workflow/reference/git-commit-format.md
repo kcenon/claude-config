@@ -1,0 +1,1 @@
+../../../../claude-guidelines/git-commit-format.md
