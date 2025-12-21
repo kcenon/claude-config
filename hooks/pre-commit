@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Pre-commit hook for SKILL.md validation
+# ========================================
+# SKILL.md 파일이 변경될 때 자동으로 검증을 실행합니다.
+
+# 색상 정의
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# 스크립트 디렉토리 찾기
+SCRIPT_DIR="$(git rev-parse --show-toplevel)"
+
+# 변경된 SKILL.md 파일 확인
+CHANGED_SKILLS=$(git diff --cached --name-only | grep "SKILL.md")
+
+if [ -z "$CHANGED_SKILLS" ]; then
+    # SKILL.md 파일이 변경되지 않음 - 검증 건너뜀
+    exit 0
+fi
+
+echo -e "${YELLOW}SKILL.md 파일 변경 감지 - 검증 실행 중...${NC}"
+echo ""
+
+# 검증 스크립트 존재 확인
+if [ ! -x "$SCRIPT_DIR/scripts/validate_skills.sh" ]; then
+    echo -e "${RED}오류: validate_skills.sh를 찾을 수 없거나 실행 권한이 없습니다.${NC}"
+    echo "경로: $SCRIPT_DIR/scripts/validate_skills.sh"
+    exit 1
+fi
+
+# 검증 실행
+cd "$SCRIPT_DIR" && ./scripts/validate_skills.sh
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo -e "${RED}SKILL.md 검증 실패 - 커밋이 중단되었습니다.${NC}"
+    echo ""
+    echo "문제를 수정한 후 다시 커밋하세요."
+    exit 1
+fi
+
+echo ""
+echo -e "${GREEN}SKILL.md 검증 통과!${NC}"
+exit 0
