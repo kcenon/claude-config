@@ -45,6 +45,27 @@ cd ~/claude_config_backup
 vi ~/.claude/git-identity.md
 ```
 
+### Plugin 설치 (Beta)
+
+Claude Code Plugin으로 설치하여 쉽게 배포하고 업데이트할 수 있습니다:
+
+```bash
+# 마켓플레이스 추가
+/plugin marketplace add kcenon/claude-config
+
+# 플러그인 설치
+/plugin install claude-config@kcenon/claude-config
+```
+
+또는 로컬에서 테스트:
+
+```bash
+# 플러그인 직접 로드 (개발/테스트용)
+claude --plugin-dir ./plugin
+```
+
+자세한 내용은 [plugin/README.md](plugin/README.md)를 참조하세요.
+
 ---
 
 ## 구조
@@ -114,6 +135,12 @@ claude_config_backup/
 │   ├── backup.sh               # 현재 설정 백업
 │   ├── sync.sh                 # 설정 동기화
 │   └── verify.sh               # 백업 무결성 검증
+│
+├── plugin/                      # Claude Code Plugin (Beta)
+│   ├── .claude-plugin/
+│   │   └── plugin.json         # 플러그인 매니페스트
+│   ├── skills/                 # 독립형 스킬 (심볼릭 링크 없음)
+│   └── hooks/                  # 플러그인 후크
 │
 ├── bootstrap.sh                 # 원라인 설치 스크립트
 ├── README.md                    # 상세 가이드 (영문)
