@@ -150,6 +150,32 @@ if [ -f "$BACKUP_DIR/project/.claude/settings.json" ]; then
     fi
 fi
 
+# Skills 디렉토리 검증
+echo ""
+echo "======================================================"
+info "Skills 디렉토리 검증"
+echo "======================================================"
+echo ""
+
+check_dir "$BACKUP_DIR/project/.claude/skills" "skills 디렉토리"
+
+# 각 Skill의 SKILL.md 파일 존재 확인
+if [ -d "$BACKUP_DIR/project/.claude/skills" ]; then
+    for skill_dir in "$BACKUP_DIR/project/.claude/skills"/*/; do
+        if [ -d "$skill_dir" ]; then
+            skill_name=$(basename "$skill_dir")
+            TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+            if [ -f "${skill_dir}SKILL.md" ]; then
+                success "${skill_name}/SKILL.md 존재"
+                PASSED_CHECKS=$((PASSED_CHECKS + 1))
+            else
+                warning "${skill_name}/SKILL.md 없음"
+                FAILED_CHECKS=$((FAILED_CHECKS + 1))
+            fi
+        fi
+    done
+fi
+
 if [ -d "$BACKUP_DIR/project/claude-guidelines" ]; then
     check_dir "$BACKUP_DIR/project/claude-guidelines/coding-standards" "coding-standards"
     check_dir "$BACKUP_DIR/project/claude-guidelines/operations" "operations"
