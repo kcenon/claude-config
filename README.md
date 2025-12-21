@@ -45,6 +45,27 @@ cd ~/claude_config_backup
 vi ~/.claude/git-identity.md
 ```
 
+### Plugin Installation (Beta)
+
+Install as a Claude Code Plugin for easy distribution and updates:
+
+```bash
+# Add marketplace
+/plugin marketplace add kcenon/claude-config
+
+# Install plugin
+/plugin install claude-config@kcenon/claude-config
+```
+
+Or test locally:
+
+```bash
+# Load plugin directly (for development/testing)
+claude --plugin-dir ./plugin
+```
+
+See [plugin/README.md](plugin/README.md) for more details.
+
 ---
 
 ## Structure
@@ -115,6 +136,12 @@ claude_config_backup/
 │   ├── backup.sh               # Backup current settings
 │   ├── sync.sh                 # Sync settings
 │   └── verify.sh               # Verify backup integrity
+│
+├── plugin/                      # Claude Code Plugin (Beta)
+│   ├── .claude-plugin/
+│   │   └── plugin.json         # Plugin manifest
+│   ├── skills/                 # Standalone skills (no symlinks)
+│   └── hooks/                  # Plugin hooks
 │
 ├── bootstrap.sh                 # One-line install script
 ├── README.md                    # Detailed guide (English)

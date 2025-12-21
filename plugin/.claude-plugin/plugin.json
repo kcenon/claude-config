@@ -1,0 +1,22 @@
+{
+  "name": "claude-config",
+  "version": "2.0.0",
+  "description": "Comprehensive Claude Code configuration with coding guidelines, security, and performance skills for software development best practices",
+  "author": {
+    "name": "kcenon",
+    "url": "https://github.com/kcenon"
+  },
+  "homepage": "https://github.com/kcenon/claude-config",
+  "repository": "https://github.com/kcenon/claude-config",
+  "license": "BSD-3-Clause",
+  "keywords": [
+    "coding-standards",
+    "security",
+    "performance",
+    "workflow",
+    "code-quality",
+    "best-practices"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}
