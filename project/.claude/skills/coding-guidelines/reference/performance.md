@@ -1,0 +1,1 @@
+../../../../claude-guidelines/coding-standards/performance.md

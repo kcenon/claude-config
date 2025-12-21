@@ -1,0 +1,1 @@
+../../../../claude-guidelines/workflow/problem-solving.md

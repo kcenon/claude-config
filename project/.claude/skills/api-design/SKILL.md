@@ -17,16 +17,16 @@ description: Provides API design guidelines for REST, GraphQL, versioning, loggi
 
 ### API Design
 
-- [API Design](../../../claude-guidelines/api-architecture/api-design.md)
+- [API Design](reference/api-design.md)
 
 ### Architecture
 
-- [Architecture and Design](../../../claude-guidelines/api-architecture/architecture.md)
+- [Architecture and Design](reference/architecture.md)
 
 ### Observability
 
-- [Logging Standards](../../../claude-guidelines/api-architecture/logging.md)
-- [Observability](../../../claude-guidelines/api-architecture/observability.md)
+- [Logging Standards](reference/logging.md)
+- [Observability](reference/observability.md)
 
 ## Core Principles
 

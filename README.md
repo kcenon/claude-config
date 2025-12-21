@@ -65,17 +65,23 @@ claude_config_backup/
 │   │   ├── settings.json       # Hook settings (auto-formatting)
 │   │   └── skills/             # Claude Code Skills
 │   │       ├── coding-guidelines/
-│   │       │   └── SKILL.md    # Coding standards skill
+│   │       │   ├── SKILL.md    # Coding standards skill
+│   │       │   └── reference/  # Symlinks to guidelines
 │   │       ├── security-audit/
-│   │       │   └── SKILL.md    # Security audit skill
+│   │       │   ├── SKILL.md    # Security audit skill
+│   │       │   └── reference/  # Symlinks to guidelines
 │   │       ├── performance-review/
-│   │       │   └── SKILL.md    # Performance review skill
+│   │       │   ├── SKILL.md    # Performance review skill
+│   │       │   └── reference/  # Symlinks to guidelines
 │   │       ├── api-design/
-│   │       │   └── SKILL.md    # API and architecture skill
+│   │       │   ├── SKILL.md    # API and architecture skill
+│   │       │   └── reference/  # Symlinks to guidelines
 │   │       ├── project-workflow/
-│   │       │   └── SKILL.md    # Workflow and project management skill
+│   │       │   ├── SKILL.md    # Workflow and project management skill
+│   │       │   └── reference/  # Symlinks to guidelines
 │   │       └── documentation/
-│   │           └── SKILL.md    # Documentation standards skill
+│   │           ├── SKILL.md    # Documentation standards skill
+│   │           └── reference/  # Symlinks to guidelines
 │   └── claude-guidelines/      # Guideline modules
 │       ├── api-architecture/   # API & Architecture
 │       │   ├── api-design.md
@@ -172,6 +178,29 @@ This configuration includes Claude Code Skills for auto-discovery of guidelines 
 3. Skills are activated based on trigger keywords in your request
 4. Skills provide quick reference links to detailed guidelines
 
+### Progressive Disclosure Pattern
+
+Skills use the Progressive Disclosure pattern for token efficiency:
+
+1. **SKILL.md**: Contains only essential information (~50 lines)
+2. **reference/**: Symlinks to detailed guideline files
+3. **On-Demand loading**: Claude reads reference files only when necessary
+
+```
+skills/coding-guidelines/
+├── SKILL.md              # Core info (~37 lines)
+└── reference/            # Symlinks to detailed guidelines
+    ├── general.md        → claude-guidelines/coding-standards/general.md
+    ├── quality.md        → claude-guidelines/coding-standards/quality.md
+    ├── error-handling.md → claude-guidelines/coding-standards/error-handling.md
+    └── ...
+```
+
+**Benefits:**
+- Initial load tokens: ~5000 → ~1000 (80% reduction)
+- 1-level deep references for reliable loading
+- Simplified path maintenance
+
 ### Skill Structure
 
 ```yaml
@@ -188,7 +217,7 @@ allowed-tools: Read, Grep, Glob  # Optional: restrict tools
 - Use case 2
 
 ## Quick Reference
-- [Link to guideline](path/to/guideline.md)
+- [Link to guideline](reference/guideline.md)
 ```
 
 ---

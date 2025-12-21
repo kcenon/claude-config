@@ -36,9 +36,9 @@ allowed-tools: Read, Grep, Glob
 
 ## Reference
 
-- [Security Guidelines](../../../claude-guidelines/security.md)
-- [Error Handling (Security)](../../../claude-guidelines/coding-standards/error-handling.md)
-- [API Security](../../../claude-guidelines/api-architecture/api-design.md)
+- [Security Guidelines](reference/security.md)
+- [Error Handling (Security)](reference/error-handling.md)
+- [API Security](reference/api-design.md)
 
 ## OWASP Top 10 Reference
 

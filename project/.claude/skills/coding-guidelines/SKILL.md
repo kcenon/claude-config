@@ -16,18 +16,18 @@ description: Provides comprehensive coding standards for quality, naming convent
 
 ### Core Standards
 
-- [General Coding Standards](../../../claude-guidelines/coding-standards/general.md)
-- [Code Quality](../../../claude-guidelines/coding-standards/quality.md)
+- [General Coding Standards](reference/general.md)
+- [Code Quality](reference/quality.md)
 
 ### Error & Safety
 
-- [Error Handling](../../../claude-guidelines/coding-standards/error-handling.md)
-- [Memory Management](../../../claude-guidelines/coding-standards/memory.md)
+- [Error Handling](reference/error-handling.md)
+- [Memory Management](reference/memory.md)
 
 ### Performance
 
-- [Concurrency](../../../claude-guidelines/coding-standards/concurrency.md)
-- [Performance](../../../claude-guidelines/coding-standards/performance.md)
+- [Concurrency](reference/concurrency.md)
+- [Performance](reference/performance.md)
 
 ## Core Principles
 
