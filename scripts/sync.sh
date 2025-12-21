@@ -117,6 +117,21 @@ if [ "$CHECK_PROJECT" = "y" ]; then
             diff -rq "$BACKUP_DIR/project/claude-guidelines" "$PROJECT_DIR/claude-guidelines" 2>/dev/null | head -10 || true
             [ ${PIPESTATUS[0]} -ne 0 ] && PROJECT_DIFF=1
         fi
+
+        # skills 디렉토리 비교
+        if [ -d "$BACKUP_DIR/project/.claude/skills" ] || [ -d "$PROJECT_DIR/.claude/skills" ]; then
+            highlight "skills 디렉토리 비교:"
+            if [ ! -d "$BACKUP_DIR/project/.claude/skills" ]; then
+                echo "    🟡 skills: 시스템에만 있음 (백업으로 복사 가능)"
+                PROJECT_DIFF=1
+            elif [ ! -d "$PROJECT_DIR/.claude/skills" ]; then
+                echo "    🔵 skills: 백업에만 있음 (시스템에 복사 가능)"
+                PROJECT_DIFF=1
+            else
+                diff -rq "$BACKUP_DIR/project/.claude/skills" "$PROJECT_DIR/.claude/skills" 2>/dev/null | head -10 || true
+                [ ${PIPESTATUS[0]} -ne 0 ] && PROJECT_DIFF=1
+            fi
+        fi
     fi
 fi
 
@@ -197,6 +212,12 @@ if [ "$SYNC_DIRECTION" = "1" ]; then
             cp -r "$BACKUP_DIR/project/claude-guidelines"/* "$PROJECT_DIR/claude-guidelines/"
             success "claude-guidelines → 시스템"
         }
+
+        [ -d "$BACKUP_DIR/project/.claude/skills" ] && {
+            mkdir -p "$PROJECT_DIR/.claude/skills"
+            cp -r "$BACKUP_DIR/project/.claude/skills"/* "$PROJECT_DIR/.claude/skills/"
+            success "skills → 시스템"
+        }
     fi
 
 else
@@ -231,6 +252,12 @@ else
             mkdir -p "$BACKUP_DIR/project/claude-guidelines"
             cp -r "$PROJECT_DIR/claude-guidelines"/* "$BACKUP_DIR/project/claude-guidelines/"
             success "claude-guidelines → 백업"
+        }
+
+        [ -d "$PROJECT_DIR/.claude/skills" ] && {
+            mkdir -p "$BACKUP_DIR/project/.claude/skills"
+            cp -r "$PROJECT_DIR/.claude/skills"/* "$BACKUP_DIR/project/.claude/skills/"
+            success "skills → 백업"
         }
     fi
 fi
