@@ -64,17 +64,23 @@ claude_config_backup/
 │   │   ├── settings.json       # Hook 설정 (자동 포맷팅)
 │   │   └── skills/             # Claude Code Skills
 │   │       ├── coding-guidelines/
-│   │       │   └── SKILL.md    # 코딩 표준 스킬
+│   │       │   ├── SKILL.md    # 코딩 표준 스킬
+│   │       │   └── reference/  # 가이드라인 심볼릭 링크
 │   │       ├── security-audit/
-│   │       │   └── SKILL.md    # 보안 감사 스킬
+│   │       │   ├── SKILL.md    # 보안 감사 스킬
+│   │       │   └── reference/  # 가이드라인 심볼릭 링크
 │   │       ├── performance-review/
-│   │       │   └── SKILL.md    # 성능 리뷰 스킬
+│   │       │   ├── SKILL.md    # 성능 리뷰 스킬
+│   │       │   └── reference/  # 가이드라인 심볼릭 링크
 │   │       ├── api-design/
-│   │       │   └── SKILL.md    # API 및 아키텍처 스킬
+│   │       │   ├── SKILL.md    # API 및 아키텍처 스킬
+│   │       │   └── reference/  # 가이드라인 심볼릭 링크
 │   │       ├── project-workflow/
-│   │       │   └── SKILL.md    # 워크플로우 및 프로젝트 관리 스킬
+│   │       │   ├── SKILL.md    # 워크플로우 및 프로젝트 관리 스킬
+│   │       │   └── reference/  # 가이드라인 심볼릭 링크
 │   │       └── documentation/
-│   │           └── SKILL.md    # 문서화 표준 스킬
+│   │           ├── SKILL.md    # 문서화 표준 스킬
+│   │           └── reference/  # 가이드라인 심볼릭 링크
 │   └── claude-guidelines/      # 가이드라인 모듈
 │       ├── api-architecture/   # API 및 아키텍처
 │       │   ├── api-design.md
@@ -139,6 +145,29 @@ claude_config_backup/
 3. Skills는 요청의 트리거 키워드에 따라 활성화됩니다
 4. Skills는 상세 가이드라인에 대한 빠른 참조 링크를 제공합니다
 
+### Progressive Disclosure 패턴
+
+Skills는 토큰 효율성을 위해 Progressive Disclosure 패턴을 사용합니다:
+
+1. **SKILL.md**: 핵심 정보만 포함 (~50줄)
+2. **reference/**: 상세 가이드라인 파일에 대한 심볼릭 링크
+3. **온디맨드 로딩**: Claude는 필요할 때만 reference 파일을 읽습니다
+
+```
+skills/coding-guidelines/
+├── SKILL.md              # 핵심 정보 (~37줄)
+└── reference/            # 상세 가이드라인 심볼릭 링크
+    ├── general.md        → claude-guidelines/coding-standards/general.md
+    ├── quality.md        → claude-guidelines/coding-standards/quality.md
+    ├── error-handling.md → claude-guidelines/coding-standards/error-handling.md
+    └── ...
+```
+
+**장점:**
+- 초기 로드 토큰: ~5000 → ~1000 (80% 감소)
+- 안정적인 로딩을 위한 1-level deep 참조
+- 간소화된 경로 관리
+
 ### Skill 구조
 
 ```yaml
@@ -155,7 +184,7 @@ allowed-tools: Read, Grep, Glob  # 선택사항: 도구 제한
 - 사용 케이스 2
 
 ## 빠른 참조
-- [가이드라인 링크](path/to/guideline.md)
+- [가이드라인 링크](reference/guideline.md)
 ```
 
 ---
