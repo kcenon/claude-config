@@ -74,7 +74,7 @@ See [plugin/README.md](plugin/README.md) for more details.
 claude_config_backup/
 ├── global/                      # Global settings backup (~/.claude/)
 │   ├── CLAUDE.md               # Main configuration file
-│   ├── settings.json           # Hook settings (security, session)
+│   ├── settings.json           # Hook settings (security, session, UserPromptSubmit, Stop)
 │   ├── commit-settings.md      # Commit/PR attribution policy
 │   ├── conversation-language.md # Conversation language settings
 │   ├── git-identity.md         # Git user information
@@ -82,8 +82,26 @@ claude_config_backup/
 │
 ├── project/                     # Project settings backup
 │   ├── CLAUDE.md               # Project main configuration
+│   ├── CLAUDE.local.md.template # Local settings template (not committed)
+│   ├── .mcp.json               # MCP server configuration template
 │   ├── .claude/
 │   │   ├── settings.json       # Hook settings (auto-formatting)
+│   │   ├── settings.local.json.template  # Local settings template
+│   │   ├── rules/              # Modular rules with path frontmatter
+│   │   │   ├── coding.md       # Coding standards (auto-loaded for code files)
+│   │   │   ├── testing.md      # Testing standards (auto-loaded for test files)
+│   │   │   ├── security.md     # Security guidelines
+│   │   │   ├── documentation.md # Documentation standards
+│   │   │   └── api/
+│   │   │       └── rest-api.md # REST API design patterns
+│   │   ├── commands/           # Custom slash commands
+│   │   │   ├── pr-review.md    # /pr-review command
+│   │   │   ├── code-quality.md # /code-quality command
+│   │   │   └── git-status.md   # /git-status command
+│   │   ├── agents/             # Specialized agent configurations
+│   │   │   ├── code-reviewer.md
+│   │   │   ├── documentation-writer.md
+│   │   │   └── refactor-assistant.md
 │   │   └── skills/             # Claude Code Skills
 │   │       ├── coding-guidelines/
 │   │       │   ├── SKILL.md    # Coding standards skill
@@ -173,12 +191,20 @@ This configuration includes automated Hook settings for enhanced security and pr
 | **Dangerous Command Block** | PreToolUse | Blocks `rm -rf /`, `chmod 777`, remote script execution |
 | **Session Logging** | SessionStart/End | Logs session start/end times to `~/.claude/session.log` |
 | **Temp File Cleanup** | SessionEnd | Removes old `/tmp/claude_*` files |
+| **Dangerous Operation Warning** | UserPromptSubmit | Warns when dangerous operations (delete all, drop database) are requested |
+| **Stop Logging** | Stop | Logs when Claude Code operations are stopped |
 
 ### Project Hooks (`project/.claude/settings.json`)
 
 | Hook | Event | Description |
 |------|-------|-------------|
 | **Auto Formatting** | PostToolUse | Runs language-specific formatters after file edits |
+
+### Settings Options
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `alwaysThinkingEnabled` | Enable extended thinking for complex tasks | `true` |
 
 **Supported Formatters:**
 - Python: `black`, `isort`
@@ -189,6 +215,110 @@ This configuration includes automated Hook settings for enhanced security and pr
 - Rust: `rustfmt`
 
 For detailed configuration, see [HOOKS.md](HOOKS.md).
+
+---
+
+## Rules
+
+Rules are modular configuration files in `.claude/rules/` that are conditionally loaded based on file paths.
+
+### Available Rules
+
+| Rule | Auto-loaded for | Description |
+|------|-----------------|-------------|
+| `coding.md` | `**/*.ts`, `**/*.py`, `**/*.go`, etc. | General coding standards |
+| `testing.md` | `**/*.test.ts`, `**/test_*.py`, etc. | Testing conventions |
+| `security.md` | All code files | Security best practices |
+| `documentation.md` | `**/*.md`, `**/docs/**` | Documentation standards |
+| `api/rest-api.md` | `**/api/**`, `**/routes/**` | REST API design patterns |
+
+### How Rules Work
+
+Rules use YAML frontmatter with `paths` to define when they should be loaded:
+
+```yaml
+---
+paths:
+  - "**/*.ts"
+  - "**/*.tsx"
+---
+
+# Rule content here
+```
+
+When you work on files matching these patterns, the rule is automatically loaded.
+
+---
+
+## Commands
+
+Custom slash commands in `.claude/commands/` provide shortcuts for common tasks.
+
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `/pr-review [NUMBER]` | Comprehensive PR review with security, performance, and quality analysis |
+| `/code-quality [PATH]` | Analyze code quality and provide improvement suggestions |
+| `/git-status` | Enhanced git status with actionable insights |
+
+### Creating Custom Commands
+
+1. Create a markdown file in `.claude/commands/`
+2. Define usage, instructions, and output format
+3. Use the command with `/command-name`
+
+---
+
+## Agents
+
+Specialized agents in `.claude/agents/` provide focused assistance for specific tasks.
+
+### Available Agents
+
+| Agent | Description | Model |
+|-------|-------------|-------|
+| `code-reviewer` | Comprehensive code review | sonnet |
+| `documentation-writer` | Technical documentation | sonnet |
+| `refactor-assistant` | Safe code refactoring | sonnet |
+
+### Agent Configuration
+
+Agents use YAML frontmatter to define behavior:
+
+```yaml
+---
+name: agent-name
+description: What the agent does
+model: sonnet
+allowed-tools:
+  - Read
+  - Edit
+temperature: 0.3
+---
+```
+
+---
+
+## MCP Configuration
+
+The `.mcp.json` template provides common MCP server configurations.
+
+### Available Servers
+
+| Server | Description |
+|--------|-------------|
+| `filesystem` | File system access |
+| `github` | GitHub integration |
+| `postgres` | PostgreSQL database access |
+| `slack` | Slack messaging |
+| `memory` | Persistent memory storage |
+
+### Setup
+
+1. Copy `.mcp.json` to your project root
+2. Configure environment variables for tokens
+3. Remove unused servers
 
 ---
 
@@ -630,8 +760,25 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## Version
 
-- **Version**: 1.0.0
-- **Last Updated**: 2025-12-03
+- **Version**: 1.1.0
+- **Last Updated**: 2025-01-15
+
+### Changelog
+
+#### v1.1.0 (2025-01-15)
+- Added `.claude/rules/` directory with path-based conditional loading
+- Added `.claude/commands/` for custom slash commands
+- Added `.claude/agents/` for specialized agent configurations
+- Added MCP configuration template (`.mcp.json`)
+- Added local settings templates (`CLAUDE.local.md.template`, `settings.local.json.template`)
+- Extended hooks with `UserPromptSubmit` and `Stop` events
+- Added `alwaysThinkingEnabled` setting to all settings.json files
+- Enhanced all SKILL.md files with `allowed-tools` and `model` options
+
+#### v1.0.0 (2025-12-03)
+- Initial release with global and project configurations
+- Claude Code Skills with progressive disclosure pattern
+- Hook settings for security and auto-formatting
 
 ---
 
