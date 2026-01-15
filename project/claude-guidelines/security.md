@@ -2,6 +2,8 @@
 
 ## Input Validation
 
+**IMPORTANT:** All user input MUST be validated before processing.
+
 ### Validate All External Input
 
 Never trust data from external sources. Always validate and sanitize:

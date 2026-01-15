@@ -9,6 +9,8 @@ These guidelines define general conventions and practices for working in this re
 
 ## Quick Reference
 
+**CRITICAL:** Always consult [environment.md](claude-guidelines/environment.md) first for timezone and locale context.
+
 <table>
 <tr>
 <td width="50%">

@@ -15,6 +15,8 @@ The configuration is organized into focused modules for better token efficiency:
 
 ## Priority Rules
 
+**IMPORTANT:** These rules determine which settings take effect:
+
 1. **Project settings override global settings** - When a project has its own `CLAUDE.md`, those rules take precedence
 2. **Intelligent loading** - Claude Code uses conditional loading rules to automatically select relevant modules (see project's `conditional-loading.md`)
 3. **Explicit conflicts** - If project and global settings conflict, the project setting wins
