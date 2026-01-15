@@ -20,6 +20,7 @@ These guidelines define general conventions and practices for working in this re
 - [Question Handling](claude-guidelines/workflow.md)
 - [Problem Solving](claude-guidelines/problem-solving.md)
 - [Language Conventions](claude-guidelines/communication.md)
+- [Common Commands](claude-guidelines/common-commands.md)
 
 </td>
 <td width="50%">
@@ -38,7 +39,7 @@ These guidelines define general conventions and practices for working in this re
 
 | Category | Modules |
 |----------|---------|
-| **Environment & Workflow** | [Environment](claude-guidelines/environment.md), [Workflow](claude-guidelines/workflow.md), [Problem-Solving](claude-guidelines/problem-solving.md), [Communication](claude-guidelines/communication.md), [Git](claude-guidelines/git-commit-format.md) |
+| **Environment & Workflow** | [Environment](claude-guidelines/environment.md), [Workflow](claude-guidelines/workflow.md), [Problem-Solving](claude-guidelines/problem-solving.md), [Communication](claude-guidelines/communication.md), [Git](claude-guidelines/git-commit-format.md), [Commands](claude-guidelines/common-commands.md) |
 | **Code Standards** | [General](claude-guidelines/coding-standards/general.md), [Quality](claude-guidelines/coding-standards/quality.md), [Error Handling](claude-guidelines/coding-standards/error-handling.md), [Cleanup](claude-guidelines/operations/cleanup.md) |
 | **Technical** | [Concurrency](claude-guidelines/coding-standards/concurrency.md), [Memory](claude-guidelines/coding-standards/memory.md), [Performance](claude-guidelines/coding-standards/performance.md) |
 | **Project Management** | [Build](claude-guidelines/project-management/build.md), [Testing](claude-guidelines/project-management/testing.md), [Documentation](claude-guidelines/project-management/documentation.md) |

@@ -99,7 +99,7 @@ Priority 4 (Optional): Load only if explicitly needed
   load: [documentation, communication]
 
 /scripts/, /tools/:
-  load: [general, error-handling]
+  load: [common-commands, general, error-handling]
 
 /src/api/, /routes/, /controllers/:
   load: [security, documentation, error-handling]
@@ -251,6 +251,9 @@ def determine_modules_to_load(context):
 | `issue label` | `github-issue-5w1h` | Labeling guidance |
 | `create PR` | `github-pr-5w1h`, `workflow` | PR creation |
 | `gh issue` | `github-issue-5w1h` | CLI command |
+| `run script` | `common-commands` | Script execution |
+| `install`, `backup`, `sync` | `common-commands` | Setup commands |
+| `validate`, `verify` | `common-commands` | Validation commands |
 
 ## 🔧 Override Mechanisms
 
