@@ -1,7 +1,7 @@
 # Universal Development Guidelines
 
-Version: 1.1.0
-Last Updated: 2025-12-03
+Version: 1.2.0
+Last Updated: 2026-01-15
 
 These guidelines define general conventions and practices for working in this repository. They emphasize clear procedures, maintainability, and security while allowing language‑specific details to be handled by the appropriate official guidelines.
 
@@ -32,155 +32,31 @@ These guidelines define general conventions and practices for working in this re
 </tr>
 </table>
 
-## Complete Guidelines Index
+## Guidelines Index
 
-### Environment and Workflow
+| Category | Modules |
+|----------|---------|
+| **Environment & Workflow** | [Environment](claude-guidelines/environment.md), [Workflow](claude-guidelines/workflow.md), [Problem-Solving](claude-guidelines/problem-solving.md), [Communication](claude-guidelines/communication.md), [Git](claude-guidelines/git-commit-format.md) |
+| **Code Standards** | [General](claude-guidelines/coding-standards/general.md), [Quality](claude-guidelines/coding-standards/quality.md), [Error Handling](claude-guidelines/coding-standards/error-handling.md), [Cleanup](claude-guidelines/operations/cleanup.md) |
+| **Technical** | [Concurrency](claude-guidelines/coding-standards/concurrency.md), [Memory](claude-guidelines/coding-standards/memory.md), [Performance](claude-guidelines/coding-standards/performance.md) |
+| **Project Management** | [Build](claude-guidelines/project-management/build.md), [Testing](claude-guidelines/project-management/testing.md), [Documentation](claude-guidelines/project-management/documentation.md) |
+| **Security & Ops** | [Security](claude-guidelines/security.md), [Monitoring](claude-guidelines/operations/monitoring.md) |
+| **API & Architecture** | [API Design](claude-guidelines/api-architecture/api-design.md), [Logging](claude-guidelines/api-architecture/logging.md), [Observability](claude-guidelines/api-architecture/observability.md), [Architecture](claude-guidelines/api-architecture/architecture.md) |
 
-| # | Guideline | Focus Area |
-|---|-----------|------------|
-| 01 | [Work Environment and Conditions](claude-guidelines/environment.md) | Timezone, locale settings |
-| 02 | [Workflow Guidelines](claude-guidelines/workflow.md) | Request analysis, planning |
-| 02a | → [Question Handling](claude-guidelines/workflow/question-handling.md) | Translate, analyze, present |
-| 02b | → [Problem Solving](claude-guidelines/workflow/problem-solving.md) | Systematic approach, minimal changes |
-| 02c | → [Performance Analysis](claude-guidelines/workflow/performance-analysis.md) | Codebase performance analysis |
-| 02d | → [GitHub Issue Guidelines](claude-guidelines/workflow/github-issue-5w1h.md) | 5W1H framework, labeling, automation |
-| 02e | → [GitHub PR Guidelines](claude-guidelines/workflow/github-pr-5w1h.md) | 5W1H framework for PRs |
-| 03 | [Problem‑Solving Principles](claude-guidelines/problem-solving.md) | Systematic approach, minimal changes |
-| 04 | [Response Language and Documentation](claude-guidelines/communication.md) | Korean responses, English code |
-| 05 | [Git and Commit Settings](claude-guidelines/git-commit-format.md) | Commit format, versioning |
+## Module Loading
 
-### Code Standards
+Modules are auto-loaded via **[Conditional Loading](claude-guidelines/conditional-loading.md)** based on task keywords and file types.
 
-| # | Guideline | Focus Area |
-|---|-----------|------------|
-| 06 | [Universal Coding Guidelines](claude-guidelines/coding-standards/general.md) | Naming, modularity, comments |
-| 07 | [Code Quality and Maintainability](claude-guidelines/coding-standards/quality.md) | Complexity, refactoring, immutability |
-| 17 | [Cleanup and Finalisation](claude-guidelines/operations/cleanup.md) | Formatting, linting, cleanup |
+**Manual override:** `@load: security, performance` | `@skip: documentation` | `@focus: memory`
 
-### Technical Implementation
+## Global vs Project Settings
 
-| # | Guideline | Focus Area |
-|---|-----------|------------|
-| 08 | [Exception and Error Handling](claude-guidelines/coding-standards/error-handling.md) | Error patterns, validation |
-| 09 | [Concurrency](claude-guidelines/coding-standards/concurrency.md) | Thread safety, async patterns |
-| 10 | [Memory Management](claude-guidelines/coding-standards/memory.md) | RAII, GC, leak detection |
-| 11 | [Performance Optimisation](claude-guidelines/coding-standards/performance.md) | Profiling, caching, algorithms |
+| Scope | Controls |
+|-------|----------|
+| **Global** (`~/.claude/CLAUDE.md`) | Token display, conversation language, git identity |
+| **Project** (this file) | Code standards, commit format, testing requirements |
 
-### Project Management
-
-| # | Guideline | Focus Area |
-|---|-----------|------------|
-| 12 | [Build and Dependency Management](claude-guidelines/project-management/build.md) | Lock files, versioning, security |
-| 13 | [Testing Strategy](claude-guidelines/project-management/testing.md) | Unit, integration, E2E tests |
-| 14 | [Documentation](claude-guidelines/project-management/documentation.md) | API docs, README, ADR |
-
-### Security and Operations
-
-| # | Guideline | Focus Area |
-|---|-----------|------------|
-| 15 | [Security and Sensitive Information](claude-guidelines/security.md) | Input validation, secure storage |
-| 16 | [Performance Metrics](claude-guidelines/operations/monitoring.md) | Monitoring, alerting, SLOs |
-
-### API and Architecture
-
-| # | Guideline | Focus Area |
-|---|-----------|------------|
-| 18 | [API Design](claude-guidelines/api-architecture/api-design.md) | REST, GraphQL, versioning |
-| 19 | [Logging Standards](claude-guidelines/api-architecture/logging.md) | Structured logging, levels |
-| 20 | [Observability](claude-guidelines/api-architecture/observability.md) | Metrics, traces, health checks |
-| 21 | [Architecture and Design](claude-guidelines/api-architecture/architecture.md) | SOLID, patterns, microservices |
-
-## Intelligent Module Loading
-
-Claude Code uses **[Conditional Loading Rules](claude-guidelines/conditional-loading.md)** to automatically select relevant modules based on:
-- Task keywords in your request
-- File types you're working with
-- Context and development phase
-- Token optimization (saves ~60-70%)
-
-### Manual Override
-
-You can manually control module loading:
-```markdown
-@load: security, performance  # Force load specific modules
-@skip: documentation          # Skip specific modules
-@focus: memory-optimization   # Set primary focus
-```
-
-## Guidelines by Task Type
-
-### Writing New Code
-**Start here:** 06 → 07 → 08 → 13
-
-Focus on coding standards, quality, error handling, and testing.
-
-### Reviewing Code
-**Start here:** 07 → 15 → 21 → 06
-
-Emphasize quality, security, architecture, and coding standards.
-
-### Performance Optimization
-**Start here:** 16 → 11 → 09 → 10
-
-Profile first, then optimize concurrency and memory.
-
-### Security Audit
-**Start here:** 15 → 08 → 18 → 12
-
-Check security, error handling, API design, and dependencies.
-
-### Designing Architecture
-**Start here:** 21 → 18 → 09 → 20
-
-Architecture patterns, API design, concurrency, observability.
-
-### Debugging Issues
-**Start here:** 19 → 20 → 08 → 11
-
-Leverage logging, observability, error handling, and profiling.
-
-### Writing Documentation
-**Start here:** 14 → 18 → 04
-
-Documentation standards, API docs, language conventions.
-
-### Setting Up Project
-**Start here:** 12 → 05 → 13 → 17
-
-Dependencies, git, testing, cleanup.
-
-## Quick Reference by Task
-
-| Task | Auto-Loaded Modules | Additional on Detection |
-|------|-------------------|------------------------|
-| **Writing new code** | General, Quality, Error Handling | Language-specific based on file extension |
-| **Fixing bugs** | Error Handling, Quality, Testing | Memory/Concurrency if crash-related |
-| **Performance optimization** | Performance, Monitoring, Memory | Concurrency if parallel processing |
-| **Adding tests** | Testing, Quality | Error Handling for edge cases |
-| **Code review** | ALL Standards, Security, Quality | Full comprehensive load |
-| **Git operations** | Git Commit Format, Workflow | Communication for PR descriptions |
-| **Security audit** | Security, Error Handling | Monitoring for security events |
-| **Documentation** | Documentation, Communication | Skip all coding standards |
-| **Build issues** | Build, Dependencies, Security | Monitoring for production |
-| **Architecture design** | Architecture, API Design, Observability | Concurrency, Performance |
-
-## Integration with Global Settings
-
-### Global Settings Control:
-- Token usage display
-- Conversation language (Korean)
-- Git user identity
-
-### Project Settings Control:
-- Code and documentation language (English)
-- Coding standards and conventions
-- Commit message format (`type(scope): description`)
-- Testing and security requirements
-
-### Priority Rules:
-1. **Project settings override global settings** when conflicts occur
-2. **Both apply** when addressing different aspects
-3. **Explicit in project** - Project guidelines take precedence
+**Priority:** Project settings override global settings when conflicts occur.
 
 ## Usage Notes
 
@@ -204,6 +80,7 @@ When adding new guidelines:
 
 ## Version History
 
+- **1.2.0** (2026-01-15): Simplified CLAUDE.md (212 → ~85 lines) for token efficiency
 - **1.1.0** (2025-12-03): Refactored workflow.md into 5 focused sub-modules for token efficiency
 - **1.0.0** (2025-12-03): Initial unified release with full guidelines
 
