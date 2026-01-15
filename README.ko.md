@@ -74,6 +74,7 @@ claude --plugin-dir ./plugin
 claude_config_backup/
 ├── global/                      # 글로벌 설정 백업 (~/.claude/)
 │   ├── CLAUDE.md               # 메인 설정 파일
+│   ├── settings.json           # Hook 설정 (보안, 세션, UserPromptSubmit, Stop)
 │   ├── commit-settings.md      # 커밋/PR 정책 (Claude 정보 비활성화)
 │   ├── conversation-language.md # 대화 언어 설정
 │   ├── git-identity.md         # Git 사용자 정보
@@ -81,8 +82,26 @@ claude_config_backup/
 │
 ├── project/                     # 프로젝트 설정 백업
 │   ├── CLAUDE.md               # 프로젝트 메인 설정
+│   ├── CLAUDE.local.md.template # 로컬 설정 템플릿 (커밋 제외)
+│   ├── .mcp.json               # MCP 서버 설정 템플릿
 │   ├── .claude/
 │   │   ├── settings.json       # Hook 설정 (자동 포맷팅)
+│   │   ├── settings.local.json.template  # 로컬 설정 템플릿
+│   │   ├── rules/              # 경로 기반 조건부 규칙
+│   │   │   ├── coding.md       # 코딩 표준 (코드 파일에 자동 로드)
+│   │   │   ├── testing.md      # 테스트 표준 (테스트 파일에 자동 로드)
+│   │   │   ├── security.md     # 보안 가이드라인
+│   │   │   ├── documentation.md # 문서화 표준
+│   │   │   └── api/
+│   │   │       └── rest-api.md # REST API 디자인 패턴
+│   │   ├── commands/           # 사용자 정의 슬래시 명령어
+│   │   │   ├── pr-review.md    # /pr-review 명령어
+│   │   │   ├── code-quality.md # /code-quality 명령어
+│   │   │   └── git-status.md   # /git-status 명령어
+│   │   ├── agents/             # 특화 에이전트 설정
+│   │   │   ├── code-reviewer.md
+│   │   │   ├── documentation-writer.md
+│   │   │   └── refactor-assistant.md
 │   │   └── skills/             # Claude Code Skills
 │   │       ├── coding-guidelines/
 │   │       │   ├── SKILL.md    # 코딩 표준 스킬
@@ -597,8 +616,25 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## 버전
 
-- **Version**: 1.0.0
-- **Last Updated**: 2025-12-03
+- **Version**: 1.1.0
+- **Last Updated**: 2025-01-15
+
+### 변경 이력
+
+#### v1.1.0 (2025-01-15)
+- 경로 기반 조건부 로딩을 지원하는 `.claude/rules/` 디렉토리 추가
+- 사용자 정의 슬래시 명령어를 위한 `.claude/commands/` 추가
+- 특화 에이전트 설정을 위한 `.claude/agents/` 추가
+- MCP 설정 템플릿 (`.mcp.json`) 추가
+- 로컬 설정 템플릿 (`CLAUDE.local.md.template`, `settings.local.json.template`) 추가
+- `UserPromptSubmit`, `Stop` 이벤트 훅 추가
+- 모든 settings.json에 `alwaysThinkingEnabled` 설정 추가
+- 모든 SKILL.md에 `allowed-tools`, `model` 옵션 추가
+
+#### v1.0.0 (2025-12-03)
+- 글로벌 및 프로젝트 설정으로 초기 릴리스
+- Progressive Disclosure 패턴의 Claude Code Skills
+- 보안 및 자동 포매팅용 Hook 설정
 
 ---
 

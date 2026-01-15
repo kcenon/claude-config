@@ -25,3 +25,11 @@ Thumbs.db
 
 # npm cache
 .npm-cache/
+
+# Local Claude Code settings (not committed)
+CLAUDE.local.md
+settings.local.json
+.mcp.json
+
+# Session logs
+session.log
