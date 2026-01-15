@@ -1,6 +1,13 @@
 ---
 name: performance-review
 description: Provides performance optimization guidelines for profiling, caching, memory management, and concurrency. Use when optimizing slow code, fixing memory leaks, improving throughput, or conducting performance reviews.
+allowed-tools:
+  - Read
+  - Edit
+  - Glob
+  - Grep
+  - Bash
+model: sonnet
 ---
 
 # Performance Review Skill

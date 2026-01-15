@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json.schemastore.org/mcp.json",
+  "description": "MCP Server Configuration Template",
+  "version": "1.0.0",
+
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-filesystem", "/path/to/allowed/directory"],
+      "description": "File system access for reading/writing files"
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-github"],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "description": "GitHub integration for issues, PRs, and repository operations"
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-postgres"],
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}"
+      },
+      "description": "PostgreSQL database access (read-only recommended)"
+    },
+    "slack": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-slack"],
+      "env": {
+        "SLACK_TOKEN": "${SLACK_TOKEN}"
+      },
+      "description": "Slack integration for messaging and channel operations"
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-memory"],
+      "description": "Persistent memory for storing and retrieving information"
+    }
+  },
+
+  "_comments": {
+    "usage": "Copy this file to your project root and configure the servers you need",
+    "security": "Never commit this file with actual tokens - use environment variables",
+    "customization": "Remove unused servers and update paths for your project"
+  }
+}

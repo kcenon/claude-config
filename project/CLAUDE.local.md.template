@@ -1,0 +1,47 @@
+# Local Claude Code Configuration
+
+This file contains personal settings that should NOT be committed to version control.
+Copy this file to `CLAUDE.local.md` and customize as needed.
+
+## Personal Preferences
+
+### Response Language
+- Preferred language: [Korean/English/etc.]
+
+### Communication Style
+- [Add your preferred communication style]
+
+## Local Environment
+
+### Project Paths
+- Working directory: [your-path]
+- Build output: [your-path]
+
+### Local Services
+- Database: localhost:5432
+- API: localhost:3000
+
+## Personal Shortcuts
+
+### Frequently Used Commands
+```bash
+# Add your common commands here
+npm run dev
+npm run test
+```
+
+### Custom Aliases
+- [Define any personal aliases or shortcuts]
+
+## Notes
+
+### Current Tasks
+- [ ] Task 1
+- [ ] Task 2
+
+### Reminders
+- [Add personal reminders here]
+
+---
+
+*This file is ignored by git. Keep sensitive information here.*

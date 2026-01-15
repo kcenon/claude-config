@@ -1,6 +1,13 @@
 ---
 name: coding-guidelines
 description: Provides comprehensive coding standards for quality, naming conventions, error handling, concurrency, and memory management. Use when writing new code, reviewing code, fixing bugs, or refactoring existing code.
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Glob
+  - Grep
+model: sonnet
 ---
 
 # Coding Guidelines Skill
