@@ -1,6 +1,6 @@
 # Universal Development Guidelines
 
-Version: 1.2.1
+Version: 1.3.0
 Last Updated: 2026-01-15
 
 These guidelines define general conventions and practices for working in this repository. They emphasize clear procedures, maintainability, and security while allowing language‑specific details to be handled by the appropriate official guidelines.
@@ -83,6 +83,7 @@ When adding new guidelines:
 
 ## Version History
 
+- **1.3.0** (2026-01-15): Split github-issue-5w1h.md (1,214 → 225 lines) with reference/ directory
 - **1.2.1** (2026-01-15): Optimized conditional-loading.md (309 → 209 lines) for token efficiency
 - **1.2.0** (2026-01-15): Simplified CLAUDE.md (212 → ~85 lines) for token efficiency
 - **1.1.0** (2025-12-03): Refactored workflow.md into 5 focused sub-modules for token efficiency
