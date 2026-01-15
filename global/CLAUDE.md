@@ -49,5 +49,18 @@ To modify these settings:
 
 ---
 
-*Last updated: 2025-12-03*
-*Version: 1.0.0*
+## Version History
+
+- **1.2.0** (2026-01-15): CLAUDE.md optimization for official best practices compliance
+  - Simplified project/CLAUDE.md (212 → ~85 lines)
+  - Added emphasis expressions for key rules
+  - Created common-commands.md
+  - Optimized conditional-loading.md
+  - Split github-issue-5w1h.md with Progressive Disclosure
+- **1.1.0** (2026-01-15): Added rules, commands, agents, MCP configuration
+- **1.0.0** (2025-12-03): Initial release with Skills system
+
+---
+
+*Last updated: 2026-01-15*
+*Version: 1.2.0*
