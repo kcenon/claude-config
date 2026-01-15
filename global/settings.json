@@ -1,7 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "description": "Claude Code 글로벌 설정 - 모든 프로젝트에 적용",
-  "version": "1.0.0",
+  "version": "1.1.0",
+
+  "alwaysThinkingEnabled": true,
 
   "hooks": {
     "PreToolUse": [
@@ -44,6 +46,28 @@
             "type": "command",
             "command": "bash -c 'echo \"[Session] Claude Code 세션 종료: $(date +\"%Y-%m-%d %H:%M:%S\")\" >> \"${HOME}/.claude/session.log\" 2>/dev/null; find /tmp -maxdepth 1 -name \"claude_*\" -mmin +60 -delete 2>/dev/null; find /tmp -maxdepth 1 -name \"tmp.*\" -user \"$(whoami)\" -mmin +60 -delete 2>/dev/null; exit 0'",
             "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'PROMPT=\"${CLAUDE_USER_PROMPT:-}\"; if [ -z \"$PROMPT\" ]; then exit 0; fi; if echo \"$PROMPT\" | grep -qiE \"(delete|remove|drop)\\s+(all|entire|whole|database|table|production)\"; then echo \"[WARNING] 위험한 작업 요청 감지. 신중하게 진행하세요.\" >&2; fi; exit 0'",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'echo \"[Stop] Claude Code 작업 중단: $(date +\"%Y-%m-%d %H:%M:%S\")\" >> \"${HOME}/.claude/session.log\" 2>/dev/null; exit 0'",
+            "timeout": 5
           }
         ]
       }
