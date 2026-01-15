@@ -1,7 +1,7 @@
 # Conditional Module Loading Rules
 
 > **Purpose**: Automatically load only relevant guideline modules based on context
-> **Version**: 1.0.0
+> **Version**: 1.1.0
 > **Token Savings**: ~60-70% compared to loading all modules
 
 ## Loading Priority System
@@ -153,85 +153,6 @@ code smell, technical debt, maintainability
 ```
 **Load**: `quality`, `general`
 
-## 🎨 Combined Rules (AND/OR Logic)
-
-### Complex Scenarios
-
-```javascript
-// Rule: High-Risk Operations
-if (contains("production") AND (contains("database") OR contains("migration"))) {
-  load: [security, testing, error-handling, monitoring]
-  require_review: true
-}
-
-// Rule: Performance-Critical Path
-if (contains("real-time") OR contains("streaming") OR contains("websocket")) {
-  load: [performance, concurrency, monitoring, memory]
-  set_priority: "performance"
-}
-
-// Rule: Public API Development
-if (path.includes("/api/") AND (contains("public") OR contains("external"))) {
-  load: [security, documentation, error-handling, testing]
-  enforce_strict: true
-}
-
-// Rule: Legacy Code Refactoring
-if (contains("legacy") AND contains("refactor")) {
-  load: [quality, testing, documentation, error-handling]
-  suggest: "incremental approach"
-}
-```
-
-## 📊 Loading Statistics & Optimization
-
-### Token Usage by Module
-
-| Module | Avg Tokens | Load Frequency | Impact |
-|--------|------------|----------------|---------|
-| general | 500 | 80% | High |
-| quality | 400 | 70% | High |
-| error-handling | 350 | 65% | Medium |
-| security | 600 | 40% | High when needed |
-| performance | 450 | 30% | Context-specific |
-| concurrency | 400 | 25% | Language-specific |
-| memory | 350 | 20% | C/C++/Rust only |
-| documentation | 300 | 35% | Task-specific |
-| testing | 400 | 45% | Medium |
-| monitoring | 250 | 15% | Production only |
-
-### Smart Loading Algorithm
-
-```python
-def determine_modules_to_load(context):
-    modules = set()
-
-    # Priority 1: Always load core
-    modules.add('environment', 'workflow')
-
-    # Priority 2: Task-based
-    task_modules = match_task_pattern(context.user_request)
-    modules.update(task_modules)
-
-    # Priority 3: File-based
-    if context.has_files:
-        file_modules = match_file_patterns(context.files)
-        modules.update(file_modules)
-
-    # Priority 4: Keyword-based
-    keyword_modules = match_keywords(context.full_text)
-    modules.update(keyword_modules)
-
-    # Apply exclusion rules
-    modules = apply_exclusions(modules, context)
-
-    # Optimize for token limit
-    if estimate_tokens(modules) > TOKEN_LIMIT:
-        modules = prioritize_modules(modules, context)
-
-    return modules
-```
-
 ## 🚀 Quick Reference Patterns
 
 ### Instant Recognition Patterns
@@ -282,27 +203,6 @@ conditional_loading:
   never_load: [memory]      # Managed runtime, skip memory
   task_overrides:
     feature: [add_custom_module]
-```
-
-## 📈 Continuous Improvement
-
-### Metrics to Track
-
-1. **Load Accuracy**: Did we load the right modules?
-2. **Token Efficiency**: Tokens used vs. tokens saved
-3. **Response Quality**: Did missing modules cause issues?
-4. **User Satisfaction**: Feedback on response relevance
-
-### Learning Patterns
-
-```yaml
-# Pattern discovered through usage
-new_pattern:
-  trigger: "GraphQL schema"
-  load: [documentation, security, error-handling]
-  reason: "GraphQL requires special security consideration"
-  discovered: "2024-11-05"
-  frequency: 15 occurrences
 ```
 
 ---
