@@ -156,6 +156,10 @@ Provide summary of actions taken.
 
 ## Policies
 
+See [_policy.md](./_policy.md) for common rules.
+
+### Command-Specific Rules
+
 | Item | Rule |
 |------|------|
 | Protected branches | Never delete main, master, develop, release/*, hotfix/* |

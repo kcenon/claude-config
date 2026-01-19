@@ -176,10 +176,12 @@ After creating the issue:
 
 ## Policies
 
+See [_policy.md](./_policy.md) for common rules.
+
+### Command-Specific Rules
+
 | Item | Rule |
 |------|------|
-| Language | English for all issue content |
-| Attribution | No Claude, AI, or bot references |
 | Title length | 50 characters or less (ideal) |
 | Acceptance criteria | At least 2 testable items |
 

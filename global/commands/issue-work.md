@@ -177,11 +177,12 @@ gh issue comment <NUMBER> --repo $ORG/$PROJECT \
 
 ## Policies
 
+See [_policy.md](./_policy.md) for common rules.
+
+### Command-Specific Rules
+
 | Item | Rule |
 |------|------|
-| Language | English for all commits, PRs, issues |
-| Attribution | No Claude, AI, Co-Authored-By references |
-| Emojis | Forbidden in commits and PRs |
 | Issue linking | `Closes #NUM` required in PR |
 | Build verification | Must pass before PR creation |
 

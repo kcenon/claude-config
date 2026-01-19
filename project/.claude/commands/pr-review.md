@@ -69,6 +69,10 @@ When reviewing a PR, analyze the following:
 | REQUEST_CHANGES | Any Critical issue OR ≥3 Major issues |
 | NEEDS_DISCUSSION | Architectural concerns, trade-off decisions |
 
+## Policies
+
+See [_policy.md](./_policy.md) for common rules.
+
 ## Output Format
 
 Provide feedback in this format:
