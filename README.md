@@ -1,17 +1,49 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.3.0-blue.svg" alt="Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
+  <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
+</p>
+
+<p align="center">
   <strong>Easily share and sync CLAUDE.md settings across multiple systems</strong>
 </p>
 
 <p align="center">
-  <a href="#-one-line-installation">Installation</a> •
-  <a href="#-structure">Structure</a> •
-  <a href="#-scripts">Scripts</a> •
-  <a href="#-use-cases">Use Cases</a> •
-  <a href="#-faq">FAQ</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#one-line-installation">Installation</a> •
+  <a href="#structure">Structure</a> •
+  <a href="#use-cases">Use Cases</a> •
+  <a href="#faq">FAQ</a> •
   <a href="README.ko.md">Korean</a>
 </p>
+
+---
+
+## Quick Start
+
+Get up and running in 3 minutes:
+
+```bash
+# 1. One-line installation
+curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash
+
+# 2. Personalize Git identity (Required!)
+vi ~/.claude/git-identity.md
+
+# 3. Restart Claude Code - Done!
+```
+
+**Common Tasks:**
+
+| Task | Command |
+|------|---------|
+| Backup settings | `./scripts/backup.sh` |
+| Sync settings | `./scripts/sync.sh` |
+| Verify backup | `./scripts/verify.sh` |
+
+For detailed scenarios, see [Use Cases](#use-cases).
 
 ---
 
@@ -70,6 +102,9 @@ See [plugin/README.md](plugin/README.md) for more details.
 
 ## Structure
 
+<details>
+<summary>Click to expand directory structure</summary>
+
 ```
 claude_config_backup/
 ├── global/                      # Global settings backup (~/.claude/)
@@ -78,7 +113,14 @@ claude_config_backup/
 │   ├── commit-settings.md      # Commit/PR attribution policy
 │   ├── conversation-language.md # Conversation language settings
 │   ├── git-identity.md         # Git user information
-│   └── token-management.md     # Token management policy
+│   ├── token-management.md     # Token management policy
+│   └── commands/               # Global slash commands
+│       ├── _policy.md          # Shared policies for all commands
+│       ├── branch-cleanup.md   # /branch-cleanup command
+│       ├── issue-create.md     # /issue-create command
+│       ├── issue-work.md       # /issue-work command
+│       ├── pr-work.md          # /pr-work command
+│       └── release.md          # /release command
 │
 ├── project/                     # Project settings backup
 │   ├── CLAUDE.md               # Project main configuration
@@ -177,6 +219,8 @@ claude_config_backup/
 └── HOOKS.md                    # Hook configuration guide
 ```
 
+</details>
+
 ---
 
 ## Hook Settings
@@ -270,6 +314,61 @@ Custom slash commands in `.claude/commands/` provide shortcuts for common tasks.
 
 ---
 
+## Global Commands
+
+Global commands are available across all projects when installed to `~/.claude/commands/`.
+
+### Available Global Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `/branch-cleanup` | Clean merged and stale branches | `/branch-cleanup --dry-run` |
+| `/release` | Create release with auto-generated changelog | `/release 1.2.0` |
+| `/issue-create` | Create GitHub issues with 5W1H framework | `/issue-create myproject --type bug` |
+| `/issue-work` | Automate GitHub issue workflow | `/issue-work myproject` |
+| `/pr-work` | Analyze and fix failed CI/CD for PRs | `/pr-work myproject 42` |
+
+### Command Details
+
+#### `/branch-cleanup`
+```bash
+/branch-cleanup [<project-name>] [--dry-run] [--include-remote] [--stale-days <days>]
+```
+- `--dry-run`: Preview branches without deleting
+- `--include-remote`: Also clean remote tracking branches
+- `--stale-days`: Days since last commit to consider stale (default: 90)
+
+#### `/release`
+```bash
+/release <version> [--draft] [--prerelease] [--org <organization>]
+```
+- Creates GitHub release with changelog from commits since last release
+- Supports semantic versioning (e.g., 1.2.0, 2.0.0-beta.1)
+
+#### `/issue-create`
+```bash
+/issue-create <project-name> [--type <type>] [--priority <priority>]
+```
+- Types: bug, feature, refactor, docs
+- Priorities: critical, high, medium, low
+- Uses 5W1H framework for structured issue creation
+
+#### `/issue-work`
+```bash
+/issue-work <project-name> [--org <organization>]
+```
+- Lists open issues and guides through workflow
+- Auto-detects organization from git remote
+
+#### `/pr-work`
+```bash
+/pr-work <project-name> <pr-number> [--org <organization>]
+```
+- Analyzes failed CI/CD workflows
+- Provides fix suggestions and implementation
+
+---
+
 ## Agents
 
 Specialized agents in `.claude/agents/` provide focused assistance for specific tasks.
@@ -344,6 +443,9 @@ This configuration includes Claude Code Skills for auto-discovery of guidelines 
 3. Skills are activated based on trigger keywords in your request
 4. Skills provide quick reference links to detailed guidelines
 
+<details>
+<summary>Progressive Disclosure Pattern & Skill Structure</summary>
+
 ### Progressive Disclosure Pattern
 
 Skills use the Progressive Disclosure pattern for token efficiency:
@@ -386,49 +488,7 @@ allowed-tools: Read, Grep, Glob  # Optional: restrict tools
 - [Link to guideline](reference/guideline.md)
 ```
 
----
-
-## Quick Start
-
-### Scenario 1: Install Settings on New System
-
-```bash
-# 1. Clone repository
-git clone https://github.com/kcenon/claude-config.git ~/claude_config_backup
-
-# 2. Run installation
-cd ~/claude_config_backup
-./scripts/install.sh
-
-# 3. Personalize Git identity (Required!)
-vi ~/.claude/git-identity.md
-
-# 4. Restart Claude Code
-```
-
-### Scenario 2: Backup Current Settings
-
-```bash
-cd ~/claude_config_backup
-./scripts/backup.sh
-
-# Select type:
-#  1) Global settings only
-#  2) Project settings only
-#  3) Both (recommended)
-```
-
-### Scenario 3: Sync Settings
-
-```bash
-cd ~/claude_config_backup
-./scripts/sync.sh
-
-# Select direction:
-#  1) Backup → System
-#  2) System → Backup
-#  3) Compare only
-```
+</details>
 
 ---
 
@@ -619,6 +679,9 @@ vi ~/.claude/git-identity.md
 
 ---
 
+<details>
+<summary><strong>Advanced Usage</strong> (GitHub Actions, Environment Variables)</summary>
+
 ## Advanced Usage
 
 ### GitHub Actions Auto-Sync
@@ -662,6 +725,8 @@ GITHUB_REPO=your-repo \
 INSTALL_DIR=~/my-claude-config \
 bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh)"
 ```
+
+</details>
 
 ---
 
@@ -760,10 +825,26 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## Version
 
-- **Version**: 1.1.0
-- **Last Updated**: 2025-01-15
+- **Version**: 1.3.0
+- **Last Updated**: 2026-01-15
 
 ### Changelog
+
+#### v1.3.0 (2026-01-15)
+- Added `/release` command for automated changelog generation
+- Added `/branch-cleanup` command for merged and stale branches
+- Added `/issue-create` command with 5W1H framework
+- Added `/issue-work` and `/pr-work` commands for GitHub workflow automation
+- Added common policy files (`_policy.md`) for shared command rules
+- Updated all global commands to reference shared policy
+
+#### v1.2.0 (2026-01-15)
+- CLAUDE.md optimization for official best practices compliance
+- Simplified project/CLAUDE.md (212 → ~85 lines)
+- Added emphasis expressions for key rules
+- Created common-commands.md
+- Optimized conditional-loading.md
+- Split github-issue-5w1h.md with Progressive Disclosure
 
 #### v1.1.0 (2025-01-15)
 - Added `.claude/rules/` directory with path-based conditional loading
