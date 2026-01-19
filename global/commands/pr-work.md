@@ -226,12 +226,14 @@ When max retry attempts (3) are exceeded without success:
 
 ## Policies
 
+See [_policy.md](./_policy.md) for common rules.
+
+### Command-Specific Rules
+
 | Item | Rule |
 |------|------|
-| Language | English for all commits |
-| Attribution | No Claude, AI, Co-Authored-By references |
-| Emojis | Forbidden in commits |
-| Commit style | Conventional Commits format |
+| Max retry attempts | 3 before escalation |
+| Workflow timeout | 10 minutes per run |
 
 ## Output
 

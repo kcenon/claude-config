@@ -214,12 +214,14 @@ Commits are categorized based on conventional commit prefixes:
 
 ## Policies
 
+See [_policy.md](./_policy.md) for common rules.
+
+### Command-Specific Rules
+
 | Item | Rule |
 |------|------|
 | Version format | Semantic versioning required (MAJOR.MINOR.PATCH) |
 | Tag prefix | Always use `v` prefix (e.g., v1.2.0) |
-| Changelog language | English only |
-| Attribution | No Claude, AI, or bot references |
 | Duplicate tags | Prevent creation if tag exists |
 
 ## Output
