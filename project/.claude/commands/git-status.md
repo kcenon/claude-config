@@ -47,6 +47,10 @@ Analyze the current git state and provide:
 - Merge conflict detection
 - Stale branch detection
 
+## Policies
+
+See [_policy.md](./_policy.md) for common rules.
+
 ## Output Format
 
 ```markdown

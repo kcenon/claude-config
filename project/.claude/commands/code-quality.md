@@ -93,6 +93,10 @@ Minimum score: 0
 | 3-4 | Poor | Significant refactoring required |
 | 0-2 | Critical | Major quality concerns |
 
+## Policies
+
+See [_policy.md](./_policy.md) for common rules.
+
 ## Output Format
 
 ```markdown
