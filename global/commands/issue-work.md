@@ -168,6 +168,13 @@ gh pr create --repo $ORG/$PROJECT \
 - English only
 - No Claude/AI references or emojis
 
+**CRITICAL - Forbidden in PR body**:
+- `🤖 Generated with [Claude Code](https://claude.com/claude-code)`
+- Any AI/Claude attribution footer
+- Co-Authored-By lines
+
+After PR creation, capture the PR URL from `gh pr create` output for the summary.
+
 ### 9. Update Original Issue
 
 ```bash
@@ -198,7 +205,7 @@ After completion, provide summary:
 | Repository | $ORG/$PROJECT |
 | Issue | #NUMBER - Title |
 | Branch | branch-name |
-| PR | #PR_NUMBER |
+| PR | [#PR_NUMBER](https://github.com/$ORG/$PROJECT/pull/PR_NUMBER) |
 | Commits | N commits |
 
 ### Changes Made
@@ -211,6 +218,8 @@ After completion, provide summary:
 ### Next Steps
 - Any follow-up items
 ```
+
+**IMPORTANT**: Always include the full PR URL in the output (e.g., `https://github.com/org/repo/pull/123`).
 
 ## Error Handling
 
