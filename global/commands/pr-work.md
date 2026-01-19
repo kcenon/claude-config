@@ -154,10 +154,75 @@ gh run watch <RUN_ID> --repo $ORG/$PROJECT
 
 ### 8. Iterate if Needed
 
-If workflows still fail:
-1. Repeat steps 2-7
-2. Each fix should be a separate commit
-3. Continue until all workflows pass
+If workflows still fail, repeat steps 2-7 with the following limits:
+
+#### Iteration Limits
+
+| Setting | Value | Rationale |
+|---------|-------|-----------|
+| Max retry attempts | 3 | Balance between automation and human review |
+| Workflow wait timeout | 10 minutes | Typical CI completion time |
+| Pause between retries | Wait for CI completion | Avoid redundant fixes |
+
+#### Workflow Monitoring with Timeout
+
+```bash
+# Wait for workflow with timeout (600 seconds = 10 minutes)
+timeout 600 gh run watch <RUN_ID> --repo $ORG/$PROJECT
+
+# Check exit code
+if [ $? -eq 124 ]; then
+    echo "Workflow timed out after 10 minutes"
+    # Continue with current status check
+fi
+```
+
+#### Iteration Rules
+
+1. Each fix should be a separate commit
+2. Track attempt count (max 3 attempts)
+3. After each fix, wait for workflow completion or timeout
+4. Continue until all workflows pass OR max attempts reached
+
+### 9. Failure Escalation
+
+When max retry attempts (3) are exceeded without success:
+
+#### Escalation Steps
+
+1. **Add summary comment to PR**:
+   ```bash
+   gh pr comment $PR_NUMBER --repo $ORG/$PROJECT --body "## Auto-fix Summary
+
+   **Attempted fixes**: 3
+   **Status**: Manual intervention required
+
+   ### Attempted Fixes
+   1. [commit-hash] fix description - Still failing
+   2. [commit-hash] fix description - Still failing
+   3. [commit-hash] fix description - Still failing
+
+   ### Current Failures
+   - Workflow: [workflow-name]
+   - Error: [error-summary]
+
+   Please review manually."
+   ```
+
+2. **Add label** (if available):
+   ```bash
+   gh pr edit $PR_NUMBER --repo $ORG/$PROJECT --add-label "needs-manual-review"
+   ```
+
+3. **Report final status** to user with detailed failure information
+
+#### Escalation Decision Matrix
+
+| Attempt | Action |
+|---------|--------|
+| 1-2 | Auto-fix and retry |
+| 3 | Final attempt with detailed logging |
+| After max | Escalate to human review |
 
 ## Policies
 
@@ -180,6 +245,8 @@ After completion, provide summary:
 | Repository | $ORG/$PROJECT |
 | PR | #$PR_NUMBER |
 | Branch | branch-name |
+| Attempts | X/3 |
+| Final Status | Success / Escalated |
 
 ### Workflows Fixed
 | Workflow | Status | Fix Applied |
@@ -194,6 +261,11 @@ After completion, provide summary:
 ### Current Status
 - [ ] All workflows passing
 - [ ] Ready for review
+
+### Escalation (if applicable)
+- Escalation reason: [reason]
+- PR comment added: Yes/No
+- Label applied: needs-manual-review
 ```
 
 ## Common CI Failure Patterns
@@ -253,6 +325,8 @@ warning: variable name should be camelCase
 | Cannot checkout branch | Report checkout failure reason | Resolve local changes or conflicts |
 | Fix verification failed | Report local test/build failure, pause workflow | Debug and fix before pushing |
 | Push rejected | Report rejection reason | Pull latest or resolve conflicts |
-| Workflow still failing after fix | Report persistent failure, suggest manual review | Analyze failure logs, may need different approach |
+| Workflow still failing after fix | Continue with retry until max attempts reached | Monitor retry count |
+| Max retries exceeded | Escalate with PR comment and label, report final status | Review failures manually |
+| Workflow wait timeout | Report timeout, check workflow status | May need to increase timeout or check CI health |
 | API rate limit | Report "GitHub API rate limit exceeded, resets at [time]" | Wait or authenticate with different token |
 | Network timeout | Report "Cannot reach GitHub - check connection" | Verify internet connection |
