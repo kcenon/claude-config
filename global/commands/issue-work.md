@@ -5,21 +5,51 @@ Automate GitHub issue workflow with project name as argument.
 ## Usage
 
 ```
-/issue-work <project-name>
+/issue-work <project-name> [--org <organization>]
+/issue-work <organization>/<project-name>
 ```
 
 **Example**:
 ```
-/issue-work hospital_erp_system
-/issue-work messaging_system
-/issue-work thread_system
+/issue-work hospital_erp_system                    # Auto-detect org from git remote
+/issue-work hospital_erp_system --org mycompany    # Explicit organization
+/issue-work mycompany/hospital_erp_system          # Full repo path format
 ```
 
 ## Arguments
 
-- `$ARGUMENTS`: Project name (required)
-  - Repository: `https://github.com/kcenon/$ARGUMENTS`
-  - Source path: `./$ARGUMENTS`
+- `$ARGUMENTS`: Project name or full repository path (required)
+  - Format 1: `<project-name>` - auto-detect organization from git remote
+  - Format 2: `<project-name> --org <organization>` - explicit organization
+  - Format 3: `<organization>/<project-name>` - full repository path
+
+## Organization Detection
+
+Parse `$ARGUMENTS` and determine organization:
+
+```bash
+# Check if --org flag is provided
+if [[ "$ARGUMENTS" == *"--org"* ]]; then
+    PROJECT=$(echo "$ARGUMENTS" | awk '{print $1}')
+    ORG=$(echo "$ARGUMENTS" | sed -n 's/.*--org[[:space:]]*\([^[:space:]]*\).*/\1/p')
+# Check if full path format (contains /)
+elif [[ "$ARGUMENTS" == *"/"* ]]; then
+    ORG=$(echo "$ARGUMENTS" | cut -d'/' -f1)
+    PROJECT=$(echo "$ARGUMENTS" | cut -d'/' -f2)
+# Auto-detect from git remote
+else
+    PROJECT="$ARGUMENTS"
+    cd "$PROJECT" 2>/dev/null || { echo "Error: Project directory not found: $PROJECT"; exit 1; }
+    ORG=$(git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/[^/]+\.git$|\1|' | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
+    if [[ -z "$ORG" ]]; then
+        echo "Error: Cannot detect organization. Use --org flag or full path format."
+        exit 1
+    fi
+fi
+```
+
+- Repository: `https://github.com/$ORG/$PROJECT`
+- Source path: `./$PROJECT`
 
 ## Instructions
 
@@ -28,9 +58,9 @@ Execute the following workflow for the specified project:
 ### 1. Issue Selection
 
 ```bash
-gh issue list --repo kcenon/$ARGUMENTS --label "priority/critical" --state open --limit 1
+gh issue list --repo $ORG/$PROJECT --label "priority/critical" --state open --limit 1
 # If none found:
-gh issue list --repo kcenon/$ARGUMENTS --label "priority/high" --state open --limit 1
+gh issue list --repo $ORG/$PROJECT --label "priority/high" --state open --limit 1
 ```
 
 Select the oldest (first created) issue from the results.
@@ -53,7 +83,7 @@ If splitting required:
 ### 3. Git Environment Setup
 
 ```bash
-cd $ARGUMENTS
+cd $PROJECT
 git fetch origin
 git checkout main && git pull origin main
 git checkout -b <type>/issue-<NUMBER>-<short-description>
@@ -68,7 +98,7 @@ Branch naming convention:
 ### 4. Issue Assignment
 
 ```bash
-gh issue edit <NUMBER> --repo kcenon/$ARGUMENTS --add-assignee @me
+gh issue edit <NUMBER> --repo $ORG/$PROJECT --add-assignee @me
 ```
 
 ### 5. Code Implementation
@@ -122,7 +152,7 @@ docs(scope): update documentation for <feature>
 ```bash
 git push -u origin <branch-name>
 
-gh pr create --repo kcenon/$ARGUMENTS \
+gh pr create --repo $ORG/$PROJECT \
   --title "type(scope): description" \
   --body "Closes #<ISSUE_NUMBER>
 
@@ -141,7 +171,7 @@ gh pr create --repo kcenon/$ARGUMENTS \
 ### 9. Update Original Issue
 
 ```bash
-gh issue comment <NUMBER> --repo kcenon/$ARGUMENTS \
+gh issue comment <NUMBER> --repo $ORG/$PROJECT \
   --body "Implementation PR: #<PR_NUMBER>"
 ```
 
@@ -164,7 +194,7 @@ After completion, provide summary:
 
 | Item | Value |
 |------|-------|
-| Project | $ARGUMENTS |
+| Repository | $ORG/$PROJECT |
 | Issue | #NUMBER - Title |
 | Branch | branch-name |
 | PR | #PR_NUMBER |
@@ -191,6 +221,7 @@ After completion, provide summary:
 | gh CLI installed | "GitHub CLI is not installed" | Install from https://cli.github.com |
 | gh authenticated | "Not authenticated with GitHub" | Run `gh auth login` |
 | Project directory exists | "Project directory not found: [path]" | Verify project path in configuration |
+| Organization detected | "Cannot detect organization" | Use `--org` flag or full path format |
 
 ### Runtime Errors
 
