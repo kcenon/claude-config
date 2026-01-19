@@ -205,3 +205,28 @@ error: code should be formatted with clang-format
 warning: variable name should be camelCase
 # Fix: Rename variable
 ```
+
+## Error Handling
+
+### Prerequisites Check
+
+| Requirement | Error Message | Resolution |
+|-------------|---------------|------------|
+| git installed | "Git is not installed" | Install git from https://git-scm.com |
+| gh CLI installed | "GitHub CLI is not installed" | Install from https://cli.github.com |
+| gh authenticated | "Not authenticated with GitHub" | Run `gh auth login` |
+| Project directory exists | "Project directory not found: [path]" | Verify project path in configuration |
+
+### Runtime Errors
+
+| Error Condition | Behavior | User Action |
+|-----------------|----------|-------------|
+| PR not found | Report "PR #X not found" and list valid PR numbers | Verify PR number with `gh pr list` |
+| All workflows passing | Report "No failed workflows found - PR is ready for review" | Proceed to review or merge |
+| Branch not found | Report "Branch not found" with PR details | Check if branch was deleted |
+| Cannot checkout branch | Report checkout failure reason | Resolve local changes or conflicts |
+| Fix verification failed | Report local test/build failure, pause workflow | Debug and fix before pushing |
+| Push rejected | Report rejection reason | Pull latest or resolve conflicts |
+| Workflow still failing after fix | Report persistent failure, suggest manual review | Analyze failure logs, may need different approach |
+| API rate limit | Report "GitHub API rate limit exceeded, resets at [time]" | Wait or authenticate with different token |
+| Network timeout | Report "Cannot reach GitHub - check connection" | Verify internet connection |

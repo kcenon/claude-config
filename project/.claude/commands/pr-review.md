@@ -76,3 +76,25 @@ Provide feedback in this format:
 ### Recommendation
 [APPROVE / REQUEST_CHANGES / NEEDS_DISCUSSION]
 ```
+
+## Error Handling
+
+### Prerequisites Check
+
+| Requirement | Error Message | Resolution |
+|-------------|---------------|------------|
+| gh CLI installed | "GitHub CLI is not installed" | Install from https://cli.github.com |
+| gh authenticated | "Not authenticated with GitHub" | Run `gh auth login` |
+| Repository access | "No access to repository" | Verify permissions or request access |
+
+### Runtime Errors
+
+| Error Condition | Behavior | User Action |
+|-----------------|----------|-------------|
+| PR not found | Report "PR #X not found" and suggest `gh pr list` | Verify PR number exists |
+| PR already merged | Report "PR #X is already merged - showing historical review" | No action needed |
+| PR closed | Report "PR #X is closed without merge" | Reopen PR if review still needed |
+| No PR for branch | Report "No open PR found for current branch" and show how to create | Create PR with `gh pr create` |
+| Large PR (>1000 lines) | Warn about review complexity, offer to split by file type | Consider splitting PR |
+| API rate limit | Report "GitHub API rate limit exceeded, resets at [time]" | Wait or authenticate with different token |
+| Network timeout | Report "Cannot reach GitHub - check connection" | Verify internet connection |
