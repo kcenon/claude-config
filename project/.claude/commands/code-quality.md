@@ -57,6 +57,42 @@ Perform comprehensive code quality analysis:
 - Unused dependencies
 - Technical debt
 
+## Thresholds
+
+| Metric | OK | Warning | Critical |
+|--------|-----|---------|----------|
+| Cyclomatic Complexity | ≤10 | 11-20 | >20 |
+| Cognitive Complexity | ≤15 | 16-30 | >30 |
+| Function Length | ≤50 lines | 51-100 | >100 |
+| Nesting Depth | ≤4 | 5-6 | >6 |
+| File Length | ≤500 lines | 501-1000 | >1000 |
+| Test Coverage | ≥80% | 60-79% | <60% |
+
+## Language-Specific Tools
+
+| Language | Complexity | Linting | Type Check |
+|----------|------------|---------|------------|
+| TypeScript | ts-complexity | ESLint | tsc --noEmit |
+| Python | radon cc | ruff, pylint | mypy |
+| C/C++ | lizard | clang-tidy | - |
+| Go | gocyclo | golangci-lint | go vet |
+| Rust | - | clippy | cargo check |
+
+## Scoring Formula
+
+```
+Score = 10 - (Critical × 2) - (Warning × 0.5)
+Minimum score: 0
+```
+
+| Score Range | Rating | Interpretation |
+|-------------|--------|----------------|
+| 9-10 | Excellent | Production-ready, minimal issues |
+| 7-8 | Good | Minor improvements recommended |
+| 5-6 | Fair | Several issues need attention |
+| 3-4 | Poor | Significant refactoring required |
+| 0-2 | Critical | Major quality concerns |
+
 ## Output Format
 
 ```markdown

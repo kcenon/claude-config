@@ -52,6 +52,23 @@ When reviewing a PR, analyze the following:
 - Review code comments
 - Verify API documentation updates
 
+## Severity Definitions
+
+| Level | Criteria | Examples | Required Action |
+|-------|----------|----------|-----------------|
+| Critical | Security risk, data loss, crashes | SQL injection, null pointer, auth bypass | Must fix before merge |
+| Major | Bugs, significant performance issues | Logic errors, N+1 queries, memory leaks | Should fix |
+| Minor | Style, minor optimization | Naming convention, redundant code | Nice to have |
+| Info | Suggestions, observations | Alternative approaches, documentation | Optional |
+
+## Decision Criteria
+
+| Recommendation | Criteria |
+|----------------|----------|
+| APPROVE | No Critical or Major issues |
+| REQUEST_CHANGES | Any Critical issue OR ≥3 Major issues |
+| NEEDS_DISCUSSION | Architectural concerns, trade-off decisions |
+
 ## Output Format
 
 Provide feedback in this format:
