@@ -1,17 +1,49 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.3.0-blue.svg" alt="Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
+  <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
+</p>
+
+<p align="center">
   <strong>여러 시스템 간에 CLAUDE.md 설정을 쉽게 공유하고 동기화하는 도구</strong>
 </p>
 
 <p align="center">
-  <a href="#원라인-설치">원라인 설치</a> •
+  <a href="#빠른-시작">빠른 시작</a> •
+  <a href="#원라인-설치">설치</a> •
   <a href="#구조">구조</a> •
-  <a href="#스크립트-설명">스크립트</a> •
   <a href="#사용-시나리오">시나리오</a> •
   <a href="#faq">FAQ</a> •
   <a href="README.md">English</a>
 </p>
+
+---
+
+## 빠른 시작
+
+3분 만에 설정 완료:
+
+```bash
+# 1. 원라인 설치
+curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash
+
+# 2. Git identity 개인화 (필수!)
+vi ~/.claude/git-identity.md
+
+# 3. Claude Code 재시작 - 완료!
+```
+
+**주요 명령어:**
+
+| 작업 | 명령어 |
+|------|--------|
+| 설정 백업 | `./scripts/backup.sh` |
+| 설정 동기화 | `./scripts/sync.sh` |
+| 백업 검증 | `./scripts/verify.sh` |
+
+상세 시나리오는 [사용 시나리오](#사용-시나리오)를 참조하세요.
 
 ---
 
@@ -70,6 +102,9 @@ claude --plugin-dir ./plugin
 
 ## 구조
 
+<details>
+<summary>디렉토리 구조 펼치기</summary>
+
 ```
 claude_config_backup/
 ├── global/                      # 글로벌 설정 백업 (~/.claude/)
@@ -78,7 +113,14 @@ claude_config_backup/
 │   ├── commit-settings.md      # 커밋/PR 정책 (Claude 정보 비활성화)
 │   ├── conversation-language.md # 대화 언어 설정
 │   ├── git-identity.md         # Git 사용자 정보
-│   └── token-management.md     # 토큰 관리 정책
+│   ├── token-management.md     # 토큰 관리 정책
+│   └── commands/               # 글로벌 슬래시 명령어
+│       ├── _policy.md          # 모든 명령어 공통 정책
+│       ├── branch-cleanup.md   # /branch-cleanup 명령어
+│       ├── issue-create.md     # /issue-create 명령어
+│       ├── issue-work.md       # /issue-work 명령어
+│       ├── pr-work.md          # /pr-work 명령어
+│       └── release.md          # /release 명령어
 │
 ├── project/                     # 프로젝트 설정 백업
 │   ├── CLAUDE.md               # 프로젝트 메인 설정
@@ -173,8 +215,66 @@ claude_config_backup/
 ├── bootstrap.sh                 # 원라인 설치 스크립트
 ├── README.md                    # 상세 가이드 (영문)
 ├── README.ko.md                 # 상세 가이드 (한글)
-└── QUICKSTART.md               # 빠른 시작 가이드
+├── QUICKSTART.md               # 빠른 시작 가이드
+└── HOOKS.md                    # Hook 설정 가이드
 ```
+
+</details>
+
+---
+
+## 글로벌 명령어
+
+글로벌 명령어는 `~/.claude/commands/`에 설치되어 모든 프로젝트에서 사용 가능합니다.
+
+### 사용 가능한 글로벌 명령어
+
+| 명령어 | 설명 | 예시 |
+|--------|------|------|
+| `/branch-cleanup` | 병합/오래된 브랜치 정리 | `/branch-cleanup --dry-run` |
+| `/release` | 자동 changelog 생성 릴리스 | `/release 1.2.0` |
+| `/issue-create` | 5W1H 기반 GitHub 이슈 생성 | `/issue-create myproject --type bug` |
+| `/issue-work` | GitHub 이슈 워크플로우 자동화 | `/issue-work myproject` |
+| `/pr-work` | PR CI/CD 실패 분석 및 수정 | `/pr-work myproject 42` |
+
+### 명령어 상세
+
+#### `/branch-cleanup`
+```bash
+/branch-cleanup [<project-name>] [--dry-run] [--include-remote] [--stale-days <days>]
+```
+- `--dry-run`: 삭제 없이 미리보기
+- `--include-remote`: 원격 추적 브랜치도 정리
+- `--stale-days`: 오래된 것으로 간주할 일수 (기본: 90)
+
+#### `/release`
+```bash
+/release <version> [--draft] [--prerelease] [--org <organization>]
+```
+- 마지막 릴리스 이후 커밋에서 changelog 자동 생성
+- 시맨틱 버저닝 지원 (예: 1.2.0, 2.0.0-beta.1)
+
+#### `/issue-create`
+```bash
+/issue-create <project-name> [--type <type>] [--priority <priority>]
+```
+- 타입: bug, feature, refactor, docs
+- 우선순위: critical, high, medium, low
+- 5W1H 프레임워크로 구조화된 이슈 생성
+
+#### `/issue-work`
+```bash
+/issue-work <project-name> [--org <organization>]
+```
+- 열린 이슈 목록 및 워크플로우 가이드
+- git remote에서 organization 자동 감지
+
+#### `/pr-work`
+```bash
+/pr-work <project-name> <pr-number> [--org <organization>]
+```
+- 실패한 CI/CD 워크플로우 분석
+- 수정 제안 및 구현 지원
 
 ---
 
@@ -199,6 +299,9 @@ claude_config_backup/
 2. 각 skill은 name과 description을 정의하는 YAML frontmatter가 있는 `SKILL.md`를 가집니다
 3. Skills는 요청의 트리거 키워드에 따라 활성화됩니다
 4. Skills는 상세 가이드라인에 대한 빠른 참조 링크를 제공합니다
+
+<details>
+<summary>Progressive Disclosure 패턴 & Skill 구조</summary>
 
 ### Progressive Disclosure 패턴
 
@@ -242,49 +345,7 @@ allowed-tools: Read, Grep, Glob  # 선택사항: 도구 제한
 - [가이드라인 링크](reference/guideline.md)
 ```
 
----
-
-## 빠른 시작
-
-### 시나리오 1: 새 시스템에 설정 설치
-
-```bash
-# 1. 저장소 클론
-git clone https://github.com/kcenon/claude-config.git ~/claude_config_backup
-
-# 2. 설치 실행
-cd ~/claude_config_backup
-./scripts/install.sh
-
-# 3. Git identity 개인화 (필수!)
-vi ~/.claude/git-identity.md
-
-# 4. Claude Code 재시작
-```
-
-### 시나리오 2: 현재 설정 백업
-
-```bash
-cd ~/claude_config_backup
-./scripts/backup.sh
-
-# 타입 선택:
-#  1) 글로벌 설정만
-#  2) 프로젝트 설정만
-#  3) 둘 다 (권장)
-```
-
-### 시나리오 3: 설정 동기화
-
-```bash
-cd ~/claude_config_backup
-./scripts/sync.sh
-
-# 방향 선택:
-#  1) 백업 → 시스템
-#  2) 시스템 → 백업
-#  3) 차이점만 확인
-```
+</details>
 
 ---
 
@@ -475,6 +536,9 @@ vi ~/.claude/git-identity.md
 
 ---
 
+<details>
+<summary><strong>고급 사용법</strong> (GitHub Actions, 환경 변수)</summary>
+
 ## 고급 사용법
 
 ### GitHub Actions 자동 동기화
@@ -518,6 +582,8 @@ GITHUB_REPO=your-repo \
 INSTALL_DIR=~/my-claude-config \
 bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh)"
 ```
+
+</details>
 
 ---
 
@@ -616,10 +682,26 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## 버전
 
-- **Version**: 1.1.0
-- **Last Updated**: 2025-01-15
+- **Version**: 1.3.0
+- **Last Updated**: 2026-01-15
 
 ### 변경 이력
+
+#### v1.3.0 (2026-01-15)
+- 자동 changelog 생성을 위한 `/release` 명령어 추가
+- 병합/오래된 브랜치 정리를 위한 `/branch-cleanup` 명령어 추가
+- 5W1H 프레임워크 기반 `/issue-create` 명령어 추가
+- GitHub 워크플로우 자동화를 위한 `/issue-work`, `/pr-work` 명령어 추가
+- 공유 명령어 규칙을 위한 공통 정책 파일 (`_policy.md`) 추가
+- 모든 글로벌 명령어가 공유 정책 참조하도록 업데이트
+
+#### v1.2.0 (2026-01-15)
+- 공식 베스트 프랙티스 준수를 위한 CLAUDE.md 최적화
+- project/CLAUDE.md 간소화 (212 → ~85줄)
+- 핵심 규칙에 강조 표현 추가
+- common-commands.md 생성
+- conditional-loading.md 최적화
+- Progressive Disclosure 적용한 github-issue-5w1h.md 분리
 
 #### v1.1.0 (2025-01-15)
 - 경로 기반 조건부 로딩을 지원하는 `.claude/rules/` 디렉토리 추가
