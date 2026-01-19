@@ -8,6 +8,18 @@ Review pull requests with comprehensive analysis.
 /pr-review [PR_NUMBER]
 ```
 
+## Arguments
+
+- `PR_NUMBER`: Pull request number to review
+  - If omitted, detect open PR for current branch
+
+## Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| --depth | standard | Review depth (quick, standard, thorough) |
+| --focus | all | Focus area (security, performance, all) |
+
 ## Instructions
 
 When reviewing a PR, analyze the following:

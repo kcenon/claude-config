@@ -8,6 +8,18 @@ Comprehensive git repository status with actionable insights.
 /git-status
 ```
 
+## Arguments
+
+None (operates on current repository)
+
+## Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| --commits | 5 | Number of recent commits to show |
+| --verbose | false | Include file diff stats |
+| --check-remote | true | Check remote sync status |
+
 ## Instructions
 
 Analyze the current git state and provide:

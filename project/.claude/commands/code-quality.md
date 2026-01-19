@@ -8,6 +8,19 @@ Analyze code quality and provide improvement suggestions.
 /code-quality [FILE_PATH or DIRECTORY]
 ```
 
+## Arguments
+
+- `FILE_PATH or DIRECTORY`: Target to analyze (required)
+  - If directory, analyze all supported files recursively
+
+## Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| --depth | unlimited | Max directory depth for recursive analysis |
+| --format | markdown | Output format (markdown, json) |
+| --verbose | false | Include detailed metrics |
+
 ## Instructions
 
 Perform comprehensive code quality analysis:
