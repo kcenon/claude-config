@@ -81,3 +81,24 @@ Perform comprehensive code quality analysis:
 
 #### Score: X/10
 ```
+
+## Error Handling
+
+### Prerequisites Check
+
+| Requirement | Error Message | Resolution |
+|-------------|---------------|------------|
+| File exists | "File not found: [path]" | Verify path and file existence |
+| Readable file | "Permission denied: [path]" | Check file permissions |
+| Supported file type | "Unsupported file type: [ext]" | Use supported extensions (.ts, .py, .kt, .cpp, etc.) |
+
+### Runtime Errors
+
+| Error Condition | Behavior | User Action |
+|-----------------|----------|-------------|
+| Empty file | Report "No code to analyze" and skip | Add code to file or remove from analysis |
+| Binary file | Report "Cannot analyze binary file" and skip | Exclude binary files from target |
+| Encoding error | Report "Unable to read file encoding" | Convert file to UTF-8 |
+| Directory not found | Report error with suggested similar paths | Verify directory path |
+| Unsupported language | Report "Language not supported: [lang]" and list similar files | Target supported file types |
+| Analysis timeout | Report partial results with warning | Reduce scope or split analysis |

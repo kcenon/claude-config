@@ -74,3 +74,24 @@ Analyze the current git state and provide:
 ### Recommendations
 - [Actionable suggestions]
 ```
+
+## Error Handling
+
+### Prerequisites Check
+
+| Requirement | Error Message | Resolution |
+|-------------|---------------|------------|
+| git installed | "Git is not installed" | Install git from https://git-scm.com |
+| In git repository | "Not a git repository" | Navigate to a git repo or run `git init` |
+| Valid git state | "Corrupted git repository" | Run `git fsck` to diagnose |
+
+### Runtime Errors
+
+| Error Condition | Behavior | User Action |
+|-----------------|----------|-------------|
+| No remote configured | Report "No remote configured - showing local status only" | Add remote with `git remote add origin <url>` |
+| Remote unreachable | Report "Cannot reach remote - showing cached status" | Check network connection |
+| Detached HEAD | Report current commit hash and warn about detached state | Create branch with `git checkout -b <name>` |
+| Merge in progress | Report merge status and conflicting files | Complete or abort merge |
+| Rebase in progress | Report rebase status and current step | Continue or abort rebase |
+| Lock file exists | Report "Repository locked by another process" | Wait or remove `.git/index.lock` |

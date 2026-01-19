@@ -180,3 +180,27 @@ After completion, provide summary:
 ### Next Steps
 - Any follow-up items
 ```
+
+## Error Handling
+
+### Prerequisites Check
+
+| Requirement | Error Message | Resolution |
+|-------------|---------------|------------|
+| git installed | "Git is not installed" | Install git from https://git-scm.com |
+| gh CLI installed | "GitHub CLI is not installed" | Install from https://cli.github.com |
+| gh authenticated | "Not authenticated with GitHub" | Run `gh auth login` |
+| Project directory exists | "Project directory not found: [path]" | Verify project path in configuration |
+
+### Runtime Errors
+
+| Error Condition | Behavior | User Action |
+|-----------------|----------|-------------|
+| No matching issues | Report "No critical/high priority issues found" | Check issue labels or lower priority filter |
+| Issue already assigned | Report assignment status, offer to proceed or skip | Confirm continuation or select different issue |
+| Branch already exists | Report existing branch, offer to reuse or rename | Delete old branch or use new name |
+| Build failure | Create draft PR with failure log, request manual fix | Fix build errors before marking PR ready |
+| Test failure | Report failing tests with details, pause workflow | Fix tests and retry |
+| Push rejected | Report rejection reason (non-fast-forward, protected branch) | Pull latest changes or request permissions |
+| PR creation failed | Report GitHub API error with details | Check repository permissions |
+| Network timeout | Report "Cannot reach GitHub - check connection" | Verify internet connection |
