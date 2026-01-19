@@ -5,27 +5,52 @@ Analyze and fix failed CI/CD workflows for a pull request.
 ## Usage
 
 ```
-/pr-work <project-name> <pr-number>
+/pr-work <project-name> <pr-number> [--org <organization>]
+/pr-work <organization>/<project-name> <pr-number>
 ```
 
 **Example**:
 ```
-/pr-work hospital_erp_system 42
-/pr-work messaging_system 156
-/pr-work thread_system 89
+/pr-work hospital_erp_system 42                    # Auto-detect org from git remote
+/pr-work hospital_erp_system 42 --org mycompany    # Explicit organization
+/pr-work mycompany/hospital_erp_system 42          # Full repo path format
 ```
 
 ## Arguments
 
-`$ARGUMENTS` format: `<project-name> <pr-number>`
+`$ARGUMENTS` format: `<project-name> <pr-number> [--org <organization>]` or `<organization>/<project-name> <pr-number>`
 
-- **Project name**: Repository name under `kcenon/`
+- **Project name**: Repository name (or full path with organization)
 - **PR number**: Pull request number to fix
+- **--org**: GitHub organization or user (optional, auto-detected if not provided)
 
-Parsing:
+## Organization Detection
+
+Parse `$ARGUMENTS` and determine organization:
+
 ```bash
-PROJECT=$(echo "$ARGUMENTS" | awk '{print $1}')
-PR_NUMBER=$(echo "$ARGUMENTS" | awk '{print $2}')
+# Check if --org flag is provided
+if [[ "$ARGUMENTS" == *"--org"* ]]; then
+    PROJECT=$(echo "$ARGUMENTS" | awk '{print $1}')
+    PR_NUMBER=$(echo "$ARGUMENTS" | awk '{print $2}')
+    ORG=$(echo "$ARGUMENTS" | sed -n 's/.*--org[[:space:]]*\([^[:space:]]*\).*/\1/p')
+# Check if first argument contains / (full path format)
+elif [[ "$(echo "$ARGUMENTS" | awk '{print $1}')" == *"/"* ]]; then
+    REPO_PATH=$(echo "$ARGUMENTS" | awk '{print $1}')
+    ORG=$(echo "$REPO_PATH" | cut -d'/' -f1)
+    PROJECT=$(echo "$REPO_PATH" | cut -d'/' -f2)
+    PR_NUMBER=$(echo "$ARGUMENTS" | awk '{print $2}')
+# Auto-detect from git remote
+else
+    PROJECT=$(echo "$ARGUMENTS" | awk '{print $1}')
+    PR_NUMBER=$(echo "$ARGUMENTS" | awk '{print $2}')
+    cd "$PROJECT" 2>/dev/null || { echo "Error: Project directory not found: $PROJECT"; exit 1; }
+    ORG=$(git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/[^/]+\.git$|\1|' | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
+    if [[ -z "$ORG" ]]; then
+        echo "Error: Cannot detect organization. Use --org flag or full path format."
+        exit 1
+    fi
+fi
 ```
 
 ## Instructions
@@ -33,7 +58,7 @@ PR_NUMBER=$(echo "$ARGUMENTS" | awk '{print $2}')
 ### 1. PR Information Retrieval
 
 ```bash
-gh pr view $PR_NUMBER --repo kcenon/$PROJECT --json title,state,headRefName,checks
+gh pr view $PR_NUMBER --repo $ORG/$PROJECT --json title,state,headRefName,checks
 ```
 
 Identify:
@@ -45,10 +70,10 @@ Identify:
 
 ```bash
 # List failed workflow runs for the PR
-gh run list --repo kcenon/$PROJECT --branch <head-branch> --status failure --limit 5
+gh run list --repo $ORG/$PROJECT --branch <head-branch> --status failure --limit 5
 
 # Get detailed log for failed run
-gh run view <RUN_ID> --repo kcenon/$PROJECT --log-failed
+gh run view <RUN_ID> --repo $ORG/$PROJECT --log-failed
 ```
 
 For each failed workflow:
@@ -121,10 +146,10 @@ git push origin <head-branch>
 After push:
 ```bash
 # Monitor workflow status
-gh run list --repo kcenon/$PROJECT --branch <head-branch> --limit 3
+gh run list --repo $ORG/$PROJECT --branch <head-branch> --limit 3
 
 # Wait for completion and check result
-gh run watch <RUN_ID> --repo kcenon/$PROJECT
+gh run watch <RUN_ID> --repo $ORG/$PROJECT
 ```
 
 ### 8. Iterate if Needed
@@ -152,7 +177,7 @@ After completion, provide summary:
 
 | Item | Value |
 |------|-------|
-| Project | $PROJECT |
+| Repository | $ORG/$PROJECT |
 | PR | #$PR_NUMBER |
 | Branch | branch-name |
 
@@ -216,6 +241,7 @@ warning: variable name should be camelCase
 | gh CLI installed | "GitHub CLI is not installed" | Install from https://cli.github.com |
 | gh authenticated | "Not authenticated with GitHub" | Run `gh auth login` |
 | Project directory exists | "Project directory not found: [path]" | Verify project path in configuration |
+| Organization detected | "Cannot detect organization" | Use `--org` flag or full path format |
 
 ### Runtime Errors
 
