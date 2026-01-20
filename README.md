@@ -875,6 +875,17 @@ If you'd like to improve this backup system:
 
 ---
 
+## Related Projects
+
+### AD-SDLC (Agent-Driven Software Development Lifecycle)
+
+An AI agent-based software development automation platform. AD-SDLC agents can reference this project's Skills and Guidelines to improve code quality.
+
+- **Repository**: [kcenon/claude_code_agent](https://github.com/kcenon/claude_code_agent)
+- **Integration Guide**: [docs/ad-sdlc-integration.md](docs/ad-sdlc-integration.md)
+
+---
+
 ## License
 
 This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.
