@@ -1,54 +1,54 @@
 # Universal Development Guidelines
 
-Version: 1.3.0
-Last Updated: 2026-01-15
+Version: 1.4.0
+Last Updated: 2026-01-22
 
 These guidelines define general conventions and practices for working in this repository. They emphasize clear procedures, maintainability, and security while allowing language‑specific details to be handled by the appropriate official guidelines.
 
 > **Note**: This project configuration works together with global settings in `~/.claude/CLAUDE.md`. When conflicts occur, project settings take precedence.
 
-## Quick Reference
+## Core Guidelines (Import Syntax)
 
-**CRITICAL:** Always consult [environment.md](claude-guidelines/environment.md) first for timezone and locale context.
+**CRITICAL:** Always consult environment settings first for timezone and locale context.
 
-<table>
-<tr>
-<td width="50%">
+### Environment & Workflow
+@claude-guidelines/environment.md
+@claude-guidelines/workflow.md
+@claude-guidelines/problem-solving.md
+@claude-guidelines/communication.md
+@claude-guidelines/git-commit-format.md
+@claude-guidelines/common-commands.md
 
-**Getting Started**
-- [Environment Settings](claude-guidelines/environment.md)
-- [Question Handling](claude-guidelines/workflow.md)
-- [Problem Solving](claude-guidelines/problem-solving.md)
-- [Language Conventions](claude-guidelines/communication.md)
-- [Common Commands](claude-guidelines/common-commands.md)
+### Code Standards
+@claude-guidelines/coding-standards/general.md
+@claude-guidelines/coding-standards/quality.md
+@claude-guidelines/coding-standards/error-handling.md
+@claude-guidelines/operations/cleanup.md
 
-</td>
-<td width="50%">
+### Technical
+@claude-guidelines/coding-standards/concurrency.md
+@claude-guidelines/coding-standards/memory.md
+@claude-guidelines/coding-standards/performance.md
 
-**Code Development**
-- [Coding Guidelines](claude-guidelines/coding-standards/general.md)
-- [Code Quality](claude-guidelines/coding-standards/quality.md)
-- [Error Handling](claude-guidelines/coding-standards/error-handling.md)
-- [Testing](claude-guidelines/project-management/testing.md)
+### Project Management
+@claude-guidelines/project-management/build.md
+@claude-guidelines/project-management/testing.md
+@claude-guidelines/project-management/documentation.md
 
-</td>
-</tr>
-</table>
+### Security & Operations
+@claude-guidelines/security.md
+@claude-guidelines/operations/monitoring.md
 
-## Guidelines Index
-
-| Category | Modules |
-|----------|---------|
-| **Environment & Workflow** | [Environment](claude-guidelines/environment.md), [Workflow](claude-guidelines/workflow.md), [Problem-Solving](claude-guidelines/problem-solving.md), [Communication](claude-guidelines/communication.md), [Git](claude-guidelines/git-commit-format.md), [Commands](claude-guidelines/common-commands.md) |
-| **Code Standards** | [General](claude-guidelines/coding-standards/general.md), [Quality](claude-guidelines/coding-standards/quality.md), [Error Handling](claude-guidelines/coding-standards/error-handling.md), [Cleanup](claude-guidelines/operations/cleanup.md) |
-| **Technical** | [Concurrency](claude-guidelines/coding-standards/concurrency.md), [Memory](claude-guidelines/coding-standards/memory.md), [Performance](claude-guidelines/coding-standards/performance.md) |
-| **Project Management** | [Build](claude-guidelines/project-management/build.md), [Testing](claude-guidelines/project-management/testing.md), [Documentation](claude-guidelines/project-management/documentation.md) |
-| **Security & Ops** | [Security](claude-guidelines/security.md), [Monitoring](claude-guidelines/operations/monitoring.md) |
-| **API & Architecture** | [API Design](claude-guidelines/api-architecture/api-design.md), [Logging](claude-guidelines/api-architecture/logging.md), [Observability](claude-guidelines/api-architecture/observability.md), [Architecture](claude-guidelines/api-architecture/architecture.md) |
+### API & Architecture
+@claude-guidelines/api-architecture/api-design.md
+@claude-guidelines/api-architecture/logging.md
+@claude-guidelines/api-architecture/observability.md
+@claude-guidelines/api-architecture/architecture.md
 
 ## Module Loading
 
-Modules are auto-loaded via **[Conditional Loading](claude-guidelines/conditional-loading.md)** based on task keywords and file types.
+Modules are auto-loaded via conditional loading based on task keywords and file types.
+@claude-guidelines/conditional-loading.md
 
 **Manual override:** `@load: security, performance` | `@skip: documentation` | `@focus: memory`
 
@@ -83,6 +83,9 @@ When adding new guidelines:
 
 ## Version History
 
+- **1.4.0** (2026-01-22): Adopted Import syntax (`@path/to/file`) for modular references
+  - Replaced markdown links with Import syntax for better token efficiency
+  - Supports recursive imports up to 5 levels deep
 - **1.3.0** (2026-01-15): Split github-issue-5w1h.md (1,214 → 225 lines) with reference/ directory
 - **1.2.1** (2026-01-15): Optimized conditional-loading.md (309 → 209 lines) for token efficiency
 - **1.2.0** (2026-01-15): Simplified CLAUDE.md (212 → ~85 lines) for token efficiency

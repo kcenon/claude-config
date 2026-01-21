@@ -38,11 +38,10 @@ model: sonnet
 - [ ] Permission verification
 - [ ] Resource access control
 
-## Reference
-
-- [Security Guidelines](reference/security.md)
-- [Error Handling (Security)](reference/error-handling.md)
-- [API Security](reference/api-design.md)
+## Reference Documents (Import Syntax)
+@reference/security.md
+@reference/error-handling.md
+@reference/api-design.md
 
 ## OWASP Top 10 Reference
 

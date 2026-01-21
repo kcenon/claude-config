@@ -1,7 +1,7 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
-  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.3.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.4.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
 </p>
@@ -448,11 +448,12 @@ This configuration includes Claude Code Skills for auto-discovery of guidelines 
 
 ### Progressive Disclosure Pattern
 
-Skills use the Progressive Disclosure pattern for token efficiency:
+Skills use the Progressive Disclosure pattern with Import syntax for token efficiency:
 
 1. **SKILL.md**: Contains only essential information (~50 lines)
 2. **reference/**: Symlinks to detailed guideline files
-3. **On-Demand loading**: Claude reads reference files only when necessary
+3. **Import Syntax**: Use `@path/to/file` for on-demand loading (supports up to 5 levels deep)
+4. **On-Demand loading**: Claude reads reference files only when necessary
 
 ```
 skills/coding-guidelines/
@@ -468,6 +469,24 @@ skills/coding-guidelines/
 - Initial load tokens: ~5000 → ~1000 (80% reduction)
 - 1-level deep references for reliable loading
 - Simplified path maintenance
+- Import syntax provides intuitive file references
+
+### Import Syntax
+
+The `@path/to/file` Import syntax (introduced in v1.4.0) provides:
+- More intuitive file references than traditional markdown links
+- Support for up to 5 levels of recursive Import
+- Both relative and absolute path support
+- Automatic ignoring within code blocks
+
+**Example:**
+```markdown
+# CLAUDE.md
+## Core Guidelines
+@claude-guidelines/environment.md
+@claude-guidelines/workflow.md
+@claude-guidelines/coding-standards/general.md
+```
 
 ### Skill Structure
 
@@ -484,8 +503,8 @@ allowed-tools: Read, Grep, Glob  # Optional: restrict tools
 - Use case 1
 - Use case 2
 
-## Quick Reference
-- [Link to guideline](reference/guideline.md)
+## Reference Documents (Import Syntax)
+@reference/guideline.md
 ```
 
 </details>
@@ -825,10 +844,17 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## Version
 
-- **Version**: 1.3.0
-- **Last Updated**: 2026-01-15
+- **Version**: 1.4.0
+- **Last Updated**: 2026-01-22
 
 ### Changelog
+
+#### v1.4.0 (2026-01-22)
+- Adopted Import syntax (`@path/to/file`) for modular references
+  - Replaced markdown links with Import syntax for better token efficiency
+  - Supports recursive imports up to 5 levels deep
+- Updated all CLAUDE.md files (global and project) to use Import syntax
+- Updated all SKILL.md files to use Import syntax for reference documents
 
 #### v1.3.0 (2026-01-15)
 - Added `/release` command for automated changelog generation

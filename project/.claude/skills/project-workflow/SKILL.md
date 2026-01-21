@@ -21,26 +21,23 @@ model: sonnet
 - Managing builds and dependencies
 - Setting up testing infrastructure
 
-## Quick Reference
+## Reference Documents (Import Syntax)
 
 ### Workflow
-
-- [Workflow Guidelines](reference/workflow.md)
-- [Question Handling](reference/question-handling.md)
-- [Problem Solving](reference/workflow-problem-solving.md)
-- [Performance Analysis](reference/performance-analysis.md)
+@reference/workflow.md
+@reference/question-handling.md
+@reference/workflow-problem-solving.md
+@reference/performance-analysis.md
 
 ### GitHub
-
-- [GitHub Issue Guidelines (5W1H)](reference/github-issue-5w1h.md)
-- [GitHub PR Guidelines (5W1H)](reference/github-pr-5w1h.md)
-- [Git Commit Format](reference/git-commit-format.md)
+@reference/github-issue-5w1h.md
+@reference/github-pr-5w1h.md
+@reference/git-commit-format.md
 
 ### Project Management
-
-- [Problem-Solving Principles](reference/problem-solving.md)
-- [Build and Dependency Management](reference/build.md)
-- [Testing Strategy](reference/testing.md)
+@reference/problem-solving.md
+@reference/build.md
+@reference/testing.md
 
 ## Core Principles
 
