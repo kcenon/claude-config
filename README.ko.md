@@ -349,6 +349,41 @@ allowed-tools: Read, Grep, Glob  # 선택사항: 도구 제한
 
 ---
 
+## Skills vs Rules 아키텍처
+
+이 프로젝트는 Skills와 Rules 두 시스템을 함께 사용합니다. 각 시스템은 서로 다른 목적으로 설계되었습니다.
+
+### 비교표
+
+| 측면 | Skills | Rules |
+|------|--------|-------|
+| **위치** | `.claude/skills/<name>/SKILL.md` | `.claude/rules/<name>.md` |
+| **활성화** | 컨텍스트 키워드 (모델 기반) | 파일 경로 (paths frontmatter) |
+| **질문** | "이 작업을 어떻게 해야 하나요?" | "이 파일에 무엇이 적용되나요?" |
+| **예시** | 보안 감사 요청 → security-audit 스킬 | `*.test.ts` 편집 → testing 규칙 |
+
+### 언제 무엇을 사용할까요?
+
+**Skills 사용 (작업 유형 기반)**:
+- "보안 리뷰 해주세요" → `security-audit` 스킬
+- "성능 최적화 방법" → `performance-review` 스킬
+- "API 설계 검토" → `api-design` 스킬
+
+**Rules 사용 (파일 경로 기반)**:
+- `src/api/*.ts` 편집 → `api/rest-api.md` 규칙 자동 로드
+- `tests/*.test.ts` 편집 → `testing.md` 규칙 자동 로드
+- `*.md` 편집 → `documentation.md` 규칙 자동 로드
+
+### 토큰 효율성
+
+이 듀얼 시스템 접근 방식은 최적의 토큰 효율성을 제공합니다:
+- **Skills**: 비활성 시 ~100-200 토큰 (description만 로드)
+- **Rules**: 파일 경로 매칭 시에만 로드
+
+자세한 분석은 [아키텍처 리뷰 문서](docs/architecture-review-skills-rules.md)를 참조하세요.
+
+---
+
 ## 스크립트 설명
 
 ### 1. install.sh
