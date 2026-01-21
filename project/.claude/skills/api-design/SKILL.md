@@ -21,20 +21,17 @@ model: sonnet
 - Implementing rate limiting or authentication
 - Code review for API endpoints
 
-## Quick Reference
+## Reference Documents (Import Syntax)
 
 ### API Design
-
-- [API Design](reference/api-design.md)
+@reference/api-design.md
 
 ### Architecture
-
-- [Architecture and Design](reference/architecture.md)
+@reference/architecture.md
 
 ### Observability
-
-- [Logging Standards](reference/logging.md)
-- [Observability](reference/observability.md)
+@reference/logging.md
+@reference/observability.md
 
 ## Core Principles
 

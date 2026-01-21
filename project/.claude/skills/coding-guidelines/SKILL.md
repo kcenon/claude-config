@@ -19,22 +19,19 @@ model: sonnet
 - Bug fixes requiring code changes
 - Refactoring tasks
 
-## Quick Reference
+## Reference Documents (Import Syntax)
 
 ### Core Standards
-
-- [General Coding Standards](reference/general.md)
-- [Code Quality](reference/quality.md)
+@reference/general.md
+@reference/quality.md
 
 ### Error & Safety
-
-- [Error Handling](reference/error-handling.md)
-- [Memory Management](reference/memory.md)
+@reference/error-handling.md
+@reference/memory.md
 
 ### Performance
-
-- [Concurrency](reference/concurrency.md)
-- [Performance](reference/performance.md)
+@reference/concurrency.md
+@reference/performance.md
 
 ## Core Principles
 

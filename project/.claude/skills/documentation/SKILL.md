@@ -20,19 +20,16 @@ model: sonnet
 - Cleaning up and organizing project files
 - Setting up linting and formatting tools
 
-## Quick Reference
+## Reference Documents (Import Syntax)
 
 ### Documentation Standards
-
-- [Documentation Standards](reference/documentation.md)
+@reference/documentation.md
 
 ### Language Conventions
-
-- [Code and Documentation Language](reference/communication.md)
+@reference/communication.md
 
 ### Project Cleanup
-
-- [Cleanup and Finalization](reference/cleanup.md)
+@reference/cleanup.md
 
 ## Core Principles
 

@@ -45,12 +45,11 @@ Profiling → Identify bottlenecks → Optimize → Verify
 - [ ] Cache invalidation policy
 - [ ] Cache hit rate monitoring
 
-## Reference
-
-- [Performance Guidelines](reference/performance.md)
-- [Memory Management](reference/memory.md)
-- [Concurrency](reference/concurrency.md)
-- [Monitoring](reference/monitoring.md)
+## Reference Documents (Import Syntax)
+@reference/performance.md
+@reference/memory.md
+@reference/concurrency.md
+@reference/monitoring.md
 
 ## Caution
 

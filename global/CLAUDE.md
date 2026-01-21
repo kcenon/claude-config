@@ -2,16 +2,15 @@
 
 This is the global configuration for all Claude Code sessions. These settings apply across all projects unless overridden by project-specific `CLAUDE.md` files.
 
-## Configuration Modules
+## Configuration Modules (Import Syntax)
 
-The configuration is organized into focused modules for better token efficiency:
+The configuration is organized into focused modules using `@path/to/file` Import syntax:
 
 ### Core Settings
-
-- **[Token Management](token-management.md)** - Token usage display, cost tracking, and optimization strategies
-- **[Conversation Language](conversation-language.md)** - Input/output language preferences and translation policies
-- **[Git Identity](git-identity.md)** - User information for git commits
-- **[Commit Settings](commit-settings.md)** - Commit and PR attribution policy (no Claude references)
+@token-management.md
+@conversation-language.md
+@git-identity.md
+@commit-settings.md
 
 ## Priority Rules
 
@@ -51,6 +50,9 @@ To modify these settings:
 
 ## Version History
 
+- **1.3.0** (2026-01-22): Adopted Import syntax (`@path/to/file`) for modular references
+  - Replaced markdown links with Import syntax
+  - Supports recursive imports up to 5 levels deep
 - **1.2.0** (2026-01-15): CLAUDE.md optimization for official best practices compliance
   - Simplified project/CLAUDE.md (212 → ~85 lines)
   - Added emphasis expressions for key rules
@@ -62,5 +64,5 @@ To modify these settings:
 
 ---
 
-*Last updated: 2026-01-15*
-*Version: 1.2.0*
+*Last updated: 2026-01-22*
+*Version: 1.3.0*
