@@ -3,6 +3,10 @@
   "description": "Claude Code 글로벌 설정 - 모든 프로젝트에 적용",
   "version": "1.1.0",
 
+  "statusLine": {
+    "type": "command",
+    "command": "npx ccstatusline@latest"
+  },
   "alwaysThinkingEnabled": true,
 
   "hooks": {

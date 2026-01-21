@@ -1,0 +1,51 @@
+{
+  "version": 3,
+  "lines": [
+    [
+      { "id": "1", "type": "model", "color": "cyan" },
+      { "id": "2", "type": "separator" },
+      { "id": "3", "type": "session-clock", "color": "green" },
+      { "id": "4", "type": "separator" },
+      { "id": "5", "type": "session-cost", "color": "yellow" },
+      { "id": "6", "type": "separator" },
+      { "id": "7", "type": "block-timer", "color": "cyan" },
+      { "id": "8", "type": "separator" },
+      { "id": "9", "type": "git-branch", "color": "magenta" },
+      { "id": "10", "type": "separator" },
+      { "id": "11", "type": "git-changes", "color": "yellow" }
+    ],
+    [
+      { "id": "12", "type": "tokens-input", "color": "cyan" },
+      { "id": "13", "type": "separator" },
+      { "id": "14", "type": "tokens-output", "color": "green" },
+      { "id": "15", "type": "separator" },
+      { "id": "16", "type": "tokens-cached", "color": "brightBlack" },
+      { "id": "17", "type": "separator" },
+      { "id": "18", "type": "tokens-total", "color": "brightWhite", "bold": true }
+    ],
+    [
+      { "id": "19", "type": "context-length", "color": "cyan" },
+      { "id": "20", "type": "separator" },
+      { "id": "21", "type": "context-percentage", "color": "green" },
+      { "id": "22", "type": "separator" },
+      { "id": "23", "type": "context-percentage-usable", "color": "yellow" }
+    ]
+  ],
+  "flexMode": "full-minus-40",
+  "compactThreshold": 60,
+  "colorLevel": 2,
+  "inheritSeparatorColors": false,
+  "globalBold": false,
+  "powerline": {
+    "enabled": false,
+    "separators": [
+      ""
+    ],
+    "separatorInvertBackground": [
+      false
+    ],
+    "startCaps": [],
+    "endCaps": [],
+    "autoAlign": false
+  }
+}
