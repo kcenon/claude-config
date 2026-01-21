@@ -2,7 +2,7 @@
 
 ## Commit Message Structure
 
-Use the **Conventional Commits** format:
+**IMPORTANT**: Use the **Conventional Commits** format:
 
 ```
 type(scope): description
@@ -54,7 +54,7 @@ Must be one of the following:
 
 ## AI Reference Policy
 
-**Remove all AI-related references** from commit messages:
+**NEVER** include AI-related references in commit messages:
 
 ❌ **Don't include**:
 - "🤖 Generated with Claude Code"
@@ -65,7 +65,7 @@ Must be one of the following:
 - Tool attribution in commit messages
 - **All emojis** (🔧, 📊, ✅, 🚀, etc.)
 
-✅ **Do include**:
+✅ **ALWAYS** include:
 - Actual technical changes
 - Business rationale
 - Issue/ticket references
