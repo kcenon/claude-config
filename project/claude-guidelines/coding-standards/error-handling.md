@@ -1,6 +1,6 @@
 # Exception and Error Handling
 
-Apply these principles consistently, supplementing them with language-specific error handling patterns.
+**YOU MUST** apply these principles consistently, supplementing them with language-specific error handling patterns.
 
 ## General Principles
 
@@ -54,7 +54,7 @@ def find_user(id: int) -> Optional[User]:
 
 ### Ensure Cleanup
 
-Resources (files, connections, memory) must be released when no longer needed.
+**YOU MUST** release resources (files, connections, memory) when no longer needed.
 
 **C++ (RAII)**:
 ```cpp
@@ -102,7 +102,7 @@ private:
 
 ### Validate Early
 
-Validate all external input at the boundary of your system:
+**ALWAYS** validate all external input at the boundary of your system:
 
 ```cpp
 User createUser(const UserData& data) {
@@ -167,6 +167,8 @@ catch (...) {
 
 ### Don't Swallow Exceptions
 
+**NEVER** use empty catch blocks. Silent failures are prohibited.
+
 ❌ **Silent failure**:
 ```cpp
 try {
@@ -191,7 +193,7 @@ catch (const std::exception& e) {
 
 ### Error Context Propagation
 
-Include sufficient context when propagating errors:
+**IMPORTANT**: Include sufficient context when propagating errors:
 
 ```cpp
 void processFile(const std::string& filename) {

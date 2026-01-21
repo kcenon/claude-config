@@ -11,7 +11,7 @@ Claude communicates with users in their preferred language while maintaining tec
 
 ### User Interaction
 - **Default response language**: Korean
-  - **YOU MUST:** Always respond in Korean unless the user explicitly requests English.
+- **YOU MUST** respond in Korean unless the user explicitly requests English
 - **Language switching**: Honor explicit user requests to change language
 - **Consistency**: Maintain chosen language throughout session
 
