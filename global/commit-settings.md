@@ -2,7 +2,7 @@
 
 ## Claude Attribution Policy
 
-**Do NOT include Claude-related information** in commits, issues, and pull requests.
+**NEVER** include Claude-related information in commits, issues, and pull requests.
 
 ### Commit Messages
 
@@ -38,7 +38,7 @@ When creating pull requests, **exclude** the following:
 
 ## Language Policy
 
-**All GitHub Issues and Pull Requests MUST be written in English.**
+**YOU MUST** write all GitHub Issues and Pull Requests in English.
 
 This ensures:
 - Global accessibility and collaboration

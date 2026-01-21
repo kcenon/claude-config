@@ -11,6 +11,8 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 
 ## Priority Rules
 
+**IMPORTANT**: Understand these priority rules to resolve conflicts correctly.
+
 1. **Project overrides global** - Project `CLAUDE.md` takes precedence
 2. **Intelligent loading** - Auto-selects modules via `conditional-loading.md`
 3. **Token optimization** - Reduces usage by ~60-70%
@@ -23,6 +25,8 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 | Git identity | System config | Not overridable |
 | Claude attribution | Disabled | Not overridable |
 | Token display | Always | Not overridable |
+
+**NEVER** include Claude/AI attribution in commits, issues, or PRs (see `commit-settings.md`).
 
 ## Configuration Updates
 
