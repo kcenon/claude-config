@@ -107,6 +107,12 @@ claude --plugin-dir ./plugin
 
 ```
 claude_config_backup/
+├── enterprise/                  # Enterprise 설정 (시스템 전체)
+│   ├── CLAUDE.md               # 조직 전체 정책
+│   └── rules/                  # Enterprise 규칙
+│       ├── security.md         # 보안 규칙 템플릿
+│       └── compliance.md       # 컴플라이언스 규칙 템플릿
+│
 ├── global/                      # 글로벌 설정 백업 (~/.claude/)
 │   ├── CLAUDE.md               # 메인 설정 파일
 │   ├── settings.json           # Hook 설정 (보안, 세션, UserPromptSubmit, Stop)
@@ -220,6 +226,52 @@ claude_config_backup/
 ```
 
 </details>
+
+---
+
+## Enterprise 설정
+
+Enterprise 설정은 조직의 모든 개발자에게 적용되는 조직 전체 정책을 제공합니다. Claude Code의 메모리 계층에서 **가장 높은 우선순위**를 가집니다.
+
+### 메모리 계층
+
+| 레벨 | 위치 | 범위 | 우선순위 |
+|------|------|------|----------|
+| **Enterprise Policy** | 시스템 전체 | 조직 | **최고** |
+| Project Memory | `./CLAUDE.md` | 팀 | 높음 |
+| Project Rules | `./.claude/rules/*.md` | 팀 | 높음 |
+| User Memory | `~/.claude/CLAUDE.md` | 개인 | 중간 |
+| Project Local | `./CLAUDE.local.md` | 개인 | 낮음 |
+
+### OS별 Enterprise 경로
+
+| OS | 경로 |
+|----|------|
+| **macOS** | `/Library/Application Support/ClaudeCode/CLAUDE.md` |
+| **Linux** | `/etc/claude-code/CLAUDE.md` |
+| **Windows** | `C:\Program Files\ClaudeCode\CLAUDE.md` |
+
+### Enterprise 설정 설치
+
+```bash
+./scripts/install.sh
+
+# 옵션 선택:
+#   4) Enterprise 설정만 설치 (관리자 권한 필요)
+#   5) 전체 설치 (Enterprise + Global + Project)
+```
+
+**참고**: Enterprise 설치는 관리자 권한이 필요합니다 (macOS/Linux에서 `sudo`).
+
+### Enterprise 템플릿 내용
+
+기본 enterprise 템플릿에는 다음이 포함됩니다:
+- **보안 요구사항**: 커밋 서명, 비밀 정보 보호, 접근 제어
+- **컴플라이언스**: 데이터 처리, 감사 요구사항, 규정 준수
+- **승인된 도구**: 패키지 레지스트리, 컨테이너 이미지, 의존성
+- **코드 표준**: 품질 게이트, 리뷰 요구사항, 브랜치 보호
+
+배포 전에 조직의 정책에 맞게 `enterprise/CLAUDE.md`를 커스터마이즈하세요.
 
 ---
 
