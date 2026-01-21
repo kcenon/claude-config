@@ -4,7 +4,7 @@ Universal conventions for this repository. Works with global settings in `~/.cla
 
 ## Core Guidelines (Import Syntax)
 
-**CRITICAL:** Always check environment settings first for timezone and locale.
+**YOU MUST** check environment settings first for timezone and locale.
 
 ### Environment & Workflow
 @claude-guidelines/environment.md
@@ -45,7 +45,7 @@ Universal conventions for this repository. Works with global settings in `~/.cla
 Auto-loaded via conditional loading based on task keywords and file types.
 @claude-guidelines/conditional-loading.md
 
-**Manual override:** `@load: security, performance` | `@skip: documentation` | `@focus: memory`
+**NOTE**: Manual override available: `@load: security, performance` | `@skip: documentation` | `@focus: memory`
 
 ## Settings Priority
 
@@ -54,7 +54,7 @@ Auto-loaded via conditional loading based on task keywords and file types.
 | **Global** | Token display, conversation language, git identity |
 | **Project** | Code standards, commit format, testing requirements |
 
-Project settings override global when conflicts occur.
+**IMPORTANT**: Project settings override global when conflicts occur.
 
 ## Usage Notes
 
