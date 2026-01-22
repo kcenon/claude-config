@@ -22,16 +22,16 @@ model: sonnet
 ## Reference Documents (Import Syntax)
 
 ### Core Standards
-@reference/general.md
-@reference/quality.md
+@./reference/general.md
+@./reference/quality.md
 
 ### Error & Safety
-@reference/error-handling.md
-@reference/memory.md
+@./reference/error-handling.md
+@./reference/memory.md
 
 ### Performance
-@reference/concurrency.md
-@reference/performance.md
+@./reference/concurrency.md
+@./reference/performance.md
 
 ## Core Principles
 

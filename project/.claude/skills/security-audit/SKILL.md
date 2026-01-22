@@ -39,9 +39,9 @@ model: sonnet
 - [ ] Resource access control
 
 ## Reference Documents (Import Syntax)
-@reference/security.md
-@reference/error-handling.md
-@reference/api-design.md
+@./reference/security.md
+@./reference/error-handling.md
+@./reference/api-design.md
 
 ## OWASP Top 10 Reference
 

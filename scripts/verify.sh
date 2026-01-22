@@ -89,6 +89,30 @@ check_executable() {
     fi
 }
 
+# Import 문법 검증 함수
+# Claude Code의 @import 문법은 상대 경로에 ./ 접두사가 필요합니다.
+# 올바른 예: @./path/to/file.md, @~/path/to/file.md, @/absolute/path.md
+# 잘못된 예: @path/to/file.md (./가 없음)
+validate_import_syntax() {
+    local file="$1"
+    local invalid_imports
+
+    # @로 시작하되 ./, ~/, /, http로 시작하지 않는 import 찾기
+    # 단, 예제 구문(@load:, @skip:, @focus:, @context:)과 Python 데코레이터(@app., @pytest. 등)는 제외
+    invalid_imports=$(grep -n '^@[^./~@]' "$file" 2>/dev/null | grep -v '^@https' | grep -v '^@load:' | grep -v '^@skip:' | grep -v '^@focus:' | grep -v '^@context:' | grep -v '@app\.' | grep -v '@pytest\.' | grep -v '@limiter\.' | grep -v '@before_' | grep -v '@after_' || true)
+
+    if [ -n "$invalid_imports" ]; then
+        error "Invalid import syntax in $file"
+        echo "  Use @./path for relative or @~/path for home directory"
+        echo "  Found:"
+        echo "$invalid_imports" | while read -r line; do
+            echo "    $line"
+        done
+        return 1
+    fi
+    return 0
+}
+
 # 백업 디렉토리 구조 검증
 echo ""
 echo "======================================================"
@@ -208,6 +232,62 @@ echo ""
 check_file "$BACKUP_DIR/README.md" "README.md"
 check_file "$BACKUP_DIR/QUICKSTART.md" "QUICKSTART.md"
 check_file "$BACKUP_DIR/HOOKS.md" "HOOKS.md (Hook 가이드)"
+
+# Import 문법 검증
+echo ""
+echo "======================================================"
+info "Import 문법 검증 (@import syntax)"
+echo "======================================================"
+echo ""
+
+# CLAUDE.md 파일들의 import 문법 검증
+IMPORT_CHECK_FILES=(
+    "$BACKUP_DIR/global/CLAUDE.md"
+    "$BACKUP_DIR/project/CLAUDE.md"
+)
+
+for check_file in "${IMPORT_CHECK_FILES[@]}"; do
+    if [ -f "$check_file" ]; then
+        TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+        if validate_import_syntax "$check_file"; then
+            success "$(basename "$(dirname "$check_file")")/$(basename "$check_file") import 문법 검증 통과"
+            PASSED_CHECKS=$((PASSED_CHECKS + 1))
+        else
+            FAILED_CHECKS=$((FAILED_CHECKS + 1))
+        fi
+    fi
+done
+
+# SKILL.md 파일들의 import 문법 검증
+if [ -d "$BACKUP_DIR/project/.claude/skills" ]; then
+    for skill_file in "$BACKUP_DIR/project/.claude/skills"/*/SKILL.md; do
+        if [ -f "$skill_file" ]; then
+            skill_name=$(basename "$(dirname "$skill_file")")
+            TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+            if validate_import_syntax "$skill_file"; then
+                success "skills/${skill_name}/SKILL.md import 문법 검증 통과"
+                PASSED_CHECKS=$((PASSED_CHECKS + 1))
+            else
+                FAILED_CHECKS=$((FAILED_CHECKS + 1))
+            fi
+        fi
+    done
+fi
+
+if [ -d "$BACKUP_DIR/plugin/skills" ]; then
+    for skill_file in "$BACKUP_DIR/plugin/skills"/*/SKILL.md; do
+        if [ -f "$skill_file" ]; then
+            skill_name=$(basename "$(dirname "$skill_file")")
+            TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+            if validate_import_syntax "$skill_file"; then
+                success "plugin/skills/${skill_name}/SKILL.md import 문법 검증 통과"
+                PASSED_CHECKS=$((PASSED_CHECKS + 1))
+            else
+                FAILED_CHECKS=$((FAILED_CHECKS + 1))
+            fi
+        fi
+    done
+fi
 
 # 통계
 echo ""

@@ -16,14 +16,14 @@ description: Provides API design guidelines for REST, GraphQL, versioning, loggi
 ## Reference Documents (Import Syntax)
 
 ### API Design
-@reference/api-design.md
+@./reference/api-design.md
 
 ### Architecture
-@reference/architecture.md
+@./reference/architecture.md
 
 ### Observability
-@reference/logging.md
-@reference/observability.md
+@./reference/logging.md
+@./reference/observability.md
 
 ## Core Principles
 
