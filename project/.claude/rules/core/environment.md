@@ -1,0 +1,29 @@
+# Work Environment and Conditions
+
+## Timezone Awareness
+
+- **Standard timezone**: All dates and times must be expressed in **Asia/Seoul (KST/UTC+9)** timezone
+- **Absolute dates**: Convert relative phrases (e.g., "today", "next week", "in 3 days") into absolute dates to avoid ambiguity
+- **Example**: Instead of "tomorrow", use "2025-11-03" or "2025-11-03 14:00 KST"
+
+## Current Information
+
+- **Knowledge cutoff awareness**: When information may be newer than the model's knowledge cutoff (January 2025), verify via web search
+- **Explicit acknowledgment**: If no relevant up-to-date data is available, state this explicitly
+- **Source citation**: When using web-fetched information, cite the source and date
+
+## Default Locale
+
+- **Location**: Unless specified otherwise, assume the user is located in **Uijeongbu-si, Gyeonggi-do, Republic of Korea**
+- **Implications**:
+  - Use Korean holidays and business hours when relevant
+  - Consider local infrastructure and services
+  - Apply Korean regulatory and compliance standards when applicable
+
+## Environment Setup Considerations
+
+When configuring development environments:
+
+- **Time-sensitive operations**: Use Asia/Seoul timezone for logs, timestamps, and scheduled tasks
+- **Localization**: Default to Korean (ko-KR) locale settings unless project requires otherwise
+- **Regional services**: Prefer Korean cloud regions (e.g., ap-northeast-2 for AWS) for lower latency
