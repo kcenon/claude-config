@@ -1,1 +1,1 @@
-../../../../claude-guidelines/coding-standards/general.md
+../../../rules/coding/general.md

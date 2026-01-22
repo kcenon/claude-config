@@ -1,1 +1,1 @@
-../../../../claude-guidelines/security.md
+../../../rules/security.md

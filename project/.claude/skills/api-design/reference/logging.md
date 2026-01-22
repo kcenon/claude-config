@@ -1,1 +1,1 @@
-../../../../claude-guidelines/api-architecture/logging.md
+../../../rules/api/logging.md

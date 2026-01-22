@@ -1,1 +1,1 @@
-../../../../claude-guidelines/coding-standards/error-handling.md
+../../../rules/coding/error-handling.md

@@ -1,1 +1,1 @@
-../../../../claude-guidelines/operations/monitoring.md
+../../../rules/operations/monitoring.md

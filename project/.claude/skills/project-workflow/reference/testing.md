@@ -1,1 +1,1 @@
-../../../../claude-guidelines/project-management/testing.md
+../../../rules/project-management/testing.md

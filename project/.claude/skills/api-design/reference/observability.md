@@ -1,1 +1,1 @@
-../../../../claude-guidelines/api-architecture/observability.md
+../../../rules/api/observability.md

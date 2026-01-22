@@ -1,1 +1,1 @@
-../../../../claude-guidelines/git-commit-format.md
+../../../rules/workflow/git-commit-format.md

@@ -1,1 +1,1 @@
-../../../../claude-guidelines/project-management/documentation.md
+../../../rules/project-management/documentation.md

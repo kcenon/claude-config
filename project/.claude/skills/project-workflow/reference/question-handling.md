@@ -1,1 +1,1 @@
-../../../../claude-guidelines/workflow/question-handling.md
+../../../rules/workflow/question-handling.md
