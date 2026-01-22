@@ -17,13 +17,13 @@ description: Provides documentation standards for README, API docs, code comment
 ## Reference Documents (Import Syntax)
 
 ### Documentation Standards
-@reference/documentation.md
+@./reference/documentation.md
 
 ### Language Conventions
-@reference/communication.md
+@./reference/communication.md
 
 ### Project Cleanup
-@reference/cleanup.md
+@./reference/cleanup.md
 
 ## Core Principles
 

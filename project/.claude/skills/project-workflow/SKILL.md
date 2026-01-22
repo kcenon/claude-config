@@ -24,20 +24,20 @@ model: sonnet
 ## Reference Documents (Import Syntax)
 
 ### Workflow
-@reference/workflow.md
-@reference/question-handling.md
-@reference/workflow-problem-solving.md
-@reference/performance-analysis.md
+@./reference/workflow.md
+@./reference/question-handling.md
+@./reference/workflow-problem-solving.md
+@./reference/performance-analysis.md
 
 ### GitHub
-@reference/github-issue-5w1h.md
-@reference/github-pr-5w1h.md
-@reference/git-commit-format.md
+@./reference/github-issue-5w1h.md
+@./reference/github-pr-5w1h.md
+@./reference/git-commit-format.md
 
 ### Project Management
-@reference/problem-solving.md
-@reference/build.md
-@reference/testing.md
+@./reference/problem-solving.md
+@./reference/build.md
+@./reference/testing.md
 
 ## Core Principles
 

@@ -46,10 +46,10 @@ Profiling → Identify bottlenecks → Optimize → Verify
 - [ ] Cache hit rate monitoring
 
 ## Reference Documents (Import Syntax)
-@reference/performance.md
-@reference/memory.md
-@reference/concurrency.md
-@reference/monitoring.md
+@./reference/performance.md
+@./reference/memory.md
+@./reference/concurrency.md
+@./reference/monitoring.md
 
 ## Caution
 

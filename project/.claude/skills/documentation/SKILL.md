@@ -23,13 +23,13 @@ model: sonnet
 ## Reference Documents (Import Syntax)
 
 ### Documentation Standards
-@reference/documentation.md
+@./reference/documentation.md
 
 ### Language Conventions
-@reference/communication.md
+@./reference/communication.md
 
 ### Project Cleanup
-@reference/cleanup.md
+@./reference/cleanup.md
 
 ## Core Principles
 

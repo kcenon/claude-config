@@ -4,10 +4,10 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 
 ## Core Settings (Import Syntax)
 
-@token-management.md
-@conversation-language.md
-@git-identity.md
-@commit-settings.md
+@./token-management.md
+@./conversation-language.md
+@./git-identity.md
+@./commit-settings.md
 
 ## Priority Rules
 
