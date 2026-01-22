@@ -67,7 +67,7 @@ BACKUP_TYPE=${BACKUP_TYPE:-3}
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 TEMP_BACKUP="$BACKUP_DIR/backup_$TIMESTAMP"
 mkdir -p "$TEMP_BACKUP/global"
-mkdir -p "$TEMP_BACKUP/project/claude-guidelines"
+mkdir -p "$TEMP_BACKUP/project/.claude/rules"
 mkdir -p "$TEMP_BACKUP/enterprise/rules"
 
 # Enterprise 설정 백업
@@ -159,9 +159,16 @@ if [ "$BACKUP_TYPE" = "2" ] || [ "$BACKUP_TYPE" = "3" ] || [ "$BACKUP_TYPE" = "5
             success "프로젝트 CLAUDE.md 백업됨"
         fi
 
-        if [ -d "$PROJECT_DIR/claude-guidelines" ]; then
-            cp -r "$PROJECT_DIR/claude-guidelines"/* "$TEMP_BACKUP/project/claude-guidelines/"
-            success "claude-guidelines 백업됨"
+        # .claude/rules 디렉토리 백업
+        if [ -d "$PROJECT_DIR/.claude/rules" ]; then
+            cp -r "$PROJECT_DIR/.claude/rules"/* "$TEMP_BACKUP/project/.claude/rules/"
+            success ".claude/rules 디렉토리 백업됨"
+        fi
+
+        # .claude/settings.json 백업
+        if [ -f "$PROJECT_DIR/.claude/settings.json" ]; then
+            cp "$PROJECT_DIR/.claude/settings.json" "$TEMP_BACKUP/project/.claude/"
+            success ".claude/settings.json 백업됨"
         fi
 
         # Skills 디렉토리 백업
@@ -169,6 +176,20 @@ if [ "$BACKUP_TYPE" = "2" ] || [ "$BACKUP_TYPE" = "3" ] || [ "$BACKUP_TYPE" = "5
             mkdir -p "$TEMP_BACKUP/project/.claude/skills"
             cp -r "$PROJECT_DIR/.claude/skills"/* "$TEMP_BACKUP/project/.claude/skills/"
             success "skills 디렉토리 백업됨"
+        fi
+
+        # Commands 디렉토리 백업
+        if [ -d "$PROJECT_DIR/.claude/commands" ]; then
+            mkdir -p "$TEMP_BACKUP/project/.claude/commands"
+            cp -r "$PROJECT_DIR/.claude/commands"/* "$TEMP_BACKUP/project/.claude/commands/"
+            success "commands 디렉토리 백업됨"
+        fi
+
+        # Agents 디렉토리 백업
+        if [ -d "$PROJECT_DIR/.claude/agents" ]; then
+            mkdir -p "$TEMP_BACKUP/project/.claude/agents"
+            cp -r "$PROJECT_DIR/.claude/agents"/* "$TEMP_BACKUP/project/.claude/agents/"
+            success "agents 디렉토리 백업됨"
         fi
     fi
 fi
@@ -247,11 +268,17 @@ echo "  📂 프로젝트 설정:"
 if [ -f "$BACKUP_DIR/project/CLAUDE.md" ]; then
     echo "    - CLAUDE.md"
 fi
-if [ -d "$BACKUP_DIR/project/claude-guidelines" ] && [ "$(ls -A $BACKUP_DIR/project/claude-guidelines)" ]; then
-    echo "    - claude-guidelines/"
+if [ -d "$BACKUP_DIR/project/.claude/rules" ] && [ "$(ls -A $BACKUP_DIR/project/.claude/rules)" ]; then
+    echo "    - .claude/rules/"
 fi
 if [ -d "$BACKUP_DIR/project/.claude/skills" ] && [ "$(ls -A $BACKUP_DIR/project/.claude/skills)" ]; then
     echo "    - .claude/skills/"
+fi
+if [ -d "$BACKUP_DIR/project/.claude/commands" ] && [ "$(ls -A $BACKUP_DIR/project/.claude/commands 2>/dev/null)" ]; then
+    echo "    - .claude/commands/"
+fi
+if [ -d "$BACKUP_DIR/project/.claude/agents" ] && [ "$(ls -A $BACKUP_DIR/project/.claude/agents 2>/dev/null)" ]; then
+    echo "    - .claude/agents/"
 fi
 
 echo ""

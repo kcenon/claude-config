@@ -158,8 +158,8 @@ echo "======================================================"
 echo ""
 
 check_file "$BACKUP_DIR/project/CLAUDE.md" "프로젝트 CLAUDE.md"
-check_dir "$BACKUP_DIR/project/claude-guidelines" "claude-guidelines 디렉토리"
 check_dir "$BACKUP_DIR/project/.claude" ".claude 디렉토리"
+check_dir "$BACKUP_DIR/project/.claude/rules" ".claude/rules 디렉토리"
 check_file "$BACKUP_DIR/project/.claude/settings.json" "프로젝트 settings.json (Hook 설정)"
 
 # 프로젝트 settings.json JSON 유효성 검사
@@ -200,10 +200,13 @@ if [ -d "$BACKUP_DIR/project/.claude/skills" ]; then
     done
 fi
 
-if [ -d "$BACKUP_DIR/project/claude-guidelines" ]; then
-    check_dir "$BACKUP_DIR/project/claude-guidelines/coding-standards" "coding-standards"
-    check_dir "$BACKUP_DIR/project/claude-guidelines/operations" "operations"
-    check_dir "$BACKUP_DIR/project/claude-guidelines/project-management" "project-management"
+if [ -d "$BACKUP_DIR/project/.claude/rules" ]; then
+    check_dir "$BACKUP_DIR/project/.claude/rules/coding" "rules/coding"
+    check_dir "$BACKUP_DIR/project/.claude/rules/operations" "rules/operations"
+    check_dir "$BACKUP_DIR/project/.claude/rules/project-management" "rules/project-management"
+    check_dir "$BACKUP_DIR/project/.claude/rules/workflow" "rules/workflow"
+    check_dir "$BACKUP_DIR/project/.claude/rules/api" "rules/api"
+    check_dir "$BACKUP_DIR/project/.claude/rules/core" "rules/core"
 fi
 
 # 스크립트 검증

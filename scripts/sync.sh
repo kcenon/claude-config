@@ -164,10 +164,10 @@ if [ "$CHECK_PROJECT" = "y" ]; then
         compare_files "$BACKUP_DIR/project/CLAUDE.md" "$PROJECT_DIR/CLAUDE.md" "프로젝트 CLAUDE.md"
         [ $? -ne 0 ] && PROJECT_DIFF=1
 
-        # claude-guidelines 비교 (간단히)
-        if [ -d "$BACKUP_DIR/project/claude-guidelines" ] && [ -d "$PROJECT_DIR/claude-guidelines" ]; then
-            highlight "claude-guidelines 디렉토리 비교:"
-            diff -rq "$BACKUP_DIR/project/claude-guidelines" "$PROJECT_DIR/claude-guidelines" 2>/dev/null | head -10 || true
+        # rules 디렉토리 비교
+        if [ -d "$BACKUP_DIR/project/.claude/rules" ] && [ -d "$PROJECT_DIR/.claude/rules" ]; then
+            highlight "rules 디렉토리 비교:"
+            diff -rq "$BACKUP_DIR/project/.claude/rules" "$PROJECT_DIR/.claude/rules" 2>/dev/null | head -10 || true
             [ ${PIPESTATUS[0]} -ne 0 ] && PROJECT_DIFF=1
         fi
 
@@ -283,10 +283,10 @@ if [ "$SYNC_DIRECTION" = "1" ]; then
             success "프로젝트 CLAUDE.md → 시스템"
         }
 
-        [ -d "$BACKUP_DIR/project/claude-guidelines" ] && {
-            mkdir -p "$PROJECT_DIR/claude-guidelines"
-            cp -r "$BACKUP_DIR/project/claude-guidelines"/* "$PROJECT_DIR/claude-guidelines/"
-            success "claude-guidelines → 시스템"
+        [ -d "$BACKUP_DIR/project/.claude/rules" ] && {
+            mkdir -p "$PROJECT_DIR/.claude/rules"
+            cp -r "$BACKUP_DIR/project/.claude/rules"/* "$PROJECT_DIR/.claude/rules/"
+            success "rules → 시스템"
         }
 
         [ -d "$BACKUP_DIR/project/.claude/skills" ] && {
@@ -335,10 +335,10 @@ else
             success "프로젝트 CLAUDE.md → 백업"
         }
 
-        [ -d "$PROJECT_DIR/claude-guidelines" ] && {
-            mkdir -p "$BACKUP_DIR/project/claude-guidelines"
-            cp -r "$PROJECT_DIR/claude-guidelines"/* "$BACKUP_DIR/project/claude-guidelines/"
-            success "claude-guidelines → 백업"
+        [ -d "$PROJECT_DIR/.claude/rules" ] && {
+            mkdir -p "$BACKUP_DIR/project/.claude/rules"
+            cp -r "$PROJECT_DIR/.claude/rules"/* "$BACKUP_DIR/project/.claude/rules/"
+            success "rules → 백업"
         }
 
         [ -d "$PROJECT_DIR/.claude/skills" ] && {
