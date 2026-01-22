@@ -2,50 +2,38 @@
 
 Universal conventions for this repository. Works with global settings in `~/.claude/CLAUDE.md`.
 
-## Core Guidelines (Import Syntax)
+## Rule Auto-Loading
 
-**YOU MUST** check environment settings first for timezone and locale.
+**Rules are automatically loaded** from `.claude/rules/` based on YAML frontmatter paths and conditional loading logic. No explicit imports needed.
 
-### Environment & Workflow
-@./claude-guidelines/environment.md
-@./claude-guidelines/workflow.md
-@./claude-guidelines/problem-solving.md
-@./claude-guidelines/communication.md
-@./claude-guidelines/git-commit-format.md
-@./claude-guidelines/common-commands.md
+### Available Rule Categories
 
-### Code Standards
-@./claude-guidelines/coding-standards/general.md
-@./claude-guidelines/coding-standards/quality.md
-@./claude-guidelines/coding-standards/error-handling.md
-@./claude-guidelines/operations/cleanup.md
+| Category | Location | Contents |
+|----------|----------|----------|
+| **Core** | `.claude/rules/core/` | Environment, communication, problem-solving, common commands |
+| **Workflow** | `.claude/rules/workflow/` | Git commit format, GitHub issue/PR guidelines (5W1H), question handling |
+| **Coding** | `.claude/rules/coding/` | General standards, quality, error handling, concurrency, memory, performance |
+| **API** | `.claude/rules/api/` | API design, logging, observability, architecture patterns |
+| **Operations** | `.claude/rules/operations/` | Cleanup, monitoring |
+| **Project Mgmt** | `.claude/rules/project-management/` | Build, testing, documentation standards |
+| **Security** | `.claude/rules/` | Security guidelines |
 
-### Technical
-@./claude-guidelines/coding-standards/concurrency.md
-@./claude-guidelines/coding-standards/memory.md
-@./claude-guidelines/coding-standards/performance.md
+### Conditional Loading
 
-### Project Management
-@./claude-guidelines/project-management/build.md
-@./claude-guidelines/project-management/testing.md
-@./claude-guidelines/project-management/documentation.md
+Rules load automatically based on:
+- **Task keywords**: "bug", "feature", "security", etc.
+- **File extensions**: `.cpp`, `.py`, `.ts`, etc.
+- **Directory patterns**: `/tests/`, `/api/`, etc.
 
-### Security & Operations
-@./claude-guidelines/security.md
-@./claude-guidelines/operations/monitoring.md
+See `.claude/rules/conditional-loading.md` for complete loading rules.
 
-### API & Architecture
-@./claude-guidelines/api-architecture/api-design.md
-@./claude-guidelines/api-architecture/logging.md
-@./claude-guidelines/api-architecture/observability.md
-@./claude-guidelines/api-architecture/architecture.md
+### Manual Override
 
-## Module Loading
-
-Auto-loaded via conditional loading based on task keywords and file types.
-@./claude-guidelines/conditional-loading.md
-
-**NOTE**: Manual override available: `@load: security, performance` | `@skip: documentation` | `@focus: memory`
+```markdown
+@load: security, performance    # Force load specific modules
+@skip: documentation, build     # Exclude specific modules
+@focus: memory-optimization     # Set focus area
+```
 
 ## Settings Priority
 
@@ -64,4 +52,4 @@ Auto-loaded via conditional loading based on task keywords and file types.
 
 ---
 
-*Version: 1.5.0 | Last updated: 2026-01-22*
+*Version: 2.0.0 | Last updated: 2026-01-22*
