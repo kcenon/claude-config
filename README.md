@@ -310,6 +310,70 @@ Customize `enterprise/CLAUDE.md` according to your organization's policies befor
 
 ---
 
+## Personal Settings (CLAUDE.local.md)
+
+For machine-specific or personal settings that shouldn't be committed to version control, use `CLAUDE.local.md`.
+
+### What is CLAUDE.local.md?
+
+| Aspect | Description |
+|--------|-------------|
+| **Purpose** | Personal project-specific settings |
+| **Committed** | No (gitignored) |
+| **Priority** | Low (overridden by project/team settings) |
+| **Location** | `./CLAUDE.local.md` in project root |
+
+### Creating CLAUDE.local.md
+
+```bash
+# Copy the template
+cp project/CLAUDE.local.md.template CLAUDE.local.md
+
+# Or during installation
+./scripts/install.sh
+# Select project installation and answer 'y' to create CLAUDE.local.md
+```
+
+### What to Put in CLAUDE.local.md
+
+| Do Include | Do NOT Include |
+|------------|----------------|
+| Local server URLs and ports | Actual credentials or secrets |
+| Machine-specific paths | Information needed by team members |
+| Personal workflow preferences | Critical project configuration |
+| Debug/development overrides | API keys or tokens |
+
+### Example Content
+
+```markdown
+# Personal Project Settings
+
+## Local Environment
+- API Server: http://localhost:3000
+- Database: localhost:5432
+
+## Personal Preferences
+- Editor: VSCode
+- Theme: Dark+
+
+## Temporary Overrides
+- Working on: feature/authentication
+- Verbose logging: enabled
+```
+
+### Verifying .gitignore
+
+Ensure `CLAUDE.local.md` is properly ignored:
+
+```bash
+# Check if gitignored
+git check-ignore CLAUDE.local.md
+
+# Should output: CLAUDE.local.md
+```
+
+---
+
 ## Rules
 
 Rules are modular configuration files in `.claude/rules/` that are conditionally loaded based on file paths.

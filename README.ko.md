@@ -271,6 +271,70 @@ Enterprise 설정은 조직의 모든 개발자에게 적용되는 조직 전체
 
 ---
 
+## 개인 설정 (CLAUDE.local.md)
+
+버전 관리에 포함되지 않아야 하는 머신별 또는 개인 설정은 `CLAUDE.local.md`를 사용하세요.
+
+### CLAUDE.local.md란?
+
+| 항목 | 설명 |
+|------|------|
+| **목적** | 개인 프로젝트별 설정 |
+| **커밋 여부** | 아니오 (gitignore됨) |
+| **우선순위** | 낮음 (프로젝트/팀 설정에 의해 오버라이드됨) |
+| **위치** | 프로젝트 루트의 `./CLAUDE.local.md` |
+
+### CLAUDE.local.md 생성하기
+
+```bash
+# 템플릿 복사
+cp project/CLAUDE.local.md.template CLAUDE.local.md
+
+# 또는 설치 시
+./scripts/install.sh
+# 프로젝트 설치를 선택하고 CLAUDE.local.md 생성에 'y' 응답
+```
+
+### CLAUDE.local.md에 포함할 내용
+
+| 포함할 것 | 포함하지 말 것 |
+|-----------|----------------|
+| 로컬 서버 URL 및 포트 | 실제 자격 증명이나 비밀 정보 |
+| 머신별 경로 | 팀원들에게 필요한 정보 |
+| 개인 워크플로우 선호도 | 중요한 프로젝트 설정 |
+| 디버그/개발 오버라이드 | API 키 또는 토큰 |
+
+### 예시 내용
+
+```markdown
+# 개인 프로젝트 설정
+
+## 로컬 환경
+- API 서버: http://localhost:3000
+- 데이터베이스: localhost:5432
+
+## 개인 선호도
+- 에디터: VSCode
+- 테마: Dark+
+
+## 임시 오버라이드
+- 작업 중: feature/authentication
+- 상세 로깅: 활성화
+```
+
+### .gitignore 확인하기
+
+`CLAUDE.local.md`가 제대로 무시되는지 확인:
+
+```bash
+# gitignore 확인
+git check-ignore CLAUDE.local.md
+
+# 출력: CLAUDE.local.md
+```
+
+---
+
 ## 글로벌 명령어
 
 글로벌 명령어는 `~/.claude/commands/`에 설치되어 모든 프로젝트에서 사용 가능합니다.
