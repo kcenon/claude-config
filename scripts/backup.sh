@@ -125,6 +125,18 @@ if [ "$BACKUP_TYPE" = "1" ] || [ "$BACKUP_TYPE" = "3" ] || [ "$BACKUP_TYPE" = "5
         cp "$HOME/.claude/token-management.md" "$TEMP_BACKUP/global/"
         success "token-management.md 백업됨"
     fi
+
+    if [ -f "$HOME/.claude/settings.json" ]; then
+        cp "$HOME/.claude/settings.json" "$TEMP_BACKUP/global/"
+        success "settings.json 백업됨"
+    fi
+
+    # hooks 디렉토리 백업
+    if [ -d "$HOME/.claude/hooks" ]; then
+        mkdir -p "$TEMP_BACKUP/global/hooks"
+        cp "$HOME/.claude/hooks"/*.sh "$TEMP_BACKUP/global/hooks/" 2>/dev/null || true
+        success "hooks 디렉토리 백업됨"
+    fi
 fi
 
 # 프로젝트 설정 백업
@@ -225,7 +237,10 @@ if [ -d "$BACKUP_DIR/enterprise" ] && [ "$(ls -A $BACKUP_DIR/enterprise 2>/dev/n
 fi
 
 echo "  📂 글로벌 설정:"
-ls -1 "$BACKUP_DIR/global/" 2>/dev/null | sed 's/^/    - /' || echo "    (없음)"
+ls -1 "$BACKUP_DIR/global/" 2>/dev/null | grep -v "^hooks$" | sed 's/^/    - /' || echo "    (없음)"
+if [ -d "$BACKUP_DIR/global/hooks" ] && [ "$(ls -A $BACKUP_DIR/global/hooks 2>/dev/null)" ]; then
+    echo "    - hooks/"
+fi
 
 echo ""
 echo "  📂 프로젝트 설정:"
