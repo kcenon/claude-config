@@ -1,1 +1,1 @@
-../../../../claude-guidelines/coding-standards/memory.md
+../../../rules/coding/memory.md

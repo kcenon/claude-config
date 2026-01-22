@@ -1,1 +1,1 @@
-../../../../claude-guidelines/coding-standards/concurrency.md
+../../../rules/coding/concurrency.md

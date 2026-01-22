@@ -1,1 +1,1 @@
-../../../../claude-guidelines/operations/cleanup.md
+../../../rules/operations/cleanup.md

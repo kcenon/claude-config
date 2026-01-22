@@ -1,1 +1,1 @@
-../../../../claude-guidelines/workflow/github-pr-5w1h.md
+../../../rules/workflow/github-pr-5w1h.md

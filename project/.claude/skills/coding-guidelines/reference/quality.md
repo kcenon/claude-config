@@ -1,1 +1,1 @@
-../../../../claude-guidelines/coding-standards/quality.md
+../../../rules/coding/quality.md

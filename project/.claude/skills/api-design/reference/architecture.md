@@ -1,1 +1,1 @@
-../../../../claude-guidelines/api-architecture/architecture.md
+../../../rules/api/architecture.md

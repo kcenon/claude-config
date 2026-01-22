@@ -1,1 +1,1 @@
-../../../../claude-guidelines/project-management/build.md
+../../../rules/project-management/build.md

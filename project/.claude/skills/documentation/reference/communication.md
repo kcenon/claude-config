@@ -1,1 +1,1 @@
-../../../../claude-guidelines/communication.md
+../../../rules/core/communication.md

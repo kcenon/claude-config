@@ -1,1 +1,1 @@
-../../../../claude-guidelines/workflow.md
+../../../rules/workflow/workflow.md

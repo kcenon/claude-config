@@ -1,1 +1,1 @@
-../../../../claude-guidelines/workflow/performance-analysis.md
+../../../rules/workflow/performance-analysis.md

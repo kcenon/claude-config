@@ -1,1 +1,1 @@
-../../../../claude-guidelines/problem-solving.md
+../../../rules/core/problem-solving.md
