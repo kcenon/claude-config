@@ -132,70 +132,66 @@ claude_config_backup/
 │   ├── CLAUDE.md               # Project main configuration
 │   ├── CLAUDE.local.md.template # Local settings template (not committed)
 │   ├── .mcp.json               # MCP server configuration template
-│   ├── .claude/
-│   │   ├── settings.json       # Hook settings (auto-formatting)
-│   │   ├── settings.local.json.template  # Local settings template
-│   │   ├── rules/              # Modular rules with path frontmatter
-│   │   │   ├── coding.md       # Coding standards (auto-loaded for code files)
-│   │   │   ├── testing.md      # Testing standards (auto-loaded for test files)
-│   │   │   ├── security.md     # Security guidelines
-│   │   │   ├── documentation.md # Documentation standards
-│   │   │   └── api/
-│   │   │       └── rest-api.md # REST API design patterns
-│   │   ├── commands/           # Custom slash commands
-│   │   │   ├── pr-review.md    # /pr-review command
-│   │   │   ├── code-quality.md # /code-quality command
-│   │   │   └── git-status.md   # /git-status command
-│   │   ├── agents/             # Specialized agent configurations
-│   │   │   ├── code-reviewer.md
-│   │   │   ├── documentation-writer.md
-│   │   │   └── refactor-assistant.md
-│   │   └── skills/             # Claude Code Skills
-│   │       ├── coding-guidelines/
-│   │       │   ├── SKILL.md    # Coding standards skill
-│   │       │   └── reference/  # Symlinks to guidelines
-│   │       ├── security-audit/
-│   │       │   ├── SKILL.md    # Security audit skill
-│   │       │   └── reference/  # Symlinks to guidelines
-│   │       ├── performance-review/
-│   │       │   ├── SKILL.md    # Performance review skill
-│   │       │   └── reference/  # Symlinks to guidelines
-│   │       ├── api-design/
-│   │       │   ├── SKILL.md    # API and architecture skill
-│   │       │   └── reference/  # Symlinks to guidelines
-│   │       ├── project-workflow/
-│   │       │   ├── SKILL.md    # Workflow and project management skill
-│   │       │   └── reference/  # Symlinks to guidelines
-│   │       └── documentation/
-│   │           ├── SKILL.md    # Documentation standards skill
-│   │           └── reference/  # Symlinks to guidelines
-│   └── claude-guidelines/      # Guideline modules
-│       ├── api-architecture/   # API & Architecture
-│       │   ├── api-design.md
-│       │   ├── architecture.md
-│       │   ├── logging.md
-│       │   └── observability.md
-│       ├── coding-standards/   # Coding standards
-│       │   ├── general.md
-│       │   ├── quality.md
-│       │   ├── error-handling.md
-│       │   ├── concurrency.md
-│       │   ├── memory.md
-│       │   └── performance.md
-│       ├── project-management/ # Project management
-│       │   ├── build.md
-│       │   ├── testing.md
-│       │   └── documentation.md
-│       ├── operations/         # Operations
-│       │   ├── monitoring.md
-│       │   └── cleanup.md
-│       ├── communication.md
-│       ├── environment.md
-│       ├── git-commit-format.md
-│       ├── problem-solving.md
-│       ├── security.md
-│       ├── workflow.md
-│       └── conditional-loading.md
+│   └── .claude/
+│       ├── settings.json       # Hook settings (auto-formatting)
+│       ├── settings.local.json.template  # Local settings template
+│       ├── rules/              # Consolidated guideline modules (auto-loaded)
+│       │   ├── coding/         # Coding standards
+│       │   │   ├── general.md
+│       │   │   ├── quality.md
+│       │   │   ├── error-handling.md
+│       │   │   ├── concurrency.md
+│       │   │   ├── memory.md
+│       │   │   └── performance.md
+│       │   ├── api/            # API & Architecture
+│       │   │   ├── api-design.md
+│       │   │   ├── architecture.md
+│       │   │   ├── logging.md
+│       │   │   ├── observability.md
+│       │   │   └── rest-api.md
+│       │   ├── workflow/       # Workflow & GitHub guidelines
+│       │   │   ├── git-commit-format.md
+│       │   │   ├── github-issue-5w1h.md
+│       │   │   ├── github-pr-5w1h.md
+│       │   │   └── reference/  # Label definitions, automation patterns
+│       │   ├── core/           # Core settings
+│       │   │   ├── environment.md
+│       │   │   ├── communication.md
+│       │   │   ├── problem-solving.md
+│       │   │   └── common-commands.md
+│       │   ├── project-management/
+│       │   │   ├── build.md
+│       │   │   ├── testing.md
+│       │   │   └── documentation.md
+│       │   ├── operations/
+│       │   │   ├── monitoring.md
+│       │   │   └── cleanup.md
+│       │   ├── coding.md       # Coding overview
+│       │   ├── testing.md      # Testing overview
+│       │   ├── security.md     # Security guidelines
+│       │   ├── documentation.md
+│       │   └── conditional-loading.md
+│       ├── commands/           # Custom slash commands
+│       │   ├── pr-review.md
+│       │   ├── code-quality.md
+│       │   └── git-status.md
+│       ├── agents/             # Specialized agent configurations
+│       │   ├── code-reviewer.md
+│       │   ├── documentation-writer.md
+│       │   └── refactor-assistant.md
+│       └── skills/             # Claude Code Skills
+│           ├── coding-guidelines/
+│           │   └── SKILL.md
+│           ├── security-audit/
+│           │   └── SKILL.md
+│           ├── performance-review/
+│           │   └── SKILL.md
+│           ├── api-design/
+│           │   └── SKILL.md
+│           ├── project-workflow/
+│           │   └── SKILL.md
+│           └── documentation/
+│               └── SKILL.md
 │
 ├── scripts/                     # Automation scripts
 │   ├── install.sh              # Install to new system
@@ -511,9 +507,9 @@ Skills use the Progressive Disclosure pattern with Import syntax for token effic
 skills/coding-guidelines/
 ├── SKILL.md              # Core info (~37 lines)
 └── reference/            # Symlinks to detailed guidelines
-    ├── general.md        → claude-guidelines/coding-standards/general.md
-    ├── quality.md        → claude-guidelines/coding-standards/quality.md
-    ├── error-handling.md → claude-guidelines/coding-standards/error-handling.md
+    ├── general.md        → .claude/rules/coding/general.md
+    ├── quality.md        → .claude/rules/coding/quality.md
+    ├── error-handling.md → .claude/rules/coding/error-handling.md
     └── ...
 ```
 
@@ -535,9 +531,9 @@ The `@path/to/file` Import syntax (introduced in v1.4.0) provides:
 ```markdown
 # CLAUDE.md
 ## Core Guidelines
-@claude-guidelines/environment.md
-@claude-guidelines/workflow.md
-@claude-guidelines/coding-standards/general.md
+@.claude/rules/core/environment.md
+@.claude/rules/workflow/workflow.md
+@.claude/rules/coding/general.md
 ```
 
 ### Skill Structure
@@ -784,7 +780,7 @@ jobs:
 cp ~/.claude/CLAUDE.md ~/claude_config_backup/global/
 
 # Backup project settings only
-cp -r ~/project/claude-guidelines ~/claude_config_backup/project/
+cp -r ~/project/.claude ~/claude_config_backup/project/
 ```
 
 ### Customize with Environment Variables

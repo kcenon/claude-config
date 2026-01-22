@@ -17,7 +17,7 @@ This document provides a comprehensive analysis of the Skills and Rules systems 
 ```
 CLAUDE.md
 └── .claude/skills/*/SKILL.md (keyword-based auto-activation)
-      └── reference/*.md (symbolic links to claude-guidelines)
+      └── reference/*.md (symbolic links to .claude/rules)
 
 CLAUDE.md
 └── .claude/rules/*.md (path-based conditional loading)

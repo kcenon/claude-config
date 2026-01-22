@@ -155,7 +155,14 @@ install_project() {
 
     # 파일 복사
     cp "$INSTALL_DIR/project/CLAUDE.md" "$PROJECT_DIR/"
-    cp -r "$INSTALL_DIR/project/claude-guidelines" "$PROJECT_DIR/"
+
+    # .claude 디렉토리 설치
+    mkdir -p "$PROJECT_DIR/.claude"
+    [ -d "$INSTALL_DIR/project/.claude/rules" ] && cp -r "$INSTALL_DIR/project/.claude/rules" "$PROJECT_DIR/.claude/"
+    [ -d "$INSTALL_DIR/project/.claude/skills" ] && cp -r "$INSTALL_DIR/project/.claude/skills" "$PROJECT_DIR/.claude/"
+    [ -d "$INSTALL_DIR/project/.claude/commands" ] && cp -r "$INSTALL_DIR/project/.claude/commands" "$PROJECT_DIR/.claude/"
+    [ -d "$INSTALL_DIR/project/.claude/agents" ] && cp -r "$INSTALL_DIR/project/.claude/agents" "$PROJECT_DIR/.claude/"
+    [ -f "$INSTALL_DIR/project/.claude/settings.json" ] && cp "$INSTALL_DIR/project/.claude/settings.json" "$PROJECT_DIR/.claude/"
 
     success "프로젝트 설정 설치 완료"
 }

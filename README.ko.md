@@ -132,70 +132,66 @@ claude_config_backup/
 │   ├── CLAUDE.md               # 프로젝트 메인 설정
 │   ├── CLAUDE.local.md.template # 로컬 설정 템플릿 (커밋 제외)
 │   ├── .mcp.json               # MCP 서버 설정 템플릿
-│   ├── .claude/
-│   │   ├── settings.json       # Hook 설정 (자동 포맷팅)
-│   │   ├── settings.local.json.template  # 로컬 설정 템플릿
-│   │   ├── rules/              # 경로 기반 조건부 규칙
-│   │   │   ├── coding.md       # 코딩 표준 (코드 파일에 자동 로드)
-│   │   │   ├── testing.md      # 테스트 표준 (테스트 파일에 자동 로드)
-│   │   │   ├── security.md     # 보안 가이드라인
-│   │   │   ├── documentation.md # 문서화 표준
-│   │   │   └── api/
-│   │   │       └── rest-api.md # REST API 디자인 패턴
-│   │   ├── commands/           # 사용자 정의 슬래시 명령어
-│   │   │   ├── pr-review.md    # /pr-review 명령어
-│   │   │   ├── code-quality.md # /code-quality 명령어
-│   │   │   └── git-status.md   # /git-status 명령어
-│   │   ├── agents/             # 특화 에이전트 설정
-│   │   │   ├── code-reviewer.md
-│   │   │   ├── documentation-writer.md
-│   │   │   └── refactor-assistant.md
-│   │   └── skills/             # Claude Code Skills
-│   │       ├── coding-guidelines/
-│   │       │   ├── SKILL.md    # 코딩 표준 스킬
-│   │       │   └── reference/  # 가이드라인 심볼릭 링크
-│   │       ├── security-audit/
-│   │       │   ├── SKILL.md    # 보안 감사 스킬
-│   │       │   └── reference/  # 가이드라인 심볼릭 링크
-│   │       ├── performance-review/
-│   │       │   ├── SKILL.md    # 성능 리뷰 스킬
-│   │       │   └── reference/  # 가이드라인 심볼릭 링크
-│   │       ├── api-design/
-│   │       │   ├── SKILL.md    # API 및 아키텍처 스킬
-│   │       │   └── reference/  # 가이드라인 심볼릭 링크
-│   │       ├── project-workflow/
-│   │       │   ├── SKILL.md    # 워크플로우 및 프로젝트 관리 스킬
-│   │       │   └── reference/  # 가이드라인 심볼릭 링크
-│   │       └── documentation/
-│   │           ├── SKILL.md    # 문서화 표준 스킬
-│   │           └── reference/  # 가이드라인 심볼릭 링크
-│   └── claude-guidelines/      # 가이드라인 모듈
-│       ├── api-architecture/   # API 및 아키텍처
-│       │   ├── api-design.md
-│       │   ├── architecture.md
-│       │   ├── logging.md
-│       │   └── observability.md
-│       ├── coding-standards/   # 코딩 표준
-│       │   ├── general.md
-│       │   ├── quality.md
-│       │   ├── error-handling.md
-│       │   ├── concurrency.md
-│       │   ├── memory.md
-│       │   └── performance.md
-│       ├── project-management/ # 프로젝트 관리
-│       │   ├── build.md
-│       │   ├── testing.md
-│       │   └── documentation.md
-│       ├── operations/         # 운영
-│       │   ├── monitoring.md
-│       │   └── cleanup.md
-│       ├── communication.md
-│       ├── environment.md
-│       ├── git-commit-format.md
-│       ├── problem-solving.md
-│       ├── security.md
-│       ├── workflow.md
-│       └── conditional-loading.md
+│   └── .claude/
+│       ├── settings.json       # Hook 설정 (자동 포맷팅)
+│       ├── settings.local.json.template  # 로컬 설정 템플릿
+│       ├── rules/              # 통합 가이드라인 모듈 (자동 로드)
+│       │   ├── coding/         # 코딩 표준
+│       │   │   ├── general.md
+│       │   │   ├── quality.md
+│       │   │   ├── error-handling.md
+│       │   │   ├── concurrency.md
+│       │   │   ├── memory.md
+│       │   │   └── performance.md
+│       │   ├── api/            # API 및 아키텍처
+│       │   │   ├── api-design.md
+│       │   │   ├── architecture.md
+│       │   │   ├── logging.md
+│       │   │   ├── observability.md
+│       │   │   └── rest-api.md
+│       │   ├── workflow/       # 워크플로우 및 GitHub 가이드라인
+│       │   │   ├── git-commit-format.md
+│       │   │   ├── github-issue-5w1h.md
+│       │   │   ├── github-pr-5w1h.md
+│       │   │   └── reference/  # 레이블 정의, 자동화 패턴
+│       │   ├── core/           # 핵심 설정
+│       │   │   ├── environment.md
+│       │   │   ├── communication.md
+│       │   │   ├── problem-solving.md
+│       │   │   └── common-commands.md
+│       │   ├── project-management/
+│       │   │   ├── build.md
+│       │   │   ├── testing.md
+│       │   │   └── documentation.md
+│       │   ├── operations/
+│       │   │   ├── monitoring.md
+│       │   │   └── cleanup.md
+│       │   ├── coding.md       # 코딩 개요
+│       │   ├── testing.md      # 테스트 개요
+│       │   ├── security.md     # 보안 가이드라인
+│       │   ├── documentation.md
+│       │   └── conditional-loading.md
+│       ├── commands/           # 사용자 정의 슬래시 명령어
+│       │   ├── pr-review.md
+│       │   ├── code-quality.md
+│       │   └── git-status.md
+│       ├── agents/             # 특화 에이전트 설정
+│       │   ├── code-reviewer.md
+│       │   ├── documentation-writer.md
+│       │   └── refactor-assistant.md
+│       └── skills/             # Claude Code Skills
+│           ├── coding-guidelines/
+│           │   └── SKILL.md
+│           ├── security-audit/
+│           │   └── SKILL.md
+│           ├── performance-review/
+│           │   └── SKILL.md
+│           ├── api-design/
+│           │   └── SKILL.md
+│           ├── project-workflow/
+│           │   └── SKILL.md
+│           └── documentation/
+│               └── SKILL.md
 │
 ├── scripts/                     # 자동화 스크립트
 │   ├── install.sh              # 새 시스템에 설치
@@ -367,9 +363,9 @@ Skills는 토큰 효율성을 위해 Progressive Disclosure 패턴을 사용합�
 skills/coding-guidelines/
 ├── SKILL.md              # 핵심 정보 (~37줄)
 └── reference/            # 상세 가이드라인 심볼릭 링크
-    ├── general.md        → claude-guidelines/coding-standards/general.md
-    ├── quality.md        → claude-guidelines/coding-standards/quality.md
-    ├── error-handling.md → claude-guidelines/coding-standards/error-handling.md
+    ├── general.md        → .claude/rules/coding/general.md
+    ├── quality.md        → .claude/rules/coding/quality.md
+    ├── error-handling.md → .claude/rules/coding/error-handling.md
     └── ...
 ```
 
@@ -657,7 +653,7 @@ jobs:
 cp ~/.claude/CLAUDE.md ~/claude_config_backup/global/
 
 # 프로젝트 설정만 백업
-cp -r ~/project/claude-guidelines ~/claude_config_backup/project/
+cp -r ~/project/.claude ~/claude_config_backup/project/
 ```
 
 ### 환경 변수로 커스터마이즈

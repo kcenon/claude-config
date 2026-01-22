@@ -251,31 +251,54 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     if [ -f "$PROJECT_DIR/CLAUDE.md" ]; then
         create_backup "$PROJECT_DIR/CLAUDE.md"
     fi
-    if [ -d "$PROJECT_DIR/claude-guidelines" ]; then
-        create_backup "$PROJECT_DIR/claude-guidelines"
+    if [ -d "$PROJECT_DIR/.claude/rules" ]; then
+        create_backup "$PROJECT_DIR/.claude/rules"
     fi
 
     # 파일 복사
     cp "$BACKUP_DIR/project/CLAUDE.md" "$PROJECT_DIR/"
-    cp -r "$BACKUP_DIR/project/claude-guidelines" "$PROJECT_DIR/"
 
-    # .claude 디렉토리 및 settings.json 설치 (Hook 설정)
-    if [ -d "$BACKUP_DIR/project/.claude" ]; then
-        ensure_dir "$PROJECT_DIR/.claude"
-        if [ -f "$BACKUP_DIR/project/.claude/settings.json" ]; then
-            create_backup "$PROJECT_DIR/.claude/settings.json"
-            cp "$BACKUP_DIR/project/.claude/settings.json" "$PROJECT_DIR/.claude/"
-            success "프로젝트 Hook 설정 (.claude/settings.json) 설치 완료!"
-        fi
+    # .claude 디렉토리 설치
+    ensure_dir "$PROJECT_DIR/.claude"
 
-        # Skills 디렉토리 설치
-        if [ -d "$BACKUP_DIR/project/.claude/skills" ]; then
-            if [ -d "$PROJECT_DIR/.claude/skills" ]; then
-                create_backup "$PROJECT_DIR/.claude/skills"
-            fi
-            cp -r "$BACKUP_DIR/project/.claude/skills" "$PROJECT_DIR/.claude/"
-            success "Skills 디렉토리 설치 완료!"
+    # settings.json 설치 (Hook 설정)
+    if [ -f "$BACKUP_DIR/project/.claude/settings.json" ]; then
+        create_backup "$PROJECT_DIR/.claude/settings.json"
+        cp "$BACKUP_DIR/project/.claude/settings.json" "$PROJECT_DIR/.claude/"
+        success "프로젝트 Hook 설정 (.claude/settings.json) 설치 완료!"
+    fi
+
+    # rules 디렉토리 설치
+    if [ -d "$BACKUP_DIR/project/.claude/rules" ]; then
+        cp -r "$BACKUP_DIR/project/.claude/rules" "$PROJECT_DIR/.claude/"
+        success "Rules 디렉토리 설치 완료!"
+    fi
+
+    # Skills 디렉토리 설치
+    if [ -d "$BACKUP_DIR/project/.claude/skills" ]; then
+        if [ -d "$PROJECT_DIR/.claude/skills" ]; then
+            create_backup "$PROJECT_DIR/.claude/skills"
         fi
+        cp -r "$BACKUP_DIR/project/.claude/skills" "$PROJECT_DIR/.claude/"
+        success "Skills 디렉토리 설치 완료!"
+    fi
+
+    # commands 디렉토리 설치
+    if [ -d "$BACKUP_DIR/project/.claude/commands" ]; then
+        if [ -d "$PROJECT_DIR/.claude/commands" ]; then
+            create_backup "$PROJECT_DIR/.claude/commands"
+        fi
+        cp -r "$BACKUP_DIR/project/.claude/commands" "$PROJECT_DIR/.claude/"
+        success "Commands 디렉토리 설치 완료!"
+    fi
+
+    # agents 디렉토리 설치
+    if [ -d "$BACKUP_DIR/project/.claude/agents" ]; then
+        if [ -d "$PROJECT_DIR/.claude/agents" ]; then
+            create_backup "$PROJECT_DIR/.claude/agents"
+        fi
+        cp -r "$BACKUP_DIR/project/.claude/agents" "$PROJECT_DIR/.claude/"
+        success "Agents 디렉토리 설치 완료!"
     fi
 
     success "프로젝트 설정 설치 완료!"
@@ -284,7 +307,7 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     echo ""
     info "프로젝트에 맞게 설정을 커스터마이즈하세요:"
     echo "  - CLAUDE.md: 프로젝트 개요 수정"
-    echo "  - claude-guidelines/: 프로젝트별 코딩 표준 조정"
+    echo "  - .claude/rules/: 프로젝트별 코딩 표준 조정"
 fi
 
 # 설치 완료 요약
@@ -314,10 +337,16 @@ fi
 if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" = "5" ]; then
     echo "  📂 프로젝트 설정:"
     echo "    - $PROJECT_DIR/CLAUDE.md"
-    echo "    - $PROJECT_DIR/claude-guidelines/"
+    echo "    - $PROJECT_DIR/.claude/rules/ (Guidelines)"
     echo "    - $PROJECT_DIR/.claude/settings.json (Hook 설정)"
     if [ -d "$BACKUP_DIR/project/.claude/skills" ]; then
         echo "    - $PROJECT_DIR/.claude/skills/ (Skills)"
+    fi
+    if [ -d "$BACKUP_DIR/project/.claude/commands" ]; then
+        echo "    - $PROJECT_DIR/.claude/commands/ (Commands)"
+    fi
+    if [ -d "$BACKUP_DIR/project/.claude/agents" ]; then
+        echo "    - $PROJECT_DIR/.claude/agents/ (Agents)"
     fi
 fi
 

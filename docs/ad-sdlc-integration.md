@@ -40,8 +40,8 @@ Add references to AD-SDLC agent definition files (`.claude/agents/*.md`):
 ## Reference Guidelines
 
 Follow these guidelines when generating code:
-- [Coding Standards](https://github.com/kcenon/claude-config/blob/main/project/claude-guidelines/coding-standards/general.md)
-- [Error Handling](https://github.com/kcenon/claude-config/blob/main/project/claude-guidelines/coding-standards/error-handling.md)
+- [Coding Standards](https://github.com/kcenon/claude-config/blob/main/project/.claude/rules/coding/general.md)
+- [Error Handling](https://github.com/kcenon/claude-config/blob/main/project/.claude/rules/coding/error-handling.md)
 ```
 
 ### Method 2: Local Clone Reference
@@ -51,7 +51,7 @@ Follow these guidelines when generating code:
 git clone https://github.com/kcenon/claude-config.git ../claude-config
 
 # Reference via relative path in agent prompts
-# "Follow the rules in ../claude-config/project/claude-guidelines/ when generating code"
+# "Follow the rules in ../claude-config/project/.claude/rules/ when generating code"
 ```
 
 ### Method 3: Direct Remote Reference
@@ -61,7 +61,7 @@ git clone https://github.com/kcenon/claude-config.git ../claude-config
 curl -s https://raw.githubusercontent.com/kcenon/claude-config/main/project/.claude/skills/coding-guidelines/SKILL.md
 
 # View specific guideline
-curl -s https://raw.githubusercontent.com/kcenon/claude-config/main/project/claude-guidelines/coding-standards/general.md
+curl -s https://raw.githubusercontent.com/kcenon/claude-config/main/project/.claude/rules/coding/general.md
 ```
 
 ## Recommended References by Agent
@@ -156,4 +156,4 @@ Follow these patterns for API design:
 - [claude-config Repository](https://github.com/kcenon/claude-config)
 - [AD-SDLC Repository](https://github.com/kcenon/claude_code_agent)
 - [Skills List](../project/.claude/skills/)
-- [Guidelines List](../project/claude-guidelines/)
+- [Rules List](../project/.claude/rules/)
