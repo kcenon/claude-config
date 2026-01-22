@@ -66,6 +66,33 @@ ensure_dir() {
     fi
 }
 
+# 함수: CLAUDE.local.md 생성
+create_local_claude() {
+    local project_dir="$1"
+    local local_file="$project_dir/CLAUDE.local.md"
+    local template_file="$BACKUP_DIR/project/CLAUDE.local.md.template"
+
+    # Create CLAUDE.local.md from template if not exists
+    if [ ! -f "$local_file" ]; then
+        if [ -f "$template_file" ]; then
+            cp "$template_file" "$local_file"
+            success "Created $local_file from template"
+        fi
+    else
+        info "CLAUDE.local.md already exists, skipping..."
+    fi
+
+    # Ensure gitignore entry
+    if [ -f "$project_dir/.gitignore" ]; then
+        if ! grep -q "CLAUDE.local.md" "$project_dir/.gitignore"; then
+            echo "" >> "$project_dir/.gitignore"
+            echo "# Claude Code local settings (personal, do not commit)" >> "$project_dir/.gitignore"
+            echo "CLAUDE.local.md" >> "$project_dir/.gitignore"
+            success "Added CLAUDE.local.md to .gitignore"
+        fi
+    fi
+}
+
 # 함수: Enterprise 경로 감지
 get_enterprise_dir() {
     case "$(uname -s)" in
@@ -301,6 +328,14 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         success "Agents 디렉토리 설치 완료!"
     fi
 
+    # CLAUDE.local.md 생성 (개인 설정용)
+    echo ""
+    read -p "개인용 CLAUDE.local.md를 생성하시겠습니까? (y/n) [기본값: y]: " CREATE_LOCAL
+    CREATE_LOCAL=${CREATE_LOCAL:-y}
+    if [ "$CREATE_LOCAL" = "y" ]; then
+        create_local_claude "$PROJECT_DIR"
+    fi
+
     success "프로젝트 설정 설치 완료!"
 
     # 프로젝트별 커스터마이징 안내
@@ -308,6 +343,7 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     info "프로젝트에 맞게 설정을 커스터마이즈하세요:"
     echo "  - CLAUDE.md: 프로젝트 개요 수정"
     echo "  - .claude/rules/: 프로젝트별 코딩 표준 조정"
+    echo "  - CLAUDE.local.md: 개인 환경 설정 (커밋 제외)"
 fi
 
 # 설치 완료 요약

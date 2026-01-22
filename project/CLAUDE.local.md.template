@@ -1,47 +1,52 @@
-# Local Claude Code Configuration
+# Personal Project Settings
 
-This file contains personal settings that should NOT be committed to version control.
-Copy this file to `CLAUDE.local.md` and customize as needed.
-
-## Personal Preferences
-
-### Response Language
-- Preferred language: [Korean/English/etc.]
-
-### Communication Style
-- [Add your preferred communication style]
+> This file is gitignored and contains personal/machine-specific settings.
+> DO NOT commit this file to version control.
 
 ## Local Environment
 
-### Project Paths
-- Working directory: [your-path]
-- Build output: [your-path]
-
-### Local Services
+### Development Servers
+- API Server: http://localhost:3000
 - Database: localhost:5432
-- API: localhost:3000
+- Redis: localhost:6379
 
-## Personal Shortcuts
+### Environment Variables
+- NODE_ENV: development
+- DEBUG: true
 
-### Frequently Used Commands
-```bash
-# Add your common commands here
-npm run dev
-npm run test
-```
+## Personal Preferences
 
-### Custom Aliases
-- [Define any personal aliases or shortcuts]
+### IDE Configuration
+- Editor: VSCode
+- Theme: Dark+
+- Extensions: ESLint, Prettier
 
-## Notes
+### Workflow Preferences
+- Branch naming: feature/[initials]-[issue-number]-[description]
+- Commit style: Conventional Commits
 
-### Current Tasks
-- [ ] Task 1
-- [ ] Task 2
+## Machine-Specific Settings
 
-### Reminders
-- [Add personal reminders here]
+### Installed Tools
+- Node.js: v20.x
+- Python: 3.11
+- Docker: 24.x
+
+### Local Paths
+- Project data: ~/Development/data
+- Logs: ~/Development/logs
+
+## Temporary Overrides
+
+### Current Focus
+- Working on: [current feature/bug]
+- Skip: [modules to skip during development]
+
+### Debug Settings
+- Verbose logging: enabled
+- Mock external services: true
 
 ---
 
-*This file is ignored by git. Keep sensitive information here.*
+*Note: This file supports the same @import syntax as CLAUDE.md*
+*Copy this template to `CLAUDE.local.md` and customize as needed.*
