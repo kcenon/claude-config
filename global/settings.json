@@ -5,7 +5,7 @@
 
   "statusLine": {
     "type": "command",
-    "command": "npx ccstatusline@latest"
+    "command": "~/.claude/statusline-command.sh"
   },
   "alwaysThinkingEnabled": true,
 
