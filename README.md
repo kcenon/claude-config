@@ -107,6 +107,12 @@ See [plugin/README.md](plugin/README.md) for more details.
 
 ```
 claude_config_backup/
+├── enterprise/                  # Enterprise settings (system-wide)
+│   ├── CLAUDE.md               # Organization-wide policies
+│   └── rules/                  # Enterprise rules
+│       ├── security.md         # Security rules template
+│       └── compliance.md       # Compliance rules template
+│
 ├── global/                      # Global settings backup (~/.claude/)
 │   ├── CLAUDE.md               # Main configuration file
 │   ├── settings.json           # Hook settings (security, session, UserPromptSubmit, Stop)
@@ -259,6 +265,52 @@ This configuration includes automated Hook settings for enhanced security and pr
 - Rust: `rustfmt`
 
 For detailed configuration, see [HOOKS.md](HOOKS.md).
+
+---
+
+## Enterprise Settings
+
+Enterprise settings provide organization-wide policies that apply to all developers in your organization. These have the **highest priority** in Claude Code's memory hierarchy.
+
+### Memory Hierarchy
+
+| Level | Location | Scope | Priority |
+|-------|----------|-------|----------|
+| **Enterprise Policy** | System-wide | Organization | **Highest** |
+| Project Memory | `./CLAUDE.md` | Team | High |
+| Project Rules | `./.claude/rules/*.md` | Team | High |
+| User Memory | `~/.claude/CLAUDE.md` | Personal | Medium |
+| Project Local | `./CLAUDE.local.md` | Personal | Low |
+
+### Enterprise Paths by OS
+
+| OS | Path |
+|----|------|
+| **macOS** | `/Library/Application Support/ClaudeCode/CLAUDE.md` |
+| **Linux** | `/etc/claude-code/CLAUDE.md` |
+| **Windows** | `C:\Program Files\ClaudeCode\CLAUDE.md` |
+
+### Installing Enterprise Settings
+
+```bash
+./scripts/install.sh
+
+# Select option:
+#   4) Enterprise settings only (admin required)
+#   5) All (Enterprise + Global + Project)
+```
+
+**Note**: Enterprise installation requires administrator privileges (`sudo` on macOS/Linux).
+
+### Enterprise Template Contents
+
+The default enterprise template includes:
+- **Security Requirements**: Commit signing, secret protection, access control
+- **Compliance**: Data handling, audit requirements, regulatory compliance
+- **Approved Tools**: Package registries, container images, dependencies
+- **Code Standards**: Quality gates, review requirements, branch protection
+
+Customize `enterprise/CLAUDE.md` according to your organization's policies before deployment.
 
 ---
 

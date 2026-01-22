@@ -66,18 +66,112 @@ ensure_dir() {
     fi
 }
 
+# 함수: Enterprise 경로 감지
+get_enterprise_dir() {
+    case "$(uname -s)" in
+        Darwin)
+            echo "/Library/Application Support/ClaudeCode"
+            ;;
+        Linux)
+            echo "/etc/claude-code"
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            echo "C:/Program Files/ClaudeCode"
+            ;;
+        *)
+            echo "/etc/claude-code"
+            ;;
+    esac
+}
+
+# 함수: Enterprise 설정 설치
+install_enterprise() {
+    local enterprise_dir
+    enterprise_dir="$(get_enterprise_dir)"
+
+    echo ""
+    echo "======================================================"
+    info "Enterprise 설정 설치 중..."
+    echo "======================================================"
+    echo ""
+
+    info "Enterprise 경로: $enterprise_dir"
+    warning "관리자 권한이 필요합니다."
+    echo ""
+
+    # sudo 필요 여부 확인
+    if [ "$(uname -s)" = "Darwin" ] || [ "$(uname -s)" = "Linux" ]; then
+        if [ ! -w "$(dirname "$enterprise_dir")" ]; then
+            info "sudo를 사용하여 설치합니다."
+
+            # 디렉토리 생성
+            sudo mkdir -p "$enterprise_dir"
+            sudo mkdir -p "$enterprise_dir/rules"
+
+            # 파일 복사
+            sudo cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/"
+            success "CLAUDE.md 설치됨"
+
+            # rules 디렉토리 복사
+            if [ -d "$BACKUP_DIR/enterprise/rules" ]; then
+                sudo cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" 2>/dev/null || true
+                success "rules 디렉토리 설치됨"
+            fi
+
+            # 권한 설정 (읽기 전용)
+            sudo chmod 755 "$enterprise_dir"
+            sudo chmod 644 "$enterprise_dir/CLAUDE.md"
+            sudo chmod 755 "$enterprise_dir/rules"
+            sudo chmod 644 "$enterprise_dir/rules"/* 2>/dev/null || true
+        else
+            # sudo 불필요
+            mkdir -p "$enterprise_dir"
+            mkdir -p "$enterprise_dir/rules"
+            cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/"
+            success "CLAUDE.md 설치됨"
+
+            if [ -d "$BACKUP_DIR/enterprise/rules" ]; then
+                cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" 2>/dev/null || true
+                success "rules 디렉토리 설치됨"
+            fi
+        fi
+    else
+        # Windows
+        mkdir -p "$enterprise_dir"
+        mkdir -p "$enterprise_dir/rules"
+        cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/"
+        success "CLAUDE.md 설치됨"
+
+        if [ -d "$BACKUP_DIR/enterprise/rules" ]; then
+            cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" 2>/dev/null || true
+            success "rules 디렉토리 설치됨"
+        fi
+    fi
+
+    success "Enterprise 설정 설치 완료!"
+    echo ""
+    warning "중요: enterprise/CLAUDE.md를 조직 정책에 맞게 수정하세요!"
+}
+
 # 설치 타입 선택
 echo ""
 info "설치 타입을 선택하세요:"
 echo "  1) 글로벌 설정만 설치 (~/.claude/)"
 echo "  2) 프로젝트 설정만 설치 (현재 디렉토리)"
 echo "  3) 둘 다 설치 (권장)"
+echo "  4) Enterprise 설정만 설치 (관리자 권한 필요)"
+echo "  5) 전체 설치 (Enterprise + Global + Project)"
 echo ""
-read -p "선택 (1-3) [기본값: 3]: " INSTALL_TYPE
+read -p "선택 (1-5) [기본값: 3]: " INSTALL_TYPE
 INSTALL_TYPE=${INSTALL_TYPE:-3}
 
+# Enterprise 설정 설치
+if [ "$INSTALL_TYPE" = "4" ] || [ "$INSTALL_TYPE" = "5" ]; then
+    install_enterprise
+fi
+
 # 글로벌 설정 설치
-if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ]; then
+if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" = "5" ]; then
     echo ""
     echo "======================================================"
     info "글로벌 설정 설치 중..."
@@ -126,7 +220,7 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ]; then
 fi
 
 # 프로젝트 설정 설치
-if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ]; then
+if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" = "5" ]; then
     echo ""
     echo "======================================================"
     info "프로젝트 설정 설치 중..."
@@ -193,7 +287,13 @@ echo "======================================================"
 echo ""
 
 info "설치된 파일:"
-if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ]; then
+if [ "$INSTALL_TYPE" = "4" ] || [ "$INSTALL_TYPE" = "5" ]; then
+    echo "  📂 Enterprise 설정:"
+    echo "    - $(get_enterprise_dir)/CLAUDE.md"
+    echo "    - $(get_enterprise_dir)/rules/"
+fi
+
+if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" = "5" ]; then
     echo "  📂 글로벌 설정:"
     echo "    - ~/.claude/CLAUDE.md"
     echo "    - ~/.claude/conversation-language.md"
@@ -202,7 +302,7 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ]; then
     echo "    - ~/.claude/settings.json (Hook 설정)"
 fi
 
-if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ]; then
+if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" = "5" ]; then
     echo "  📂 프로젝트 설정:"
     echo "    - $PROJECT_DIR/CLAUDE.md"
     echo "    - $PROJECT_DIR/claude-guidelines/"

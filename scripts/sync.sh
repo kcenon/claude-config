@@ -35,6 +35,24 @@ warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
 error() { echo -e "${RED}❌ $1${NC}"; }
 highlight() { echo -e "${CYAN}🔸 $1${NC}"; }
 
+# 함수: Enterprise 경로 감지
+get_enterprise_dir() {
+    case "$(uname -s)" in
+        Darwin)
+            echo "/Library/Application Support/ClaudeCode"
+            ;;
+        Linux)
+            echo "/etc/claude-code"
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            echo "C:/Program Files/ClaudeCode"
+            ;;
+        *)
+            echo "/etc/claude-code"
+            ;;
+    esac
+}
+
 # 파일 비교 함수
 compare_files() {
     local source="$1"
@@ -70,6 +88,41 @@ echo "  3) 차이점만 확인 (변경하지 않음)"
 echo ""
 read -p "선택 (1-3) [기본값: 3]: " SYNC_DIRECTION
 SYNC_DIRECTION=${SYNC_DIRECTION:-3}
+
+# Enterprise 설정 비교
+echo ""
+read -p "Enterprise 설정도 비교하시겠습니까? (y/n) [기본값: n]: " CHECK_ENTERPRISE
+CHECK_ENTERPRISE=${CHECK_ENTERPRISE:-n}
+
+ENTERPRISE_DIFF=0
+ENTERPRISE_DIR="$(get_enterprise_dir)"
+
+if [ "$CHECK_ENTERPRISE" = "y" ]; then
+    echo ""
+    echo "======================================================"
+    info "Enterprise 설정 비교"
+    echo "======================================================"
+    echo ""
+    info "Enterprise 경로: $ENTERPRISE_DIR"
+
+    compare_files "$BACKUP_DIR/enterprise/CLAUDE.md" "$ENTERPRISE_DIR/CLAUDE.md" "Enterprise CLAUDE.md"
+    [ $? -ne 0 ] && ENTERPRISE_DIFF=1
+
+    # rules 디렉토리 비교
+    if [ -d "$BACKUP_DIR/enterprise/rules" ] || [ -d "$ENTERPRISE_DIR/rules" ]; then
+        highlight "Enterprise rules 디렉토리 비교:"
+        if [ ! -d "$BACKUP_DIR/enterprise/rules" ]; then
+            echo "    🟡 rules: 시스템에만 있음 (백업으로 복사 가능)"
+            ENTERPRISE_DIFF=1
+        elif [ ! -d "$ENTERPRISE_DIR/rules" ]; then
+            echo "    🔵 rules: 백업에만 있음 (시스템에 복사 가능)"
+            ENTERPRISE_DIFF=1
+        else
+            diff -rq "$BACKUP_DIR/enterprise/rules" "$ENTERPRISE_DIR/rules" 2>/dev/null | head -10 || true
+            [ ${PIPESTATUS[0]} -ne 0 ] && ENTERPRISE_DIFF=1
+        fi
+    fi
+fi
 
 # 글로벌 설정 비교
 echo ""
@@ -142,7 +195,7 @@ if [ "$SYNC_DIRECTION" = "3" ]; then
     exit 0
 fi
 
-if [ $GLOBAL_DIFF -eq 0 ] && [ $PROJECT_DIFF -eq 0 ]; then
+if [ $GLOBAL_DIFF -eq 0 ] && [ $PROJECT_DIFF -eq 0 ] && [ $ENTERPRISE_DIFF -eq 0 ]; then
     echo ""
     success "모든 파일이 동일합니다. 동기화 불필요!"
     exit 0
@@ -180,6 +233,29 @@ echo "======================================================"
 
 if [ "$SYNC_DIRECTION" = "1" ]; then
     # 백업 → 시스템
+
+    # Enterprise 동기화
+    if [ "$CHECK_ENTERPRISE" = "y" ]; then
+        if [ -f "$BACKUP_DIR/enterprise/CLAUDE.md" ]; then
+            if [ "$(uname -s)" = "Darwin" ] || [ "$(uname -s)" = "Linux" ]; then
+                if [ ! -w "$(dirname "$ENTERPRISE_DIR")" ]; then
+                    sudo mkdir -p "$ENTERPRISE_DIR/rules"
+                    sudo cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$ENTERPRISE_DIR/"
+                    [ -d "$BACKUP_DIR/enterprise/rules" ] && sudo cp -r "$BACKUP_DIR/enterprise/rules"/* "$ENTERPRISE_DIR/rules/" 2>/dev/null || true
+                else
+                    mkdir -p "$ENTERPRISE_DIR/rules"
+                    cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$ENTERPRISE_DIR/"
+                    [ -d "$BACKUP_DIR/enterprise/rules" ] && cp -r "$BACKUP_DIR/enterprise/rules"/* "$ENTERPRISE_DIR/rules/" 2>/dev/null || true
+                fi
+            else
+                mkdir -p "$ENTERPRISE_DIR/rules"
+                cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$ENTERPRISE_DIR/"
+                [ -d "$BACKUP_DIR/enterprise/rules" ] && cp -r "$BACKUP_DIR/enterprise/rules"/* "$ENTERPRISE_DIR/rules/" 2>/dev/null || true
+            fi
+            success "Enterprise CLAUDE.md → 시스템"
+        fi
+    fi
+
     [ -f "$BACKUP_DIR/global/CLAUDE.md" ] && {
         [ -f "$HOME/.claude/CLAUDE.md" ] && cp "$HOME/.claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md.backup_$(date +%Y%m%d_%H%M%S)"
         cp "$BACKUP_DIR/global/CLAUDE.md" "$HOME/.claude/"
@@ -222,6 +298,17 @@ if [ "$SYNC_DIRECTION" = "1" ]; then
 
 else
     # 시스템 → 백업
+
+    # Enterprise 동기화
+    if [ "$CHECK_ENTERPRISE" = "y" ]; then
+        if [ -f "$ENTERPRISE_DIR/CLAUDE.md" ]; then
+            mkdir -p "$BACKUP_DIR/enterprise/rules"
+            cp "$ENTERPRISE_DIR/CLAUDE.md" "$BACKUP_DIR/enterprise/"
+            [ -d "$ENTERPRISE_DIR/rules" ] && cp -r "$ENTERPRISE_DIR/rules"/* "$BACKUP_DIR/enterprise/rules/" 2>/dev/null || true
+            success "Enterprise CLAUDE.md → 백업"
+        fi
+    fi
+
     [ -f "$HOME/.claude/CLAUDE.md" ] && {
         cp "$HOME/.claude/CLAUDE.md" "$BACKUP_DIR/global/"
         success "CLAUDE.md → 백업"

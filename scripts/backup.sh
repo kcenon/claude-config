@@ -33,14 +33,34 @@ success() { echo -e "${GREEN}✅ $1${NC}"; }
 warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
 error() { echo -e "${RED}❌ $1${NC}"; }
 
+# 함수: Enterprise 경로 감지
+get_enterprise_dir() {
+    case "$(uname -s)" in
+        Darwin)
+            echo "/Library/Application Support/ClaudeCode"
+            ;;
+        Linux)
+            echo "/etc/claude-code"
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            echo "C:/Program Files/ClaudeCode"
+            ;;
+        *)
+            echo "/etc/claude-code"
+            ;;
+    esac
+}
+
 # 백업 타입 선택
 echo ""
 info "백업 타입을 선택하세요:"
 echo "  1) 글로벌 설정만 백업 (~/.claude/)"
 echo "  2) 프로젝트 설정만 백업"
 echo "  3) 둘 다 백업 (권장)"
+echo "  4) Enterprise 설정만 백업 (관리자 권한 필요할 수 있음)"
+echo "  5) 전체 백업 (Enterprise + Global + Project)"
 echo ""
-read -p "선택 (1-3) [기본값: 3]: " BACKUP_TYPE
+read -p "선택 (1-5) [기본값: 3]: " BACKUP_TYPE
 BACKUP_TYPE=${BACKUP_TYPE:-3}
 
 # 백업 디렉토리 생성
@@ -48,9 +68,37 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 TEMP_BACKUP="$BACKUP_DIR/backup_$TIMESTAMP"
 mkdir -p "$TEMP_BACKUP/global"
 mkdir -p "$TEMP_BACKUP/project/claude-guidelines"
+mkdir -p "$TEMP_BACKUP/enterprise/rules"
+
+# Enterprise 설정 백업
+if [ "$BACKUP_TYPE" = "4" ] || [ "$BACKUP_TYPE" = "5" ]; then
+    echo ""
+    echo "======================================================"
+    info "Enterprise 설정 백업 중..."
+    echo "======================================================"
+
+    ENTERPRISE_DIR="$(get_enterprise_dir)"
+    info "Enterprise 경로: $ENTERPRISE_DIR"
+
+    if [ -d "$ENTERPRISE_DIR" ]; then
+        if [ -f "$ENTERPRISE_DIR/CLAUDE.md" ]; then
+            cp "$ENTERPRISE_DIR/CLAUDE.md" "$TEMP_BACKUP/enterprise/"
+            success "CLAUDE.md 백업됨"
+        else
+            warning "CLAUDE.md 없음"
+        fi
+
+        if [ -d "$ENTERPRISE_DIR/rules" ]; then
+            cp -r "$ENTERPRISE_DIR/rules"/* "$TEMP_BACKUP/enterprise/rules/" 2>/dev/null || true
+            success "rules 디렉토리 백업됨"
+        fi
+    else
+        warning "Enterprise 디렉토리가 존재하지 않습니다: $ENTERPRISE_DIR"
+    fi
+fi
 
 # 글로벌 설정 백업
-if [ "$BACKUP_TYPE" = "1" ] || [ "$BACKUP_TYPE" = "3" ]; then
+if [ "$BACKUP_TYPE" = "1" ] || [ "$BACKUP_TYPE" = "3" ] || [ "$BACKUP_TYPE" = "5" ]; then
     echo ""
     echo "======================================================"
     info "글로벌 설정 백업 중..."
@@ -80,7 +128,7 @@ if [ "$BACKUP_TYPE" = "1" ] || [ "$BACKUP_TYPE" = "3" ]; then
 fi
 
 # 프로젝트 설정 백업
-if [ "$BACKUP_TYPE" = "2" ] || [ "$BACKUP_TYPE" = "3" ]; then
+if [ "$BACKUP_TYPE" = "2" ] || [ "$BACKUP_TYPE" = "3" ] || [ "$BACKUP_TYPE" = "5" ]; then
     echo ""
     echo "======================================================"
     info "프로젝트 설정 백업 중..."
@@ -125,6 +173,15 @@ read -p "기존 백업을 이 백업으로 대체하시겠습니까? (y/n) [기�
 REPLACE=${REPLACE:-y}
 
 if [ "$REPLACE" = "y" ]; then
+    # enterprise 디렉토리 업데이트
+    if [ -d "$TEMP_BACKUP/enterprise" ] && [ "$(ls -A $TEMP_BACKUP/enterprise 2>/dev/null)" ]; then
+        mkdir -p "$BACKUP_DIR/enterprise/rules"
+        rm -rf "$BACKUP_DIR/enterprise"/*
+        mkdir -p "$BACKUP_DIR/enterprise/rules"
+        cp -r "$TEMP_BACKUP/enterprise"/* "$BACKUP_DIR/enterprise/" 2>/dev/null || true
+        success "Enterprise 백업 업데이트됨"
+    fi
+
     # global 디렉토리 업데이트
     if [ -d "$TEMP_BACKUP/global" ] && [ "$(ls -A $TEMP_BACKUP/global)" ]; then
         rm -rf "$BACKUP_DIR/global"/*
@@ -155,6 +212,18 @@ echo ""
 
 info "백업된 파일 위치: $BACKUP_DIR"
 echo ""
+
+if [ -d "$BACKUP_DIR/enterprise" ] && [ "$(ls -A $BACKUP_DIR/enterprise 2>/dev/null)" ]; then
+    echo "  📂 Enterprise 설정:"
+    if [ -f "$BACKUP_DIR/enterprise/CLAUDE.md" ]; then
+        echo "    - CLAUDE.md"
+    fi
+    if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ "$(ls -A $BACKUP_DIR/enterprise/rules 2>/dev/null)" ]; then
+        echo "    - rules/"
+    fi
+    echo ""
+fi
+
 echo "  📂 글로벌 설정:"
 ls -1 "$BACKUP_DIR/global/" 2>/dev/null | sed 's/^/    - /' || echo "    (없음)"
 
