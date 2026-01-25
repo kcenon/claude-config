@@ -81,7 +81,73 @@ For each failed workflow:
 2. Extract error messages
 3. Determine root cause
 
-### 3. Checkout PR Branch
+### 3. Post Failure Analysis Comment
+
+**MANDATORY**: After analyzing failures, post a comment to the PR documenting the analysis.
+
+```bash
+gh pr comment $PR_NUMBER --repo $ORG/$PROJECT --body "$(cat <<'EOF'
+## CI/CD Failure Analysis
+
+**Analysis Time**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+**Attempt**: #[ATTEMPT_NUMBER]
+
+### Failed Workflows
+
+| Workflow | Job | Step | Status |
+|----------|-----|------|--------|
+| [workflow-name] | [job-name] | [step-name] | Failed |
+
+### Root Cause Analysis
+
+**Primary Error**:
+```
+[Extract key error message here]
+```
+
+**Analysis**:
+[Brief explanation of why this error occurred]
+
+**Identified Issues**:
+1. [Issue 1 description]
+2. [Issue 2 description]
+
+### Proposed Fix
+
+| Issue | Proposed Solution | Files Affected |
+|-------|-------------------|----------------|
+| [Issue 1] | [Solution description] | `path/to/file.ext` |
+
+### Next Steps
+- [ ] Apply proposed fixes
+- [ ] Verify locally
+- [ ] Push and monitor CI
+
+---
+*Automated failure analysis - Attempt #[ATTEMPT_NUMBER]*
+EOF
+)"
+```
+
+#### Comment Guidelines
+
+| Item | Requirement |
+|------|-------------|
+| Language | English only |
+| Timing | Immediately after failure analysis, before attempting fix |
+| Content | Include actual error messages (sanitized if needed) |
+| Format | Use tables and code blocks for readability |
+| Updates | Edit existing comment or add new comment per attempt |
+
+#### Sensitive Data Handling
+
+Before posting, sanitize the following from error logs:
+- API keys and secrets
+- Internal hostnames/IPs
+- Personal identifiable information (PII)
+- Database connection strings
+
+### 4. Checkout PR Branch
 
 ```bash
 cd $PROJECT
@@ -90,7 +156,7 @@ git checkout <head-branch>
 git pull origin <head-branch>
 ```
 
-### 4. Fix Issues
+### 5. Fix Issues
 
 Based on workflow analysis, fix the identified issues:
 
@@ -103,7 +169,7 @@ Based on workflow analysis, fix the identified issues:
 | **Missing header** | Add required #include statements |
 | **Link error** | Fix undefined references, library linking |
 
-### 5. Verify Fix Locally
+### 6. Verify Fix Locally
 
 ```bash
 # Run the same checks locally before pushing
@@ -121,7 +187,7 @@ ctest --test-dir build/ --output-on-failure
 # clang-format, black, prettier, etc.
 ```
 
-### 6. Commit Fix
+### 7. Commit Fix
 
 ```bash
 git add <fixed-files>
@@ -137,7 +203,7 @@ Fixes CI failure: <brief explanation>"
 - No Co-Authored-By
 - No emojis
 
-### 7. Push and Verify
+### 8. Push and Verify
 
 ```bash
 git push origin <head-branch>
@@ -152,9 +218,9 @@ gh run list --repo $ORG/$PROJECT --branch <head-branch> --limit 3
 gh run watch <RUN_ID> --repo $ORG/$PROJECT
 ```
 
-### 8. Iterate if Needed
+### 9. Iterate if Needed
 
-If workflows still fail, repeat steps 2-7 with the following limits:
+If workflows still fail, repeat steps 2-8 with the following limits:
 
 #### Iteration Limits
 
@@ -181,10 +247,58 @@ fi
 
 1. Each fix should be a separate commit
 2. Track attempt count (max 3 attempts)
-3. After each fix, wait for workflow completion or timeout
-4. Continue until all workflows pass OR max attempts reached
+3. **Post failure analysis comment** (Step 3) at the start of each iteration
+4. After each fix, wait for workflow completion or timeout
+5. Continue until all workflows pass OR max attempts reached
 
-### 9. Failure Escalation
+#### Per-Attempt Comment Updates
+
+For subsequent attempts, update the PR with a follow-up comment:
+
+```bash
+gh pr comment $PR_NUMBER --repo $ORG/$PROJECT --body "$(cat <<'EOF'
+## CI/CD Failure Analysis - Attempt #[N]
+
+**Previous Attempt Result**: [Passed/Failed]
+**Previous Fix Applied**: [Brief description of what was fixed]
+
+### New Failure Analysis
+
+| Workflow | Job | Step | Previous Status | Current Status |
+|----------|-----|------|-----------------|----------------|
+| [workflow-name] | [job-name] | [step-name] | Fixed | New Failure |
+
+### What Changed
+
+**Previous Fix**:
+- [What was fixed in the previous attempt]
+
+**Why It Still Fails**:
+- [Analysis of why the previous fix didn't fully resolve the issue]
+
+### New Root Cause
+
+**Error**:
+```
+[New error message]
+```
+
+**Analysis**:
+[Updated analysis based on new information]
+
+### Updated Proposed Fix
+
+| Issue | Proposed Solution | Files Affected |
+|-------|-------------------|----------------|
+| [Issue] | [Solution] | `path/to/file.ext` |
+
+---
+*Automated failure analysis - Attempt #[N] of 3*
+EOF
+)"
+```
+
+### 10. Failure Escalation
 
 When max retry attempts (3) are exceeded without success:
 
