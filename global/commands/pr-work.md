@@ -5,41 +5,72 @@ Analyze and fix failed CI/CD workflows for a pull request.
 ## Usage
 
 ```
+/pr-work <pr-number>                                # Work on PR in current project (auto-checkout branch)
 /pr-work <project-name> <pr-number> [--org <organization>]
 /pr-work <organization>/<project-name> <pr-number>
 ```
 
 **Example**:
 ```
-/pr-work hospital_erp_system 42                    # Auto-detect org from git remote
-/pr-work hospital_erp_system 42 --org mycompany    # Explicit organization
-/pr-work mycompany/hospital_erp_system 42          # Full repo path format
+/pr-work 42                                        # Auto: detect org/project, checkout PR branch
+/pr-work hospital_erp_system 42                    # Auto-detect org, checkout PR branch
+/pr-work hospital_erp_system 42 --org mycompany    # Explicit org, checkout PR branch
+/pr-work mycompany/hospital_erp_system 42          # Full path, checkout PR branch
 ```
 
 ## Arguments
 
-`$ARGUMENTS` format: `<project-name> <pr-number> [--org <organization>]` or `<organization>/<project-name> <pr-number>`
+`$ARGUMENTS` format:
+- `<pr-number>` (work on specific PR in current project, auto-checkout branch)
+- `<project-name> <pr-number> [--org <organization>]`
+- `<organization>/<project-name> <pr-number>`
 
+- **PR number only**: Use current project with specified PR number, auto-checkout PR branch
 - **Project name**: Repository name (or full path with organization)
 - **PR number**: Pull request number to fix
 - **--org**: GitHub organization or user (optional, auto-detected if not provided)
+
+**Auto-checkout**: The command automatically detects and checks out the PR's branch.
 
 ## Organization Detection
 
 Parse `$ARGUMENTS` and determine organization:
 
 ```bash
+# Single number argument - PR number in current project
+if [[ "$ARGUMENTS" =~ ^[0-9]+$ ]]; then
+    PR_NUMBER="$ARGUMENTS"
+
+    # Get org and project from git remote in current directory
+    REMOTE_URL=$(git remote get-url origin 2>/dev/null)
+    if [[ -z "$REMOTE_URL" ]]; then
+        echo "Error: No git remote 'origin' found in current directory"
+        exit 1
+    fi
+
+    ORG=$(echo "$REMOTE_URL" | sed -E 's|.*[:/]([^/]+)/[^/]+\.git$|\1|' | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
+    PROJECT=$(echo "$REMOTE_URL" | sed -E 's|.*[:/][^/]+/([^/]+)\.git$|\1|' | sed -E 's|.*[:/][^/]+/([^/]+)$|\1|')
+
+    if [[ -z "$ORG" ]]; then
+        echo "Error: Cannot detect organization from git remote"
+        exit 1
+    fi
+
+    echo "Detected: $ORG/$PROJECT PR #$PR_NUMBER"
+
 # Check if --org flag is provided
-if [[ "$ARGUMENTS" == *"--org"* ]]; then
+elif [[ "$ARGUMENTS" == *"--org"* ]]; then
     PROJECT=$(echo "$ARGUMENTS" | awk '{print $1}')
     PR_NUMBER=$(echo "$ARGUMENTS" | awk '{print $2}')
     ORG=$(echo "$ARGUMENTS" | sed -n 's/.*--org[[:space:]]*\([^[:space:]]*\).*/\1/p')
+
 # Check if first argument contains / (full path format)
 elif [[ "$(echo "$ARGUMENTS" | awk '{print $1}')" == *"/"* ]]; then
     REPO_PATH=$(echo "$ARGUMENTS" | awk '{print $1}')
     ORG=$(echo "$REPO_PATH" | cut -d'/' -f1)
     PROJECT=$(echo "$REPO_PATH" | cut -d'/' -f2)
     PR_NUMBER=$(echo "$ARGUMENTS" | awk '{print $2}')
+
 # Auto-detect from git remote
 else
     PROJECT=$(echo "$ARGUMENTS" | awk '{print $1}')
@@ -58,7 +89,18 @@ fi
 ### 1. PR Information Retrieval
 
 ```bash
-gh pr view $PR_NUMBER --repo $ORG/$PROJECT --json title,state,headRefName,checks
+# Get PR information including branch name
+PR_INFO=$(gh pr view $PR_NUMBER --repo $ORG/$PROJECT --json title,state,headRefName,checks)
+
+# Extract branch name from PR
+HEAD_BRANCH=$(echo "$PR_INFO" | jq -r '.headRefName')
+
+if [[ -z "$HEAD_BRANCH" ]]; then
+    echo "Error: Cannot determine branch name for PR #$PR_NUMBER"
+    exit 1
+fi
+
+echo "PR #$PR_NUMBER branch: $HEAD_BRANCH"
 ```
 
 Identify:
@@ -66,11 +108,13 @@ Identify:
 - Current PR state
 - Failed checks/workflows
 
+**Branch auto-detection**: The PR's branch name is automatically extracted from `headRefName`.
+
 ### 2. Failed Workflow Analysis
 
 ```bash
 # List failed workflow runs for the PR
-gh run list --repo $ORG/$PROJECT --branch <head-branch> --status failure --limit 5
+gh run list --repo $ORG/$PROJECT --branch "$HEAD_BRANCH" --status failure --limit 5
 
 # Get detailed log for failed run
 gh run view <RUN_ID> --repo $ORG/$PROJECT --log-failed
@@ -151,12 +195,33 @@ Before posting, sanitize the following from error logs:
 
 ### 4. Checkout PR Branch
 
+**Auto-checkout**: The command automatically checks out the PR's branch.
+
 ```bash
-cd $PROJECT
+# Navigate to project directory (if not already there)
+if [[ ! -z "$PROJECT" && -d "$PROJECT" ]]; then
+    cd "$PROJECT"
+fi
+
+# Fetch latest changes
 git fetch origin
-git checkout <head-branch>
-git pull origin <head-branch>
+
+# Check if branch exists locally
+if git show-ref --verify --quiet refs/heads/"$HEAD_BRANCH"; then
+    # Branch exists locally, switch to it
+    git checkout "$HEAD_BRANCH"
+    git pull origin "$HEAD_BRANCH"
+else
+    # Branch doesn't exist locally, create and track
+    git checkout -b "$HEAD_BRANCH" "origin/$HEAD_BRANCH"
+fi
+
+echo "Switched to PR branch: $HEAD_BRANCH"
 ```
+
+**Branch handling**:
+- If branch exists locally: checkout and pull latest changes
+- If branch doesn't exist: create local branch tracking remote
 
 ### 5. Fix Issues
 
@@ -208,13 +273,13 @@ Fixes CI failure: <brief explanation>"
 ### 8. Push and Verify
 
 ```bash
-git push origin <head-branch>
+git push origin "$HEAD_BRANCH"
 ```
 
 After push:
 ```bash
 # Monitor workflow status
-gh run list --repo $ORG/$PROJECT --branch <head-branch> --limit 3
+gh run list --repo $ORG/$PROJECT --branch "$HEAD_BRANCH" --limit 3
 
 # Wait for completion and check result
 gh run watch <RUN_ID> --repo $ORG/$PROJECT
@@ -367,7 +432,7 @@ After completion, provide summary:
 |------|-------|
 | Repository | $ORG/$PROJECT |
 | PR | #$PR_NUMBER |
-| Branch | branch-name |
+| Branch | $HEAD_BRANCH |
 | Attempts | X/3 |
 | Final Status | Success / Escalated |
 
