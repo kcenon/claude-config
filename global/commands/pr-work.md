@@ -85,6 +85,8 @@ For each failed workflow:
 
 **MANDATORY**: After analyzing failures, post a comment to the PR documenting the analysis.
 
+**IMPORTANT**: All PR comments **MUST** be written in **English only**, regardless of the project's primary language or user's locale.
+
 ```bash
 gh pr comment $PR_NUMBER --repo $ORG/$PROJECT --body "$(cat <<'EOF'
 ## CI/CD Failure Analysis
@@ -133,7 +135,7 @@ EOF
 
 | Item | Requirement |
 |------|-------------|
-| Language | English only |
+| **Language** | **MANDATORY: English only** - All PR comments MUST be written in English, regardless of project language or user locale |
 | Timing | Immediately after failure analysis, before attempting fix |
 | Content | Include actual error messages (sanitized if needed) |
 | Format | Use tables and code blocks for readability |
@@ -198,7 +200,7 @@ Fixes CI failure: <brief explanation>"
 
 **Commit rules**:
 - Type: Usually `fix`, `build`, `test`, or `ci`
-- Language: English only
+- **Language: MANDATORY English only** - All commit messages MUST be written in English
 - No Claude/AI references
 - No Co-Authored-By
 - No emojis
@@ -255,6 +257,8 @@ fi
 
 For subsequent attempts, update the PR with a follow-up comment:
 
+**IMPORTANT**: All PR comments **MUST** be written in **English only**.
+
 ```bash
 gh pr comment $PR_NUMBER --repo $ORG/$PROJECT --body "$(cat <<'EOF'
 ## CI/CD Failure Analysis - Attempt #[N]
@@ -304,6 +308,8 @@ When max retry attempts (3) are exceeded without success:
 
 #### Escalation Steps
 
+**IMPORTANT**: All escalation comments **MUST** be written in **English only**.
+
 1. **Add summary comment to PR**:
    ```bash
    gh pr comment $PR_NUMBER --repo $ORG/$PROJECT --body "## Auto-fix Summary
@@ -346,6 +352,7 @@ See [_policy.md](./_policy.md) for common rules.
 
 | Item | Rule |
 |------|------|
+| **Language** | **All PR comments and commit messages MUST be written in English only** |
 | Max retry attempts | 3 before escalation |
 | Workflow timeout | 10 minutes per run |
 
