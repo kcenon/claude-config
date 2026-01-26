@@ -1,0 +1,39 @@
+# Claude Code Ignore File (Project Configuration)
+# Optimizes token usage by excluding unnecessary files from context
+
+# NPM cache (duplicate files)
+# Token savings: ~8,000 tokens
+.npm-cache/
+**/.npm-cache/
+
+# Reference documents (load on demand)
+# Token savings: ~18,000 tokens
+# Use @load directive or explicit file paths when needed
+rules/*/reference/
+**/rules/*/reference/
+
+# Skill reference materials (load on demand)
+# Token savings: ~7,000 tokens
+skills/*/reference/
+**/skills/*/reference/
+
+# Agents (load when needed)
+# Token savings: ~3,000 tokens
+agents/
+**/agents/
+
+# Settings files (user-specific)
+# Token savings: ~500 tokens
+settings.json
+settings.local.json
+**/settings.json
+**/settings.local.json
+
+# Documentation files (available via web)
+# Token savings: ~2,000 tokens
+README.md
+README.ko.md
+**/README.md
+**/README.ko.md
+
+# Total estimated savings: ~38,500 tokens (68%)
