@@ -1,0 +1,38 @@
+# Claude Code Ignore File (Plugin Configuration)
+# Optimizes token usage by excluding unnecessary files from context
+
+# NPM cache
+# Token savings: ~3,000 tokens
+.npm-cache/
+**/.npm-cache/
+
+# Node modules (dependencies)
+# Token savings: ~10,000 tokens
+node_modules/
+**/node_modules/
+
+# Build outputs
+# Token savings: ~2,000 tokens
+dist/
+build/
+**/dist/
+**/build/
+
+# Plugin cache
+# Token savings: ~1,000 tokens
+cache/
+**/cache/
+
+# Settings and configurations (user-specific)
+# Token savings: ~500 tokens
+settings.json
+settings.local.json
+.env
+.env.local
+
+# Documentation
+# Token savings: ~1,000 tokens
+README.md
+docs/
+
+# Total estimated savings: ~17,500 tokens (60%)

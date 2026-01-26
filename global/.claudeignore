@@ -1,0 +1,40 @@
+# Claude Code Ignore File (Global Configuration)
+# Optimizes token usage by excluding unnecessary files from context
+
+# Session memory (past conversations)
+# Token savings: ~5,000 tokens
+projects/*/session-memory/
+**/session-memory/
+
+# Plugin cache
+# Token savings: ~3,000 tokens
+plugins/cache/
+**/cache/
+
+# Backups
+# Token savings: ~2,000 tokens
+backup_*/
+**/backup_*/
+
+# Plugin marketplace (very large)
+# Token savings: ~15,000 tokens
+plugins/marketplaces/claude-plugins-official/plugins/
+plugins/marketplaces/claude-plugins-official/external_plugins/
+plugins/marketplaces/
+
+# Plans
+# Token savings: ~2,000 tokens
+plans/
+**/plans/
+
+# Commands (load when invoked)
+# Token savings: ~5,000 tokens
+commands/
+**/commands/
+
+# Skills (load when invoked)
+# Token savings: ~5,000 tokens
+skills/
+**/skills/
+
+# Total estimated savings: ~37,000 tokens (65%)

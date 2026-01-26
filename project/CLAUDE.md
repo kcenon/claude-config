@@ -35,6 +35,26 @@ See `.claude/rules/conditional-loading.md` for complete loading rules.
 @focus: memory-optimization     # Set focus area
 ```
 
+### Reference Documents (Excluded by Default)
+
+**레퍼런스 문서는 .claudeignore에 의해 기본적으로 제외됩니다.**
+필요시 명시적으로 요청하세요:
+
+- `rules/workflow/reference/` - Label definitions, automation patterns, issue examples
+- `rules/coding/reference/` - Detailed coding guidelines and examples
+- `rules/api/reference/` - API design patterns and examples
+- `skills/*/reference/` - Skill-specific reference materials
+
+이 최적화로 초기 토큰 사용량이 약 **60-70% 감소**합니다.
+
+필요 시 다음과 같이 로드:
+```markdown
+@load: reference/label-definitions
+Can you review rules/workflow/reference/label-definitions.md?
+```
+
+자세한 내용은 [docs/TOKEN_OPTIMIZATION.md](../docs/TOKEN_OPTIMIZATION.md) 참조.
+
 ## Settings Priority
 
 | Scope | Controls |
