@@ -1,39 +1,69 @@
-# Claude Code Ignore File (Project Configuration)
-# Optimizes token usage by excluding unnecessary files from context
+# Aggressive Token Optimization v1.2.0
+# Excludes EVERYTHING except core essentials
+# Command-specific modules are loaded on demand (see conditional-loading.md)
 
-# NPM cache (duplicate files)
-# Token savings: ~8,000 tokens
+# Reference documents (load on demand)
+# - label-definitions.md: Only for issue labeling tasks
+# - issue-examples.md: Only when splitting large issues
+# - automation-patterns.md: Only when using gh CLI extensively
+rules/*/reference/
+**/reference/
+
+# ALL detailed rules (load on demand based on task/context)
+# Operations rules (only for cleanup/monitoring tasks)
+rules/operations/
+
+# Project management rules (only for build/testing tasks)
+rules/project-management/
+
+# API design rules (only for API development tasks)
+rules/api/
+
+# Coding standards (only for code implementation, not for workflow commands)
+rules/coding/concurrency.md      # Load: concurrent/thread tasks
+rules/coding/memory.md           # Load: memory leak/crash debugging
+rules/coding/performance.md      # Load: optimization tasks
+rules/coding/error-handling.md   # Load: bug fixing, implementation
+rules/coding/quality.md          # Load: code review, refactoring
+
+# Security rules (only for security-related tasks)
+rules/security.md                # Load: auth, security, vulnerability tasks
+
+# Testing rules (only for test-related tasks)
+rules/testing.md                 # Load: test writing, debugging
+
+# Documentation rules (only for documentation tasks)
+rules/documentation.md           # Load: README, API docs, comments
+
+# Keep only core workflow
+# rules/core/ - ALLOWED (essential)
+# rules/workflow/git-commit-format.md - ALLOWED (essential)
+# rules/workflow/github-issue-5w1h.md - ALLOWED (essential)
+# rules/workflow/github-pr-5w1h.md - ALLOWED (essential)
+
+# Exclude workflow reference docs
+rules/workflow/reference/
+
+# Agents (load when needed)
+agents/
+
+# Skills (load when needed)
+skills/
+
+# Settings
+settings.json
+settings.local.json
+
+# Documentation
+README.md
+README.ko.md
+TOKEN_OPTIMIZATION.md
+
+# NPM cache
 .npm-cache/
 **/.npm-cache/
 
-# Reference documents (load on demand)
-# Token savings: ~18,000 tokens
-# Use @load directive or explicit file paths when needed
-rules/*/reference/
-**/rules/*/reference/
-
-# Skill reference materials (load on demand)
-# Token savings: ~7,000 tokens
-skills/*/reference/
-**/skills/*/reference/
-
-# Agents (load when needed)
-# Token savings: ~3,000 tokens
-agents/
-**/agents/
-
-# Settings files (user-specific)
-# Token savings: ~500 tokens
-settings.json
-settings.local.json
-**/settings.json
-**/settings.local.json
-
-# Documentation files (available via web)
-# Token savings: ~2,000 tokens
-README.md
-README.ko.md
-**/README.md
-**/README.ko.md
-
-# Total estimated savings: ~38,500 tokens (68%)
+# Backups
+*.backup
+*.bak
+*.tmp

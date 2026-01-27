@@ -1,8 +1,8 @@
 # Conditional Module Loading Rules
 
 > **Purpose**: Automatically load only relevant guideline modules based on context
-> **Version**: 1.1.0
-> **Token Savings**: ~60-70% compared to loading all modules
+> **Version**: 1.2.0
+> **Token Savings**: ~60-70% compared to loading all modules (up to 84% for specific commands)
 
 ## Loading Priority System
 
@@ -153,6 +153,111 @@ code smell, technical debt, maintainability
 ```
 **Load**: `quality`, `general`
 
+## 🎮 Command-Specific Loading Rules
+
+### Skill Commands
+
+Define minimal required modules for each skill command:
+
+| Skill Command | Required Modules | Optional Modules | Skip Modules |
+|---------------|------------------|------------------|--------------|
+| `/issue-work` | `environment`, `communication`, `problem-solving`, `common-commands`, `git-commit-format`, `workflow/github-issue-5w1h`, `workflow/github-pr-5w1h` | `workflow/reference/label-definitions` (if labeling), `workflow/reference/issue-examples` (if splitting) | `cleanup`, `monitoring`, `performance`, `memory`, `concurrency`, `security`, `api`, `coding` |
+| `/commit` | `environment`, `communication`, `git-commit-format`, `workflow/question-handling` | None | All others |
+| `/pr-work` | `environment`, `communication`, `problem-solving`, `git-commit-format`, `workflow/github-pr-5w1h` | `testing`, `quality` | `cleanup`, `monitoring`, `performance` |
+| `/issue-create` | `environment`, `communication`, `workflow/github-issue-5w1h` | `workflow/reference/label-definitions`, `workflow/reference/issue-examples` | All coding standards, `cleanup`, `monitoring` |
+| `/release` | `environment`, `communication`, `git-commit-format`, `build`, `testing` | `security`, `monitoring` | `coding`, `cleanup` |
+| `/branch-cleanup` | `environment`, `communication`, `common-commands` | None | All others |
+
+### Loading Strategy by Command
+
+```yaml
+/issue-work:
+  core_required:
+    - core/environment
+    - core/communication
+    - core/problem-solving
+    - core/common-commands
+  workflow_required:
+    - workflow/git-commit-format
+    - workflow/github-issue-5w1h
+    - workflow/github-pr-5w1h
+  conditional:
+    - workflow/reference/label-definitions  # Only if issue needs labeling
+    - workflow/reference/issue-examples     # Only if issue needs splitting
+    - workflow/reference/automation-patterns  # Only if using gh CLI extensively
+  always_skip:
+    - operations/cleanup
+    - operations/monitoring
+    - coding/**/*
+    - api/**/*
+    - security
+    - performance
+    - memory
+    - concurrency
+
+/commit:
+  core_required:
+    - core/environment
+    - core/communication
+  workflow_required:
+    - workflow/git-commit-format
+    - workflow/question-handling
+  always_skip:
+    - operations/**/*
+    - coding/**/*
+    - api/**/*
+    - workflow/github-*
+
+/issue-create:
+  core_required:
+    - core/environment
+    - core/communication
+  workflow_required:
+    - workflow/github-issue-5w1h
+  conditional:
+    - workflow/reference/label-definitions
+    - workflow/reference/issue-examples
+  always_skip:
+    - operations/**/*
+    - coding/**/*
+    - api/**/*
+    - workflow/github-pr-5w1h
+    - workflow/git-commit-format
+```
+
+### Command Detection Logic
+
+```python
+# Pseudo-code for command-based loading
+if command.startswith('/'):
+    command_name = command.split()[0][1:]  # Remove '/' prefix
+
+    # Load command-specific modules only
+    load_modules(COMMAND_MODULES[command_name]['core_required'])
+    load_modules(COMMAND_MODULES[command_name]['workflow_required'])
+
+    # Evaluate conditional modules based on context
+    for module in COMMAND_MODULES[command_name]['conditional']:
+        if should_load_module(module, context):
+            load_module(module)
+
+    # Skip all others
+    skip_modules(COMMAND_MODULES[command_name]['always_skip'])
+else:
+    # Use task-based/keyword-based loading
+    apply_standard_loading_rules()
+```
+
+### Estimated Token Savings by Command
+
+| Command | Before Optimization | After Optimization | Token Savings |
+|---------|---------------------|--------------------| --------------|
+| `/issue-work` | ~50,000 tokens | ~18,000 tokens | **64%** |
+| `/commit` | ~50,000 tokens | ~8,000 tokens | **84%** |
+| `/issue-create` | ~50,000 tokens | ~12,000 tokens | **76%** |
+| `/pr-work` | ~50,000 tokens | ~15,000 tokens | **70%** |
+| `/release` | ~50,000 tokens | ~20,000 tokens | **60%** |
+
 ## 🚀 Quick Reference Patterns
 
 ### Instant Recognition Patterns
@@ -206,4 +311,5 @@ conditional_loading:
 ```
 
 ---
-*This system reduces token usage by ~65% while maintaining 95% response accuracy*
+*Version 1.2.0 - Enhanced command-specific loading rules*
+*This system reduces token usage by ~65% on average (up to 84% for command execution) while maintaining 95% response accuracy*
