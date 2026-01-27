@@ -2,9 +2,23 @@
 
 Universal conventions for this repository. Works with global settings in `~/.claude/CLAUDE.md`.
 
-## Rule Auto-Loading
+## Rule Loading Behavior
 
-**Rules are automatically loaded** from `.claude/rules/` based on YAML frontmatter paths and conditional loading logic. No explicit imports needed.
+**CRITICAL DISCOVERY**: Claude Code automatically scans `.claude/rules/` directory regardless of CLAUDE.md or .claudeignore settings. The only reliable way to reduce token usage is to restructure the directory itself.
+
+### Actual Loading Mechanism
+
+1. **Directory Scanning**: Claude Code scans all `.md` files in `.claude/rules/` automatically
+2. **.claudeignore**: Partially effective but has lower priority than directory scanning
+3. **CLAUDE.md directives**: Cannot prevent automatic directory scanning
+4. **Only solution**: Minimize files in `.claude/rules/` directory or restructure into separate locations
+
+### Token Optimization Strategy
+
+The `.claudeignore` file excludes certain paths, but for maximum optimization:
+- Keep only 9 essential files in `.claude/rules/` (see APPLIED_SOLUTION.md for details)
+- Move others to backup directory
+- Load additional modules via explicit `@load:` directives when needed
 
 ### Available Rule Categories
 
