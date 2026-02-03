@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 # Common Commands
 
 > Quick reference for frequently used commands in this project

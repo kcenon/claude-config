@@ -1,3 +1,10 @@
+---
+paths:
+  - ".github/**"
+  - "**/*"
+alwaysApply: false
+---
+
 # GitHub Pull Request Guidelines (5W1H Principle)
 
 > **Version**: 1.2.0

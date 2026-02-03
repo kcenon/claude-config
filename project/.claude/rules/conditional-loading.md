@@ -1,90 +1,78 @@
-# Conditional Module Loading Rules
+---
+alwaysApply: true
+---
 
-> **Purpose**: Automatically load only relevant guideline modules based on context
-> **Token Savings**: ~60-70% compared to loading all modules
+# Conditional Module Loading
 
-## Loading Priority System
+Rules in `.claude/rules/` use YAML frontmatter for automatic path-specific loading.
 
+## How It Works
+
+Each rule file specifies when it should apply using YAML frontmatter:
+
+### Path-Based Loading
+
+```yaml
+---
+paths:
+  - "src/api/**/*.ts"
+  - "**/*.controller.ts"
+---
 ```
-Priority 1 (Always Load): Core settings
-Priority 2 (Task-Based): Load based on user request
-Priority 3 (Context-Based): Load based on file types/content
-Priority 4 (Optional): Load only if explicitly needed
+
+Rules with `paths` are automatically loaded when editing matching files.
+
+### Always Apply
+
+```yaml
+---
+alwaysApply: true
+---
 ```
 
-## Task-Based Loading
+Rules with `alwaysApply: true` are loaded for every conversation.
 
-### By User Intent
+### Optional Loading
 
-| If request contains | Load modules | Skip modules |
-|-------------------|--------------|--------------|
-| "bug", "fix", "error" | error-handling, quality, testing | documentation, build |
-| "feature", "implement" | general, quality, documentation, testing | monitoring |
-| "refactor", "clean" | quality, performance, general | security, build |
-| "optimize", "performance" | performance, monitoring, memory | documentation |
-| "security", "vulnerability" | security, error-handling, quality | performance |
-| "test", "unittest" | testing, quality, error-handling | documentation, build |
-| "document", "README" | documentation, communication | All coding standards |
+```yaml
+---
+paths: ["**/*.cpp", "**/*.rs"]
+alwaysApply: false
+---
+```
 
-### By Development Phase
+Rules with `alwaysApply: false` only load when paths match.
 
-| Phase | Required Modules | Optional Modules |
-|-------|-----------------|------------------|
-| Planning/Design | workflow, documentation | security, performance |
-| Implementation | general, quality, error-handling | Language-specific |
-| Testing | testing, quality | performance |
-| Code Review | ALL standards, security | None |
-| Deployment | build, security, monitoring | documentation |
+## Supported Glob Patterns
 
-## File-Based Loading
+| Pattern | Matches |
+|---------|---------|
+| `**/*.ts` | All TypeScript files |
+| `src/**/*` | All files under src/ |
+| `*.md` | Markdown files in root |
+| `**/*.{ts,tsx}` | Multiple extensions |
+| `**/test/**` | Files in any test directory |
 
-### By File Extension
+## Rule Loading by Category
 
-| Extensions | Load | Skip |
-|------------|------|------|
-| .cpp, .h | general, memory, concurrency, error-handling | - |
-| .py | general, quality, error-handling | memory |
-| .js, .ts | general, quality, error-handling | memory |
-| .sql | security, performance | memory, concurrency |
-| .md | documentation, communication | all coding standards |
+| Category | Loading Behavior |
+|----------|------------------|
+| `core/*` | Always apply (essential settings) |
+| `workflow/*` | Always apply (basic workflow) |
+| `coding/*` | Path-based (source code files) |
+| `api/*` | Path-based (API-related files) |
+| `operations/*` | Path-based (scripts, build files) |
+| `workflow/reference/*` | Path-based (.github files) |
 
-### By Directory Pattern
+## Manual Override
 
-| Pattern | Load |
-|---------|------|
-| /test/, /tests/ | testing, quality |
-| /docs/ | documentation, communication |
-| /src/api/, /routes/ | security, documentation, error-handling |
-| /.github/ | git-commit-format, workflow |
-
-## Command-Specific Loading
-
-| Command | Required | Skip |
-|---------|----------|------|
-| `/issue-work` | environment, communication, problem-solving, git-commit-format, github-issue-5w1h, github-pr-5w1h | cleanup, monitoring, coding/*, api/* |
-| `/commit` | environment, communication, git-commit-format, question-handling | operations/*, coding/*, api/* |
-| `/pr-work` | environment, communication, git-commit-format, github-pr-5w1h | cleanup, monitoring, performance |
-| `/issue-create` | environment, communication, github-issue-5w1h | coding/*, api/*, github-pr-5w1h |
-| `/release` | environment, communication, git-commit-format, build, testing | coding/*, cleanup |
-
-## Quick Reference Patterns
-
-| Pattern | Instant Load | Reason |
-|---------|--------------|--------|
-| `git commit` | git-commit-format | Direct command |
-| `fix typo` | Skip all except workflow | Trivial change |
-| `implement OAuth` | security, error-handling | Auth = Security |
-| `memory leak` | memory, monitoring, error-handling | Critical issue |
-| `code review` | Load ALL standards | Comprehensive check |
-
-## Override Mechanisms
+Use `@load:` directive to force load specific modules:
 
 ```markdown
-@load: security, performance    # Force load specific modules
-@skip: documentation, build     # Exclude specific modules
-@focus: memory-optimization     # Set focus area
+@load: security, performance
+@skip: documentation, build
 ```
 
 ---
 
-*For detailed implementation algorithms, see `docs/design/`*
+*For detailed loading algorithms, see `docs/design/`*

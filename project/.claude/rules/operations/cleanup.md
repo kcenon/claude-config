@@ -1,3 +1,11 @@
+---
+paths:
+  - "**/scripts/**"
+  - "Makefile"
+  - "**/CMakeLists.txt"
+alwaysApply: false
+---
+
 # Cleanup and Finalization
 
 ## Remove Temporary Files

@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 # Work Environment and Conditions
 
 ## Timezone Awareness

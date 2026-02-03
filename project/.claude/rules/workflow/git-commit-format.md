@@ -1,3 +1,10 @@
+---
+paths:
+  - ".git/**"
+  - "**/*"
+alwaysApply: false
+---
+
 # Git Commit Message Format
 
 ## Commit Message Structure

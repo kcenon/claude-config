@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 # Question Handling Procedure
 
 > **Version**: 1.1.0

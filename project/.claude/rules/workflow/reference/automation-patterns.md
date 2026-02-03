@@ -1,3 +1,9 @@
+---
+paths:
+  - ".github/**"
+alwaysApply: false
+---
+
 # Automation Patterns Reference
 
 > **Version**: 1.0.0

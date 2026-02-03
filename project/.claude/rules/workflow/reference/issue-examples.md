@@ -1,3 +1,9 @@
+---
+paths:
+  - ".github/**"
+alwaysApply: false
+---
+
 # Issue Examples Reference
 
 > **Version**: 1.0.0
