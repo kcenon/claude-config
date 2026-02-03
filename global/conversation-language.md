@@ -3,6 +3,18 @@
 > **Scope**: This file controls Claude's **conversation language only**.
 > **For code/documentation languages**: See project-specific `communication.md`
 
+## Official Setting
+
+Language is now configured via official `settings.json`:
+
+```json
+{
+  "language": "korean"
+}
+```
+
+This setting is applied in both `global/settings.json` and `project/.claude/settings.json`.
+
 ## Core Principle
 
 Claude communicates with users in their preferred language while maintaining technical accuracy.
@@ -10,7 +22,7 @@ Claude communicates with users in their preferred language while maintaining tec
 ## Language Configuration
 
 ### User Interaction
-- **Default response language**: Korean
+- **Default response language**: Korean (via `settings.json`)
 - **YOU MUST** respond in Korean unless the user explicitly requests English
 - **Language switching**: Honor explicit user requests to change language
 - **Consistency**: Maintain chosen language throughout session
@@ -59,4 +71,4 @@ Claude communicates with users in their preferred language while maintaining tec
 3. Technical accuracy > Language preference (when conflict exists)
 
 ---
-*Part of Claude's global configuration. Version 1.1.0*
+*Part of Claude's global configuration. Version 1.2.0*
