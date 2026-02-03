@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "description": "Claude Code project settings - auto-formatting, code quality, and permissions",
-  "version": "1.6.0",
+  "version": "1.7.0",
 
   "respectGitignore": true,
   "cleanupPeriodDays": 30,
@@ -14,7 +14,27 @@
 
   "attribution": {
     "commit": "",
-    "pr": ""
+    "pr": "",
+    "issue": ""
+  },
+
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": true,
+    "excludedCommands": ["docker", "watchman"],
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "npmjs.org",
+        "*.npmjs.org",
+        "registry.npmjs.org",
+        "pypi.org",
+        "*.pypi.org"
+      ],
+      "allowLocalBinding": true
+    }
   },
 
   "spinnerVerbs": {
@@ -114,6 +134,9 @@
   },
 
   "env": {
-    "CLAUDE_AUTO_FORMAT": "true"
+    "CLAUDE_AUTO_FORMAT": "true",
+    "MAX_THINKING_TOKENS": "8000",
+    "MAX_MCP_OUTPUT_TOKENS": "50000",
+    "ENABLE_TOOL_SEARCH": "auto:10"
   }
 }
