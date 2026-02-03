@@ -1,12 +1,17 @@
 # Module Priority and Loading Strategy
 
-> **Type**: Design Document (Implementation Details)
-> **Version**: 1.3.0 (Phase 2 Implementation)
-> **Purpose**: Dynamic module loading with priority-based strategy
-> **Token Savings**: Additional 20-30% on top of v1.2.0
+> ⚠️ **CUSTOM EXTENSION / DESIGN CONCEPT**
 >
-> **Note**: This is a design document containing implementation details.
-> For concise rules, see `.claude/rules/token-optimization.md`.
+> This document describes a **design concept** that is **NOT implemented** by Claude Code.
+> It serves as architectural reference only. Claude Code does not have built-in priority-based
+> module loading or dynamic loading capabilities as described here.
+>
+> For official token optimization methods, see [TOKEN_OPTIMIZATION.md](../TOKEN_OPTIMIZATION.md).
+
+> **Type**: Design Document (Conceptual Architecture)
+> **Version**: 1.3.0 (Phase 2 Design)
+> **Purpose**: Conceptual design for priority-based module loading
+> **Status**: Design concept only - not implemented
 
 ## Overview
 
