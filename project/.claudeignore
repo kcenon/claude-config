@@ -1,4 +1,12 @@
-# Aggressive Token Optimization v1.2.0
+# DEPRECATED: .claudeignore is not an official Claude Code feature
+# See: https://github.com/anthropics/claude-code/issues/579
+#
+# Migration Status:
+# - Security-related exclusions moved to settings.json permissions.deny
+# - Token optimization exclusions remain here as .claudeignore may work in some versions
+# - See docs/TOKEN_OPTIMIZATION.md for details
+#
+# Original: Aggressive Token Optimization v1.2.0
 # Excludes EVERYTHING except core essentials
 # Command-specific modules are loaded on demand (see conditional-loading.md)
 
