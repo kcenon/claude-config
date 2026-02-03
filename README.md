@@ -1005,6 +1005,7 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 - **Claude Code User Guide**: `CLAUDE_CODE_REAL_GUIDE.md` in project
 - **Configuration Examples**: See `global/` and `project/` directories
+- **Custom Extensions Guide**: [docs/CUSTOM_EXTENSIONS.md](docs/CUSTOM_EXTENSIONS.md) - Understand which features are official vs custom
 - **Troubleshooting**: Check error messages from each script
 
 ---
