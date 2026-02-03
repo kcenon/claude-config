@@ -1,8 +1,12 @@
 # Intelligent Pre-fetching System
 
+> **Type**: Design Document (Implementation Details)
 > **Version**: 1.5.0 (Phase 4 Implementation)
 > **Purpose**: Predict and pre-load modules for next likely command
 > **Performance Gain**: Near-instant command execution through predictive loading
+>
+> **Note**: This is a design document containing implementation details.
+> For concise rules, see `.claude/rules/token-optimization.md`.
 
 ## Overview
 

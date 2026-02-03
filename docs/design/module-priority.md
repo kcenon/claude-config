@@ -1,8 +1,12 @@
 # Module Priority and Loading Strategy
 
+> **Type**: Design Document (Implementation Details)
 > **Version**: 1.3.0 (Phase 2 Implementation)
 > **Purpose**: Dynamic module loading with priority-based strategy
 > **Token Savings**: Additional 20-30% on top of v1.2.0
+>
+> **Note**: This is a design document containing implementation details.
+> For concise rules, see `.claude/rules/token-optimization.md`.
 
 ## Overview
 

@@ -1,8 +1,12 @@
 # Module Caching Strategy
 
+> **Type**: Design Document (Implementation Details)
 > **Version**: 1.4.0 (Phase 3 Implementation)
 > **Purpose**: Cache frequently used modules to eliminate redundant loading
 > **Performance Gain**: 50% faster command execution through intelligent caching
+>
+> **Note**: This is a design document containing implementation details.
+> For concise rules, see `.claude/rules/token-optimization.md`.
 
 ## Overview
 
