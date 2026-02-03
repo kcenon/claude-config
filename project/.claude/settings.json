@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "description": "Claude Code project settings - auto-formatting, code quality, and permissions",
-  "version": "1.5.0",
+  "version": "1.6.0",
 
   "respectGitignore": true,
   "cleanupPeriodDays": 30,
@@ -71,6 +71,42 @@
             "type": "command",
             "command": "bash -c 'FILE=\"${CLAUDE_FILE_PATH:-}\"; if [ -z \"$FILE\" ] || [ ! -f \"$FILE\" ]; then exit 0; fi; EXT=\"${FILE##*.}\"; case \"$EXT\" in py) if command -v black >/dev/null 2>&1; then black --quiet \"$FILE\" 2>/dev/null; fi; if command -v isort >/dev/null 2>&1; then isort --quiet \"$FILE\" 2>/dev/null; fi;; ts|tsx|js|jsx|json|md) if command -v npx >/dev/null 2>&1 && [ -f \"$(dirname \"$FILE\")/node_modules/.bin/prettier\" ] || command -v prettier >/dev/null 2>&1; then npx prettier --write \"$FILE\" 2>/dev/null; fi;; cpp|cc|cxx|h|hpp|hxx) if command -v clang-format >/dev/null 2>&1; then clang-format -i \"$FILE\" 2>/dev/null; fi;; kt|kts) if command -v ktlint >/dev/null 2>&1; then ktlint -F \"$FILE\" 2>/dev/null; fi;; go) if command -v gofmt >/dev/null 2>&1; then gofmt -w \"$FILE\" 2>/dev/null; fi;; rs) if command -v rustfmt >/dev/null 2>&1; then rustfmt \"$FILE\" 2>/dev/null; fi;; esac; exit 0'",
             "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'LOG_DIR=\"${HOME}/.claude/logs\"; mkdir -p \"$LOG_DIR\"; echo \"[$(date \"+%Y-%m-%d %H:%M:%S\")] Tool failure: ${CLAUDE_TOOL_NAME:-unknown}\" >> \"${LOG_DIR}/tool-failures.log\"'",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'LOG_DIR=\"${HOME}/.claude/logs\"; mkdir -p \"$LOG_DIR\"; echo \"[$(date \"+%Y-%m-%d %H:%M:%S\")] Subagent start: ${CLAUDE_SUBAGENT_TYPE:-unknown}\" >> \"${LOG_DIR}/subagents.log\"'",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'LOG_DIR=\"${HOME}/.claude/logs\"; mkdir -p \"$LOG_DIR\"; echo \"[$(date \"+%Y-%m-%d %H:%M:%S\")] Subagent stop: ${CLAUDE_SUBAGENT_TYPE:-unknown}\" >> \"${LOG_DIR}/subagents.log\"'",
+            "timeout": 5
           }
         ]
       }
