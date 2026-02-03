@@ -1,8 +1,90 @@
 # Token Optimization Guide
 
-> **Version**: 2.0.0
+> **Version**: 2.1.0
 > **Last Updated**: 2026-02-03
-> **Purpose**: Reduce initial session token usage by 60-70%
+> **Purpose**: Reduce token usage through official and experimental methods
+
+## Official Token Optimization Methods
+
+These methods are **officially supported** by Claude Code and recommended for all users:
+
+### 1. Use `/clear` Between Unrelated Tasks
+
+Reset conversation context when switching tasks:
+
+```
+/clear
+```
+
+This prevents context accumulation from previous tasks.
+
+### 2. Move Domain Knowledge to Skills
+
+Skills (`.claude/skills/`) load on-demand when invoked:
+
+```
+.claude/skills/
+├── coding-guidelines/SKILL.md    # Loads when invoked
+├── security-audit/SKILL.md       # Loads when invoked
+└── api-design/SKILL.md           # Loads when invoked
+```
+
+### 3. Delegate to Subagents
+
+Subagents run with separate context, reducing main conversation load:
+
+```markdown
+Use the Task tool to investigate the authentication system.
+```
+
+### 4. Offload Validation to Hooks
+
+Move repetitive validation to hooks instead of conversation context:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "Bash",
+      "hooks": [{ "type": "command", "command": "validate-command.sh" }]
+    }]
+  }
+}
+```
+
+### 5. Write Specific Prompts
+
+Specific prompts require less context disambiguation:
+
+```markdown
+# Good - Specific
+Fix the null pointer exception in src/auth/login.ts:42
+
+# Bad - Vague (requires more context)
+Fix the bug in the login system
+```
+
+### 6. Use `permissions.deny` for Security
+
+Block access to unnecessary files via official settings:
+
+```json
+{
+  "permissions": {
+    "deny": [
+      "Read(**/node_modules/**)",
+      "Read(**/dist/**)",
+      "Read(**/build/**)"
+    ]
+  }
+}
+```
+
+---
+
+## Experimental Methods (Not Official)
+
+The following methods use features that are **NOT officially supported**:
 
 ## Important Notice: .claudeignore Status
 

@@ -1,12 +1,17 @@
 # Intelligent Pre-fetching System
 
-> **Type**: Design Document (Implementation Details)
-> **Version**: 1.5.0 (Phase 4 Implementation)
-> **Purpose**: Predict and pre-load modules for next likely command
-> **Performance Gain**: Near-instant command execution through predictive loading
+> ⚠️ **CUSTOM EXTENSION / DESIGN CONCEPT**
 >
-> **Note**: This is a design document containing implementation details.
-> For concise rules, see `.claude/rules/token-optimization.md`.
+> This document describes a **design concept** that is **NOT implemented** by Claude Code.
+> It serves as architectural reference only. Claude Code does not have built-in module
+> prefetching or Markov chain prediction capabilities.
+>
+> For official token optimization methods, see [TOKEN_OPTIMIZATION.md](../TOKEN_OPTIMIZATION.md).
+
+> **Type**: Design Document (Conceptual Architecture)
+> **Version**: 1.5.0 (Phase 4 Design)
+> **Purpose**: Conceptual design for predictive module loading
+> **Status**: Design concept only - not implemented
 
 ## Overview
 

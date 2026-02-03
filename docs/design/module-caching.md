@@ -1,12 +1,17 @@
 # Module Caching Strategy
 
-> **Type**: Design Document (Implementation Details)
-> **Version**: 1.4.0 (Phase 3 Implementation)
-> **Purpose**: Cache frequently used modules to eliminate redundant loading
-> **Performance Gain**: 50% faster command execution through intelligent caching
+> ⚠️ **CUSTOM EXTENSION / DESIGN CONCEPT**
 >
-> **Note**: This is a design document containing implementation details.
-> For concise rules, see `.claude/rules/token-optimization.md`.
+> This document describes a **design concept** that is **NOT implemented** by Claude Code.
+> It serves as architectural reference only. Claude Code does not have built-in HOT/WARM/COLD
+> module caching or LRU eviction capabilities.
+>
+> For official token optimization methods, see [TOKEN_OPTIMIZATION.md](../TOKEN_OPTIMIZATION.md).
+
+> **Type**: Design Document (Conceptual Architecture)
+> **Version**: 1.4.0 (Phase 3 Design)
+> **Purpose**: Conceptual design for module caching strategy
+> **Status**: Design concept only - not implemented
 
 ## Overview
 

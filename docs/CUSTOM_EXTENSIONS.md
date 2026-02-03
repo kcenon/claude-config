@@ -1,6 +1,20 @@
 # Custom Extensions vs Official Features
 
+> ⚠️ **IMPORTANT NOTICE**
+>
+> This configuration contains both **official Claude Code features** and **custom extensions**.
+> Custom extensions are **NOT portable** and may **NOT work** in other environments.
+> Before adopting any feature, verify whether it's official or custom using this document.
+
 This document clarifies which features in this configuration are **official Claude Code features** versus **custom extensions** implemented specifically for this project.
+
+## Quick Reference
+
+| Feature Type | Works Everywhere? | Example |
+|--------------|-------------------|---------|
+| **Official** | ✅ Yes | `.claude/rules/`, `settings.json` hooks |
+| **Custom Extension** | ❌ No | `@load:` directive, Phase 1-4 optimization |
+| **Design Concept** | ❌ No (not implemented) | Module caching, intelligent prefetching |
 
 ## Why This Matters
 
@@ -31,18 +45,30 @@ These features are part of the official Claude Code product and are portable:
 
 These features are **custom implementations** specific to this configuration and are **NOT portable**:
 
-| Feature | Description | Portable? |
-|---------|-------------|-----------|
-| **`@./module.md` import syntax** | Inline file references in markdown | No |
-| **`@load:` directive** | Force-load specific modules | No |
-| **`@skip:` directive** | Exclude specific modules | No |
-| **`@focus:` directive** | Set focus area | No |
-| **Phase-based token optimization** | 4-phase loading strategy design | No |
-| **Module caching strategy** | HOT/WARM/COLD tier design | No |
-| **Markov chain prediction** | Command prediction for prefetching | No |
-| **Custom settings.json fields** | `description`, `version` fields | No |
-| **5W1H issue framework** | Structured issue templates | Guidelines only |
-| **Global commands** | `/issue-work`, `/release`, etc. | Config-specific |
+| Feature | Description | Portable? | Status |
+|---------|-------------|-----------|--------|
+| **`@./module.md` import syntax** | Inline file references in markdown | No | May work as hint |
+| **`@load:` directive** | Force-load specific modules | No | May work as hint |
+| **`@skip:` directive** | Exclude specific modules | No | May work as hint |
+| **`@focus:` directive** | Set focus area | No | May work as hint |
+| **Phase-based token optimization** | 4-phase loading strategy design | No | **Design only** |
+| **Module caching strategy** | HOT/WARM/COLD tier design | No | **Design only** |
+| **Markov chain prediction** | Command prediction for prefetching | No | **Design only** |
+| **Custom settings.json fields** | `description`, `version` fields | No | Informational |
+| **5W1H issue framework** | Structured issue templates | Guidelines only | Recommended |
+| **Global commands** | `/issue-work`, `/release`, etc. | Config-specific | Functional |
+
+### ⚠️ Design Concepts (Not Implemented)
+
+The following features exist as **design documents only** and are **NOT implemented** by Claude Code:
+
+| Design Document | What It Describes | Reality |
+|-----------------|-------------------|---------|
+| `docs/design/intelligent-prefetching.md` | Markov chain prediction for next command | **Not implemented** - Claude Code doesn't predict commands |
+| `docs/design/module-caching.md` | HOT/WARM/COLD caching tiers | **Not implemented** - Claude Code doesn't cache modules |
+| `docs/design/module-priority.md` | Dynamic priority-based loading | **Not implemented** - Rules load based on YAML frontmatter only |
+
+These documents serve as **architectural references** for potential future implementation or as examples for other projects, but they do **not affect Claude Code behavior**.
 
 ## Detailed Breakdown
 
@@ -140,4 +166,4 @@ If a feature from this configuration doesn't work:
 
 ---
 
-*Version: 1.0.0 | Last updated: 2026-02-03*
+*Version: 1.1.0 | Last updated: 2026-02-03*
