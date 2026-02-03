@@ -3,6 +3,7 @@
 # Logs session start/end events
 # Hook Type: SessionStart, SessionEnd, Stop
 # Usage: session-logger.sh [start|end|stop]
+# Response format: hookSpecificOutput (modern format)
 
 LOG_FILE="${HOME}/.claude/session.log"
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
@@ -25,4 +26,12 @@ case "${1:-}" in
         ;;
 esac
 
+# Output modern response format
+cat <<EOF
+{
+  "hookSpecificOutput": {
+    "permissionDecision": "allow"
+  }
+}
+EOF
 exit 0
