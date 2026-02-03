@@ -1,12 +1,49 @@
 # Token Optimization Guide
 
-> **Version**: 1.0.0
-> **Last Updated**: 2026-01-26
+> **Version**: 2.0.0
+> **Last Updated**: 2026-02-03
 > **Purpose**: Reduce initial session token usage by 60-70%
+
+## Important Notice: .claudeignore Status
+
+**WARNING**: `.claudeignore` is **NOT an official Claude Code feature**.
+
+- **GitHub Issue**: [#579 - .claudeignore feature request](https://github.com/anthropics/claude-code/issues/579)
+- **Status**: Feature is still being developed
+- **Behavior**: May work in some versions but is not guaranteed
+
+### Official Alternative: permissions.deny
+
+For **security-related file exclusions**, use the official `permissions.deny` in `settings.json`:
+
+```json
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(**/secrets/**)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)"
+    ]
+  }
+}
+```
+
+**Note**: `permissions.deny` is designed for **security** (blocking access to sensitive files), not for **token optimization**. Files blocked by `permissions.deny` are excluded from file discovery and search results.
+
+### Migration Strategy
+
+This project has migrated security-related exclusions to `settings.json`:
+- `global/settings.json` - Global security rules
+- `project/.claude/settings.json` - Project-specific security rules
+
+`.claudeignore` files are now **deprecated** but retained for potential token optimization if the feature becomes official.
+
+---
 
 ## Overview
 
-This guide explains how `claude-config` optimizes token usage through `.claudeignore` files, reducing initial session costs from ~50,000 tokens to ~15,000-20,000 tokens.
+This guide explains how `claude-config` optimizes token usage through `.claudeignore` files (deprecated) and `permissions.deny` (official), reducing initial session costs from ~50,000 tokens to ~15,000-20,000 tokens.
 
 ## Problem Statement
 
@@ -31,11 +68,23 @@ Without `.claudeignore` files, Claude Code loads:
 - **Context pollution**: Rarely-used content occupies valuable context window
 - **No on-demand loading**: Reference materials loaded even when unused
 
-## Solution: .claudeignore Files
+## Solution: Layered Approach
 
 ### Strategy
 
-Exclude unnecessary content from initial context:
+This project uses a layered approach for file exclusion:
+
+1. **`permissions.deny` (Official)**: Security-focused file blocking
+   - Blocks access to sensitive files (.env, secrets, credentials)
+   - Officially supported by Claude Code
+   - Prevents both reading and context inclusion
+
+2. **`.claudeignore` (Deprecated/Experimental)**: Token optimization
+   - May reduce token usage by excluding large files
+   - **Not officially supported** - behavior may change
+   - Retained for potential future support
+
+### What to Exclude
 
 1. **Reference documents**: Load only when explicitly needed
 2. **Cache directories**: Exclude duplicate/generated content
@@ -213,7 +262,21 @@ Claude Code will identify and load appropriate reference files.
 
 If you encounter issues or need all content loaded:
 
-### Option 1: Delete .claudeignore Files
+### Option 1: Modify permissions.deny
+
+Edit `settings.json` to remove or comment out specific deny rules:
+
+```json
+{
+  "permissions": {
+    "deny": [
+      // "Read(./.env)"  // Commented out to allow access
+    ]
+  }
+}
+```
+
+### Option 2: Delete .claudeignore Files (Deprecated)
 
 ```bash
 rm global/.claudeignore
@@ -356,6 +419,16 @@ When installing `claude-config`:
 
 ## FAQ
 
+### Q: Is .claudeignore an official Claude Code feature?
+
+**A**: **No.** As of February 2026, `.claudeignore` is not officially supported. See [GitHub Issue #579](https://github.com/anthropics/claude-code/issues/579). Use `permissions.deny` in `settings.json` for security-related file exclusions.
+
+### Q: What's the difference between permissions.deny and .claudeignore?
+
+**A**:
+- `permissions.deny`: Official feature for **security** - blocks tool access to sensitive files
+- `.claudeignore`: Experimental/unsupported - may reduce **token usage** but behavior is not guaranteed
+
 ### Q: Will this break my workflow?
 
 **A**: No. Core functionality remains unchanged. Reference documents load on-demand when you explicitly reference them.
@@ -366,11 +439,11 @@ When installing `claude-config`:
 
 ### Q: Can I customize .claudeignore?
 
-**A**: Yes. Edit the files to add/remove patterns. Follow gitignore syntax.
+**A**: Yes, but remember it's deprecated. Edit the files to add/remove patterns. Follow gitignore syntax.
 
 ### Q: What if I need everything loaded?
 
-**A**: Delete or rename `.claudeignore` files and restart your session.
+**A**: Remove deny rules from `settings.json` or delete `.claudeignore` files and restart your session.
 
 ### Q: Does this affect code generation quality?
 

@@ -1,4 +1,11 @@
-# Claude Code Ignore File (Plugin Configuration)
+# DEPRECATED: .claudeignore is not an official Claude Code feature
+# See: https://github.com/anthropics/claude-code/issues/579
+#
+# Migration Status:
+# - Security-related exclusions moved to settings.json permissions.deny
+# - Token optimization exclusions remain here as .claudeignore may work in some versions
+#
+# Original: Claude Code Ignore File (Plugin Configuration)
 # Optimizes token usage by excluding unnecessary files from context
 
 # NPM cache
