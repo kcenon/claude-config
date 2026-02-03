@@ -2,6 +2,9 @@
 
 Universal conventions for this repository. Works with global settings in `~/.claude/CLAUDE.md`.
 
+> **Note**: This configuration includes both official Claude Code features and custom extensions.
+> See [docs/CUSTOM_EXTENSIONS.md](../docs/CUSTOM_EXTENSIONS.md) for portability information.
+
 ## Rule Loading Behavior
 
 Rules use **YAML frontmatter** for path-specific automatic loading, following the official Claude Code memory documentation.
