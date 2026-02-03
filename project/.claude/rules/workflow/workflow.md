@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 # Workflow Guidelines
 
 > **Version**: 2.0.0

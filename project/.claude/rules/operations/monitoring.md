@@ -1,3 +1,13 @@
+---
+paths:
+  - "**/monitoring/**"
+  - "**/metrics/**"
+  - "**/observability/**"
+  - "**/*.prometheus.*"
+  - "**/*.grafana.*"
+alwaysApply: false
+---
+
 # Performance Metrics and Monitoring
 
 ## Set Performance Targets

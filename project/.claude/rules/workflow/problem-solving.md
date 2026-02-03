@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 # Problem-Solving Principles
 
 > **Version**: 1.1.0

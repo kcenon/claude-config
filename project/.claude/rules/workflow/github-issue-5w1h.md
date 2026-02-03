@@ -1,3 +1,10 @@
+---
+paths:
+  - ".github/**"
+  - "**/*"
+alwaysApply: false
+---
+
 # GitHub Issue Guidelines (5W1H Principle)
 
 > **Version**: 2.0.0

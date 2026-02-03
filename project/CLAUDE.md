@@ -4,21 +4,30 @@ Universal conventions for this repository. Works with global settings in `~/.cla
 
 ## Rule Loading Behavior
 
-**CRITICAL DISCOVERY**: Claude Code automatically scans `.claude/rules/` directory regardless of CLAUDE.md or .claudeignore settings. The only reliable way to reduce token usage is to restructure the directory itself.
+Rules use **YAML frontmatter** for path-specific automatic loading, following the official Claude Code memory documentation.
 
-### Actual Loading Mechanism
+### YAML Frontmatter
 
-1. **Directory Scanning**: Claude Code scans all `.md` files in `.claude/rules/` automatically
-2. **.claudeignore**: Partially effective but has lower priority than directory scanning
-3. **CLAUDE.md directives**: Cannot prevent automatic directory scanning
-4. **Only solution**: Minimize files in `.claude/rules/` directory or restructure into separate locations
+Each rule file specifies when it should apply:
 
-### Token Optimization Strategy
+```yaml
+---
+paths:
+  - "src/api/**/*.ts"    # Load when editing API files
+  - "**/*.controller.ts" # Load when editing controllers
+alwaysApply: false       # Only load when paths match
+---
+```
 
-The `.claudeignore` file excludes certain paths, but for maximum optimization:
-- Keep only 9 essential files in `.claude/rules/` (see APPLIED_SOLUTION.md for details)
-- Move others to backup directory
-- Load additional modules via explicit `@load:` directives when needed
+- **`alwaysApply: true`**: Rule loads for every conversation (core rules)
+- **`paths`**: Rule loads when editing matching files (context-specific rules)
+
+### Token Optimization
+
+Rules are loaded selectively based on file paths being edited:
+- Core rules (`core/*`, `workflow/*`) use `alwaysApply: true`
+- Coding rules load only when editing source files
+- API rules load only when editing API-related files
 
 ### Available Rule Categories
 
@@ -34,12 +43,11 @@ The `.claudeignore` file excludes certain paths, but for maximum optimization:
 
 ### Conditional Loading
 
-Rules load automatically based on:
-- **Task keywords**: "bug", "feature", "security", etc.
-- **File extensions**: `.cpp`, `.py`, `.ts`, etc.
-- **Directory patterns**: `/tests/`, `/api/`, etc.
+Rules load automatically based on YAML frontmatter:
+- **`alwaysApply: true`**: Always loaded (core settings)
+- **`paths` patterns**: Loaded when editing matching files
 
-See `.claude/rules/conditional-loading.md` for complete loading rules.
+See `.claude/rules/conditional-loading.md` for glob pattern reference.
 
 ### Manual Override
 
@@ -88,4 +96,4 @@ See [docs/TOKEN_OPTIMIZATION.md](../docs/TOKEN_OPTIMIZATION.md) for details.
 
 ---
 
-*Version: 2.1.0 | Last updated: 2026-02-03*
+*Version: 2.2.0 | Last updated: 2026-02-03*

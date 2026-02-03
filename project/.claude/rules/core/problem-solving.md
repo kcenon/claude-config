@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 # Problem‑Solving Principles
 
 This guideline establishes the core principles for approaching and solving problems systematically.

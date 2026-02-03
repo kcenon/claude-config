@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 # Code and Documentation Language Standards
 
 > **Scope**: This file controls **code and documentation language only**.

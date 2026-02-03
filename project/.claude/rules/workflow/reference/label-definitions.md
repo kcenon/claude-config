@@ -1,3 +1,9 @@
+---
+paths:
+  - ".github/**"
+alwaysApply: false
+---
+
 # Label Definitions Reference
 
 > **Version**: 1.0.0
