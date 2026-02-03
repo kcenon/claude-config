@@ -1,5 +1,20 @@
 # Commit, Issue, and PR Settings
 
+## Official Attribution Setting
+
+Attribution is now disabled via official `settings.json`:
+
+```json
+{
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  }
+}
+```
+
+This setting removes Claude attribution from all commits and PRs automatically.
+
 ## Claude Attribution Policy
 
 **NEVER** include Claude-related information in commits, issues, and pull requests.
@@ -78,9 +93,10 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ## Implementation
 
 This policy is enforced through:
-1. This configuration file (instruction to Claude Code)
-2. Optional git hooks (see `git-commit-format.md` for hook setup)
+1. Official `settings.json` attribution setting (primary)
+2. This configuration file (backup instruction to Claude Code)
+3. Optional git hooks (see `git-commit-format.md` for hook setup)
 
 ---
 
-*Version: 1.0.0*
+*Version: 1.1.0*

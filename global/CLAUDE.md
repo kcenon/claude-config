@@ -19,14 +19,26 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 
 ## Quick Reference
 
-| Setting | Value | Override |
-|---------|-------|----------|
-| Response language | Korean | Project `communication.md` |
-| Git identity | System config | Not overridable |
-| Claude attribution | Disabled | Not overridable |
-| Token display | Always | Not overridable |
+| Setting | Source | Value | Override |
+|---------|--------|-------|----------|
+| Response language | `settings.json` | Korean | Project `settings.json` |
+| Git identity | System git config | User's config | Not overridable |
+| Claude attribution | `settings.json` | Disabled | Not overridable |
+| Output style | `settings.json` | Explanatory | Project `settings.json` |
 
-**NEVER** include Claude/AI attribution in commits, issues, or PRs (see `commit-settings.md`).
+## Official Settings (settings.json)
+
+Key behaviors are now configured via official `settings.json` options:
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `language` | `"korean"` | Default response language |
+| `attribution.commit` | `""` | No Claude attribution in commits |
+| `attribution.pr` | `""` | No Claude attribution in PRs |
+| `outputStyle` | `"Explanatory"` | Detailed explanations |
+| `showTurnDuration` | `true` | Display turn timing |
+
+See `settings.json` for the complete configuration.
 
 ## Token Optimization
 
@@ -52,4 +64,4 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 
 ---
 
-*Version: 1.4.0 | Last updated: 2026-01-22*
+*Version: 1.5.0 | Last updated: 2026-02-03*
