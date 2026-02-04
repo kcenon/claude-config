@@ -36,6 +36,8 @@ These features are part of the official Claude Code product and are portable:
 | **YAML frontmatter** | `paths` and `alwaysApply` for conditional loading | Official feature |
 | **settings.json** | Hook configuration (PreToolUse, PostToolUse, etc.) | Official feature |
 | **Hook events** | SessionStart, SessionEnd, UserPromptSubmit, Stop, etc. | Official feature |
+| **Hook types** | `command`, `prompt`, `agent` types for different validation strategies | Official feature |
+| **Async hooks** | `async: true` for non-blocking hook execution | Official feature |
 | **`.claudeignore`** | Exclude files from context loading | Official feature |
 | **Skills** | SKILL.md with name and description frontmatter | Official feature |
 | **Agents** | Agent configuration files | Official feature |
@@ -71,6 +73,63 @@ The following features exist as **design documents only** and are **NOT implemen
 These documents serve as **architectural references** for potential future implementation or as examples for other projects, but they do **not affect Claude Code behavior**.
 
 ## Detailed Breakdown
+
+### Hook Types and Async Execution (Official)
+
+**Type**: Official feature
+
+Claude Code supports three types of hooks for different validation strategies:
+
+| Hook Type | Description | Use Case |
+|-----------|-------------|----------|
+| `command` | Execute shell scripts | Complex validation, external tools |
+| `prompt` | LLM yes/no decision | Simple safety checks, no scripting needed |
+| `agent` | Multi-turn tool verification | Deep validation with Read/Grep access |
+
+**Command Hook** (default):
+```json
+{
+  "type": "command",
+  "command": "~/.claude/hooks/validate.sh",
+  "timeout": 30
+}
+```
+
+**Prompt Hook** (AI-based):
+```json
+{
+  "type": "prompt",
+  "prompt": "Does this action follow security best practices? Answer yes or no."
+}
+```
+
+**Agent Hook** (multi-turn):
+```json
+{
+  "type": "agent",
+  "prompt": "Verify this follows coding standards",
+  "tools": ["Read", "Grep"],
+  "timeout": 30000
+}
+```
+
+**Async Execution**:
+
+For non-blocking operations (formatting, logging), use `async: true`:
+```json
+{
+  "type": "command",
+  "command": "~/.claude/hooks/format.sh",
+  "async": true,
+  "timeout": 30
+}
+```
+
+**When to use async**:
+- ✅ PostToolUse formatting hooks
+- ✅ Logging hooks (PostToolUseFailure, SubagentStart/Stop)
+- ❌ PreToolUse security validation (must block until verified)
+- ❌ SessionStart environment setup (must complete before use)
 
 ### Import Syntax (`@path/to/file`)
 
@@ -166,4 +225,4 @@ If a feature from this configuration doesn't work:
 
 ---
 
-*Version: 1.1.0 | Last updated: 2026-02-03*
+*Version: 1.2.0 | Last updated: 2026-02-04*
