@@ -45,6 +45,7 @@
   "alwaysThinkingEnabled": true,
 
   "permissions": {
+    "defaultMode": "default",
     "deny": [
       "Read(./.env)",
       "Read(./.env.*)",
