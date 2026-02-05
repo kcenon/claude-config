@@ -67,6 +67,11 @@
             "type": "command",
             "command": "~/.claude/hooks/dangerous-command-guard.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/github-api-preflight.sh",
+            "timeout": 10
           }
         ]
       }
