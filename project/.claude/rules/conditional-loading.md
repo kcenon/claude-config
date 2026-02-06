@@ -63,6 +63,7 @@ Rules with `alwaysApply: false` only load when paths match.
 | `api/*` | Path-based (API-related files) |
 | `operations/*` | Path-based (scripts, build files) |
 | `workflow/reference/*` | Path-based (.github files) |
+| `tools/*` | Always apply (script references) |
 
 ## Manual Override
 

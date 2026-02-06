@@ -28,12 +28,18 @@ alwaysApply: true
 - `git add . && git commit -m "message"`: Stage and commit changes
 - `git log --oneline -10`: View recent commit history
 
-## GitHub CLI Commands
+## GitHub CLI Scripts (scripts/gh/)
 
-- `gh issue list --state open`: List open GitHub issues
-- `gh issue view <number>`: View specific issue details
-- `gh pr create --title "title" --body "body"`: Create pull request
-- `gh pr list`: List pull requests
+> Use `--json` flag when calling programmatically. See `.claude/rules/tools/gh-cli-scripts.md` for full reference.
+
+- `./scripts/gh/gh_issue_create.sh -r REPO -t "Title" --json`: Create issue → `{"url":"...","number":N}`
+- `./scripts/gh/gh_issue_read.sh -r REPO -n NUM --json`: Read issue → structured JSON
+- `./scripts/gh/gh_issue_comment.sh -r REPO -n NUM -b "Text" --json`: Comment → `{"url":"..."}`
+- `./scripts/gh/gh_issues.sh -r REPO --json`: List issues → JSON array
+- `./scripts/gh/gh_pr_create.sh -r REPO -t "Title" --json`: Create PR → `{"url":"...","number":N}`
+- `./scripts/gh/gh_pr_read.sh -r REPO -n NUM --json`: Read PR → structured JSON
+- `./scripts/gh/gh_pr_comment.sh -r REPO -n NUM -b "Text" --json`: Comment → `{"url":"..."}`
+- `./scripts/gh/cleanup_branches.sh [PATH] --json`: Clean branches → summary JSON
 
 ## Quick Checks
 

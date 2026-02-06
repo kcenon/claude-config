@@ -43,6 +43,7 @@ Rules are loaded selectively based on file paths being edited:
 | **Operations** | `.claude/rules/operations/` | Cleanup, monitoring |
 | **Project Mgmt** | `.claude/rules/project-management/` | Build, testing, documentation standards |
 | **Security** | `.claude/rules/` | Security guidelines |
+| **Tools** | `.claude/rules/tools/` | GitHub CLI script wrappers (`scripts/gh/`) |
 
 ### Conditional Loading
 
