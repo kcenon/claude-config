@@ -112,9 +112,11 @@ See [_policy.md](./_policy.md) for common rules.
 | Test Coverage | X% | OK/LOW |
 
 #### Issues Found
-1. [Issue description] - [Severity]
+1. [Issue description] - [Severity: Critical/Major/Minor/Info]
    - Location: line X
    - Suggestion: [How to fix]
+
+> Use the severity scale defined in [`pr-review.md`](pr-review.md#severity-definitions).
 
 #### Recommendations
 - [Prioritized list of improvements]
