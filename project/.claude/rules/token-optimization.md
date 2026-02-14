@@ -1,72 +1,67 @@
-# Token Optimization Rules
+# Token Optimization
 
-> **Purpose**: Minimize token usage through intelligent module loading
-> **Token Savings**: 60-70% reduction in initial context loading
+> **Purpose**: Minimize token usage through selective rule loading
+> **Mechanism**: YAML frontmatter (`alwaysApply` and `paths`) in each rule file
 
-## Module Loading Priority
+## How Rule Loading Works
 
-Load modules based on priority level:
+Claude Code loads rules from `.claude/rules/` based on **YAML frontmatter** in each file:
 
-| Level | When to Load | Examples |
-|-------|--------------|----------|
-| **0: Critical** | Always | `core/environment.md`, `core/communication.md` |
-| **1: Essential** | On command detection | `workflow/git-commit-format.md`, `workflow/github-*.md` |
-| **2: Contextual** | On intent analysis | `coding/*.md`, `security.md` |
-| **3: Reference** | On explicit need | `workflow/reference/*.md` |
-| **4: Archive** | Via `@load:` only | `operations/cleanup.md`, `documentation.md` |
+### Always Loaded (`alwaysApply: true`)
 
-## Cache Tiers
+Rules that load every session:
 
-Modules are cached by access frequency:
+- `core/environment.md` — Timezone, locale, current info
+- `core/communication.md` — Code/documentation language standards
+- `core/problem-solving.md` — Systematic problem resolution
+- `core/behavioral-guardrails.md` — LLM anti-patterns
+- `core/common-commands.md` — Frequently used commands
+- `workflow/workflow.md` — Master workflow index
+- `workflow/question-handling.md` — Question processing procedure
+- `workflow/problem-solving.md` — Problem-solving principles
+- `workflow/git-commit-format.md` — Commit message standards
+- `workflow/github-issue-5w1h.md` — Issue creation guidelines
+- `workflow/github-pr-5w1h.md` — PR creation guidelines
+- `tools/gh-cli-scripts.md` — GitHub CLI script reference
+- `conditional-loading.md` — Loading rules documentation
+- `token-optimization.md` — This file
 
-| Tier | Criteria | Behavior |
-|------|----------|----------|
-| **HOT** | >80% access rate | Never evicted, always in memory |
-| **WARM** | 20-80% access rate | LRU eviction, 1-hour TTL |
-| **COLD** | <20% access rate | Load fresh each time |
+### Path-Based Loading (`paths` patterns)
 
-### HOT Modules (Always Cached)
+Rules that load only when editing matching files:
 
-- `core/environment.md`
-- `core/communication.md`
-- `workflow/question-handling.md`
-- `workflow/git-commit-format.md`
+| Category | Loaded When Editing | Examples |
+|----------|-------------------|----------|
+| `coding/*.md` | Source code files | `**/*.ts`, `**/*.py`, `**/*.cpp` |
+| `api/*.md` | API-related files | `src/api/**/*`, `**/*.controller.ts` |
+| `operations/*.md` | Scripts, build files | `scripts/**/*`, `Makefile`, `*.yml` |
 
-## Command-Specific Loading
+### Excluded by Default
 
-| Command | Required Modules | Skip Modules |
-|---------|------------------|--------------|
-| `/commit` | git-commit-format, question-handling | coding/*, api/*, operations/* |
-| `/issue-work` | github-issue-5w1h, github-pr-5w1h, git-commit-format | api/*, operations/monitoring |
-| `/issue-create` | github-issue-5w1h | coding/*, api/*, github-pr-5w1h |
-| `/pr-work` | github-pr-5w1h, git-commit-format | operations/*, api/* |
-| `/release` | git-commit-format, build, testing | coding/*, cleanup |
+Files in `.claudeignore` are excluded from context to save tokens:
 
-## Keyword-Based Loading
+- Reference documents (`rules/*/reference/`) — Load with `@load:` directive
+- Design documents (`docs/design/`) — Conceptual architecture, not implemented
+- Commands/skills definitions — Load when invoked
+- Session memory, plugin cache, backups
 
-| Keywords | Load Modules |
-|----------|--------------|
-| bug, fix, error | error-handling, quality, testing |
-| feature, implement | general, quality, testing |
-| optimize, performance | performance, monitoring, memory |
-| security, auth, token | security, error-handling |
-| thread, async, concurrent | concurrency, error-handling |
+## Optimization Strategies
 
-## User Overrides
+- Set `alwaysApply: false` for specialized rules
+- Use specific `paths` patterns to minimize unnecessary loading
+- Keep rule files concise
+- Move detailed reference material to `reference/` subdirectories
+- Use `.claudeignore` to exclude large or rarely-needed files
 
-```markdown
-@load: security, performance    # Force load specific modules
-@skip: documentation, build     # Exclude specific modules
-@focus: memory-optimization     # Set focus area
-```
+## Design Documents
 
-## Design Documentation
+The following are **conceptual design documents** describing aspirational architectures.
+They are **not implemented** by Claude Code:
 
-For implementation details, algorithms, and architecture:
-- See `docs/design/intelligent-prefetching.md`
-- See `docs/design/module-caching.md`
-- See `docs/design/module-priority.md`
+- `docs/design/intelligent-prefetching.md` — Predictive loading concept
+- `docs/design/module-caching.md` — Cache tier concept
+- `docs/design/module-priority.md` — Priority loading concept
 
 ---
 
-*Concise rules extracted from detailed design documents*
+*Accurate documentation of Claude Code's YAML frontmatter-based rule loading*

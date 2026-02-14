@@ -68,12 +68,12 @@ See `.claude/rules/conditional-loading.md` for glob pattern reference.
 - `rules/coding/reference/` - Detailed coding guidelines and examples
 - `rules/api/reference/` - API design patterns and examples
 
-**Design documents** (moved from rules/ to reduce token usage):
-- `docs/design/intelligent-prefetching.md` - Prediction algorithms
-- `docs/design/module-caching.md` - Cache implementation
-- `docs/design/module-priority.md` - Loading strategy details
+**Design documents** (conceptual architecture, not implemented by Claude Code):
+- `docs/design/intelligent-prefetching.md` - Predictive loading concept
+- `docs/design/module-caching.md` - Cache tier concept
+- `docs/design/module-priority.md` - Priority loading concept
 
-This optimization reduces initial token usage by **60-70%**.
+Selective rule loading via YAML frontmatter and `.claudeignore` reduces initial token usage.
 
 To load reference documents when needed:
 ```markdown
