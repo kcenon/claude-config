@@ -24,8 +24,7 @@ model: sonnet
 ## Reference Documents (Import Syntax)
 
 ### Workflow
-@./reference/workflow.md
-@./reference/question-handling.md
+@./reference/principles.md
 @./reference/workflow-problem-solving.md
 @./reference/performance-analysis.md
 

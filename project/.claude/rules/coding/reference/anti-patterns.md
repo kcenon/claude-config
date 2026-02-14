@@ -1,6 +1,6 @@
 # Anti-Patterns Reference
 
-Concrete before/after examples of common LLM coding mistakes. Each example maps to a principle in `behavioral-guardrails.md`.
+Concrete before/after examples of common LLM coding mistakes. Each example maps to a principle in `core/principles.md`.
 
 > **Loading**: Excluded from default context via `.claudeignore`. Load with `@load: reference/anti-patterns`.
 >
@@ -11,7 +11,7 @@ Concrete before/after examples of common LLM coding mistakes. Each example maps 
 
 ## 1. Challenge the Request
 
-> Maps to: `behavioral-guardrails.md` > **Challenge the Request**
+> Maps to: `core/principles.md` > **Think Before Acting**
 > - Push back if a simpler approach exists
 > - Present alternatives — don't pick silently
 
@@ -98,7 +98,7 @@ Which aspect matters most for your use case?
 
 ## 2. Minimize Code
 
-> Maps to: `behavioral-guardrails.md` > **Minimize Code**
+> Maps to: `core/principles.md` > **Minimize & Focus**
 > - No premature abstraction: three similar lines beat an unnecessary helper
 > - Rewrite if bloated: if 200 lines could be 50, rewrite it
 > - Self-check: "Would a senior engineer say this is overcomplicated?"
@@ -228,7 +228,7 @@ Add caching when performance demands it, validation when bad data appears, mergi
 
 ## 3. Surgical Edits
 
-> Maps to: `behavioral-guardrails.md` > **Surgical Edits**
+> Maps to: `core/principles.md` > **Surgical Precision**
 > - Don't touch adjacent code
 > - Clean up only your own mess — not pre-existing dead code
 > - Self-check: "Does every changed line trace directly to the user's request?"
@@ -370,7 +370,7 @@ Matched the existing code style: single quotes, no type hints, same boolean patt
 
 ## 4. Test-First Verification
 
-> Maps to: `behavioral-guardrails.md` > **Test-First Verification**
+> Maps to: `core/principles.md` > **Verify & Iterate**
 > - Reproduce before fixing: "fix the bug" → "write a test that reproduces it, then make it pass"
 > - Define done: state what "done" looks like at each step before coding
 
@@ -480,4 +480,4 @@ The "overcomplicated" examples aren't obviously wrong — they follow design pat
 Good code solves today's problem simply. Refactor when complexity is actually needed.
 
 ---
-*Reference document for behavioral-guardrails.md. Version 1.0.0*
+*Reference document for core/principles.md. Version 1.0.0*

@@ -36,11 +36,11 @@ Rules are loaded selectively based on file paths being edited:
 
 | Category | Location | Contents |
 |----------|----------|----------|
-| **Core** | `.claude/rules/core/` | Environment, communication, problem-solving, common commands |
-| **Workflow** | `.claude/rules/workflow/` | Git commit format, GitHub issue/PR guidelines (5W1H), question handling |
-| **Coding** | `.claude/rules/coding/` | General standards, quality, error handling, concurrency, memory, performance |
-| **API** | `.claude/rules/api/` | API design, logging, observability, architecture patterns |
-| **Operations** | `.claude/rules/operations/` | Cleanup, monitoring |
+| **Core** | `.claude/rules/core/` | Principles, environment, communication |
+| **Workflow** | `.claude/rules/workflow/` | Git commit format, GitHub issue/PR guidelines (5W1H), performance analysis |
+| **Coding** | `.claude/rules/coding/` | Standards, safety, error handling, performance, C++ specifics, implementation |
+| **API** | `.claude/rules/api/` | API design, observability, architecture, REST |
+| **Operations** | `.claude/rules/operations/` | Ops (cleanup + monitoring) |
 | **Project Mgmt** | `.claude/rules/project-management/` | Build, testing, documentation standards |
 | **Security** | `.claude/rules/` | Security guidelines |
 | **Tools** | `.claude/rules/tools/` | GitHub CLI script wrappers (`scripts/gh/`) |
@@ -51,7 +51,7 @@ Rules load automatically based on YAML frontmatter:
 - **`alwaysApply: true`**: Always loaded (core settings)
 - **`paths` patterns**: Loaded when editing matching files
 
-See `.claude/rules/conditional-loading.md` for glob pattern reference.
+Glob pattern examples: `**/*.ts` (all TS files), `src/**/*` (files under src/), `**/*.{ts,tsx}` (multiple extensions).
 
 ### Manual Override
 
@@ -81,7 +81,7 @@ To load reference documents when needed:
 Can you review rules/workflow/reference/label-definitions.md?
 ```
 
-See [docs/TOKEN_OPTIMIZATION.md](../docs/TOKEN_OPTIMIZATION.md) for details.
+Token optimization is achieved through selective rule loading and `.claudeignore`.
 
 ## Settings Priority
 
@@ -100,4 +100,4 @@ See [docs/TOKEN_OPTIMIZATION.md](../docs/TOKEN_OPTIMIZATION.md) for details.
 
 ---
 
-*Version: 2.2.0 | Last updated: 2026-02-03*
+*Version: 3.0.0 | Last updated: 2026-02-15*
