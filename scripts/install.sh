@@ -122,6 +122,34 @@ install_enterprise() {
     echo "======================================================"
     echo ""
 
+    # Check if template has been customized
+    if grep -q "This is a template" "$BACKUP_DIR/enterprise/CLAUDE.md" 2>/dev/null; then
+        echo ""
+        warning "============================================================"
+        warning "enterprise/CLAUDE.md has NOT been customized yet!"
+        warning "============================================================"
+        echo ""
+        echo -e "${YELLOW}The managed policy path has the HIGHEST priority in Claude Code."
+        echo -e "Deploying an uncustomized template will enforce requirements"
+        echo -e "that have no supporting implementation:${NC}"
+        echo ""
+        echo "  - GPG signing for all commits (no guidance configured)"
+        echo "  - Sign-off required (--signoff not mentioned elsewhere)"
+        echo "  - 80% test coverage minimum (conflicts with testing.md)"
+        echo "  - Security team approval (no process defined)"
+        echo "  - Squash merge preferred (not in PR guidelines)"
+        echo ""
+        echo -e "${YELLOW}Recommendation: Customize enterprise/CLAUDE.md first, then re-run.${NC}"
+        echo ""
+        read -p "Deploy uncustomized template anyway? (y/n) [default: n]: " DEPLOY_TEMPLATE
+        DEPLOY_TEMPLATE=${DEPLOY_TEMPLATE:-n}
+        if [ "$DEPLOY_TEMPLATE" != "y" ]; then
+            info "Enterprise installation skipped. Customize enterprise/CLAUDE.md first."
+            return 0
+        fi
+        warning "Proceeding with uncustomized template deployment."
+    fi
+
     info "Enterprise 경로: $enterprise_dir"
     warning "관리자 권한이 필요합니다."
     echo ""

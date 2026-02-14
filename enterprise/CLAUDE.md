@@ -1,5 +1,19 @@
 # Organization Policy
 
+> **WARNING: THIS IS A TEMPLATE — DO NOT DEPLOY WITHOUT CUSTOMIZING**
+>
+> This file is installed at the **managed policy** path, which has the
+> **highest priority** in Claude Code's settings hierarchy. Any rules here
+> override ALL other settings (project, global, local).
+>
+> Before deploying, you MUST:
+> 1. Review and customize every section below for your organization
+> 2. Remove or adjust requirements you cannot enforce (GPG signing, security team approval, etc.)
+> 3. Delete the "This is a template" marker at the bottom of this file
+>
+> Deploying this template as-is will enforce unconfigured requirements
+> (GPG signing, 80% test coverage, sign-off, etc.) across all projects.
+
 This is the enterprise-level Claude Code configuration that applies to all users
 in the organization. Settings here have the highest priority in the memory hierarchy.
 
