@@ -195,6 +195,7 @@ echo ""
 SKILL_DIRS=(
     "$BACKUP_DIR/project/.claude/skills"
     "$BACKUP_DIR/plugin/skills"
+    "$BACKUP_DIR/plugin-lite/skills"
 )
 
 SKILL_FILES=()

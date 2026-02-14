@@ -99,6 +99,26 @@ claude --plugin-dir ./plugin
 
 See [plugin/README.md](plugin/README.md) for more details.
 
+### Lightweight Plugin (Behavioral Guardrails Only)
+
+Want just the core behavioral corrections without the full suite?
+
+```bash
+# Install lite plugin
+claude plugins add kcenon/claude-config-lite
+
+# Or test locally
+claude --plugin-dir ./plugin-lite
+```
+
+| Method | What You Get | Size |
+|--------|-------------|------|
+| Full plugin | 7 skills, hooks, comprehensive config | ~360KB |
+| **Lite plugin** | Behavioral guardrails only | ~5KB |
+| Bootstrap script | Full system configuration | Full repo |
+
+See [plugin-lite/README.md](plugin-lite/README.md) for more details.
+
 ---
 
 ## Token Optimization
@@ -284,6 +304,13 @@ claude_config_backup/
 │   │   └── plugin.json         # Plugin manifest
 │   ├── skills/                 # Standalone skills (no symlinks)
 │   └── hooks/                  # Plugin hooks
+│
+├── plugin-lite/                 # Lightweight Plugin (Guardrails Only)
+│   ├── .claude-plugin/
+│   │   └── plugin.json         # Plugin manifest
+│   └── skills/
+│       └── behavioral-guardrails/
+│           └── SKILL.md        # Single behavioral guardrails skill
 │
 ├── bootstrap.sh                 # One-line install script
 ├── README.md                    # Detailed guide (English)

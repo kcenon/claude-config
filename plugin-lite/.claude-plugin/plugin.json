@@ -1,0 +1,19 @@
+{
+  "name": "claude-config-lite",
+  "version": "1.0.0",
+  "description": "Core behavioral guardrails for LLM coding, derived from Andrej Karpathy's observations. Minimal footprint, maximum impact.",
+  "author": {
+    "name": "kcenon",
+    "url": "https://github.com/kcenon"
+  },
+  "homepage": "https://github.com/kcenon/claude-config",
+  "repository": "https://github.com/kcenon/claude-config",
+  "license": "BSD-3-Clause",
+  "keywords": [
+    "behavioral-guardrails",
+    "coding-standards",
+    "best-practices",
+    "llm-coding"
+  ],
+  "skills": "./skills/"
+}
