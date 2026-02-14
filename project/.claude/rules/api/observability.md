@@ -13,6 +13,9 @@ paths:
 
 # Observability
 
+> **Scope**: API and microservice observability (Node.js, Python, web services).
+> For infrastructure/system-level metrics (C/C++), see [`operations/monitoring.md`](../operations/monitoring.md).
+
 This guideline establishes observability practices using metrics, logs, and traces (the three pillars of observability).
 
 ## Metrics Collection

@@ -104,6 +104,9 @@ private:
 
 ## Input Validation
 
+> **Scope**: Validation as part of error handling flow.
+> For comprehensive security-focused validation (injection prevention, XSS, path traversal), see [`security.md`](../security.md).
+
 ### Validate Early
 
 **ALWAYS** validate all external input at the boundary of your system:
@@ -196,6 +199,9 @@ catch (const std::exception& e) {
 ```
 
 ### Error Context Propagation
+
+> **Scope**: Error wrapping and re-throw patterns.
+> For structured logging standards (JSON, correlation IDs), see [`api/logging.md`](../api/logging.md).
 
 **IMPORTANT**: Include sufficient context when propagating errors:
 

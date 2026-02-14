@@ -6,6 +6,9 @@ paths: ["**/*.cpp", "**/*.cc", "**/*.h", "**/*.hpp", "**/*.py", "**/*.js", "**/*
 
 ## Single Responsibility Functions
 
+> **Scope**: Function-level SRP with practical examples.
+> For class-level SRP and modularity principles, see [`coding/general.md`](general.md#single-responsibility-principle).
+
 Each function should perform **one well-defined task**.
 
 ### Guidelines
@@ -121,6 +124,9 @@ buffer.resize(BUFFER_SIZE_BYTES);
 ```
 
 ## Error Logging
+
+> **Scope**: Brief error context in catch blocks.
+> For comprehensive structured logging standards, see [`api/logging.md`](../api/logging.md).
 
 When catching exceptions, include sufficient context for debugging.
 

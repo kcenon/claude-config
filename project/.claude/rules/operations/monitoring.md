@@ -10,6 +10,9 @@ alwaysApply: false
 
 # Performance Metrics and Monitoring
 
+> **Scope**: Infrastructure and application metrics (C/C++, system-level).
+> For API/microservice observability (Node.js, Python), see [`api/observability.md`](../api/observability.md).
+
 ## Set Performance Targets
 
 Define clear, measurable performance goals for your application.
