@@ -28,9 +28,4 @@ These policies apply to all commands in this directory.
 
 ## Attribution
 
-| Item | Rule |
-|------|------|
-| Claude/AI references | **Forbidden** in all outputs |
-| Bot references | **Forbidden** in reports and comments |
-
-**Rationale**: Maintain professional output quality.
+**No AI/Claude attribution in any output.** See global `commit-settings.md` for the full policy.

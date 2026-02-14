@@ -266,9 +266,7 @@ Fixes CI failure: <brief explanation>"
 **Commit rules**:
 - Type: Usually `fix`, `build`, `test`, or `ci`
 - **Language: MANDATORY English only** - All commit messages MUST be written in English
-- No Claude/AI references
-- No Co-Authored-By
-- No emojis
+- No Claude/AI references, emojis, or Co-Authored-By (see `commit-settings.md`)
 
 ### 8. Push and Verify
 

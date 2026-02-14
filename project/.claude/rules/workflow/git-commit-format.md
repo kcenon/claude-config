@@ -61,22 +61,7 @@ Must be one of the following:
 
 ## AI Reference Policy
 
-**NEVER** include AI-related references in commit messages:
-
-❌ **Don't include**:
-- "🤖 Generated with Claude Code"
-- "Generated with Claude Code"
-- "Co-Authored-By: Claude <noreply@anthropic.com>"
-- "Co-Authored-By: Claude"
-- Any AI assistant mentions
-- Tool attribution in commit messages
-- **All emojis** (🔧, 📊, ✅, 🚀, etc.)
-
-✅ **ALWAYS** include:
-- Actual technical changes
-- Business rationale
-- Issue/ticket references
-- Plain text descriptions without decorative symbols
+**No AI/Claude attribution or emojis in commit messages.** See global `commit-settings.md` for the full attribution policy and examples.
 
 ## Examples
 
