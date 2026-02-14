@@ -111,18 +111,17 @@ cp $BACKUP/core/communication.md .claude/rules/core/
 cp $BACKUP/core/problem-solving.md .claude/rules/core/
 cp $BACKUP/core/common-commands.md .claude/rules/core/
 
-# Workflow files (5)
+# Workflow files (4)
 cp $BACKUP/workflow/git-commit-format.md .claude/rules/workflow/
 cp $BACKUP/workflow/github-issue-5w1h.md .claude/rules/workflow/
 cp $BACKUP/workflow/github-pr-5w1h.md .claude/rules/workflow/
 cp $BACKUP/workflow/question-handling.md .claude/rules/workflow/
-cp $BACKUP/workflow/problem-solving.md .claude/rules/workflow/
 ```
 
 ### Step 3: Verify
 
 ```bash
-# Should show 9 files
+# Should show 8 files
 find .claude/rules -name "*.md" | wc -l
 
 # Should show backup exists
