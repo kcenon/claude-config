@@ -13,13 +13,7 @@ These policies apply to all commands in this directory.
 
 ## Attribution
 
-| Item | Rule |
-|------|------|
-| Claude/AI references | **Forbidden** in all outputs |
-| Co-Authored-By | **Forbidden** in commit messages |
-| Bot references | **Forbidden** in issues, PRs, comments |
-
-**Rationale**: Maintain professional commit history and documentation.
+**No AI/Claude attribution in any output.** See `commit-settings.md` for the full policy.
 
 ## Formatting
 

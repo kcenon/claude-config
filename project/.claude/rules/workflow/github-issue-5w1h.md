@@ -34,7 +34,7 @@ For detailed examples and automation patterns, see:
 
 ### No AI Attribution
 
-**Exclude all AI-related references** from issues (professional appearance, focus on technical content).
+**No AI/Claude attribution in issues.** See global `commit-settings.md` for the full policy.
 
 ## 5W1H Framework
 

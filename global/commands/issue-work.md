@@ -226,12 +226,7 @@ gh pr create --repo $ORG/$PROJECT \
 **Required**:
 - `Closes #<NUMBER>` keyword to link issue
 - **Language: MANDATORY English only** - All PR titles and descriptions MUST be written in English
-- No Claude/AI references or emojis
-
-**CRITICAL - Forbidden in PR body**:
-- `🤖 Generated with [Claude Code](https://claude.com/claude-code)`
-- Any AI/Claude attribution footer
-- Co-Authored-By lines
+- No Claude/AI references, emojis, or Co-Authored-By (see `commit-settings.md`)
 
 After PR creation, capture the PR URL from `gh pr create` output for the summary.
 

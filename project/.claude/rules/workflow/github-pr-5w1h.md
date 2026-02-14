@@ -35,34 +35,9 @@ REST API를 위한 JWT 기반 인증을 구현...
 
 ### No AI/Claude Attribution
 
-**Exclude all AI-related references** from PRs:
+**No AI/Claude attribution in PRs.** See global `commit-settings.md` for the full policy.
 
-```markdown
-<!-- ❌ Do NOT include -->
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-Created with AI assistance
-Co-Authored-By: Claude <noreply@anthropic.com>
-
-<!-- ❌ Do NOT include in footer -->
----
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-```
-
-This policy ensures:
-- Professional appearance in public repositories
-- Focus on the technical content
-- Compliance with organizational standards
-
-### Correct PR Footer Example
-
-```markdown
-## Checklist
-- [x] Code follows project style guidelines
-- [x] Self-review completed
-- [x] Tests added/updated
-```
-
-**Do NOT add any AI attribution after the checklist.**
+Do NOT add any AI attribution footer after the PR checklist.
 
 ## 1. What
 
@@ -387,7 +362,7 @@ v2.0.0 (Sprint 15)
 - [ ] Comment added to related issue(s) with PR information
 ```
 
-> **Note**: Do NOT add any AI attribution (Claude, GPT, etc.) after this checklist.
+> **Note**: No AI attribution after this checklist. See global `commit-settings.md` for the full policy.
 
 ## Quick Reference
 
