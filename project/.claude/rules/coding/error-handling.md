@@ -201,7 +201,7 @@ catch (const std::exception& e) {
 ### Error Context Propagation
 
 > **Scope**: Error wrapping and re-throw patterns.
-> For structured logging standards (JSON, correlation IDs), see [`api/logging.md`](../api/logging.md).
+> For structured logging standards (JSON, correlation IDs), see [`api/observability.md`](../api/observability.md).
 
 **IMPORTANT**: Include sufficient context when propagating errors:
 
