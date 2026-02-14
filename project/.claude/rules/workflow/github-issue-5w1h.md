@@ -23,18 +23,9 @@ For detailed examples and automation patterns, see:
 | [Automation Patterns](reference/automation-patterns.md) | gh CLI commands, GitHub Actions workflows |
 | [Issue Examples](reference/issue-examples.md) | Splitting, hierarchy, linking, templates |
 
-## Language and Attribution Policy
+## Policy
 
-### Language Requirement
-
-**All issues MUST be written in English** for:
-- Global accessibility and collaboration
-- Consistency with codebase and documentation standards
-- Integration with automated tools and CI/CD systems
-
-### No AI Attribution
-
-**No AI/Claude attribution in issues.** See global `commit-settings.md` for the full policy.
+**English only. No AI attribution.** See `communication.md` and global `commit-settings.md`.
 
 ## 5W1H Framework
 

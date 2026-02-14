@@ -13,31 +13,9 @@ alwaysApply: true
 
 When creating Pull Requests, follow the **5W1H framework** to ensure reviewers can quickly understand and effectively evaluate your changes.
 
-## Language and Attribution Policy
+## Policy
 
-### Language Requirement
-
-**All PRs MUST be written in English** for:
-- Global accessibility and collaboration
-- Consistency with codebase and documentation standards
-- Integration with automated tools and CI/CD systems
-- Effective code review across international teams
-
-```markdown
-<!-- ✅ Correct: English PR -->
-## Summary
-Implements JWT-based authentication for the REST API...
-
-<!-- ❌ Incorrect: Non-English PR -->
-## 요약
-REST API를 위한 JWT 기반 인증을 구현...
-```
-
-### No AI/Claude Attribution
-
-**No AI/Claude attribution in PRs.** See global `commit-settings.md` for the full policy.
-
-Do NOT add any AI attribution footer after the PR checklist.
+**English only. No AI attribution.** See `communication.md` and global `commit-settings.md`.
 
 ## 1. What
 
@@ -362,8 +340,6 @@ v2.0.0 (Sprint 15)
 - [ ] Comment added to related issue(s) with PR information
 ```
 
-> **Note**: No AI attribution after this checklist. See global `commit-settings.md` for the full policy.
-
 ## Quick Reference
 
 ### PR Title Conventions
@@ -398,8 +374,6 @@ v2.0.0 (Sprint 15)
 - [ ] **Where**: Changes scoped correctly, no unrelated modifications
 - [ ] **How**: Implementation is sound, tests adequate
 - [ ] **Issue Link**: Related issue(s) properly linked
-- [ ] **Language**: PR written in English
-- [ ] **Attribution**: No AI/Claude references in PR
 
 ### PR vs Issue: Key Differences
 
