@@ -122,8 +122,8 @@ install_enterprise() {
     echo "======================================================"
     echo ""
 
-    # Check if template has been customized
-    if grep -q "This is a template" "$BACKUP_DIR/enterprise/CLAUDE.md" 2>/dev/null; then
+    # Check if template has been customized (match footer marker line starting with *)
+    if grep -q "^\*This is a template\." "$BACKUP_DIR/enterprise/CLAUDE.md" 2>/dev/null; then
         echo ""
         warning "============================================================"
         warning "enterprise/CLAUDE.md has NOT been customized yet!"
