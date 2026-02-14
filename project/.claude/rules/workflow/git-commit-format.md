@@ -2,7 +2,7 @@
 paths:
   - ".git/**"
   - "**/*"
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Git Commit Message Format
