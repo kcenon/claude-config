@@ -14,8 +14,8 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 **IMPORTANT**: Understand these priority rules to resolve conflicts correctly.
 
 1. **Project overrides global** - Project `CLAUDE.md` takes precedence
-2. **Intelligent loading** - Auto-selects modules via `conditional-loading.md`
-3. **Token optimization** - Reduces usage by ~60-70%
+2. **YAML frontmatter loading** - Rules load based on `alwaysApply` and `paths` in frontmatter
+3. **Token optimization** - `.claudeignore` and selective rule loading reduce context size
 
 ## Quick Reference
 
@@ -42,20 +42,16 @@ See `settings.json` for the complete configuration.
 
 ## Token Optimization
 
-**중요**: `.claudeignore` 파일을 통해 불필요한 파일이 제외되어 초기 토큰 사용량이 약 **60-70% 감소**합니다.
+Token usage is reduced through two mechanisms:
 
-제외된 항목:
-- 플러그인 마켓플레이스 (대용량 파일)
-- 세션 메모리 (과거 대화 기록)
-- 명령어 및 스킬 정의 (필요시만 로드)
-- 플랜 파일 및 캐시
+1. **`.claudeignore`** excludes unnecessary files from context:
+   - Plugin marketplace, session memory, command/skill definitions, caches
 
-필요 시 다음과 같이 레퍼런스 문서를 로드할 수 있습니다:
-```markdown
-@load: reference/label-definitions
-```
+2. **YAML frontmatter** controls selective rule loading:
+   - `alwaysApply: true` — Core rules loaded every session
+   - `paths` patterns — Rules loaded only when editing matching files
 
-자세한 내용은 [docs/TOKEN_OPTIMIZATION.md](../docs/TOKEN_OPTIMIZATION.md) 참조.
+See `token-optimization.md` in project rules for details.
 
 ## Configuration Updates
 
