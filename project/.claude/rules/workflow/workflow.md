@@ -24,7 +24,7 @@ This module has been split into focused sub-modules for better token efficiency 
 
 ### Question Handling Flow
 ```
-1. Translate → 2. Analyze → 3. Present → 4. Execute
+1. Translate → 2. Analyze → 3. Present → 4. Execute → 5. Verify(loop)
 ```
 
 ### Problem-Solving Principles

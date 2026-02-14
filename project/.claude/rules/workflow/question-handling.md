@@ -4,7 +4,7 @@ alwaysApply: true
 
 # Question Handling Procedure
 
-> **Version**: 1.1.0
+> **Version**: 1.2.0
 > **Extracted from**: workflow.md
 > **Purpose**: Defines the standard procedure for processing user questions
 
@@ -27,12 +27,30 @@ alwaysApply: true
 - **Encourage feedback**: Invite the user to correct misunderstandings or provide clarifications
 - **Confirm direction**: Wait for user approval on complex or ambiguous tasks before implementation
 
-## Best Practices
+## 4. Execute
 
-- **Incremental progress**: Make changes incrementally and verify each step
-- **Testing**: Test changes as you go, not just at the end
-- **Rollback readiness**: Keep changes reversible until confirmed working
-- **Communication**: Keep the user informed of progress and any issues encountered
+- **Transform to verifiable goals**: Reframe requests as testable outcomes before coding
+
+  | Request | Verifiable Goal |
+  |---------|----------------|
+  | "Add validation" | "Tests for invalid inputs all pass" |
+  | "Improve performance" | "Benchmark shows measurable improvement" |
+  | "Refactor X" | "Existing tests pass with no behavior change" |
+
+- **Work incrementally**: Make small, reversible changes — verify each before proceeding
+- **Communicate blockers**: Report unexpected issues before attempting workarounds
+
+## 5. Verify
+
+For multi-step tasks, define a verification plan:
+
+```
+1. [Step] → verify: [expected outcome]
+2. [Step] → verify: [expected outcome]
+```
+
+- **Check against goals**: Compare outcomes to verifiable goals from step 4
+- **Loop on failure**: If verification fails, diagnose, adjust, and re-execute
 
 ---
 *Part of the workflow guidelines module*
