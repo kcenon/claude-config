@@ -2,7 +2,7 @@
 paths:
   - ".github/**"
   - "**/*"
-alwaysApply: false
+alwaysApply: true
 ---
 
 # GitHub Issue Guidelines (5W1H Principle)
