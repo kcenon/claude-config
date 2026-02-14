@@ -59,12 +59,20 @@ paths:
 
 ## Error Responses
 
+Follow the standard error response format defined in [api-design.md](api-design.md) (see Error Handling section).
+
+Canonical format (flat, top-level fields):
+
 ```json
 {
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Human readable message",
-    "details": []
-  }
+  "error": "ValidationError",
+  "message": "Human readable message",
+  "code": "VALIDATION_ERROR",
+  "timestamp": "2025-01-15T10:30:00Z",
+  "path": "/api/v1/resource",
+  "requestId": "req_abc123",
+  "details": {}
 }
 ```
+
+See `api-design.md` for full interface definition, middleware implementation, and custom error classes.
