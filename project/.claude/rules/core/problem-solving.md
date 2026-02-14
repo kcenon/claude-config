@@ -2,18 +2,34 @@
 alwaysApply: true
 ---
 
-# Problem‑Solving Principles
+# Problem-Solving Principles
 
-This guideline establishes the core principles for approaching and solving problems systematically.
+> **Version**: 2.0.0
+> **Purpose**: Core principles for systematic problem resolution
 
 ## Follow Procedures
 
-Execute tasks systematically according to the plan derived from your analysis.
+- **Systematic execution**: Execute tasks methodically according to the planned approach
+- **Step-by-step progress**: Complete tasks in logical order, tracking progress
+- **Documentation**: Document decisions and changes as you proceed
 
 ## Minimal Changes
 
-Prefer modifying existing files; create new files only when absolutely necessary.
+- **Prefer modification**: Modify existing files rather than creating new ones
+- **Create only when necessary**: Only create new files when absolutely required
+- **Justify new files**: When creating files, explain why modification was not feasible
 
 ## Data Integrity
 
-Use real data, never dummy or placeholder values, when modifying the codebase.
+- **Real data only**: Use actual, real data when modifying the codebase
+- **No placeholders**: Never use dummy, placeholder, or TODO values in production code
+- **Complete implementation**: Implement features fully rather than leaving stubs
+
+## Decision Making
+
+- **Evidence-based**: Base decisions on actual code analysis, not assumptions
+- **Trade-off awareness**: Consider and document trade-offs for significant decisions
+- **Reversibility**: Prefer reversible changes over irreversible ones
+
+---
+*Part of the core rules module*
