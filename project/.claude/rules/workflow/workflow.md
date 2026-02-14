@@ -14,11 +14,11 @@ This module has been split into focused sub-modules for better token efficiency 
 
 | Module | Purpose | When to Load |
 |--------|---------|--------------|
-| [Question Handling](workflow/question-handling.md) | Processing user questions | Always |
+| [Question Handling](question-handling.md) | Processing user questions | Always |
 | [Problem Solving](../core/problem-solving.md) | Core problem-solving principles | Always |
-| [Performance Analysis](workflow/performance-analysis.md) | Analyzing performance in codebases | Performance tasks |
-| [GitHub Issue Guidelines](workflow/github-issue-5w1h.md) | Creating effective issues (5W1H) | Issue creation |
-| [GitHub PR Guidelines](workflow/github-pr-5w1h.md) | Creating effective PRs (5W1H) | PR creation |
+| [Performance Analysis](performance-analysis.md) | Analyzing performance in codebases | Performance tasks |
+| [GitHub Issue Guidelines](github-issue-5w1h.md) | Creating effective issues (5W1H) | Issue creation |
+| [GitHub PR Guidelines](github-pr-5w1h.md) | Creating effective PRs (5W1H) | PR creation |
 
 ## Quick Reference
 

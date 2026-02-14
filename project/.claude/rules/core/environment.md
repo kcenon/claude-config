@@ -12,7 +12,7 @@ alwaysApply: true
 
 ## Current Information
 
-- **Knowledge cutoff awareness**: When information may be newer than the model's knowledge cutoff (January 2025), verify via web search
+- **Knowledge cutoff awareness**: When information may be newer than the model's knowledge cutoff, verify via web search
 - **Explicit acknowledgment**: If no relevant up-to-date data is available, state this explicitly
 - **Source citation**: When using web-fetched information, cite the source and date
 
