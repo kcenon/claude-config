@@ -1,1 +1,1 @@
-../../../rules/core/problem-solving.md
+../../../rules/core/principles.md

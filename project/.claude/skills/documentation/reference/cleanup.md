@@ -1,1 +1,1 @@
-../../../rules/operations/cleanup.md
+../../../rules/operations/ops.md

@@ -1,1 +1,1 @@
-../../../rules/api/logging.md
+../../../rules/api/observability.md

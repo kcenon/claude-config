@@ -1,1 +1,1 @@
-../../../rules/coding/general.md
+../../../rules/coding/standards.md

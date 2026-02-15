@@ -1,1 +1,1 @@
-../../../rules/coding/concurrency.md
+../../../rules/coding/safety.md

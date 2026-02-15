@@ -1,1 +1,0 @@
-../../../rules/workflow/workflow.md
