@@ -1,1 +1,1 @@
-../../../rules/workflow/problem-solving.md
+../../../rules/core/principles.md

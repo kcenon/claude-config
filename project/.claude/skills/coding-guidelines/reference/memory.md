@@ -1,1 +1,1 @@
-../../../rules/coding/memory.md
+../../../rules/coding/safety.md

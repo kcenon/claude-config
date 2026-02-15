@@ -1,1 +1,1 @@
-../../../rules/operations/monitoring.md
+../../../rules/operations/ops.md
