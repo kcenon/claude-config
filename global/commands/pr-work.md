@@ -336,8 +336,11 @@ gh run view $RUN_ID --repo $ORG/$PROJECT --json status,conclusion -q '{status: .
 |--------|-----------|--------|
 | completed | success | Proceed to summary |
 | completed | failure | Fetch failed logs, go to Step 9 |
+| completed | cancelled | Report cancellation, investigate or re-trigger |
+| completed | timed_out | Report timeout, check workflow config |
 | in_progress | — | Poll again after 30s interval |
 | queued | — | Poll again after 30s interval |
+| waiting | — | Poll again after 30s interval (approval gate) |
 
 **Step D**: On failure, fetch specific error logs
 ```bash
@@ -587,6 +590,8 @@ warning: variable name should be camelCase
 | Push rejected | Report rejection reason | Pull latest or resolve conflicts |
 | CI failure detected via poll | Fetch failed logs immediately, start next attempt | No wait for full timeout |
 | CI poll timeout (10min) | Report last known status, escalate | Check CI health or increase poll duration |
+| CI run cancelled | Report cancellation, investigate cause | Re-trigger workflow or check repo settings |
+| CI run timed out | Report workflow timeout, check config | Increase workflow timeout or optimize CI |
 | CI status unknown | Report API response, suggest manual check | Run `gh run view` manually |
 | Max retries exceeded | Escalate with PR comment and label, report final status | Review failures manually |
 | API rate limit | Report "GitHub API rate limit exceeded, resets at [time]" | Wait or authenticate with different token |
