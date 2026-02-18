@@ -182,17 +182,65 @@ gh issue edit <NUMBER> --repo $ORG/$PROJECT --add-assignee @me
 
 ### 6. Build and Test Verification
 
-```bash
-# Verify build succeeds (adapt to project's build system)
-cmake --build build/ --config Release
-# or: make, meson compile, cargo build, etc.
+Follow the build verification workflow rule (`build-verification.md`) to select the
+appropriate strategy based on expected build duration.
 
-# Run tests
-ctest --test-dir build/ --output-on-failure
-# or: make test, cargo test, pytest, etc.
+#### Strategy Selection
+
+| Build System | Typical Duration | Strategy |
+|-------------|-----------------|----------|
+| `go build` / `cargo check` | < 30s | Inline (synchronous) |
+| `cmake --build` / `gradle build` | 30s - 5min | Background + log polling |
+| `ctest` / `pytest` (large suites) | 1 - 10min | Background + log polling |
+| CI pipeline (`gh workflow run`) | 5min+ | CI log check |
+
+#### Inline Strategy (short builds)
+
+For builds expected under 30 seconds:
+
+```
+Bash(command="go build ./...", timeout=60000)
+Bash(command="cargo check", timeout=60000)
 ```
 
-**If build/test fails**: Fix issues and retry before proceeding.
+#### Background + Log Polling Strategy (long builds)
+
+For builds expected over 30 seconds:
+
+**Step A**: Launch build in background
+```
+Bash(command="cmake --build build/ --config Release 2>&1", run_in_background=true)
+# → Returns task_id
+```
+
+**Step B**: Poll build output (non-blocking, every 10-15 seconds)
+```
+TaskOutput(task_id="<id>", block=false, timeout=10000)
+# → Check for error patterns or completion indicators
+```
+
+**Step C**: Detect outcome from output
+
+| Outcome | Indicators | Action |
+|---------|-----------|--------|
+| Success | `Built target`, `Finished`, clean exit | Proceed to tests |
+| Failure | `error:`, `FAILED`, `Error` | Diagnose and fix |
+| Timeout | No output after 30s of polling | Check system resources |
+
+**Step D**: Run tests with same pattern
+```
+Bash(command="ctest --test-dir build/ --output-on-failure 2>&1", run_in_background=true)
+```
+
+#### On Build/Test Failure
+
+1. Read the error output from build logs
+2. Categorize failure (compile error, linker error, test assertion, missing dependency)
+3. Apply fix based on error pattern
+4. Re-run build/test to verify fix
+5. If persistent failure: create draft PR with failure log (see Error Handling)
+
+Do NOT retry the same build without changes — diagnose first.
 
 ### 7. Documentation Update
 
@@ -300,8 +348,11 @@ After completion, provide summary:
 | No matching issues (auto-select) | Report "No open issues found with specified priority" | Create new issue or adjust priority filter |
 | Issue already assigned | Report assignment status, offer to proceed or skip | Confirm continuation or select different issue |
 | Branch already exists | Report existing branch, offer to reuse or rename | Delete old branch or use new name |
-| Build failure | Create draft PR with failure log, request manual fix | Fix build errors before marking PR ready |
-| Test failure | Report failing tests with details, pause workflow | Fix tests and retry |
+| Build failure (inline) | Report error output, attempt auto-fix | Fix build errors and re-run inline |
+| Build failure (background) | Detect via log polling, diagnose error pattern | Fix errors and re-run in background |
+| Test failure (inline) | Report failing tests with details | Fix tests and retry inline |
+| Test failure (background) | Detect via log polling, report specific failures | Fix tests and retry in background |
+| Build/test timeout | Report last known output, check system resources | Increase timeout or split build |
 | Push rejected | Report rejection reason (non-fast-forward, protected branch) | Pull latest changes or request permissions |
 | PR creation failed | Report GitHub API error with details | Check repository permissions |
 | Network timeout | Report "Cannot reach GitHub - check connection" | Verify internet connection |
