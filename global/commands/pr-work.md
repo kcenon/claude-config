@@ -238,21 +238,63 @@ Based on workflow analysis, fix the identified issues:
 
 ### 6. Verify Fix Locally
 
-```bash
-# Run the same checks locally before pushing
-# Adapt to project's build system
+Follow the build verification workflow rule (`build-verification.md`) to select the
+appropriate strategy based on expected build duration.
 
-# Build
-cmake --build build/ --config Release
-# or: make, cargo build, npm run build, etc.
+#### Strategy Selection
 
-# Test
-ctest --test-dir build/ --output-on-failure
-# or: make test, cargo test, npm test, pytest, etc.
+| Build System | Typical Duration | Strategy |
+|-------------|-----------------|----------|
+| `go build` / `cargo check` | < 30s | Inline (synchronous) |
+| `cmake --build` / `gradle build` | 30s - 5min | Background + log polling |
+| Full test suites (`ctest` / `pytest`) | 1 - 10min | Background + log polling |
 
-# Lint (if applicable)
-# clang-format, black, prettier, etc.
+#### Inline Strategy (short builds)
+
+For builds expected under 30 seconds:
+
 ```
+Bash(command="go build ./... && go test ./...", timeout=60000)
+Bash(command="cargo check && cargo test", timeout=60000)
+```
+
+#### Background + Log Polling Strategy (long builds)
+
+For builds expected over 30 seconds:
+
+**Step A**: Launch build in background
+```
+Bash(command="cmake --build build/ --config Release 2>&1", run_in_background=true)
+# → Returns task_id
+```
+
+**Step B**: Poll build output (non-blocking, every 10-15 seconds)
+```
+TaskOutput(task_id="<id>", block=false, timeout=10000)
+# → Check for error patterns or completion indicators
+```
+
+**Step C**: Detect outcome from output
+
+| Outcome | Indicators | Action |
+|---------|-----------|--------|
+| Success | `Built target`, `Finished`, clean exit | Proceed to tests |
+| Failure | `error:`, `FAILED`, `Error` | Diagnose and fix |
+| Timeout | No output after 30s of polling | Check system resources |
+
+**Step D**: Run tests with same pattern
+```
+Bash(command="ctest --test-dir build/ --output-on-failure 2>&1", run_in_background=true)
+```
+
+#### On Build/Test Failure
+
+1. Read the error output from build logs
+2. Categorize failure (compile error, linker error, test assertion, missing dependency)
+3. Apply fix based on error pattern
+4. Re-run build/test to verify fix
+
+Do NOT retry the same build without changes — diagnose first.
 
 ### 7. Commit Fix
 
@@ -274,14 +316,36 @@ Fixes CI failure: <brief explanation>"
 git push origin "$HEAD_BRANCH"
 ```
 
-After push:
-```bash
-# Monitor workflow status
-gh run list --repo $ORG/$PROJECT --branch "$HEAD_BRANCH" --limit 3
+After push, monitor CI with non-blocking polling:
 
-# Wait for completion and check result
-gh run watch <RUN_ID> --repo $ORG/$PROJECT
+**Step A**: Get the triggered run ID
+```bash
+# Wait briefly for workflow to register
+sleep 5
+RUN_ID=$(gh run list --repo $ORG/$PROJECT --branch "$HEAD_BRANCH" --limit 1 --json databaseId -q '.[0].databaseId')
 ```
+
+**Step B**: Poll CI status (non-blocking, every 30 seconds)
+```bash
+gh run view $RUN_ID --repo $ORG/$PROJECT --json status,conclusion -q '{status: .status, conclusion: .conclusion}'
+```
+
+**Step C**: Interpret result
+
+| status | conclusion | Action |
+|--------|-----------|--------|
+| completed | success | Proceed to summary |
+| completed | failure | Fetch failed logs, go to Step 9 |
+| in_progress | — | Poll again after 30s interval |
+| queued | — | Poll again after 30s interval |
+
+**Step D**: On failure, fetch specific error logs
+```bash
+gh run view $RUN_ID --repo $ORG/$PROJECT --log-failed 2>&1 | head -100
+```
+
+**Do NOT** use `gh run watch` — it blocks the entire session.
+**Do NOT** poll more frequently than every 30 seconds — respect API rate limits.
 
 ### 9. Iterate if Needed
 
@@ -292,28 +356,36 @@ If workflows still fail, repeat steps 2-8 with the following limits:
 | Setting | Value | Rationale |
 |---------|-------|-----------|
 | Max retry attempts | 3 | Balance between automation and human review |
-| Workflow wait timeout | 10 minutes | Typical CI completion time |
-| Pause between retries | Wait for CI completion | Avoid redundant fixes |
+| CI poll interval | 30 seconds | Respect GitHub API rate limits |
+| CI max poll duration | 10 minutes | Typical CI completion time |
+| Pause between retries | Wait for CI result via polling | No blocking watch |
 
-#### Workflow Monitoring with Timeout
+#### CI Status Polling Loop
 
-```bash
-# Wait for workflow with timeout (600 seconds = 10 minutes)
-timeout 600 gh run watch <RUN_ID> --repo $ORG/$PROJECT
+Instead of blocking with `gh run watch`, use non-blocking status polling:
 
-# Check exit code
-if [ $? -eq 124 ]; then
-    echo "Workflow timed out after 10 minutes"
-    # Continue with current status check
-fi
 ```
+For each poll (max 20 iterations x 30s = 10 minutes):
+  1. Check: gh run view $RUN_ID --repo $ORG/$PROJECT --json status,conclusion
+  2. If completed + failure → fetch logs, diagnose, fix, go to next attempt
+  3. If completed + success → done
+  4. If in_progress → wait 30s, poll again
+  5. If max polls reached → report timeout, escalate
+```
+
+This approach:
+- Detects failures as soon as CI completes (not after 10min timeout)
+- Provides status updates to the user between polls
+- Allows early intervention when failure is detected
+
+**Do NOT** use `gh run watch` — it blocks the entire session.
 
 #### Iteration Rules
 
 1. Each fix should be a separate commit
 2. Track attempt count (max 3 attempts)
 3. **Post failure analysis comment** (Step 3) at the start of each iteration
-4. After each fix, wait for workflow completion or timeout
+4. After each fix, monitor CI via polling (Step 8)
 5. Continue until all workflows pass OR max attempts reached
 
 #### Per-Attempt Comment Updates
@@ -417,7 +489,8 @@ See [_policy.md](./_policy.md) for common rules.
 |------|------|
 | **Language** | **All PR comments and commit messages MUST be written in English only** |
 | Max retry attempts | 3 before escalation |
-| Workflow timeout | 10 minutes per run |
+| CI poll interval | >= 30 seconds (respect API rate limits) |
+| CI max poll duration | 10 minutes per run (20 polls x 30s) |
 
 ## Output
 
@@ -509,10 +582,12 @@ warning: variable name should be camelCase
 | All workflows passing | Report "No failed workflows found - PR is ready for review" | Proceed to review or merge |
 | Branch not found | Report "Branch not found" with PR details | Check if branch was deleted |
 | Cannot checkout branch | Report checkout failure reason | Resolve local changes or conflicts |
-| Fix verification failed | Report local test/build failure, pause workflow | Debug and fix before pushing |
+| Local build failure (short) | Report error output, attempt auto-fix | Fix and re-run inline |
+| Local build failure (long) | Detect via log polling, diagnose error pattern | Fix and re-run in background |
 | Push rejected | Report rejection reason | Pull latest or resolve conflicts |
-| Workflow still failing after fix | Continue with retry until max attempts reached | Monitor retry count |
+| CI failure detected via poll | Fetch failed logs immediately, start next attempt | No wait for full timeout |
+| CI poll timeout (10min) | Report last known status, escalate | Check CI health or increase poll duration |
+| CI status unknown | Report API response, suggest manual check | Run `gh run view` manually |
 | Max retries exceeded | Escalate with PR comment and label, report final status | Review failures manually |
-| Workflow wait timeout | Report timeout, check workflow status | May need to increase timeout or check CI health |
 | API rate limit | Report "GitHub API rate limit exceeded, resets at [time]" | Wait or authenticate with different token |
 | Network timeout | Report "Cannot reach GitHub - check connection" | Verify internet connection |
