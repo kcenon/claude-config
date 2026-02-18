@@ -40,3 +40,4 @@ These policies apply to all commands in this directory.
 | Before PR | All builds must pass |
 | Before merge | All CI checks must pass |
 | Exception | Draft PRs for work-in-progress |
+| Method | See `rules/workflow/build-verification.md` for verification patterns |
