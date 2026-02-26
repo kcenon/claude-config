@@ -133,9 +133,7 @@ echo "======================================================"
 echo ""
 
 check_file "$BACKUP_DIR/global/CLAUDE.md" "CLAUDE.md"
-check_file "$BACKUP_DIR/global/conversation-language.md" "conversation-language.md"
-check_file "$BACKUP_DIR/global/git-identity.md" "git-identity.md"
-check_file "$BACKUP_DIR/global/token-management.md" "token-management.md"
+check_file "$BACKUP_DIR/global/commit-settings.md" "commit-settings.md"
 check_file "$BACKUP_DIR/global/settings.json" "settings.json (Hook 설정)"
 
 # JSON 유효성 검사
