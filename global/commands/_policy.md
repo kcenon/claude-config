@@ -1,43 +1,8 @@
 # Global Command Policies
 
-These policies apply to all commands in this directory.
-
-## Output Language
-
-| Context | Language | Example |
-|---------|----------|---------|
-| Git operations | English | commits, PR titles, branch names |
-| GitHub content | English | issues, PR descriptions, comments |
-| Changelog/Release notes | English | release notes, version descriptions |
-| User communication | Follow global settings | (typically Korean) |
-
-## Attribution
-
-**No AI/Claude attribution in any output.** See `commit-settings.md` for the full policy.
-
-## Formatting
-
-| Context | Rule |
-|---------|------|
-| Emojis | Forbidden in commits, PR titles, issue titles |
-| Markdown | Allowed in PR/issue descriptions and comments |
-| Commit format | Conventional Commits (`type(scope): description`) |
-
-## Issue Linking
-
-| Keyword | Effect |
-|---------|--------|
-| `Closes #NUM` | Auto-closes issue when PR merges |
-| `Fixes #NUM` | Auto-closes issue when PR merges |
-| `Part of #NUM` | References without auto-close |
-
-**Required**: Use closing keywords in PR descriptions when applicable.
-
-## Build Verification
-
-| Stage | Requirement |
-|-------|-------------|
-| Before PR | All builds must pass |
-| Before merge | All CI checks must pass |
-| Exception | Draft PRs for work-in-progress |
-| Method | See `rules/workflow/build-verification.md` for verification patterns |
+- Git/GitHub output (commits, PRs, issues, release notes): English
+- No emojis in commits, PR titles, issue titles
+- Commit format: Conventional Commits (`type(scope): description`)
+- Use closing keywords (`Closes #N`) in PR descriptions when applicable
+- All builds must pass before PR; all CI checks before merge
+- See `rules/workflow/build-verification.md` for verification patterns
