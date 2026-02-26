@@ -1,8 +1,5 @@
 ---
-paths:
-  - ".github/**"
-  - "**/*"
-alwaysApply: true
+alwaysApply: false
 ---
 
 # GitHub Pull Request Guidelines (5W1H Principle)

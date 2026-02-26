@@ -1,8 +1,5 @@
 ---
-paths:
-  - ".github/**"
-  - "**/*"
-alwaysApply: true
+alwaysApply: false
 ---
 
 # GitHub Issue Guidelines (5W1H Principle)
