@@ -1,4 +1,15 @@
-> **DEPRECATED**: This command has been migrated to Skills format. Use `/pr-review` from `project/.claude/skills/pr-review/SKILL.md` instead. This file is kept for backward compatibility and will be removed in a future release.
+---
+name: pr-review
+description: Review pull requests with comprehensive analysis covering code quality, security, performance, testing, and documentation.
+argument-hint: "<pr-number> [--depth quick|standard|thorough]"
+user-invocable: true
+context: fork
+allowed-tools:
+  - Bash
+  - Read
+  - Grep
+  - Glob
+---
 
 # PR Review Command
 
@@ -70,10 +81,6 @@ When reviewing a PR, analyze the following:
 | APPROVE | No Critical or Major issues |
 | REQUEST_CHANGES | Any Critical issue OR ≥3 Major issues |
 | NEEDS_DISCUSSION | Architectural concerns, trade-off decisions |
-
-## Policies
-
-See [_policy.md](./_policy.md) for common rules.
 
 ## Output Format
 

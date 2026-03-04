@@ -1,4 +1,11 @@
-> **DEPRECATED**: This command has been migrated to Skills format. Use `/git-status` from `project/.claude/skills/git-status/SKILL.md` instead. This file is kept for backward compatibility and will be removed in a future release.
+---
+name: git-status
+description: Comprehensive git repository status with actionable insights. Shows working directory, branch info, recent activity, and potential issues.
+user-invocable: true
+model: haiku
+allowed-tools:
+  - Bash
+---
 
 # Git Status Command
 
@@ -48,10 +55,6 @@ Analyze the current git state and provide:
 - Large file warnings
 - Merge conflict detection
 - Stale branch detection
-
-## Policies
-
-See [_policy.md](./_policy.md) for common rules.
 
 ## Output Format
 
