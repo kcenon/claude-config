@@ -1,4 +1,15 @@
-> **DEPRECATED**: This command has been migrated to Skills format. Use `/code-quality` from `project/.claude/skills/code-quality/SKILL.md` instead. This file is kept for backward compatibility and will be removed in a future release.
+---
+name: code-quality
+description: Run comprehensive code quality analysis on specified files or directories. Checks complexity, code smells, SOLID principles, and maintainability.
+argument-hint: "<file-or-directory> [--verbose]"
+user-invocable: true
+context: fork
+allowed-tools:
+  - Bash
+  - Grep
+  - Glob
+  - Read
+---
 
 # Code Quality Analysis Command
 
@@ -83,7 +94,7 @@ Perform comprehensive code quality analysis:
 ## Scoring Formula
 
 ```
-Score = 10 - (Critical × 2) - (Warning × 0.5)
+Score = 10 - (Critical x 2) - (Warning x 0.5)
 Minimum score: 0
 ```
 
@@ -95,9 +106,14 @@ Minimum score: 0
 | 3-4 | Poor | Significant refactoring required |
 | 0-2 | Critical | Major quality concerns |
 
-## Policies
+## Severity Definitions
 
-See [_policy.md](./_policy.md) for common rules.
+| Level | Criteria | Examples | Required Action |
+|-------|----------|----------|-----------------|
+| Critical | Security risk, data loss, crashes | SQL injection, null pointer, auth bypass | Must fix before merge |
+| Major | Bugs, significant performance issues | Logic errors, N+1 queries, memory leaks | Should fix |
+| Minor | Style, minor optimization | Naming convention, redundant code | Nice to have |
+| Info | Suggestions, observations | Alternative approaches, documentation | Optional |
 
 ## Output Format
 
@@ -117,8 +133,6 @@ See [_policy.md](./_policy.md) for common rules.
 1. [Issue description] - [Severity: Critical/Major/Minor/Info]
    - Location: line X
    - Suggestion: [How to fix]
-
-> Use the severity scale defined in [`pr-review.md`](pr-review.md#severity-definitions).
 
 #### Recommendations
 - [Prioritized list of improvements]
