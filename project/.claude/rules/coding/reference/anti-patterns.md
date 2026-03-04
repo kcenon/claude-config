@@ -1,3 +1,7 @@
+---
+alwaysApply: false
+---
+
 # Anti-Patterns Reference
 
 Concrete before/after examples of common LLM coding mistakes. Each example maps to a principle in `core/principles.md`.
