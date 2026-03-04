@@ -4,20 +4,26 @@ A Claude Code Plugin providing comprehensive development guidelines and best pra
 
 ## Installation
 
-### Via Plugin System (Recommended)
+### Via CLI (Recommended)
 
 ```bash
-# Add marketplace
-/plugin marketplace add kcenon/claude-config
+# Install from git repository (subdirectory source)
+claude plugin install claude-config --source git-subdir --url https://github.com/kcenon/claude-config --subdir plugin
 
-# Install plugin
-/plugin install claude-config@kcenon/claude-config
+# Or install with scope
+claude plugin install claude-config --source git-subdir --url https://github.com/kcenon/claude-config --subdir plugin -s project
 ```
 
 ### Via Direct Loading (Development)
 
 ```bash
 claude --plugin-dir ./plugin
+```
+
+Multiple plugins can be loaded simultaneously:
+
+```bash
+claude --plugin-dir ./plugin --plugin-dir ./plugin-lite
 ```
 
 ## Skills Included
@@ -30,6 +36,7 @@ claude --plugin-dir ./plugin
 | `performance-review` | Performance optimization and monitoring guidelines |
 | `project-workflow` | Git, testing, build, and workflow management |
 | `documentation` | Documentation and communication standards |
+| `ci-debugging` | Systematic CI/CD failure diagnosis and resolution |
 
 ## Hooks
 
@@ -52,15 +59,24 @@ plugin/
 │   ├── security-audit/
 │   ├── performance-review/
 │   ├── project-workflow/
-│   └── documentation/
+│   ├── documentation/
+│   └── ci-debugging/
 ├── hooks/
 │   └── hooks.json            # Security and formatting hooks
 └── README.md
 ```
 
+## Plugin Manifest Compatibility
+
+Verified against Claude Code plugin system (March 2026). The `plugin.json` manifest
+uses the standard schema with `skills` and `hooks` component paths.
+
+Additional manifest fields (`agents`, `mcpServers`, `lspServers`) are supported by the
+plugin system but not used by this plugin as it does not bundle those components.
+
 ## Requirements
 
-- Claude Code with Plugin support (v1.0.0+)
+- Claude Code v2.1.0+
 
 ## License
 
