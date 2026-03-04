@@ -271,6 +271,14 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
             success "Hook 스크립트 (hooks/) 설치 완료!"
         fi
 
+        # scripts 디렉토리 설치 (statusline 등)
+        if [ -d "$BACKUP_DIR/global/scripts" ]; then
+            ensure_dir "$HOME/.claude/scripts"
+            cp "$BACKUP_DIR/global/scripts"/*.sh "$HOME/.claude/scripts/" 2>/dev/null || true
+            chmod +x "$HOME/.claude/scripts/"*.sh 2>/dev/null || true
+            success "Statusline 스크립트 (scripts/) 설치 완료!"
+        fi
+
         success "글로벌 설정 설치 완료!"
 
         # Git identity 개인화 안내
@@ -396,6 +404,7 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     echo "    - ~/.claude/token-management.md"
     echo "    - ~/.claude/settings.json (Hook 설정)"
     echo "    - ~/.claude/hooks/ (외부 Hook 스크립트)"
+    echo "    - ~/.claude/scripts/ (Statusline 스크립트)"
 fi
 
 if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" = "5" ]; then

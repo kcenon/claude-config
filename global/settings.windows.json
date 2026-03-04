@@ -42,6 +42,10 @@
     "verbs": ["Analyzing", "Reviewing", "Composing"]
   },
 
+  "statusLine": {
+    "type": "command",
+    "command": "pwsh -NoProfile -File ~/.claude/scripts/statusline-command.ps1"
+  },
   "alwaysThinkingEnabled": true,
 
   "hooks": {
