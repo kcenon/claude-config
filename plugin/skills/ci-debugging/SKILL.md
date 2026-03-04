@@ -2,6 +2,9 @@
 name: ci-debugging
 description: Provides systematic CI/CD failure diagnosis and resolution. Use when CI builds fail, GitHub Actions errors occur, TLS/auth issues block pipelines, or platform-specific failures need debugging.
 allowed-tools: Bash, Read, Grep, Glob, WebFetch
+model: sonnet
+context: fork
+argument-hint: "<run-id-or-url>"
 ---
 
 # CI/CD Debugging Skill

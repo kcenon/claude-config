@@ -2,6 +2,9 @@
 name: security-audit
 description: Provides security guidelines for input validation, authentication, authorization, and secure coding practices. Use when implementing auth, handling user input, working with credentials, or conducting security reviews.
 allowed-tools: Read, Grep, Glob
+model: sonnet
+context: fork
+argument-hint: "<file-or-directory>"
 ---
 
 # Security Audit Skill

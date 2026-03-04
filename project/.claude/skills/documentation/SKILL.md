@@ -6,7 +6,8 @@ allowed-tools:
   - Write
   - Edit
   - Glob
-model: sonnet
+model: haiku
+argument-hint: "<file-or-topic>"
 ---
 
 # Documentation Skill

@@ -1,6 +1,8 @@
 ---
 name: documentation
 description: Provides documentation standards for README, API docs, code comments, changelogs, and project cleanup. Use when writing documentation, README files, API references, or cleaning up project files.
+model: haiku
+argument-hint: "<file-or-topic>"
 ---
 
 # Documentation Skill
