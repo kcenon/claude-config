@@ -4,43 +4,51 @@
 # Status:
 # - Security-related exclusions moved to settings.json permissions.deny
 # - Token optimization exclusions remain here as .claudeignore works in current versions
+# - Migration strategy: docs/claudeignore-migration.md
 #
 # Original: Claude Code Ignore File (Global Configuration)
 # Optimizes token usage by excluding unnecessary files from context
 
 # Session memory (past conversations)
 # Token savings: ~5,000 tokens
+# Migration: .gitignore (transient data, not source code)
 projects/*/session-memory/
 **/session-memory/
 
 # Plugin cache
 # Token savings: ~3,000 tokens
+# Migration: .gitignore (transient data)
 plugins/cache/
 **/cache/
 
 # Backups
 # Token savings: ~2,000 tokens
+# Migration: .gitignore (transient data)
 backup_*/
 **/backup_*/
 
 # Plugin marketplace (very large)
 # Token savings: ~15,000 tokens
+# Migration: .gitignore (not source code)
 plugins/marketplaces/claude-plugins-official/plugins/
 plugins/marketplaces/claude-plugins-official/external_plugins/
 plugins/marketplaces/
 
 # Plans
 # Token savings: ~2,000 tokens
+# Migration: .gitignore (transient data)
 plans/
 **/plans/
 
 # Commands (load when invoked)
 # Token savings: ~5,000 tokens
+# Migration: DONE — on-demand loading is built-in
 commands/
 **/commands/
 
 # Skills (load when invoked)
 # Token savings: ~5,000 tokens
+# Migration: DONE — on-demand loading is built-in
 skills/
 **/skills/
 

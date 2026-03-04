@@ -4,7 +4,7 @@
 # Status:
 # - Security-related exclusions moved to settings.json permissions.deny
 # - Token optimization exclusions remain here as .claudeignore works in current versions
-# - See docs/TOKEN_OPTIMIZATION.md for details
+# - Migration strategy: docs/claudeignore-migration.md
 #
 # Original: Aggressive Token Optimization v1.2.0
 # Excludes EVERYTHING except core essentials
@@ -12,19 +12,20 @@
 
 # LARGE META-DOCUMENTATION (Load on demand via @load directive)
 # These are about token optimization itself, rarely needed
+# Migration: GAP — design docs have no official exclusion mechanism
 .claude/rules/intelligent-prefetching.md    # 21KB - Phase 4 prefetching system
 .claude/rules/module-caching.md             # 17KB - Phase 3 caching strategy
 .claude/rules/module-priority.md            # 14KB - Phase 2 priority loading
 .claude/rules/conditional-loading.md        # 11KB - Loading rules documentation
 
 # Reference documents (load on demand)
-# - label-definitions.md: Only for issue labeling tasks
-# - issue-examples.md: Only when splitting large issues
-# - automation-patterns.md: Only when using gh CLI extensively
+# Migration: DONE — YAML frontmatter alwaysApply: false (all reference files now have frontmatter)
 .claude/rules/*/reference/
 .claude/**/reference/
 
 # ALL detailed rules (load on demand based on task/context)
+# Migration: DONE — all rule files have YAML frontmatter with alwaysApply: false and paths
+
 # Operations rules (only for cleanup/monitoring tasks)
 .claude/rules/operations/
 
@@ -57,31 +58,39 @@
 # .claude/rules/workflow/github-pr-5w1h.md - ALLOWED (essential)
 
 # Exclude workflow reference docs
+# Migration: DONE — YAML frontmatter alwaysApply: false
 .claude/rules/workflow/reference/
 
 # Agents (load when needed)
+# Migration: DONE — on-demand loading is built-in
 agents/
 
 # Skills (load when needed)
+# Migration: DONE — on-demand loading is built-in
 skills/
 
 # MCP template (example only, not active config)
+# Migration: VERIFY — may not be loaded as context by default
 .mcp.json.example
 
 # Settings
+# Migration: VERIFY — settings are parsed by Claude Code, not injected as context
 settings.json
 settings.local.json
 
 # Documentation
+# Migration: GAP — no official way to exclude specific files from context loading
 README.md
 README.ko.md
 TOKEN_OPTIMIZATION.md
 
 # NPM cache
+# Migration: .gitignore (transient data)
 .npm-cache/
 **/.npm-cache/
 
 # Backups
+# Migration: .gitignore (transient data)
 *.backup
 *.bak
 *.tmp
