@@ -1,74 +1,15 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "description": "Claude Code project settings - auto-formatting, code quality, and permissions",
-  "version": "1.7.0",
-
-  "respectGitignore": true,
-  "cleanupPeriodDays": 30,
-
-  "language": "korean",
-
-  "outputStyle": "Explanatory",
-
-  "showTurnDuration": true,
-
-  "attribution": {
-    "commit": "",
-    "pr": "",
-    "issue": ""
-  },
-
-  "sandbox": {
-    "enabled": true,
-    "autoAllowBashIfSandboxed": true,
-    "allowUnsandboxedCommands": true,
-    "excludedCommands": ["docker", "watchman"],
-    "network": {
-      "allowedDomains": [
-        "github.com",
-        "api.github.com",
-        "npmjs.org",
-        "*.npmjs.org",
-        "registry.npmjs.org",
-        "pypi.org",
-        "*.pypi.org"
-      ],
-      "allowLocalBinding": true
-    }
-  },
-
-  "spinnerVerbs": {
-    "mode": "append",
-    "verbs": ["Analyzing", "Reviewing", "Composing"]
-  },
-
-  "alwaysThinkingEnabled": true,
+  "description": "Project-specific overrides only. Inherits defaults from global settings (~/.claude/settings.json).",
+  "version": "1.8.0",
 
   "permissions": {
     "defaultMode": "default",
     "deny": [
-      "Read(./.env)",
-      "Read(./.env.*)",
-      "Read(**/.env)",
-      "Read(**/.env.*)",
-      "Read(**/secrets/**)",
-      "Read(**/credentials/**)",
-      "Read(**/*.pem)",
-      "Read(**/*.key)",
-      "Read(**/*.p12)",
-      "Read(**/*password*)",
       "Read(./.npm-cache/**)",
       "Read(**/node_modules/**)",
       "Read(**/dist/**)",
-      "Read(**/build/**)",
-      "Write(./.env)",
-      "Write(./.env.*)",
-      "Write(**/.env)",
-      "Write(**/.env.*)",
-      "Edit(./.env)",
-      "Edit(./.env.*)",
-      "Edit(**/.env)",
-      "Edit(**/.env.*)"
+      "Read(**/build/**)"
     ]
   },
 
@@ -96,52 +37,10 @@
           }
         ]
       }
-    ],
-    "PostToolUseFailure": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'LOG_DIR=\"${HOME}/.claude/logs\"; mkdir -p \"$LOG_DIR\"; echo \"[$(date \"+%Y-%m-%d %H:%M:%S\")] Tool failure: ${CLAUDE_TOOL_NAME:-unknown}\" >> \"${LOG_DIR}/tool-failures.log\"'",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'LOG_DIR=\"${HOME}/.claude/logs\"; mkdir -p \"$LOG_DIR\"; echo \"[$(date \"+%Y-%m-%d %H:%M:%S\")] Subagent start: ${CLAUDE_SUBAGENT_TYPE:-unknown}\" >> \"${LOG_DIR}/subagents.log\"'",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'LOG_DIR=\"${HOME}/.claude/logs\"; mkdir -p \"$LOG_DIR\"; echo \"[$(date \"+%Y-%m-%d %H:%M:%S\")] Subagent stop: ${CLAUDE_SUBAGENT_TYPE:-unknown}\" >> \"${LOG_DIR}/subagents.log\"'",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
     ]
   },
 
   "env": {
-    "CLAUDE_AUTO_FORMAT": "true",
-    "MAX_THINKING_TOKENS": "8000",
-    "MAX_MCP_OUTPUT_TOKENS": "50000",
-    "ENABLE_TOOL_SEARCH": "auto:10"
+    "CLAUDE_AUTO_FORMAT": "true"
   }
 }
