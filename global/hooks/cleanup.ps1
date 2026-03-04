@@ -2,7 +2,7 @@
 # Cleans up temporary files created during session
 # Hook Type: SessionEnd
 # Exit codes: 0=success
-# Response format: hookSpecificOutput (modern format)
+# Response format: none (lifecycle event, no JSON output needed)
 
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -16,12 +16,4 @@ Get-ChildItem -Path $env:TEMP -Filter "tmp.*" -File |
     Where-Object { $_.LastWriteTime -lt $cutoff } |
     Remove-Item -Force
 
-# Output modern response format
-@'
-{
-  "hookSpecificOutput": {
-    "permissionDecision": "allow"
-  }
-}
-'@
 exit 0

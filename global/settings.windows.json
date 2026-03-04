@@ -42,6 +42,10 @@
     "verbs": ["Analyzing", "Reviewing", "Composing"]
   },
 
+  "statusLine": {
+    "type": "command",
+    "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.claude\\scripts\\statusline-command.ps1')\""
+  },
   "alwaysThinkingEnabled": true,
 
   "hooks": {

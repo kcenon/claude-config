@@ -2,19 +2,12 @@
 # Validates user prompts for dangerous operations
 # Hook Type: UserPromptSubmit
 # Exit codes: 0=allow (with optional warning)
-# Response format: hookSpecificOutput (modern format)
+# Response format: hookSpecificOutput with additionalContext (UserPromptSubmit)
 
 $PROMPT = $env:CLAUDE_USER_PROMPT
 
 # Skip if no prompt provided
 if ([string]::IsNullOrEmpty($PROMPT)) {
-    @'
-{
-  "hookSpecificOutput": {
-    "permissionDecision": "allow"
-  }
-}
-'@
     exit 0
 }
 
@@ -23,19 +16,12 @@ if ($PROMPT -match '(?i)(delete|remove|drop)\s+(all|entire|whole|database|table|
     @'
 {
   "hookSpecificOutput": {
-    "permissionDecision": "allow"
-  },
-  "systemMessage": "Warning: Dangerous operation request detected. Proceed with caution and verify the scope of changes."
+    "hookEventName": "UserPromptSubmit",
+    "additionalContext": "Warning: Dangerous operation request detected. Proceed with caution and verify the scope of changes."
+  }
 }
 '@
     exit 0
 }
 
-@'
-{
-  "hookSpecificOutput": {
-    "permissionDecision": "allow"
-  }
-}
-'@
 exit 0

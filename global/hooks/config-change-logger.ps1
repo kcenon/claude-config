@@ -2,7 +2,7 @@
 # Logs configuration file changes during session
 # Hook Type: ConfigChange
 # Input: JSON via stdin with source, file_path
-# Decision control: JSON response ({"decision": "allow"})
+# Response format: none (lifecycle event, no JSON output needed)
 
 $ErrorActionPreference = 'Stop'
 
@@ -24,5 +24,4 @@ $Timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 
 Add-Content -Path $LogFile -Value "[$Timestamp] Session ${SessionId}: CONFIG_CHANGED source=$Source file=$FilePath"
 
-Write-Output '{"decision": "allow"}'
 exit 0

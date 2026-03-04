@@ -257,6 +257,15 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
             Write-Success "PowerShell hook scripts (hooks/*.ps1) installed!"
         }
 
+        # Install PowerShell statusline and utility scripts
+        $scriptsSource = Join-Path $BackupDir "global/scripts"
+        if (Test-Path $scriptsSource) {
+            $scriptsDir = Join-Path $claudeDir "scripts"
+            Ensure-Directory $scriptsDir
+            Copy-Item -Path "$scriptsSource\*.ps1" -Destination $scriptsDir -Force -ErrorAction SilentlyContinue
+            Write-Success "Statusline scripts (scripts/*.ps1) installed!"
+        }
+
         Write-Success "Global settings installation complete!"
 
         # Git identity personalization notice
@@ -390,6 +399,7 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
     Write-Host "    - ~/.claude/token-management.md"
     Write-Host "    - ~/.claude/settings.json (Hook settings - Windows)"
     Write-Host "    - ~/.claude/hooks/ (PowerShell hook scripts)"
+    Write-Host "    - ~/.claude/scripts/ (Statusline scripts)"
 }
 
 if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {

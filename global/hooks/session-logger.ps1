@@ -2,7 +2,7 @@
 # Logs session start/end events
 # Hook Type: SessionStart, SessionEnd, Stop
 # Usage: session-logger.ps1 [start|end|stop|teammate-idle]
-# Response format: hookSpecificOutput (modern format)
+# Response format: none (lifecycle event, no JSON output needed)
 
 $LogFile = Join-Path $HOME ".claude/session.log"
 $Timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
@@ -25,12 +25,4 @@ $message = switch ($action) {
 
 Add-Content -Path $LogFile -Value $message -ErrorAction SilentlyContinue
 
-# Output modern response format
-@'
-{
-  "hookSpecificOutput": {
-    "permissionDecision": "allow"
-  }
-}
-'@
 exit 0

@@ -4,7 +4,7 @@
 #
 # Hook Type: ConfigChange
 # Input: JSON via stdin with source, file_path
-# Decision control: JSON response ({"decision": "allow"})
+# Response format: none (lifecycle event, no JSON output needed)
 
 set -euo pipefail
 
@@ -23,5 +23,4 @@ TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
 echo "[${TIMESTAMP}] Session ${SESSION_ID}: CONFIG_CHANGED source=${SOURCE} file=${FILE_PATH}" >> "$LOG_FILE"
 
-echo '{"decision": "allow"}'
 exit 0
