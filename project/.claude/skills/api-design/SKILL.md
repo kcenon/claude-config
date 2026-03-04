@@ -9,6 +9,7 @@ allowed-tools:
   - Grep
   - Bash
 model: sonnet
+argument-hint: "<endpoint-or-file>"
 ---
 
 # API Design Skill

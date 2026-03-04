@@ -8,6 +8,8 @@ allowed-tools:
   - Grep
   - Bash
 model: sonnet
+context: fork
+argument-hint: "<file-or-directory>"
 ---
 
 # Performance Review Skill

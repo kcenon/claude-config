@@ -6,6 +6,8 @@ allowed-tools:
   - Grep
   - Glob
 model: sonnet
+context: fork
+argument-hint: "<file-or-directory>"
 ---
 
 # Security Audit Skill

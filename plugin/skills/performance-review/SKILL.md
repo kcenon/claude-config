@@ -1,6 +1,9 @@
 ---
 name: performance-review
 description: Provides performance optimization guidelines for profiling, caching, memory management, and concurrency. Use when optimizing slow code, fixing memory leaks, improving throughput, or conducting performance reviews.
+model: sonnet
+context: fork
+argument-hint: "<file-or-directory>"
 ---
 
 # Performance Review Skill

@@ -1,6 +1,8 @@
 ---
 name: coding-guidelines
 description: Provides comprehensive coding standards for quality, naming conventions, error handling, concurrency, and memory management. Use when writing new code, reviewing code, fixing bugs, or refactoring existing code.
+model: sonnet
+argument-hint: "<file-path>"
 ---
 
 # Coding Guidelines Skill

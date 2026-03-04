@@ -8,6 +8,7 @@ allowed-tools:
   - Glob
   - Grep
 model: sonnet
+argument-hint: "<file-path>"
 ---
 
 # Coding Guidelines Skill

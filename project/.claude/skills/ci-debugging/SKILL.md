@@ -8,6 +8,8 @@ allowed-tools:
   - Glob
   - WebFetch
 model: sonnet
+context: fork
+argument-hint: "<run-id-or-url>"
 ---
 
 # CI/CD Debugging Skill
