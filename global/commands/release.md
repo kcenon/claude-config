@@ -1,5 +1,7 @@
 # Release Command
 
+> **Deprecated**: This command has been migrated to Skills format. Use `global/skills/release/SKILL.md` instead. This file is kept for backward compatibility and will be removed in a future version.
+
 Create a release with automated changelog generation from commits since last release.
 
 ## Usage

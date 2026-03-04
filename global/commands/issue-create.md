@@ -1,5 +1,7 @@
 # Issue Create Command
 
+> **Deprecated**: This command has been migrated to Skills format. Use `global/skills/issue-create/SKILL.md` instead. This file is kept for backward compatibility and will be removed in a future version.
+
 Create well-structured GitHub issues using the 5W1H framework.
 
 ## Usage

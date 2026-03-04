@@ -1,5 +1,7 @@
 # Issue Work Command
 
+> **Deprecated**: This command has been migrated to Skills format. Use `global/skills/issue-work/SKILL.md` instead. This file is kept for backward compatibility and will be removed in a future version.
+
 Automate GitHub issue workflow with project name as argument.
 
 ## Usage

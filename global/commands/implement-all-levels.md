@@ -1,5 +1,7 @@
 # Implement All Levels Command
 
+> **Deprecated**: This command has been migrated to Skills format. Use `global/skills/implement-all-levels/SKILL.md` instead. This file is kept for backward compatibility and will be removed in a future version.
+
 Enforce complete implementation of all tiers/difficulty levels for tiered features.
 
 ## Usage
