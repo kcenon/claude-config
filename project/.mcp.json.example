@@ -1,0 +1,45 @@
+{
+  "mcpServers": {
+    "example-http": {
+      "type": "http",
+      "url": "https://mcp.example.com/mcp",
+      "_note": "HTTP Streamable transport (recommended for remote servers). Supports OAuth 2.0."
+    },
+
+    "example-http-with-auth": {
+      "type": "http",
+      "url": "${API_BASE_URL}/mcp",
+      "headers": {
+        "Authorization": "Bearer ${API_TOKEN}"
+      },
+      "_note": "HTTP with environment variable references. Never hardcode secrets."
+    },
+
+    "example-http-oauth": {
+      "type": "http",
+      "url": "https://mcp.example.com/mcp",
+      "oauth": {
+        "clientId": "your-oauth-client-id",
+        "callbackPort": 8080
+      },
+      "_note": "OAuth 2.0 flow. Client secret is stored in system keychain, not here."
+    },
+
+    "example-stdio": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@example/mcp-server"],
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}",
+        "CACHE_DIR": "${CACHE_DIR:-.cache}"
+      },
+      "_note": "Stdio transport for local tools. Best for development and system access."
+    },
+
+    "example-sse-deprecated": {
+      "type": "sse",
+      "url": "https://mcp.legacy.example.com/sse",
+      "_note": "SSE transport is DEPRECATED. Migrate to HTTP Streamable transport."
+    }
+  }
+}
