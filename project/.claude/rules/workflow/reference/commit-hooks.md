@@ -1,3 +1,7 @@
+---
+alwaysApply: false
+---
+
 # Commit Hook Scripts & CI Verification
 
 > **Loading**: Excluded from default context via `.claudeignore`. Load with `@load: reference/commit-hooks`.
