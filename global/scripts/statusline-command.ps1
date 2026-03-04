@@ -8,7 +8,7 @@
 # Usage in settings.json:
 #   "statusLine": {
 #     "type": "command",
-#     "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ~/.claude/scripts/statusline-command.ps1"
+#     "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.claude\\scripts\\statusline-command.ps1')\""
 #   }
 
 $ErrorActionPreference = 'SilentlyContinue'
