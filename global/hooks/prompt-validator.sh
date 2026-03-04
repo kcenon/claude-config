@@ -3,7 +3,7 @@
 # Validates user prompts for dangerous operations
 # Hook Type: UserPromptSubmit
 # Exit codes: 0=allow (with optional warning)
-# Response format: hookSpecificOutput (modern format)
+# Response format: hookSpecificOutput with additionalContext (UserPromptSubmit)
 
 PROMPT="${CLAUDE_USER_PROMPT:-}"
 
@@ -13,9 +13,9 @@ allow_with_warning() {
     cat <<EOF
 {
   "hookSpecificOutput": {
-    "permissionDecision": "allow"
-  },
-  "systemMessage": "$warning"
+    "hookEventName": "UserPromptSubmit",
+    "additionalContext": "$warning"
+  }
 }
 EOF
     exit 0
@@ -23,13 +23,6 @@ EOF
 
 # Helper function for allow response
 allow_response() {
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "permissionDecision": "allow"
-  }
-}
-EOF
     exit 0
 }
 
