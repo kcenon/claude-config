@@ -44,7 +44,7 @@
 
   "statusLine": {
     "type": "command",
-    "command": "pwsh -NoProfile -File ~/.claude/scripts/statusline-command.ps1"
+    "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ~/.claude/scripts/statusline-command.ps1"
   },
   "alwaysThinkingEnabled": true,
 

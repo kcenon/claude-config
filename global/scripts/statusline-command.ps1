@@ -2,13 +2,13 @@
 # Combined statusline: ccstatusline + claude-limitline usage info
 # PowerShell equivalent of statusline-command.sh
 #
-# Requirements:
+# Requirements (optional):
 #   npm install -g ccstatusline claude-limitline
 #
 # Usage in settings.json:
 #   "statusLine": {
 #     "type": "command",
-#     "command": "pwsh -NoProfile -File ~/.claude/scripts/statusline-command.ps1"
+#     "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ~/.claude/scripts/statusline-command.ps1"
 #   }
 
 $ErrorActionPreference = 'SilentlyContinue'
@@ -16,11 +16,33 @@ $ErrorActionPreference = 'SilentlyContinue'
 # Read stdin once and store it
 $InputData = [Console]::In.ReadToEnd()
 
-# Get ccstatusline output (pass stdin)
+# Parse stdin JSON for fallback display (Claude Code provides this data)
+$StdinData = $null
+try { $StdinData = $InputData | ConvertFrom-Json } catch { }
+
+# Get ccstatusline output (pass stdin), fallback to stdin JSON parsing if unavailable
+$CcStatus = $null
 if (Get-Command ccstatusline -ErrorAction SilentlyContinue) {
     $CcStatus = $InputData | ccstatusline 2>$null
-} else {
+} elseif (Get-Command npx -ErrorAction SilentlyContinue) {
     $CcStatus = $InputData | npx ccstatusline@latest 2>$null
+} elseif ($StdinData) {
+    # Fallback: build status line directly from stdin JSON
+    $ESC = [char]0x1B
+    $model = if ($StdinData.model) { $StdinData.model.display_name } else { $null }
+    $ctxPct = if ($StdinData.context_window) { $StdinData.context_window.used_percentage } else { $null }
+    $cost = if ($StdinData.cost) { $StdinData.cost.total_cost_usd } else { $null }
+
+    $fallbackParts = @()
+    if ($model) { $fallbackParts += "${ESC}[1m${model}${ESC}[0m" }
+    if ($null -ne $ctxPct) {
+        $c = if ($ctxPct -lt 50) { '32' } elseif ($ctxPct -lt 80) { '33' } else { '31' }
+        $fallbackParts += "${ESC}[${c}mCTX: $([math]::Round($ctxPct, 1))%${ESC}[0m"
+    }
+    if ($null -ne $cost -and $cost -gt 0) {
+        $fallbackParts += "${ESC}[36m`$$([math]::Round($cost, 4))${ESC}[0m"
+    }
+    if ($fallbackParts.Count -gt 0) { $CcStatus = $fallbackParts -join ' | ' }
 }
 
 # Get claude-limitline output (pass stdin)
