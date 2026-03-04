@@ -65,6 +65,9 @@ agents/
 # Skills (load when needed)
 skills/
 
+# MCP template (example only, not active config)
+.mcp.json.example
+
 # Settings
 settings.json
 settings.local.json
