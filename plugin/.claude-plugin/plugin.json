@@ -1,6 +1,6 @@
 {
   "name": "claude-config",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Comprehensive Claude Code configuration with coding guidelines, security, and performance skills for software development best practices",
   "author": {
     "name": "kcenon",
@@ -19,5 +19,6 @@
   ],
   "agents": "./agents/",
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json"
+  "hooks": "./hooks/hooks.json",
+  "lspServers": "./.lsp.json"
 }
