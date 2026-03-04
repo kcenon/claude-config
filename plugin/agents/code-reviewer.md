@@ -2,10 +2,7 @@
 name: code-reviewer
 description: Specialized agent for comprehensive code review
 model: sonnet
-allowed-tools:
-  - Read
-  - Grep
-  - Glob
+tools: Read, Grep, Glob
 temperature: 0.3
 ---
 
