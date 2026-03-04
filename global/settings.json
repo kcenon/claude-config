@@ -221,6 +221,18 @@
           }
         ]
       }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/session-logger.sh teammate-idle",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
     ]
   },
 
