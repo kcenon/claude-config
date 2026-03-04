@@ -21,6 +21,7 @@ claude_config_backup/
 
 ### Step 1: Copy (30 seconds)
 
+**macOS/Linux:**
 ```bash
 # Copy via USB, cloud, or network
 cp -r claude_config_backup ~/
@@ -29,11 +30,23 @@ cp -r claude_config_backup ~/
 git clone https://github.com/kcenon/claude-config.git ~/claude_config_backup
 ```
 
+**Windows (PowerShell):**
+```powershell
+git clone https://github.com/kcenon/claude-config.git ~\claude_config_backup
+```
+
 ### Step 2: Install (1 minute)
 
+**macOS/Linux:**
 ```bash
 cd ~/claude_config_backup
 ./scripts/install.sh
+```
+
+**Windows (PowerShell 7+):**
+```powershell
+cd ~\claude_config_backup
+.\scripts\install.ps1
 ```
 
 **Selection:**
@@ -48,9 +61,14 @@ Selection (1-3) [default: 3]: 3
 
 ### Step 3: Personalize (1 minute)
 
+**macOS/Linux:**
 ```bash
-# Change Git identity to your information
 vi ~/.claude/git-identity.md
+```
+
+**Windows:**
+```powershell
+notepad $HOME\.claude\git-identity.md
 ```
 
 **Example changes:**
@@ -106,8 +124,14 @@ git pull
 
 ### Scripts won't run
 
+**macOS/Linux:**
 ```bash
 chmod +x scripts/*.sh
+```
+
+**Windows (Execution Policy):**
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
 ### File not found

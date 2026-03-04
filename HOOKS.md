@@ -98,6 +98,89 @@ Deny rules defined in `global/settings.json`:
 }
 ```
 
+## Windows Support (PowerShell)
+
+### Overview
+
+All hooks have PowerShell (`.ps1`) equivalents for native Windows support without Git Bash.
+
+| Configuration | File |
+|---------------|------|
+| **macOS/Linux** | `global/settings.json` (runs `.sh` hooks via bash) |
+| **Windows** | `global/settings.windows.json` (runs `.ps1` hooks via `pwsh`) |
+
+### How It Works
+
+The `install.ps1` script automatically:
+1. Copies `settings.windows.json` as `~/.claude/settings.json`
+2. Installs all `.ps1` hook scripts to `~/.claude/hooks/`
+
+Hook commands use `pwsh -NoProfile -File` for fast, profile-independent execution:
+```json
+{
+  "type": "command",
+  "command": "pwsh -NoProfile -File ~/.claude/hooks/sensitive-file-guard.ps1",
+  "timeout": 5
+}
+```
+
+### PowerShell Hook Scripts
+
+| Hook | File | Description |
+|------|------|-------------|
+| Sensitive File Guard | `sensitive-file-guard.ps1` | Blocks `.env`, `.pem`, `.key` access |
+| Dangerous Command Guard | `dangerous-command-guard.ps1` | Blocks `rm -rf /`, `chmod 777`, pipe execution |
+| Session Logger | `session-logger.ps1` | Logs session start/end/stop events |
+| Cleanup | `cleanup.ps1` | Removes old temp files from `$env:TEMP` |
+| Prompt Validator | `prompt-validator.ps1` | Warns on dangerous operation requests |
+| GitHub API Preflight | `github-api-preflight.ps1` | Tests GitHub API connectivity |
+| Tool Failure Logger | `tool-failure-logger.ps1` | Logs tool execution failures |
+| Subagent Logger | `subagent-logger.ps1` | Logs subagent start/stop events |
+| Pre-Compact Snapshot | `pre-compact-snapshot.ps1` | Captures state before compaction |
+| Worktree Create | `worktree-create.ps1` | Creates isolated worktree directory |
+| Worktree Remove | `worktree-remove.ps1` | Logs worktree removal events |
+| Task Completed Logger | `task-completed-logger.ps1` | Logs task completion events |
+| Config Change Logger | `config-change-logger.ps1` | Logs configuration changes |
+
+### Key Differences from Bash Hooks
+
+| Feature | Bash (`.sh`) | PowerShell (`.ps1`) |
+|---------|-------------|---------------------|
+| JSON parsing | `jq` (external dependency) | `ConvertFrom-Json` (built-in) |
+| Temp file cleanup | `find /tmp -mmin +60` | `Get-ChildItem $env:TEMP` |
+| Pattern matching | `grep -qE` | `-match` operator |
+| HTTP requests | `curl` | `Invoke-WebRequest` |
+| Timestamps | `date +"%Y-%m-%d"` | `Get-Date -Format` |
+
+### Prerequisites
+
+- **PowerShell 7+** (`pwsh`): Recommended for full compatibility
+  ```powershell
+  winget install Microsoft.PowerShell
+  ```
+- **Execution Policy**: Must allow running local scripts
+  ```powershell
+  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+  ```
+
+### Troubleshooting (Windows)
+
+#### "File cannot be loaded because running scripts is disabled"
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+#### Hooks not executing
+1. Verify `pwsh` is installed: `pwsh --version`
+2. Verify JSON syntax: `Get-Content ~/.claude/settings.json | ConvertFrom-Json`
+3. Check hook files exist: `Get-ChildItem ~/.claude/hooks/*.ps1`
+4. Restart Claude Code
+
+#### "pwsh is not recognized"
+Install PowerShell 7+: `winget install Microsoft.PowerShell`
+
+---
+
 ## Customization
 
 ### Disabling Hooks

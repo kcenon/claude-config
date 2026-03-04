@@ -38,11 +38,12 @@ vi ~/.claude/git-identity.md
 
 **Common Tasks:**
 
-| Task | Command |
-|------|---------|
-| Backup settings | `./scripts/backup.sh` |
-| Sync settings | `./scripts/sync.sh` |
-| Verify backup | `./scripts/verify.sh` |
+| Task | macOS/Linux | Windows (PowerShell) |
+|------|-------------|----------------------|
+| Install settings | `./scripts/install.sh` | `.\scripts\install.ps1` |
+| Backup settings | `./scripts/backup.sh` | — |
+| Sync settings | `./scripts/sync.sh` | — |
+| Verify backup | `./scripts/verify.sh` | — |
 
 For detailed scenarios, see [Use Cases](#use-cases).
 
@@ -77,6 +78,23 @@ cd ~/claude_config_backup
 # 3. Personalize Git identity (Required!)
 vi ~/.claude/git-identity.md
 ```
+
+### Windows (PowerShell)
+
+```powershell
+# 1. Clone repository
+git clone https://github.com/kcenon/claude-config.git ~\claude_config_backup
+
+# 2. Run install script (PowerShell 7+ recommended)
+cd ~\claude_config_backup
+.\scripts\install.ps1
+
+# 3. Personalize Git identity (Required!)
+notepad $HOME\.claude\git-identity.md
+```
+
+> **Note**: Requires PowerShell 7+ (`pwsh`). Install via `winget install Microsoft.PowerShell`.
+> If you get an execution policy error, run: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
 
 ### Plugin Installation (Beta)
 
@@ -206,7 +224,8 @@ claude_config_backup/
 │
 ├── global/                      # Global settings backup (~/.claude/)
 │   ├── CLAUDE.md               # Main configuration file
-│   ├── settings.json           # Hook settings (security, session, UserPromptSubmit, Stop)
+│   ├── settings.json           # Hook settings (macOS/Linux)
+│   ├── settings.windows.json   # Hook settings (Windows PowerShell)
 │   ├── commit-settings.md      # Commit/PR attribution policy
 │   ├── conversation-language.md # Conversation language settings
 │   ├── git-identity.md         # Git user information
@@ -285,7 +304,8 @@ claude_config_backup/
 │               └── SKILL.md
 │
 ├── scripts/                     # Automation scripts
-│   ├── install.sh              # Install to new system
+│   ├── install.sh              # Install to new system (macOS/Linux)
+│   ├── install.ps1             # Install to new system (Windows PowerShell)
 │   ├── backup.sh               # Backup current settings
 │   ├── sync.sh                 # Sync settings
 │   ├── verify.sh               # Verify backup integrity
@@ -723,7 +743,7 @@ allowed-tools: Read, Grep, Glob  # Optional: restrict tools
 
 ## Scripts
 
-### 1. install.sh
+### 1. install.sh / install.ps1
 
 **Purpose:** Install backed up settings to a new system
 
@@ -732,16 +752,21 @@ allowed-tools: Read, Grep, Glob  # Optional: restrict tools
 - Install project settings (specified directory)
 - Install skills directory (`.claude/skills/`)
 - Auto-backup existing files
-- Select installation type (global/project/both)
+- Select installation type (global/project/both/enterprise/all)
 
 **Usage:**
 ```bash
+# macOS/Linux
 ./scripts/install.sh
+
+# Windows (PowerShell 7+)
+.\scripts\install.ps1
 ```
 
 **Notes:**
-- ⚠️ After installation, you MUST modify `git-identity.md` with your personal info!
+- After installation, you MUST modify `git-identity.md` with your personal info!
 - Existing files are backed up with `.backup_YYYYMMDD_HHMMSS` format
+- Windows: `install.ps1` deploys `settings.windows.json` and `.ps1` hook scripts automatically
 
 ---
 
