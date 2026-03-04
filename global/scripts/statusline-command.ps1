@@ -13,12 +13,17 @@
 
 $ErrorActionPreference = 'SilentlyContinue'
 
+# Force UTF-8 to match Claude Code's stdin encoding (Windows default is CP949)
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
 # Read stdin once and store it
 $InputData = [Console]::In.ReadToEnd()
 
 # Parse stdin JSON for fallback display (Claude Code provides this data)
+# Use -InputObject to avoid pipeline splitting on newlines, and Trim() to strip trailing newline
 $StdinData = $null
-try { $StdinData = $InputData | ConvertFrom-Json } catch { }
+try { $StdinData = ConvertFrom-Json -InputObject $InputData.Trim() } catch { }
 
 # Get ccstatusline output (pass stdin), fallback to stdin JSON parsing if unavailable
 $CcStatus = $null
