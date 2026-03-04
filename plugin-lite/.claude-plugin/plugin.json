@@ -1,6 +1,6 @@
 {
   "name": "claude-config-lite",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Core behavioral guardrails for LLM coding, derived from Andrej Karpathy's observations. Minimal footprint, maximum impact.",
   "author": {
     "name": "kcenon",

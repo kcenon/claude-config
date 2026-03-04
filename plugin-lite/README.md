@@ -16,7 +16,8 @@ A single skill (`behavioral-guardrails`) with 4 principles:
 ## Installation
 
 ```bash
-claude plugins add kcenon/claude-config-lite
+# Install from git repository (subdirectory source)
+claude plugin install claude-config-lite --source git-subdir --url https://github.com/kcenon/claude-config --subdir plugin-lite
 ```
 
 Or test locally:
