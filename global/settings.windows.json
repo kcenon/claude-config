@@ -1,0 +1,264 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "description": "Claude Code Global Settings (Windows) - Applied to all projects (permissions.deny for security)",
+  "version": "1.11.0",
+
+  "respectGitignore": true,
+  "cleanupPeriodDays": 30,
+
+  "language": "korean",
+
+  "outputStyle": "Explanatory",
+
+  "showTurnDuration": true,
+
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "issue": ""
+  },
+
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": true,
+    "excludedCommands": ["docker", "watchman"],
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "npmjs.org",
+        "*.npmjs.org",
+        "registry.npmjs.org",
+        "pypi.org",
+        "*.pypi.org"
+      ],
+      "allowLocalBinding": true
+    }
+  },
+
+  "spinnerVerbs": {
+    "mode": "append",
+    "verbs": ["Analyzing", "Reviewing", "Composing"]
+  },
+
+  "alwaysThinkingEnabled": true,
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/sensitive-file-guard.ps1",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/dangerous-command-guard.ps1",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/github-api-preflight.ps1",
+            "timeout": 10
+          },
+          {
+            "type": "prompt",
+            "prompt": "You are a git commit message validator. Examine the Bash command input. If the command is NOT a git commit command (does not contain 'git commit'), respond ONLY with: {\"decision\": \"allow\"}. If it IS a git commit with a -m flag, extract the commit message and validate against ALL these rules: 1) Format must be 'type(scope): description' or 'type: description' where type is one of: feat, fix, docs, style, refactor, perf, test, build, ci, chore, security. 2) Description must start with lowercase letter, use imperative mood, have no trailing period, and be meaningful (not just 'update', 'fix', 'changes', 'wip'). 3) Must NOT contain AI/Claude attribution (Claude, Anthropic, AI-assisted, Co-Authored-By, Generated with). 4) Must NOT contain emojis. 5) Must be in English. If ALL rules pass, respond ONLY with: {\"decision\": \"allow\"}. If ANY rule fails, respond ONLY with: {\"decision\": \"block\", \"reason\": \"Commit message validation failed: <specific violation>\"}.",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/session-logger.ps1 start",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -Command \"& ~/.claude/hooks/session-logger.ps1 end; & ~/.claude/hooks/cleanup.ps1\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/prompt-validator.ps1",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/session-logger.ps1 stop",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/tool-failure-logger.ps1",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/subagent-logger.ps1 start",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/subagent-logger.ps1 stop",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/pre-compact-snapshot.ps1",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/worktree-create.ps1",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/worktree-remove.ps1",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/task-completed-logger.ps1",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "ConfigChange": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/config-change-logger.ps1",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/session-logger.ps1 teammate-idle",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
+
+  "env": {
+    "MAX_THINKING_TOKENS": "8000",
+    "MAX_MCP_OUTPUT_TOKENS": "50000",
+    "ENABLE_TOOL_SEARCH": "auto:10"
+  },
+
+  "permissions": {
+    "defaultMode": "default",
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/secrets/**)",
+      "Read(**/credentials/**)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/*.p12)",
+      "Read(**/*password*)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Write(**/.env)",
+      "Write(**/.env.*)",
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Edit(**/.env)",
+      "Edit(**/.env.*)"
+    ]
+  }
+}
