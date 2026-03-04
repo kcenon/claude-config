@@ -1,6 +1,13 @@
-# Issue Create Command
+---
+name: issue-create
+description: Create well-structured GitHub issues using the 5W1H framework with proper labels and acceptance criteria.
+argument-hint: "<project-name> [--type bug|feature] [--priority high|medium]"
+user-invocable: true
+allowed-tools:
+  - Bash
+---
 
-> **Deprecated**: This command has been migrated to Skills format. Use `global/skills/issue-create/SKILL.md` instead. This file is kept for backward compatibility and will be removed in a future version.
+# Issue Create Command
 
 Create well-structured GitHub issues using the 5W1H framework.
 
@@ -178,7 +185,7 @@ After creating the issue:
 
 ## Policies
 
-See [_policy.md](./_policy.md) for common rules.
+See [_policy.md](../_policy.md) for common rules.
 
 ### Command-Specific Rules
 

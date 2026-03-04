@@ -1,6 +1,11 @@
-# Implement All Levels Command
+---
+name: implement-all-levels
+description: Enforce complete implementation of all tiers/difficulty levels for tiered features. Prevents partial implementations.
+argument-hint: "<feature-description>"
+user-invocable: true
+---
 
-> **Deprecated**: This command has been migrated to Skills format. Use `global/skills/implement-all-levels/SKILL.md` instead. This file is kept for backward compatibility and will be removed in a future version.
+# Implement All Levels Command
 
 Enforce complete implementation of all tiers/difficulty levels for tiered features.
 
@@ -32,9 +37,9 @@ Before writing any code, list ALL implementation tiers:
 
 | Tier | Description | Status |
 |------|-------------|--------|
-| Easy | [Basic functionality] | ⬜ Pending |
-| Medium | [Enhanced features] | ⬜ Pending |
-| Hard | [Advanced capabilities] | ⬜ Pending |
+| Easy | [Basic functionality] | Pending |
+| Medium | [Enhanced features] | Pending |
+| Hard | [Advanced capabilities] | Pending |
 ```
 
 **Rules**:
@@ -61,22 +66,22 @@ Do you want to proceed with implementing all tiers? (yes/no)
 
 ### Step 3: Implement Each Tier
 
-Implement tiers in order (Easy → Medium → Hard):
+Implement tiers in order (Easy -> Medium -> Hard):
 
 ```markdown
 ## Progress Tracking
 
 | Tier | Status | Notes |
 |------|--------|-------|
-| Easy | ✅ Completed | Implemented basic scoring |
-| Medium | 🔄 In Progress | Adding multipliers |
-| Hard | ⬜ Pending | Combo system pending |
+| Easy | Completed | Implemented basic scoring |
+| Medium | In Progress | Adding multipliers |
+| Hard | Pending | Combo system pending |
 ```
 
 **Status Indicators**:
-- ⬜ Pending - Not started
-- 🔄 In Progress - Currently implementing
-- ✅ Completed - Done and tested
+- Pending - Not started
+- In Progress - Currently implementing
+- Completed - Done and tested
 
 ### Step 4: Test Each Tier
 
@@ -92,7 +97,7 @@ pytest tests/test_scoring.py -k "hard"
 **Requirements**:
 - Each tier MUST have corresponding tests
 - Tests MUST pass before marking tier as complete
-- No tier can be marked ✅ without passing tests
+- No tier can be marked Completed without passing tests
 
 ### Step 5: Final Report
 
@@ -108,15 +113,15 @@ Generate completion report:
 
 ### Tier Details
 
-#### Easy Tier ✅
+#### Easy Tier
 - Files modified: `src/scoring/basic.py`
 - Tests: `tests/test_scoring.py::test_easy_*` (5 passed)
 
-#### Medium Tier ✅
+#### Medium Tier
 - Files modified: `src/scoring/multipliers.py`
 - Tests: `tests/test_scoring.py::test_medium_*` (8 passed)
 
-#### Hard Tier ✅
+#### Hard Tier
 - Files modified: `src/scoring/combos.py`
 - Tests: `tests/test_scoring.py::test_hard_*` (12 passed)
 
@@ -134,36 +139,36 @@ The following are **NOT ALLOWED**:
 
 1. **Partial Implementation**
 ```python
-# ❌ BAD: Only Easy implemented
+# BAD: Only Easy implemented
 def get_score(difficulty: str) -> int:
     if difficulty == "easy":
         return calculate_easy()
     else:
-        raise NotImplementedError()  # ❌ Forbidden
+        raise NotImplementedError()  # Forbidden
 ```
 
 2. **TODO Comments**
 ```python
-# ❌ BAD: TODO instead of implementation
+# BAD: TODO instead of implementation
 def calculate_medium():
-    # TODO: Implement medium difficulty  # ❌ Forbidden
+    # TODO: Implement medium difficulty  # Forbidden
     pass
 ```
 
 3. **Placeholder Returns**
 ```python
-# ❌ BAD: Empty or placeholder return
+# BAD: Empty or placeholder return
 def calculate_hard():
-    return 0  # ❌ Placeholder value
-    return None  # ❌ Placeholder value
-    return {}  # ❌ Empty placeholder
+    return 0  # Placeholder value
+    return None  # Placeholder value
+    return {}  # Empty placeholder
 ```
 
 4. **Untested Tiers**
 ```python
-# ❌ BAD: No tests for tier
+# BAD: No tests for tier
 def calculate_hard():
-    return complex_calculation()  # ❌ No corresponding test
+    return complex_calculation()  # No corresponding test
 ```
 
 ### Required Patterns
@@ -172,7 +177,7 @@ All implementations MUST follow:
 
 1. **Complete Coverage**
 ```python
-# ✅ GOOD: All tiers implemented
+# GOOD: All tiers implemented
 def get_score(difficulty: str) -> int:
     match difficulty:
         case "easy": return calculate_easy()
@@ -182,7 +187,7 @@ def get_score(difficulty: str) -> int:
 
 2. **Exhaustive Tests**
 ```python
-# ✅ GOOD: Tests for all tiers
+# GOOD: Tests for all tiers
 class TestScoring:
     def test_easy_scoring(self): ...
     def test_medium_scoring(self): ...
@@ -202,9 +207,9 @@ If implementation is interrupted:
 
 | Tier | Status | Notes |
 |------|--------|-------|
-| Easy | ✅ Completed | Done |
-| Medium | 🔄 In Progress | Blocked: need API design decision |
-| Hard | ⬜ Pending | Waiting for Medium |
+| Easy | Completed | Done |
+| Medium | In Progress | Blocked: need API design decision |
+| Hard | Pending | Waiting for Medium |
 
 ### Resume Instructions
 - Resolve: API endpoint naming convention

@@ -1,6 +1,14 @@
-# Branch Cleanup Command
+---
+name: branch-cleanup
+description: Clean up merged and stale branches from local and remote repositories. Use when branch list is cluttered or after merging PRs.
+argument-hint: "[project-name] [--dry-run] [--include-remote]"
+user-invocable: true
+context: fork
+allowed-tools:
+  - Bash
+---
 
-> **Deprecated**: This command has been migrated to Skills format. Use `global/skills/branch-cleanup/SKILL.md` instead. This file is kept for backward compatibility and will be removed in a future version.
+# Branch Cleanup Command
 
 Clean up merged and stale branches from local and remote repositories.
 
@@ -158,7 +166,7 @@ Provide summary of actions taken.
 
 ## Policies
 
-See [_policy.md](./_policy.md) for common rules.
+See [_policy.md](../_policy.md) for common rules.
 
 ### Command-Specific Rules
 
@@ -208,7 +216,7 @@ After completion, provide summary:
 | Requirement | Error Message | Resolution |
 |-------------|---------------|------------|
 | git installed | "Git is not installed" | Install git from https://git-scm.com |
-| Inside git repo | "Not a git repository" | Navigate to a git repository |
+| inside git repo | "Not a git repository" | Navigate to a git repository |
 | Project directory exists | "Project directory not found: [path]" | Verify project path |
 
 ### Runtime Errors

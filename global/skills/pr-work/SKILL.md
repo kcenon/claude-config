@@ -1,6 +1,11 @@
-# PR Work Command
+---
+name: pr-work
+description: Analyze and fix failed CI/CD workflows for a pull request with automated retry and escalation.
+argument-hint: "<pr-number> or <project-name> <pr-number>"
+user-invocable: true
+---
 
-> **Deprecated**: This command has been migrated to Skills format. Use `global/skills/pr-work/SKILL.md` instead. This file is kept for backward compatibility and will be removed in a future version.
+# PR Work Command
 
 Analyze and fix failed CI/CD workflows for a pull request.
 
@@ -267,13 +272,13 @@ For builds expected over 30 seconds:
 **Step A**: Launch build in background
 ```
 Bash(command="cmake --build build/ --config Release 2>&1", run_in_background=true)
-# → Returns task_id
+# -> Returns task_id
 ```
 
 **Step B**: Poll build output (non-blocking, every 10-15 seconds)
 ```
 TaskOutput(task_id="<id>", block=false, timeout=10000)
-# → Check for error patterns or completion indicators
+# -> Check for error patterns or completion indicators
 ```
 
 **Step C**: Detect outcome from output
@@ -296,7 +301,7 @@ Bash(command="ctest --test-dir build/ --output-on-failure 2>&1", run_in_backgrou
 3. Apply fix based on error pattern
 4. Re-run build/test to verify fix
 
-Do NOT retry the same build without changes — diagnose first.
+Do NOT retry the same build without changes -- diagnose first.
 
 ### 7. Commit Fix
 
@@ -340,17 +345,17 @@ gh run view $RUN_ID --repo $ORG/$PROJECT --json status,conclusion -q '{status: .
 | completed | failure | Fetch failed logs, go to Step 9 |
 | completed | cancelled | Report cancellation, investigate or re-trigger |
 | completed | timed_out | Report timeout, check workflow config |
-| in_progress | — | Poll again after 30s interval |
-| queued | — | Poll again after 30s interval |
-| waiting | — | Poll again after 30s interval (approval gate) |
+| in_progress | -- | Poll again after 30s interval |
+| queued | -- | Poll again after 30s interval |
+| waiting | -- | Poll again after 30s interval (approval gate) |
 
 **Step D**: On failure, fetch specific error logs
 ```bash
 gh run view $RUN_ID --repo $ORG/$PROJECT --log-failed 2>&1 | head -100
 ```
 
-**Do NOT** use `gh run watch` — it blocks the entire session.
-**Do NOT** poll more frequently than every 30 seconds — respect API rate limits.
+**Do NOT** use `gh run watch` -- it blocks the entire session.
+**Do NOT** poll more frequently than every 30 seconds -- respect API rate limits.
 
 ### 9. Iterate if Needed
 
@@ -372,10 +377,10 @@ Instead of blocking with `gh run watch`, use non-blocking status polling:
 ```
 For each poll (max 20 iterations x 30s = 10 minutes):
   1. Check: gh run view $RUN_ID --repo $ORG/$PROJECT --json status,conclusion
-  2. If completed + failure → fetch logs, diagnose, fix, go to next attempt
-  3. If completed + success → done
-  4. If in_progress → wait 30s, poll again
-  5. If max polls reached → report timeout, escalate
+  2. If completed + failure -> fetch logs, diagnose, fix, go to next attempt
+  3. If completed + success -> done
+  4. If in_progress -> wait 30s, poll again
+  5. If max polls reached -> report timeout, escalate
 ```
 
 This approach:
@@ -383,7 +388,7 @@ This approach:
 - Provides status updates to the user between polls
 - Allows early intervention when failure is detected
 
-**Do NOT** use `gh run watch` — it blocks the entire session.
+**Do NOT** use `gh run watch` -- it blocks the entire session.
 
 #### Iteration Rules
 
@@ -486,7 +491,7 @@ When max retry attempts (3) are exceeded without success:
 
 ## Policies
 
-See [_policy.md](./_policy.md) for common rules.
+See [_policy.md](../_policy.md) for common rules.
 
 ### Command-Specific Rules
 

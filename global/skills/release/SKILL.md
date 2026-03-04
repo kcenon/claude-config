@@ -1,6 +1,14 @@
-# Release Command
+---
+name: release
+description: Create a release with automated changelog generation from commits since last release using semantic versioning.
+argument-hint: "<version> [--draft] [--prerelease]"
+user-invocable: true
+context: fork
+allowed-tools:
+  - Bash
+---
 
-> **Deprecated**: This command has been migrated to Skills format. Use `global/skills/release/SKILL.md` instead. This file is kept for backward compatibility and will be removed in a future version.
+# Release Command
 
 Create a release with automated changelog generation from commits since last release.
 
@@ -216,7 +224,7 @@ Commits are categorized based on conventional commit prefixes:
 
 ## Policies
 
-See [_policy.md](./_policy.md) for common rules.
+See [_policy.md](../_policy.md) for common rules.
 
 ### Command-Specific Rules
 

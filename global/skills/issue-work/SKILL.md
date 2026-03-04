@@ -1,6 +1,11 @@
-# Issue Work Command
+---
+name: issue-work
+description: Automate GitHub issue workflow - select issue, create branch, implement, build, test, and create PR.
+argument-hint: "<project-name> [issue-number]"
+user-invocable: true
+---
 
-> **Deprecated**: This command has been migrated to Skills format. Use `global/skills/issue-work/SKILL.md` instead. This file is kept for backward compatibility and will be removed in a future version.
+# Issue Work Command
 
 Automate GitHub issue workflow with project name as argument.
 
@@ -212,13 +217,13 @@ For builds expected over 30 seconds:
 **Step A**: Launch build in background
 ```
 Bash(command="cmake --build build/ --config Release 2>&1", run_in_background=true)
-# → Returns task_id
+# -> Returns task_id
 ```
 
 **Step B**: Poll build output (non-blocking, every 10-15 seconds)
 ```
 TaskOutput(task_id="<id>", block=false, timeout=10000)
-# → Check for error patterns or completion indicators
+# -> Check for error patterns or completion indicators
 ```
 
 **Step C**: Detect outcome from output
@@ -242,7 +247,7 @@ Bash(command="ctest --test-dir build/ --output-on-failure 2>&1", run_in_backgrou
 4. Re-run build/test to verify fix
 5. If persistent failure: create draft PR with failure log (see Error Handling)
 
-Do NOT retry the same build without changes — diagnose first.
+Do NOT retry the same build without changes -- diagnose first.
 
 ### 7. Documentation Update
 
@@ -291,7 +296,7 @@ gh issue comment <NUMBER> --repo $ORG/$PROJECT \
 
 ## Policies
 
-See [_policy.md](./_policy.md) for common rules.
+See [_policy.md](../_policy.md) for common rules.
 
 ### Command-Specific Rules
 
