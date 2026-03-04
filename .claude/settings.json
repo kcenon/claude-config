@@ -18,9 +18,5 @@
         ]
       }
     ]
-  },
-
-  "env": {
-    "CLAUDE_AUTO_FORMAT": "true"
   }
 }
