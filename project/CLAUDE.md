@@ -11,3 +11,8 @@ Defer to language-specific conventions (PEP 8, C++ Core Guidelines, etc.).
 Use `.mcp.json` at the project root for team-shared MCP server definitions (committed to Git).
 See `.mcp.json.example` for transport examples (HTTP, stdio, SSE) and environment variable patterns.
 Never hardcode secrets — use `${VAR}` references and store values in `.env` (not committed).
+
+## Parallel Workflows
+
+For multi-agent collaboration strategies (Agent Teams, Subagents, Worktrees, `/batch`),
+see `rules/workflow/reference/agent-teams.md` — load with `@load: reference/agent-teams`.
