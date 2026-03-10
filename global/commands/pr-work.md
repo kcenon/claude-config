@@ -1,6 +1,6 @@
 # PR Work Command
 
-> **Deprecated**: This command has been migrated to Skills format. Use `global/skills/pr-work/SKILL.md` instead. This file is kept for backward compatibility and will be removed in a future version.
+> **Deprecated**: This command has been migrated to Skills format. Use `global/skills/pr-work/SKILL.md` instead. This file is kept for backward compatibility and will be removed in a future version. The Skills version includes additional features: CI congestion handling, TLS error awareness, and auto-merge.
 
 Analyze and fix failed CI/CD workflows for a pull request.
 

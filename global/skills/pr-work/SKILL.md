@@ -323,6 +323,21 @@ Fixes CI failure: <brief explanation>"
 git push origin "$HEAD_BRANCH"
 ```
 
+#### TLS/Sandbox Error Handling
+
+If `gh` commands fail with TLS certificate errors in sandbox mode:
+
+```
+x509: certificate signed by unknown authority
+tls: failed to verify certificate
+```
+
+Use `dangerouslyDisableSandbox` for the `gh` command, or suggest the user
+run outside sandbox. Never assume authentication has failed without verifying —
+ask the user to confirm if unclear.
+
+#### CI Monitoring
+
 After push, monitor CI with non-blocking polling:
 
 **Step A**: Get the triggered run ID
@@ -345,17 +360,27 @@ gh run view $RUN_ID --repo $ORG/$PROJECT --json status,conclusion -q '{status: .
 | completed | failure | Fetch failed logs, go to Step 9 |
 | completed | cancelled | Report cancellation, investigate or re-trigger |
 | completed | timed_out | Report timeout, check workflow config |
-| in_progress | -- | Poll again after 30s interval |
-| queued | -- | Poll again after 30s interval |
-| waiting | -- | Poll again after 30s interval (approval gate) |
+| in_progress | — | Poll again after 30s interval |
+| queued | — | Poll again after 30s interval |
+| waiting | — | Poll again after 30s interval (approval gate) |
 
 **Step D**: On failure, fetch specific error logs
 ```bash
 gh run view $RUN_ID --repo $ORG/$PROJECT --log-failed 2>&1 | head -100
 ```
 
-**Do NOT** use `gh run watch` -- it blocks the entire session.
-**Do NOT** poll more frequently than every 30 seconds -- respect API rate limits.
+#### Congested Runner Handling
+
+If CI checks are stuck in `queued` state for more than 5 minutes:
+
+1. Check if any jobs have already completed: `gh run view $RUN_ID --json jobs`
+2. If completed jobs all passed, proceed with merge — remaining jobs are stuck on runners
+3. If some completed jobs failed, fix those failures and push again
+4. Report to user that runners appear congested
+
+**Do NOT** use `gh run watch` — it blocks the entire session.
+**Do NOT** poll more frequently than every 30 seconds — respect API rate limits.
+**Do NOT** block indefinitely — max 10 minutes of polling per run.
 
 ### 9. Iterate if Needed
 
@@ -447,7 +472,18 @@ EOF
 )"
 ```
 
-### 10. Failure Escalation
+### 10. Auto-Merge on Success
+
+When all CI checks pass after fixing:
+
+```bash
+gh pr merge $PR_NUMBER --repo $ORG/$PROJECT --squash --delete-branch
+```
+
+If merge fails (e.g., review required, branch protection), report the status
+and skip merge. Do not force-merge.
+
+### 11. Failure Escalation
 
 When max retry attempts (3) are exceeded without success:
 

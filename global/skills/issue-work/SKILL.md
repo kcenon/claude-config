@@ -170,6 +170,9 @@ gh issue edit <NUMBER> --repo $ORG/$PROJECT --add-assignee @me
 
 ### 5. Code Implementation
 
+**Priority**: Start implementation immediately. Minimize upfront planning — analyze code
+as you implement, not in a separate planning phase.
+
 1. **Analyze existing code style**:
    - Check `.clang-format`, `.editorconfig` if present
    - Review existing file patterns and conventions
@@ -177,6 +180,7 @@ gh issue edit <NUMBER> --repo $ORG/$PROJECT --add-assignee @me
 2. **Implement changes**:
    - Follow existing code style strictly
    - Keep changes minimal and focused
+   - **Validate incrementally**: Build/test after each logical change, not after all changes
 
 3. **Header file review** (C/C++ projects):
    - Verify all used symbols have corresponding #include
@@ -191,6 +195,22 @@ gh issue edit <NUMBER> --repo $ORG/$PROJECT --add-assignee @me
 
 Follow the build verification workflow rule (`build-verification.md`) to select the
 appropriate strategy based on expected build duration.
+
+#### Toolchain Availability Check
+
+Before running local builds, verify required toolchains are installed:
+
+```bash
+# Check availability — do NOT install without asking the user
+command -v go &>/dev/null    # Go
+command -v cargo &>/dev/null # Rust
+command -v cmake &>/dev/null # C++
+command -v npm &>/dev/null   # Node.js
+```
+
+**If toolchain is unavailable**: Skip local build verification and rely on CI.
+Do NOT attempt to install toolchains without asking the user first.
+Report what was verified locally vs what needs CI.
 
 #### Strategy Selection
 
@@ -285,7 +305,65 @@ gh pr create --repo $ORG/$PROJECT \
 
 After PR creation, capture the PR URL from `gh pr create` output for the summary.
 
-### 9. Update Original Issue
+### 9. Monitor CI
+
+After PR creation, monitor CI with non-blocking polling:
+
+```bash
+# Wait briefly for workflow to register
+sleep 5
+RUN_ID=$(gh run list --repo $ORG/$PROJECT --branch "$BRANCH_NAME" --limit 1 --json databaseId -q '.[0].databaseId')
+```
+
+Poll CI status (every 30 seconds, max 10 minutes):
+
+```bash
+gh run view $RUN_ID --repo $ORG/$PROJECT --json status,conclusion -q '{status: .status, conclusion: .conclusion}'
+```
+
+| status | conclusion | Action |
+|--------|-----------|--------|
+| completed | success | Proceed to merge |
+| completed | failure | Fetch logs, diagnose, fix, push, re-monitor |
+| in_progress | — | Poll again after 30s |
+| queued | — | Poll again after 30s |
+
+**Congested runners**: If checks are taking unusually long (queued > 5 minutes), verify
+completed checks for failures and proceed with merge if all completed checks pass.
+
+**Do NOT** use `gh run watch` — it blocks the entire session.
+**Do NOT** block indefinitely — max 10 minutes of polling per run.
+
+On CI failure, fix the issue and push. Repeat up to 3 attempts. After 3 failures,
+create the PR as draft and report the status.
+
+### 10. Squash Merge
+
+When all CI checks pass:
+
+```bash
+gh pr merge $PR_NUMBER --repo $ORG/$PROJECT --squash --delete-branch
+```
+
+If merge fails (e.g., review required), report the status and skip merge.
+
+### 11. Close Related Issues and Epics
+
+After merge:
+
+```bash
+# Verify the linked issue was closed by the merge
+STATE=$(gh issue view $ISSUE_NUMBER --repo $ORG/$PROJECT --json state -q '.state')
+if [[ "$STATE" != "CLOSED" ]]; then
+    gh issue close $ISSUE_NUMBER --repo $ORG/$PROJECT
+fi
+```
+
+**Epic closure**: If the issue references a parent epic (e.g., `Part of #N`),
+check if all sub-issues of that epic are now closed. If so, close the epic
+with a summary comment.
+
+### 12. Update Original Issue
 
 **IMPORTANT**: All issue comments **MUST** be written in **English only**, regardless of the project's primary language or user's locale.
 
