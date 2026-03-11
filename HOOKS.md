@@ -56,6 +56,33 @@ Hooks are user-defined commands that automatically execute during specific Claud
 - `/tmp/claude_*` (files older than 60 minutes)
 - `/tmp/tmp.*` (owned by current user, older than 60 minutes)
 
+### 5. Markdown Anchor Validation (PreToolUse)
+
+**Purpose**: Validate markdown cross-reference anchors before git commit to prevent broken links
+
+**Trigger**: `git commit` commands only (all other commands pass through)
+
+**How it works**:
+1. Auto-detects markdown directory (`docs/reference/` → `docs/` → `./`)
+2. **Pass 1**: Builds anchor registry from all headings (GitHub-style slug algorithm)
+3. **Pass 2**: Checks all `](#anchor)` and `](file.md#anchor)` references against registry
+4. Blocks commit if broken anchors are found
+
+**Anchor generation algorithm** (matches GitHub):
+- Strip inline formatting (bold, italic, code, links)
+- Lowercase → remove non-alphanumeric/space/hyphen (Unicode letters preserved) → spaces to hyphens
+- Duplicate headings get `-1`, `-2` suffixes
+
+**Features**:
+- Skips code blocks (``` and ~~~ delimiters)
+- Handles Korean/CJK characters in anchors
+- Validates both intra-file and inter-file references
+- Excludes external URLs (detects `:` in path)
+
+**Behavior**:
+- Displays list of broken anchors and blocks commit (exit code 2)
+- Timeout: 30 seconds
+
 ## Project Hooks (project/.claude/settings.json)
 
 ### 1. Auto Formatting (PostToolUse)
@@ -141,6 +168,7 @@ Hook commands use `pwsh -NoProfile -File` for fast, profile-independent executio
 | Worktree Remove | `worktree-remove.ps1` | Logs worktree removal events |
 | Task Completed Logger | `task-completed-logger.ps1` | Logs task completion events |
 | Config Change Logger | `config-change-logger.ps1` | Logs configuration changes |
+| Markdown Anchor Validator | `markdown-anchor-validator.ps1` | Validates markdown cross-reference anchors before commit |
 
 ### Key Differences from Bash Hooks
 
