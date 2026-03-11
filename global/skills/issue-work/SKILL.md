@@ -310,32 +310,37 @@ After PR creation, capture the PR URL from `gh pr create` output for the summary
 After PR creation, monitor CI with non-blocking polling:
 
 ```bash
-# Wait briefly for workflow to register
-sleep 5
-RUN_ID=$(gh run list --repo $ORG/$PROJECT --branch "$BRANCH_NAME" --limit 1 --json databaseId -q '.[0].databaseId')
+# Wait briefly for workflows to register
+sleep 8
 ```
 
-Poll CI status (every 30 seconds, max 10 minutes):
+Poll **all** PR checks every 30 seconds, max 10 minutes:
 
 ```bash
-gh run view $RUN_ID --repo $ORG/$PROJECT --json status,conclusion -q '{status: .status, conclusion: .conclusion}'
+gh run list --repo $ORG/$PROJECT --branch "$BRANCH_NAME" \
+  --json databaseId,name,status,conclusion
 ```
 
-| status | conclusion | Action |
-|--------|-----------|--------|
-| completed | success | Proceed to merge |
-| completed | failure | Fetch logs, diagnose, fix, push, re-monitor |
-| in_progress | — | Poll again after 30s |
-| queued | — | Poll again after 30s |
+**Decision table — apply per run, evaluate ALL runs each poll cycle:**
 
-**Congested runners**: If checks are taking unusually long (queued > 5 minutes), verify
-completed checks for failures and proceed with merge if all completed checks pass.
+| All runs status | Any conclusion=failure | Action |
+|-----------------|----------------------|--------|
+| All `completed` | No | All pass → proceed to merge |
+| All `completed` | Yes | Diagnose, fix, push, re-poll |
+| Any `in_progress` or `queued` | — | Poll again after 30s |
+
+**Merge gate**: Do NOT merge until every run shows `status: completed`.
+A run that is `in_progress` or `queued` is NOT a passing run — wait for it.
+
+**Timeout**: If 10-minute polling limit is reached and any run is still
+`in_progress` or `queued`, stop polling, report the current status table
+to the user, and **do NOT merge**. Ask the user whether to wait longer
+or leave the PR open for manual merge.
 
 **Do NOT** use `gh run watch` — it blocks the entire session.
-**Do NOT** block indefinitely — max 10 minutes of polling per run.
 
 On CI failure, fix the issue and push. Repeat up to 3 attempts. After 3 failures,
-create the PR as draft and report the status.
+convert the PR to draft and report the status.
 
 ### 10. Squash Merge
 

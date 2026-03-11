@@ -14,8 +14,9 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 ## GitHub / CI
 
 - When `gh` CLI fails with TLS certificate errors in sandbox mode, retry with `dangerouslyDisableSandbox`. Do not assume authentication failure — TLS errors and auth errors are different.
-- After creating a PR, monitor CI but do NOT block indefinitely on congested runners. If checks are queued > 5 minutes, verify completed checks for failures and proceed if all pass.
+- After creating a PR, monitor CI until **all** checks reach `completed` status. Do NOT merge while any check is `queued` or `in_progress`.
 - Poll CI status at 30-second intervals. Max 10 minutes per run. Never use `gh run watch`.
+- If the 10-minute polling limit is reached with CI still running: stop polling, report current status to the user, and **do NOT merge**. The user decides next steps.
 
 ## Build & Test
 
@@ -39,4 +40,4 @@ Edit module files, then restart session to apply changes.
 
 ---
 
-*Version: 2.1.0 | Last updated: 2026-03-10*
+*Version: 2.2.0 | Last updated: 2026-03-11*
