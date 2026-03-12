@@ -41,15 +41,16 @@ periods. Do NOT block indefinitely waiting for CI.
 |---------------|--------|
 | < 2 minutes | Normal — continue polling |
 | 2-5 minutes | Report wait to user, continue polling |
-| > 5 minutes | Check completed jobs; if all passed, proceed |
+| > 5 minutes | Report wait to user, continue polling up to 10-minute limit |
 
 ```bash
 # Check individual job statuses when run is slow
 gh run view $RUN_ID --repo $ORG/$PROJECT --json jobs -q '.jobs[] | {name: .name, status: .status, conclusion: .conclusion}'
 ```
 
-If all completed jobs passed and remaining jobs are queued, it is safe to proceed
-with merge. Report the situation to the user.
+**Do NOT** merge while any check is `queued` or `in_progress`, even if all completed
+checks have passed. If the 10-minute polling limit is reached, stop polling, report
+current status to the user, and let the user decide next steps.
 
 ## Missing Toolchain Fallback
 

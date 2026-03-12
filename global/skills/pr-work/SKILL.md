@@ -369,18 +369,17 @@ gh run view $RUN_ID --repo $ORG/$PROJECT --json status,conclusion -q '{status: .
 gh run view $RUN_ID --repo $ORG/$PROJECT --log-failed 2>&1 | head -100
 ```
 
-#### Congested Runner Handling
-
-If CI checks are stuck in `queued` state for more than 5 minutes:
-
-1. Check if any jobs have already completed: `gh run view $RUN_ID --json jobs`
-2. If completed jobs all passed, proceed with merge — remaining jobs are stuck on runners
-3. If some completed jobs failed, fix those failures and push again
-4. Report to user that runners appear congested
+#### CI Polling Limits
 
 **Do NOT** use `gh run watch` — it blocks the entire session.
 **Do NOT** poll more frequently than every 30 seconds — respect API rate limits.
 **Do NOT** block indefinitely — max 10 minutes of polling per run.
+**Do NOT** merge while any check is `queued` or `in_progress`.
+
+If the 10-minute polling limit is reached with CI still running:
+1. Stop polling immediately
+2. Report current status of all checks to the user
+3. **Do NOT merge** — the user decides next steps
 
 ### 9. Iterate if Needed
 
