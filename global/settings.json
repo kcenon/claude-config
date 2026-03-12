@@ -48,6 +48,10 @@
   },
   "alwaysThinkingEnabled": true,
 
+  "model": "sonnet",
+  "effortLevel": "high",
+  "skipDangerousModePermissionPrompt": true,
+
   "hooks": {
     "PreToolUse": [
       {
