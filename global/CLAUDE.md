@@ -17,6 +17,8 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 - After creating a PR, monitor CI until **all** checks reach `completed` status. Do NOT merge while any check is `queued` or `in_progress`.
 - Poll CI status at 30-second intervals. Max 10 minutes per run. Never use `gh run watch`.
 - If the 10-minute polling limit is reached with CI still running: stop polling, report current status to the user, and **do NOT merge**. The user decides next steps.
+- **Before merge, always use `gh pr checks <PR_NUMBER>` to verify ALL individual check statuses.** Do NOT rely on `gh run list` alone — it shows workflow-level status which can report "success" while individual sub-checks (e.g., platform-specific test jobs) are still failing.
+- **Any CI failure — including test timeouts — must be investigated and fixed before merging.** Never treat a failing check as "flaky" or ignorable. If a test times out, adjust the test workload, increase the timeout, or fix the underlying performance issue before proceeding with merge.
 
 ## Build & Test
 
@@ -40,4 +42,4 @@ Edit module files, then restart session to apply changes.
 
 ---
 
-*Version: 2.2.0 | Last updated: 2026-03-11*
+*Version: 2.3.0 | Last updated: 2026-03-13*

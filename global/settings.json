@@ -14,8 +14,7 @@
 
   "attribution": {
     "commit": "",
-    "pr": "",
-    "issue": ""
+    "pr": ""
   },
 
   "sandbox": {
@@ -48,7 +47,6 @@
   },
   "alwaysThinkingEnabled": true,
 
-  "model": "sonnet",
   "effortLevel": "high",
   "skipDangerousModePermissionPrompt": true,
 
