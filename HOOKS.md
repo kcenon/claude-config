@@ -24,8 +24,8 @@ Hooks are user-defined commands that automatically execute during specific Claud
 - Directories: `secrets/`, `credentials/`, `passwords/`, `private/`
 
 **Behavior**:
-- Displays `[BLOCKED]` message and stops operation
-- Returns exit code 2
+- Returns JSON with `permissionDecision: "deny"` and exits with code 0
+- Claude Code reads the deny reason from the JSON response
 
 ### 2. Dangerous Command Blocking (PreToolUse)
 
@@ -80,8 +80,42 @@ Hooks are user-defined commands that automatically execute during specific Claud
 - Excludes external URLs (detects `:` in path)
 
 **Behavior**:
-- Displays list of broken anchors and blocks commit (exit code 2)
+- Returns JSON with `permissionDecision: "deny"` listing broken anchors
 - Timeout: 30 seconds
+
+### Hook Response Format
+
+All PreToolUse hooks must output JSON to stdout and exit with code 0:
+
+**Allow response**:
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "allow"
+  }
+}
+```
+
+**Deny response**:
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "Reason for blocking"
+  }
+}
+```
+
+**Input**: Hooks receive tool input as JSON via stdin. Use `jq` to extract fields:
+```bash
+INPUT=$(cat)
+CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+```
+
+**Exit codes**: Always exit 0 when returning JSON. The decision (allow/deny) is conveyed
+through the `permissionDecision` field, not through the exit code.
 
 ## Project Hooks (project/.claude/settings.json)
 
