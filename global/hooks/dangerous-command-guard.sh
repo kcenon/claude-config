@@ -2,10 +2,16 @@
 # dangerous-command-guard.sh
 # Blocks dangerous bash commands
 # Hook Type: PreToolUse (Bash)
-# Exit codes: 0=allow, 2=block
-# Response format: hookSpecificOutput (modern format)
+# Exit codes: 0 (always — decision is in JSON)
+# Response format: hookSpecificOutput with hookEventName
 
-CMD="${CLAUDE_TOOL_INPUT:-}"
+# Read input from stdin (Claude Code passes JSON via stdin)
+INPUT=$(cat)
+CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+# Fallback to environment variable for backward compatibility
+if [ -z "$CMD" ]; then
+    CMD="${CLAUDE_TOOL_INPUT:-}"
+fi
 
 # Helper function for deny response
 deny_response() {
@@ -13,12 +19,26 @@ deny_response() {
     cat <<EOF
 {
   "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
     "permissionDecisionReason": "$reason"
   }
 }
 EOF
-    exit 2
+    exit 0
+}
+
+# Helper function for allow response
+allow_response() {
+    cat <<EOF
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "allow"
+  }
+}
+EOF
+    exit 0
 }
 
 # Block recursive delete at root
@@ -37,11 +57,4 @@ if echo "$CMD" | grep -qE '(curl|wget).*\|.*sh'; then
 fi
 
 # Allow the command
-cat <<EOF
-{
-  "hookSpecificOutput": {
-    "permissionDecision": "allow"
-  }
-}
-EOF
-exit 0
+allow_response

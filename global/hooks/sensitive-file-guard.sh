@@ -2,10 +2,16 @@
 # sensitive-file-guard.sh
 # Blocks access to sensitive files
 # Hook Type: PreToolUse (Edit|Write|Read)
-# Exit codes: 0=allow, 2=block
-# Response format: hookSpecificOutput (modern format)
+# Exit codes: 0 (always — decision is in JSON)
+# Response format: hookSpecificOutput with hookEventName
 
-FILE="${CLAUDE_FILE_PATH:-}"
+# Read input from stdin (Claude Code passes JSON via stdin)
+INPUT=$(cat)
+FILE=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
+# Fallback to environment variable for backward compatibility
+if [ -z "$FILE" ]; then
+    FILE="${CLAUDE_FILE_PATH:-}"
+fi
 
 # Helper function for deny response
 deny_response() {
@@ -13,12 +19,13 @@ deny_response() {
     cat <<EOF
 {
   "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
     "permissionDecisionReason": "$reason"
   }
 }
 EOF
-    exit 2
+    exit 0
 }
 
 # Helper function for allow response
@@ -26,6 +33,7 @@ allow_response() {
     cat <<EOF
 {
   "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
     "permissionDecision": "allow"
   }
 }

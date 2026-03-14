@@ -2,8 +2,8 @@
 # markdown-anchor-validator.sh
 # Validates markdown anchor references before git commit
 # Hook Type: PreToolUse (Bash)
-# Exit codes: 0=allow, 2=deny (broken anchors found)
-# Response format: hookSpecificOutput (modern format)
+# Exit codes: 0 (always — decision is in JSON)
+# Response format: hookSpecificOutput with hookEventName
 #
 # Performance: Uses single-pass awk extraction + bulk sed/tr pipeline
 # to minimize subprocess spawns (~15 total vs ~4800 in naive approach)
@@ -12,11 +12,17 @@ set -euo pipefail
 # C.UTF-8 is universally available and enables Unicode in sed/tr character classes (e.g., [:alnum:] matching Korean)
 export LC_ALL=C.UTF-8 2>/dev/null || export LC_ALL=C.utf8 2>/dev/null || true
 
-CMD="${CLAUDE_TOOL_INPUT:-}"
+# Read input from stdin (Claude Code passes JSON via stdin)
+INPUT=$(cat)
+CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+# Fallback to environment variable for backward compatibility
+if [ -z "$CMD" ]; then
+    CMD="${CLAUDE_TOOL_INPUT:-}"
+fi
 
 # Only check git commit commands
 if ! echo "$CMD" | grep -qE 'git\s+commit'; then
-    printf '{"hookSpecificOutput":{"permissionDecision":"allow"}}'
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
     exit 0
 fi
 
@@ -36,7 +42,7 @@ while IFS= read -r file; do
 done < <(find "$DOCS_DIR" -name '*.md' -type f 2>/dev/null | sort)
 
 if [ ${#MD_FILES[@]} -eq 0 ]; then
-    printf '{"hookSpecificOutput":{"permissionDecision":"allow"}}'
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
     exit 0
 fi
 
@@ -144,7 +150,7 @@ done < <(echo "$AWK_OUTPUT" | grep '^X' || true)
 
 # === Output ===
 if [ ${#ERRORS[@]} -eq 0 ]; then
-    printf '{"hookSpecificOutput":{"permissionDecision":"allow"}}'
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
     exit 0
 fi
 
@@ -161,9 +167,10 @@ ERROR_MSG="${ERROR_MSG//\"/\\\"}"
 cat <<EOF
 {
   "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
     "permissionDecisionReason": "${ERROR_MSG}"
   }
 }
 EOF
-exit 2
+exit 0
