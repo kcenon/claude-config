@@ -1,12 +1,19 @@
 # markdown-anchor-validator.ps1
-# Validates markdown anchor references before git commit
+# Validates markdown anchor references in git-staged files before commit
 # Hook Type: PreToolUse (Bash)
 # Exit codes: 0=allow, 2=deny (broken anchors found)
 # Response format: hookSpecificOutput (modern format)
 
-$ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-$CMD = $env:CLAUDE_TOOL_INPUT
+# Read hook input from stdin
+$inputJson = $input | Out-String
+try {
+    $hookData = $inputJson | ConvertFrom-Json
+    $CMD = $hookData.tool_input.command
+} catch {
+    $CMD = ""
+}
 
 # Only check git commit commands
 if ($CMD -notmatch 'git\s+commit') {
@@ -14,157 +21,133 @@ if ($CMD -notmatch 'git\s+commit') {
     exit 0
 }
 
-# Auto-detect markdown directory
-if (Test-Path 'docs/reference' -PathType Container) {
-    $DocsDir = 'docs/reference'
-} elseif (Test-Path 'docs' -PathType Container) {
-    $DocsDir = 'docs'
-} else {
-    $DocsDir = '.'
+# Get only staged markdown files
+$stagedFiles = @()
+try {
+    $staged = & git diff --cached --name-only --diff-filter=ACM 2>/dev/null
+    $stagedFiles = $staged | Where-Object { $_ -match '\.md$' } | ForEach-Object {
+        $path = $_.Trim()
+        if ($path -and (Test-Path $path -PathType Leaf)) { $path }
+    }
+} catch {
+    # git not available or not in a repo
 }
 
-# Collect markdown files
-$MdFiles = Get-ChildItem -Path $DocsDir -Filter '*.md' -File -Recurse -ErrorAction SilentlyContinue | Sort-Object FullName
-
-if (-not $MdFiles -or $MdFiles.Count -eq 0) {
+if (-not $stagedFiles -or $stagedFiles.Count -eq 0) {
     '{"hookSpecificOutput":{"permissionDecision":"allow"}}'
     exit 0
 }
 
 # Generate GitHub-style anchor from heading text
-# Algorithm: strip formatting -> lowercase -> remove non-alnum/space/hyphen (keep Unicode) -> spaces to hyphens -> collapse
 function Get-Anchor {
     param([string]$Text)
-    # Strip inline formatting: bold, italic, code, links, HTML tags
     $Text = $Text -replace '\*\*([^*]+)\*\*', '$1'
     $Text = $Text -replace '\*([^*]+)\*', '$1'
     $Text = $Text -replace '`([^`]+)`', '$1'
     $Text = $Text -replace '\[([^\]]+)\]\([^)]*\)', '$1'
     $Text = $Text -replace '<[^>]+>', ''
-    # Lowercase
     $Text = $Text.ToLower()
-    # Remove non-alnum/space/hyphen/underscore (keep Unicode letters and digits via \p{L}\p{N})
     $Text = $Text -replace '[^\p{L}\p{N}\p{Pc} -]', ''
-    # Spaces to hyphens
     $Text = $Text -replace ' ', '-'
-    # NOTE: GitHub does NOT collapse consecutive hyphens (e.g., "A / B" -> "a--b")
-    # Trim leading/trailing hyphens
     $Text = $Text.Trim('-')
     return $Text
 }
 
-# Helper: get relative path from current directory with forward slashes
-function Get-RelativePath {
-    param([string]$FullPath)
-    $rel = Resolve-Path -Relative $FullPath -ErrorAction SilentlyContinue
-    if (-not $rel) { $rel = $FullPath }
-    $rel = $rel -replace '^\.[\\/]', ''
-    $rel = $rel -replace '\\', '/'
-    return $rel
+# Helper: normalize path to forward slashes
+function Get-RelPath {
+    param([string]$Path)
+    return $Path -replace '\\', '/'
 }
 
-# === Pass 1: Build anchor registry ===
-# Key format: "filepath::anchor" -> $true
+# === Pass 1: Build anchor registry from staged files only ===
 $Anchors = @{}
 $AnchorCounts = @{}
 
-foreach ($file in $MdFiles) {
-    $relativePath = Get-RelativePath $file.FullName
+foreach ($filePath in $stagedFiles) {
+    $relPath = Get-RelPath $filePath
     $inCodeBlock = $false
-    $lines = Get-Content -Path $file.FullName -Encoding UTF8 -ErrorAction SilentlyContinue
+    $lines = Get-Content -Path $filePath -Encoding UTF8 -ErrorAction SilentlyContinue
+    if (-not $lines) { continue }
 
     foreach ($line in $lines) {
-        # Toggle code block state on ``` or ~~~ delimiters
-        if ($line -match '^\s*(```|~~~)') {
-            $inCodeBlock = -not $inCodeBlock
-            continue
-        }
+        if ($line -match '^\s*(```|~~~)') { $inCodeBlock = -not $inCodeBlock; continue }
         if ($inCodeBlock) { continue }
 
-        # Match heading lines (# through ######)
         if ($line -match '^#{1,6}\s+(.+)') {
             $heading = $Matches[1] -replace '[\s#]+$', ''
             $anchor = Get-Anchor $heading
             if ([string]::IsNullOrEmpty($anchor)) { continue }
 
-            # Handle duplicate anchors (GitHub appends -1, -2, etc.)
-            $countKey = "${relativePath}::${anchor}"
+            $countKey = "${relPath}::${anchor}"
             if ($AnchorCounts.ContainsKey($countKey)) {
                 $AnchorCounts[$countKey]++
-                $Anchors["${relativePath}::${anchor}-$($AnchorCounts[$countKey])"] = $true
+                $Anchors["${relPath}::${anchor}-$($AnchorCounts[$countKey])"] = $true
             } else {
                 $AnchorCounts[$countKey] = 0
-                $Anchors["${relativePath}::${anchor}"] = $true
+                $Anchors["${relPath}::${anchor}"] = $true
             }
         }
     }
 }
 
-# === Pass 2: Check references ===
+# === Pass 2: Check intra-file references in staged files only ===
 $Errors = [System.Collections.Generic.List[string]]::new()
 
-foreach ($file in $MdFiles) {
-    $relativePath = Get-RelativePath $file.FullName
+foreach ($filePath in $stagedFiles) {
+    $relPath = Get-RelPath $filePath
     $inCodeBlock = $false
-    $lines = Get-Content -Path $file.FullName -Encoding UTF8 -ErrorAction SilentlyContinue
+    $lines = Get-Content -Path $filePath -Encoding UTF8 -ErrorAction SilentlyContinue
+    if (-not $lines) { continue }
     $lineNum = 0
 
     foreach ($line in $lines) {
         $lineNum++
-
-        # Toggle code block state
-        if ($line -match '^\s*(```|~~~)') {
-            $inCodeBlock = -not $inCodeBlock
-            continue
-        }
+        if ($line -match '^\s*(```|~~~)') { $inCodeBlock = -not $inCodeBlock; continue }
         if ($inCodeBlock) { continue }
 
         # Intra-file references: ](#anchor)
         $intraRefs = [regex]::Matches($line, '\]\(#([^)]+)\)')
         foreach ($m in $intraRefs) {
             $anchor = $m.Groups[1].Value
-            $key = "${relativePath}::${anchor}"
+            $key = "${relPath}::${anchor}"
             if (-not $Anchors.ContainsKey($key)) {
-                $fileName = Split-Path $relativePath -Leaf
+                $fileName = Split-Path $relPath -Leaf
                 $Errors.Add("${fileName}:${lineNum}: #${anchor}")
             }
         }
 
-        # Inter-file references: ](path.md#anchor) — excludes URLs (no colon before .md)
+        # Inter-file references to staged files: ](path.md#anchor)
         $interRefs = [regex]::Matches($line, '\]\(([^:)#]*\.md)#([^)]+)\)')
         foreach ($m in $interRefs) {
             $refFile = $m.Groups[1].Value -replace '^\.\/', ''
             $anchor = $m.Groups[2].Value
 
-            # Resolve relative to current file's directory
-            $dir = Split-Path $relativePath -Parent
-            if ([string]::IsNullOrEmpty($dir)) {
-                $target = $refFile
-            } else {
-                $target = "${dir}/${refFile}"
-            }
+            $dir = Split-Path $relPath -Parent
+            $target = if ([string]::IsNullOrEmpty($dir)) { $refFile } else { "${dir}/${refFile}" }
             $target = $target -replace '\\', '/' -replace '/\./', '/'
 
-            $key = "${target}::${anchor}"
-            if (-not $Anchors.ContainsKey($key)) {
-                $fileName = Split-Path $relativePath -Leaf
-                $Errors.Add("${fileName}:${lineNum}: ${refFile}#${anchor}")
+            # Only validate if target file is also staged
+            if ($Anchors.ContainsKey("${target}::placeholder") -or
+                ($stagedFiles | Where-Object { (Get-RelPath $_) -eq $target })) {
+                $key = "${target}::${anchor}"
+                if (-not $Anchors.ContainsKey($key)) {
+                    $fileName = Split-Path $relPath -Leaf
+                    $Errors.Add("${fileName}:${lineNum}: ${refFile}#${anchor}")
+                }
             }
         }
     }
 }
 
-# === Output ===
 if ($Errors.Count -eq 0) {
     '{"hookSpecificOutput":{"permissionDecision":"allow"}}'
     exit 0
 }
 
-# Build error message
-$errorList = ($Errors | ForEach-Object { "  - $_" }) -join '\n'
-$reason = "Broken markdown anchor(s) found:\n${errorList}\n\nFix the anchors or update the references before committing."
-# Escape double quotes for JSON
-$reason = $reason -replace '"', '\"'
+$errorList = ($Errors | Select-Object -First 20 | ForEach-Object { "  - $_" }) -join '\n'
+$more = if ($Errors.Count -gt 20) { "\n  ... and $($Errors.Count - 20) more" } else { "" }
+$reason = "Broken markdown anchor(s) in staged files:\n${errorList}${more}\n\nFix before committing."
+$reason = $reason -replace '\\', '\\\\' -replace '"', '\"'
 
 @"
 {

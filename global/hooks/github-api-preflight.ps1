@@ -4,7 +4,14 @@
 # Exit codes: 0=allow (always, warning only)
 # Response format: hookSpecificOutput (modern format)
 
-$CMD = $env:CLAUDE_TOOL_INPUT
+# Read hook input from stdin
+$inputJson = $input | Out-String
+try {
+    $hookData = $inputJson | ConvertFrom-Json
+    $CMD = $hookData.tool_input.command
+} catch {
+    $CMD = ""
+}
 
 # Only check GitHub-related commands
 if ($CMD -notmatch '(gh |github\.com|api\.github\.com)') {

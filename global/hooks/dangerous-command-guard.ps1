@@ -4,7 +4,14 @@
 # Exit codes: 0=allow, 2=block
 # Response format: hookSpecificOutput (modern format)
 
-$CMD = $env:CLAUDE_TOOL_INPUT
+# Read hook input from stdin
+$inputJson = $input | Out-String
+try {
+    $hookData = $inputJson | ConvertFrom-Json
+    $CMD = $hookData.tool_input.command
+} catch {
+    $CMD = ""
+}
 
 function Deny-Response {
     param([string]$Reason)

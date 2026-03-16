@@ -4,15 +4,25 @@
 # Exit codes: 0=allow, 2=block
 # Response format: hookSpecificOutput (modern format)
 
-$FILE = $env:CLAUDE_FILE_PATH
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+# Read hook input from stdin
+$inputJson = $input | Out-String
+try {
+    $hookData = $inputJson | ConvertFrom-Json
+    $FILE = $hookData.tool_input.file_path
+} catch {
+    $FILE = ""
+}
 
 function Deny-Response {
     param([string]$Reason)
+    $safeReason = $Reason -replace '\\', '\\\\' -replace '"', '\"'
     @"
 {
   "hookSpecificOutput": {
     "permissionDecision": "deny",
-    "permissionDecisionReason": "$Reason"
+    "permissionDecisionReason": "$safeReason"
   }
 }
 "@
@@ -20,13 +30,7 @@ function Deny-Response {
 }
 
 function Allow-Response {
-    @'
-{
-  "hookSpecificOutput": {
-    "permissionDecision": "allow"
-  }
-}
-'@
+    '{"hookSpecificOutput":{"permissionDecision":"allow"}}'
     exit 0
 }
 

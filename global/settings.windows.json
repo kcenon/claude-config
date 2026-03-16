@@ -44,9 +44,13 @@
 
   "statusLine": {
     "type": "command",
-    "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.claude\\scripts\\statusline-command.ps1')\""
+    "command": "pwsh.exe -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.claude\\scripts\\statusline-command.ps1')\""
   },
   "alwaysThinkingEnabled": true,
+
+  "autoUpdatesChannel": "latest",
+  "skipDangerousModePermissionPrompt": true,
+  "effortLevel": "high",
 
   "hooks": {
     "PreToolUse": [
@@ -77,11 +81,6 @@
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/markdown-anchor-validator.ps1",
             "timeout": 30
-          },
-          {
-            "type": "prompt",
-            "prompt": "You are a git commit message validator. Examine the Bash command input. If the command is NOT a git commit command (does not contain 'git commit'), respond ONLY with: {\"decision\": \"allow\"}. If it IS a git commit with a -m flag, extract the commit message and validate against ALL these rules: 1) Format must be 'type(scope): description' or 'type: description' where type is one of: feat, fix, docs, style, refactor, perf, test, build, ci, chore, security. 2) Description must start with lowercase letter, use imperative mood, have no trailing period, and be meaningful (not just 'update', 'fix', 'changes', 'wip'). 3) Must NOT contain AI/Claude attribution (Claude, Anthropic, AI-assisted, Co-Authored-By, Generated with). 4) Must NOT contain emojis. 5) Must be in English. If ALL rules pass, respond ONLY with: {\"decision\": \"allow\"}. If ANY rule fails, respond ONLY with: {\"decision\": \"block\", \"reason\": \"Commit message validation failed: <specific violation>\"}.",
-            "timeout": 10
           }
         ]
       }
