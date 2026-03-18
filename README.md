@@ -610,6 +610,8 @@ Specialized agents in `.claude/agents/` provide focused assistance for specific 
 | `code-reviewer` | Comprehensive code review | sonnet |
 | `documentation-writer` | Technical documentation | sonnet |
 | `refactor-assistant` | Safe code refactoring | sonnet |
+| `codebase-analyzer` | Codebase architecture and pattern analysis | sonnet |
+| `structure-explorer` | Project directory structure mapping | haiku |
 
 ### Agent Configuration
 
@@ -626,6 +628,66 @@ allowed-tools:
 temperature: 0.3
 ---
 ```
+
+---
+
+## Agent Teams
+
+Agent Teams enable multiple Claude instances to work in parallel on complex tasks, coordinating via a shared task list and direct messaging.
+
+> **Status**: Experimental feature. Requires feature flag to enable.
+
+### Quick Start
+
+1. Enable the feature flag (already included in this config's `settings.json`):
+   ```json
+   {
+     "env": { "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1" },
+     "teammateMode": "in-process"
+   }
+   ```
+
+2. Launch a team in natural language:
+   ```
+   Create a team to implement the notification system:
+   - Teammate "backend": API endpoints
+   - Teammate "frontend": UI components
+   - Teammate "tests": Integration tests
+   ```
+
+### Display Modes
+
+| Mode | Behavior | CLI Flag |
+|------|----------|----------|
+| `auto` | Split panes if tmux/iTerm2 available, otherwise in-process | `--teammate-mode auto` |
+| `in-process` | All teammates in same terminal | `--teammate-mode in-process` |
+| `tmux` | Split-pane display via tmux | `--teammate-mode tmux` |
+
+### Keyboard Shortcuts (In-Process Mode)
+
+| Shortcut | Action |
+|----------|--------|
+| `Shift+Down` | Cycle through teammates |
+| `Ctrl+T` | Access shared task list |
+| `Enter` | Send message to focused teammate |
+| `Escape` | Return focus to lead agent |
+
+### Team Hooks
+
+| Hook | Purpose | Decision Control |
+|------|---------|-----------------|
+| `TeammateIdle` | Fires when teammate finishes and goes idle | Exit code 2 blocks idle |
+| `TaskCompleted` | Fires when teammate completes a task | Exit code 2 blocks completion |
+
+### Best Practices
+
+- Assign distinct file sets to each teammate to avoid conflicts
+- Include context (file paths, issue numbers) in spawn prompts
+- Use plan approval for teammates making risky changes
+- Keep teams to 2-3 teammates for optimal coordination
+- Use `Ctrl+T` to track progress across all teammates
+
+For full configuration details, see `rules/workflow/reference/agent-teams.md`.
 
 ---
 

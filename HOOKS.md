@@ -83,6 +83,53 @@ Hooks are user-defined commands that automatically execute during specific Claud
 - Returns JSON with `permissionDecision: "deny"` listing broken anchors
 - Timeout: 30 seconds
 
+### 6. TeammateIdle (TeammateIdle)
+
+**Purpose**: Fires when a teammate finishes its turn and is about to go idle. Use this to enforce quality gates or log teammate activity.
+
+**Hook input** (JSON via stdin):
+```json
+{
+  "session_id": "abc123",
+  "hook_event_name": "TeammateIdle",
+  "teammate_name": "researcher",
+  "team_name": "my-project",
+  "cwd": "/path/to/project",
+  "permission_mode": "default"
+}
+```
+
+**Decision control**: Uses **exit code only** (not JSON `permissionDecision`):
+
+| Exit Code | Effect |
+|-----------|--------|
+| `0` | Allow teammate to go idle |
+| `2` | Block idle — stderr message sent as feedback to teammate |
+
+### 7. TaskCompleted (TaskCompleted)
+
+**Purpose**: Fires when a teammate completes a task from the shared task list. Use this to enforce quality gates before accepting task completion.
+
+**Hook input** (JSON via stdin):
+```json
+{
+  "session_id": "abc123",
+  "hook_event_name": "TaskCompleted",
+  "task_id": "task-456",
+  "task_subject": "Implement user validation",
+  "teammate_name": "backend",
+  "team_name": "my-project",
+  "cwd": "/path/to/project"
+}
+```
+
+**Decision control**: Uses **exit code only** (not JSON `permissionDecision`):
+
+| Exit Code | Effect |
+|-----------|--------|
+| `0` | Accept task completion |
+| `2` | Block completion — stderr message sent as feedback to teammate |
+
 ### Hook Response Format
 
 All PreToolUse hooks must output JSON to stdout and exit with code 0:

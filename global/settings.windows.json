@@ -47,6 +47,7 @@
     "command": "pwsh.exe -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.claude\\scripts\\statusline-command.ps1')\""
   },
   "alwaysThinkingEnabled": true,
+  "teammateMode": "in-process",
 
   "autoUpdatesChannel": "latest",
   "skipDangerousModePermissionPrompt": true,
@@ -243,7 +244,8 @@
   "env": {
     "MAX_THINKING_TOKENS": "8000",
     "MAX_MCP_OUTPUT_TOKENS": "50000",
-    "ENABLE_TOOL_SEARCH": "auto:10"
+    "ENABLE_TOOL_SEARCH": "auto:10",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
 
   "permissions": {

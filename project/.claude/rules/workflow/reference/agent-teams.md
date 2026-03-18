@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Agent Teams and Parallel Workflow Patterns
 
-> **Version**: 1.0.0
+> **Version**: 1.1.0
 > **Parent**: [GitHub PR Guidelines](../github-pr-5w1h.md)
 > **Purpose**: Decision framework for Claude Code parallel execution strategies
 > **Loading**: Excluded from default context via `.claudeignore`. Load with `@load: reference/agent-teams`.
@@ -50,10 +50,18 @@ Add to `settings.json`:
 
 ### Display Mode
 
+Set in `settings.json` or via CLI flag:
+
 ```json
 {
   "teammateMode": "auto"
 }
+```
+
+```bash
+# CLI override (takes precedence over settings.json)
+claude --teammate-mode tmux
+claude --teammate-mode in-process
 ```
 
 | Mode | Behavior | Requirements |
@@ -117,12 +125,38 @@ Ask the researcher teammate to shut down
 Clean up the team
 ```
 
+### Plan Approval Workflow
+
+Teammates can be required to get approval before implementing:
+
+```
+Spawn a teammate to refactor the auth module.
+Require plan approval before making any changes.
+```
+
+When plan approval is required:
+1. Teammate analyzes the codebase and drafts a plan
+2. Teammate sends the plan to the lead for review
+3. Lead approves, rejects, or requests modifications
+4. Teammate proceeds only after approval
+
+This prevents teammates from making large, uncoordinated changes.
+
+### Team Config Storage
+
+| Path | Purpose |
+|------|---------|
+| `~/.claude/teams/` | Saved team configurations for reuse |
+| `~/.claude/tasks/` | Shared task list state between teammates |
+
 ### Keyboard Shortcuts (In-Process Mode)
 
 | Shortcut | Action |
 |----------|--------|
 | `Shift+Down` | Cycle through teammates |
 | `Ctrl+T` | Access shared task list |
+| `Enter` | Send message to currently focused teammate |
+| `Escape` | Return focus to lead agent |
 
 ## TeammateIdle Hook
 
@@ -181,6 +215,35 @@ exit 0  # Allow idle
 ]
 ```
 
+## TaskCompleted Hook
+
+Fires when a teammate completes a task from the shared task list.
+
+### Hook Input
+
+```json
+{
+  "session_id": "abc123",
+  "hook_event_name": "TaskCompleted",
+  "task_id": "task-456",
+  "task_subject": "Implement user validation",
+  "teammate_name": "backend",
+  "team_name": "my-project",
+  "cwd": "/path/to/project"
+}
+```
+
+### Decision Control
+
+Uses **exit code only** (not JSON decision control):
+
+| Exit Code | Effect |
+|-----------|--------|
+| `0` | Accept task completion |
+| `2` | Block completion — stderr message sent as feedback to teammate |
+
+Exit code 2 is useful for enforcing quality gates (e.g., requiring tests to pass before a task is considered complete).
+
 ## Context Inheritance
 
 | Inherited | Not Inherited |
@@ -231,6 +294,41 @@ Create a team to investigate the intermittent timeout issue:
 - Teammate "logs": Correlate error patterns across log files
 ```
 
+## Best Practices
+
+1. **Wait for teammates to finish before reviewing their work** — checking intermediate state leads to confusion
+2. **Avoid file conflicts** — assign distinct file sets to each teammate (e.g., backend vs. frontend)
+3. **Include context in spawn prompts** — teammates start with fresh conversations, so provide relevant file paths, issue numbers, and requirements
+4. **Use plan approval for risky changes** — require approval when teammates modify shared code or architecture
+5. **Keep teams small** — 2-3 teammates is optimal; beyond 5, coordination overhead dominates
+6. **Assign clear ownership** — each task should have exactly one teammate responsible
+7. **Use the shared task list** — `Ctrl+T` to track progress across all teammates
+
+## Troubleshooting
+
+### Teammates not spawning
+
+1. Verify the feature flag: `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in `settings.json` `env`
+2. Check `teammateMode` setting — `tmux` mode requires tmux to be installed
+3. Restart Claude Code after changing settings
+
+### Tmux panes not splitting
+
+- Verify tmux is installed: `tmux -V`
+- Ensure terminal supports split panes (not supported in VS Code integrated terminal, Windows Terminal, Ghostty)
+- Fall back to `in-process` mode: `claude --teammate-mode in-process`
+
+### Task list out of sync
+
+- Task status may lag; teammates can manually update task status
+- Use `Ctrl+T` to view the latest shared task list state
+
+### Teammate stuck or unresponsive
+
+- Send a direct message to the teammate to check its status
+- If unresponsive, ask the teammate to shut down and respawn a new one
+- As a last resort, clean up the entire team and start fresh
+
 ---
 
-*Reference document for parallel workflow configuration. Version 1.0.0*
+*Reference document for parallel workflow configuration. Version 1.1.0*
