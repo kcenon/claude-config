@@ -104,6 +104,18 @@ install_global() {
     cp "$INSTALL_DIR/global/git-identity.md" "$CLAUDE_DIR/"
     cp "$INSTALL_DIR/global/token-management.md" "$CLAUDE_DIR/"
 
+    # tmux 설정 설치
+    if [ -f "$INSTALL_DIR/global/tmux.conf" ]; then
+        if [ -f "$HOME/.tmux.conf" ]; then
+            local backup_name="$HOME/.tmux.conf.backup_$(date +%Y%m%d_%H%M%S)"
+            cp "$HOME/.tmux.conf" "$backup_name"
+            info "기존 .tmux.conf 백업: $backup_name"
+        fi
+        cp "$INSTALL_DIR/global/tmux.conf" "$HOME/.tmux.conf"
+        mkdir -p "$HOME/.local/tmux_logs"
+        success "tmux 설정 설치 완료"
+    fi
+
     success "글로벌 설정 설치 완료"
 }
 
