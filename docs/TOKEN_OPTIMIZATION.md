@@ -275,13 +275,15 @@ docs/
 
 ### Real-World Results
 
-Tested on production system:
+Measured on claude-config project (2026-03-21):
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Initial tokens | 56,058 | ~18,000 | **68% reduction** |
-| Session startup | ~8s | ~3s | **62% faster** |
-| Monthly cost (50 sessions) | $6.90 | $2.25 | **$4.65 saved** |
+| Metric | Before (no frontmatter) | After (`alwaysApply: false`) | Improvement |
+|--------|-------------------------|------------------------------|-------------|
+| Always-loaded rules | 11 files, ~105KB (~26,200 tokens) | 5 files, ~4KB (~1,010 tokens) | **96% reduction** |
+| Initial load (rules + config) | ~122KB (~30,500 tokens) | ~17KB (~4,300 tokens) | **86% reduction** |
+| Conditional rules | 0 files | 28 files (~208KB, on demand) | Loaded only when relevant |
+
+**Key finding**: `paths` frontmatter alone does NOT prevent loading. `alwaysApply: false` is required alongside `paths` for conditional loading to work.
 
 ## Using Reference Documents
 

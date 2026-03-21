@@ -141,19 +141,20 @@ See [plugin-lite/README.md](plugin-lite/README.md) for more details.
 
 ## Token Optimization
 
-**NEW**: Reduce initial token usage by 60-70% using `.claudeignore` files.
+Reduce initial token usage by combining `alwaysApply` frontmatter with `.claudeignore` files.
 
 ### Quick Summary
 
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
-| Initial tokens | ~50,000 | ~15,000-20,000 | **60-70% reduction** |
-| Session startup | ~8s | ~3s | **62% faster** |
-| Monthly cost (50 sessions) | $6.90 | $2.25 | **$4.65 saved** |
+| Initial tokens (rules + config) | ~30,500 | ~4,300 | **86% reduction** |
+| Always-loaded rules | 11 files (105KB) | 5 files (4KB) | **96% reduction** |
+| Conditional rules | 0 files | 28 files (208KB) | Loaded on demand |
 
 ### How It Works
 
-`.claudeignore` files exclude unnecessary content from initial context:
+`alwaysApply: false` frontmatter with `paths` patterns ensures rules load only when
+relevant files are accessed. `.claudeignore` files exclude reference documents from context:
 - Reference documents (load on demand)
 - Cache directories (duplicates)
 - Plugin marketplace (rarely used)

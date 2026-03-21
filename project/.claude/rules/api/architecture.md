@@ -1,4 +1,5 @@
 ---
+alwaysApply: false
 paths:
   - "**/api/**"
   - "**/routes/**"

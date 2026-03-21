@@ -1,4 +1,5 @@
 ---
+alwaysApply: false
 paths: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.py", "**/*.java", "**/*.go", "**/*.rs"]
 ---
 

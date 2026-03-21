@@ -1,4 +1,5 @@
 ---
+alwaysApply: false
 paths:
   - "**/CMakeLists.txt"
   - "**/*.cmake"

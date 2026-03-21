@@ -954,7 +954,7 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 - **설정 예제**: `global/` 및 `project/` 디렉토리 참조
 - **커스텀 확장 가이드**: [docs/CUSTOM_EXTENSIONS.md](docs/CUSTOM_EXTENSIONS.md) - 공식 기능과 커스텀 기능 구분
-- **토큰 최적화**: [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md) - 초기 토큰 사용량 60-70% 절감
+- **토큰 최적화**: [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md) - 초기 토큰 사용량 86% 절감 (30,500 → 4,300 tokens)
 - **문제 해결**: 각 스크립트의 에러 메시지 확인
 
 ---
