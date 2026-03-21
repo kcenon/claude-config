@@ -1,7 +1,7 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
-  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.4.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.5.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
 </p>
@@ -131,7 +131,7 @@ claude --plugin-dir ./plugin-lite
 
 | Method | What You Get | Size |
 |--------|-------------|------|
-| Full plugin | 7 skills, hooks, comprehensive config | ~360KB |
+| Full plugin | 7 skills, 5 agents, hooks, comprehensive config | ~384KB |
 | **Lite plugin** | Behavioral guardrails only | ~5KB |
 | Bootstrap script | Full system configuration | Full repo |
 
@@ -227,81 +227,107 @@ claude_config_backup/
 │   ├── settings.json           # Hook settings (macOS/Linux)
 │   ├── settings.windows.json   # Hook settings (Windows PowerShell)
 │   ├── commit-settings.md      # Commit/PR attribution policy
-│   ├── conversation-language.md # Conversation language settings
-│   ├── git-identity.md         # Git user information
-│   ├── token-management.md     # Token management policy
-│   └── commands/               # Global slash commands
-│       ├── _policy.md          # Shared policies for all commands
-│       ├── branch-cleanup.md   # /branch-cleanup command
-│       ├── issue-create.md     # /issue-create command
-│       ├── issue-work.md       # /issue-work command
-│       ├── pr-work.md          # /pr-work command
-│       └── release.md          # /release command
+│   ├── VERSION_HISTORY.md      # Global config version history
+│   ├── tmux.conf               # tmux auto-logging configuration
+│   ├── ccstatusline/           # Status line configuration
+│   │   └── settings.json      # Status line display settings
+│   ├── commands/               # Global command policies
+│   │   └── _policy.md         # Shared policies for all commands
+│   ├── hooks/                  # Hook scripts (macOS + Windows)
+│   │   ├── sensitive-file-guard.sh/.ps1
+│   │   ├── dangerous-command-guard.sh/.ps1
+│   │   ├── github-api-preflight.sh/.ps1
+│   │   ├── markdown-anchor-validator.sh/.ps1
+│   │   ├── prompt-validator.sh/.ps1
+│   │   ├── session-logger.sh/.ps1
+│   │   ├── tool-failure-logger.sh/.ps1
+│   │   ├── subagent-logger.sh/.ps1
+│   │   ├── task-completed-logger.sh/.ps1
+│   │   ├── config-change-logger.sh/.ps1
+│   │   ├── pre-compact-snapshot.sh/.ps1
+│   │   ├── worktree-create.sh/.ps1
+│   │   ├── worktree-remove.sh/.ps1
+│   │   └── cleanup.sh/.ps1
+│   ├── scripts/                # Utility scripts
+│   │   ├── statusline-command.sh/.ps1
+│   │   └── weekly-usage.sh
+│   └── skills/                 # Global skills (user-invocable)
+│       ├── branch-cleanup/     # Clean merged/stale branches
+│       ├── doc-review/         # Markdown document review
+│       ├── implement-all-levels/ # Enforce complete implementation
+│       ├── issue-create/       # Create GitHub issues (5W1H)
+│       ├── issue-work/         # GitHub issue workflow automation
+│       ├── pr-work/            # Fix failed CI/CD for PRs
+│       └── release/            # Automated release with changelog
 │
 ├── project/                     # Project settings backup
 │   ├── CLAUDE.md               # Project main configuration
 │   ├── CLAUDE.local.md.template # Local settings template (not committed)
+│   ├── VERSION_HISTORY.md      # Project config version history
 │   ├── .mcp.json               # MCP server configuration template
+│   ├── .mcp.json.example       # MCP configuration example
+│   ├── claude-guidelines/      # Standalone guidelines (no .claude dependency)
 │   └── .claude/
 │       ├── settings.json       # Hook settings (auto-formatting)
 │       ├── settings.local.json.template  # Local settings template
 │       ├── rules/              # Consolidated guideline modules (auto-loaded)
 │       │   ├── coding/         # Coding standards
-│       │   │   ├── general.md
-│       │   │   ├── quality.md
+│       │   │   ├── standards.md
+│       │   │   ├── implementation-standards.md
 │       │   │   ├── error-handling.md
-│       │   │   ├── concurrency.md
-│       │   │   ├── memory.md
-│       │   │   └── performance.md
+│       │   │   ├── safety.md
+│       │   │   ├── performance.md
+│       │   │   ├── cpp-specifics.md
+│       │   │   └── reference/anti-patterns.md
 │       │   ├── api/            # API & Architecture
 │       │   │   ├── api-design.md
 │       │   │   ├── architecture.md
-│       │   │   ├── logging.md
 │       │   │   ├── observability.md
 │       │   │   └── rest-api.md
 │       │   ├── workflow/       # Workflow & GitHub guidelines
 │       │   │   ├── git-commit-format.md
 │       │   │   ├── github-issue-5w1h.md
 │       │   │   ├── github-pr-5w1h.md
-│       │   │   └── reference/  # Label definitions, automation patterns
+│       │   │   ├── build-verification.md
+│       │   │   ├── ci-resilience.md
+│       │   │   ├── performance-analysis.md
+│       │   │   ├── session-resume.md
+│       │   │   └── reference/  # Label definitions, automation, agent teams
 │       │   ├── core/           # Core settings
 │       │   │   ├── environment.md
 │       │   │   ├── communication.md
-│       │   │   ├── problem-solving.md
-│       │   │   └── common-commands.md
+│       │   │   └── principles.md
 │       │   ├── project-management/
 │       │   │   ├── build.md
 │       │   │   ├── testing.md
 │       │   │   └── documentation.md
 │       │   ├── operations/
-│       │   │   ├── monitoring.md
-│       │   │   └── cleanup.md
-│       │   ├── coding.md       # Coding overview
-│       │   ├── testing.md      # Testing overview
-│       │   ├── security.md     # Security guidelines
-│       │   ├── documentation.md
-│       │   └── conditional-loading.md
+│       │   │   └── ops.md
+│       │   ├── tools/
+│       │   │   └── gh-cli-scripts.md
+│       │   └── security.md     # Security guidelines
 │       ├── commands/           # Custom slash commands
+│       │   ├── _policy.md
 │       │   ├── pr-review.md
 │       │   ├── code-quality.md
 │       │   └── git-status.md
 │       ├── agents/             # Specialized agent configurations
 │       │   ├── code-reviewer.md
+│       │   ├── codebase-analyzer.md
 │       │   ├── documentation-writer.md
-│       │   └── refactor-assistant.md
+│       │   ├── refactor-assistant.md
+│       │   └── structure-explorer.md
 │       └── skills/             # Claude Code Skills
 │           ├── coding-guidelines/
-│           │   └── SKILL.md
 │           ├── security-audit/
-│           │   └── SKILL.md
 │           ├── performance-review/
-│           │   └── SKILL.md
 │           ├── api-design/
-│           │   └── SKILL.md
 │           ├── project-workflow/
-│           │   └── SKILL.md
-│           └── documentation/
-│               └── SKILL.md
+│           ├── documentation/
+│           ├── ci-debugging/
+│           ├── code-quality/   # User-invocable
+│           ├── git-status/     # User-invocable
+│           └── pr-review/      # User-invocable
 │
 ├── scripts/                     # Automation scripts
 │   ├── install.sh              # Install to new system (macOS/Linux)
@@ -309,7 +335,16 @@ claude_config_backup/
 │   ├── backup.sh               # Backup current settings
 │   ├── sync.sh                 # Sync settings
 │   ├── verify.sh               # Verify backup integrity
-│   └── validate_skills.sh      # Validate SKILL.md files
+│   ├── validate_skills.sh      # Validate SKILL.md files
+│   └── gh/                     # GitHub CLI helper scripts
+│       ├── cleanup_branches.sh
+│       ├── gh_issue_create.sh
+│       ├── gh_issue_comment.sh
+│       ├── gh_issue_read.sh
+│       ├── gh_issues.sh
+│       ├── gh_pr_create.sh
+│       ├── gh_pr_comment.sh
+│       └── gh_pr_read.sh
 │
 ├── hooks/                       # Git hooks
 │   ├── pre-commit              # Pre-commit skill validation
@@ -319,9 +354,17 @@ claude_config_backup/
 │   └── workflows/
 │       └── validate-skills.yml # CI skill validation
 │
+├── docs/                        # Design docs and guides
+│   ├── TOKEN_OPTIMIZATION.md
+│   ├── OPTIMIZATION_DISCOVERIES.md
+│   ├── CUSTOM_EXTENSIONS.md
+│   ├── ad-sdlc-integration.md
+│   └── design/                 # Architecture design docs
+│
 ├── plugin/                      # Claude Code Plugin (Beta)
 │   ├── .claude-plugin/
 │   │   └── plugin.json         # Plugin manifest
+│   ├── agents/                 # Bundled agent definitions
 │   ├── skills/                 # Standalone skills (no symlinks)
 │   └── hooks/                  # Plugin hooks
 │
@@ -345,30 +388,42 @@ claude_config_backup/
 
 ## Hook Settings
 
-This configuration includes automated Hook settings for enhanced security and productivity.
+This configuration includes 14 hook scripts (each with macOS `.sh` and Windows `.ps1` variants) for security, observability, and productivity.
 
-### Global Hooks (`global/settings.json`)
+### Security Hooks
 
 | Hook | Event | Description |
 |------|-------|-------------|
 | **Sensitive File Protection** | PreToolUse | Blocks access to `.env`, `.pem`, `.key`, `secrets/` |
 | **Dangerous Command Block** | PreToolUse | Blocks `rm -rf /`, `chmod 777`, remote script execution |
+| **GitHub API Preflight** | PreToolUse | Validates GitHub API calls before execution |
+| **Prompt Validator** | UserPromptSubmit | Warns when dangerous operations (delete all, drop database) are requested |
+
+### Observability Hooks
+
+| Hook | Event | Description |
+|------|-------|-------------|
 | **Session Logging** | SessionStart/End | Logs session start/end times to `~/.claude/session.log` |
+| **Tool Failure Logger** | PostToolUse | Logs tool execution failures for debugging |
+| **Subagent Logger** | SubagentStart/Stop | Tracks subagent lifecycle events |
+| **Task Completed Logger** | TaskCompleted | Logs when teammates complete tasks |
+| **Config Change Logger** | ConfigChange | Tracks configuration changes |
+
+### Workflow Hooks
+
+| Hook | Event | Description |
+|------|-------|-------------|
+| **Markdown Anchor Validator** | PostToolUse | Validates markdown anchors after edits |
+| **Pre-Compact Snapshot** | PreCompact | Preserves context before auto-compaction |
+| **Worktree Create** | WorktreeCreate | Sets up worktree environment |
+| **Worktree Remove** | WorktreeRemove | Cleans up worktree environment |
 | **Temp File Cleanup** | SessionEnd | Removes old `/tmp/claude_*` files |
-| **Dangerous Operation Warning** | UserPromptSubmit | Warns when dangerous operations (delete all, drop database) are requested |
-| **Stop Logging** | Stop | Logs when Claude Code operations are stopped |
 
 ### Project Hooks (`project/.claude/settings.json`)
 
 | Hook | Event | Description |
 |------|-------|-------------|
 | **Auto Formatting** | PostToolUse | Runs language-specific formatters after file edits |
-
-### Settings Options
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| `alwaysThinkingEnabled` | Enable extended thinking for complex tasks | `true` |
 
 **Supported Formatters:**
 - Python: `black`, `isort`
@@ -544,21 +599,23 @@ Custom slash commands in `.claude/commands/` provide shortcuts for common tasks.
 
 ---
 
-## Global Commands
+## Global Skills
 
-Global commands are available across all projects when installed to `~/.claude/commands/`.
+Global skills are available across all projects when installed to `~/.claude/skills/`. These were migrated from commands to skills in v1.5.0 for better context isolation, model override, and adaptive execution support.
 
-### Available Global Commands
+### Available Global Skills
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/branch-cleanup` | Clean merged and stale branches | `/branch-cleanup --dry-run` |
+| Skill | Description | Example |
+|-------|-------------|---------|
+| `/branch-cleanup` | Clean merged and stale branches | `/branch-cleanup [project] --dry-run` |
 | `/release` | Create release with auto-generated changelog | `/release 1.2.0` |
 | `/issue-create` | Create GitHub issues with 5W1H framework | `/issue-create myproject --type bug` |
 | `/issue-work` | Automate GitHub issue workflow | `/issue-work myproject` |
-| `/pr-work` | Analyze and fix failed CI/CD for PRs | `/pr-work myproject 42` |
+| `/pr-work` | Analyze and fix failed CI/CD for PRs | `/pr-work 42` |
+| `/doc-review` | Markdown document review (anchors, accuracy, SSOT) | `/doc-review docs/` |
+| `/implement-all-levels` | Enforce complete implementation of all tiers | `/implement-all-levels feature` |
 
-### Command Details
+### Skill Details
 
 #### `/branch-cleanup`
 ```bash
@@ -592,10 +649,24 @@ Global commands are available across all projects when installed to `~/.claude/c
 
 #### `/pr-work`
 ```bash
-/pr-work <project-name> <pr-number> [--org <organization>]
+/pr-work <pr-number> [--org <organization>]
 ```
 - Analyzes failed CI/CD workflows
 - Provides fix suggestions and implementation
+
+#### `/doc-review`
+```bash
+/doc-review [docs-directory] [--scope anchors|accuracy|ssot|all] [--fix]
+```
+- Validates markdown anchors, accuracy, and SSOT compliance
+- `--fix`: Auto-fix detected issues
+
+#### `/implement-all-levels`
+```bash
+/implement-all-levels <feature-description>
+```
+- Prevents partial implementations of tiered features
+- Enforces complete implementation across all difficulty levels
 
 ---
 
@@ -717,7 +788,9 @@ The `.mcp.json` template provides common MCP server configurations.
 
 This configuration includes Claude Code Skills for auto-discovery of guidelines based on task context.
 
-### Available Skills
+### Project Skills (Context-Based)
+
+Auto-triggered skills loaded from `.claude/skills/` based on task context:
 
 | Skill | Description | Trigger Keywords |
 |-------|-------------|------------------|
@@ -727,13 +800,41 @@ This configuration includes Claude Code Skills for auto-discovery of guidelines 
 | **api-design** | API design, architecture, logging, observability | REST, GraphQL, API, microservice, endpoint, SOLID |
 | **project-workflow** | Workflow, git commits, issues, PRs, testing | commit, PR, issue, build, test, workflow, git |
 | **documentation** | README, API docs, comments, cleanup | document, README, comment, changelog, format, lint |
+| **ci-debugging** | CI/CD failure diagnosis and resolution | CI fail, GitHub Actions, TLS, pipeline |
+
+### Project Skills (User-Invocable)
+
+Invoked explicitly with `/skill-name` commands:
+
+| Skill | Description | Usage |
+|-------|-------------|-------|
+| **code-quality** | Code quality analysis, complexity, SOLID | `/code-quality <file-or-directory>` |
+| **git-status** | Git status with actionable insights | `/git-status` |
+| **pr-review** | Comprehensive PR review | `/pr-review <pr-number>` |
+
+### Global Skills (User-Invocable)
+
+Installed to `~/.claude/skills/`, available across all projects:
+
+| Skill | Description | Usage |
+|-------|-------------|-------|
+| **branch-cleanup** | Clean merged and stale branches | `/branch-cleanup [project]` |
+| **doc-review** | Markdown document review (anchors, accuracy, SSOT) | `/doc-review [docs-dir]` |
+| **implement-all-levels** | Enforce complete implementation of all tiers | `/implement-all-levels <feature>` |
+| **issue-create** | Create GitHub issues with 5W1H framework | `/issue-create <project>` |
+| **issue-work** | GitHub issue workflow automation | `/issue-work <project>` |
+| **pr-work** | Analyze and fix failed CI/CD for PRs | `/pr-work <pr-number>` |
+| **release** | Create release with automated changelog | `/release <version>` |
+
+> **Note**: Global commands from v1.3.0 (`/branch-cleanup`, `/release`, etc.) have been migrated to Skills format for better context isolation and model override support.
 
 ### How Skills Work
 
 1. Skills are auto-discovered from `.claude/skills/` directory
 2. Each skill has a `SKILL.md` with YAML frontmatter defining name and description
-3. Skills are activated based on trigger keywords in your request
-4. Skills provide quick reference links to detailed guidelines
+3. Context-based skills are activated automatically based on task keywords
+4. User-invocable skills are triggered explicitly with `/skill-name`
+5. Skills support `argument-hint`, `model`, and `allowed-tools` frontmatter
 
 <details>
 <summary>Progressive Disclosure Pattern & Skill Structure</summary>
@@ -1117,9 +1218,10 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## Additional Resources
 
-- **Claude Code User Guide**: `CLAUDE_CODE_REAL_GUIDE.md` in project
 - **Configuration Examples**: See `global/` and `project/` directories
 - **Custom Extensions Guide**: [docs/CUSTOM_EXTENSIONS.md](docs/CUSTOM_EXTENSIONS.md) - Understand which features are official vs custom
+- **Token Optimization**: [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md) - Reduce initial token usage by 60-70%
+- **AD-SDLC Integration**: [docs/ad-sdlc-integration.md](docs/ad-sdlc-integration.md) - AI agent-based SDLC integration
 - **Troubleshooting**: Check error messages from each script
 
 ---
@@ -1142,10 +1244,40 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## Version
 
-- **Version**: 1.4.0
-- **Last Updated**: 2026-01-22
+- **Version**: 1.5.0
+- **Last Updated**: 2026-03-21
 
 ### Changelog
+
+#### v1.5.0 (2026-03-21)
+- **Skills migration**: Migrated all global commands to Skills format for context isolation and model override support
+  - `/branch-cleanup`, `/release`, `/issue-create`, `/issue-work`, `/pr-work` are now skills
+  - Added new global skills: `/doc-review`, `/implement-all-levels`
+  - Added new project skills: `ci-debugging`, `code-quality`, `git-status`, `pr-review`
+  - Skills support `argument-hint`, `model`, `allowed-tools`, and adaptive execution frontmatter
+- **Agent Teams**: Added experimental multi-agent collaboration framework
+  - Shared task lists, direct messaging, and team coordination
+  - Teammates modes: `auto`, `in-process`, `tmux`
+  - Team hooks: `TeammateIdle`, `TaskCompleted`
+- **Windows PowerShell support**: Full cross-platform parity
+  - Added `install.ps1` for Windows installation
+  - All 14 hook scripts have `.ps1` variants
+  - Added `settings.windows.json` for Windows-specific hook paths
+- **New hooks** (8 new types):
+  - `github-api-preflight`: GitHub API call validation
+  - `markdown-anchor-validator`: Markdown anchor validation
+  - `prompt-validator`: Commit message validation via LLM
+  - `tool-failure-logger`: Tool execution failure tracking
+  - `subagent-logger`: Subagent lifecycle tracking
+  - `task-completed-logger`: Task completion tracking
+  - `config-change-logger`: Configuration change tracking
+  - `pre-compact-snapshot`: Context preservation before auto-compaction
+  - `worktree-create`/`worktree-remove`: Worktree lifecycle hooks
+- **tmux auto-logging**: Added `tmux.conf` for automatic session logging
+- **Plugin enhancements**: Bundled agent definitions, updated manifests
+- **GitHub helper scripts**: Added `scripts/gh/` with 8 helper scripts for issues and PRs
+- **Rule files restructured**: Updated `coding/`, `core/`, `operations/`, `tools/` rules to match current best practices
+- **Context optimization**: Reduced always-on context by 77% (485 → 112 lines) via SSOT refactoring
 
 #### v1.4.0 (2026-01-22)
 - Adopted Import syntax (`@path/to/file`) for modular references

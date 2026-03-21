@@ -1,7 +1,7 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
-  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.3.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.5.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
 </p>
@@ -37,11 +37,12 @@ vi ~/.claude/git-identity.md
 
 **주요 명령어:**
 
-| 작업 | 명령어 |
-|------|--------|
-| 설정 백업 | `./scripts/backup.sh` |
-| 설정 동기화 | `./scripts/sync.sh` |
-| 백업 검증 | `./scripts/verify.sh` |
+| 작업 | macOS/Linux | Windows (PowerShell) |
+|------|-------------|----------------------|
+| 설정 설치 | `./scripts/install.sh` | `.\scripts\install.ps1` |
+| 설정 백업 | `./scripts/backup.sh` | — |
+| 설정 동기화 | `./scripts/sync.sh` | — |
+| 백업 검증 | `./scripts/verify.sh` | — |
 
 상세 시나리오는 [사용 시나리오](#사용-시나리오)를 참조하세요.
 
@@ -98,6 +99,40 @@ claude --plugin-dir ./plugin
 
 자세한 내용은 [plugin/README.md](plugin/README.md)를 참조하세요.
 
+### Windows (PowerShell)
+
+```powershell
+# 1. 저장소 클론
+git clone https://github.com/kcenon/claude-config.git ~\claude_config_backup
+
+# 2. 설치 스크립트 실행 (PowerShell 7+ 권장)
+cd ~\claude_config_backup
+.\scripts\install.ps1
+```
+
+> **참고**: PowerShell 7+ (`pwsh`)가 필요합니다. `winget install Microsoft.PowerShell`로 설치하세요.
+> 실행 정책 오류 시: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+
+### 경량 Plugin (Behavioral Guardrails Only)
+
+전체 구성 없이 핵심 동작 교정만 원하시나요?
+
+```bash
+# lite plugin 설치
+claude plugins add kcenon/claude-config-lite
+
+# 또는 로컬 테스트
+claude --plugin-dir ./plugin-lite
+```
+
+| 방식 | 포함 내용 | 크기 |
+|------|----------|------|
+| Full plugin | 7 skills, 5 agents, hooks, 종합 설정 | ~384KB |
+| **Lite plugin** | Behavioral guardrails만 | ~5KB |
+| Bootstrap 스크립트 | 전체 시스템 설정 | 전체 repo |
+
+자세한 내용은 [plugin-lite/README.md](plugin-lite/README.md)를 참조하세요.
+
 ---
 
 ## 구조
@@ -115,104 +150,138 @@ claude_config_backup/
 │
 ├── global/                      # 글로벌 설정 백업 (~/.claude/)
 │   ├── CLAUDE.md               # 메인 설정 파일
-│   ├── settings.json           # Hook 설정 (보안, 세션, UserPromptSubmit, Stop)
+│   ├── settings.json           # Hook 설정 (macOS/Linux)
+│   ├── settings.windows.json   # Hook 설정 (Windows PowerShell)
 │   ├── commit-settings.md      # 커밋/PR 정책 (Claude 정보 비활성화)
-│   ├── conversation-language.md # 대화 언어 설정
-│   ├── git-identity.md         # Git 사용자 정보
-│   ├── token-management.md     # 토큰 관리 정책
-│   └── commands/               # 글로벌 슬래시 명령어
-│       ├── _policy.md          # 모든 명령어 공통 정책
-│       ├── branch-cleanup.md   # /branch-cleanup 명령어
-│       ├── issue-create.md     # /issue-create 명령어
-│       ├── issue-work.md       # /issue-work 명령어
-│       ├── pr-work.md          # /pr-work 명령어
-│       └── release.md          # /release 명령어
+│   ├── tmux.conf               # tmux 자동 로깅 설정
+│   ├── ccstatusline/           # 상태줄 설정
+│   ├── commands/               # 글로벌 명령어 정책
+│   │   └── _policy.md         # 모든 명령어 공통 정책
+│   ├── hooks/                  # Hook 스크립트 (macOS + Windows)
+│   │   ├── sensitive-file-guard.sh/.ps1
+│   │   ├── dangerous-command-guard.sh/.ps1
+│   │   ├── github-api-preflight.sh/.ps1
+│   │   ├── markdown-anchor-validator.sh/.ps1
+│   │   ├── prompt-validator.sh/.ps1
+│   │   ├── session-logger.sh/.ps1
+│   │   ├── tool-failure-logger.sh/.ps1
+│   │   ├── subagent-logger.sh/.ps1
+│   │   ├── task-completed-logger.sh/.ps1
+│   │   ├── config-change-logger.sh/.ps1
+│   │   ├── pre-compact-snapshot.sh/.ps1
+│   │   ├── worktree-create.sh/.ps1
+│   │   ├── worktree-remove.sh/.ps1
+│   │   └── cleanup.sh/.ps1
+│   ├── scripts/                # 유틸리티 스크립트
+│   │   ├── statusline-command.sh/.ps1
+│   │   └── weekly-usage.sh
+│   └── skills/                 # 글로벌 Skills (사용자 호출형)
+│       ├── branch-cleanup/     # 병합/오래된 브랜치 정리
+│       ├── doc-review/         # 마크다운 문서 리뷰
+│       ├── implement-all-levels/ # 완전 구현 강제
+│       ├── issue-create/       # GitHub 이슈 생성 (5W1H)
+│       ├── issue-work/         # GitHub 이슈 워크플로우
+│       ├── pr-work/            # PR CI/CD 실패 수정
+│       └── release/            # 자동 릴리스 생성
 │
 ├── project/                     # 프로젝트 설정 백업
 │   ├── CLAUDE.md               # 프로젝트 메인 설정
 │   ├── CLAUDE.local.md.template # 로컬 설정 템플릿 (커밋 제외)
 │   ├── .mcp.json               # MCP 서버 설정 템플릿
+│   ├── .mcp.json.example       # MCP 설정 예시
+│   ├── claude-guidelines/      # 독립형 가이드라인 (.claude 비의존)
 │   └── .claude/
 │       ├── settings.json       # Hook 설정 (자동 포맷팅)
 │       ├── settings.local.json.template  # 로컬 설정 템플릿
 │       ├── rules/              # 통합 가이드라인 모듈 (자동 로드)
 │       │   ├── coding/         # 코딩 표준
-│       │   │   ├── general.md
-│       │   │   ├── quality.md
+│       │   │   ├── standards.md
+│       │   │   ├── implementation-standards.md
 │       │   │   ├── error-handling.md
-│       │   │   ├── concurrency.md
-│       │   │   ├── memory.md
-│       │   │   └── performance.md
+│       │   │   ├── safety.md
+│       │   │   ├── performance.md
+│       │   │   ├── cpp-specifics.md
+│       │   │   └── reference/anti-patterns.md
 │       │   ├── api/            # API 및 아키텍처
 │       │   │   ├── api-design.md
 │       │   │   ├── architecture.md
-│       │   │   ├── logging.md
 │       │   │   ├── observability.md
 │       │   │   └── rest-api.md
 │       │   ├── workflow/       # 워크플로우 및 GitHub 가이드라인
 │       │   │   ├── git-commit-format.md
 │       │   │   ├── github-issue-5w1h.md
 │       │   │   ├── github-pr-5w1h.md
-│       │   │   └── reference/  # 레이블 정의, 자동화 패턴
+│       │   │   ├── build-verification.md
+│       │   │   ├── ci-resilience.md
+│       │   │   ├── performance-analysis.md
+│       │   │   ├── session-resume.md
+│       │   │   └── reference/  # 레이블, 자동화, Agent Teams
 │       │   ├── core/           # 핵심 설정
 │       │   │   ├── environment.md
 │       │   │   ├── communication.md
-│       │   │   ├── problem-solving.md
-│       │   │   └── common-commands.md
+│       │   │   └── principles.md
 │       │   ├── project-management/
 │       │   │   ├── build.md
 │       │   │   ├── testing.md
 │       │   │   └── documentation.md
 │       │   ├── operations/
-│       │   │   ├── monitoring.md
-│       │   │   └── cleanup.md
-│       │   ├── coding.md       # 코딩 개요
-│       │   ├── testing.md      # 테스트 개요
-│       │   ├── security.md     # 보안 가이드라인
-│       │   ├── documentation.md
-│       │   └── conditional-loading.md
+│       │   │   └── ops.md
+│       │   ├── tools/
+│       │   │   └── gh-cli-scripts.md
+│       │   └── security.md     # 보안 가이드라인
 │       ├── commands/           # 사용자 정의 슬래시 명령어
+│       │   ├── _policy.md
 │       │   ├── pr-review.md
 │       │   ├── code-quality.md
 │       │   └── git-status.md
 │       ├── agents/             # 특화 에이전트 설정
 │       │   ├── code-reviewer.md
+│       │   ├── codebase-analyzer.md
 │       │   ├── documentation-writer.md
-│       │   └── refactor-assistant.md
+│       │   ├── refactor-assistant.md
+│       │   └── structure-explorer.md
 │       └── skills/             # Claude Code Skills
 │           ├── coding-guidelines/
-│           │   └── SKILL.md
 │           ├── security-audit/
-│           │   └── SKILL.md
 │           ├── performance-review/
-│           │   └── SKILL.md
 │           ├── api-design/
-│           │   └── SKILL.md
 │           ├── project-workflow/
-│           │   └── SKILL.md
-│           └── documentation/
-│               └── SKILL.md
+│           ├── documentation/
+│           ├── ci-debugging/
+│           ├── code-quality/   # 사용자 호출형
+│           ├── git-status/     # 사용자 호출형
+│           └── pr-review/      # 사용자 호출형
 │
 ├── scripts/                     # 자동화 스크립트
-│   ├── install.sh              # 새 시스템에 설치
+│   ├── install.sh              # 새 시스템에 설치 (macOS/Linux)
+│   ├── install.ps1             # 새 시스템에 설치 (Windows PowerShell)
 │   ├── backup.sh               # 현재 설정 백업
 │   ├── sync.sh                 # 설정 동기화
 │   ├── verify.sh               # 백업 무결성 검증
-│   └── validate_skills.sh      # SKILL.md 파일 검증
+│   ├── validate_skills.sh      # SKILL.md 파일 검증
+│   └── gh/                     # GitHub CLI 헬퍼 스크립트
 │
 ├── hooks/                       # Git hooks
 │   ├── pre-commit              # 커밋 전 스킬 검증
 │   └── install-hooks.sh        # Hook 설치 스크립트
 │
-├── .github/
-│   └── workflows/
-│       └── validate-skills.yml # CI 스킬 검증
+├── docs/                        # 설계 문서 및 가이드
+│   ├── TOKEN_OPTIMIZATION.md
+│   ├── CUSTOM_EXTENSIONS.md
+│   └── design/                 # 아키텍처 설계 문서
 │
 ├── plugin/                      # Claude Code Plugin (Beta)
 │   ├── .claude-plugin/
 │   │   └── plugin.json         # 플러그인 매니페스트
+│   ├── agents/                 # 번들 에이전트 정의
 │   ├── skills/                 # 독립형 스킬 (심볼릭 링크 없음)
 │   └── hooks/                  # 플러그인 후크
+│
+├── plugin-lite/                 # 경량 Plugin (Guardrails Only)
+│   ├── .claude-plugin/
+│   │   └── plugin.json
+│   └── skills/
+│       └── behavioral-guardrails/
 │
 ├── bootstrap.sh                 # 원라인 설치 스크립트
 ├── README.md                    # 상세 가이드 (영문)
@@ -222,6 +291,49 @@ claude_config_backup/
 ```
 
 </details>
+
+---
+
+## Hook 설정
+
+보안, 관찰성, 생산성을 위한 14개 hook 스크립트를 포함합니다 (각각 macOS `.sh`와 Windows `.ps1` 변형 제공).
+
+### 보안 Hooks
+
+| Hook | 이벤트 | 설명 |
+|------|--------|------|
+| **민감 파일 보호** | PreToolUse | `.env`, `.pem`, `.key`, `secrets/` 접근 차단 |
+| **위험 명령어 차단** | PreToolUse | `rm -rf /`, `chmod 777`, 원격 스크립트 실행 차단 |
+| **GitHub API 사전검증** | PreToolUse | GitHub API 호출 검증 |
+| **프롬프트 검증** | UserPromptSubmit | 위험 작업 (delete all, drop database) 경고 |
+
+### 관찰성 Hooks
+
+| Hook | 이벤트 | 설명 |
+|------|--------|------|
+| **세션 로깅** | SessionStart/End | 세션 시작/종료 시간 기록 |
+| **도구 실패 로거** | PostToolUse | 도구 실행 실패 디버깅용 기록 |
+| **서브에이전트 로거** | SubagentStart/Stop | 서브에이전트 라이프사이클 추적 |
+| **작업 완료 로거** | TaskCompleted | 팀원 작업 완료 기록 |
+| **설정 변경 로거** | ConfigChange | 설정 변경 추적 |
+
+### 워크플로우 Hooks
+
+| Hook | 이벤트 | 설명 |
+|------|--------|------|
+| **마크다운 앵커 검증** | PostToolUse | 편집 후 마크다운 앵커 검증 |
+| **사전 압축 스냅샷** | PreCompact | 자동 압축 전 컨텍스트 보존 |
+| **Worktree 생성** | WorktreeCreate | Worktree 환경 설정 |
+| **Worktree 제거** | WorktreeRemove | Worktree 환경 정리 |
+| **임시 파일 정리** | SessionEnd | `/tmp/claude_*` 파일 제거 |
+
+### 프로젝트 Hooks
+
+| Hook | 이벤트 | 설명 |
+|------|--------|------|
+| **자동 포맷팅** | PostToolUse | 파일 편집 후 언어별 포매터 실행 |
+
+자세한 설정은 [HOOKS.md](HOOKS.md)를 참조하세요.
 
 ---
 
@@ -335,21 +447,24 @@ git check-ignore CLAUDE.local.md
 
 ---
 
-## 글로벌 명령어
+## 글로벌 Skills
 
-글로벌 명령어는 `~/.claude/commands/`에 설치되어 모든 프로젝트에서 사용 가능합니다.
+글로벌 Skills는 `~/.claude/skills/`에 설치되어 모든 프로젝트에서 사용 가능합니다.
+v1.5.0에서 기존 명령어(commands)가 Skills 형식으로 마이그레이션되어 컨텍스트 격리와 모델 오버라이드를 지원합니다.
 
-### 사용 가능한 글로벌 명령어
+### 사용 가능한 글로벌 Skills
 
-| 명령어 | 설명 | 예시 |
-|--------|------|------|
-| `/branch-cleanup` | 병합/오래된 브랜치 정리 | `/branch-cleanup --dry-run` |
+| Skill | 설명 | 예시 |
+|-------|------|------|
+| `/branch-cleanup` | 병합/오래된 브랜치 정리 | `/branch-cleanup [project] --dry-run` |
 | `/release` | 자동 changelog 생성 릴리스 | `/release 1.2.0` |
 | `/issue-create` | 5W1H 기반 GitHub 이슈 생성 | `/issue-create myproject --type bug` |
 | `/issue-work` | GitHub 이슈 워크플로우 자동화 | `/issue-work myproject` |
-| `/pr-work` | PR CI/CD 실패 분석 및 수정 | `/pr-work myproject 42` |
+| `/pr-work` | PR CI/CD 실패 분석 및 수정 | `/pr-work 42` |
+| `/doc-review` | 마크다운 문서 리뷰 (앵커, 정확성, SSOT) | `/doc-review docs/` |
+| `/implement-all-levels` | 모든 티어 완전 구현 강제 | `/implement-all-levels feature` |
 
-### 명령어 상세
+### Skill 상세
 
 #### `/branch-cleanup`
 ```bash
@@ -383,10 +498,24 @@ git check-ignore CLAUDE.local.md
 
 #### `/pr-work`
 ```bash
-/pr-work <project-name> <pr-number> [--org <organization>]
+/pr-work <pr-number> [--org <organization>]
 ```
 - 실패한 CI/CD 워크플로우 분석
 - 수정 제안 및 구현 지원
+
+#### `/doc-review`
+```bash
+/doc-review [docs-directory] [--scope anchors|accuracy|ssot|all] [--fix]
+```
+- 마크다운 앵커, 정확성, SSOT 검증
+- `--fix`: 감지된 문제 자동 수정
+
+#### `/implement-all-levels`
+```bash
+/implement-all-levels <feature-description>
+```
+- 계층형 기능의 부분 구현 방지
+- 모든 난이도/티어에 걸쳐 완전 구현 강제
 
 ---
 
@@ -394,7 +523,9 @@ git check-ignore CLAUDE.local.md
 
 이 설정은 작업 컨텍스트에 따라 가이드라인을 자동 검색하는 Claude Code Skills를 포함합니다.
 
-### 사용 가능한 Skills
+### 프로젝트 Skills (컨텍스트 기반)
+
+작업 컨텍스트에 따라 자동 트리거되는 스킬:
 
 | Skill | 설명 | 트리거 키워드 |
 |-------|------|---------------|
@@ -404,13 +535,25 @@ git check-ignore CLAUDE.local.md
 | **api-design** | API 설계, 아키텍처, 로깅, 관찰성 | REST, GraphQL, API, microservice, endpoint, SOLID |
 | **project-workflow** | 워크플로우, git 커밋, 이슈, PR, 테스트 | commit, PR, issue, build, test, workflow, git |
 | **documentation** | README, API 문서, 주석, 정리 | document, README, comment, changelog, format, lint |
+| **ci-debugging** | CI/CD 실패 진단 및 해결 | CI fail, GitHub Actions, TLS, pipeline |
+
+### 프로젝트 Skills (사용자 호출형)
+
+`/skill-name` 명령어로 명시적으로 호출:
+
+| Skill | 설명 | 사용법 |
+|-------|------|--------|
+| **code-quality** | 코드 품질 분석, 복잡도, SOLID | `/code-quality <file-or-directory>` |
+| **git-status** | Git 상태 및 액션 인사이트 | `/git-status` |
+| **pr-review** | 종합 PR 리뷰 | `/pr-review <pr-number>` |
 
 ### Skills 동작 방식
 
 1. Skills는 `.claude/skills/` 디렉토리에서 자동 검색됩니다
 2. 각 skill은 name과 description을 정의하는 YAML frontmatter가 있는 `SKILL.md`를 가집니다
-3. Skills는 요청의 트리거 키워드에 따라 활성화됩니다
-4. Skills는 상세 가이드라인에 대한 빠른 참조 링크를 제공합니다
+3. 컨텍스트 기반 스킬은 작업 키워드에 따라 자동 활성화됩니다
+4. 사용자 호출형 스킬은 `/skill-name`으로 명시적으로 트리거됩니다
+5. `argument-hint`, `model`, `allowed-tools` frontmatter를 지원합니다
 
 <details>
 <summary>Progressive Disclosure 패턴 & Skill 구조</summary>
@@ -498,7 +641,7 @@ allowed-tools: Read, Grep, Glob  # 선택사항: 도구 제한
 
 ## 스크립트 설명
 
-### 1. install.sh
+### 1. install.sh / install.ps1
 
 **목적:** 백업된 설정을 새 시스템에 설치
 
@@ -507,16 +650,20 @@ allowed-tools: Read, Grep, Glob  # 선택사항: 도구 제한
 - 프로젝트 설정 설치 (지정한 디렉토리)
 - Skills 디렉토리 설치 (`.claude/skills/`)
 - 기존 파일 자동 백업
-- 설치 타입 선택 (글로벌/프로젝트/둘 다)
+- 설치 타입 선택 (글로벌/프로젝트/둘 다/Enterprise/전체)
 
 **사용법:**
 ```bash
+# macOS/Linux
 ./scripts/install.sh
+
+# Windows (PowerShell 7+)
+.\scripts\install.ps1
 ```
 
 **주의사항:**
-- ⚠️ 설치 후 `git-identity.md`를 반드시 개인 정보로 수정!
 - 기존 파일은 `.backup_YYYYMMDD_HHMMSS` 형식으로 백업됨
+- Windows: `install.ps1`는 `settings.windows.json`과 `.ps1` hook 스크립트를 자동 배포
 
 ---
 
@@ -805,8 +952,9 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## 추가 리소스
 
-- **Claude Code 사용 가이드**: 프로젝트 내 `CLAUDE_CODE_REAL_GUIDE.md`
 - **설정 예제**: `global/` 및 `project/` 디렉토리 참조
+- **커스텀 확장 가이드**: [docs/CUSTOM_EXTENSIONS.md](docs/CUSTOM_EXTENSIONS.md) - 공식 기능과 커스텀 기능 구분
+- **토큰 최적화**: [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md) - 초기 토큰 사용량 60-70% 절감
 - **문제 해결**: 각 스크립트의 에러 메시지 확인
 
 ---
@@ -829,36 +977,52 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## 버전
 
-- **Version**: 1.3.0
-- **Last Updated**: 2026-01-15
+- **Version**: 1.5.0
+- **Last Updated**: 2026-03-21
 
 ### 변경 이력
 
+#### v1.5.0 (2026-03-21)
+- **Skills 마이그레이션**: 모든 글로벌 명령어를 Skills 형식으로 마이그레이션
+  - `/branch-cleanup`, `/release`, `/issue-create`, `/issue-work`, `/pr-work` 스킬화
+  - 새 글로벌 Skills: `/doc-review`, `/implement-all-levels`
+  - 새 프로젝트 Skills: `ci-debugging`, `code-quality`, `git-status`, `pr-review`
+  - `argument-hint`, `model`, `allowed-tools`, adaptive execution frontmatter 지원
+- **Agent Teams**: 실험적 멀티 에이전트 협업 프레임워크
+  - 공유 작업 목록, 다이렉트 메시징, 팀 조정
+  - 팀원 모드: `auto`, `in-process`, `tmux`
+- **Windows PowerShell 지원**: 완전한 크로스 플랫폼 지원
+  - `install.ps1` Windows 설치 스크립트
+  - 모든 14개 hook에 `.ps1` 변형 제공
+- **새 Hooks** (8개 신규):
+  - `github-api-preflight`, `markdown-anchor-validator`, `prompt-validator`
+  - `tool-failure-logger`, `subagent-logger`, `task-completed-logger`
+  - `config-change-logger`, `pre-compact-snapshot`
+  - `worktree-create`/`worktree-remove`
+- **tmux 자동 로깅**: 세션 자동 기록을 위한 `tmux.conf` 추가
+- **Plugin 강화**: 번들 에이전트 정의, 매니페스트 업데이트
+- **GitHub 헬퍼 스크립트**: `scripts/gh/` 8개 헬퍼 추가
+- **규칙 파일 재구성**: `coding/`, `core/`, `operations/`, `tools/` 규칙 현행화
+- **컨텍스트 최적화**: SSOT 리팩토링으로 상시 로드 컨텍스트 77% 감소 (485 → 112줄)
+
+#### v1.4.0 (2026-01-22)
+- Import 구문 (`@path/to/file`) 도입으로 모듈 참조 방식 개선
+- 모든 CLAUDE.md 및 SKILL.md에 Import 구문 적용
+
 #### v1.3.0 (2026-01-15)
 - 자동 changelog 생성을 위한 `/release` 명령어 추가
-- 병합/오래된 브랜치 정리를 위한 `/branch-cleanup` 명령어 추가
 - 5W1H 프레임워크 기반 `/issue-create` 명령어 추가
 - GitHub 워크플로우 자동화를 위한 `/issue-work`, `/pr-work` 명령어 추가
-- 공유 명령어 규칙을 위한 공통 정책 파일 (`_policy.md`) 추가
-- 모든 글로벌 명령어가 공유 정책 참조하도록 업데이트
+- 공통 정책 파일 (`_policy.md`) 추가
 
 #### v1.2.0 (2026-01-15)
-- 공식 베스트 프랙티스 준수를 위한 CLAUDE.md 최적화
-- project/CLAUDE.md 간소화 (212 → ~85줄)
-- 핵심 규칙에 강조 표현 추가
-- common-commands.md 생성
-- conditional-loading.md 최적화
+- CLAUDE.md 최적화 (project/CLAUDE.md: 212 → ~85줄)
 - Progressive Disclosure 적용한 github-issue-5w1h.md 분리
 
 #### v1.1.0 (2025-01-15)
-- 경로 기반 조건부 로딩을 지원하는 `.claude/rules/` 디렉토리 추가
-- 사용자 정의 슬래시 명령어를 위한 `.claude/commands/` 추가
-- 특화 에이전트 설정을 위한 `.claude/agents/` 추가
-- MCP 설정 템플릿 (`.mcp.json`) 추가
-- 로컬 설정 템플릿 (`CLAUDE.local.md.template`, `settings.local.json.template`) 추가
-- `UserPromptSubmit`, `Stop` 이벤트 훅 추가
-- 모든 settings.json에 `alwaysThinkingEnabled` 설정 추가
-- 모든 SKILL.md에 `allowed-tools`, `model` 옵션 추가
+- `.claude/rules/`, `.claude/commands/`, `.claude/agents/` 추가
+- MCP 설정 템플릿, 로컬 설정 템플릿 추가
+- Hook 이벤트 확장, `allowed-tools`/`model` 옵션 추가
 
 #### v1.0.0 (2025-12-03)
 - 글로벌 및 프로젝트 설정으로 초기 릴리스

@@ -8,9 +8,13 @@ A 3-minute guide to easily deploy CLAUDE.md settings to another system.
 
 ```
 claude_config_backup/
-├── global/          # Global CLAUDE settings
+├── enterprise/      # Enterprise settings (system-wide)
+├── global/          # Global CLAUDE settings (~/.claude/)
 ├── project/         # Project CLAUDE settings
+├── plugin/          # Claude Code Plugin (Beta)
+├── plugin-lite/     # Lightweight Plugin (Guardrails Only)
 ├── scripts/         # Automation scripts
+├── docs/            # Design docs and guides
 ├── README.md        # Detailed guide
 └── QUICKSTART.md    # This file
 ```
@@ -55,8 +59,10 @@ Select installation type:
   1) Global settings only (~/.claude/)
   2) Project settings only (current directory)
   3) Both (recommended)
+  4) Enterprise settings only (admin required)
+  5) All (Enterprise + Global + Project)
 
-Selection (1-3) [default: 3]: 3
+Selection (1-5) [default: 3]: 3
 ```
 
 ### Step 3: Personalize (1 minute)

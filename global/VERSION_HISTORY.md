@@ -2,6 +2,19 @@
 
 ## Changelog
 
+- **1.5.0** (2026-03-21): Skills migration, Agent Teams, Windows support, new hooks
+  - Migrated global commands to Skills format (context isolation, model override)
+  - Added new global skills: doc-review, implement-all-levels
+  - Added Agent Teams experimental framework with TeamCreate/TaskList coordination
+  - Added Windows PowerShell support (install.ps1, .ps1 hook variants, settings.windows.json)
+  - Added 8 new hook types: github-api-preflight, markdown-anchor-validator, prompt-validator,
+    tool-failure-logger, subagent-logger, task-completed-logger, config-change-logger, pre-compact-snapshot
+  - Added worktree lifecycle hooks (worktree-create, worktree-remove)
+  - Added tmux auto-logging configuration (tmux.conf)
+  - Added status line configuration (ccstatusline/)
+  - Added GitHub CLI helper scripts (scripts/gh/)
+  - Reduced always-on context by 77% via SSOT refactoring
+
 - **1.4.0** (2026-01-22): Simplified CLAUDE.md following official best practices
   - Reduced global/CLAUDE.md from 67 to 34 lines
   - Moved version history to separate file
@@ -12,11 +25,6 @@
   - Supports recursive imports up to 5 levels deep
 
 - **1.2.0** (2026-01-15): CLAUDE.md optimization for official best practices compliance
-  - Simplified project/CLAUDE.md (212 to ~85 lines)
-  - Added emphasis expressions for key rules
-  - Created common-commands.md
-  - Optimized conditional-loading.md
-  - Split github-issue-5w1h.md with Progressive Disclosure
 
 - **1.1.0** (2026-01-15): Added rules, commands, agents, MCP configuration
 
