@@ -743,10 +743,21 @@ Agent Teams enable multiple Claude instances to work in parallel on complex task
 | `Enter` | Send message to focused teammate |
 | `Escape` | Return focus to lead agent |
 
+### Team Limit
+
+Control maximum concurrent teams via `MAX_TEAMS` (default: `3`):
+
+```json
+{ "env": { "MAX_TEAMS": "3" } }
+```
+
+A `PreToolUse` hook on `TeamCreate` counts directories in `~/.claude/teams/` and blocks creation when the limit is reached.
+
 ### Team Hooks
 
 | Hook | Purpose | Decision Control |
 |------|---------|-----------------|
+| `TeamCreate` (PreToolUse) | Enforces `MAX_TEAMS` limit | JSON `permissionDecision: deny` blocks creation |
 | `TeammateIdle` | Fires when teammate finishes and goes idle | Exit code 2 blocks idle |
 | `TaskCompleted` | Fires when teammate completes a task | Exit code 2 blocks completion |
 

@@ -83,7 +83,23 @@ Hooks are user-defined commands that automatically execute during specific Claud
 - Returns JSON with `permissionDecision: "deny"` listing broken anchors
 - Timeout: 30 seconds
 
-### 6. TeammateIdle (TeammateIdle)
+### 6. Team Limit Guard (PreToolUse)
+
+**Purpose**: Enforce a maximum number of concurrent Agent Teams across sessions
+
+**Trigger**: `TeamCreate` tool invocation
+
+**How it works**:
+1. Reads `MAX_TEAMS` environment variable (default: 3)
+2. Counts directories in `~/.claude/teams/`
+3. Blocks team creation if the count meets or exceeds the limit
+
+**Behavior**:
+- Returns JSON with `permissionDecision: "deny"` when limit is reached
+- Timeout: 5 seconds
+- Cross-platform: `team-limit-guard.sh` (bash) and `team-limit-guard.ps1` (PowerShell)
+
+### 7. TeammateIdle (TeammateIdle)
 
 **Purpose**: Fires when a teammate finishes its turn and is about to go idle. Use this to enforce quality gates or log teammate activity.
 
@@ -106,7 +122,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | `0` | Allow teammate to go idle |
 | `2` | Block idle — stderr message sent as feedback to teammate |
 
-### 7. TaskCompleted (TaskCompleted)
+### 8. TaskCompleted (TaskCompleted)
 
 **Purpose**: Fires when a teammate completes a task from the shared task list. Use this to enforce quality gates before accepting task completion.
 
