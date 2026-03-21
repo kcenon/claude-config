@@ -48,6 +48,27 @@ Add to `settings.json`:
 }
 ```
 
+### Team Limit
+
+Control the maximum number of concurrent teams via `MAX_TEAMS` environment variable.
+A `PreToolUse` hook on `TeamCreate` enforces this limit by counting directories in `~/.claude/teams/`.
+
+```json
+{
+  "env": {
+    "MAX_TEAMS": "3"
+  }
+}
+```
+
+| Value | Meaning |
+|-------|---------|
+| `1` | Single team only (strictest) |
+| `3` | Default — allows 3 concurrent teams across sessions |
+| `0` or unset | No limit (hook still runs but defaults to 3) |
+
+When the limit is reached, `TeamCreate` is blocked with a message to delete unused teams first.
+
 ### Display Mode
 
 Set in `settings.json` or via CLI flag:
@@ -259,7 +280,7 @@ Include task-specific context in the spawn prompt since teammates start with a f
 
 - No session resumption with in-process teammates
 - Task status may lag (manual updates sometimes needed)
-- One team per session maximum
+- One team per session maximum; cross-session limit controlled by `MAX_TEAMS` (default: 3)
 - No nested teams — only the lead can create teams
 - Teammates cannot spawn their own teammates
 - Lead is fixed for lifetime of team
