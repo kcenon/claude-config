@@ -201,10 +201,9 @@ I need help with issue labeling. Please load the relevant reference docs.
 
 ### Complete Guide
 
-For detailed information, see [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md):
-- Before/after token usage breakdown
-- Using reference documents on-demand
-- Customizing .claudeignore patterns
+For detailed information:
+- [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md) — Rule optimization and `.claudeignore` patterns
+- [docs/SKILL_TOKEN_REPORT.md](docs/SKILL_TOKEN_REPORT.md) — Per-skill token consumption breakdown and runtime overhead analysis
 - Cost savings calculator
 - Rollback instructions
 
@@ -357,6 +356,7 @@ claude_config_backup/
 │
 ├── docs/                        # Design docs and guides
 │   ├── TOKEN_OPTIMIZATION.md
+│   ├── SKILL_TOKEN_REPORT.md
 │   ├── OPTIMIZATION_DISCOVERIES.md
 │   ├── CUSTOM_EXTENSIONS.md
 │   ├── ad-sdlc-integration.md
@@ -1232,7 +1232,8 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 - **Configuration Examples**: See `global/` and `project/` directories
 - **Custom Extensions Guide**: [docs/CUSTOM_EXTENSIONS.md](docs/CUSTOM_EXTENSIONS.md) - Understand which features are official vs custom
-- **Token Optimization**: [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md) - Reduce initial token usage by 60-70%
+- **Token Optimization**: [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md) - Rule optimization (86% reduction)
+- **Skill Token Report**: [docs/SKILL_TOKEN_REPORT.md](docs/SKILL_TOKEN_REPORT.md) - Per-skill consumption analysis
 - **AD-SDLC Integration**: [docs/ad-sdlc-integration.md](docs/ad-sdlc-integration.md) - AI agent-based SDLC integration
 - **Troubleshooting**: Check error messages from each script
 
