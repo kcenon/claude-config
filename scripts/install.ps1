@@ -266,6 +266,44 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
             Write-Success "Statusline scripts (scripts/*.ps1) installed!"
         }
 
+        # Install ccstatusline settings (~/.config/ccstatusline/ — ccstatusline default settings path)
+        $ccstatuslineSource = Join-Path $BackupDir "global/ccstatusline"
+        if (Test-Path $ccstatuslineSource) {
+            $ccstatuslineDir = Join-Path $HOME ".config/ccstatusline"
+            Ensure-Directory $ccstatuslineDir
+            Copy-Item -Path "$ccstatuslineSource\settings.json" -Destination $ccstatuslineDir -Force
+            Write-Success "ccstatusline settings (~/.config/ccstatusline/settings.json) installed!"
+        }
+
+        # npm package installation (statusline dependencies)
+        Write-Host ""
+        if (Get-Command npm -ErrorAction SilentlyContinue) {
+            $installNpm = Read-Host "Install statusline npm packages? (ccstatusline, claude-limitline) (y/n) [default: y]"
+            if ([string]::IsNullOrEmpty($installNpm)) { $installNpm = 'y' }
+            if ($installNpm -eq 'y') {
+                Write-Info "Installing npm packages..."
+                try {
+                    $npmOutput = npm install -g ccstatusline claude-limitline 2>&1
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Success "npm packages installed! (ccstatusline, claude-limitline)"
+                    } else {
+                        Write-Warn "npm package installation failed. Install manually:"
+                        Write-Host "    npm install -g ccstatusline claude-limitline"
+                    }
+                } catch {
+                    Write-Warn "npm package installation failed. Install manually:"
+                    Write-Host "    npm install -g ccstatusline claude-limitline"
+                }
+            } else {
+                Write-Info "npm package installation skipped"
+                Write-Host "  Manual install: npm install -g ccstatusline claude-limitline"
+            }
+        } else {
+            Write-Warn "npm is not installed."
+            Write-Host "  After installing Node.js/npm, run:"
+            Write-Host "    npm install -g ccstatusline claude-limitline"
+        }
+
         Write-Success "Global settings installation complete!"
 
         # Git identity personalization notice
@@ -400,6 +438,7 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
     Write-Host "    - ~/.claude/settings.json (Hook settings - Windows)"
     Write-Host "    - ~/.claude/hooks/ (PowerShell hook scripts)"
     Write-Host "    - ~/.claude/scripts/ (Statusline scripts)"
+    Write-Host "    - ~/.config/ccstatusline/ (ccstatusline settings)"
 }
 
 if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
@@ -435,7 +474,10 @@ Write-Host ""
 Write-Host "3. Restart Claude Code:"
 Write-Host "     Open a new terminal or restart current session"
 Write-Host ""
-Write-Host "4. Verify settings:"
+Write-Host "4. Statusline npm packages (if not installed):"
+Write-Host "     npm install -g ccstatusline claude-limitline"
+Write-Host ""
+Write-Host "5. Verify settings:"
 Write-Host "     Get-Content `$HOME\.claude\CLAUDE.md"
 Write-Host ""
 

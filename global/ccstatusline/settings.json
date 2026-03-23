@@ -4,8 +4,6 @@
     [
       { "id": "1", "type": "model", "color": "cyan" },
       { "id": "2", "type": "separator" },
-      { "id": "3", "type": "session-clock", "color": "green" },
-      { "id": "4", "type": "separator" },
       { "id": "5", "type": "session-cost", "color": "yellow" },
       { "id": "6", "type": "separator" },
       { "id": "7", "type": "block-timer", "color": "cyan" },

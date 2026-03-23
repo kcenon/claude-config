@@ -89,6 +89,27 @@ check_executable() {
     fi
 }
 
+# npm 패키지 확인 (경고만, 실패 카운터 미포함)
+WARNING_CHECKS=0
+check_npm_package() {
+    local pkg="$1"
+    local desc="$2"
+    TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+
+    if command -v "$pkg" &> /dev/null; then
+        local version
+        version=$("$pkg" --version 2>/dev/null || echo "unknown")
+        success "$desc (v${version})"
+        PASSED_CHECKS=$((PASSED_CHECKS + 1))
+        return 0
+    else
+        warning "$desc (미설치 - 선택사항)"
+        WARNING_CHECKS=$((WARNING_CHECKS + 1))
+        PASSED_CHECKS=$((PASSED_CHECKS + 1))
+        return 1
+    fi
+}
+
 # Import 문법 검증 함수
 # Claude Code의 @import 문법은 상대 경로에 ./ 접두사가 필요합니다.
 # 올바른 예: @./path/to/file.md, @~/path/to/file.md, @/absolute/path.md
@@ -135,6 +156,7 @@ echo ""
 check_file "$BACKUP_DIR/global/CLAUDE.md" "CLAUDE.md"
 check_file "$BACKUP_DIR/global/commit-settings.md" "commit-settings.md"
 check_file "$BACKUP_DIR/global/settings.json" "settings.json (Hook 설정)"
+check_file "$BACKUP_DIR/global/ccstatusline/settings.json" "ccstatusline/settings.json (설치 대상: ~/.config/ccstatusline/)"
 
 # JSON 유효성 검사
 if [ -f "$BACKUP_DIR/global/settings.json" ]; then
@@ -222,6 +244,22 @@ check_executable "$BACKUP_DIR/scripts/backup.sh" "backup.sh 실행 권한"
 
 check_file "$BACKUP_DIR/scripts/sync.sh" "sync.sh"
 check_executable "$BACKUP_DIR/scripts/sync.sh" "sync.sh 실행 권한"
+
+# npm 패키지 검증 (선택사항)
+echo ""
+echo "======================================================"
+info "npm 패키지 검증 (선택사항)"
+echo "======================================================"
+echo ""
+
+check_npm_package "ccstatusline" "ccstatusline (Statusline 디스플레이)"
+check_npm_package "claude-limitline" "claude-limitline (사용량 표시)"
+
+if [ $WARNING_CHECKS -gt 0 ]; then
+    echo ""
+    info "누락된 npm 패키지 설치:"
+    echo "    npm install -g ccstatusline claude-limitline"
+fi
 
 # 문서 검증
 echo ""
@@ -321,6 +359,7 @@ echo ""
 echo "  총 검사 항목:   $TOTAL_CHECKS"
 echo "  통과:          $PASSED_CHECKS"
 echo "  실패:          $FAILED_CHECKS"
+echo "  경고 (선택사항): $WARNING_CHECKS"
 
 SUCCESS_RATE=$((PASSED_CHECKS * 100 / TOTAL_CHECKS))
 

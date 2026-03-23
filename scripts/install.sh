@@ -279,6 +279,36 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
             success "Statusline 스크립트 (scripts/) 설치 완료!"
         fi
 
+        # ccstatusline 설정 복사 (~/.config/ccstatusline/ — ccstatusline의 기본 설정 경로)
+        if [ -d "$BACKUP_DIR/global/ccstatusline" ]; then
+            ensure_dir "$HOME/.config/ccstatusline"
+            cp "$BACKUP_DIR/global/ccstatusline/settings.json" "$HOME/.config/ccstatusline/"
+            success "ccstatusline 설정 (~/.config/ccstatusline/settings.json) 설치 완료!"
+        fi
+
+        # npm 패키지 설치 (statusline 의존성)
+        echo ""
+        if command -v npm &> /dev/null; then
+            read -p "Statusline npm 패키지를 설치하시겠습니까? (ccstatusline, claude-limitline) (y/n) [기본값: y]: " INSTALL_NPM
+            INSTALL_NPM=${INSTALL_NPM:-y}
+            if [ "$INSTALL_NPM" = "y" ]; then
+                info "npm 패키지 설치 중..."
+                if npm install -g ccstatusline claude-limitline 2>/dev/null; then
+                    success "npm 패키지 설치 완료! (ccstatusline, claude-limitline)"
+                else
+                    warning "npm 패키지 설치 실패. 수동으로 설치하세요:"
+                    echo "    npm install -g ccstatusline claude-limitline"
+                fi
+            else
+                info "npm 패키지 설치 건너뜀"
+                echo "  수동 설치: npm install -g ccstatusline claude-limitline"
+            fi
+        else
+            warning "npm이 설치되어 있지 않습니다."
+            echo "  Node.js/npm 설치 후 아래 명령을 실행하세요:"
+            echo "    npm install -g ccstatusline claude-limitline"
+        fi
+
         success "글로벌 설정 설치 완료!"
 
         # Git identity 개인화 안내
@@ -405,6 +435,7 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     echo "    - ~/.claude/settings.json (Hook 설정)"
     echo "    - ~/.claude/hooks/ (외부 Hook 스크립트)"
     echo "    - ~/.claude/scripts/ (Statusline 스크립트)"
+    echo "    - ~/.config/ccstatusline/ (ccstatusline 설정)"
 fi
 
 if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" = "5" ]; then
@@ -437,7 +468,10 @@ echo ""
 echo "3. ✅ 설정 확인:"
 echo "     cat ~/.claude/CLAUDE.md"
 echo ""
-echo "4. 📚 사용 가이드:"
+echo "4. 📦 Statusline npm 패키지 (미설치 시):"
+echo "     npm install -g ccstatusline claude-limitline"
+echo ""
+echo "5. 📚 사용 가이드:"
 echo "     cat CLAUDE_CODE_REAL_GUIDE.md"
 echo ""
 

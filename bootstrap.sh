@@ -116,6 +116,28 @@ install_global() {
         success "tmux 설정 설치 완료"
     fi
 
+    # ccstatusline 설정 설치 (~/.config/ccstatusline/ — ccstatusline 기본 설정 경로)
+    if [ -d "$INSTALL_DIR/global/ccstatusline" ]; then
+        mkdir -p "$HOME/.config/ccstatusline"
+        cp "$INSTALL_DIR/global/ccstatusline/settings.json" "$HOME/.config/ccstatusline/"
+        success "ccstatusline 설정 설치 완료"
+    fi
+
+    # npm 패키지 설치 (statusline 의존성)
+    if command -v npm &> /dev/null; then
+        read -p "Statusline npm 패키지를 설치하시겠습니까? (y/n) [기본값: y]: " INSTALL_NPM
+        INSTALL_NPM=${INSTALL_NPM:-y}
+        if [ "$INSTALL_NPM" = "y" ]; then
+            if npm install -g ccstatusline claude-limitline 2>/dev/null; then
+                success "npm 패키지 설치 완료 (ccstatusline, claude-limitline)"
+            else
+                warning "npm 패키지 설치 실패. 수동 설치: npm install -g ccstatusline claude-limitline"
+            fi
+        fi
+    else
+        warning "npm 미설치. Statusline 의존성: npm install -g ccstatusline claude-limitline"
+    fi
+
     success "글로벌 설정 설치 완료"
 }
 
@@ -222,7 +244,8 @@ main() {
     info "다음 단계:"
     echo "  1. Claude Code 재시작"
     echo "  2. 설정 확인: cat ~/.claude/CLAUDE.md"
-    echo "  3. 동기화: cd $INSTALL_DIR && ./scripts/sync.sh"
+    echo "  3. Statusline 패키지: npm install -g ccstatusline claude-limitline"
+    echo "  4. 동기화: cd $INSTALL_DIR && ./scripts/sync.sh"
     echo ""
 
     success "Happy Coding with Claude! 🎉"
