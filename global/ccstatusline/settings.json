@@ -31,7 +31,11 @@
     [
       { "id": "25", "type": "session-usage", "color": "green" },
       { "id": "26", "type": "separator" },
-      { "id": "27", "type": "weekly-usage", "color": "yellow" }
+      { "id": "28", "type": "reset-timer", "color": "cyan" },
+      { "id": "29", "type": "separator" },
+      { "id": "27", "type": "weekly-usage", "color": "yellow" },
+      { "id": "30", "type": "separator" },
+      { "id": "31", "type": "weekly-reset-timer", "color": "cyan" }
     ]
   ],
   "flexMode": "full-minus-40",
