@@ -15,7 +15,7 @@ try {
 }
 
 # Configurable limit via environment variable (default: 3)
-$maxTeams = if ($env:MAX_TEAMS) { [int]$env:MAX_TEAMS } else { 3 }
+$maxTeams = if ($env:MAX_TEAMS) { [int]$env:MAX_TEAMS } else { 5 }
 $teamsDir = Join-Path $HOME ".claude" "teams"
 
 function Deny-Response {
