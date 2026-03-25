@@ -19,6 +19,7 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 - If the 10-minute polling limit is reached with CI still running: stop polling, report current status to the user, and **do NOT merge**. The user decides next steps.
 - **Before merge, always use `gh pr checks <PR_NUMBER>` to verify ALL individual check statuses.** Do NOT rely on `gh run list` alone — it shows workflow-level status which can report "success" while individual sub-checks (e.g., platform-specific test jobs) are still failing.
 - **Any CI failure — including test timeouts — must be investigated and fixed before merging.** Never treat a failing check as "flaky" or ignorable. If a test times out, adjust the test workload, increase the timeout, or fix the underlying performance issue before proceeding with merge.
+- When creating GitHub issues, verify labels exist on the target repository before using them. Run `gh label list -R <repo>` first to avoid creation failures from invalid labels.
 
 ## Build & Test
 
@@ -30,6 +31,7 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 - **Issue-to-PR lifecycle**: implement → local build/test → create PR → monitor CI → squash merge → close issue → close epic if all sub-issues done.
 - Skip lengthy planning phases. Start implementation immediately, analyzing code as you go.
 - After merging, check if parent epic should be closed.
+- When using multi-agent teams, always commit work-in-progress before switching contexts or spawning new agents that modify the working directory. This prevents data loss from agent overwrites.
 
 ## Session Management
 
@@ -42,4 +44,4 @@ Edit module files, then restart session to apply changes.
 
 ---
 
-*Version: 2.3.0 | Last updated: 2026-03-13*
+*Version: 2.4.0 | Last updated: 2026-03-26*
