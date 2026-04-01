@@ -1,7 +1,7 @@
 ---
 name: pr-work
 description: Analyze and fix failed CI/CD workflows for a pull request with automated retry and escalation.
-argument-hint: "<pr-number> or <project-name> <pr-number> [--solo|--team]"
+argument-hint: "[project-name] [pr-number] [--solo|--team] [--limit N] [--dry-run]"
 user-invocable: true
 ---
 
@@ -12,103 +12,310 @@ Analyze and fix failed CI/CD workflows for a pull request.
 ## Usage
 
 ```
-/pr-work <pr-number>                                # Work on PR in current project (auto-checkout branch)
-/pr-work <project-name> <pr-number> [--org <organization>]
+/pr-work                                            # Batch: all repos, all failing PRs
+/pr-work <project-name>                             # Batch: all failing PRs in project
+/pr-work <pr-number>                                # Single: fix PR in current project
+/pr-work <project-name> <pr-number>                 # Single: fix specific PR
 /pr-work <organization>/<project-name> <pr-number>
 ```
 
-**Example**:
+**Examples**:
 ```
-/pr-work 42                                        # Auto: detect org/project, checkout PR branch
-/pr-work hospital_erp_system 42                    # Auto-detect org, checkout PR branch
-/pr-work hospital_erp_system 42 --org mycompany    # Explicit org, checkout PR branch
-/pr-work mycompany/hospital_erp_system 42          # Full path, checkout PR branch
+/pr-work                                            # Batch: all repos, all PRs with failed CI
+/pr-work hospital_erp_system                        # Batch: all failing PRs in project
+/pr-work 42                                         # Single: fix PR #42 (auto-detect repo)
+/pr-work hospital_erp_system 42                     # Single: fix PR #42 in project
+/pr-work hospital_erp_system 42 --org mycompany     # Explicit org
+/pr-work mycompany/hospital_erp_system 42           # Full path format
 /pr-work 42 --solo                                  # Force solo mode (sequential)
 /pr-work 42 --team                                  # Force team mode (diagnoser + fixer)
+/pr-work --org mycompany                            # Batch: all repos in org
+/pr-work hospital_erp_system --limit 5              # Batch: top 5 failing PRs
+/pr-work hospital_erp_system --dry-run              # Preview batch plan only
 ```
 
 ## Arguments
 
-`$ARGUMENTS` format:
-- `<pr-number>` (work on specific PR in current project, auto-checkout branch)
-- `<project-name> <pr-number> [--org <organization>]`
-- `<organization>/<project-name> <pr-number>`
+- `[project-name]`: Project name or full repository path (optional)
+  - If omitted with PR number: auto-detect from current directory git remote
+  - If omitted without PR number: **Batch mode** — discover all repos, process all failing PRs
 
-- **PR number only**: Use current project with specified PR number, auto-checkout PR branch
-- **Project name**: Repository name (or full path with organization)
-- **PR number**: Pull request number to fix
-- **--org**: GitHub organization or user (optional, auto-detected if not provided)
-- **--solo**: Force solo mode — single agent handles all diagnosis and fixes sequentially
-- **--team**: Force team mode — diagnoser and fixer agents work in parallel
-- If neither `--solo` nor `--team` is provided, auto-recommend based on failure complexity
+- `[pr-number]`: Pull request number (optional)
+  - If provided: Work on the specified PR (single-item mode)
+  - If omitted with project: **Batch mode** — process all failing PRs in the project
+  - If omitted without project: **Batch mode** — process all failing PRs across all repos
 
-**Auto-checkout**: The command automatically detects and checks out the PR's branch.
+- `[--solo|--team]`: Execution mode override (optional)
+  - `--solo` — Force solo mode for all items
+  - `--team` — Force team mode for all items
+  - If omitted in single-item mode: auto-recommend based on failure complexity, then ask user
+  - If omitted in batch mode: auto-decide per item using weighted scoring (no per-item prompt)
 
-## Organization Detection
+- `[--limit N]`: Maximum number of items to process in batch mode (default: 20, max: 50)
 
-Parse `$ARGUMENTS` and determine organization and execution mode:
+- `[--dry-run]`: Show batch plan only, do not execute
+
+- `[--org <organization>]`: Scope to a specific GitHub organization
+
+**Auto-checkout**: In single-item mode, the command automatically detects and checks out the PR's branch.
+
+## Argument Parsing
+
+Parse `$ARGUMENTS` and determine organization, PR number, and batch mode:
 
 ```bash
-# Extract execution mode flag before parsing other arguments
+ARGS="$ARGUMENTS"
+PR_NUMBER=""
+PROJECT=""
+ORG=""
 EXEC_MODE=""
-ARGUMENTS=$(echo "$ARGUMENTS" | sed 's/--solo//;s/--team//')
-if [[ "$ORIGINAL_ARGS" == *"--solo"* ]]; then
-    EXEC_MODE="solo"
-elif [[ "$ORIGINAL_ARGS" == *"--team"* ]]; then
-    EXEC_MODE="team"
-fi
-# Note: ORIGINAL_ARGS is $ARGUMENTS before stripping flags
+BATCH_MODE="single"   # single | single-repo | cross-repo
+BATCH_LIMIT=20
+DRY_RUN=false
 
-# Single number argument - PR number in current project
-if [[ "$ARGUMENTS" =~ ^[0-9]+$ ]]; then
-    PR_NUMBER="$ARGUMENTS"
+# Extract flags
+ORIGINAL_ARGS="$ARGS"
+if [[ "$ARGS" == *"--solo"* ]]; then EXEC_MODE="solo"; ARGS=$(echo "$ARGS" | sed 's/--solo//g'); fi
+if [[ "$ARGS" == *"--team"* ]]; then EXEC_MODE="team"; ARGS=$(echo "$ARGS" | sed 's/--team//g'); fi
+if [[ "$ARGS" == *"--dry-run"* ]]; then DRY_RUN=true; ARGS=$(echo "$ARGS" | sed 's/--dry-run//g'); fi
+if [[ "$ARGS" =~ --limit[[:space:]]+([0-9]+) ]]; then BATCH_LIMIT="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--limit[[:space:]]+[0-9]+//g'); fi
+if [[ "$ARGS" =~ --org[[:space:]]+([^[:space:]]+) ]]; then ORG="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--org[[:space:]]+[^[:space:]]+//g'); fi
 
-    # Get org and project from git remote in current directory
+# Trim remaining args
+ARGS=$(echo "$ARGS" | xargs)
+
+# Determine mode based on remaining args
+if [[ -z "$ARGS" && -z "$ORG" ]]; then
+    # No args at all → cross-repo batch
+    BATCH_MODE="cross-repo"
+
+elif [[ -z "$ARGS" && -n "$ORG" ]]; then
+    # Only --org provided → cross-repo batch scoped to org
+    BATCH_MODE="cross-repo"
+
+elif [[ "$ARGS" =~ ^[0-9]+$ ]]; then
+    # Single numeric arg → PR number in current project (unchanged behavior)
+    BATCH_MODE="single"
+    PR_NUMBER="$ARGS"
     REMOTE_URL=$(git remote get-url origin 2>/dev/null)
-    if [[ -z "$REMOTE_URL" ]]; then
-        echo "Error: No git remote 'origin' found in current directory"
-        exit 1
-    fi
-
     ORG=$(echo "$REMOTE_URL" | sed -E 's|.*[:/]([^/]+)/[^/]+\.git$|\1|' | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
     PROJECT=$(echo "$REMOTE_URL" | sed -E 's|.*[:/][^/]+/([^/]+)\.git$|\1|' | sed -E 's|.*[:/][^/]+/([^/]+)$|\1|')
 
-    if [[ -z "$ORG" ]]; then
-        echo "Error: Cannot detect organization from git remote"
-        exit 1
+elif [[ "$ARGS" =~ ^[a-zA-Z] ]] && ! [[ "$ARGS" =~ [[:space:]][0-9]+([[:space:]]|$) ]]; then
+    # Project name only, no PR number → single-repo batch
+    BATCH_MODE="single-repo"
+    if [[ "$ARGS" == *"/"* ]]; then
+        ORG=$(echo "$ARGS" | cut -d'/' -f1 | xargs)
+        PROJECT=$(echo "$ARGS" | cut -d'/' -f2 | xargs)
+    else
+        PROJECT="$ARGS"
+        if [[ -z "$ORG" ]]; then
+            cd "$PROJECT" 2>/dev/null || { echo "Error: Project directory not found: $PROJECT"; exit 1; }
+            ORG=$(git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/[^/]+\.git$|\1|' | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
+        fi
     fi
 
-    echo "Detected: $ORG/$PROJECT PR #$PR_NUMBER"
-
-# Check if --org flag is provided
-elif [[ "$ARGUMENTS" == *"--org"* ]]; then
-    PROJECT=$(echo "$ARGUMENTS" | awk '{print $1}')
-    PR_NUMBER=$(echo "$ARGUMENTS" | awk '{print $2}')
-    ORG=$(echo "$ARGUMENTS" | sed -n 's/.*--org[[:space:]]*\([^[:space:]]*\).*/\1/p')
-
-# Check if first argument contains / (full path format)
-elif [[ "$(echo "$ARGUMENTS" | awk '{print $1}')" == *"/"* ]]; then
-    REPO_PATH=$(echo "$ARGUMENTS" | awk '{print $1}')
-    ORG=$(echo "$REPO_PATH" | cut -d'/' -f1)
-    PROJECT=$(echo "$REPO_PATH" | cut -d'/' -f2)
-    PR_NUMBER=$(echo "$ARGUMENTS" | awk '{print $2}')
-
-# Auto-detect from git remote
 else
-    PROJECT=$(echo "$ARGUMENTS" | awk '{print $1}')
-    PR_NUMBER=$(echo "$ARGUMENTS" | awk '{print $2}')
-    cd "$PROJECT" 2>/dev/null || { echo "Error: Project directory not found: $PROJECT"; exit 1; }
-    ORG=$(git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/[^/]+\.git$|\1|' | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
-    if [[ -z "$ORG" ]]; then
-        echo "Error: Cannot detect organization. Use --org flag or full path format."
-        exit 1
+    # Project + PR number → single-item mode (unchanged)
+    BATCH_MODE="single"
+    if [[ "$ARGS" == *"/"* ]]; then
+        REPO_PATH=$(echo "$ARGS" | awk '{print $1}')
+        ORG=$(echo "$REPO_PATH" | cut -d'/' -f1)
+        PROJECT=$(echo "$REPO_PATH" | cut -d'/' -f2)
+        PR_NUMBER=$(echo "$ARGS" | awk '{print $2}')
+    else
+        PROJECT=$(echo "$ARGS" | awk '{print $1}')
+        PR_NUMBER=$(echo "$ARGS" | awk '{print $2}')
+        if [[ -z "$ORG" ]]; then
+            cd "$PROJECT" 2>/dev/null || { echo "Error: Project directory not found: $PROJECT"; exit 1; }
+            ORG=$(git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/[^/]+\.git$|\1|' | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
+        fi
     fi
 fi
 ```
 
 ## Instructions
 
-### Phase 0: Execution Mode Selection
+### Mode Routing
+
+- If `$BATCH_MODE == "single-repo"` or `$BATCH_MODE == "cross-repo"` → Execute **Batch Mode Instructions** below
+- If `$BATCH_MODE == "single"` → Execute **Phase 0: Execution Mode Selection** (skip Batch Mode)
+
+---
+
+## Batch Mode Instructions
+
+Process multiple failing PRs sequentially. Each PR is handled using the existing Solo or Team workflow.
+
+### B-0. Batch Discovery
+
+**For `single-repo` mode** (project name given, no PR number):
+
+```bash
+# List all open PRs
+ALL_PRS=$(gh pr list --repo $ORG/$PROJECT --state open --limit 100 \
+  --json number,title,headRefName,createdAt)
+
+# Filter to PRs with failed CI checks
+FAILING_PRS=[]
+for PR in $ALL_PRS; do
+    CHECKS=$(gh pr checks $PR_NUMBER --repo $ORG/$PROJECT --json name,state,conclusion \
+      -q '[.[] | select(.conclusion == "failure")] | length')
+    if [[ "$CHECKS" -gt 0 ]]; then
+        # Add to FAILING_PRS with failure count
+    fi
+    sleep 0.3
+done
+```
+
+**For `cross-repo` mode** (no arguments):
+
+```bash
+# Discover repos
+if [[ -n "$ORG" ]]; then
+    REPOS=$(gh repo list "$ORG" --json nameWithOwner,isArchived \
+      --jq '[.[] | select(.isArchived == false)] | .[].nameWithOwner' --limit 200)
+else
+    USER=$(gh api user --jq '.login')
+    REPOS=$(gh repo list "$USER" --json nameWithOwner,isArchived \
+      --jq '[.[] | select(.isArchived == false)] | .[].nameWithOwner' --limit 200)
+fi
+
+# For each repo, find PRs with failing CI
+FAILING_PRS=[]
+for REPO in $REPOS; do
+    PRS=$(gh pr list --repo $REPO --state open --limit 50 \
+      --json number,title,headRefName,createdAt)
+    for PR in $PRS; do
+        CHECKS=$(gh pr checks $PR_NUMBER --repo $REPO --json name,state,conclusion \
+          -q '[.[] | select(.conclusion == "failure")] | length' 2>/dev/null)
+        if [[ "$CHECKS" -gt 0 ]]; then
+            # Add to FAILING_PRS with repo context and failure count
+        fi
+    done
+    sleep 0.3
+done
+```
+
+### B-1. Failure Severity Sorting
+
+Assign each failing PR a severity score:
+
+| Signal | Score |
+|--------|-------|
+| Multiple failed workflows | 0 (most urgent) |
+| Single failed workflow, build error | 1 |
+| Single failed workflow, test error | 2 |
+| Single failed workflow, lint/style error | 3 |
+
+Sort FAILING_PRS by: score ascending → `createdAt` ascending → repo name ascending.
+
+Apply `--limit N` (default: 20, max: 50). If no failing PRs found, report "No open PRs with failed CI found" and exit.
+
+### B-2. Auto Size/Mode Estimation per Item
+
+For each PR, decide solo vs team **without prompting the user**.
+
+**Weighted scoring matrix:**
+
+| Factor | Weight | Solo Signal (0) | Team Signal (1) |
+|--------|--------|-----------------|-----------------|
+| Failed workflow count | 3 | 1 | 2+ |
+| Error category count | 2 | Single category | Multiple categories |
+| Previous fix attempts | 2 | 0 pushes after first failure | 1+ pushes (recurring) |
+| Error log complexity | 1 | < 20 lines of error output | 20+ lines |
+
+**Decision**: Sum the weights where Team Signal matches. If total >= 4 → `team`, otherwise → `solo`.
+
+**Override**: If `--solo` or `--team` flag was passed globally, apply that mode to ALL items.
+
+### B-3. Batch Plan Summary and Approval
+
+Present the batch plan as a table. Use `AskUserQuestion` for a single approval:
+
+```markdown
+## Batch Plan: pr-work
+
+| # | Repo | PR | Title | Failed Checks | Severity | Mode |
+|---|------|----|-------|---------------|----------|------|
+| 1 | org/repo-a | #42 | feat: add auth | 3 | build+test | team |
+| 2 | org/repo-a | #38 | fix: null check | 1 | test | solo |
+| 3 | org/repo-b | #15 | docs: update API | 1 | lint | solo |
+...
+
+**Total items**: 8 (6 solo, 2 team)
+```
+
+- **Question**: "Batch plan ready. N failing PRs to process. Approve?"
+- **Header**: "Batch"
+- **Options**:
+  1. "Approve and start (Recommended)" — proceed with batch execution
+  2. "Modify plan" — user can exclude items or change modes
+  3. "Cancel" — abort batch
+
+If `--dry-run` is set, display the plan and exit without prompting.
+
+### B-4. Sequential Execution Loop
+
+Process each item one at a time:
+
+```
+for each item in approved batch plan:
+    1. Log progress: "[N/TOTAL] Starting: $REPO PR #$PR_NUMBER — $TITLE ($MODE)"
+
+    2. Set context variables for this item:
+       - $ORG, $PROJECT from repo
+       - $PR_NUMBER from item
+       - $EXEC_MODE from estimated mode (solo or team)
+
+    3. Execute the single-item workflow:
+       - If solo: run Solo Mode Steps 1-11
+       - If team: run Team Mode Steps T-1 through T-6
+       Ensure TeamDelete() is called after each team-mode item.
+
+    4. Record result:
+       - SUCCESS: all CI checks passing after fix
+       - FAILED: CI still failing after 3 retry attempts
+       - SKIPPED: PR was closed/merged during batch
+
+    5. Write batch progress to .claude/resume.md (for session recovery)
+
+    6. Log completion: "[N/TOTAL] Completed: $REPO PR #$PR_NUMBER — $RESULT"
+
+    7. Pause 2 seconds between items (rate limiting)
+```
+
+**Failure handling per item:**
+- CI failure after 3 retries → mark FAILED, add escalation comment to PR, continue to next
+- Team mode failure → fallback to solo for THIS item, then continue
+- MAX_TEAMS exceeded → force solo for this item
+- PR merged/closed by someone else → mark SKIPPED, continue
+
+### B-5. Batch Summary Report
+
+After all items are processed, present a summary:
+
+```markdown
+## Batch Execution Summary
+
+| # | Repo | PR | Title | Mode | Result |
+|---|------|----|-------|------|--------|
+| 1 | org/repo-a | #42 | feat: add auth | team | CI Passing |
+| 2 | org/repo-a | #38 | fix: null check | solo | CI Passing |
+| 3 | org/repo-b | #15 | docs: update API | solo | FAILED |
+
+**Success**: 7/8
+**Failed**: 1/8
+
+### Failed Items
+- org/repo-b #15: Lint failure persists — `clang-format` version mismatch. Manual fix needed.
+```
+
+Delete `.claude/resume.md` after successful batch completion.
+
+---
+
+### Phase 0: Execution Mode Selection (Single-Item Mode)
 
 Determine whether to run in Solo mode (single agent, sequential) or Team mode (diagnoser + fixer agents in parallel).
 
@@ -928,3 +1135,14 @@ warning: variable name should be camelCase
 | Team mode: teammate failure | Fallback to Solo Mode from current attempt | Automatic recovery |
 | Team mode: coordination timeout | Shutdown team, report partial progress | Continue manually or re-run |
 | Agent Teams not enabled | Fall back to Solo Mode with warning | Enable `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` |
+
+### Batch Mode Errors
+
+| Error Condition | Behavior | User Action |
+|-----------------|----------|-------------|
+| No repos found (cross-repo) | Report "No accessible repositories found" | Check `gh auth status` or use `--org` |
+| No failing PRs found | Report "No open PRs with failed CI found" | All PRs are passing or no open PRs |
+| GitHub API rate limit during discovery | Pause until reset, then resume | Wait or reduce `--limit` |
+| Single item failure in batch | Mark FAILED, add escalation comment, continue | Review failed items in batch summary |
+| Session interrupted during batch | Write progress to `.claude/resume.md` | Resume with next session start |
+| All items in batch fail | Report batch summary with all failures | Review individual failure reasons |
