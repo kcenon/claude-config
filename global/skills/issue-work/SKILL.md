@@ -1,7 +1,7 @@
 ---
 name: issue-work
 description: Automate GitHub issue workflow - select issue, create branch, implement, build, test, and create PR.
-argument-hint: "<project-name> [issue-number] [--solo|--team]"
+argument-hint: "[project-name] [issue-number] [--solo|--team] [--limit N] [--dry-run]"
 user-invocable: true
 ---
 
@@ -12,39 +12,55 @@ Automate GitHub issue workflow with project name as argument.
 ## Usage
 
 ```
-/issue-work <project-name> [issue-number] [--org <organization>]
+/issue-work                                       # Batch: all repos, all open issues
+/issue-work <project-name>                        # Batch: all open issues in project
+/issue-work <project-name> [issue-number]         # Single: work on specific issue
 /issue-work <organization>/<project-name> [issue-number]
 ```
 
 **Examples**:
 ```
-/issue-work vi_slam                              # Auto-select priority issue
-/issue-work vi_slam 21                           # Work on issue #21
-/issue-work vi_slam 21 --org mycompany          # Explicit organization
-/issue-work mycompany/vi_slam 21                # Full repo path format
-/issue-work vi_slam 21 --solo                   # Force solo mode (sequential)
-/issue-work vi_slam 21 --team                   # Force team mode (implementer + tester)
+/issue-work                                       # Batch: all repos, all open issues
+/issue-work vi_slam                               # Batch: all open issues in vi_slam
+/issue-work vi_slam 21                            # Single: work on issue #21
+/issue-work vi_slam 21 --org mycompany           # Explicit organization
+/issue-work mycompany/vi_slam 21                 # Full repo path format
+/issue-work vi_slam 21 --solo                    # Force solo mode (sequential)
+/issue-work vi_slam 21 --team                    # Force team mode (implementer + tester)
+/issue-work --org mycompany                      # Batch: all repos in org
+/issue-work vi_slam --limit 5                    # Batch: top 5 priority issues
+/issue-work vi_slam --dry-run                    # Preview batch plan only
 ```
 
 ## Arguments
 
-- `<project-name>`: Project name or full repository path (required)
+- `[project-name]`: Project name or full repository path (optional)
   - Format 1: `<project-name>` - auto-detect organization from git remote
   - Format 2: `<project-name> --org <organization>` - explicit organization
   - Format 3: `<organization>/<project-name>` - full repository path
+  - If omitted: **Batch mode** — discover all user repos and process all open issues
 
 - `[issue-number]`: GitHub issue number (optional)
-  - If provided: Work on the specified issue
-  - If omitted: Auto-select highest priority open issue
+  - If provided: Work on the specified issue (single-item mode)
+  - If omitted with project: **Batch mode** — process all open issues in the project
+  - If omitted without project: **Batch mode** — process all open issues across all repos
 
 - `[--solo|--team]`: Execution mode override (optional)
-  - `--solo` — Force solo mode (single agent, sequential workflow)
-  - `--team` — Force team mode (implementer + tester agents in parallel)
-  - If omitted: auto-recommend based on issue size, then ask user
+  - `--solo` — Force solo mode for all items (single agent, sequential workflow)
+  - `--team` — Force team mode for all items (implementer + tester agents in parallel)
+  - If omitted in single-item mode: auto-recommend based on issue size, then ask user
+  - If omitted in batch mode: auto-decide per item using weighted scoring (no per-item prompt)
+
+- `[--limit N]`: Maximum number of items to process in batch mode (default: 20, max: 50)
+
+- `[--dry-run]`: Show batch plan only, do not execute
+
+- `[--priority <level>]`: Filter batch to this priority level and above
+  - Levels: `critical`, `high`, `medium`, `low`, `all` (default: `all`)
 
 ## Argument Parsing
 
-Parse `$ARGUMENTS` and extract project, organization, and issue number:
+Parse `$ARGUMENTS` and extract project, organization, issue number, and batch flags:
 
 ```bash
 ARGS="$ARGUMENTS"
@@ -52,50 +68,241 @@ ISSUE_NUMBER=""
 PROJECT=""
 ORG=""
 EXEC_MODE=""
+BATCH_MODE="single"   # single | single-repo | cross-repo
+BATCH_LIMIT=20
+DRY_RUN=false
+PRIORITY_FILTER="all"
 
-# Extract execution mode flag
-if [[ "$ARGS" == *"--solo"* ]]; then
-    EXEC_MODE="solo"
-    ARGS=$(echo "$ARGS" | sed 's/--solo//g')
-elif [[ "$ARGS" == *"--team"* ]]; then
-    EXEC_MODE="team"
-    ARGS=$(echo "$ARGS" | sed 's/--team//g')
-fi
+# Extract flags
+if [[ "$ARGS" == *"--solo"* ]]; then EXEC_MODE="solo"; ARGS=$(echo "$ARGS" | sed 's/--solo//g'); fi
+if [[ "$ARGS" == *"--team"* ]]; then EXEC_MODE="team"; ARGS=$(echo "$ARGS" | sed 's/--team//g'); fi
+if [[ "$ARGS" == *"--dry-run"* ]]; then DRY_RUN=true; ARGS=$(echo "$ARGS" | sed 's/--dry-run//g'); fi
+if [[ "$ARGS" =~ --limit[[:space:]]+([0-9]+) ]]; then BATCH_LIMIT="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--limit[[:space:]]+[0-9]+//g'); fi
+if [[ "$ARGS" =~ --priority[[:space:]]+(critical|high|medium|low|all) ]]; then PRIORITY_FILTER="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--priority[[:space:]]+\w+//g'); fi
 
 # Extract issue number if present (numeric argument)
 if [[ "$ARGS" =~ [[:space:]]([0-9]+)([[:space:]]|$) ]]; then
     ISSUE_NUMBER="${BASH_REMATCH[1]}"
-    # Remove issue number from args
     ARGS=$(echo "$ARGS" | sed -E "s/[[:space:]]+${ISSUE_NUMBER}([[:space:]]|$)/ /g")
 fi
 
-# Check if --org flag is provided
-if [[ "$ARGS" == *"--org"* ]]; then
-    PROJECT=$(echo "$ARGS" | awk '{print $1}')
-    ORG=$(echo "$ARGS" | sed -n 's/.*--org[[:space:]]*\([^[:space:]]*\).*/\1/p')
-# Check if full path format (contains /)
-elif [[ "$ARGS" == *"/"* ]]; then
-    ORG=$(echo "$ARGS" | cut -d'/' -f1 | xargs)
-    PROJECT=$(echo "$ARGS" | cut -d'/' -f2 | xargs)
-# Auto-detect from git remote
+# Trim remaining args
+ARGS=$(echo "$ARGS" | xargs)
+
+# Determine batch mode and resolve org/project
+if [[ -z "$ARGS" && -z "$ISSUE_NUMBER" ]]; then
+    # No project, no number → cross-repo batch
+    BATCH_MODE="cross-repo"
+    # If --org was provided, scope to that org; otherwise discover user's repos
+    if [[ "$ARGS" == *"--org"* ]]; then
+        ORG=$(echo "$ARGS" | sed -n 's/.*--org[[:space:]]*\([^[:space:]]*\).*/\1/p')
+    fi
+elif [[ -n "$ARGS" && -z "$ISSUE_NUMBER" ]]; then
+    # Project name only, no number → single-repo batch
+    BATCH_MODE="single-repo"
+    # Resolve org/project (same logic as before)
+    if [[ "$ARGS" == *"--org"* ]]; then
+        PROJECT=$(echo "$ARGS" | awk '{print $1}')
+        ORG=$(echo "$ARGS" | sed -n 's/.*--org[[:space:]]*\([^[:space:]]*\).*/\1/p')
+    elif [[ "$ARGS" == *"/"* ]]; then
+        ORG=$(echo "$ARGS" | cut -d'/' -f1 | xargs)
+        PROJECT=$(echo "$ARGS" | cut -d'/' -f2 | xargs)
+    else
+        PROJECT="$ARGS"
+        cd "$PROJECT" 2>/dev/null || { echo "Error: Project directory not found: $PROJECT"; exit 1; }
+        ORG=$(git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/[^/]+\.git$|\1|' | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
+    fi
 else
-    PROJECT=$(echo "$ARGS" | xargs)
-    cd "$PROJECT" 2>/dev/null || { echo "Error: Project directory not found: $PROJECT"; exit 1; }
-    ORG=$(git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/[^/]+\.git$|\1|' | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
-    if [[ -z "$ORG" ]]; then
-        echo "Error: Cannot detect organization. Use --org flag or full path format."
-        exit 1
+    # Project + number → single-item mode (unchanged)
+    BATCH_MODE="single"
+    if [[ "$ARGS" == *"--org"* ]]; then
+        PROJECT=$(echo "$ARGS" | awk '{print $1}')
+        ORG=$(echo "$ARGS" | sed -n 's/.*--org[[:space:]]*\([^[:space:]]*\).*/\1/p')
+    elif [[ "$ARGS" == *"/"* ]]; then
+        ORG=$(echo "$ARGS" | cut -d'/' -f1 | xargs)
+        PROJECT=$(echo "$ARGS" | cut -d'/' -f2 | xargs)
+    else
+        PROJECT="$ARGS"
+        cd "$PROJECT" 2>/dev/null || { echo "Error: Project directory not found: $PROJECT"; exit 1; }
+        ORG=$(git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/[^/]+\.git$|\1|' | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
     fi
 fi
 ```
 
-- Repository: `https://github.com/$ORG/$PROJECT`
+- Repository: `https://github.com/$ORG/$PROJECT` (single/single-repo modes)
 - Source path: `./$PROJECT`
-- Issue Number: `$ISSUE_NUMBER` (empty if not provided)
+- Issue Number: `$ISSUE_NUMBER` (empty for batch modes)
+- Batch Mode: `$BATCH_MODE` (`single`, `single-repo`, or `cross-repo`)
 
 ## Instructions
 
-### Phase 0: Execution Mode Selection
+### Mode Routing
+
+- If `$BATCH_MODE == "single-repo"` or `$BATCH_MODE == "cross-repo"` → Execute **Batch Mode Instructions** below
+- If `$BATCH_MODE == "single"` → Execute **Phase 0: Execution Mode Selection** (skip Batch Mode)
+
+---
+
+## Batch Mode Instructions
+
+Process multiple issues sequentially. Each issue is handled using the existing Solo or Team workflow.
+
+### B-0. Batch Discovery
+
+**For `single-repo` mode** (project name given, no issue number):
+
+```bash
+ALL_ISSUES=$(gh issue list --repo $ORG/$PROJECT --state open --limit 100 \
+  --json number,title,labels,createdAt,body -q 'sort_by(.createdAt)')
+```
+
+**For `cross-repo` mode** (no arguments):
+
+```bash
+# Discover repos
+if [[ -n "$ORG" ]]; then
+    REPOS=$(gh repo list "$ORG" --json nameWithOwner,isArchived \
+      --jq '[.[] | select(.isArchived == false)] | .[].nameWithOwner' --limit 200)
+else
+    USER=$(gh api user --jq '.login')
+    REPOS=$(gh repo list "$USER" --json nameWithOwner,isArchived \
+      --jq '[.[] | select(.isArchived == false)] | .[].nameWithOwner' --limit 200)
+fi
+
+# Collect issues from each repo (0.3s rate-limit pause)
+ALL_ISSUES=[]
+for REPO in $REPOS; do
+    ISSUES=$(gh issue list --repo $REPO --state open --limit 50 \
+      --json number,title,labels,createdAt,body)
+    # Append with repo context: each issue gets a "repo" field
+    sleep 0.3
+done
+```
+
+### B-1. Global Priority Sorting and Filtering
+
+Assign each issue a numeric priority score:
+
+| Label | Score |
+|-------|-------|
+| `priority/critical` | 0 |
+| `priority/high` | 1 |
+| `priority/medium` | 2 |
+| `priority/low` | 3 |
+| No priority label | 4 |
+
+Sort ALL_ISSUES by: score ascending → `createdAt` ascending → repo name ascending.
+
+Apply filters:
+- `--priority <level>`: exclude issues below the specified priority level
+- `--limit N`: take only the first N items after sorting (default: 20, max: 50)
+
+If no issues found after filtering, report "No open issues found matching criteria" and exit.
+
+### B-2. Auto Size/Mode Estimation per Item
+
+For each issue in the batch, estimate size and decide solo vs team **without prompting the user**.
+
+**Weighted scoring matrix:**
+
+| Factor | Weight | Solo Signal (0) | Team Signal (1) |
+|--------|--------|-----------------|-----------------|
+| Size label | 3 | `size/XS`, `size/S`, or none | `size/M`, `size/L`, `size/XL` |
+| Description length | 1 | < 500 characters | >= 500 characters |
+| Acceptance criteria count | 2 | < 3 checkbox items | 4+ checkbox items |
+| Subtask references | 2 | No "Part of" or checklist | Contains "Part of" or task checklist |
+
+**Decision**: Sum the weights where Team Signal matches. If total >= 4 → `team`, otherwise → `solo`.
+
+**Override**: If `--solo` or `--team` flag was passed globally, apply that mode to ALL items.
+
+### B-3. Batch Plan Summary and Approval
+
+Present the batch plan as a table. Use `AskUserQuestion` for a single approval:
+
+```markdown
+## Batch Plan: issue-work
+
+| # | Repo | Issue | Title | Priority | Est. Size | Mode |
+|---|------|-------|-------|----------|-----------|------|
+| 1 | org/repo-a | #12 | Fix login crash | critical | S | solo |
+| 2 | org/repo-a | #8 | Add OAuth support | high | M | team |
+| 3 | org/repo-b | #45 | Update README links | medium | XS | solo |
+...
+
+**Total items**: 12 (9 solo, 3 team)
+```
+
+- **Question**: "Batch plan ready. N items to process. Approve?"
+- **Header**: "Batch"
+- **Options**:
+  1. "Approve and start (Recommended)" — proceed with batch execution
+  2. "Modify plan" — user can exclude items or change modes, then re-display
+  3. "Cancel" — abort batch
+
+If `--dry-run` is set, display the plan and exit without prompting.
+
+### B-4. Sequential Execution Loop
+
+Process each item one at a time:
+
+```
+for each item in approved batch plan:
+    1. Log progress: "[N/TOTAL] Starting: $REPO #$ISSUE_NUMBER — $TITLE ($MODE)"
+
+    2. Set context variables for this item:
+       - $ORG, $PROJECT from repo
+       - $ISSUE_NUMBER from item
+       - $EXEC_MODE from estimated mode (solo or team)
+
+    3. Execute the single-item workflow:
+       - If solo: run Solo Mode Steps 1-12
+       - If team: run Team Mode Steps T-1 through T-6
+       Ensure TeamDelete() is called after each team-mode item.
+
+    4. Record result:
+       - SUCCESS: PR URL and merge status
+       - FAILED: error description (after 3 retries)
+       - SKIPPED: if issue was closed/assigned during batch
+
+    5. Write batch progress to .claude/resume.md (for session recovery)
+
+    6. Log completion: "[N/TOTAL] Completed: $REPO #$ISSUE_NUMBER — $RESULT"
+
+    7. Pause 2 seconds between items (rate limiting)
+```
+
+**Failure handling per item:**
+- Build/test/CI failure after 3 retries → mark FAILED, create draft PR if code was written, continue to next
+- Team mode failure → fallback to solo for THIS item, then continue
+- MAX_TEAMS exceeded → force solo for this item
+- Issue closed by someone else during batch → mark SKIPPED, continue
+
+### B-5. Batch Summary Report
+
+After all items are processed, present a summary:
+
+```markdown
+## Batch Execution Summary
+
+| # | Repo | Issue | Title | Mode | Result | PR |
+|---|------|-------|-------|------|--------|----|
+| 1 | org/repo-a | #12 | Fix login crash | solo | Merged | #89 |
+| 2 | org/repo-a | #8 | Add OAuth support | team | Merged | #90 |
+| 3 | org/repo-b | #45 | Update README links | solo | FAILED | -- |
+
+**Success**: 11/12
+**Failed**: 1/12
+
+### Failed Items
+- org/repo-b #45: Build failure — missing dependency `libfoo`. Manual intervention needed.
+```
+
+Delete `.claude/resume.md` after successful batch completion.
+
+---
+
+### Phase 0: Execution Mode Selection (Single-Item Mode)
 
 Determine whether to run in Solo mode (single agent, sequential) or Team mode (implementer + tester agents in parallel).
 
@@ -758,6 +965,10 @@ After completion, provide summary:
 
 **IMPORTANT**: Always include the full PR URL in the output (e.g., `https://github.com/org/repo/pull/123`).
 
+### Batch Mode Output
+
+In batch mode, use the summary format from **Phase B-5** instead. Include per-item results and the overall success/failure count.
+
 ## Error Handling
 
 ### Prerequisites Check
@@ -792,3 +1003,14 @@ After completion, provide summary:
 | Team mode: review loop exceeded | Approve with remaining items noted in PR | Max 2 review rounds enforced |
 | Team mode: coordination timeout | Shutdown team, preserve branch commits | Continue manually or re-run Solo |
 | Agent Teams not enabled | Fall back to Solo Mode with warning | Enable `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` |
+
+### Batch Mode Errors
+
+| Error Condition | Behavior | User Action |
+|-----------------|----------|-------------|
+| No repos found (cross-repo) | Report "No accessible repositories found" | Check `gh auth status` or use `--org` |
+| No open issues found | Report "No open issues matching criteria" | Adjust `--priority` filter or create issues |
+| GitHub API rate limit during discovery | Pause until reset, then resume | Wait or reduce `--limit` |
+| Single item failure in batch | Mark FAILED, continue to next item | Review failed items in batch summary |
+| Session interrupted during batch | Write progress to `.claude/resume.md` | Resume with next session start |
+| All items in batch fail | Report batch summary with all failures | Review individual failure reasons |
