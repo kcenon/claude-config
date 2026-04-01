@@ -93,6 +93,12 @@
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/session-logger.ps1 start",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/version-check.ps1",
+            "timeout": 10,
+            "async": true
           }
         ]
       }

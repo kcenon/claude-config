@@ -106,6 +106,12 @@
             "type": "command",
             "command": "~/.claude/hooks/session-logger.sh start",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/version-check.sh",
+            "timeout": 10,
+            "async": true
           }
         ]
       }
