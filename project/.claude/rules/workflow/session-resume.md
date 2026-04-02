@@ -59,6 +59,46 @@ At session start, if `.claude/resume.md` exists in the working directory:
 3. If yes, proceed from the documented "Next Action"
 4. After completing the workflow, delete the resume file
 
+## Batch Resume Format
+
+When a batch workflow (`issue-work` or `pr-work` without a specific number) is interrupted,
+include the full batch progress table so the next session can resume from the correct item:
+
+```markdown
+# Session Resume State
+
+**Saved**: YYYY-MM-DD HH:MM KST
+**Workflow**: issue-work (batch) | pr-work (batch)
+
+## Batch Context
+
+| Field | Value |
+|-------|-------|
+| Batch Mode | single-repo / cross-repo |
+| Total Items | N |
+| Completed | M |
+| Current Item | K |
+
+## Batch Progress
+
+| # | Repo | Item | Mode | Status |
+|---|------|------|------|--------|
+| 1 | org/repo-a | #12 | solo | DONE (PR #89) |
+| 2 | org/repo-a | #8 | team | DONE (PR #90) |
+| 3 | org/repo-b | #45 | solo | IN PROGRESS |
+| 4 | org/repo-c | #3 | solo | PENDING |
+
+## Next Action
+
+Continue batch from item K: org/repo-b #45. Solo mode. Branch: feat/issue-45-fix-links.
+```
+
+When resuming a batch:
+1. Read the batch progress table
+2. Skip items with status `DONE`
+3. Restart the `IN PROGRESS` item from its last known phase
+4. Continue with `PENDING` items in order
+
 ## Rules
 
 - **One resume file per project** — overwrite if a new workflow starts
