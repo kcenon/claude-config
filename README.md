@@ -414,56 +414,36 @@ claude_config_backup/
 
 ---
 
-## Hook Settings
+## What Happens Automatically
 
-This configuration includes 16 hook scripts (each with macOS `.sh` and Windows `.ps1` variants) for security, observability, and productivity.
+These behaviors activate immediately after installation — no configuration needed.
 
-### Security Hooks
+### When you edit code
+- Files are auto-formatted in your language (Python, TypeScript, Go, Rust, C++, Kotlin)
+- Supported formatters: `black`, `prettier`, `gofmt`, `rustfmt`, `clang-format`, `ktlint`
 
-| Hook | Event | Description |
-|------|-------|-------------|
-| **Sensitive File Protection** | PreToolUse | Blocks access to `.env`, `.pem`, `.key`, `secrets/` |
-| **Dangerous Command Block** | PreToolUse | Blocks `rm -rf /`, `chmod 777`, remote script execution |
-| **GitHub API Preflight** | PreToolUse | Validates GitHub API calls before execution |
-| **Prompt Validator** | UserPromptSubmit | Warns when dangerous operations (delete all, drop database) are requested |
+### When you commit
+- Markdown cross-reference anchors are validated — broken links block the commit
+- Commit message format is checked (Conventional Commits)
+- AI/Claude attribution is stripped automatically
 
-### Observability Hooks
+### When Claude accesses files
+- `.env`, `.pem`, `.key`, and `secrets/` directories are blocked
+- Dangerous commands (`rm -rf /`, `chmod 777`, pipe execution) are intercepted
+- GitHub API connectivity is validated before API calls
 
-| Hook | Event | Description |
-|------|-------|-------------|
-| **Session Logging** | SessionStart/End | Logs session start/end times to `~/.claude/session.log` |
-| **Tool Failure Logger** | PostToolUseFailure | Logs tool execution failures for debugging |
-| **Subagent Logger** | SubagentStart/Stop | Tracks subagent lifecycle events |
-| **Task Completed Logger** | TaskCompleted | Logs when teammates complete tasks |
-| **Config Change Logger** | ConfigChange | Tracks configuration changes |
+### When a session runs
+- Session start/end times are logged to `~/.claude/session.log`
+- Known problematic Claude Code versions trigger a warning
+- Old temporary files are cleaned up on session end
+- Context is snapshot before auto-compaction
 
-### Workflow Hooks
+### When using Agent Teams
+- Concurrent team count is limited (configurable via `MAX_TEAMS`)
+- Teammate idle events and task completions are logged
+- Worktree creation and cleanup is managed automatically
 
-| Hook | Event | Description |
-|------|-------|-------------|
-| **Markdown Anchor Validator** | PostToolUse | Validates markdown anchors after edits |
-| **Pre-Compact Snapshot** | PreCompact | Preserves context before auto-compaction |
-| **Worktree Create** | WorktreeCreate | Sets up worktree environment |
-| **Worktree Remove** | WorktreeRemove | Cleans up worktree environment |
-| **Temp File Cleanup** | SessionEnd | Removes old `/tmp/claude_*` files |
-| **Team Limit Guard** | PreToolUse | Enforces `MAX_TEAMS` concurrent team limit |
-| **Version Check** | SessionStart | Warns about known cache bug versions |
-
-### Project Hooks (`project/.claude/settings.json`)
-
-| Hook | Event | Description |
-|------|-------|-------------|
-| **Auto Formatting** | PostToolUse | Runs language-specific formatters after file edits |
-
-**Supported Formatters:**
-- Python: `black`, `isort`
-- TypeScript/JavaScript: `prettier`
-- C++: `clang-format`
-- Kotlin: `ktlint`
-- Go: `gofmt`
-- Rust: `rustfmt`
-
-For detailed configuration, see [HOOKS.md](HOOKS.md).
+> For full hook configuration details and customization, see [HOOKS.md](HOOKS.md).
 
 ---
 
@@ -629,84 +609,37 @@ Custom slash commands in `.claude/commands/` provide shortcuts for common tasks.
 
 ---
 
-## Global Skills
+## Skills — What You Can Do
 
-Global skills are available across all projects when installed to `~/.claude/skills/`. These were migrated from commands to skills in v1.5.0 for better context isolation, model override, and adaptive execution support.
+Invoke any skill by typing its command in Claude Code.
 
-### Available Global Skills
+### Workflow Automation
 
-| Skill | Description | Example |
-|-------|-------------|---------|
-| `/branch-cleanup` | Clean merged and stale branches | `/branch-cleanup [project] --dry-run` |
-| `/release` | Create release with auto-generated changelog | `/release 1.2.0` |
-| `/issue-create` | Create GitHub issues with 5W1H framework | `/issue-create myproject --type bug` |
-| `/issue-work` | Automate GitHub issue workflow | `/issue-work myproject` |
-| `/pr-work` | Analyze and fix failed CI/CD for PRs | `/pr-work 42` |
-| `/doc-review` | Markdown document review (anchors, accuracy, SSOT) | `/doc-review docs/` |
-| `/implement-all-levels` | Enforce complete implementation of all tiers | `/implement-all-levels feature` |
-| `/harness` | Design agent team & skill architectures | `/harness [domain-or-project-description]` |
+| Command | What it does |
+|---------|-------------|
+| `/issue-work` | Pick a GitHub issue, create branch, implement, test, create PR |
+| `/pr-work` | Diagnose failed CI checks, fix, retry, escalate if needed |
+| `/release` | Generate changelog from commits, create tagged release |
+| `/issue-create` | Create well-structured GitHub issues using 5W1H framework |
+| `/branch-cleanup` | Remove merged and stale branches from local and remote |
 
-### Skill Details
+### Code Analysis
 
-#### `/branch-cleanup`
-```bash
-/branch-cleanup [<project-name>] [--dry-run] [--include-remote] [--stale-days <days>]
-```
-- `--dry-run`: Preview branches without deleting
-- `--include-remote`: Also clean remote tracking branches
-- `--stale-days`: Days since last commit to consider stale (default: 90)
+| Command | What it does |
+|---------|-------------|
+| `/code-quality` | Analyze complexity, code smells, SOLID violations, maintainability |
+| `/security-audit` | OWASP Top 10, input validation, auth, dependency vulnerabilities |
+| `/performance-review` | Profiling, caching, memory leaks, concurrency patterns |
+| `/pr-review` | Comprehensive PR analysis covering quality, security, performance, tests |
 
-#### `/release`
-```bash
-/release <version> [--draft] [--prerelease] [--org <organization>]
-```
-- Creates GitHub release with changelog from commits since last release
-- Supports semantic versioning (e.g., 1.2.0, 2.0.0-beta.1)
+### Design and Documentation
 
-#### `/issue-create`
-```bash
-/issue-create <project-name> [--type <type>] [--priority <priority>]
-```
-- Types: bug, feature, refactor, docs
-- Priorities: critical, high, medium, low
-- Uses 5W1H framework for structured issue creation
-
-#### `/issue-work`
-```bash
-/issue-work <project-name> [--org <organization>]
-```
-- Lists open issues and guides through workflow
-- Auto-detects organization from git remote
-
-#### `/pr-work`
-```bash
-/pr-work <pr-number> [--org <organization>]
-```
-- Analyzes failed CI/CD workflows
-- Provides fix suggestions and implementation
-
-#### `/doc-review`
-```bash
-/doc-review [docs-directory] [--scope anchors|accuracy|ssot|all] [--fix]
-```
-- Validates markdown anchors, accuracy, and SSOT compliance
-- `--fix`: Auto-fix detected issues
-
-#### `/implement-all-levels`
-```bash
-/implement-all-levels <feature-description>
-```
-- Prevents partial implementations of tiered features
-- Enforces complete implementation across all difficulty levels
-
-#### `/harness`
-```bash
-/harness [domain-or-project-description]
-```
-- Designs domain-specific agent team architectures
-- Selects from 6 patterns: Pipeline, Fan-out/Fan-in, Expert Pool, Producer-Reviewer, Supervisor, Hierarchical
-- Generates `.claude/agents/` definitions and `.claude/skills/` with orchestration
-- Includes reference docs for design patterns, testing, and QA
+| Command | What it does |
+|---------|-------------|
+| `/harness` | Design agent teams and generate skills for any domain |
+| `/doc-review` | Review markdown documents for accuracy, anchors, cross-references |
+| `/git-status` | Repository status with actionable insights |
+| `/implement-all-levels` | Enforce complete implementation of all tiers for tiered features |
 
 ---
 
