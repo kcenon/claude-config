@@ -12,6 +12,7 @@
 
 <p align="center">
   <a href="#빠른-시작">빠른 시작</a> •
+  <a href="#설치하면-무엇이-달라지나요">설치 효과</a> •
   <a href="#원라인-설치">설치</a> •
   <a href="#토큰-최적화">토큰 최적화</a> •
   <a href="#구조">구조</a> •
@@ -46,6 +47,26 @@ vi ~/.claude/git-identity.md
 | 백업 검증 | `./scripts/verify.sh` | — |
 
 상세 시나리오는 [사용 시나리오](#사용-시나리오)를 참조하세요.
+
+---
+
+## 설치하면 무엇이 달라지나요
+
+claude-config을 설치하면 Claude Code에 다음 기능이 즉시 적용됩니다:
+
+**보안** — `.env`, `.pem`, 인증 정보 파일이 자동으로 읽기/쓰기 차단됩니다. `rm -rf /` 같은 위험한 명령도 실행 전에 차단됩니다.
+
+**자동 포맷팅** — 코드 저장 시 자동 포맷: Python (black), TypeScript (prettier), Go (gofmt), Rust (rustfmt), C++ (clang-format), Kotlin (ktlint).
+
+**워크플로우 자동화** — `/issue-work`로 GitHub 이슈를 선택해서 PR 생성까지 한 번에 처리합니다. `/release`는 변경 로그를 자동 생성하고, `/pr-work`는 CI 실패를 진단·수정합니다.
+
+**커밋 품질 관리** — 깨진 마크다운 링크, AI 어트리뷰션, 비표준 커밋 메시지가 저장소에 들어가기 전에 자동으로 검출됩니다.
+
+**주문형 코드 분석** — `/security-audit`, `/performance-review`, `/code-quality`, `/pr-review`로 필요할 때 전문 분석을 실행합니다.
+
+**에이전트 팀 설계** — `/harness`로 프로젝트에 맞는 멀티 에이전트 아키텍처를 설계하고, 6가지 아키텍처 패턴과 오케스트레이터 템플릿을 활용합니다.
+
+**크로스 플랫폼** — macOS, Linux, Windows (PowerShell) 모두 지원합니다.
 
 ---
 

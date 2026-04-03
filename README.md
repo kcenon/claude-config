@@ -12,6 +12,7 @@
 
 <p align="center">
   <a href="#quick-start">Quick Start</a> •
+  <a href="#what-you-get">What You Get</a> •
   <a href="#one-line-installation">Installation</a> •
   <a href="#token-optimization">Token Optimization</a> •
   <a href="#structure">Structure</a> •
@@ -46,6 +47,26 @@ vi ~/.claude/git-identity.md
 | Verify backup | `./scripts/verify.sh` | — |
 
 For detailed scenarios, see [Use Cases](#use-cases).
+
+---
+
+## What You Get
+
+Install claude-config and Claude Code immediately gains these capabilities:
+
+**Security** — `.env`, `.pem`, and credentials are automatically blocked from being read or written. Dangerous commands like `rm -rf /` are intercepted before execution.
+
+**Auto-formatting** — Code is formatted on every save: Python (black), TypeScript (prettier), Go (gofmt), Rust (rustfmt), C++ (clang-format), Kotlin (ktlint).
+
+**Workflow automation** — `/issue-work` takes a GitHub issue from open to merged PR in one command. `/release` generates changelogs and creates releases. `/pr-work` diagnoses and fixes CI failures.
+
+**Commit quality** — Broken markdown links, AI attribution, and non-conventional commit messages are caught before they reach your repository.
+
+**Code quality on demand** — `/security-audit`, `/performance-review`, `/code-quality`, and `/pr-review` provide specialized analysis when you need it.
+
+**Agent team design** — `/harness` designs multi-agent architectures tailored to your project, with 6 architecture patterns and orchestrator templates.
+
+**Cross-platform** — Everything works on macOS, Linux, and Windows (PowerShell).
 
 ---
 
