@@ -1359,6 +1359,8 @@ An AI agent-based software development automation platform. AD-SDLC agents can r
 
 This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.
 
+This project includes third-party content. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for details.
+
 ---
 
 **Happy Coding with Claude!**

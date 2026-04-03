@@ -1300,6 +1300,8 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.
 
+This project includes third-party content. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for details.
+
 ---
 
 **Happy Coding with Claude!**
