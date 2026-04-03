@@ -361,10 +361,12 @@ claude_config_backup/
 ├── docs/                        # Design docs and guides
 │   ├── TOKEN_OPTIMIZATION.md
 │   ├── SKILL_TOKEN_REPORT.md
-│   ├── OPTIMIZATION_DISCOVERIES.md
 │   ├── CUSTOM_EXTENSIONS.md
 │   ├── ad-sdlc-integration.md
 │   └── design/                 # Architecture design docs
+│       ├── optimization-discoveries.md
+│       ├── optimization-phases.md
+│       └── command-optimization.md
 │
 ├── plugin/                      # Claude Code Plugin (Beta)
 │   ├── .claude-plugin/

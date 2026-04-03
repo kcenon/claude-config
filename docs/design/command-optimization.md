@@ -426,7 +426,7 @@ This optimization is production-ready and automatically applied to all Claude Co
 
 - [Conditional Loading Rules v1.2.0](project/.claude/rules/conditional-loading.md)
 - [.claudeignore v1.2.0](project/.claudeignore)
-- [Token Optimization Guide](docs/TOKEN_OPTIMIZATION.md)
+- [Token Optimization Guide](../TOKEN_OPTIMIZATION.md)
 
 ---
 *Last Updated: 2026-01-27*

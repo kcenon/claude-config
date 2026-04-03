@@ -61,7 +61,7 @@ Load only modules required for each specific command, not all available modules.
 
 ### Documentation
 
-See [COMMAND_OPTIMIZATION.md](COMMAND_OPTIMIZATION.md) for detailed analysis.
+See [command-optimization.md](command-optimization.md) for detailed analysis.
 
 ---
 
@@ -660,7 +660,7 @@ This optimization is **production-ready** and automatically applied to all Claud
 
 ### Phase Documentation
 
-- [Phase 1: Command Optimization](COMMAND_OPTIMIZATION.md)
+- [Phase 1: Command Optimization](command-optimization.md)
 - [Phase 2: Dynamic Loading](project/.claude/rules/module-priority.md)
 - [Phase 3: Module Caching](project/.claude/rules/module-caching.md)
 - [Phase 4: Intelligent Prefetching](project/.claude/rules/intelligent-prefetching.md)
