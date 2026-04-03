@@ -152,9 +152,9 @@ claude --plugin-dir ./plugin-lite
 
 | Method | What You Get | Size |
 |--------|-------------|------|
-| Full plugin | 9 skills, 6 agents, hooks, comprehensive config | ~384KB |
-| **Lite plugin** | Behavioral guardrails only | ~5KB |
-| Bootstrap script | Full system configuration | Full repo |
+| Full plugin | Complete configuration with all skills, agents, and hooks | ~384KB |
+| **Lite plugin** | Core behavioral guardrails for LLM coding mistakes | ~5KB |
+| Bootstrap script | Full system configuration deployed to ~/.claude/ | Full repo |
 
 See [plugin-lite/README.md](plugin-lite/README.md) for more details.
 
@@ -162,71 +162,21 @@ See [plugin-lite/README.md](plugin-lite/README.md) for more details.
 
 ## Token Optimization
 
-Reduce initial token usage by combining `alwaysApply` frontmatter with `.claudeignore` files.
+Rules and skills load on demand — only what's relevant to your current task is loaded into context. This is automatic and requires no configuration.
 
-### Quick Summary
+### Loading reference documents
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Initial tokens (rules + config) | ~30,500 | ~4,300 | **86% reduction** |
-| Always-loaded rules | 11 files (105KB) | 5 files (4KB) | **96% reduction** |
-| Conditional rules | 0 files | 28 files (208KB) | Loaded on demand |
-
-### How It Works
-
-`alwaysApply: false` frontmatter with `paths` patterns ensures rules load only when
-relevant files are accessed. `.claudeignore` files exclude reference documents from context:
-- Reference documents (load on demand)
-- Cache directories (duplicates)
-- Plugin marketplace (rarely used)
-- Session memory (past conversations)
-
-### Automatic Installation
-
-`.claudeignore` files are automatically installed when you run the bootstrap script:
-
-```bash
-curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash
-```
-
-### Manual Installation
-
-If you need to add `.claudeignore` files to an existing installation:
-
-```bash
-# Copy .claudeignore files
-cp global/.claudeignore ~/.claude/.claudeignore
-cp project/.claudeignore <your-project>/.claude/.claudeignore
-
-# Remove cache directories
-rm -rf .npm-cache/
-
-# Restart Claude Code session
-```
-
-### Using Reference Documents
-
-Reference documents are excluded by default but load on demand:
+Some detailed reference documents are excluded from initial context for efficiency. Load them when needed:
 
 ```markdown
-# Method 1: Explicit file path
+# Ask Claude to load a specific reference
+@load: reference/agent-teams
+
+# Or reference the file directly
 Can you review rules/workflow/reference/label-definitions.md?
-
-# Method 2: @load directive
-@load: reference/label-definitions
-Help me with GitHub labels.
-
-# Method 3: Ask Claude to load
-I need help with issue labeling. Please load the relevant reference docs.
 ```
 
-### Complete Guide
-
-For detailed information:
-- [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md) — Rule optimization and `.claudeignore` patterns
-- [docs/SKILL_TOKEN_REPORT.md](docs/SKILL_TOKEN_REPORT.md) — Per-skill token consumption breakdown and runtime overhead analysis
-- Cost savings calculator
-- Rollback instructions
+For advanced customization, see [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md).
 
 ---
 
@@ -495,65 +445,16 @@ Customize `enterprise/CLAUDE.md` according to your organization's policies befor
 
 ## Personal Settings (CLAUDE.local.md)
 
-For machine-specific or personal settings that shouldn't be committed to version control, use `CLAUDE.local.md`.
-
-### What is CLAUDE.local.md?
-
-| Aspect | Description |
-|--------|-------------|
-| **Purpose** | Personal project-specific settings |
-| **Committed** | No (gitignored) |
-| **Priority** | Low (overridden by project/team settings) |
-| **Location** | `./CLAUDE.local.md` in project root |
-
-### Creating CLAUDE.local.md
+For machine-specific settings that shouldn't be committed to version control, create `CLAUDE.local.md` in your project root.
 
 ```bash
 # Copy the template
 cp project/CLAUDE.local.md.template CLAUDE.local.md
-
-# Or during installation
-./scripts/install.sh
-# Select project installation and answer 'y' to create CLAUDE.local.md
 ```
 
-### What to Put in CLAUDE.local.md
+Use it for local server URLs, machine-specific paths, and personal workflow preferences. Do **not** put credentials or API keys here — use environment variables instead.
 
-| Do Include | Do NOT Include |
-|------------|----------------|
-| Local server URLs and ports | Actual credentials or secrets |
-| Machine-specific paths | Information needed by team members |
-| Personal workflow preferences | Critical project configuration |
-| Debug/development overrides | API keys or tokens |
-
-### Example Content
-
-```markdown
-# Personal Project Settings
-
-## Local Environment
-- API Server: http://localhost:3000
-- Database: localhost:5432
-
-## Personal Preferences
-- Editor: VSCode
-- Theme: Dark+
-
-## Temporary Overrides
-- Working on: feature/authentication
-- Verbose logging: enabled
-```
-
-### Verifying .gitignore
-
-Ensure `CLAUDE.local.md` is properly ignored:
-
-```bash
-# Check if gitignored
-git check-ignore CLAUDE.local.md
-
-# Should output: CLAUDE.local.md
-```
+This file is gitignored and has the lowest priority in Claude Code's memory hierarchy.
 
 ---
 
@@ -586,26 +487,6 @@ paths:
 ```
 
 When you work on files matching these patterns, the rule is automatically loaded.
-
----
-
-## Commands
-
-Custom slash commands in `.claude/commands/` provide shortcuts for common tasks.
-
-### Available Commands
-
-| Command | Description |
-|---------|-------------|
-| `/pr-review [NUMBER]` | Comprehensive PR review with security, performance, and quality analysis |
-| `/code-quality [PATH]` | Analyze code quality and provide improvement suggestions |
-| `/git-status` | Enhanced git status with actionable insights |
-
-### Creating Custom Commands
-
-1. Create a markdown file in `.claude/commands/`
-2. Define usage, instructions, and output format
-3. Use the command with `/command-name`
 
 ---
 
@@ -678,72 +559,33 @@ temperature: 0.3
 
 ## Agent Teams
 
-Agent Teams enable multiple Claude instances to work in parallel on complex tasks, coordinating via a shared task list and direct messaging.
+Agent Teams enable multiple Claude instances to work in parallel, coordinating via shared task lists and direct messaging.
 
-> **Status**: Experimental feature. Requires feature flag to enable.
+> **Status**: Experimental. Already enabled in this configuration.
 
 ### Quick Start
 
-1. Enable the feature flag (already included in this config's `settings.json`):
-   ```json
-   {
-     "env": { "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1" },
-     "teammateMode": "in-process"
-   }
-   ```
+Launch a team in natural language:
 
-2. Launch a team in natural language:
-   ```
-   Create a team to implement the notification system:
-   - Teammate "backend": API endpoints
-   - Teammate "frontend": UI components
-   - Teammate "tests": Integration tests
-   ```
-
-### Display Modes
-
-| Mode | Behavior | CLI Flag |
-|------|----------|----------|
-| `auto` | Split panes if tmux/iTerm2 available, otherwise in-process | `--teammate-mode auto` |
-| `in-process` | All teammates in same terminal | `--teammate-mode in-process` |
-| `tmux` | Split-pane display via tmux | `--teammate-mode tmux` |
-
-### Keyboard Shortcuts (In-Process Mode)
-
-| Shortcut | Action |
-|----------|--------|
-| `Shift+Down` | Cycle through teammates |
-| `Ctrl+T` | Access shared task list |
-| `Enter` | Send message to focused teammate |
-| `Escape` | Return focus to lead agent |
-
-### Team Limit
-
-Control maximum concurrent teams via `MAX_TEAMS` (default: `5`):
-
-```json
-{ "env": { "MAX_TEAMS": "5" } }
+```
+Create a team to implement the notification system:
+- Teammate "backend": API endpoints
+- Teammate "frontend": UI components
+- Teammate "tests": Integration tests
 ```
 
-A `PreToolUse` hook on `TeamCreate` counts directories in `~/.claude/teams/` and blocks creation when the limit is reached.
+### Key Controls
 
-### Team Hooks
+| Action | How |
+|--------|-----|
+| Cycle teammates | `Shift+Down` |
+| Shared task list | `Ctrl+T` |
+| Send message | `Enter` (to focused teammate) |
+| Return to lead | `Escape` |
 
-| Hook | Purpose | Decision Control |
-|------|---------|-----------------|
-| `TeamCreate` (PreToolUse) | Enforces `MAX_TEAMS` limit | JSON `permissionDecision: deny` blocks creation |
-| `TeammateIdle` | Fires when teammate finishes and goes idle | Exit code 2 blocks idle |
-| `TaskCompleted` | Fires when teammate completes a task | Exit code 2 blocks completion |
+Keep teams to 2-3 teammates for optimal coordination. Assign distinct file sets to avoid conflicts.
 
-### Best Practices
-
-- Assign distinct file sets to each teammate to avoid conflicts
-- Include context (file paths, issue numbers) in spawn prompts
-- Use plan approval for teammates making risky changes
-- Keep teams to 2-3 teammates for optimal coordination
-- Use `Ctrl+T` to track progress across all teammates
-
-For full configuration details, see `rules/workflow/reference/agent-teams.md`.
+For architecture patterns, display modes, hooks, and advanced configuration, see `rules/workflow/reference/agent-teams.md`.
 
 ---
 
@@ -769,244 +611,18 @@ The `.mcp.json` template provides common MCP server configurations.
 
 ---
 
-## Skills
-
-This configuration includes Claude Code Skills for auto-discovery of guidelines based on task context.
-
-### Project Skills (Context-Based)
-
-Auto-triggered skills loaded from `.claude/skills/` based on task context:
-
-| Skill | Description | Trigger Keywords |
-|-------|-------------|------------------|
-| **coding-guidelines** | Coding standards, quality, error handling | implement, add, create, fix, refactor, review |
-| **security-audit** | Security guidelines, OWASP Top 10, input validation | auth, token, password, secret, security, XSS, CSRF |
-| **performance-review** | Performance optimization, profiling, caching | slow, optimize, benchmark, profile, latency, cache |
-| **api-design** | API design, architecture, logging, observability | REST, GraphQL, API, microservice, endpoint, SOLID |
-| **project-workflow** | Workflow, git commits, issues, PRs, testing | commit, PR, issue, build, test, workflow, git |
-| **documentation** | README, API docs, comments, cleanup | document, README, comment, changelog, format, lint |
-| **ci-debugging** | CI/CD failure diagnosis and resolution | CI fail, GitHub Actions, TLS, pipeline |
-
-### Project Skills (User-Invocable)
-
-Invoked explicitly with `/skill-name` commands:
-
-| Skill | Description | Usage |
-|-------|-------------|-------|
-| **code-quality** | Code quality analysis, complexity, SOLID | `/code-quality <file-or-directory>` |
-| **git-status** | Git status with actionable insights | `/git-status` |
-| **pr-review** | Comprehensive PR review | `/pr-review <pr-number>` |
-
-### Global Skills (User-Invocable)
-
-Installed to `~/.claude/skills/`, available across all projects:
-
-| Skill | Description | Usage |
-|-------|-------------|-------|
-| **branch-cleanup** | Clean merged and stale branches | `/branch-cleanup [project]` |
-| **doc-review** | Markdown document review (anchors, accuracy, SSOT) | `/doc-review [docs-dir]` |
-| **implement-all-levels** | Enforce complete implementation of all tiers | `/implement-all-levels <feature>` |
-| **issue-create** | Create GitHub issues with 5W1H framework | `/issue-create <project>` |
-| **issue-work** | GitHub issue workflow automation | `/issue-work <project>` |
-| **pr-work** | Analyze and fix failed CI/CD for PRs | `/pr-work <pr-number>` |
-| **release** | Create release with automated changelog | `/release <version>` |
-| **harness** | Design agent team & skill architectures | `/harness [description]` |
-
-> **Note**: Global commands from v1.3.0 (`/branch-cleanup`, `/release`, etc.) have been migrated to Skills format for better context isolation and model override support.
-
-### How Skills Work
-
-1. Skills are auto-discovered from `.claude/skills/` directory
-2. Each skill has a `SKILL.md` with YAML frontmatter defining name and description
-3. Context-based skills are activated automatically based on task keywords
-4. User-invocable skills are triggered explicitly with `/skill-name`
-5. Skills support `argument-hint`, `model`, and `allowed-tools` frontmatter
-
-<details>
-<summary>Progressive Disclosure Pattern & Skill Structure</summary>
-
-### Progressive Disclosure Pattern
-
-Skills use the Progressive Disclosure pattern with Import syntax for token efficiency:
-
-1. **SKILL.md**: Contains only essential information (~50 lines)
-2. **reference/**: Symlinks to detailed guideline files
-3. **Import Syntax**: Use `@path/to/file` for on-demand loading (supports up to 5 levels deep)
-4. **On-Demand loading**: Claude reads reference files only when necessary
-
-```
-skills/coding-guidelines/
-├── SKILL.md              # Core info (~37 lines)
-└── reference/            # Symlinks to detailed guidelines
-    ├── general.md        → .claude/rules/coding/general.md
-    ├── quality.md        → .claude/rules/coding/quality.md
-    ├── error-handling.md → .claude/rules/coding/error-handling.md
-    └── ...
-```
-
-**Benefits:**
-- Initial load tokens: ~5000 → ~1000 (80% reduction)
-- 1-level deep references for reliable loading
-- Simplified path maintenance
-- Import syntax provides intuitive file references
-
-### Import Syntax
-
-The `@path/to/file` Import syntax (introduced in v1.4.0) provides:
-- More intuitive file references than traditional markdown links
-- Support for up to 5 levels of recursive Import
-- Both relative and absolute path support
-- Automatic ignoring within code blocks
-
-**Example:**
-```markdown
-# CLAUDE.md
-## Core Guidelines
-@.claude/rules/core/environment.md
-@.claude/rules/workflow/workflow.md
-@.claude/rules/coding/general.md
-```
-
-### Skill Structure
-
-```yaml
----
-name: skill-name
-description: Description for auto-discovery (max 1024 chars)
-allowed-tools: Read, Grep, Glob  # Optional: restrict tools
----
-
-# Skill Title
-
-## When to Use
-- Use case 1
-- Use case 2
-
-## Reference Documents (Import Syntax)
-@reference/guideline.md
-```
-
-</details>
-
----
-
 ## Scripts
 
-### 1. install.sh / install.ps1
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `install.sh` / `install.ps1` | Install settings to a new system | `./scripts/install.sh` |
+| `backup.sh` | Save current settings to backup | `./scripts/backup.sh` |
+| `sync.sh` | Bidirectional sync between system and backup | `./scripts/sync.sh` |
+| `verify.sh` | Check backup integrity and completeness | `./scripts/verify.sh` |
+| `validate_skills.sh` | Validate SKILL.md format compliance | `./scripts/validate_skills.sh` |
 
-**Purpose:** Install backed up settings to a new system
-
-**Features:**
-- Install global settings (`~/.claude/`)
-- Install project settings (specified directory)
-- Install skills directory (`.claude/skills/`)
-- Auto-backup existing files
-- Select installation type (global/project/both/enterprise/all)
-
-**Usage:**
-```bash
-# macOS/Linux
-./scripts/install.sh
-
-# Windows (PowerShell 7+)
-.\scripts\install.ps1
-```
-
-**Notes:**
-- After installation, you MUST modify `git-identity.md` with your personal info!
-- Existing files are backed up with `.backup_YYYYMMDD_HHMMSS` format
-- Windows: `install.ps1` deploys `settings.windows.json` and `.ps1` hook scripts automatically
-
----
-
-### 2. backup.sh
-
-**Purpose:** Save current system settings to backup
-
-**Features:**
-- Backup global settings
-- Backup project settings
-- Backup skills directory (`.claude/skills/`)
-- Create timestamped backups
-- Option to replace existing backup
-
-**Usage:**
-```bash
-./scripts/backup.sh
-```
-
-**When to use:**
-- Before deploying current settings to another system
-- After modifying settings to update backup
-- Regular settings backup
-
----
-
-### 3. sync.sh
-
-**Purpose:** Synchronize settings between system and backup
-
-**Features:**
-- Bidirectional sync (backup ↔ system)
-- Skills directory sync support
-- Compare file differences
-- Preview changes
-- Safe backup creation
-
-**Usage:**
-```bash
-./scripts/sync.sh
-```
-
-**Sync directions:**
-- 1: Backup → System (apply backup settings to system)
-- 2: System → Backup (save system settings to backup)
-- 3: Compare only (no changes)
-
----
-
-### 4. verify.sh
-
-**Purpose:** Check backup integrity and completeness
-
-**Features:**
-- Directory structure verification
-- Required files existence check
-- Skills directory and SKILL.md validation
-- Script execution permission check
-- Statistics display
-
-**Usage:**
-```bash
-./scripts/verify.sh
-```
-
----
-
-### 5. validate_skills.sh
-
-**Purpose:** Validate SKILL.md files for format compliance
-
-**Features:**
-- YAML frontmatter validation
-- Name field check (lowercase, numbers, hyphens, max 64 chars)
-- Description field check (non-empty, max 1024 chars)
-- File line count check (warning if > 500 lines)
-- Reference directory existence check
-- Optional PyYAML syntax validation
-
-**Usage:**
-```bash
-./scripts/validate_skills.sh
-```
-
-**Validation Rules:**
-| Field | Rule |
-|-------|------|
-| Frontmatter | Must start and end with `---` |
-| name | `[a-z0-9-]+`, max 64 characters |
-| description | Non-empty, max 1024 characters |
-| File length | Warning if > 500 lines |
+After installation, you **must** edit `~/.claude/git-identity.md` with your personal info.
+Existing files are automatically backed up with `.backup_YYYYMMDD_HHMMSS` format.
 
 ---
 
@@ -1213,28 +829,12 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ---
 
-## Important Notes
-
-1. **Personal Information Protection**
-   - `git-identity.md` contains personal information
-   - Be careful when using public repositories!
-
-2. **Pre-Backup Verification**
-   - Always backup before important changes
-   - Check differences before overwriting
-
-3. **Project Settings**
-   - Customize appropriately for each project
-   - Reach agreement when sharing with team
-
----
-
 ## Version
 
-- **Version**: 1.6.0
-- **Last Updated**: 2026-04-03
+**Current**: 1.6.0 (2026-04-03)
 
-### Changelog
+<details>
+<summary>Changelog</summary>
 
 #### v1.6.0 (2026-04-03)
 - **Harness meta-skill**: Added `/harness` for designing domain-specific agent team architectures
@@ -1315,6 +915,8 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 - Initial release with global and project configurations
 - Claude Code Skills with progressive disclosure pattern
 - Hook settings for security and auto-formatting
+
+</details>
 
 ---
 
