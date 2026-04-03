@@ -1,6 +1,6 @@
 ---
 name: api-design
-description: Provides API design guidelines for REST, GraphQL, versioning, logging, observability, and architecture patterns. Use when designing APIs, reviewing architecture, implementing microservices, or setting up monitoring.
+description: "Provides API design guidelines for REST endpoints, GraphQL schemas, versioning strategies, error handling conventions, logging, observability, and microservice architecture patterns. Use when designing APIs, reviewing API architecture, implementing new endpoints, setting up monitoring, or planning service boundaries."
 model: sonnet
 argument-hint: "<endpoint-or-file>"
 ---
