@@ -6,6 +6,20 @@ This document describes the Hook settings included in claude-config.
 
 Hooks are user-defined commands that automatically execute during specific Claude Code events.
 
+## Quick Navigation
+
+| I want to... | See |
+|--------------|-----|
+| Protect sensitive files from being read | [Sensitive File Protection](#1-sensitive-file-protection-pretooluse) |
+| Block dangerous shell commands | [Dangerous Command Blocking](#2-dangerous-command-blocking-pretooluse) |
+| Validate markdown links before commit | [Markdown Anchor Validation](#5-markdown-anchor-validation-pretooluse) |
+| Auto-format code after edits | [Auto Formatting](#1-auto-formatting-posttooluse) |
+| Limit concurrent Agent Teams | [Team Limit Guard](#6-team-limit-guard-pretooluse) |
+| Log session activity | [Session Logging](#3-session-logging-sessionstartsessionend) |
+| Check for known Claude Code bugs | [Version Check](#8-version-check-sessionstart) |
+| Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
+| Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
+
 ## Configuration File Locations
 
 | File | Purpose | Scope |
@@ -16,6 +30,8 @@ Hooks are user-defined commands that automatically execute during specific Claud
 ## Global Hooks (global/settings.json)
 
 ### 1. Sensitive File Protection (PreToolUse)
+
+*Prevents accidental exposure of secrets — Claude will never read your .env or credentials, even if asked directly.*
 
 **Purpose**: Block access to sensitive files like `.env`, `.pem`, `.key`
 
@@ -29,6 +45,8 @@ Hooks are user-defined commands that automatically execute during specific Claud
 
 ### 2. Dangerous Command Blocking (PreToolUse)
 
+*Stops catastrophic mistakes before they happen — no accidental root deletion or unsafe permission changes.*
+
 **Purpose**: Block commands that could have catastrophic system impact
 
 **Blocked targets**:
@@ -37,6 +55,8 @@ Hooks are user-defined commands that automatically execute during specific Claud
 - `curl ... | sh` (remote script execution)
 
 ### 3. Session Logging (SessionStart/SessionEnd)
+
+*Track when and how long Claude Code sessions run for audit and debugging purposes.*
 
 **Purpose**: Record Claude Code session start/end times
 
@@ -50,6 +70,8 @@ Hooks are user-defined commands that automatically execute during specific Claud
 
 ### 4. Temporary File Cleanup (SessionEnd)
 
+*Keeps your temp directory clean without manual intervention.*
+
 **Purpose**: Automatically delete old temporary files on session end
 
 **Cleanup targets**:
@@ -57,6 +79,8 @@ Hooks are user-defined commands that automatically execute during specific Claud
 - `/tmp/tmp.*` (owned by current user, older than 60 minutes)
 
 ### 5. Markdown Anchor Validation (PreToolUse)
+
+*Catch broken documentation links before they reach your repository — validates every cross-reference on commit.*
 
 **Purpose**: Validate markdown cross-reference anchors before git commit to prevent broken links
 
@@ -85,6 +109,8 @@ Hooks are user-defined commands that automatically execute during specific Claud
 
 ### 6. Team Limit Guard (PreToolUse)
 
+*Prevent resource exhaustion by capping the number of concurrent Agent Teams across sessions.*
+
 **Purpose**: Enforce a maximum number of concurrent Agent Teams across sessions
 
 **Trigger**: `TeamCreate` tool invocation
@@ -100,6 +126,8 @@ Hooks are user-defined commands that automatically execute during specific Claud
 - Cross-platform: `team-limit-guard.sh` (bash) and `team-limit-guard.ps1` (PowerShell)
 
 ### 7. TeammateIdle (TeammateIdle)
+
+*React when teammates finish work — enforce quality gates or trigger follow-up actions.*
 
 **Purpose**: Fires when a teammate finishes its turn and is about to go idle. Use this to enforce quality gates or log teammate activity.
 
@@ -124,6 +152,8 @@ Hooks are user-defined commands that automatically execute during specific Claud
 
 ### 8. Version Check (SessionStart)
 
+*Get warned early if your Claude Code version has known performance bugs.*
+
 **Purpose**: Warn when running Claude Code versions with known cache efficiency bugs
 
 **Trigger**: Every session start (async, non-blocking)
@@ -144,6 +174,8 @@ Hooks are user-defined commands that automatically execute during specific Claud
 - Cross-platform: `version-check.sh` (bash) and `version-check.ps1` (PowerShell)
 
 ### 9. TaskCompleted (TaskCompleted)
+
+*Enforce quality gates before accepting task completion from teammates.*
 
 **Purpose**: Fires when a teammate completes a task from the shared task list. Use this to enforce quality gates before accepting task completion.
 
@@ -204,6 +236,8 @@ through the `permissionDecision` field, not through the exit code.
 ## Project Hooks (project/.claude/settings.json)
 
 ### 1. Auto Formatting (PostToolUse)
+
+*Never worry about code style — every edit is automatically formatted in your language's standard style.*
 
 **Purpose**: Automatically run language-specific formatters after file modifications
 
