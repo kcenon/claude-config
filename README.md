@@ -1,7 +1,7 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
-  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.5.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.6.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
 </p>
@@ -131,7 +131,7 @@ claude --plugin-dir ./plugin-lite
 
 | Method | What You Get | Size |
 |--------|-------------|------|
-| Full plugin | 7 skills, 5 agents, hooks, comprehensive config | ~384KB |
+| Full plugin | 9 skills, 6 agents, hooks, comprehensive config | ~384KB |
 | **Lite plugin** | Behavioral guardrails only | ~5KB |
 | Bootstrap script | Full system configuration | Full repo |
 
@@ -247,6 +247,8 @@ claude_config_backup/
 │   │   ├── pre-compact-snapshot.sh/.ps1
 │   │   ├── worktree-create.sh/.ps1
 │   │   ├── worktree-remove.sh/.ps1
+│   │   ├── team-limit-guard.sh/.ps1
+│   │   ├── version-check.sh/.ps1
 │   │   └── cleanup.sh/.ps1
 │   ├── scripts/                # Utility scripts
 │   │   ├── statusline-command.sh/.ps1
@@ -258,7 +260,8 @@ claude_config_backup/
 │       ├── issue-create/       # Create GitHub issues (5W1H)
 │       ├── issue-work/         # GitHub issue workflow automation
 │       ├── pr-work/            # Fix failed CI/CD for PRs
-│       └── release/            # Automated release with changelog
+│       ├── release/            # Automated release with changelog
+│       └── harness/            # Agent team & skill architecture design
 │
 ├── project/                     # Project settings backup
 │   ├── CLAUDE.md               # Project main configuration
@@ -315,6 +318,7 @@ claude_config_backup/
 │       │   ├── code-reviewer.md
 │       │   ├── codebase-analyzer.md
 │       │   ├── documentation-writer.md
+│       │   ├── qa-reviewer.md
 │       │   ├── refactor-assistant.md
 │       │   └── structure-explorer.md
 │       └── skills/             # Claude Code Skills
@@ -389,7 +393,7 @@ claude_config_backup/
 
 ## Hook Settings
 
-This configuration includes 14 hook scripts (each with macOS `.sh` and Windows `.ps1` variants) for security, observability, and productivity.
+This configuration includes 16 hook scripts (each with macOS `.sh` and Windows `.ps1` variants) for security, observability, and productivity.
 
 ### Security Hooks
 
@@ -405,7 +409,7 @@ This configuration includes 14 hook scripts (each with macOS `.sh` and Windows `
 | Hook | Event | Description |
 |------|-------|-------------|
 | **Session Logging** | SessionStart/End | Logs session start/end times to `~/.claude/session.log` |
-| **Tool Failure Logger** | PostToolUse | Logs tool execution failures for debugging |
+| **Tool Failure Logger** | PostToolUseFailure | Logs tool execution failures for debugging |
 | **Subagent Logger** | SubagentStart/Stop | Tracks subagent lifecycle events |
 | **Task Completed Logger** | TaskCompleted | Logs when teammates complete tasks |
 | **Config Change Logger** | ConfigChange | Tracks configuration changes |
@@ -419,6 +423,8 @@ This configuration includes 14 hook scripts (each with macOS `.sh` and Windows `
 | **Worktree Create** | WorktreeCreate | Sets up worktree environment |
 | **Worktree Remove** | WorktreeRemove | Cleans up worktree environment |
 | **Temp File Cleanup** | SessionEnd | Removes old `/tmp/claude_*` files |
+| **Team Limit Guard** | PreToolUse | Enforces `MAX_TEAMS` concurrent team limit |
+| **Version Check** | SessionStart | Warns about known cache bug versions |
 
 ### Project Hooks (`project/.claude/settings.json`)
 
@@ -615,6 +621,7 @@ Global skills are available across all projects when installed to `~/.claude/ski
 | `/pr-work` | Analyze and fix failed CI/CD for PRs | `/pr-work 42` |
 | `/doc-review` | Markdown document review (anchors, accuracy, SSOT) | `/doc-review docs/` |
 | `/implement-all-levels` | Enforce complete implementation of all tiers | `/implement-all-levels feature` |
+| `/harness` | Design agent team & skill architectures | `/harness [domain-or-project-description]` |
 
 ### Skill Details
 
@@ -669,6 +676,15 @@ Global skills are available across all projects when installed to `~/.claude/ski
 - Prevents partial implementations of tiered features
 - Enforces complete implementation across all difficulty levels
 
+#### `/harness`
+```bash
+/harness [domain-or-project-description]
+```
+- Designs domain-specific agent team architectures
+- Selects from 6 patterns: Pipeline, Fan-out/Fan-in, Expert Pool, Producer-Reviewer, Supervisor, Hierarchical
+- Generates `.claude/agents/` definitions and `.claude/skills/` with orchestration
+- Includes reference docs for design patterns, testing, and QA
+
 ---
 
 ## Agents
@@ -683,6 +699,7 @@ Specialized agents in `.claude/agents/` provide focused assistance for specific 
 | `documentation-writer` | Technical documentation | sonnet |
 | `refactor-assistant` | Safe code refactoring | sonnet |
 | `codebase-analyzer` | Codebase architecture and pattern analysis | sonnet |
+| `qa-reviewer` | Integration coherence verification | sonnet |
 | `structure-explorer` | Project directory structure mapping | haiku |
 
 ### Agent Configuration
@@ -746,10 +763,10 @@ Agent Teams enable multiple Claude instances to work in parallel on complex task
 
 ### Team Limit
 
-Control maximum concurrent teams via `MAX_TEAMS` (default: `3`):
+Control maximum concurrent teams via `MAX_TEAMS` (default: `5`):
 
 ```json
-{ "env": { "MAX_TEAMS": "3" } }
+{ "env": { "MAX_TEAMS": "5" } }
 ```
 
 A `PreToolUse` hook on `TeamCreate` counts directories in `~/.claude/teams/` and blocks creation when the limit is reached.
@@ -837,6 +854,7 @@ Installed to `~/.claude/skills/`, available across all projects:
 | **issue-work** | GitHub issue workflow automation | `/issue-work <project>` |
 | **pr-work** | Analyze and fix failed CI/CD for PRs | `/pr-work <pr-number>` |
 | **release** | Create release with automated changelog | `/release <version>` |
+| **harness** | Design agent team & skill architectures | `/harness [description]` |
 
 > **Note**: Global commands from v1.3.0 (`/branch-cleanup`, `/release`, etc.) have been migrated to Skills format for better context isolation and model override support.
 
@@ -1257,10 +1275,22 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## Version
 
-- **Version**: 1.5.0
-- **Last Updated**: 2026-03-21
+- **Version**: 1.6.0
+- **Last Updated**: 2026-04-03
 
 ### Changelog
+
+#### v1.6.0 (2026-04-03)
+- **Harness meta-skill**: Added `/harness` for designing domain-specific agent team architectures
+  - 6 architecture patterns: Pipeline, Fan-out/Fan-in, Expert Pool, Producer-Reviewer, Supervisor, Hierarchical
+  - Generates `.claude/agents/` and `.claude/skills/` with orchestration
+  - Reference docs: agent design patterns, orchestrator templates, skill writing/testing guides, QA agent guide
+- **QA reviewer agent**: Added `qa-reviewer` agent for integration coherence verification
+- **Version check hook**: Added SessionStart hook to warn about known Claude Code cache bugs
+- **Batch processing**: Added batch mode to `/issue-work` and `/pr-work` skills (single-repo, cross-repo)
+- **CI validation**: Extended skill validation with description quality and global skills checks
+- **Skill descriptions**: Enhanced trigger accuracy across all skills
+- **Third-party notices**: Added `THIRD_PARTY_NOTICES.md` for harness content attribution (Apache 2.0)
 
 #### v1.5.0 (2026-03-21)
 - **Skills migration**: Migrated all global commands to Skills format for context isolation and model override support
@@ -1274,7 +1304,7 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
   - Team hooks: `TeammateIdle`, `TaskCompleted`
 - **Windows PowerShell support**: Full cross-platform parity
   - Added `install.ps1` for Windows installation
-  - All 14 hook scripts have `.ps1` variants
+  - All 16 hook scripts have `.ps1` variants
   - Added `settings.windows.json` for Windows-specific hook paths
 - **New hooks** (8 new types):
   - `github-api-preflight`: GitHub API call validation

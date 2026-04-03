@@ -2,6 +2,16 @@
 
 ## Changelog
 
+- **1.6.0** (2026-04-03): Harness skill, QA agent, batch processing, version-check hook
+  - Added harness meta-skill for agent team and skill architecture design
+  - Added qa-reviewer agent for integration coherence verification
+  - Added version-check SessionStart hook for known cache bug warnings
+  - Added batch processing mode to issue-work and pr-work skills
+  - Extended CI skill validation with description quality and global skills checks
+  - Enhanced skill descriptions for better trigger accuracy
+  - Added reference docs: orchestrator patterns, skill testing guide, agent design patterns
+  - Added THIRD_PARTY_NOTICES.md for harness content attribution (Apache 2.0)
+
 - **1.5.0** (2026-03-21): Skills migration, Agent Teams, Windows support, new hooks
   - Migrated global commands to Skills format (context isolation, model override)
   - Added new global skills: doc-review, implement-all-levels

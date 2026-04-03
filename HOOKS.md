@@ -122,7 +122,28 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | `0` | Allow teammate to go idle |
 | `2` | Block idle — stderr message sent as feedback to teammate |
 
-### 8. TaskCompleted (TaskCompleted)
+### 8. Version Check (SessionStart)
+
+**Purpose**: Warn when running Claude Code versions with known cache efficiency bugs
+
+**Trigger**: Every session start (async, non-blocking)
+
+**How it works**:
+1. Gets current Claude Code version via `claude --version`
+2. Compares against a hardcoded list of known problematic versions (2.1.69–2.1.81)
+3. Logs a warning to `~/.claude/session.log` if a match is found
+
+**Known bugs tracked**:
+- Resume cache regression ([#34629](https://github.com/anthropics/claude-code/issues/34629))
+- Sentinel replacement ([#40524](https://github.com/anthropics/claude-code/issues/40524))
+
+**Behavior**:
+- Lifecycle event hook — no JSON output required
+- Always exits 0 (non-blocking)
+- Timeout: 10 seconds, async
+- Cross-platform: `version-check.sh` (bash) and `version-check.ps1` (PowerShell)
+
+### 9. TaskCompleted (TaskCompleted)
 
 **Purpose**: Fires when a teammate completes a task from the shared task list. Use this to enforce quality gates before accepting task completion.
 
@@ -266,6 +287,8 @@ Hook commands use `pwsh -NoProfile -File` for fast, profile-independent executio
 | Task Completed Logger | `task-completed-logger.ps1` | Logs task completion events |
 | Config Change Logger | `config-change-logger.ps1` | Logs configuration changes |
 | Markdown Anchor Validator | `markdown-anchor-validator.ps1` | Validates markdown cross-reference anchors before commit |
+| Team Limit Guard | `team-limit-guard.ps1` | Enforces MAX_TEAMS concurrent team limit |
+| Version Check | `version-check.ps1` | Warns about known cache bug versions on session start |
 
 ### Key Differences from Bash Hooks
 
