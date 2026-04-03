@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Agent Teams and Parallel Workflow Patterns
 
-> **Version**: 1.1.0
+> **Version**: 1.2.0
 > **Parent**: [GitHub PR Guidelines](../github-pr-5w1h.md)
 > **Purpose**: Decision framework for Claude Code parallel execution strategies
 > **Loading**: Excluded from default context via `.claudeignore`. Load with `@load: reference/agent-teams`.
@@ -114,6 +114,127 @@ claude --teammate-mode in-process
 | 5+ | Avoid — coordination overhead exceeds benefits |
 
 Aim for 5-6 tasks per teammate for optimal productivity.
+
+## Architecture Patterns
+
+Common multi-agent patterns for structuring team workflows. Choose based on task
+dependencies, coordination needs, and whether agents must communicate mid-flight.
+
+### Pattern 1: Pipeline
+
+Sequential dependent tasks where each step's output feeds the next.
+
+```
+Agent A → Agent B → Agent C → Agent D
+```
+
+| Aspect | Detail |
+|--------|--------|
+| **When to use** | Steps have strong sequential dependencies (parse → transform → validate → deploy) |
+| **When NOT to use** | Steps can be parallelized — pipeline creates a bottleneck |
+| **Team mode** | Less ideal; sequential nature limits parallelism benefits |
+
+### Pattern 2: Fan-out / Fan-in
+
+Parallel independent analysis on the same input, results merged at the end.
+
+```
+         ┌→ Agent A ─┐
+Dispatch ─┼→ Agent B ─┼→ Consolidate
+         └→ Agent C ─┘
+```
+
+| Aspect | Detail |
+|--------|--------|
+| **When to use** | Independent analyses or reviews on shared input (security + performance + tests) |
+| **When NOT to use** | Agents need to see each other's intermediate work before finishing |
+| **Team mode** | Essential — agents share discoveries and cross-validate via `SendMessage` |
+
+### Pattern 3: Expert Pool
+
+Route to one-of-N specialists based on input classification.
+
+```
+Input → Router → Expert A (selected)
+                 Expert B
+                 Expert C
+```
+
+| Aspect | Detail |
+|--------|--------|
+| **When to use** | Different inputs need different expertise (frontend vs. backend vs. infra) |
+| **When NOT to use** | Most inputs need the same agent — routing adds overhead for no gain |
+| **Team mode** | Sub-agents preferred; route once, no cross-talk needed |
+
+### Pattern 4: Producer-Reviewer
+
+Generate an artifact, then quality-review it with a feedback loop.
+
+```
+Producer → Artifact → Reviewer → PASS → Output
+                        ↓ FAIL
+                    Producer (retry, max 2-3)
+```
+
+| Aspect | Detail |
+|--------|--------|
+| **When to use** | Output has objective quality criteria (tests pass, lint clean, schema valid) |
+| **When NOT to use** | Quality is subjective with no clear pass/fail threshold |
+| **Team mode** | Yes — real-time feedback via `SendMessage` |
+
+### Pattern 5: Supervisor
+
+Central agent creates tasks; workers self-assign from a shared task list.
+
+```
+Supervisor ─┬→ Worker A (self-assign from task list)
+            ├→ Worker B
+            └→ Worker C
+```
+
+| Aspect | Detail |
+|--------|--------|
+| **When to use** | Variable workload, runtime allocation needed, heterogeneous tasks |
+| **When NOT to use** | Work is pre-determinable at launch (use Fan-out instead) |
+| **Team mode** | Yes — shared task list maps naturally to `TaskCreate` / `TaskUpdate` |
+
+### Pattern 6: Hierarchical Delegation
+
+Recursive top-down decomposition across multiple levels.
+
+```
+Leader ─┬→ Sub-leader A ─┬→ Worker A1
+        │                └→ Worker A2
+        └→ Sub-leader B ─┬→ Worker B1
+                         └→ Worker B2
+```
+
+| Aspect | Detail |
+|--------|--------|
+| **When to use** | Problem naturally decomposes in layers (epic → story → task) |
+| **When NOT to use** | Flat parallelism suffices — adds unnecessary coordination |
+| **Team mode** | Partial — 1st level as team, 2nd level as sub-agents (max 2 levels recommended) |
+
+### Compound Patterns
+
+Patterns compose naturally. Common combinations:
+
+| Combination | Example |
+|-------------|---------|
+| Fan-out + Producer-Reviewer | Parallel generation with quality gate on each output |
+| Supervisor + Pipeline | Dynamic work assignment with sequential processing per item |
+| Pipeline + Fan-out/Fan-in | Sequential phases where some phases fan out internally |
+
+### Pattern Selection Quick Reference
+
+| Need | Pattern |
+|------|---------|
+| Strict order, each step depends on previous | Pipeline |
+| Same input, multiple independent analyses | Fan-out / Fan-in |
+| Different inputs routed to specialists | Expert Pool |
+| Generate then verify with feedback | Producer-Reviewer |
+| Dynamic task allocation at runtime | Supervisor |
+| Multi-level decomposition | Hierarchical Delegation |
 
 ## Launching Agent Teams
 
@@ -352,4 +473,4 @@ Create a team to investigate the intermittent timeout issue:
 
 ---
 
-*Reference document for parallel workflow configuration. Version 1.1.0*
+*Reference document for parallel workflow configuration. Version 1.2.0*
