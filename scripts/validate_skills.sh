@@ -155,6 +155,12 @@ validate_skill() {
             success "description 유효: ${desc_length}자"
             record_pass
         fi
+
+        # Description minimum length check (trigger quality)
+        if [ $desc_length -lt 100 ]; then
+            warning "description이 스킬 트리거에 불충분할 수 있음 (${desc_length}자 < 100)"
+            record_warning
+        fi
     fi
 
     # 4. 파일 라인 수 검증 (권장: 500줄 이하)
@@ -176,6 +182,14 @@ validate_skill() {
         ref_count=$(find "${skill_dir}/reference" -name "*.md" | wc -l | tr -d ' ')
         success "reference 디렉토리 존재: ${ref_count}개 문서"
         record_pass
+
+        # Reference directory orphan check
+        if [ "$(ls -A "${skill_dir}/reference" 2>/dev/null)" ]; then
+            if ! grep -q "reference/" "$skill_file"; then
+                warning "reference/ 디렉토리가 존재하지만 SKILL.md에서 참조하지 않음 (고아 가능성)"
+                record_warning
+            fi
+        fi
     else
         warning "reference 디렉토리 없음"
         record_warning
@@ -196,6 +210,7 @@ SKILL_DIRS=(
     "$BACKUP_DIR/project/.claude/skills"
     "$BACKUP_DIR/plugin/skills"
     "$BACKUP_DIR/plugin-lite/skills"
+    "$BACKUP_DIR/global/skills"
 )
 
 SKILL_FILES=()
