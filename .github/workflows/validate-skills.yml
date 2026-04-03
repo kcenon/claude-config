@@ -5,11 +5,13 @@ on:
     paths:
       - 'project/.claude/skills/**'
       - 'plugin/skills/**'
+      - 'global/skills/**'
       - 'scripts/validate_skills.sh'
   pull_request:
     paths:
       - 'project/.claude/skills/**'
       - 'plugin/skills/**'
+      - 'global/skills/**'
       - 'scripts/validate_skills.sh'
 
 jobs:
