@@ -1,6 +1,6 @@
 ---
 name: ci-debugging
-description: Provides systematic CI/CD failure diagnosis and resolution. Use when CI builds fail, GitHub Actions errors occur, TLS/auth issues block pipelines, or platform-specific failures need debugging.
+description: "Diagnose and fix CI/CD pipeline failures: GitHub Actions errors, build failures, test timeouts, TLS/auth issues, platform-specific failures, dependency resolution problems, and deployment errors. Use when CI checks fail, builds break, tests timeout, or pipeline errors need systematic root-cause analysis and resolution."
 allowed-tools:
   - Bash
   - Read

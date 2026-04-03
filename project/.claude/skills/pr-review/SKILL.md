@@ -1,6 +1,6 @@
 ---
 name: pr-review
-description: Review pull requests with comprehensive analysis covering code quality, security, performance, testing, and documentation.
+description: "Review pull requests with comprehensive analysis covering code quality, security vulnerabilities, performance implications, test coverage, documentation completeness, and architectural impact. Use when reviewing PRs, conducting code reviews, evaluating merge readiness, or assessing change impact across the codebase."
 argument-hint: "<pr-number> [--depth quick|standard|thorough]"
 user-invocable: true
 context: fork

@@ -1,6 +1,6 @@
 ---
 name: code-quality
-description: Run comprehensive code quality analysis on specified files or directories. Checks complexity, code smells, SOLID principles, and maintainability.
+description: "Run comprehensive code quality analysis: cyclomatic complexity, code smells, SOLID principle violations, dead code detection, duplication analysis, and maintainability scoring. Use when reviewing code quality, conducting code audits, checking technical debt, analyzing complexity metrics, or evaluating any file or directory for quality issues."
 argument-hint: "<file-or-directory> [--verbose]"
 user-invocable: true
 context: fork

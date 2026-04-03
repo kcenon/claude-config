@@ -1,6 +1,6 @@
 ---
 name: documentation
-description: Provides documentation standards for README, API docs, code comments, changelogs, and project cleanup. Use when writing documentation, README files, API references, or cleaning up project files.
+description: "Provides documentation standards for README files, API references, code comments, changelogs, architecture docs, and project cleanup guidelines. Use when writing documentation, creating README files, documenting APIs, adding code comments, maintaining changelogs, or cleaning up project files."
 allowed-tools:
   - Read
   - Write

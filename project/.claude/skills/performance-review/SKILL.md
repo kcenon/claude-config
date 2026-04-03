@@ -1,6 +1,6 @@
 ---
 name: performance-review
-description: Provides performance optimization guidelines for profiling, caching, memory management, and concurrency. Use when optimizing slow code, fixing memory leaks, improving throughput, or conducting performance reviews.
+description: "Performance optimization analysis: CPU/memory profiling, caching strategies, database query optimization, connection pooling, concurrency patterns, memory leak detection, and throughput improvement. Use when code is slow, memory usage is high, latency needs reduction, or conducting performance reviews before release."
 allowed-tools:
   - Read
   - Edit
