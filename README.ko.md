@@ -341,10 +341,12 @@ claude_config_backup/
 ├── docs/                        # 설계 문서 및 가이드
 │   ├── TOKEN_OPTIMIZATION.md
 │   ├── SKILL_TOKEN_REPORT.md
-│   ├── OPTIMIZATION_DISCOVERIES.md
 │   ├── CUSTOM_EXTENSIONS.md
 │   ├── ad-sdlc-integration.md
 │   └── design/                 # 아키텍처 설계 문서
+│       ├── optimization-discoveries.md
+│       ├── optimization-phases.md
+│       └── command-optimization.md
 │
 ├── plugin/                      # Claude Code Plugin (Beta)
 │   ├── .claude-plugin/
