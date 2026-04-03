@@ -371,48 +371,36 @@ claude_config_backup/
 
 ---
 
-## Hook 설정
+## 자동으로 적용되는 동작
 
-보안, 관찰성, 생산성을 위한 16개 hook 스크립트를 포함합니다 (각각 macOS `.sh`와 Windows `.ps1` 변형 제공).
+설치 직후 별도의 설정 없이 자동으로 활성화되는 동작입니다.
 
-### 보안 Hooks
+### 코드를 편집할 때
+- 사용 중인 언어에 맞게 파일이 자동 포맷됩니다 (Python, TypeScript, Go, Rust, C++, Kotlin)
+- 지원 포매터: `black`, `prettier`, `gofmt`, `rustfmt`, `clang-format`, `ktlint`
 
-| Hook | 이벤트 | 설명 |
-|------|--------|------|
-| **민감 파일 보호** | PreToolUse | `.env`, `.pem`, `.key`, `secrets/` 접근 차단 |
-| **위험 명령어 차단** | PreToolUse | `rm -rf /`, `chmod 777`, 원격 스크립트 실행 차단 |
-| **GitHub API 사전검증** | PreToolUse | GitHub API 호출 검증 |
-| **프롬프트 검증** | UserPromptSubmit | 위험 작업 (delete all, drop database) 경고 |
+### 커밋할 때
+- 마크다운 상호 참조 앵커가 검증됩니다 — 깨진 링크는 커밋을 차단합니다
+- 커밋 메시지 형식이 확인됩니다 (Conventional Commits)
+- AI/Claude 어트리뷰션이 자동으로 제거됩니다
 
-### 관찰성 Hooks
+### Claude가 파일에 접근할 때
+- `.env`, `.pem`, `.key` 및 `secrets/` 디렉토리 접근이 차단됩니다
+- 위험한 명령어 (`rm -rf /`, `chmod 777`, 파이프 실행)가 차단됩니다
+- GitHub API 호출 전 연결이 검증됩니다
 
-| Hook | 이벤트 | 설명 |
-|------|--------|------|
-| **세션 로깅** | SessionStart/End | 세션 시작/종료 시간 기록 |
-| **도구 실패 로거** | PostToolUse | 도구 실행 실패 디버깅용 기록 |
-| **서브에이전트 로거** | SubagentStart/Stop | 서브에이전트 라이프사이클 추적 |
-| **작업 완료 로거** | TaskCompleted | 팀원 작업 완료 기록 |
-| **설정 변경 로거** | ConfigChange | 설정 변경 추적 |
+### 세션이 실행될 때
+- 세션 시작/종료 시간이 `~/.claude/session.log`에 기록됩니다
+- 알려진 문제가 있는 Claude Code 버전에 대해 경고가 표시됩니다
+- 세션 종료 시 오래된 임시 파일이 정리됩니다
+- 자동 압축 전 컨텍스트가 스냅샷됩니다
 
-### 워크플로우 Hooks
+### Agent Teams 사용 시
+- 동시 팀 수가 제한됩니다 (`MAX_TEAMS`로 설정 가능)
+- 팀원의 유휴 이벤트와 작업 완료가 기록됩니다
+- Worktree 생성 및 정리가 자동으로 관리됩니다
 
-| Hook | 이벤트 | 설명 |
-|------|--------|------|
-| **마크다운 앵커 검증** | PostToolUse | 편집 후 마크다운 앵커 검증 |
-| **사전 압축 스냅샷** | PreCompact | 자동 압축 전 컨텍스트 보존 |
-| **Worktree 생성** | WorktreeCreate | Worktree 환경 설정 |
-| **Worktree 제거** | WorktreeRemove | Worktree 환경 정리 |
-| **임시 파일 정리** | SessionEnd | `/tmp/claude_*` 파일 제거 |
-| **팀 제한 가드** | PreToolUse | `MAX_TEAMS` 동시 팀 수 제한 |
-| **버전 체크** | SessionStart | 알려진 캐시 버그 버전 경고 |
-
-### 프로젝트 Hooks
-
-| Hook | 이벤트 | 설명 |
-|------|--------|------|
-| **자동 포맷팅** | PostToolUse | 파일 편집 후 언어별 포매터 실행 |
-
-자세한 설정은 [HOOKS.md](HOOKS.md)를 참조하세요.
+> 전체 Hook 설정 세부사항 및 커스터마이징은 [HOOKS.md](HOOKS.md)를 참조하세요.
 
 ---
 
@@ -579,85 +567,37 @@ paths:
 
 ---
 
-## 글로벌 Skills
+## 스킬 — 무엇을 할 수 있나요
 
-글로벌 Skills는 `~/.claude/skills/`에 설치되어 모든 프로젝트에서 사용 가능합니다.
-v1.5.0에서 기존 명령어(commands)가 Skills 형식으로 마이그레이션되어 컨텍스트 격리와 모델 오버라이드를 지원합니다.
+Claude Code에서 명령어를 입력하여 스킬을 실행할 수 있습니다.
 
-### 사용 가능한 글로벌 Skills
+### 워크플로우 자동화
 
-| Skill | 설명 | 예시 |
-|-------|------|------|
-| `/branch-cleanup` | 병합/오래된 브랜치 정리 | `/branch-cleanup [project] --dry-run` |
-| `/release` | 자동 changelog 생성 릴리스 | `/release 1.2.0` |
-| `/issue-create` | 5W1H 기반 GitHub 이슈 생성 | `/issue-create myproject --type bug` |
-| `/issue-work` | GitHub 이슈 워크플로우 자동화 | `/issue-work myproject` |
-| `/pr-work` | PR CI/CD 실패 분석 및 수정 | `/pr-work 42` |
-| `/doc-review` | 마크다운 문서 리뷰 (앵커, 정확성, SSOT) | `/doc-review docs/` |
-| `/implement-all-levels` | 모든 티어 완전 구현 강제 | `/implement-all-levels feature` |
-| `/harness` | Agent team & skill 아키텍처 설계 | `/harness [domain-or-project-description]` |
+| 명령어 | 기능 |
+|--------|------|
+| `/issue-work` | GitHub 이슈 선택, 브랜치 생성, 구현, 테스트, PR 생성 |
+| `/pr-work` | 실패한 CI 체크 진단, 수정, 재시도, 필요시 에스컬레이션 |
+| `/release` | 커밋에서 변경 로그 생성, 태그된 릴리스 생성 |
+| `/issue-create` | 5W1H 프레임워크를 사용한 체계적인 GitHub 이슈 생성 |
+| `/branch-cleanup` | 로컬 및 원격에서 병합된 브랜치와 오래된 브랜치 제거 |
 
-### Skill 상세
+### 코드 분석
 
-#### `/branch-cleanup`
-```bash
-/branch-cleanup [<project-name>] [--dry-run] [--include-remote] [--stale-days <days>]
-```
-- `--dry-run`: 삭제 없이 미리보기
-- `--include-remote`: 원격 추적 브랜치도 정리
-- `--stale-days`: 오래된 것으로 간주할 일수 (기본: 90)
+| 명령어 | 기능 |
+|--------|------|
+| `/code-quality` | 복잡도, 코드 스멜, SOLID 위반, 유지보수성 분석 |
+| `/security-audit` | OWASP Top 10, 입력 검증, 인증, 의존성 취약점 |
+| `/performance-review` | 프로파일링, 캐싱, 메모리 누수, 동시성 패턴 |
+| `/pr-review` | 품질, 보안, 성능, 테스트를 포함한 종합 PR 분석 |
 
-#### `/release`
-```bash
-/release <version> [--draft] [--prerelease] [--org <organization>]
-```
-- 마지막 릴리스 이후 커밋에서 changelog 자동 생성
-- 시맨틱 버저닝 지원 (예: 1.2.0, 2.0.0-beta.1)
+### 설계 및 문서화
 
-#### `/issue-create`
-```bash
-/issue-create <project-name> [--type <type>] [--priority <priority>]
-```
-- 타입: bug, feature, refactor, docs
-- 우선순위: critical, high, medium, low
-- 5W1H 프레임워크로 구조화된 이슈 생성
-
-#### `/issue-work`
-```bash
-/issue-work <project-name> [--org <organization>]
-```
-- 열린 이슈 목록 및 워크플로우 가이드
-- git remote에서 organization 자동 감지
-
-#### `/pr-work`
-```bash
-/pr-work <pr-number> [--org <organization>]
-```
-- 실패한 CI/CD 워크플로우 분석
-- 수정 제안 및 구현 지원
-
-#### `/doc-review`
-```bash
-/doc-review [docs-directory] [--scope anchors|accuracy|ssot|all] [--fix]
-```
-- 마크다운 앵커, 정확성, SSOT 검증
-- `--fix`: 감지된 문제 자동 수정
-
-#### `/implement-all-levels`
-```bash
-/implement-all-levels <feature-description>
-```
-- 계층형 기능의 부분 구현 방지
-- 모든 난이도/티어에 걸쳐 완전 구현 강제
-
-#### `/harness`
-```bash
-/harness [domain-or-project-description]
-```
-- 도메인별 Agent team 아키텍처 설계
-- 6가지 패턴: Pipeline, Fan-out/Fan-in, Expert Pool, Producer-Reviewer, Supervisor, Hierarchical
-- `.claude/agents/` 정의 및 `.claude/skills/` 자동 생성
-- 설계 패턴, 테스트, QA 레퍼런스 문서 포함
+| 명령어 | 기능 |
+|--------|------|
+| `/harness` | Agent team 설계 및 모든 도메인에 대한 스킬 생성 |
+| `/doc-review` | 정확성, 앵커, 상호 참조에 대한 마크다운 문서 리뷰 |
+| `/git-status` | 실행 가능한 인사이트가 포함된 저장소 상태 |
+| `/implement-all-levels` | 계층형 기능의 모든 티어에 대한 완전한 구현 강제 |
 
 ---
 
