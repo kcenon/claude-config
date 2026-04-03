@@ -167,4 +167,35 @@ See `README.md` for detailed information:
 
 ---
 
+## What's Next
+
+### Try a skill
+
+````bash
+# Check your repo status
+/git-status
+
+# Review code quality of a file or directory
+/code-quality src/
+
+# Create a well-structured GitHub issue
+/issue-create my-project --type feature
+
+# Automate an issue from start to PR
+/issue-work my-project 42
+````
+
+### Choose your path
+
+| I want to... | Go to |
+|--------------|-------|
+| Understand what I just installed | [What You Get](README.md#what-you-get) |
+| See all available skills | [Skills](README.md#skills--what-you-can-do) |
+| Customize hooks and settings | [HOOKS.md](HOOKS.md) |
+| Set up for my team | [Enterprise Settings](README.md#enterprise-settings) |
+| Understand token optimization | [Token Optimization](README.md#token-optimization) |
+| Design multi-agent teams | Run `/harness` in Claude Code |
+
+---
+
 **Installation complete! Now enjoy Claude Code!**
