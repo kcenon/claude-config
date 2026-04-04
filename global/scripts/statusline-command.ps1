@@ -46,3 +46,20 @@ if (Get-Command ccstatusline -ErrorAction SilentlyContinue) {
     }
     if ($fallbackParts.Count -gt 0) { Write-Output ($fallbackParts -join ' | ') }
 }
+
+# Append extra usage line from ccstatusline cache
+$UsageCache = Join-Path $HOME ".cache" "ccstatusline" "usage.json"
+if (Test-Path $UsageCache) {
+    try {
+        $usage = Get-Content $UsageCache -Raw | ConvertFrom-Json
+        if ($usage.extraUsageEnabled -eq $true) {
+            $limitUsd = [math]::Floor($usage.extraUsageLimit / 100)
+            $usedUsd = [math]::Round($usage.extraUsageUsed / 100, 2)
+            $remainUsd = [math]::Round(($usage.extraUsageLimit - $usage.extraUsageUsed) / 100, 2)
+            $remainPct = [math]::Floor(100 - $usage.extraUsageUtilization)
+            $ESC = [char]0x1B
+            $c = if ($remainPct -gt 50) { '32' } elseif ($remainPct -gt 20) { '33' } else { '31' }
+            Write-Output "${ESC}[${c}mExtra: `$$usedUsd/`$$limitUsd (${remainPct}%)${ESC}[0m | ${ESC}[${c}mRemain: `$$remainUsd${ESC}[0m"
+        }
+    } catch { }
+}
