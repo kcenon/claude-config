@@ -1,0 +1,66 @@
+name: Validate Hooks
+
+on:
+  push:
+    paths:
+      - 'global/hooks/**'
+      - 'tests/hooks/**'
+  pull_request:
+    paths:
+      - 'global/hooks/**'
+      - 'tests/hooks/**'
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get update && sudo apt-get install -y jq
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            brew install jq
+          fi
+
+      - name: Run hook tests
+        run: bash tests/hooks/test-runner.sh
+
+  shellcheck:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get update && sudo apt-get install -y shellcheck
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            brew install shellcheck
+          fi
+
+      - name: Run shellcheck on hook scripts
+        run: |
+          failed=0
+          for script in global/hooks/*.sh; do
+            echo "Checking $script..."
+            if ! shellcheck -S warning -e SC2086 "$script"; then
+              failed=1
+            fi
+          done
+          if [ $failed -eq 1 ]; then
+            echo "Shellcheck found issues in hook scripts"
+            exit 1
+          fi
+          echo "All hook scripts passed shellcheck!"

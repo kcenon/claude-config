@@ -93,6 +93,50 @@ create_local_claude() {
     fi
 }
 
+# 함수: 버전 비교 (v1 >= v2 이면 true)
+version_gte() {
+    printf '%s\n%s\n' "$2" "$1" | sort -V -C
+}
+
+# 함수: Claude Code 버전 확인
+check_claude_version() {
+    local MIN_CLAUDE_VERSION="2.2.0"
+
+    echo ""
+    info "Claude Code 버전 확인 중..."
+
+    if ! command -v claude &> /dev/null; then
+        warning "Claude Code CLI가 설치되어 있지 않습니다."
+        info "설치 후에도 설정 파일은 정상 동작합니다. 계속 진행합니다."
+        return 0
+    fi
+
+    local claude_version
+    claude_version=$(claude --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+
+    if [ -z "$claude_version" ]; then
+        warning "Claude Code 버전을 확인할 수 없습니다."
+        info "계속 진행합니다."
+        return 0
+    fi
+
+    if version_gte "$claude_version" "$MIN_CLAUDE_VERSION"; then
+        success "Claude Code v${claude_version} (최소 요구: v${MIN_CLAUDE_VERSION})"
+    else
+        echo ""
+        warning "Claude Code v${claude_version}이(가) 감지되었습니다."
+        warning "이 설정은 v${MIN_CLAUDE_VERSION} 이상에서 테스트되었습니다."
+        echo ""
+        read -p "계속 진행하시겠습니까? (y/N) [기본값: N]: " CONTINUE_INSTALL
+        CONTINUE_INSTALL=${CONTINUE_INSTALL:-N}
+        if [ "$CONTINUE_INSTALL" != "y" ] && [ "$CONTINUE_INSTALL" != "Y" ]; then
+            error "설치가 취소되었습니다. Claude Code를 업데이트한 후 다시 시도하세요."
+            exit 1
+        fi
+        warning "낮은 버전으로 계속 진행합니다."
+    fi
+}
+
 # 함수: Enterprise 경로 감지
 get_enterprise_dir() {
     case "$(uname -s)" in
@@ -207,6 +251,9 @@ install_enterprise() {
     echo ""
     warning "중요: enterprise/CLAUDE.md를 조직 정책에 맞게 수정하세요!"
 }
+
+# Claude Code 버전 확인
+check_claude_version
 
 # 설치 타입 선택
 echo ""
