@@ -5,14 +5,6 @@
 # Exit codes: 0 (always — decision is in JSON)
 # Response format: hookSpecificOutput with hookEventName
 
-# Read input from stdin (Claude Code passes JSON via stdin)
-INPUT=$(cat)
-FILE=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
-# Fallback to environment variable for backward compatibility
-if [ -z "$FILE" ]; then
-    FILE="${CLAUDE_FILE_PATH:-}"
-fi
-
 # Helper function for deny response
 deny_response() {
     local reason="$1"
@@ -41,18 +33,36 @@ EOF
     exit 0
 }
 
+# Read input from stdin (Claude Code passes JSON via stdin)
+INPUT=$(cat)
+
+# Fail-closed: deny if input is empty or unparseable
+if [ -z "$INPUT" ]; then
+    deny_response "Failed to parse hook input — denying for safety (fail-closed)"
+fi
+
+FILE=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
+if [ $? -ne 0 ]; then
+    deny_response "Failed to parse hook input — denying for safety (fail-closed)"
+fi
+
+# Fallback to environment variable for backward compatibility
+if [ -z "$FILE" ]; then
+    FILE="${CLAUDE_FILE_PATH:-}"
+fi
+
 # Skip if no file path provided (allow by default)
 if [ -z "$FILE" ]; then
     allow_response
 fi
 
 # Check sensitive file extensions
-if echo "$FILE" | grep -qE '\.(env|pem|key|p12|pfx)$'; then
+if echo "$FILE" | grep -qE '(^|/)\.env($|\.)|\.(pem|key|p12|pfx)$'; then
     deny_response "Access to sensitive file blocked: $FILE (protected extension)"
 fi
 
 # Check sensitive directories
-if echo "$FILE" | grep -qiE '(secrets|credentials|passwords|private)[/\\]'; then
+if echo "$FILE" | grep -qiE '(secrets|credentials|passwords)[/\\]'; then
     deny_response "Access to sensitive directory blocked: $FILE (protected path)"
 fi
 
