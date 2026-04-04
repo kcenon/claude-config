@@ -9,6 +9,9 @@
   "homepage": "https://github.com/kcenon/claude-config",
   "repository": "https://github.com/kcenon/claude-config",
   "license": "BSD-3-Clause",
+  "compatibility": {
+    "minClaudeCodeVersion": "2.2.0"
+  },
   "keywords": [
     "coding-standards",
     "security",

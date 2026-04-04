@@ -8,10 +8,12 @@
 # - Resume cache regression: https://github.com/anthropics/claude-code/issues/34629
 # - Sentinel replacement: https://github.com/anthropics/claude-code/issues/40524
 
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$KnownIssuesJson = Join-Path $ScriptDir "known-issues.json"
 $LogFile = Join-Path $HOME ".claude/session.log"
 
-# Known versions with cache efficiency bugs
-$KnownCacheBugVersions = @(
+# Hardcoded fallback if JSON not found
+$FallbackVersions = @(
     "2.1.69", "2.1.70", "2.1.71", "2.1.72", "2.1.73",
     "2.1.74", "2.1.75", "2.1.76", "2.1.77", "2.1.78",
     "2.1.79", "2.1.80", "2.1.81"
@@ -30,6 +32,22 @@ try {
 
 if (-not $ccVersion) {
     exit 0
+}
+
+# Load known problematic versions from JSON (prefer) or fallback
+$KnownCacheBugVersions = @()
+if (Test-Path $KnownIssuesJson) {
+    try {
+        $json = Get-Content $KnownIssuesJson -Raw | ConvertFrom-Json
+        foreach ($issue in $json.known_issues) {
+            $KnownCacheBugVersions += $issue.version_list
+        }
+    } catch {
+        $KnownCacheBugVersions = @()
+    }
+}
+if ($KnownCacheBugVersions.Count -eq 0) {
+    $KnownCacheBugVersions = $FallbackVersions
 }
 
 # Check against known problematic versions
