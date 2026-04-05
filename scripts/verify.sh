@@ -328,6 +328,93 @@ if [ -d "$BACKUP_DIR/plugin/skills" ]; then
     done
 fi
 
+# 시스템 동기화 검증 (source vs ~/.claude/)
+echo ""
+echo "======================================================"
+info "시스템 동기화 검증 (source vs ~/.claude/)"
+echo "======================================================"
+echo ""
+
+SYNC_TOTAL=0
+SYNC_OK=0
+SYNC_DIFF=0
+SYNC_MISS=0
+
+# Compare a source file with its installed counterpart
+check_sync() {
+    local src="$1"
+    local dst="$2"
+    local label="$3"
+    SYNC_TOTAL=$((SYNC_TOTAL + 1))
+
+    if [ ! -f "$dst" ]; then
+        warning "MISS: $label"
+        SYNC_MISS=$((SYNC_MISS + 1))
+    elif diff -q "$src" "$dst" > /dev/null 2>&1; then
+        success "SYNC: $label"
+        SYNC_OK=$((SYNC_OK + 1))
+    else
+        error "DIFF: $label"
+        SYNC_DIFF=$((SYNC_DIFF + 1))
+    fi
+}
+
+GLOBAL_DST="$HOME/.claude"
+
+# Global config files
+info "글로벌 설정 파일 동기화:"
+for f in CLAUDE.md commit-settings.md settings.json .claudeignore; do
+    if [ -f "$BACKUP_DIR/global/$f" ]; then
+        check_sync "$BACKUP_DIR/global/$f" "$GLOBAL_DST/$f" "$f"
+    fi
+done
+
+# Global skills (including reference/ subdirectories)
+echo ""
+info "글로벌 스킬 동기화:"
+if [ -d "$BACKUP_DIR/global/skills" ]; then
+    while IFS= read -r src_file; do
+        rel="${src_file#$BACKUP_DIR/global/skills/}"
+        check_sync "$src_file" "$GLOBAL_DST/skills/$rel" "skills/$rel"
+    done < <(find "$BACKUP_DIR/global/skills" -name "*.md" -type f | sort)
+fi
+
+# Global hooks
+echo ""
+info "글로벌 Hook 스크립트 동기화:"
+if [ -d "$BACKUP_DIR/global/hooks" ]; then
+    for src_file in "$BACKUP_DIR/global/hooks"/*.sh; do
+        if [ -f "$src_file" ]; then
+            base=$(basename "$src_file")
+            check_sync "$src_file" "$GLOBAL_DST/hooks/$base" "hooks/$base"
+        fi
+    done
+fi
+
+# Sync summary
+echo ""
+echo "  ─────────────────────────────────────────"
+echo "  동기화 검사:   ${SYNC_TOTAL}개"
+echo -e "  ${GREEN}일치:          ${SYNC_OK}개${NC}"
+if [ "$SYNC_DIFF" -gt 0 ]; then
+    echo -e "  ${RED}불일치:        ${SYNC_DIFF}개${NC}"
+fi
+if [ "$SYNC_MISS" -gt 0 ]; then
+    echo -e "  ${YELLOW}미설치:        ${SYNC_MISS}개${NC}"
+fi
+echo "  ─────────────────────────────────────────"
+
+if [ "$SYNC_DIFF" -gt 0 ] || [ "$SYNC_MISS" -gt 0 ]; then
+    echo ""
+    warning "시스템이 소스와 동기화되지 않았습니다."
+    info "동기화 방법: ./scripts/install.sh (옵션 1: 글로벌 설정)"
+fi
+
+# Add sync failures to main failure count
+FAILED_CHECKS=$((FAILED_CHECKS + SYNC_DIFF + SYNC_MISS))
+PASSED_CHECKS=$((PASSED_CHECKS + SYNC_OK))
+TOTAL_CHECKS=$((TOTAL_CHECKS + SYNC_TOTAL))
+
 # 통계
 echo ""
 echo "======================================================"

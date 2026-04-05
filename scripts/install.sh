@@ -326,11 +326,54 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
             success "Statusline 스크립트 (scripts/) 설치 완료!"
         fi
 
+        # commit-settings.md 설치 (CLAUDE.md에서 @./commit-settings.md로 참조)
+        if [ -f "$BACKUP_DIR/global/commit-settings.md" ]; then
+            cp "$BACKUP_DIR/global/commit-settings.md" "$HOME/.claude/"
+            success "commit-settings.md 설치 완료!"
+        fi
+
+        # .claudeignore 설치
+        if [ -f "$BACKUP_DIR/global/.claudeignore" ]; then
+            cp "$BACKUP_DIR/global/.claudeignore" "$HOME/.claude/"
+            success ".claudeignore 설치 완료!"
+        fi
+
+        # tmux.conf 설치
+        if [ -f "$BACKUP_DIR/global/tmux.conf" ]; then
+            cp "$BACKUP_DIR/global/tmux.conf" "$HOME/.claude/"
+            success "tmux.conf 설치 완료!"
+        fi
+
+        # skills 디렉토리 설치 (global skills: harness, pr-work, issue-work, etc.)
+        if [ -d "$BACKUP_DIR/global/skills" ]; then
+            if [ -d "$HOME/.claude/skills" ]; then
+                create_backup "$HOME/.claude/skills"
+            fi
+            mkdir -p "$HOME/.claude/skills"
+            for skill_dir in "$BACKUP_DIR/global/skills"/*/; do
+                if [ -d "$skill_dir" ]; then
+                    cp -r "$skill_dir" "$HOME/.claude/skills/"
+                fi
+            done
+            local skill_count
+            skill_count=$(find "$HOME/.claude/skills" -name "SKILL.md" | wc -l | tr -d ' ')
+            success "Global Skills (${skill_count}개) 설치 완료!"
+        fi
+
+        # commands 디렉토리 설치
+        if [ -d "$BACKUP_DIR/global/commands" ]; then
+            if [ -d "$HOME/.claude/commands" ]; then
+                create_backup "$HOME/.claude/commands"
+            fi
+            cp -r "$BACKUP_DIR/global/commands" "$HOME/.claude/"
+            success "Commands 디렉토��� 설치 완료!"
+        fi
+
         # ccstatusline 설정 복사 (~/.config/ccstatusline/ — ccstatusline의 기본 설정 경로)
         if [ -d "$BACKUP_DIR/global/ccstatusline" ]; then
             ensure_dir "$HOME/.config/ccstatusline"
             cp "$BACKUP_DIR/global/ccstatusline/settings.json" "$HOME/.config/ccstatusline/"
-            success "ccstatusline 설정 (~/.config/ccstatusline/settings.json) 설치 완료!"
+            success "ccstatusline 설정 (~/.config/ccstatusline/settings.json) 설��� 완료!"
         fi
 
         # npm 패키지 설치 (statusline 의존성)
@@ -476,11 +519,15 @@ fi
 if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" = "5" ]; then
     echo "  📂 글로벌 설정:"
     echo "    - ~/.claude/CLAUDE.md"
+    echo "    - ~/.claude/commit-settings.md"
     echo "    - ~/.claude/conversation-language.md"
     echo "    - ~/.claude/git-identity.md"
     echo "    - ~/.claude/token-management.md"
+    echo "    - ~/.claude/.claudeignore"
     echo "    - ~/.claude/settings.json (Hook 설정)"
     echo "    - ~/.claude/hooks/ (외부 Hook 스크립트)"
+    echo "    - ~/.claude/skills/ (Global Skills)"
+    echo "    - ~/.claude/commands/ (Global Commands)"
     echo "    - ~/.claude/scripts/ (Statusline 스크립트)"
     echo "    - ~/.config/ccstatusline/ (ccstatusline 설정)"
 fi
