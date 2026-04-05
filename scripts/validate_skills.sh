@@ -191,8 +191,12 @@ validate_skill() {
             fi
         fi
     else
-        warning "reference 디렉토리 없음"
-        record_warning
+        # Only warn about missing reference/ for skills approaching the 500-line limit.
+        # Skills under 250 lines don't benefit from progressive disclosure splitting.
+        if [ "$line_count" -ge 250 ]; then
+            warning "reference 디렉토리 없음 (${line_count}줄 — reference/ 분할 검토 권장)"
+            record_warning
+        fi
     fi
 
     return $skill_errors
