@@ -178,6 +178,42 @@ Upper agents recursively delegate to lower agents. Complex problems are decompos
 **Caution:** Depth beyond 3 levels causes latency and context loss. Recommended: 2 levels or fewer.
 **Team mode fit:** Agent teams cannot be nested (members cannot create teams). Implement level 1 as a team and level 2 as sub-agents, or flatten into a single team.
 
+### 7. Generator-Evaluator
+
+Generation and evaluation are strictly separated to prevent self-assessment bias.
+
+```
+[Generator] -> artifacts -> [Evaluator] -> score + feedback
+                  ^                              |
+                  +------ revision request ------+
+```
+
+**Best for:** Output quality is paramount and objective evaluation criteria exist.
+**Example:** Application development -- generator implements features, evaluator scores against sprint contract criteria with a calibrated rubric.
+**Difference from Producer-Reviewer:** P-R uses categorical verdicts (PASS/FIX/REDO) in paired retry loops. G-E uses quantitative scoring with calibrated few-shot examples and measurable criteria. Use P-R for discrete artifacts; use G-E for holistic multi-dimensional assessment.
+**Caution:** Evaluator prompt calibration is critical. Use skeptical prompts ("find every problem") over generic ones ("assess quality"). Include 2-3 few-shot scoring examples to prevent scale compression.
+**Team mode fit:** Agent teams enable real-time feedback between generator and evaluator. Use sub-agents if only the final score matters.
+
+> See `long-running-harness-guide.md` for the full Planner-Generator-Evaluator pattern with sprint contracts.
+
+### 8. Long-Running Session (Initializer-Worker)
+
+Specialized for multi-session projects where work spans multiple context windows.
+
+```
+[Initializer] -> environment setup + feature list (JSON)
+                       |
+                       v
+[Worker] -> pick next feature -> implement -> test -> commit -> repeat
+```
+
+**Best for:** Large projects that cannot be completed in a single session.
+**Example:** Full application build -- initializer sets up environment and generates a JSON feature list with acceptance criteria; worker implements one feature per session, leaving code in merge-ready state.
+**Caution:** Use JSON (not Markdown) for feature tracking to prevent model-induced corruption during updates. Each session must leave code in "merge-ready" state.
+**Team mode fit:** Typically sub-agent mode. The initializer runs once; the worker runs repeatedly across sessions. Context reset (not compaction) is used between sessions for lossless state transfer.
+
+> See `long-running-harness-guide.md` for session continuity, context reset protocol, and merge-ready state quality gates.
+
 ## Composite Patterns
 
 In practice, composite patterns are more common than single patterns:
@@ -187,6 +223,8 @@ In practice, composite patterns are more common than single patterns:
 | **Fan-out + Producer-Reviewer** | Parallel generation, each followed by review | Multilingual translation -- 4 languages translated in parallel -> each reviewed by a native speaker |
 | **Pipeline + Fan-out** | Some stages in a sequence are parallelized | Analysis (sequential) -> implementation (parallel) -> integration testing (sequential) |
 | **Supervisor + Expert Pool** | Supervisor dynamically invokes experts | Customer inquiry handling -- supervisor classifies, then assigns the appropriate expert |
+| **Pipeline + Generator-Evaluator** | Each pipeline stage has its own evaluator | Full-stack app -- frontend/backend/test stages each evaluated independently against sprint contract criteria |
+| **Fan-out + Generator-Evaluator** | Parallel generation with independent evaluation per branch | Multi-module system -- each module generated and evaluated in parallel, then integrated |
 
 ### Execution Mode for Composite Patterns
 
@@ -241,6 +279,18 @@ Define an agent in `.claude/agents/{name}.md` and invoke it with `subagent_type:
 ---
 name: agent-name
 description: "1-2 sentence role description. List trigger keywords."
+# Optional fields (see agent-frontmatter-spec.md for the complete list):
+# tools: [Read, Grep, Glob]          # Tool allowlist
+# model: opus                         # sonnet|opus|haiku|inherit
+# permissionMode: default             # default|acceptEdits|auto|plan|...
+# memory: project                     # user|project|local
+# maxTurns: 30                        # Prevent runaway agents
+# skills: [code-quality]              # Preloaded skills
+# background: false                   # Always-background execution
+# effort: high                        # low|medium|high|max
+# isolation: worktree                 # Git worktree isolation
+# color: blue                         # Visual identification
+# initialPrompt: "Check memory first" # Auto-submitted on startup
 ---
 
 # Agent Name -- One-line Role Summary
