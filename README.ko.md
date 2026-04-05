@@ -1,7 +1,7 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
-  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.6.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.7.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
 </p>
@@ -42,9 +42,9 @@ vi ~/.claude/git-identity.md
 | 작업 | macOS/Linux | Windows (PowerShell) |
 |------|-------------|----------------------|
 | 설정 설치 | `./scripts/install.sh` | `.\scripts\install.ps1` |
-| 설정 백업 | `./scripts/backup.sh` | — |
-| 설정 동기화 | `./scripts/sync.sh` | — |
-| 백업 검증 | `./scripts/verify.sh` | — |
+| 설정 백업 | `./scripts/backup.sh` | `.\scripts\backup.ps1` |
+| 설정 동기화 | `./scripts/sync.sh` | `.\scripts\sync.ps1` |
+| 백업 검증 | `./scripts/verify.sh` | `.\scripts\verify.ps1` |
 
 상세 시나리오는 [사용 시나리오](#사용-시나리오)를 참조하세요.
 
@@ -598,11 +598,11 @@ Create a team to implement the notification system:
 
 | 스크립트 | 목적 | 사용법 |
 |----------|------|--------|
-| `install.sh` / `install.ps1` | 새 시스템에 설정 설치 | `./scripts/install.sh` |
-| `backup.sh` | 현재 설정을 백업에 저장 | `./scripts/backup.sh` |
-| `sync.sh` | 시스템과 백업 간 양방향 동기화 | `./scripts/sync.sh` |
-| `verify.sh` | 백업 무결성과 완전성 확인 | `./scripts/verify.sh` |
-| `validate_skills.sh` | SKILL.md 형식 준수 여부 검증 | `./scripts/validate_skills.sh` |
+| `install.sh` / `.ps1` | 새 시스템에 설정 설치 | `./scripts/install.sh` |
+| `backup.sh` / `.ps1` | 현재 설정을 백업에 저장 | `./scripts/backup.sh` |
+| `sync.sh` / `.ps1` | 시스템과 백업 간 양방향 동기화 | `./scripts/sync.sh` |
+| `verify.sh` / `.ps1` | 백업 무결성과 완전성 확인 | `./scripts/verify.sh` |
+| `validate_skills.sh` / `.ps1` | SKILL.md 형식 준수 여부 검증 | `./scripts/validate_skills.sh` |
 
 설치 후, 반드시 `~/.claude/git-identity.md`를 개인 정보로 수정**해야** 합니다.
 기존 파일은 `.backup_YYYYMMDD_HHMMSS` 형식으로 자동 백업됩니다.
@@ -814,10 +814,24 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## 버전
 
-**현재**: 1.6.0 (2026-04-03)
+**현재**: 1.7.0 (2026-04-06)
 
 <details>
 <summary>변경 이력</summary>
+
+#### v1.7.0 (2026-04-06)
+- **Windows PowerShell 완전 지원**: 모든 42개 bash 스크립트에 PowerShell (.ps1) 대응 파일 추가
+  - 유틸리티 스크립트: `install`, `verify`, `sync`, `backup`, `validate_skills`, `bootstrap`
+  - 16개 hook 스크립트 (fail-closed 보안 모델 동일하게 보존)
+  - 8개 GitHub CLI 헬퍼 스크립트 (`scripts/gh/`)
+  - 3개 글로벌 스크립트 (`statusline-command`, `team-report`, `weekly-usage`)
+  - 7개 테스트 스크립트 (hook 검증용)
+  - Git hooks 설치 스크립트 (`hooks/install-hooks.ps1`)
+- **PowerShell 공유 모듈**: `CommonHelpers.psm1` 추가 (20개 함수 export)
+  - 메시지 헬퍼, hook 응답 빌더, stdin JSON 리더
+  - 플랫폼 감지, 버전 비교, 로그 로테이션
+  - Windows에서 `jq` 의존성 제거 (네이티브 `ConvertFrom-Json` 사용)
+  - .NET `GZipStream`으로 로그 압축 (외부 `gzip` 불필요)
 
 #### v1.6.0 (2026-04-03)
 - **Harness meta-skill**: Agent team 아키텍처 설계를 위한 `/harness` 추가

@@ -1,24 +1,23 @@
+#Requires -Version 7.0
+$ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+
 # config-change-logger.ps1
 # Logs configuration file changes during session
 # Hook Type: ConfigChange
 # Input: JSON via stdin with source, file_path
 # Response format: none (lifecycle event, no JSON output needed)
 
-$ErrorActionPreference = 'Stop'
+$json = Read-HookInput
 
-$input_data = $input | Out-String
-$json = $input_data | ConvertFrom-Json
+$Source = if ($json -and $json.source) { $json.source } else { 'unknown' }
+$FilePath = if ($json -and $json.file_path) { $json.file_path } else { 'unknown' }
+$SessionId = if ($json -and $json.session_id) { $json.session_id } else { 'unknown' }
 
-$Source = if ($json.source) { $json.source } else { 'unknown' }
-$FilePath = if ($json.file_path) { $json.file_path } else { 'unknown' }
-$SessionId = if ($json.session_id) { $json.session_id } else { 'unknown' }
+$LogDir = Join-Path $HOME '.claude' 'logs'
+$LogFile = Join-Path $LogDir 'session.log'
 
-$LogDir = Join-Path $HOME ".claude/logs"
-$LogFile = Join-Path $LogDir "session.log"
-
-if (-not (Test-Path $LogDir)) {
-    New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
-}
+Ensure-Directory $LogDir | Out-Null
 
 $Timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 

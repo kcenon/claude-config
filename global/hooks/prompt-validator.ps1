@@ -1,3 +1,7 @@
+#Requires -Version 7.0
+$ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+
 # prompt-validator.ps1
 # Validates user prompts for dangerous operations
 # Hook Type: UserPromptSubmit
@@ -13,14 +17,7 @@ if ([string]::IsNullOrEmpty($PROMPT)) {
 
 # Check for dangerous operation requests
 if ($PROMPT -match '(?i)(delete|remove|drop)\s+(all|entire|whole|database|table|production)') {
-    @'
-{
-  "hookSpecificOutput": {
-    "hookEventName": "UserPromptSubmit",
-    "additionalContext": "Warning: Dangerous operation request detected. Proceed with caution and verify the scope of changes."
-  }
-}
-'@
+    New-HookWarningResponse -Warning 'Warning: Dangerous operation request detected. Proceed with caution and verify the scope of changes.'
     exit 0
 }
 

@@ -1,3 +1,7 @@
+#Requires -Version 7.0
+$ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+
 # worktree-remove.ps1
 # Cleans up and logs worktree removal events
 # Hook Type: WorktreeRemove (async, type: command only)
@@ -6,22 +10,15 @@
 #
 # Input (stdin): JSON with worktree_path field
 
-$ErrorActionPreference = 'SilentlyContinue'
-
-$LogDir = Join-Path $HOME ".claude/logs"
-if (-not (Test-Path $LogDir)) {
-    New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
-}
+$LogDir = Join-Path $HOME '.claude' 'logs'
+Ensure-Directory $LogDir | Out-Null
 
 # Read worktree path from stdin JSON if available
 $WorktreePath = ''
-try {
-    $input_data = $input | Out-String
-    if ($input_data) {
-        $json = $input_data | ConvertFrom-Json
-        $WorktreePath = $json.worktree_path
-    }
-} catch {}
+$json = Read-HookInput
+if ($json -and $json.worktree_path) {
+    $WorktreePath = $json.worktree_path
+}
 
 if ([string]::IsNullOrEmpty($WorktreePath)) {
     $WorktreePath = if ($env:CLAUDE_WORKTREE_PATH) { $env:CLAUDE_WORKTREE_PATH } else { 'unknown' }
@@ -33,6 +30,6 @@ $logEntry = @"
 [$Timestamp] Worktree removed
   Path: $WorktreePath
 "@
-Add-Content -Path (Join-Path $LogDir "worktrees.log") -Value $logEntry
+Add-Content -Path (Join-Path $LogDir 'worktrees.log') -Value $logEntry
 
 exit 0

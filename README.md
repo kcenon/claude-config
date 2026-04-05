@@ -1,7 +1,7 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
-  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.6.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.7.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
 </p>
@@ -42,9 +42,9 @@ vi ~/.claude/git-identity.md
 | Task | macOS/Linux | Windows (PowerShell) |
 |------|-------------|----------------------|
 | Install settings | `./scripts/install.sh` | `.\scripts\install.ps1` |
-| Backup settings | `./scripts/backup.sh` | — |
-| Sync settings | `./scripts/sync.sh` | — |
-| Verify backup | `./scripts/verify.sh` | — |
+| Backup settings | `./scripts/backup.sh` | `.\scripts\backup.ps1` |
+| Sync settings | `./scripts/sync.sh` | `.\scripts\sync.ps1` |
+| Verify backup | `./scripts/verify.sh` | `.\scripts\verify.ps1` |
 
 For detailed scenarios, see [Use Cases](#use-cases).
 
@@ -220,10 +220,14 @@ claude_config_backup/
 │   │   ├── worktree-remove.sh/.ps1
 │   │   ├── team-limit-guard.sh/.ps1
 │   │   ├── version-check.sh/.ps1
-│   │   └── cleanup.sh/.ps1
+│   │   ├── cleanup.sh/.ps1
+│   │   └── lib/               # Shared libraries
+│   │       ├── rotate.sh/.ps1
+│   │       └── CommonHelpers.psm1  # PowerShell shared module
 │   ├── scripts/                # Utility scripts
 │   │   ├── statusline-command.sh/.ps1
-│   │   └── weekly-usage.sh
+│   │   ├── team-report.sh/.ps1
+│   │   └── weekly-usage.sh/.ps1
 │   └── skills/                 # Global skills (user-invocable)
 │       ├── branch-cleanup/     # Clean merged/stale branches
 │       ├── doc-review/         # Markdown document review
@@ -304,26 +308,25 @@ claude_config_backup/
 │           ├── git-status/     # User-invocable
 │           └── pr-review/      # User-invocable
 │
-├── scripts/                     # Automation scripts
-│   ├── install.sh              # Install to new system (macOS/Linux)
-│   ├── install.ps1             # Install to new system (Windows PowerShell)
-│   ├── backup.sh               # Backup current settings
-│   ├── sync.sh                 # Sync settings
-│   ├── verify.sh               # Verify backup integrity
-│   ├── validate_skills.sh      # Validate SKILL.md files
-│   └── gh/                     # GitHub CLI helper scripts
-│       ├── cleanup_branches.sh
-│       ├── gh_issue_create.sh
-│       ├── gh_issue_comment.sh
-│       ├── gh_issue_read.sh
-│       ├── gh_issues.sh
-│       ├── gh_pr_create.sh
-│       ├── gh_pr_comment.sh
-│       └── gh_pr_read.sh
+├── scripts/                     # Automation scripts (all .sh have .ps1 counterparts)
+│   ├── install.sh/.ps1         # Install to new system
+│   ├── backup.sh/.ps1          # Backup current settings
+│   ├── sync.sh/.ps1            # Sync settings
+│   ├── verify.sh/.ps1          # Verify backup integrity
+│   ├── validate_skills.sh/.ps1 # Validate SKILL.md files
+│   └── gh/                     # GitHub CLI helper scripts (.sh/.ps1)
+│       ├── cleanup_branches.sh/.ps1
+│       ├── gh_issue_create.sh/.ps1
+│       ├── gh_issue_comment.sh/.ps1
+│       ├── gh_issue_read.sh/.ps1
+│       ├── gh_issues.sh/.ps1
+│       ├── gh_pr_create.sh/.ps1
+│       ├── gh_pr_comment.sh/.ps1
+│       └── gh_pr_read.sh/.ps1
 │
 ├── hooks/                       # Git hooks
 │   ├── pre-commit              # Pre-commit skill validation
-│   └── install-hooks.sh        # Hook installation script
+│   └── install-hooks.sh/.ps1   # Hook installation script
 │
 ├── .github/
 │   └── workflows/
@@ -353,7 +356,7 @@ claude_config_backup/
 │       └── behavioral-guardrails/
 │           └── SKILL.md        # Single behavioral guardrails skill
 │
-├── bootstrap.sh                 # One-line install script
+├── bootstrap.sh/.ps1            # One-line install script
 ├── README.md                    # Detailed guide (English)
 ├── README.ko.md                 # Detailed guide (Korean)
 ├── QUICKSTART.md               # Quick start guide
@@ -615,11 +618,11 @@ The `.mcp.json` template provides common MCP server configurations.
 
 | Script | Purpose | Usage |
 |--------|---------|-------|
-| `install.sh` / `install.ps1` | Install settings to a new system | `./scripts/install.sh` |
-| `backup.sh` | Save current settings to backup | `./scripts/backup.sh` |
-| `sync.sh` | Bidirectional sync between system and backup | `./scripts/sync.sh` |
-| `verify.sh` | Check backup integrity and completeness | `./scripts/verify.sh` |
-| `validate_skills.sh` | Validate SKILL.md format compliance | `./scripts/validate_skills.sh` |
+| `install.sh` / `.ps1` | Install settings to a new system | `./scripts/install.sh` |
+| `backup.sh` / `.ps1` | Save current settings to backup | `./scripts/backup.sh` |
+| `sync.sh` / `.ps1` | Bidirectional sync between system and backup | `./scripts/sync.sh` |
+| `verify.sh` / `.ps1` | Check backup integrity and completeness | `./scripts/verify.sh` |
+| `validate_skills.sh` / `.ps1` | Validate SKILL.md format compliance | `./scripts/validate_skills.sh` |
 
 After installation, you **must** edit `~/.claude/git-identity.md` with your personal info.
 Existing files are automatically backed up with `.backup_YYYYMMDD_HHMMSS` format.
@@ -831,10 +834,24 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## Version
 
-**Current**: 1.6.0 (2026-04-03)
+**Current**: 1.7.0 (2026-04-06)
 
 <details>
 <summary>Changelog</summary>
+
+#### v1.7.0 (2026-04-06)
+- **Full Windows PowerShell parity**: All 42 bash scripts now have PowerShell (.ps1) counterparts
+  - All utility scripts: `install`, `verify`, `sync`, `backup`, `validate_skills`, `bootstrap`
+  - All 16 hook scripts with identical security behavior (fail-closed model preserved)
+  - All 8 GitHub CLI helper scripts (`scripts/gh/`)
+  - All 3 global scripts (`statusline-command`, `team-report`, `weekly-usage`)
+  - All 7 test scripts for hook validation
+  - Git hooks installer (`hooks/install-hooks.ps1`)
+- **Shared PowerShell module**: Added `CommonHelpers.psm1` with 20 exported functions
+  - Message helpers, hook response builders, stdin JSON reader
+  - Platform detection, version comparison, log rotation
+  - Eliminates `jq` dependency on Windows (uses native `ConvertFrom-Json`)
+  - Uses .NET `GZipStream` for log compression (no external `gzip` needed)
 
 #### v1.6.0 (2026-04-03)
 - **Harness meta-skill**: Added `/harness` for designing domain-specific agent team architectures

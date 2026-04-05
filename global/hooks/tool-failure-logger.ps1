@@ -1,3 +1,7 @@
+#Requires -Version 7.0
+$ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+
 # tool-failure-logger.ps1
 # Logs tool execution failures for debugging and analysis
 # Hook Type: PostToolUseFailure (async)
@@ -8,14 +12,10 @@
 # - CLAUDE_TOOL_ERROR: Error message from the tool
 # - CLAUDE_SESSION_ID: Current session ID
 
-$ErrorActionPreference = 'Stop'
+$LogDir = Join-Path $HOME '.claude' 'logs'
+$LogFile = Join-Path $LogDir 'tool-failures.log'
 
-$LogDir = Join-Path $HOME ".claude/logs"
-$LogFile = Join-Path $LogDir "tool-failures.log"
-
-if (-not (Test-Path $LogDir)) {
-    New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
-}
+Ensure-Directory $LogDir | Out-Null
 
 $Timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 $ToolName = if ($env:CLAUDE_TOOL_NAME) { $env:CLAUDE_TOOL_NAME } else { 'unknown' }
