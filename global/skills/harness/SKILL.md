@@ -43,6 +43,8 @@ Use sub-agents only when there is a single agent, or when inter-agent communicat
    - **Producer-Reviewer**: Generation followed by quality review
    - **Supervisor**: Central agent manages state and distributes work dynamically
    - **Hierarchical Delegation**: Upper agents recursively delegate to lower agents
+   - **Generator-Evaluator**: Strict role separation between generation and evaluation to prevent self-assessment bias. Uses calibrated scoring rubrics and few-shot examples for evaluation.
+   - **Long-Running Session**: Initializer + incremental worker pattern for multi-session projects that span multiple context windows. Uses JSON feature tracking and merge-ready state quality gates.
 
 #### 2-3. Agent Separation Criteria
 
@@ -63,7 +65,16 @@ Even when using built-in types (`general-purpose`, `Explore`, `Plan`), create an
 
 Define each agent in `project/.claude/agents/{name}.md`. Required sections: core role, working principles, input/output protocol, error handling, collaboration. In agent team mode, add a `## Team Communication Protocol` section specifying message send/receive targets and task request scope.
 
-> See `reference/agent-design-patterns.md` for agent definition structure and `reference/team-examples.md` for full file examples.
+**Agent frontmatter fields:** Beyond `name` and `description`, agent definitions support 13+ optional fields including `tools`, `model`, `permissionMode`, `memory`, `maxTurns`, `skills`, `mcpServers`, `hooks`, `background`, `effort`, `isolation`, `color`, and `initialPrompt`. Use these fields to precisely control each agent's capabilities, security posture, and execution behavior. See `reference/agent-frontmatter-spec.md` for the complete specification and field-by-field guidance.
+
+**Agent memory:** For agents that build knowledge across sessions, specify the `memory` field in frontmatter. Three scopes are available:
+- `project`: Version-controlled and team-shareable (`.claude/agent-memory/<name>/`). Best for patterns the whole team benefits from.
+- `user`: Cross-project and private (`~/.claude/agent-memory/<name>/`). Best for personal workflow preferences.
+- `local`: Project-specific, not version-controlled (`.claude/agent-memory-local/<name>/`). Best for machine-specific environment details.
+
+Memory is curated automatically (200 lines / 25KB limit in context). Include `initialPrompt: "Check your memory for established patterns before starting."` to ensure agents consult prior knowledge.
+
+> See `reference/agent-design-patterns.md` for agent definition structure, `reference/agent-frontmatter-spec.md` for the complete frontmatter specification, and `reference/team-examples.md` for full file examples.
 
 **When including a QA agent:**
 - Use the `general-purpose` type (`Explore` is read-only and cannot run verification scripts).
@@ -158,7 +169,17 @@ Include error handling policies in the orchestrator. Core principle: retry once,
 
 > See `reference/orchestrator-template.md` for error type strategy tables and implementation details.
 
-#### 5-3. Team Mode: Team Size Guidelines
+#### 5-4. Context Management
+
+For long-running harnesses that span multiple context windows, prefer **context reset** (clear window + hand off structured state via files) over automatic compaction. Compaction is lossy -- each summarization round loses detail. Context reset preserves full fidelity by writing all intermediate state to `_workspace/` files before clearing the window.
+
+**Reset protocol:** When approaching context limits, write intermediate state to `_workspace/` (progress.txt, features.json, current_state.md), commit current work, then start a fresh session that reads state files to resume.
+
+**Session continuity:** Each session must end in a "merge-ready state" -- no major bugs in completed features, all tests passing, clear documentation of the next action. This ensures any session can be the last without leaving broken code.
+
+> See `reference/long-running-harness-guide.md` for the full context reset protocol, session continuity patterns, sprint contracts, and the Generator-Evaluator architecture.
+
+#### 5-5. Team Mode: Team Size Guidelines
 
 | Work scope | Recommended team size | Tasks per member |
 |-----------|----------------------|-----------------|
@@ -233,7 +254,9 @@ After generation, confirm:
 
 ## References
 
-- Architecture patterns: `reference/agent-design-patterns.md`
+- Architecture patterns (8 types): `reference/agent-design-patterns.md`
+- **Agent frontmatter specification**: `reference/agent-frontmatter-spec.md` -- complete 13+ field reference for `.claude/agents/` definitions, including tools, model, permissionMode, memory, and more
+- **Long-running harness patterns**: `reference/long-running-harness-guide.md` -- Generator-Evaluator architecture, session continuity, context reset strategy, sprint contracts, harness evolution
 - Real-world team examples (full file contents): `reference/team-examples.md`
 - Orchestrator templates: `reference/orchestrator-template.md`
 - **Skill writing guide**: `reference/skill-writing-guide.md` -- writing patterns, examples, data schema standards

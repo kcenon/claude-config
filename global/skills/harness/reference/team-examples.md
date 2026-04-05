@@ -1,6 +1,16 @@
 # Agent Team Examples
 
-Five real-world team configurations demonstrating different architecture patterns and execution modes.
+Seven real-world team configurations demonstrating different architecture patterns and execution modes.
+
+## Table of Contents
+
+1. [Example 1: Research Team (Fan-out/Fan-in)](#example-1-research-team-agent-team-mode)
+2. [Example 2: SF Novel Writing Team (Pipeline + Fan-out)](#example-2-sf-novel-writing-team-agent-team-mode)
+3. [Example 3: Webtoon Production Team (Producer-Reviewer)](#example-3-webtoon-production-team-sub-agent-mode)
+4. [Example 4: Code Review Team (Fan-out/Fan-in + Discussion)](#example-4-code-review-team-agent-team-mode)
+5. [Example 5: Code Migration Supervisor](#example-5-supervisor-pattern----code-migration-team-agent-team-mode)
+6. [Example 6: Debugging with Competing Hypotheses (Fan-out + Debate)](#example-6-debugging-with-competing-hypotheses-agent-team-mode)
+7. [Example 7: Application Builder with Evaluator (Generator-Evaluator)](#example-7-application-builder-with-evaluator-generator-evaluator-pattern)
 
 ---
 
@@ -308,6 +318,162 @@ Key: Reviewers communicate **directly without going through the leader**, enabli
 ```
 
 Difference from fan-out: work is not pre-assigned but **dynamically allocated at runtime**. The shared task list's claim mechanism naturally matches the supervisor pattern.
+
+---
+
+## Example 6: Debugging with Competing Hypotheses (Agent Team Mode)
+
+### Team Architecture: Fan-out + Debate
+### Execution Mode: Agent Team
+
+When the root cause is unclear, spawn investigators for competing hypotheses. Agent teams enable direct challenge and evidence sharing -- one investigator's finding can redirect another's approach in real time.
+
+```
+[Leader] -> TeamCreate(debug-team)
+    +-- hypothesis-a-investigator
+    +-- hypothesis-b-investigator
+    +-- hypothesis-c-investigator
+    -> Investigators challenge each other's evidence (SendMessage)
+    -> Leader synthesizes into root cause determination
+```
+
+### Agent Configuration
+
+| Member | Agent type | Hypothesis | Output |
+|--------|-----------|-----------|--------|
+| race-condition-investigator | general-purpose | Thread pool race condition | investigation_race.md |
+| null-pointer-investigator | general-purpose | Null pointer from API response | investigation_null.md |
+| stack-overflow-investigator | general-purpose | Stack overflow in recursive parser | investigation_stack.md |
+| (leader = orchestrator) | -- | Root cause synthesis | root_cause_report.md |
+
+### Team Communication Patterns
+
+```
+race-condition  --SendMessage--> null-pointer    ("Thread dump shows no contention at crash time -- weakens my hypothesis")
+null-pointer    --SendMessage--> stack-overflow  ("API returns valid data in my traces -- your recursion theory looks stronger")
+stack-overflow  --SendMessage--> race-condition  ("Stack depth hits 5000 only on Monday batch jobs -- does Monday have larger input?")
+all members     --TaskUpdate-->  shared task list (evidence log and confidence scores)
+```
+
+**Key behaviors:**
+- Members share evidence that supports OR **contradicts** their own hypothesis -- intellectual honesty improves investigation quality
+- Direct challenges: "Your race condition theory doesn't explain why it only crashes on Mondays"
+- Convergence: when evidence strongly favors one hypothesis, other investigators pivot to supporting investigation (validating the leading theory from different angles)
+- Leader tracks confidence scores in the task list and calls convergence when one hypothesis reaches high confidence
+
+### Orchestrator Workflow
+
+```
+Phase 1: Leader defines hypotheses based on symptoms
+Phase 2: TeamCreate with one investigator per hypothesis
+         TaskCreate with investigation tasks + "report evidence and confidence"
+Phase 3: Investigators work independently but share findings via SendMessage
+         - Each maintains a confidence score (0-100) in their task updates
+         - Leader monitors for convergence (one hypothesis >80 confidence)
+Phase 4: When converged, leader requests final evidence summary from all
+Phase 5: Leader synthesizes root cause report:
+         - Winning hypothesis with supporting evidence
+         - Eliminated hypotheses with disproving evidence
+         - Recommended fix
+Phase 6: Cleanup team
+```
+
+---
+
+## Example 7: Application Builder with Evaluator (Generator-Evaluator Pattern)
+
+### Team Architecture: Planner (sub-agent) + Generator-Evaluator (agent team)
+### Execution Mode: Mixed (sub-agent for planning, agent team for build-evaluate loop)
+
+Uses the Generator-Evaluator pattern with sprint contracts to maintain quality across a multi-feature application build.
+
+```
+[Planner sub-agent] -> sprint contract
+    ↓
+[TeamCreate: build-team]
+    +-- generator: implements features per contract
+    +-- evaluator: scores output against contract criteria
+    -> Iterate until score threshold met (max 3 rounds)
+```
+
+### Agent Configuration
+
+| Agent | Type | Role | Output |
+|-------|------|------|--------|
+| planner | sub-agent (Plan type) | Sprint contract generation | _workspace/sprint_contract.md |
+| generator | custom (agent team) | Feature implementation | _workspace/implementation/ |
+| evaluator | custom (agent team) | Quality scoring | _workspace/evaluation_report.md |
+
+### Agent File Example: `evaluator.md`
+
+```markdown
+---
+name: evaluator
+description: "Quality evaluator for sprint deliverables. Scores implementation against sprint contract criteria using calibrated rubrics."
+tools: [Read, Grep, Glob, Bash]
+model: opus
+---
+
+# Evaluator -- Quality Scoring Specialist
+
+You are a quality evaluator. Your role is to score implementation artifacts against sprint contract criteria. You NEVER generate code or suggest implementations -- only evaluate.
+
+## Core Role
+1. Read the sprint contract criteria
+2. Examine the implementation artifacts
+3. Score each criterion on a 1-5 scale with specific evidence
+4. Identify gaps and provide actionable feedback
+
+## Scoring Calibration
+
+### Example scores for "Test quality" criterion:
+- **1 (Fail):** No tests, or tests that don't actually test the feature
+- **3 (Acceptable):** Happy path covered, main error cases handled
+- **5 (Excellent):** Happy path + edge cases + error cases + integration tests
+
+## Working Principles
+- Be skeptical: assume problems exist until proven otherwise
+- Cite specific evidence: line numbers, test names, missing scenarios
+- Score independently per criterion -- don't let one good area inflate others
+- Never generate alternative implementations -- only identify what's missing
+
+## Team Communication Protocol
+- Receive from generator: "Implementation complete, ready for evaluation"
+- Send to generator: evaluation report with scores and actionable feedback
+- To leader: summary score and recommendation (PASS if all criteria >= 3, REVISE otherwise)
+```
+
+### Sprint Contract Workflow
+
+```
+Phase 1: Invoke planner as sub-agent
+         - Input: user requirements
+         - Output: _workspace/sprint_contract.md (features, criteria, rubric)
+
+Phase 2: TeamCreate(team_name: "build-team", members: [generator, evaluator])
+
+Phase 3: Build-evaluate loop (max 3 rounds)
+         Round 1:
+           - generator implements features per contract
+           - generator SendMessage to evaluator: "Ready for evaluation"
+           - evaluator scores against criteria
+           - evaluator SendMessage to generator: scores + feedback
+
+         Round 2 (if needed):
+           - generator revises based on feedback
+           - evaluator re-scores
+
+         Round 3 (if still needed):
+           - Final revision attempt
+           - If still below threshold, proceed with current quality + gap report
+
+Phase 4: Leader collects final evaluation report
+         - If all criteria >= 3: sprint PASSED
+         - Otherwise: report gaps to user
+
+Phase 5: Cleanup team
+         - Preserve _workspace/ for audit trail
+```
 
 ---
 

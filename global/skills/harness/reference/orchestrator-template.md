@@ -1,6 +1,13 @@
 # Orchestrator Skill Templates
 
-The orchestrator is a higher-level skill that coordinates the entire team. Two templates are provided based on the execution mode.
+The orchestrator is a higher-level skill that coordinates the entire team. Three templates are provided based on the execution mode.
+
+## Table of Contents
+
+1. [Template A: Agent Team Mode (Default)](#template-a-agent-team-mode-default)
+2. [Template B: Sub-agent Mode (Lightweight)](#template-b-sub-agent-mode-lightweight)
+3. [Template C: Long-Running Session Mode](#template-c-long-running-session-mode)
+4. [Writing Principles](#writing-principles)
 
 ---
 
@@ -236,18 +243,118 @@ Input -> [agent-2] -> artifact-2 -+
 
 ---
 
+## Template C: Long-Running Session Mode
+
+For projects spanning multiple context windows where session continuity is critical. Each session focuses on one feature and leaves code in merge-ready state.
+
+```markdown
+---
+name: {domain}-session-orchestrator
+description: "Long-running session orchestrator for {domain}. Manages feature tracking, session handoff, and merge-ready state across multiple sessions."
+---
+
+# {Domain} Session Orchestrator
+
+An orchestrator for multi-session projects where work spans multiple context windows.
+
+## Execution Mode: Long-Running Session
+
+## Feature Configuration
+
+Feature list location: `_workspace/features.json` (JSON format, not Markdown)
+
+## Workflow
+
+### Phase 1: Initialization (first session only)
+1. Verify working directory and git state (clean working tree)
+2. Run `init.sh` for reproducible environment setup
+3. Generate feature list as JSON with acceptance criteria
+4. Save to `_workspace/features.json`
+5. Create `_workspace/progress.txt` (session log)
+
+### Phase 2: Feature Selection (each session)
+1. Read `_workspace/features.json`
+2. Read `_workspace/progress.txt` (if exists)
+3. Read `_workspace/current_state.md` (if exists -- resume context)
+4. Select next feature with status "failing" (respect `dependencies`)
+5. Set feature status to "in_progress"
+
+### Phase 3: Implementation
+1. Implement the selected feature
+2. Write tests covering acceptance criteria
+3. Run tests and verify passing
+4. Commit with descriptive message referencing feature ID
+
+### Phase 4: Session Handoff
+1. Update feature status to "passing" in `_workspace/features.json`
+2. Update `_workspace/progress.txt` with session summary
+3. Write `_workspace/current_state.md` with detailed resume context
+4. Verify merge-ready state:
+   - No major bugs in completed features
+   - All "passing" features have working tests
+   - No broken imports or unresolved dependencies
+5. Document exact next action for following session
+
+### Context Reset Protocol (when approaching context limits)
+1. Write all intermediate state to `_workspace/` files
+2. Commit current work (WIP: prefix if incomplete)
+3. Start fresh session -- read state files to resume
+4. No summarization loss -- file artifacts are source of truth
+
+## Data Flow
+
+```
+Session N:
+  Read features.json -> select feature -> implement -> test -> commit
+    -> update features.json -> update progress.txt -> write current_state.md
+
+Session N+1:
+  Read features.json + progress.txt + current_state.md -> continue
+```
+
+## Error Handling
+
+| Situation | Strategy |
+|-----------|----------|
+| Feature implementation stuck | Document blocker in current_state.md, move to next feature |
+| Tests failing after implementation | Debug in current session; if unresolvable, note in progress.txt and skip |
+| Context limit approaching | Execute Context Reset Protocol above |
+| Dependencies not met | Skip feature, select next eligible one |
+
+## Test Scenarios
+
+### Normal flow
+1. First session: initialize project, generate feature list
+2. Sessions 2-N: implement one feature per session
+3. Each session ends in merge-ready state
+4. Final session: all features "passing", project complete
+
+### Resume flow
+1. Session interrupted mid-feature
+2. Next session reads current_state.md
+3. Continues from documented checkpoint
+4. Completes feature and proceeds normally
+```
+
+---
+
 ## Writing Principles
 
-1. **Specify execution mode first** -- state "Agent Team" or "Sub-agent" at the top of the orchestrator.
+1. **Specify execution mode first** -- state "Agent Team", "Sub-agent", or "Long-Running Session" at the top of the orchestrator.
 2. **For agent team mode, detail TeamCreate/SendMessage/TaskCreate usage** -- team assembly, task registration, communication rules.
 3. **For sub-agent mode, specify all Agent tool parameters** -- name, subagent_type, prompt, run_in_background.
-4. **Use absolute file paths** -- no relative paths; always clear paths based on `_workspace/`.
-5. **Make inter-phase dependencies explicit** -- which phase depends on which phase's results.
-6. **Make error handling realistic** -- do not assume everything succeeds.
-7. **Test scenarios are required** -- at least 1 normal + 1 error flow.
+4. **For long-running session mode, specify the session handoff protocol** -- what state files to write, how to resume, merge-ready criteria.
+5. **Use absolute file paths** -- no relative paths; always clear paths based on `_workspace/`.
+6. **Make inter-phase dependencies explicit** -- which phase depends on which phase's results.
+7. **Make error handling realistic** -- do not assume everything succeeds.
+8. **Test scenarios are required** -- at least 1 normal + 1 error flow.
+9. **Specify context management strategy** -- for long-running harnesses, state whether to use compaction (automatic, lossy) or context reset (manual, lossless via file-based state handoff).
 
 ## Reference
 
 For a basic fan-out/fan-in orchestrator structure:
 Preparation -> TeamCreate + TaskCreate -> N members work in parallel -> Read + integration -> cleanup.
 See the research team example in `team-examples.md`.
+
+For long-running session patterns, context reset protocol, and Generator-Evaluator architecture:
+See `long-running-harness-guide.md`.
