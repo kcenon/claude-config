@@ -13,14 +13,6 @@ Automate GitHub issue workflow with project name as argument.
 
 ```
 /issue-work                                       # Batch: all repos, all open issues
-/issue-work <project-name>                        # Batch: all open issues in project
-/issue-work <project-name> [issue-number]         # Single: work on specific issue
-/issue-work <organization>/<project-name> [issue-number]
-```
-
-**Examples**:
-```
-/issue-work                                       # Batch: all repos, all open issues
 /issue-work vi_slam                               # Batch: all open issues in vi_slam
 /issue-work vi_slam 21                            # Single: work on issue #21
 /issue-work vi_slam 21 --org mycompany           # Explicit organization
@@ -64,14 +56,8 @@ Parse `$ARGUMENTS` and extract project, organization, issue number, and batch fl
 
 ```bash
 ARGS="$ARGUMENTS"
-ISSUE_NUMBER=""
-PROJECT=""
-ORG=""
-EXEC_MODE=""
-BATCH_MODE="single"   # single | single-repo | cross-repo
-BATCH_LIMIT=20
-DRY_RUN=false
-PRIORITY_FILTER="all"
+ISSUE_NUMBER="" PROJECT="" ORG="" EXEC_MODE=""
+BATCH_MODE="single"  BATCH_LIMIT=20  DRY_RUN=false  PRIORITY_FILTER="all"
 
 # Extract flags
 if [[ "$ARGS" == *"--solo"* ]]; then EXEC_MODE="solo"; ARGS=$(echo "$ARGS" | sed 's/--solo//g'); fi
@@ -85,47 +71,35 @@ if [[ "$ARGS" =~ [[:space:]]([0-9]+)([[:space:]]|$) ]]; then
     ISSUE_NUMBER="${BASH_REMATCH[1]}"
     ARGS=$(echo "$ARGS" | sed -E "s/[[:space:]]+${ISSUE_NUMBER}([[:space:]]|$)/ /g")
 fi
-
-# Trim remaining args
 ARGS=$(echo "$ARGS" | xargs)
+
+# Helper: resolve ORG/PROJECT from remaining ARGS
+resolve_org_project() {
+    if [[ "$ARGS" == *"--org"* ]]; then
+        PROJECT=$(echo "$ARGS" | awk '{print $1}')
+        ORG=$(echo "$ARGS" | sed -n 's/.*--org[[:space:]]*\([^[:space:]]*\).*/\1/p')
+    elif [[ "$ARGS" == *"/"* ]]; then
+        ORG=$(echo "$ARGS" | cut -d'/' -f1 | xargs)
+        PROJECT=$(echo "$ARGS" | cut -d'/' -f2 | xargs)
+    else
+        PROJECT="$ARGS"
+        cd "$PROJECT" 2>/dev/null || { echo "Error: Project directory not found: $PROJECT"; exit 1; }
+        ORG=$(git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/[^/]+\.git$|\1|' | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
+    fi
+}
 
 # Determine batch mode and resolve org/project
 if [[ -z "$ARGS" && -z "$ISSUE_NUMBER" ]]; then
-    # No project, no number → cross-repo batch
     BATCH_MODE="cross-repo"
-    # If --org was provided, scope to that org; otherwise discover user's repos
     if [[ "$ARGS" == *"--org"* ]]; then
         ORG=$(echo "$ARGS" | sed -n 's/.*--org[[:space:]]*\([^[:space:]]*\).*/\1/p')
     fi
 elif [[ -n "$ARGS" && -z "$ISSUE_NUMBER" ]]; then
-    # Project name only, no number → single-repo batch
     BATCH_MODE="single-repo"
-    # Resolve org/project (same logic as before)
-    if [[ "$ARGS" == *"--org"* ]]; then
-        PROJECT=$(echo "$ARGS" | awk '{print $1}')
-        ORG=$(echo "$ARGS" | sed -n 's/.*--org[[:space:]]*\([^[:space:]]*\).*/\1/p')
-    elif [[ "$ARGS" == *"/"* ]]; then
-        ORG=$(echo "$ARGS" | cut -d'/' -f1 | xargs)
-        PROJECT=$(echo "$ARGS" | cut -d'/' -f2 | xargs)
-    else
-        PROJECT="$ARGS"
-        cd "$PROJECT" 2>/dev/null || { echo "Error: Project directory not found: $PROJECT"; exit 1; }
-        ORG=$(git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/[^/]+\.git$|\1|' | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
-    fi
+    resolve_org_project
 else
-    # Project + number → single-item mode (unchanged)
     BATCH_MODE="single"
-    if [[ "$ARGS" == *"--org"* ]]; then
-        PROJECT=$(echo "$ARGS" | awk '{print $1}')
-        ORG=$(echo "$ARGS" | sed -n 's/.*--org[[:space:]]*\([^[:space:]]*\).*/\1/p')
-    elif [[ "$ARGS" == *"/"* ]]; then
-        ORG=$(echo "$ARGS" | cut -d'/' -f1 | xargs)
-        PROJECT=$(echo "$ARGS" | cut -d'/' -f2 | xargs)
-    else
-        PROJECT="$ARGS"
-        cd "$PROJECT" 2>/dev/null || { echo "Error: Project directory not found: $PROJECT"; exit 1; }
-        ORG=$(git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/[^/]+\.git$|\1|' | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
-    fi
+    resolve_org_project
 fi
 ```
 
@@ -145,160 +119,7 @@ fi
 
 ## Batch Mode Instructions
 
-Process multiple issues sequentially. Each issue is handled using the existing Solo or Team workflow.
-
-### B-0. Batch Discovery
-
-**For `single-repo` mode** (project name given, no issue number):
-
-```bash
-ALL_ISSUES=$(gh issue list --repo $ORG/$PROJECT --state open --limit 100 \
-  --json number,title,labels,createdAt,body -q 'sort_by(.createdAt)')
-```
-
-**For `cross-repo` mode** (no arguments):
-
-```bash
-# Discover repos
-if [[ -n "$ORG" ]]; then
-    REPOS=$(gh repo list "$ORG" --json nameWithOwner,isArchived \
-      --jq '[.[] | select(.isArchived == false)] | .[].nameWithOwner' --limit 200)
-else
-    USER=$(gh api user --jq '.login')
-    REPOS=$(gh repo list "$USER" --json nameWithOwner,isArchived \
-      --jq '[.[] | select(.isArchived == false)] | .[].nameWithOwner' --limit 200)
-fi
-
-# Collect issues from each repo (0.3s rate-limit pause)
-ALL_ISSUES=[]
-for REPO in $REPOS; do
-    ISSUES=$(gh issue list --repo $REPO --state open --limit 50 \
-      --json number,title,labels,createdAt,body)
-    # Append with repo context: each issue gets a "repo" field
-    sleep 0.3
-done
-```
-
-### B-1. Global Priority Sorting and Filtering
-
-Assign each issue a numeric priority score:
-
-| Label | Score |
-|-------|-------|
-| `priority/critical` | 0 |
-| `priority/high` | 1 |
-| `priority/medium` | 2 |
-| `priority/low` | 3 |
-| No priority label | 4 |
-
-Sort ALL_ISSUES by: score ascending → `createdAt` ascending → repo name ascending.
-
-Apply filters:
-- `--priority <level>`: exclude issues below the specified priority level
-- `--limit N`: take only the first N items after sorting (default: 20, max: 50)
-
-If no issues found after filtering, report "No open issues found matching criteria" and exit.
-
-### B-2. Auto Size/Mode Estimation per Item
-
-For each issue in the batch, estimate size and decide solo vs team **without prompting the user**.
-
-**Weighted scoring matrix:**
-
-| Factor | Weight | Solo Signal (0) | Team Signal (1) |
-|--------|--------|-----------------|-----------------|
-| Size label | 3 | `size/XS`, `size/S`, or none | `size/M`, `size/L`, `size/XL` |
-| Description length | 1 | < 500 characters | >= 500 characters |
-| Acceptance criteria count | 2 | < 3 checkbox items | 4+ checkbox items |
-| Subtask references | 2 | No "Part of" or checklist | Contains "Part of" or task checklist |
-
-**Decision**: Sum the weights where Team Signal matches. If total >= 4 → `team`, otherwise → `solo`.
-
-**Override**: If `--solo` or `--team` flag was passed globally, apply that mode to ALL items.
-
-### B-3. Batch Plan Summary and Approval
-
-Present the batch plan as a table. Use `AskUserQuestion` for a single approval:
-
-```markdown
-## Batch Plan: issue-work
-
-| # | Repo | Issue | Title | Priority | Est. Size | Mode |
-|---|------|-------|-------|----------|-----------|------|
-| 1 | org/repo-a | #12 | Fix login crash | critical | S | solo |
-| 2 | org/repo-a | #8 | Add OAuth support | high | M | team |
-| 3 | org/repo-b | #45 | Update README links | medium | XS | solo |
-...
-
-**Total items**: 12 (9 solo, 3 team)
-```
-
-- **Question**: "Batch plan ready. N items to process. Approve?"
-- **Header**: "Batch"
-- **Options**:
-  1. "Approve and start (Recommended)" — proceed with batch execution
-  2. "Modify plan" — user can exclude items or change modes, then re-display
-  3. "Cancel" — abort batch
-
-If `--dry-run` is set, display the plan and exit without prompting.
-
-### B-4. Sequential Execution Loop
-
-Process each item one at a time:
-
-```
-for each item in approved batch plan:
-    1. Log progress: "[N/TOTAL] Starting: $REPO #$ISSUE_NUMBER — $TITLE ($MODE)"
-
-    2. Set context variables for this item:
-       - $ORG, $PROJECT from repo
-       - $ISSUE_NUMBER from item
-       - $EXEC_MODE from estimated mode (solo or team)
-
-    3. Execute the single-item workflow:
-       - If solo: run Solo Mode Steps 1-12
-       - If team: run Team Mode Steps T-1 through T-6
-       Ensure TeamDelete() is called after each team-mode item.
-
-    4. Record result:
-       - SUCCESS: PR URL and merge status
-       - FAILED: error description (after 3 retries)
-       - SKIPPED: if issue was closed/assigned during batch
-
-    5. Write batch progress to .claude/resume.md (for session recovery)
-
-    6. Log completion: "[N/TOTAL] Completed: $REPO #$ISSUE_NUMBER — $RESULT"
-
-    7. Pause 2 seconds between items (rate limiting)
-```
-
-**Failure handling per item:**
-- Build/test/CI failure after 3 retries → mark FAILED, create draft PR if code was written, continue to next
-- Team mode failure → fallback to solo for THIS item, then continue
-- MAX_TEAMS exceeded → force solo for this item
-- Issue closed by someone else during batch → mark SKIPPED, continue
-
-### B-5. Batch Summary Report
-
-After all items are processed, present a summary:
-
-```markdown
-## Batch Execution Summary
-
-| # | Repo | Issue | Title | Mode | Result | PR |
-|---|------|-------|-------|------|--------|----|
-| 1 | org/repo-a | #12 | Fix login crash | solo | Merged | #89 |
-| 2 | org/repo-a | #8 | Add OAuth support | team | Merged | #90 |
-| 3 | org/repo-b | #45 | Update README links | solo | FAILED | -- |
-
-**Success**: 11/12
-**Failed**: 1/12
-
-### Failed Items
-- org/repo-b #45: Build failure — missing dependency `libfoo`. Manual intervention needed.
-```
-
-Delete `.claude/resume.md` after successful batch completion.
+See `reference/batch-mode.md` for the complete batch mode workflow including discovery, priority sorting, plan approval, and sequential execution.
 
 ---
 
@@ -427,12 +248,6 @@ BRANCH_NAME="${BRANCH_TYPE}/issue-${ISSUE_NUMBER}-${SHORT_DESC}"
 git checkout -b "$BRANCH_NAME"
 ```
 
-Branch naming convention examples:
-- `feat/issue-123-add-auth` (new feature)
-- `fix/issue-456-null-pointer` (bug fix)
-- `refactor/issue-789-optimize-query` (refactoring)
-- `docs/issue-101-update-readme` (documentation)
-
 ### 4. Issue Assignment
 
 ```bash
@@ -505,30 +320,10 @@ Bash(command="cargo check", timeout=60000)
 
 For builds expected over 30 seconds:
 
-**Step A**: Launch build in background
-```
-Bash(command="cmake --build build/ --config Release 2>&1", run_in_background=true)
-# -> Returns task_id
-```
-
-**Step B**: Poll build output (non-blocking, every 10-15 seconds)
-```
-TaskOutput(task_id="<id>", block=false, timeout=10000)
-# -> Check for error patterns or completion indicators
-```
-
-**Step C**: Detect outcome from output
-
-| Outcome | Indicators | Action |
-|---------|-----------|--------|
-| Success | `Built target`, `Finished`, clean exit | Proceed to tests |
-| Failure | `error:`, `FAILED`, `Error` | Diagnose and fix |
-| Timeout | No output after 30s of polling | Check system resources |
-
-**Step D**: Run tests with same pattern
-```
-Bash(command="ctest --test-dir build/ --output-on-failure 2>&1", run_in_background=true)
-```
+1. Launch in background: `Bash(command="cmake --build build/ ...", run_in_background=true)`
+2. Poll output every 10-15s: `TaskOutput(task_id="<id>", block=false, timeout=10000)`
+3. Detect outcome: `Built target`/`Finished` = success, `error:`/`FAILED` = fix needed
+4. Run tests with same pattern: `Bash(command="ctest --test-dir build/ ...", run_in_background=true)`
 
 #### On Build/Test Failure
 
@@ -652,277 +447,7 @@ gh issue comment <NUMBER> --repo $ORG/$PROJECT \
 
 ## Team Mode Instructions
 
-Three-team workflow with feedback loop: Development team implements, Review team validates
-and manages PR, Documentation team updates docs. The review team drives a cyclic feedback
-loop — sending change requests back to the dev team until quality gates pass.
-
-> **Requires**: `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in settings.json
-
-### Team Architecture
-
-```
-         Lead (Coordinator)
-         ┌──────────────┐
-         │ Phase control │
-         │ CI monitoring │
-         │ Merge decision│
-         └──────┬───────┘
-                │
-   ┌────────────┼────────────┐
-   ▼            ▼            ▼
-┌──────┐   ┌──────┐   ┌──────┐
-│ Dev  │◄──│Review│   │ Doc  │
-│ Team │──►│ Team │   │ Team │
-└──────┘   └──────┘   └──────┘
-  dev     reviewer    doc-writer
-
-  Dev ──► Review: "Implementation done, ready for review"
-  Review ──► Dev: "Change requests: [list]"  (feedback loop)
-  Dev ──► Doc: "Implementation scope: [files]"
-  Review ──► Lead: "Approved, ready for PR"
-```
-
-### T-1. Setup (Lead executes)
-
-Perform Solo Mode Steps 1-4 (Issue Selection, Size Evaluation, Git Setup, Assignment).
-These steps require sequential execution and must complete before parallelization.
-
-Prepare shared context for all teammates:
-- `$ORG`, `$PROJECT`, `$ISSUE_NUMBER`, `$BRANCH_NAME`, `$BRANCH_TYPE`
-- Issue body and acceptance criteria (fetched via `gh issue view`)
-
-### T-2. Create Team and Tasks
-
-```
-TeamCreate(team_name="issue-$ISSUE_NUMBER", description="Implement #$ISSUE_NUMBER in $ORG/$PROJECT")
-```
-
-Create tasks with dependencies:
-
-| Task | Subject | Owner | blockedBy | Phase |
-|------|---------|-------|-----------|-------|
-| 1 | Analyze codebase and plan implementation | dev | — | A |
-| 2 | Analyze issue requirements and define review criteria | reviewer | — | A |
-| 3 | Implement code changes | dev | 1 | B |
-| 4 | Write/update tests for implementation | dev | 3 | B |
-| 5 | Build and verify all tests pass locally | dev | 4 | B |
-| 6 | Review: gap analysis (issue vs implementation) | reviewer | 2, 5 | C |
-| 7 | Review: code quality, security, performance | reviewer | 5 | C |
-| 8 | Update documentation (README, API docs, CHANGELOG) | doc-writer | 5 | C |
-| 9 | Apply review change requests (if any) | dev | 6, 7 | D |
-| 10 | Re-review after changes (if Task 9 was needed) | reviewer | 9 | D |
-| 11 | Push, create PR, and post review summary | reviewer | 8, 10 | E |
-| 12 | Monitor CI and merge | lead | 11 | E |
-
-**Key dependency flow:**
-- Phase A: Dev analyzes code ∥ Reviewer analyzes issue (parallel)
-- Phase B: Dev implements + tests + verifies (sequential within dev)
-- Phase C: Reviewer reviews ∥ Doc-writer updates docs (parallel, both after dev)
-- Phase D: Dev fixes review findings → Reviewer re-reviews (feedback loop)
-- Phase E: Reviewer creates PR → Lead monitors CI and merges
-
-### T-3. Spawn Teammates
-
-**Dev Team** (implementation + fixes):
-
-```
-Agent(
-  name="dev",
-  team_name="issue-$ISSUE_NUMBER",
-  subagent_type="general-purpose",
-  prompt="You are the development team for issue #$ISSUE_NUMBER in $ORG/$PROJECT.
-    Branch: $BRANCH_NAME
-    Repository: https://github.com/$ORG/$PROJECT
-
-    Your responsibilities:
-    1. Task 1: Analyze the existing codebase — check code style (.clang-format,
-       .editorconfig), file patterns, and conventions. Plan implementation approach.
-    2. Task 3: Implement the code changes following existing style strictly.
-       Keep changes minimal and focused on the issue requirements.
-    3. Task 4: Write or update tests for your implementation.
-       Follow existing test patterns and frameworks in the project.
-    4. Task 5: Run the complete build and test suite. Verify all tests pass.
-    5. Task 9: If the reviewer sends change requests, apply the requested fixes.
-       Each fix should be a separate commit referencing the review finding.
-
-    Rules:
-    - Validate incrementally: build after each logical change
-    - Follow existing code style strictly
-    - Commit format: type(scope): description (English only, no emojis)
-    - No Claude/AI references in commits
-    - When Task 5 is done, send a message to reviewer:
-      'Implementation complete. Files changed: [list]. Ready for review.'
-
-    Build verification strategy:
-    - < 30s builds: run inline (synchronous)
-    - 30s+ builds: run in background with log polling
-    If toolchain is unavailable locally, report what needs CI verification.
-
-    Check TaskList for your assigned tasks. Mark each as completed when done."
-)
-```
-
-**Review Team** (gap analysis + code review + PR management):
-
-```
-Agent(
-  name="reviewer",
-  team_name="issue-$ISSUE_NUMBER",
-  subagent_type="general-purpose",
-  prompt="You are the review team for issue #$ISSUE_NUMBER in $ORG/$PROJECT.
-    Branch: $BRANCH_NAME
-    Repository: https://github.com/$ORG/$PROJECT
-
-    Your responsibilities:
-    1. Task 2: Read the issue requirements and acceptance criteria thoroughly.
-       Define a review checklist: what must be true for this issue to be 'done'.
-       Identify edge cases and potential gaps.
-    2. Task 6 (Gap Analysis): After dev completes, compare the implementation
-       against the original issue requirements:
-       - Are all acceptance criteria met?
-       - Are there missing edge cases?
-       - Does the implementation scope match the issue scope (no over/under-engineering)?
-    3. Task 7 (Code Review): Review the changed code for:
-       - Code quality: DRY, SOLID, readability
-       - Security: OWASP top 10, input validation
-       - Performance: algorithm efficiency, N+1 queries, memory leaks
-       - Existing code impact: does the change break existing behavior?
-       Classify findings: Critical / Major / Minor / Info
-    4. Task 10 (Re-review): If change requests were sent to dev (Task 9),
-       verify the fixes address each finding. Only approve when all Critical
-       and Major findings are resolved.
-    5. Task 11 (PR Creation): When approved, create the PR:
-       - Push: git push -u origin $BRANCH_NAME
-       - Create PR with Closes #$ISSUE_NUMBER
-       - PR body: include review summary, all findings and their resolution
-       - English only, no AI references
-
-    Feedback loop rules:
-    - If findings exist, send change requests to dev via SendMessage:
-      'Change requests: 1. [finding + expected fix] 2. [finding + expected fix]'
-    - Then create Task 9 for dev with the change request details
-    - Max 2 review rounds. After 2 rounds, approve with remaining Minor items
-      noted in the PR description.
-
-    Check TaskList for your assigned tasks. Mark each as completed when done."
-)
-```
-
-**Documentation Team** (doc updates):
-
-```
-Agent(
-  name="doc-writer",
-  team_name="issue-$ISSUE_NUMBER",
-  subagent_type="general-purpose",
-  prompt="You are the documentation team for issue #$ISSUE_NUMBER in $ORG/$PROJECT.
-    Branch: $BRANCH_NAME
-    Repository: https://github.com/$ORG/$PROJECT
-
-    Your responsibilities:
-    1. Task 8: After dev completes implementation (Task 5), update documentation:
-       - README.md: if new features, CLI flags, or configuration added
-       - API documentation: if endpoints or interfaces changed
-       - CHANGELOG.md: add entry under 'Unreleased' section
-       - Code comments: for complex logic in changed files only
-       - Architecture docs: if structural changes were made
-
-    Rules:
-    - Only update docs that are affected by the implementation
-    - Do not create new documentation files unless necessary
-    - Match existing documentation style and structure
-    - Commit format: docs(scope): description (English only, no emojis)
-    - No Claude/AI references in commits
-
-    Check TaskList for your assigned tasks. Mark each as completed when done."
-)
-```
-
-### T-4. Workflow Phases (Lead coordinates)
-
-Lead monitors progress via `TaskList` and orchestrates the phases:
-
-**Phase A — Parallel Analysis:**
-1. Dev analyzes codebase (Task 1) ∥ Reviewer analyzes issue requirements (Task 2)
-2. These run simultaneously — no dependency between them
-
-**Phase B — Implementation (Dev):**
-1. Wait for Task 1 to complete
-2. Dev implements code (Task 3) → writes tests (Task 4) → verifies (Task 5)
-3. When Task 5 completes, dev sends implementation summary to reviewer
-
-**Phase C — Review + Documentation (parallel):**
-1. Wait for Task 5 to complete
-2. Reviewer executes gap analysis (Task 6) and code review (Task 7) — can be parallel or sequential
-3. Doc-writer updates documentation (Task 8) — runs in parallel with review
-4. Reviewer classifies findings and decides: approve or request changes
-
-**Phase D — Feedback Loop (if needed):**
-
-```
-Reviewer has findings?
-  │
-  ├─ No Critical/Major → Approve (skip Task 9, 10)
-  │                       Minor items noted in PR description
-  │
-  └─ Has Critical/Major → Send change requests to dev
-                           │
-                           ▼
-                    Dev applies fixes (Task 9)
-                           │
-                           ▼
-                    Reviewer re-reviews (Task 10)
-                           │
-                    ┌──────┴──────┐
-                    │             │
-                 Approved    Still issues?
-                    │        (max 2 rounds,
-                    ▼         then approve
-                 Task 11      with notes)
-```
-
-- Max 2 review rounds to prevent infinite loops
-- After round 2, reviewer approves with remaining Minor items documented in PR
-
-**Phase E — PR and Merge:**
-1. Reviewer creates PR (Task 11) with full review summary
-2. Lead monitors CI (Task 12): non-blocking polling, 30s intervals, 10min max
-3. On all checks pass: `gh pr merge $PR_NUMBER --repo $ORG/$PROJECT --squash --delete-branch`
-4. Close related issues and epics (Steps 11-12 from Solo Mode)
-5. Post implementation comment to issue
-
-### T-5. CI Failure Handling
-
-If CI fails after PR creation:
-
-1. Lead analyzes CI logs: `gh run view <RUN_ID> --repo $ORG/$PROJECT --log-failed`
-2. Create fix task for dev: "Fix CI failure: [error description]"
-3. After dev fixes, reviewer does a quick re-review of the CI fix only
-4. Lead pushes and re-monitors CI
-5. Max 3 CI fix attempts (same as Solo Mode). After 3: escalate.
-
-### T-6. Cleanup
-
-```
-# Shutdown all teammates
-SendMessage(to="dev", message={type: "shutdown_request"})
-SendMessage(to="reviewer", message={type: "shutdown_request"})
-SendMessage(to="doc-writer", message={type: "shutdown_request"})
-
-# Delete team
-TeamDelete()
-```
-
-### T-Error. Team Mode Fallback
-
-If any teammate fails or team coordination breaks down:
-
-1. Shutdown all teammates and delete team
-2. Assess what was completed:
-   - If implementation is done but review didn't start → offer Solo continuation from Step 8 (PR)
-   - If review found issues but dev didn't fix → report findings, offer Solo fix
-   - If nothing meaningful completed → offer full Solo restart from Step 5
-3. Preserve all commits made by teammates on the branch
+See `reference/team-mode.md` for the complete team mode workflow with 3-team architecture (dev, reviewer, doc-writer), feedback loops, and cleanup.
 
 ## Policies
 
@@ -971,46 +496,4 @@ In batch mode, use the summary format from **Phase B-5** instead. Include per-it
 
 ## Error Handling
 
-### Prerequisites Check
-
-| Requirement | Error Message | Resolution |
-|-------------|---------------|------------|
-| git installed | "Git is not installed" | Install git from https://git-scm.com |
-| gh CLI installed | "GitHub CLI is not installed" | Install from https://cli.github.com |
-| gh authenticated | "Not authenticated with GitHub" | Run `gh auth login` |
-| Project directory exists | "Project directory not found: [path]" | Verify project path in configuration |
-| Organization detected | "Cannot detect organization" | Use `--org` flag or full path format |
-| Issue exists | "Issue #NUM not found" | Verify issue number is correct |
-| Issue is open | "Issue #NUM is not open" | Cannot work on closed issues |
-
-### Runtime Errors
-
-| Error Condition | Behavior | User Action |
-|-----------------|----------|-------------|
-| No matching issues (auto-select) | Report "No open issues found with specified priority" | Create new issue or adjust priority filter |
-| Issue already assigned | Report assignment status, offer to proceed or skip | Confirm continuation or select different issue |
-| Branch already exists | Report existing branch, offer to reuse or rename | Delete old branch or use new name |
-| Build failure (inline) | Report error output, attempt auto-fix | Fix build errors and re-run inline |
-| Build failure (background) | Detect via log polling, diagnose error pattern | Fix errors and re-run in background |
-| Test failure (inline) | Report failing tests with details | Fix tests and retry inline |
-| Test failure (background) | Detect via log polling, report specific failures | Fix tests and retry in background |
-| Build/test timeout | Report last known output, check system resources | Increase timeout or split build |
-| Push rejected | Report rejection reason (non-fast-forward, protected branch) | Pull latest changes or request permissions |
-| PR creation failed | Report GitHub API error with details | Check repository permissions |
-| Network timeout | Report "Cannot reach GitHub - check connection" | Verify internet connection |
-| Team mode: teammate failure | Fallback to Solo Mode from last completed phase | Automatic recovery |
-| Team mode: file conflict | Lead resolves conflict between dev and doc-writer | Ensure non-overlapping file ownership |
-| Team mode: review loop exceeded | Approve with remaining items noted in PR | Max 2 review rounds enforced |
-| Team mode: coordination timeout | Shutdown team, preserve branch commits | Continue manually or re-run Solo |
-| Agent Teams not enabled | Fall back to Solo Mode with warning | Enable `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` |
-
-### Batch Mode Errors
-
-| Error Condition | Behavior | User Action |
-|-----------------|----------|-------------|
-| No repos found (cross-repo) | Report "No accessible repositories found" | Check `gh auth status` or use `--org` |
-| No open issues found | Report "No open issues matching criteria" | Adjust `--priority` filter or create issues |
-| GitHub API rate limit during discovery | Pause until reset, then resume | Wait or reduce `--limit` |
-| Single item failure in batch | Mark FAILED, continue to next item | Review failed items in batch summary |
-| Session interrupted during batch | Write progress to `.claude/resume.md` | Resume with next session start |
-| All items in batch fail | Report batch summary with all failures | Review individual failure reasons |
+See `reference/error-handling.md` for prerequisite checks, runtime errors, and batch mode errors.
