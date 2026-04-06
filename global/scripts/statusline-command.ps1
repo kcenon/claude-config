@@ -24,10 +24,15 @@ $StdinData = $null
 try { $StdinData = ConvertFrom-Json -InputObject $InputData.Trim() } catch { }
 
 # Get ccstatusline output (pass stdin), fallback to stdin JSON parsing if unavailable
+$CcslExe = $null
+$CcslArgs = @()
 if (Get-Command ccstatusline -ErrorAction SilentlyContinue) {
     $InputData | ccstatusline 2>$null
+    $CcslExe = 'ccstatusline'
 } elseif (Get-Command npx -ErrorAction SilentlyContinue) {
     $InputData | npx ccstatusline@latest 2>$null
+    $CcslExe = 'npx'
+    $CcslArgs = @('ccstatusline@latest')
 } elseif ($StdinData) {
     # Fallback: build status line directly from stdin JSON
     $ESC = [char]0x1B
@@ -47,8 +52,33 @@ if (Get-Command ccstatusline -ErrorAction SilentlyContinue) {
     if ($fallbackParts.Count -gt 0) { Write-Output ($fallbackParts -join ' | ') }
 }
 
-# Append extra usage line from ccstatusline cache
+# ccstatusline takes a "rate_limits shortcut": when Claude Code's stdin includes
+# rate_limits, it skips the OAuth usage API call entirely. That means the cache
+# file usage.json (which holds extraUsage* fields) never gets refreshed, and the
+# Extra line below shows hours-old data while the rest of the bar stays fresh.
+# Fix: when usage.json is older than ccstatusline's CACHE_MAX_AGE (180s), kick
+# off a background ccstatusline run with rate_limits stripped from stdin to
+# force fetchUsageData(). The next status bar refresh picks up the fresh file.
 $UsageCache = Join-Path $HOME ".cache" "ccstatusline" "usage.json"
+$UsageCacheTtl = 180
+if ($CcslExe -and $StdinData) {
+    $needsRefresh = $true
+    if (Test-Path $UsageCache) {
+        $cacheAge = (New-TimeSpan -Start (Get-Item $UsageCache).LastWriteTimeUtc -End ([DateTime]::UtcNow)).TotalSeconds
+        if ($cacheAge -lt $UsageCacheTtl) { $needsRefresh = $false }
+    }
+    if ($needsRefresh) {
+        try {
+            $stripped = $StdinData | Select-Object -Property * -ExcludeProperty rate_limits | ConvertTo-Json -Depth 32 -Compress
+            Start-Job -ScriptBlock {
+                param($exe, $extraArgs, $payload)
+                $payload | & $exe @extraArgs *> $null
+            } -ArgumentList $CcslExe, $CcslArgs, $stripped | Out-Null
+        } catch { }
+    }
+}
+
+# Append extra usage line from ccstatusline cache
 if (Test-Path $UsageCache) {
     try {
         $usage = Get-Content $UsageCache -Raw | ConvertFrom-Json
