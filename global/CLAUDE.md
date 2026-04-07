@@ -11,6 +11,15 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 1. **Project overrides global** — Project `CLAUDE.md` takes precedence
 2. **YAML frontmatter** — Rules load based on `alwaysApply` and `paths`
 
+## Working Principles
+
+- **Challenge the request** — If a simpler approach exists, say so. Don't pick silently between interpretations.
+- **Minimize code** — No premature abstraction. If 200 lines could be 50, rewrite.
+- **Surgical edits** — Only change lines that trace to the request. Don't touch adjacent code or style.
+- **Verify first** — Reproduce bugs before fixing. Define "done" before coding.
+- Stay focused on the user's original request. Note unrelated issues at the end without acting.
+- If the same approach fails 3 times, stop and propose alternatives.
+
 ## GitHub / CI
 
 - When `gh` CLI fails with TLS certificate errors in sandbox mode, retry with `dangerouslyDisableSandbox`. Do not assume authentication failure — TLS errors and auth errors are different.
@@ -25,6 +34,8 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 
 - When a required toolchain (Go, Rust, CMake, npm) is not installed locally, skip local build verification and rely on CI. Do not attempt to install toolchains without asking the user first.
 - Validate incrementally: build and test after each logical change, not after all changes are complete. This catches errors early and reduces first-CI-run failures.
+- After large refactoring or migration, run a full build, collect ALL errors, and fix them in one batch before rebuilding. Do not fix one error at a time.
+- If the same approach fails 3 consecutive times, stop and propose alternative strategies to the user.
 
 ## Standard Workflows
 
@@ -38,10 +49,15 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 - When a multi-step workflow is interrupted, write progress state to `.claude/resume.md` in the project directory so the next session can resume seamlessly.
 - At session start, check for `.claude/resume.md` and offer to resume if it exists.
 
+## Platform Notes
+
+- PowerShell scripts with non-ASCII characters (Korean, CJK): use UTF-8 with BOM encoding.
+- When converting between document formats, prefer Mermaid for diagram representation over ASCII art or SVG generation.
+
 ## Configuration Updates
 
 Edit module files, then restart session to apply changes.
 
 ---
 
-*Version: 2.4.0 | Last updated: 2026-03-26*
+*Version: 2.5.0 | Last updated: 2026-04-07*
