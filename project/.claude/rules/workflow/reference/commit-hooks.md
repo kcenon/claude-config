@@ -8,60 +8,25 @@ alwaysApply: false
 
 ## Git Hook Setup
 
-### macOS commit-msg hook
+The canonical `commit-msg` hook script lives at `hooks/commit-msg` and is installed by `hooks/install-hooks.sh` on macOS/Linux or `hooks/install-hooks.ps1` on Windows. It sources shared validation logic from `hooks/lib/validate-commit-message.sh` — the same library used by the PreToolUse-layer `commit-message-guard` hook.
+
+To install:
 
 ```bash
-mkdir -p .git/hooks
-
-cat > .git/hooks/commit-msg << 'EOF'
-#!/bin/bash
-# Remove Claude-related references and emojis from commit messages
-
-COMMIT_MSG_FILE=$1
-
-# Remove Claude Code attribution
-sed -i '' '/🤖 Generated with \[Claude Code\]/d' "$COMMIT_MSG_FILE"
-sed -i '' '/Generated with Claude Code/d' "$COMMIT_MSG_FILE"
-
-# Remove Co-Authored-By: Claude
-sed -i '' '/Co-Authored-By: Claude/d' "$COMMIT_MSG_FILE"
-
-# Remove common AI assistant references
-sed -i '' '/AI-assisted/d' "$COMMIT_MSG_FILE"
-sed -i '' '/Anthropic Claude/d' "$COMMIT_MSG_FILE"
-sed -i '' '/claude.ai/d' "$COMMIT_MSG_FILE"
-
-# Remove all emojis (Unicode ranges for common emojis)
-perl -i -pe 's/[\x{1F300}-\x{1F9FF}]|[\x{2600}-\x{26FF}]|[\x{2700}-\x{27BF}]|[\x{1F1E0}-\x{1F1FF}]//g' "$COMMIT_MSG_FILE"
-
-# Remove empty lines at the end
-sed -i '' -e :a -e '/^\s*$/d;N;ba' "$COMMIT_MSG_FILE"
-EOF
-
-chmod +x .git/hooks/commit-msg
+./hooks/install-hooks.sh
 ```
 
-### Linux/WSL commit-msg hook
+Do not copy inline scripts from prior versions of this document — they are deprecated and drift from the canonical validator.
 
-```bash
-cat > .git/hooks/commit-msg << 'EOF'
-#!/bin/bash
-COMMIT_MSG_FILE=$1
+### Enforcement Layers
 
-sed -i '/🤖 Generated with \[Claude Code\]/d' "$COMMIT_MSG_FILE"
-sed -i '/Generated with Claude Code/d' "$COMMIT_MSG_FILE"
-sed -i '/Co-Authored-By: Claude/d' "$COMMIT_MSG_FILE"
-sed -i '/AI-assisted/d' "$COMMIT_MSG_FILE"
-sed -i '/Anthropic Claude/d' "$COMMIT_MSG_FILE"
-sed -i '/claude.ai/d' "$COMMIT_MSG_FILE"
+| Layer | Artifact | Role | Bypassable? |
+|-------|----------|------|-------------|
+| Attribution config | `settings.json` `attribution: ""` | Prevents Claude from adding attribution | N/A |
+| PreToolUse (Claude-only) | `global/hooks/commit-message-guard.sh` | Feedback loop — lets Claude self-correct and retry | Yes (outside Claude) |
+| git `commit-msg` hook | `hooks/commit-msg` | Terminal gate — git itself rejects the commit | Only via `--no-verify` |
 
-perl -i -pe 's/[\x{1F300}-\x{1F9FF}]|[\x{2600}-\x{26FF}]|[\x{2700}-\x{27BF}]|[\x{1F1E0}-\x{1F1FF}]//g' "$COMMIT_MSG_FILE"
-
-sed -i -e :a -e '/^\s*$/d;N;ba' "$COMMIT_MSG_FILE"
-EOF
-
-chmod +x .git/hooks/commit-msg
-```
+All enforcement layers share rules from `hooks/lib/validate-commit-message.sh` to prevent drift.
 
 ## CI/CD Verification
 
@@ -92,50 +57,6 @@ jobs:
           fi
 
           echo "No Claude references or emojis found"
-```
-
-## Cross-Platform Hook Setup Script
-
-```bash
-#!/bin/bash
-# scripts/setup-git-hooks.sh
-
-HOOKS_DIR=".git/hooks"
-COMMIT_MSG_HOOK="$HOOKS_DIR/commit-msg"
-
-cat > "$COMMIT_MSG_HOOK" << 'HOOKEOF'
-#!/bin/bash
-COMMIT_MSG_FILE=$1
-
-PATTERNS=(
-    "🤖 Generated with \[Claude Code\]"
-    "Generated with Claude Code"
-    "Co-Authored-By: Claude"
-    "AI-assisted"
-    "Anthropic Claude"
-    "claude.ai"
-    "claude code"
-)
-
-for pattern in "${PATTERNS[@]}"; do
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' "/$pattern/d" "$COMMIT_MSG_FILE"
-    else
-        sed -i "/$pattern/d" "$COMMIT_MSG_FILE"
-    fi
-done
-
-perl -i -pe 's/[\x{1F300}-\x{1F9FF}]|[\x{2600}-\x{26FF}]|[\x{2700}-\x{27BF}]|[\x{1F1E0}-\x{1F1FF}]//g' "$COMMIT_MSG_FILE"
-
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    sed -i '' -e :a -e '/^\s*$/d;N;ba' "$COMMIT_MSG_FILE"
-else
-    sed -i -e :a -e '/^\s*$/d;N;ba' "$COMMIT_MSG_FILE"
-fi
-HOOKEOF
-
-chmod +x "$COMMIT_MSG_HOOK"
-echo "Git hooks installed successfully"
 ```
 
 ## Verification Commands

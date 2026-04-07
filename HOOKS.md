@@ -17,6 +17,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Limit concurrent Agent Teams | [Team Limit Guard](#6-team-limit-guard-pretooluse) |
 | Log session activity | [Session Logging](#3-session-logging-sessionstartsessionend) |
 | Check for known Claude Code bugs | [Version Check](#8-version-check-sessionstart) |
+| Validate commit messages before git commit | [Commit Message Guard](#10-commit-message-guard-pretooluse) |
 | Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
 | Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
 
@@ -198,6 +199,29 @@ Hooks are user-defined commands that automatically execute during specific Claud
 |-----------|--------|
 | `0` | Accept task completion |
 | `2` | Block completion — stderr message sent as feedback to teammate |
+
+### 10. Commit Message Guard (PreToolUse)
+
+*Blocks non-conventional commit messages at Claude's Bash tool boundary — deterministic, same input always yields same decision.*
+
+**Purpose**: Validate git commit messages against Conventional Commits rules before Claude invokes `git commit`.
+
+**Trigger**: Bash commands matching `git commit ... -m ...` only.
+
+**Rules enforced**:
+- Conventional Commits format: `type(scope): description` or `type: description`
+- Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, security
+- Description starts with lowercase, no trailing period
+- No AI/Claude attribution
+- No emojis
+
+**Behavior**:
+- Returns JSON with `permissionDecision: "deny"` listing the failed rule
+- Defers to the git `commit-msg` hook for command-substitution messages (`-m "$(..."`)
+- Timeout: 5 seconds
+- Cross-platform: `commit-message-guard.sh` and `commit-message-guard.ps1`
+
+**Shared validation library**: Both this PreToolUse hook and the git `commit-msg` hook (installed by `hooks/install-hooks.sh`) source the same validator at `hooks/lib/validate-commit-message.sh`, ensuring rule consistency across enforcement layers.
 
 ### Hook Response Format
 

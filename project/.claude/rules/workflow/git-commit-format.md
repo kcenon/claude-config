@@ -11,7 +11,7 @@ Use **Conventional Commits**: `type(scope): description`
 
 ## Types
 
-feat, fix, docs, style, refactor, perf, test, build, ci, chore
+feat, fix, docs, style, refactor, perf, test, build, ci, chore, security
 
 ## Rules
 
