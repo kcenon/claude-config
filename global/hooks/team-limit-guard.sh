@@ -6,7 +6,8 @@
 # Response format: hookSpecificOutput with hookEventName
 
 # Read input from stdin (Claude Code passes JSON via stdin)
-INPUT=$(cat)
+# This hook doesn't need the input data — just consume stdin to avoid SIGPIPE
+cat > /dev/null
 
 # Configurable limit via environment variable (default: 3)
 MAX_TEAMS="${MAX_TEAMS:-3}"
