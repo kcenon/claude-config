@@ -2,6 +2,14 @@
 
 ## Changelog
 
+- **1.7.0** (2026-04-07): Usage-report-driven behavioral guardrails and platform fixes
+  - Added "Working Principles" section to CLAUDE.md (behavioral guardrails: challenge, minimize, surgical, verify)
+  - Added "Platform Notes" section to CLAUDE.md (UTF-8 BOM encoding, Mermaid preference)
+  - Enhanced "Build & Test" with batch error fixing and 3-failure escape hatch
+  - Fixed settings.windows.json missing TeamCreate/team-limit-guard hook
+  - Fixed settings.json (base) missing attribution.issue and autoUpdatesChannel
+  - Bumped settings.json to v1.12.0, CLAUDE.md to v2.5.0
+
 - **1.6.0** (2026-04-03): Harness skill, QA agent, batch processing, version-check hook
   - Added harness meta-skill for agent team and skill architecture design
   - Added qa-reviewer agent for integration coherence verification
