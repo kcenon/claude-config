@@ -8,12 +8,8 @@
 # Replaces the non-deterministic type:"prompt" validator (see #241).
 # Same input always yields same output — safe as a validation gate.
 #
-# Rules enforced:
-#   1. Conventional Commits format: type(scope)?: description
-#   2. Description must start with a lowercase letter
-#   3. Description must not end with a period
-#   4. No AI/Claude attribution
-#   5. No emojis
+# Sources shared validation rules from hooks/lib/validate-commit-message.sh
+# (single source of truth shared with the git commit-msg hook — see #242).
 #
 # NOTE on parsing limits: -m arguments using $(...) command substitution or
 # containing embedded double quotes are not reliably parseable at this layer.
@@ -48,6 +44,24 @@ allow_response() {
 EOF
     exit 0
 }
+
+# --- Source shared validation library ---
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+VALIDATOR=""
+
+# Try 1: repo-relative path (development / CI testing)
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." 2>/dev/null && pwd)"
+if [ -f "$REPO_ROOT/hooks/lib/validate-commit-message.sh" ]; then
+    VALIDATOR="$REPO_ROOT/hooks/lib/validate-commit-message.sh"
+# Try 2: sibling lib/ directory (deployed to ~/.claude/hooks/)
+elif [ -f "$SCRIPT_DIR/lib/validate-commit-message.sh" ]; then
+    VALIDATOR="$SCRIPT_DIR/lib/validate-commit-message.sh"
+fi
+
+if [ -n "$VALIDATOR" ]; then
+    # shellcheck source=../../hooks/lib/validate-commit-message.sh
+    . "$VALIDATOR"
+fi
 
 # --- Read input from stdin ---
 INPUT=$(cat)
@@ -91,41 +105,34 @@ if [ -z "$MSG" ]; then
     allow_response
 fi
 
-# --- Rule 1: Conventional Commits format ---
-if ! printf '%s' "$MSG" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|security)(\([a-z0-9._-]+\))?: .+'; then
-    deny_response "Commit message must follow Conventional Commits: 'type(scope): description' or 'type: description'. Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, security."
-fi
+# --- Validate using shared library (if available) or inline fallback ---
+if [ -n "$VALIDATOR" ]; then
+    REASON=$(validate_commit_message "$MSG" 2>&1) || deny_response "$REASON"
+else
+    # Inline fallback when the shared library is not available.
+    # Keep rules in sync with hooks/lib/validate-commit-message.sh.
+    if ! printf '%s' "$MSG" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|security)(\([a-z0-9._-]+\))?: .+'; then
+        deny_response "Commit message must follow Conventional Commits: 'type(scope): description' or 'type: description'. Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, security."
+    fi
 
-# --- Rule 2: Description starts with lowercase letter ---
-# Everything after the first ': ' is the description.
-DESC=$(printf '%s' "$MSG" | sed -E 's/^[^:]*:[[:space:]]*//')
-FIRST_CHAR=$(printf '%s' "$DESC" | head -c1)
-# NOTE: enumerate characters explicitly — bash case with [a-z] is locale-dependent
-# and can match uppercase under en_US.UTF-8 collation. This is ASCII-only by design.
-case "$FIRST_CHAR" in
-    a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z) ;;
-    *)
-        deny_response "Commit message description must start with a lowercase letter."
-        ;;
-esac
+    DESC=$(printf '%s' "$MSG" | sed -E 's/^[^:]*:[[:space:]]*//')
+    FIRST_CHAR=$(printf '%s' "$DESC" | head -c1)
+    case "$FIRST_CHAR" in
+        a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z) ;;
+        *) deny_response "Commit message description must start with a lowercase letter." ;;
+    esac
 
-# --- Rule 3: No trailing period ---
-case "$DESC" in
-    *.)
-        deny_response "Commit message description must not end with a period."
-        ;;
-esac
+    case "$DESC" in
+        *.) deny_response "Commit message description must not end with a period." ;;
+    esac
 
-# --- Rule 4: No AI/Claude attribution ---
-if printf '%s' "$MSG" | grep -iqE '(claude|anthropic|ai-assisted|co-authored-by:[[:space:]]*claude|generated[[:space:]]+with)'; then
-    deny_response "Commit message must not contain AI/Claude attribution (claude, anthropic, ai-assisted, generated with, co-authored-by: claude)."
-fi
+    if printf '%s' "$MSG" | grep -iqE '(claude|anthropic|ai-assisted|co-authored-by:[[:space:]]*claude|generated[[:space:]]+with)'; then
+        deny_response "Commit message must not contain AI/Claude attribution (claude, anthropic, ai-assisted, generated with, co-authored-by: claude)."
+    fi
 
-# --- Rule 5: No emojis ---
-# Use perl for portable Unicode range matching on macOS/Linux.
-# perl exits 1 when a match is found; 0 otherwise.
-if ! printf '%s' "$MSG" | perl -CSD -ne 'exit 1 if /[\x{1F300}-\x{1F9FF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}\x{1F1E0}-\x{1F1FF}]/' 2>/dev/null; then
-    deny_response "Commit message must not contain emojis."
+    if ! printf '%s' "$MSG" | perl -CSD -ne 'exit 1 if /[\x{1F300}-\x{1F9FF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}\x{1F1E0}-\x{1F1FF}]/' 2>/dev/null; then
+        deny_response "Commit message must not contain emojis."
+    fi
 fi
 
 # All rules passed
