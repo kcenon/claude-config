@@ -1,6 +1,6 @@
 # Commit, Issue, and PR Settings
 
 No AI/Claude attribution in commits, issues, or PRs.
-Enforced by `settings.json` (`attribution: ""`) and `commit-msg` hook.
+Enforced by `settings.json` (`attribution: ""`), the `commit-message-guard` PreToolUse hook (Claude-side feedback loop), and the `commit-msg` git hook installed by `hooks/install-hooks.sh` (terminal-side gate).
 
 All GitHub Issues and Pull Requests must be written in English.
