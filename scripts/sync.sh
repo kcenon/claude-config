@@ -366,4 +366,72 @@ else
 fi
 
 echo ""
-success "동기화가 완료되었습니다! 🎉"
+success "동기화가 완료되었습니다!"
+
+# ── Git Hooks Installation Audit ──────────────────────────────
+
+audit_hooks() {
+    local scan_dir="${1:-$HOME/Sources}"
+    local total=0
+    local complete=0
+
+    echo ""
+    echo "======================================================"
+    info "Git Hooks Installation Audit"
+    echo "======================================================"
+    echo ""
+    info "Scanning: $scan_dir"
+    echo ""
+
+    while IFS= read -r gitdir; do
+        local repo
+        repo="$(dirname "$gitdir")"
+        local repo_name
+        repo_name="$(basename "$repo")"
+        local cm_hook="$gitdir/hooks/commit-msg"
+
+        local cm_status="MISSING"
+        if [ -f "$cm_hook" ] && grep -q "validate-commit-message\|conventional commit" "$cm_hook" 2>/dev/null; then
+            cm_status="installed"
+        fi
+
+        total=$((total + 1))
+
+        if [ "$cm_status" = "installed" ]; then
+            complete=$((complete + 1))
+            printf "    🟢 %-35s commit-msg: %s\n" "$repo_name" "$cm_status"
+        else
+            printf "    🔴 %-35s commit-msg: %s\n" "$repo_name" "$cm_status"
+        fi
+    done < <(find "$scan_dir" -maxdepth 3 -name ".git" -type d 2>/dev/null)
+
+    echo ""
+    if [ $total -eq 0 ]; then
+        info "No git repositories found in $scan_dir"
+    else
+        info "$complete of $total repositories have commit-msg hook installed."
+        if [ $complete -lt $total ]; then
+            echo ""
+            info "Install missing hooks with:"
+            echo "    ./hooks/install-hooks.sh <repo-path>"
+        fi
+    fi
+}
+
+# Run audit unless --no-audit flag was passed
+if [[ "${1:-}" != "--no-audit" ]]; then
+    # Determine scan directory
+    SCAN_DIR="$HOME/Sources"
+    for arg in "$@"; do
+        if [[ "$arg" == "--scan-dir" ]]; then
+            SCAN_DIR_NEXT=true
+        elif [[ "${SCAN_DIR_NEXT:-}" == true ]]; then
+            SCAN_DIR="$arg"
+            SCAN_DIR_NEXT=false
+        fi
+    done
+
+    if [ -d "$SCAN_DIR" ]; then
+        audit_hooks "$SCAN_DIR"
+    fi
+fi

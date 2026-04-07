@@ -435,3 +435,71 @@ else {
 
 Write-Host ""
 Write-SuccessMessage "동기화가 완료되었습니다!"
+
+# ── Git Hooks Installation Audit ──────────────────────────────
+
+function Invoke-HooksAudit {
+    param(
+        [string]$ScanDir = (Join-Path $HOME 'Sources')
+    )
+
+    Write-Host ""
+    Write-Host "======================================================"
+    Write-InfoMessage "Git Hooks Installation Audit"
+    Write-Host "======================================================"
+    Write-Host ""
+    Write-InfoMessage "Scanning: $ScanDir"
+    Write-Host ""
+
+    $total = 0
+    $complete = 0
+
+    $gitDirs = Get-ChildItem -Path $ScanDir -Filter '.git' -Directory -Recurse -Depth 2 -Force -ErrorAction SilentlyContinue
+
+    foreach ($gitDir in $gitDirs) {
+        $repo = $gitDir.Parent.FullName
+        $repoName = $gitDir.Parent.Name
+        $cmHook = Join-Path $gitDir.FullName 'hooks' 'commit-msg'
+
+        $cmStatus = 'MISSING'
+        if ((Test-Path $cmHook) -and (Select-String -Path $cmHook -Pattern 'validate-commit-message|conventional commit' -Quiet -ErrorAction SilentlyContinue)) {
+            $cmStatus = 'installed'
+        }
+
+        $total++
+
+        if ($cmStatus -eq 'installed') {
+            $complete++
+            Write-Host ("    {0,-35} commit-msg: {1}" -f $repoName, $cmStatus) -ForegroundColor Green
+        } else {
+            Write-Host ("    {0,-35} commit-msg: {1}" -f $repoName, $cmStatus) -ForegroundColor Red
+        }
+    }
+
+    Write-Host ""
+    if ($total -eq 0) {
+        Write-InfoMessage "No git repositories found in $ScanDir"
+    } else {
+        Write-InfoMessage "$complete of $total repositories have commit-msg hook installed."
+        if ($complete -lt $total) {
+            Write-Host ""
+            Write-InfoMessage "Install missing hooks with:"
+            Write-Host "    .\hooks\install-hooks.ps1 <repo-path>"
+        }
+    }
+}
+
+# Run audit unless -NoAudit was passed
+$noAudit = $args -contains '--no-audit'
+if (-not $noAudit) {
+    $scanIdx = [Array]::IndexOf($args, '--scan-dir')
+    if ($scanIdx -ge 0 -and $scanIdx -lt ($args.Count - 1)) {
+        $auditScanDir = $args[$scanIdx + 1]
+    } else {
+        $auditScanDir = Join-Path $HOME 'Sources'
+    }
+
+    if (Test-Path $auditScanDir -PathType Container) {
+        Invoke-HooksAudit -ScanDir $auditScanDir
+    }
+}
