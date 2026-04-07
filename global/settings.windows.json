@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "description": "Claude Code Global Settings (Windows) - Applied to all projects (permissions.deny for security)",
-  "version": "1.11.0",
+  "version": "1.12.0",
 
   "respectGitignore": true,
   "cleanupPeriodDays": 30,
@@ -86,6 +86,16 @@
           {
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/commit-message-guard.ps1",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "TeamCreate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/team-limit-guard.ps1",
             "timeout": 5
           }
         ]
