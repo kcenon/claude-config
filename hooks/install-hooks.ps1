@@ -62,6 +62,46 @@ if (-not $IsWindows) {
 
 Write-SuccessMessage "pre-commit hook 설치 완료!"
 
+# ── Install commit-msg hook ─────────────────────────────────
+
+Write-Host ""
+Write-InfoMessage "commit-msg hook 설치 중..."
+
+$commitMsgDst = Join-Path $GitHooksDir 'commit-msg'
+
+if (Test-Path -LiteralPath $commitMsgDst) {
+    Write-WarningMessage "기존 commit-msg hook이 존재합니다."
+    $reply = Read-Host "덮어쓰시겠습니까? (y/n)"
+    if ($reply -ne 'y' -and $reply -ne 'Y') {
+        Write-InfoMessage "commit-msg 설치를 건너뜁니다."
+    } else {
+        $commitMsgSrc = Join-Path $ScriptDir 'commit-msg'
+        Copy-Item -LiteralPath $commitMsgSrc -Destination $commitMsgDst -Force
+        if (-not $IsWindows) { & chmod +x $commitMsgDst 2>$null }
+        Write-SuccessMessage "commit-msg hook 설치 완료!"
+    }
+} else {
+    $commitMsgSrc = Join-Path $ScriptDir 'commit-msg'
+    Copy-Item -LiteralPath $commitMsgSrc -Destination $commitMsgDst -Force
+    if (-not $IsWindows) { & chmod +x $commitMsgDst 2>$null }
+    Write-SuccessMessage "commit-msg hook 설치 완료!"
+}
+
+# ── Install shared validation library ───────────────────────
+
+Write-InfoMessage "검증 라이브러리 설치 중..."
+
+$libDstDir = Join-Path $GitHooksDir 'lib'
+if (-not (Test-Path -LiteralPath $libDstDir -PathType Container)) {
+    New-Item -ItemType Directory -Path $libDstDir -Force | Out-Null
+}
+
+$validatorSrc = Join-Path $ScriptDir 'lib' 'validate-commit-message.sh'
+$validatorDst = Join-Path $libDstDir 'validate-commit-message.sh'
+Copy-Item -LiteralPath $validatorSrc -Destination $validatorDst -Force
+if (-not $IsWindows) { & chmod +x $validatorDst 2>$null }
+Write-SuccessMessage "검증 라이브러리 설치 완료!"
+
 Write-Host ""
 Write-InfoMessage "설치된 hooks:"
 Get-ChildItem -LiteralPath $GitHooksDir -File |
@@ -72,4 +112,4 @@ Get-ChildItem -LiteralPath $GitHooksDir -File |
 
 Write-Host ""
 Write-SuccessMessage "Git hooks 설치가 완료되었습니다."
-Write-InfoMessage "SKILL.md 파일을 커밋할 때 자동으로 검증이 실행됩니다."
+Write-InfoMessage "커밋 시 SKILL.md 검증과 커밋 메시지 검증이 자동으로 실행됩니다."

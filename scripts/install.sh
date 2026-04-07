@@ -318,6 +318,14 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
             success "Hook 스크립트 (hooks/) 설치 완료!"
         fi
 
+        # 공유 검증 라이브러리 설치 (commit-message-guard.sh에서 사용)
+        if [ -f "$BACKUP_DIR/hooks/lib/validate-commit-message.sh" ]; then
+            ensure_dir "$HOME/.claude/hooks/lib"
+            cp "$BACKUP_DIR/hooks/lib/validate-commit-message.sh" "$HOME/.claude/hooks/lib/"
+            chmod +x "$HOME/.claude/hooks/lib/validate-commit-message.sh"
+            success "공유 검증 라이브러리 설치 완료!"
+        fi
+
         # scripts 디렉토리 설치 (statusline 등)
         if [ -d "$BACKUP_DIR/global/scripts" ]; then
             ensure_dir "$HOME/.claude/scripts"

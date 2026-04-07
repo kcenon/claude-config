@@ -1,0 +1,41 @@
+#!/bin/bash
+# commit-msg — git hook for commit message validation
+# Receives the commit message file path as $1.
+# Sources the shared validator from hooks/lib/validate-commit-message.sh.
+#
+# Install: hooks/install-hooks.sh copies this to .git/hooks/commit-msg
+# Bypass:  git commit --no-verify (forbidden by global CLAUDE.md policy)
+
+set -euo pipefail
+
+COMMIT_MSG_FILE="$1"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Source the shared validation library
+VALIDATOR="$SCRIPT_DIR/lib/validate-commit-message.sh"
+if [ ! -f "$VALIDATOR" ]; then
+    echo "commit-msg hook: validator library not found at $VALIDATOR" >&2
+    echo "Run hooks/install-hooks.sh to reinstall." >&2
+    exit 1
+fi
+# shellcheck source=lib/validate-commit-message.sh
+. "$VALIDATOR"
+
+# Read the first line (subject) of the commit message.
+# Ignore lines starting with '#' (git comments) and blank lines.
+MSG=$(sed '/^#/d;/^$/d' "$COMMIT_MSG_FILE" | head -n1)
+
+# Allow empty messages — git itself will reject them.
+if [ -z "$MSG" ]; then
+    exit 0
+fi
+
+# Validate
+if ! validate_commit_message "$MSG"; then
+    echo "" >&2
+    echo "commit-msg hook rejected the commit." >&2
+    echo "Fix the message and try again, or use --no-verify to bypass (not recommended)." >&2
+    exit 1
+fi
+
+exit 0

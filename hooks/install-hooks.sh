@@ -64,10 +64,38 @@ chmod +x "$GIT_HOOKS_DIR/pre-commit"
 
 success "pre-commit hook 설치 완료!"
 
+# commit-msg hook 설치
+echo ""
+info "commit-msg hook 설치 중..."
+
+if [ -f "$GIT_HOOKS_DIR/commit-msg" ]; then
+    warning "기존 commit-msg hook이 존재합니다."
+    read -p "덮어쓰시겠습니까? (y/n): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        info "commit-msg 설치를 건너뜁니다."
+    else
+        cp "$SCRIPT_DIR/commit-msg" "$GIT_HOOKS_DIR/commit-msg"
+        chmod +x "$GIT_HOOKS_DIR/commit-msg"
+        success "commit-msg hook 설치 완료!"
+    fi
+else
+    cp "$SCRIPT_DIR/commit-msg" "$GIT_HOOKS_DIR/commit-msg"
+    chmod +x "$GIT_HOOKS_DIR/commit-msg"
+    success "commit-msg hook 설치 완료!"
+fi
+
+# 공유 검증 라이브러리 설치
+info "검증 라이브러리 설치 중..."
+mkdir -p "$GIT_HOOKS_DIR/lib"
+cp "$SCRIPT_DIR/lib/validate-commit-message.sh" "$GIT_HOOKS_DIR/lib/"
+chmod +x "$GIT_HOOKS_DIR/lib/validate-commit-message.sh"
+success "검증 라이브러리 설치 완료!"
+
 echo ""
 info "설치된 hooks:"
 ls -la "$GIT_HOOKS_DIR" | grep -v ".sample"
 
 echo ""
 success "Git hooks 설치가 완료되었습니다."
-info "SKILL.md 파일을 커밋할 때 자동으로 검증이 실행됩니다."
+info "커밋 시 SKILL.md 검증과 커밋 메시지 검증이 자동으로 실행됩니다."
