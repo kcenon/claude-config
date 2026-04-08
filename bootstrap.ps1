@@ -102,10 +102,14 @@ function Install-GlobalSettings {
     }
 
     # Copy files
-    Copy-Item -Path (Join-Path $InstallDir 'global' 'CLAUDE.md')                -Destination $ClaudeDir -Force
-    Copy-Item -Path (Join-Path $InstallDir 'global' 'conversation-language.md')  -Destination $ClaudeDir -Force
-    Copy-Item -Path (Join-Path $InstallDir 'global' 'git-identity.md')           -Destination $ClaudeDir -Force
-    Copy-Item -Path (Join-Path $InstallDir 'global' 'token-management.md')       -Destination $ClaudeDir -Force
+    $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'conversation-language.md', 'git-identity.md', 'token-management.md')
+    foreach ($gf in $globalFiles) {
+        $src = Join-Path $InstallDir 'global' $gf
+        if (Test-Path -LiteralPath $src) {
+            Copy-Item -LiteralPath $src -Destination $ClaudeDir -Force
+            Write-Ok "$gf 설치됨"
+        }
+    }
 
     # tmux config installation
     $tmuxConf = Join-Path $InstallDir 'global' 'tmux.conf'

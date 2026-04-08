@@ -17,10 +17,6 @@
 #   ./gh_pr_comment.ps1 -Help                                      # Show help
 #
 
-$ErrorActionPreference = 'Stop'
-$ModulePath = Join-Path (Split-Path (Split-Path $PSScriptRoot)) 'global' 'hooks' 'lib' 'CommonHelpers.psm1'
-Import-Module $ModulePath -Force
-
 [CmdletBinding()]
 param(
     [string]$Repo,
@@ -31,6 +27,10 @@ param(
     [switch]$Quiet,
     [switch]$Help
 )
+
+$ErrorActionPreference = 'Stop'
+$ModulePath = Join-Path (Split-Path (Split-Path $PSScriptRoot)) 'global' 'hooks' 'lib' 'CommonHelpers.psm1'
+Import-Module $ModulePath -Force
 
 # =============================================================================
 # Helper functions

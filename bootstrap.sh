@@ -99,10 +99,9 @@ install_global() {
     fi
 
     # 파일 복사
-    cp "$INSTALL_DIR/global/CLAUDE.md" "$CLAUDE_DIR/"
-    cp "$INSTALL_DIR/global/conversation-language.md" "$CLAUDE_DIR/"
-    cp "$INSTALL_DIR/global/git-identity.md" "$CLAUDE_DIR/"
-    cp "$INSTALL_DIR/global/token-management.md" "$CLAUDE_DIR/"
+    for gf in CLAUDE.md commit-settings.md conversation-language.md git-identity.md token-management.md; do
+        [ -f "$INSTALL_DIR/global/$gf" ] && cp "$INSTALL_DIR/global/$gf" "$CLAUDE_DIR/" && ok "$gf 설치됨"
+    done
 
     # tmux 설정 설치
     if [ -f "$INSTALL_DIR/global/tmux.conf" ]; then

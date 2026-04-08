@@ -31,15 +31,15 @@ function Compare-ConfigFiles {
     )
 
     if (-not (Test-Path -LiteralPath $Source) -and -not (Test-Path -LiteralPath $Target)) {
-        Write-Host "    $Name: 양쪽 모두 없음"
+        Write-Host "    ${Name}: 양쪽 모두 없음"
         return 0
     }
     elseif (-not (Test-Path -LiteralPath $Source)) {
-        Write-Host "    $Name: 백업에만 있음 (시스템에 복사 가능)" -ForegroundColor Blue
+        Write-Host "    ${Name}: 백업에만 있음 (시스템에 복사 가능)" -ForegroundColor Blue
         return 1
     }
     elseif (-not (Test-Path -LiteralPath $Target)) {
-        Write-Host "    $Name: 시스템에만 있음 (백업으로 복사 가능)" -ForegroundColor Yellow
+        Write-Host "    ${Name}: 시스템에만 있음 (백업으로 복사 가능)" -ForegroundColor Yellow
         return 2
     }
     else {
@@ -47,11 +47,11 @@ function Compare-ConfigFiles {
         $tgtContent = Get-Content -LiteralPath $Target -ErrorAction SilentlyContinue
         $diff = Compare-Object $srcContent $tgtContent -ErrorAction SilentlyContinue
         if ($null -eq $diff -or $diff.Count -eq 0) {
-            Write-Host "    $Name: 동일함" -ForegroundColor Green
+            Write-Host "    ${Name}: 동일함" -ForegroundColor Green
             return 0
         }
         else {
-            Write-Host "    $Name: 다름" -ForegroundColor Red
+            Write-Host "    ${Name}: 다름" -ForegroundColor Red
             return 3
         }
     }

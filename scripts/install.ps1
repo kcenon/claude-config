@@ -235,10 +235,14 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         New-Backup (Join-Path $claudeDir "token-management.md")
 
         # Copy configuration files
-        Copy-Item -Path (Join-Path $BackupDir "global/CLAUDE.md") -Destination $claudeDir -Force
-        Copy-Item -Path (Join-Path $BackupDir "global/conversation-language.md") -Destination $claudeDir -Force
-        Copy-Item -Path (Join-Path $BackupDir "global/git-identity.md") -Destination $claudeDir -Force
-        Copy-Item -Path (Join-Path $BackupDir "global/token-management.md") -Destination $claudeDir -Force
+        $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'conversation-language.md', 'git-identity.md', 'token-management.md')
+        foreach ($gf in $globalFiles) {
+            $src = Join-Path $BackupDir "global/$gf"
+            if (Test-Path $src) {
+                Copy-Item -Path $src -Destination $claudeDir -Force
+                Write-Success "$gf installed"
+            }
+        }
 
         # Install settings.windows.json as settings.json
         $settingsSource = Join-Path $BackupDir "global/settings.windows.json"
@@ -432,9 +436,13 @@ if ($installType -eq '4' -or $installType -eq '5') {
 if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
     Write-Host "  Global settings:"
     Write-Host "    - ~/.claude/CLAUDE.md"
-    Write-Host "    - ~/.claude/conversation-language.md"
-    Write-Host "    - ~/.claude/git-identity.md"
-    Write-Host "    - ~/.claude/token-management.md"
+    Write-Host "    - ~/.claude/commit-settings.md"
+    $optionalGlobal = @('conversation-language.md', 'git-identity.md', 'token-management.md')
+    foreach ($og in $optionalGlobal) {
+        if (Test-Path (Join-Path $HOME ".claude/$og")) {
+            Write-Host "    - ~/.claude/$og"
+        }
+    }
     Write-Host "    - ~/.claude/settings.json (Hook settings - Windows)"
     Write-Host "    - ~/.claude/hooks/ (PowerShell hook scripts)"
     Write-Host "    - ~/.claude/scripts/ (Statusline scripts)"

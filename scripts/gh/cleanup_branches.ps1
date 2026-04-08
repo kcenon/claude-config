@@ -14,10 +14,6 @@
 #   ./cleanup_branches.ps1 -Help        # 도움말 표시
 #
 
-$ErrorActionPreference = 'Stop'
-$ModulePath = Join-Path (Split-Path (Split-Path $PSScriptRoot)) 'global' 'hooks' 'lib' 'CommonHelpers.psm1'
-Import-Module $ModulePath -Force
-
 [CmdletBinding()]
 param(
     [string]$Path,
@@ -25,6 +21,10 @@ param(
     [switch]$Quiet,
     [switch]$Help
 )
+
+$ErrorActionPreference = 'Stop'
+$ModulePath = Join-Path (Split-Path (Split-Path $PSScriptRoot)) 'global' 'hooks' 'lib' 'CommonHelpers.psm1'
+Import-Module $ModulePath -Force
 
 # =============================================================================
 # Global state
@@ -143,11 +143,11 @@ function Cleanup-Project {
 
         # main 또는 master 브랜치 확인
         $targetBranch = 'main'
-        $hasMain = (& git show-ref --verify --quiet refs/heads/main 2>$null; $LASTEXITCODE -eq 0) -or
-                   (& git show-ref --verify --quiet refs/remotes/origin/main 2>$null; $LASTEXITCODE -eq 0)
+        $hasMain = $(& git show-ref --verify --quiet refs/heads/main 2>$null; $LASTEXITCODE -eq 0) -or
+                   $(& git show-ref --verify --quiet refs/remotes/origin/main 2>$null; $LASTEXITCODE -eq 0)
         if (-not $hasMain) {
-            $hasMaster = (& git show-ref --verify --quiet refs/heads/master 2>$null; $LASTEXITCODE -eq 0) -or
-                         (& git show-ref --verify --quiet refs/remotes/origin/master 2>$null; $LASTEXITCODE -eq 0)
+            $hasMaster = $(& git show-ref --verify --quiet refs/heads/master 2>$null; $LASTEXITCODE -eq 0) -or
+                         $(& git show-ref --verify --quiet refs/remotes/origin/master 2>$null; $LASTEXITCODE -eq 0)
             if ($hasMaster) {
                 $targetBranch = 'master'
             } else {

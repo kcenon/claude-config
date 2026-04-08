@@ -123,7 +123,7 @@ function Get-MarkdownReferences {
         foreach ($m in $interMatches) {
             $result.InterRefs.Add(@{
                 LineNum = $lineNum
-                RefFile = $m.Groups[1].Value -replace '^\.\/', ''
+                RefFile = ($m.Groups[1].Value -replace '^\.\/', '')
                 Anchor  = $m.Groups[2].Value
             })
         }

@@ -294,14 +294,13 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     # 파일 설치
     if [ "$BACKUP_EXISTING" = "y" ]; then
         create_backup "$HOME/.claude/CLAUDE.md"
-        create_backup "$HOME/.claude/conversation-language.md"
-        create_backup "$HOME/.claude/git-identity.md"
-        create_backup "$HOME/.claude/token-management.md"
+        for gf in conversation-language.md git-identity.md token-management.md; do
+            [ -f "$HOME/.claude/$gf" ] && create_backup "$HOME/.claude/$gf"
+        done
 
-        cp "$BACKUP_DIR/global/CLAUDE.md" "$HOME/.claude/"
-        cp "$BACKUP_DIR/global/conversation-language.md" "$HOME/.claude/"
-        cp "$BACKUP_DIR/global/git-identity.md" "$HOME/.claude/"
-        cp "$BACKUP_DIR/global/token-management.md" "$HOME/.claude/"
+        for gf in CLAUDE.md commit-settings.md conversation-language.md git-identity.md token-management.md; do
+            [ -f "$BACKUP_DIR/global/$gf" ] && cp "$BACKUP_DIR/global/$gf" "$HOME/.claude/" && success "$gf 설치됨"
+        done
 
         # settings.json 설치 (Hook 설정)
         if [ -f "$BACKUP_DIR/global/settings.json" ]; then
@@ -528,9 +527,9 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     echo "  📂 글로벌 설정:"
     echo "    - ~/.claude/CLAUDE.md"
     echo "    - ~/.claude/commit-settings.md"
-    echo "    - ~/.claude/conversation-language.md"
-    echo "    - ~/.claude/git-identity.md"
-    echo "    - ~/.claude/token-management.md"
+    for gf in conversation-language.md git-identity.md token-management.md; do
+        [ -f "$HOME/.claude/$gf" ] && echo "    - ~/.claude/$gf"
+    done
     echo "    - ~/.claude/.claudeignore"
     echo "    - ~/.claude/settings.json (Hook 설정)"
     echo "    - ~/.claude/hooks/ (외부 Hook 스크립트)"
