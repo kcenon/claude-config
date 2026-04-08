@@ -32,7 +32,7 @@ Prerequisite checks, runtime errors, and batch mode errors for the issue-work sk
 | PR creation failed | Report GitHub API error with details | Check repository permissions |
 | Network timeout | Report "Cannot reach GitHub - check connection" | Verify internet connection |
 | Team mode: teammate failure | Fallback to Solo Mode from last completed phase | Automatic recovery |
-| Team mode: file conflict | Lead resolves conflict between dev and doc-writer | Ensure non-overlapping file ownership |
+| Team mode: file conflict | Lead collects conflict file list, determines primary owner via git blame, applies primary owner's changes, preserves non-owner's changes in a separate commit | Assign distinct file ownership at task creation; if conflict occurs, Lead arbitrates based on git blame history |
 | Team mode: review loop exceeded | Approve with remaining items noted in PR | Max 2 review rounds enforced |
 | Team mode: coordination timeout | Shutdown team, preserve branch commits | Continue manually or re-run Solo |
 | Agent Teams not enabled | Fall back to Solo Mode with warning | Enable `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` |

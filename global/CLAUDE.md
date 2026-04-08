@@ -46,6 +46,9 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 - After merging, check if parent epic should be closed.
 - When using multi-agent teams, always commit work-in-progress before switching contexts or spawning new agents that modify the working directory. This prevents data loss from agent overwrites.
 - When working on multi-repo tasks, use parallel agents (one per repo) rather than processing sequentially. Each agent should independently implement, test, and create PRs.
+- When `git merge` or `git rebase` produces conflicts, never auto-resolve source code files. Present conflicting hunks to the user. Auto-generated files (lockfiles, build manifests) may be resolved by re-running generators (`npm install`, `go mod tidy`).
+- After resolving conflicts, verify no conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`) remain before committing.
+- If a merge conflict appears intractable, prefer `git merge --abort` and ask the user for direction rather than producing a broken merge.
 
 ## Session Management
 
@@ -63,4 +66,4 @@ Edit module files, then restart session to apply changes.
 
 ---
 
-*Version: 2.5.0 | Last updated: 2026-04-08*
+*Version: 2.6.0 | Last updated: 2026-04-08*

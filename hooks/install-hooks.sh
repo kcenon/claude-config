@@ -46,44 +46,57 @@ if [ ! -d "$GIT_HOOKS_DIR" ]; then
     success "Git hooks 디렉토리 생성: $GIT_HOOKS_DIR"
 fi
 
-# pre-commit hook 설치
-info "pre-commit hook 설치 중..."
+# hook 설치 함수 (덮어쓰기/병합/건너뛰기 지원)
+install_hook() {
+    local hook_name="$1"
+    local source_file="$SCRIPT_DIR/$hook_name"
+    local target_file="$GIT_HOOKS_DIR/$hook_name"
 
-if [ -f "$GIT_HOOKS_DIR/pre-commit" ]; then
-    warning "기존 pre-commit hook이 존재합니다."
-    read -p "덮어쓰시겠습니까? (y/n): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        info "설치를 건너뜁니다."
-        exit 0
+    info "$hook_name hook 설치 중..."
+
+    if [ -f "$target_file" ]; then
+        warning "기존 $hook_name hook이 존재합니다."
+        echo "  1) 덮어쓰기 (교체)"
+        echo "  2) 병합 (기존 hook 뒤에 추가)"
+        echo "  3) 건너뛰기"
+        read -p "  선택 (1-3) [기본값: 3]: " choice
+        choice=${choice:-3}
+
+        case "$choice" in
+            1)
+                cp "$source_file" "$target_file"
+                chmod +x "$target_file"
+                success "$hook_name hook 덮어쓰기 완료!"
+                ;;
+            2)
+                {
+                    echo ""
+                    echo "# --- claude-config hooks (appended $(date +%Y-%m-%d)) ---"
+                    tail -n +2 "$source_file"
+                } >> "$target_file"
+                chmod +x "$target_file"
+                success "$hook_name hook 병합 완료!"
+                ;;
+            3)
+                info "$hook_name 설치를 건너뜁니다."
+                ;;
+            *)
+                info "$hook_name 설치를 건너뜁니다."
+                ;;
+        esac
+    else
+        cp "$source_file" "$target_file"
+        chmod +x "$target_file"
+        success "$hook_name hook 설치 완료!"
     fi
-fi
+}
 
-cp "$SCRIPT_DIR/pre-commit" "$GIT_HOOKS_DIR/pre-commit"
-chmod +x "$GIT_HOOKS_DIR/pre-commit"
-
-success "pre-commit hook 설치 완료!"
+# pre-commit hook 설치
+install_hook "pre-commit"
 
 # commit-msg hook 설치
 echo ""
-info "commit-msg hook 설치 중..."
-
-if [ -f "$GIT_HOOKS_DIR/commit-msg" ]; then
-    warning "기존 commit-msg hook이 존재합니다."
-    read -p "덮어쓰시겠습니까? (y/n): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        info "commit-msg 설치를 건너뜁니다."
-    else
-        cp "$SCRIPT_DIR/commit-msg" "$GIT_HOOKS_DIR/commit-msg"
-        chmod +x "$GIT_HOOKS_DIR/commit-msg"
-        success "commit-msg hook 설치 완료!"
-    fi
-else
-    cp "$SCRIPT_DIR/commit-msg" "$GIT_HOOKS_DIR/commit-msg"
-    chmod +x "$GIT_HOOKS_DIR/commit-msg"
-    success "commit-msg hook 설치 완료!"
-fi
+install_hook "commit-msg"
 
 # 공유 검증 라이브러리 설치
 info "검증 라이브러리 설치 중..."

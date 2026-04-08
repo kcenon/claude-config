@@ -87,6 +87,11 @@
             "type": "command",
             "command": "~/.claude/hooks/commit-message-guard.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/conflict-guard.sh",
+            "timeout": 5
           }
         ]
       },

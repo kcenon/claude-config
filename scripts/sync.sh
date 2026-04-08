@@ -85,8 +85,9 @@ info "동기화 방향을 선택하세요:"
 echo "  1) 백업 → 시스템 (백업의 설정을 시스템에 적용)"
 echo "  2) 시스템 → 백업 (시스템의 설정을 백업에 저장)"
 echo "  3) 차이점만 확인 (변경하지 않음)"
+echo "  4) 대화형 병합 (양쪽 변경 병합)"
 echo ""
-read -p "선택 (1-3) [기본값: 3]: " SYNC_DIRECTION
+read -p "선택 (1-4) [기본값: 3]: " SYNC_DIRECTION
 SYNC_DIRECTION=${SYNC_DIRECTION:-3}
 
 # Enterprise 설정 비교
@@ -188,6 +189,82 @@ if [ "$CHECK_PROJECT" = "y" ]; then
     fi
 fi
 
+# 대화형 병합 함수
+interactive_merge_file() {
+    local backup_file="$1"
+    local system_file="$2"
+    local name="$3"
+
+    # Skip if both are identical or both missing
+    if [ ! -f "$backup_file" ] && [ ! -f "$system_file" ]; then
+        return
+    fi
+    if [ -f "$backup_file" ] && [ -f "$system_file" ] && diff -q "$backup_file" "$system_file" > /dev/null 2>&1; then
+        return
+    fi
+
+    echo ""
+    highlight "파일: $name"
+
+    if [ ! -f "$backup_file" ]; then
+        info "시스템에만 존재합니다: $system_file"
+        echo "  b) 삭제 (백업에 없으므로)"
+        echo "  s) 유지 (변경 없음)"
+        read -p "  선택 (b/s) [기본값: s]: " choice
+        choice=${choice:-s}
+        if [ "$choice" = "b" ]; then
+            cp "$system_file" "${system_file}.backup_$(date +%Y%m%d_%H%M%S)"
+            rm "$system_file"
+            success "$name 삭제됨 (백업 생성됨)"
+        else
+            info "$name 건너뜀"
+        fi
+        return
+    fi
+
+    if [ ! -f "$system_file" ]; then
+        info "백업에만 존재합니다: $backup_file"
+        echo "  b) 시스템에 복사"
+        echo "  s) 건너뛰기"
+        read -p "  선택 (b/s) [기본값: b]: " choice
+        choice=${choice:-b}
+        if [ "$choice" = "b" ]; then
+            mkdir -p "$(dirname "$system_file")"
+            cp "$backup_file" "$system_file"
+            success "$name → 시스템에 복사됨"
+        else
+            info "$name 건너뜀"
+        fi
+        return
+    fi
+
+    # Both files exist but differ
+    echo ""
+    diff -u "$system_file" "$backup_file" || true
+    echo ""
+    echo "  b) 백업 버전 사용 (백업 → 시스템)"
+    echo "  s) 시스템 버전 유지 (변경 없음)"
+    echo "  e) 편집기에서 수동 병합"
+    read -p "  선택 (b/s/e) [기본값: s]: " choice
+    choice=${choice:-s}
+
+    case "$choice" in
+        b)
+            cp "$system_file" "${system_file}.backup_$(date +%Y%m%d_%H%M%S)"
+            cp "$backup_file" "$system_file"
+            success "$name: 백업 버전 적용됨"
+            ;;
+        e)
+            cp "$system_file" "${system_file}.backup_$(date +%Y%m%d_%H%M%S)"
+            ${EDITOR:-vi} "$system_file"
+            success "$name: 수동 편집 완료"
+            ;;
+        *)
+            info "$name: 시스템 버전 유지"
+            ;;
+    esac
+}
+
 # 동기화 실행
 if [ "$SYNC_DIRECTION" = "3" ]; then
     echo ""
@@ -210,6 +287,12 @@ if [ "$SYNC_DIRECTION" = "1" ]; then
     echo ""
     warning "백업의 설정이 시스템에 적용됩니다!"
     echo "  • 기존 시스템 파일은 .backup_* 으로 백업됩니다"
+    echo ""
+    read -p "계속하시겠습니까? (y/n): " CONFIRM
+elif [ "$SYNC_DIRECTION" = "4" ]; then
+    echo ""
+    warning "대화형 병합 모드: 파일별로 병합 방법을 선택합니다."
+    echo "  • 변경 전 기존 시스템 파일은 .backup_* 으로 백업됩니다"
     echo ""
     read -p "계속하시겠습니까? (y/n): " CONFIRM
 else
@@ -296,6 +379,25 @@ if [ "$SYNC_DIRECTION" = "1" ]; then
         }
     fi
 
+elif [ "$SYNC_DIRECTION" = "4" ]; then
+    # 대화형 병합
+
+    # Enterprise 대화형 병합
+    if [ "$CHECK_ENTERPRISE" = "y" ]; then
+        interactive_merge_file "$BACKUP_DIR/enterprise/CLAUDE.md" "$ENTERPRISE_DIR/CLAUDE.md" "Enterprise CLAUDE.md"
+    fi
+
+    # Global 파일 대화형 병합
+    interactive_merge_file "$BACKUP_DIR/global/CLAUDE.md" "$HOME/.claude/CLAUDE.md" "CLAUDE.md"
+    interactive_merge_file "$BACKUP_DIR/global/conversation-language.md" "$HOME/.claude/conversation-language.md" "conversation-language.md"
+    interactive_merge_file "$BACKUP_DIR/global/git-identity.md" "$HOME/.claude/git-identity.md" "git-identity.md"
+    interactive_merge_file "$BACKUP_DIR/global/token-management.md" "$HOME/.claude/token-management.md" "token-management.md"
+
+    # Project 대화형 병합
+    if [ "$CHECK_PROJECT" = "y" ] && [ -n "$PROJECT_DIR" ]; then
+        interactive_merge_file "$BACKUP_DIR/project/CLAUDE.md" "$PROJECT_DIR/CLAUDE.md" "프로젝트 CLAUDE.md"
+    fi
+
 else
     # 시스템 → 백업
 
@@ -355,7 +457,7 @@ success "동기화 완료!"
 echo "======================================================"
 echo ""
 
-if [ "$SYNC_DIRECTION" = "1" ]; then
+if [ "$SYNC_DIRECTION" = "1" ] || [ "$SYNC_DIRECTION" = "4" ]; then
     info "다음 단계:"
     echo "  1. Git identity 확인: vi ~/.claude/git-identity.md"
     echo "  2. Claude Code 재시작"
