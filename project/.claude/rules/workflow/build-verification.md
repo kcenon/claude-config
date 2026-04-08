@@ -141,6 +141,16 @@ When build or CI failure is detected, follow the ci-debugging diagnostic flow:
 3. **Missing Dependencies** — Module not found, package missing
 4. **Actual Code Bug** — Test assertions, logic errors
 
+## Batch Error Fixing
+
+After large refactoring or migration, run a full build, collect ALL errors, and fix them
+in one batch before rebuilding. Do not fix one error at a time — this wastes rebuild cycles.
+
+## Failure Escape Hatch
+
+If the same approach fails 3 consecutive times, stop and propose alternative strategies
+to the user. Do not continue retrying the same fix.
+
 ## Rules
 
 - **Never wait indefinitely** for build or CI completion

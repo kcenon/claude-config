@@ -551,9 +551,7 @@ Agents use YAML frontmatter to define behavior:
 name: agent-name
 description: What the agent does
 model: sonnet
-allowed-tools:
-  - Read
-  - Edit
+tools: Read, Edit
 temperature: 0.3
 ---
 ```

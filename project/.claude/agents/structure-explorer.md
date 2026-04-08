@@ -2,9 +2,7 @@
 name: structure-explorer
 description: Maps project directory structure and file organization
 model: haiku
-allowed-tools:
-  - Glob
-  - Read
+tools: Glob, Read
 temperature: 0.1
 ---
 

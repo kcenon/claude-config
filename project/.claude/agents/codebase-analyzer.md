@@ -2,10 +2,7 @@
 name: codebase-analyzer
 description: Analyzes codebase architecture, patterns, and conventions
 model: sonnet
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
+tools: Read, Glob, Grep
 temperature: 0.2
 ---
 

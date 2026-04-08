@@ -2,11 +2,7 @@
 name: documentation-writer
 description: Specialized agent for technical documentation
 model: sonnet
-allowed-tools:
-  - Read
-  - Write
-  - Edit
-  - Glob
+tools: Read, Write, Edit, Glob
 temperature: 0.5
 ---
 

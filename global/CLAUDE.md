@@ -19,6 +19,7 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 - **Verify first** — Reproduce bugs before fixing. Define "done" before coding.
 - Stay focused on the user's original request. Note unrelated issues at the end without acting.
 - If the same approach fails 3 times, stop and propose alternatives.
+- **Bias toward execution** — When asked to update or edit documents, start making changes immediately. Do not spend the entire session analyzing and planning — apply changes incrementally and show progress. Only create a brief plan (max 5 bullet points) before starting execution.
 
 ## GitHub / CI
 
@@ -29,6 +30,7 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 - **Before merge, always use `gh pr checks <PR_NUMBER>` to verify ALL individual check statuses.** Do NOT rely on `gh run list` alone — it shows workflow-level status which can report "success" while individual sub-checks (e.g., platform-specific test jobs) are still failing.
 - **Any CI failure — including test timeouts — must be investigated and fixed before merging.** Never treat a failing check as "flaky" or ignorable. If a test times out, adjust the test workload, increase the timeout, or fix the underlying performance issue before proceeding with merge.
 - When creating GitHub issues, verify labels exist on the target repository before using them. Run `gh label list -R <repo>` first to avoid creation failures from invalid labels.
+- After completing issue work or PR creation, always verify CI status before considering the task done. If CI is still pending, note it explicitly in the task summary rather than marking the task as completed.
 
 ## Build & Test
 
@@ -43,6 +45,7 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 - Skip lengthy planning phases. Start implementation immediately, analyzing code as you go.
 - After merging, check if parent epic should be closed.
 - When using multi-agent teams, always commit work-in-progress before switching contexts or spawning new agents that modify the working directory. This prevents data loss from agent overwrites.
+- When working on multi-repo tasks, use parallel agents (one per repo) rather than processing sequentially. Each agent should independently implement, test, and create PRs.
 
 ## Session Management
 
@@ -60,4 +63,4 @@ Edit module files, then restart session to apply changes.
 
 ---
 
-*Version: 2.5.0 | Last updated: 2026-04-07*
+*Version: 2.5.0 | Last updated: 2026-04-08*

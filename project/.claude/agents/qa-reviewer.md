@@ -2,11 +2,7 @@
 name: qa-reviewer
 description: Specialized agent for integration coherence and cross-boundary verification
 model: sonnet
-allowed-tools:
-  - Read
-  - Grep
-  - Glob
-  - Bash
+tools: Read, Grep, Glob, Bash
 temperature: 0.2
 ---
 

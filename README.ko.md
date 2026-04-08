@@ -531,9 +531,7 @@ Agents는 YAML frontmatter로 동작을 정의합니다:
 name: agent-name
 description: 에이전트의 역할
 model: sonnet
-allowed-tools:
-  - Read
-  - Edit
+tools: Read, Edit
 temperature: 0.3
 ---
 ```
@@ -850,7 +848,7 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
   - `/branch-cleanup`, `/release`, `/issue-create`, `/issue-work`, `/pr-work` 스킬화
   - 새 글로벌 Skills: `/doc-review`, `/implement-all-levels`
   - 새 프로젝트 Skills: `ci-debugging`, `code-quality`, `git-status`, `pr-review`
-  - `argument-hint`, `model`, `allowed-tools`, adaptive execution frontmatter 지원
+  - `argument-hint`, `model`, `tools`, adaptive execution frontmatter 지원
 - **Agent Teams**: 실험적 멀티 에이전트 협업 프레임워크
   - 공유 작업 목록, 다이렉트 메시징, 팀 조정
   - 팀원 모드: `auto`, `in-process`, `tmux`
@@ -885,7 +883,7 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 #### v1.1.0 (2025-01-15)
 - `.claude/rules/`, `.claude/commands/`, `.claude/agents/` 추가
 - MCP 설정 템플릿, 로컬 설정 템플릿 추가
-- Hook 이벤트 확장, `allowed-tools`/`model` 옵션 추가
+- Hook 이벤트 확장, `tools`/`model` 옵션 추가
 
 #### v1.0.0 (2025-12-03)
 - 글로벌 및 프로젝트 설정으로 초기 릴리스

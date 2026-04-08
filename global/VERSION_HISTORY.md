@@ -2,7 +2,11 @@
 
 ## Changelog
 
-- **1.7.0** (2026-04-07): Usage-report-driven behavioral guardrails and platform fixes
+- **1.7.0** (2026-04-08): Usage-report-driven behavioral guardrails, agent migration, and platform fixes
+  - Migrated agent config files from `allowed-tools` to `tools` format (7 files across project and plugin)
+  - Added behavioral rules to CLAUDE.md: bias toward execution, CI verification, multi-repo parallel agents
+  - Created `/doc-update` project skill for execution-first document updates (project skills: 10 → 11)
+  - Synced global v1.7.0 changes to project rules (principles, environment, build-verification, ci-resilience)
   - Added "Working Principles" section to CLAUDE.md (behavioral guardrails: challenge, minimize, surgical, verify)
   - Added "Platform Notes" section to CLAUDE.md (UTF-8 BOM encoding, Mermaid preference)
   - Enhanced "Build & Test" with batch error fixing and 3-failure escape hatch

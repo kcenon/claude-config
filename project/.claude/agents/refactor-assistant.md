@@ -2,11 +2,7 @@
 name: refactor-assistant
 description: Specialized agent for safe code refactoring
 model: sonnet
-allowed-tools:
-  - Read
-  - Edit
-  - Glob
-  - Grep
+tools: Read, Edit, Glob, Grep
 temperature: 0.2
 ---
 

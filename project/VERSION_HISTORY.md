@@ -2,6 +2,13 @@
 
 ## Changelog
 
+- **1.7.0** (2026-04-08): Sync behavioral guardrails and platform fixes from global v1.7.0
+  - Added behavioral guardrails to core/principles.md (focus, 3-failure escape hatch, bias toward execution)
+  - Added platform notes to core/environment.md (UTF-8 BOM for PowerShell, Mermaid preference)
+  - Added batch error fixing and failure escape hatch to workflow/build-verification.md
+  - Added post-task CI verification, CI failure policy, and multi-repo parallel strategy to workflow/ci-resilience.md
+  - Migrated agent config files from `allowed-tools` to `tools` format (7 files)
+
 - **1.6.0** (2026-03-21): Skills expansion, rule restructuring, Agent Teams reference
   - Added new project skills: ci-debugging, code-quality (user-invocable), git-status (user-invocable), pr-review (user-invocable)
   - Restructured coding/ rules: standards.md, implementation-standards.md, safety.md, cpp-specifics.md

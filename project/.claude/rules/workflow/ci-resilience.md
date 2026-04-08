@@ -106,3 +106,20 @@ push all commits → CI should pass on first run
 **Never** use `gh run watch` — it blocks the entire session.
 **Never** poll in a tight loop — minimum 30-second intervals for CI.
 **Always** diagnose before retrying — blind retries waste time.
+
+## Post-Task CI Verification
+
+After completing issue work or PR creation, always verify CI status before considering
+the task done. If CI is still pending, note it explicitly in the task summary rather
+than marking the task as completed.
+
+## CI Failure Policy
+
+Any CI failure — including test timeouts — must be investigated and fixed before merging.
+Never treat a failing check as "flaky" or ignorable. If a test times out, adjust the test
+workload, increase the timeout, or fix the underlying performance issue before proceeding.
+
+## Multi-Repo Parallel Strategy
+
+When working on multi-repo tasks, use parallel agents (one per repo) rather than processing
+sequentially. Each agent should independently implement, test, and create PRs.
