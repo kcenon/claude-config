@@ -26,20 +26,15 @@ if ! echo "$CMD" | grep -qE 'git\s+commit'; then
     exit 0
 fi
 
-# Auto-detect markdown directory
-if [ -d "docs/reference" ]; then
-    DOCS_DIR="docs/reference"
-elif [ -d "docs" ]; then
-    DOCS_DIR="docs"
-else
-    DOCS_DIR="."
-fi
-
-# Collect markdown files
+# Collect markdown files: docs/*.md (core) + docs/reference/*.md
+# Excludes docs/ui/, docs/placeholders/ to avoid anchor registry pollution
 MD_FILES=()
-while IFS= read -r file; do
-    [[ -n "$file" ]] && MD_FILES+=("$file")
-done < <(find "$DOCS_DIR" -name '*.md' -type f 2>/dev/null | sort)
+if [ -d "docs" ]; then
+    while IFS= read -r f; do [[ -n "$f" ]] && MD_FILES+=("$f"); done < <(find docs -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort)
+    [ -d "docs/reference" ] && while IFS= read -r f; do [[ -n "$f" ]] && MD_FILES+=("$f"); done < <(find docs/reference -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort)
+else
+    while IFS= read -r f; do [[ -n "$f" ]] && MD_FILES+=("$f"); done < <(find . -maxdepth 2 -name '*.md' -type f 2>/dev/null | sort)
+fi
 
 if [ ${#MD_FILES[@]} -eq 0 ]; then
     printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
@@ -141,8 +136,11 @@ while IFS=$'\t' read -r _type file line_num ref_file anchor; do
     dir="${file%/*}"
     [[ "$dir" == "$file" ]] && dir="."
     target="${dir}/${ref_file}"
-    # Normalize ./ segments
+    # Normalize ./ and ../ segments
     target="${target//\/.\//\/}"
+    while [[ "$target" == *"/.."* ]]; do
+        target="$(echo "$target" | sed 's|[^/]*/\.\./||')"
+    done
     if [[ -z "${ANCHORS[${target}::${anchor}]+x}" ]]; then
         ERRORS+=("${file##*/}:${line_num}: ${ref_file}#${anchor}")
     fi

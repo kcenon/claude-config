@@ -1,58 +1,41 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "description": "Claude Code Global Settings - Applied to all projects (permissions.deny for security)",
-  "version": "1.12.0",
-
   "respectGitignore": true,
   "cleanupPeriodDays": 30,
-
-  "language": "korean",
-
-  "outputStyle": "Explanatory",
-
-  "showTurnDuration": true,
-
+  "env": {
+    "MAX_MCP_OUTPUT_TOKENS": "50000",
+    "ENABLE_TOOL_SEARCH": "auto:10",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "MAX_TEAMS": "5"
+  },
   "attribution": {
     "commit": "",
-    "pr": "",
-    "issue": ""
+    "issue": "",
+    "pr": ""
   },
-
-  "sandbox": {
-    "enabled": true,
-    "autoAllowBashIfSandboxed": true,
-    "allowUnsandboxedCommands": true,
-    "excludedCommands": ["docker", "watchman"],
-    "network": {
-      "allowedDomains": [
-        "github.com",
-        "api.github.com",
-        "npmjs.org",
-        "*.npmjs.org",
-        "registry.npmjs.org",
-        "pypi.org",
-        "*.pypi.org"
-      ],
-      "allowLocalBinding": true
-    }
+  "permissions": {
+    "defaultMode": "default",
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/secrets/**)",
+      "Read(**/credentials/**)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/*.p12)",
+      "Read(**/*password*)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Write(**/.env)",
+      "Write(**/.env.*)",
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Edit(**/.env)",
+      "Edit(**/.env.*)"
+    ]
   },
-
-  "spinnerVerbs": {
-    "mode": "append",
-    "verbs": ["Analyzing", "Reviewing", "Composing"]
-  },
-
-  "statusLine": {
-    "type": "command",
-    "command": "~/.claude/scripts/statusline-command.sh"
-  },
-  "alwaysThinkingEnabled": true,
-  "teammateMode": "in-process",
-
-  "effortLevel": "high",
-  "autoUpdatesChannel": "latest",
-  "skipDangerousModePermissionPrompt": true,
-
   "hooks": {
     "PreToolUse": [
       {
@@ -266,35 +249,47 @@
       }
     ]
   },
-
-  "env": {
-    "MAX_MCP_OUTPUT_TOKENS": "50000",
-    "ENABLE_TOOL_SEARCH": "auto:10",
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "MAX_TEAMS": "5"
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/scripts/statusline-command.sh"
   },
-
-  "permissions": {
-    "defaultMode": "default",
-    "deny": [
-      "Read(.env)",
-      "Read(.env.*)",
-      "Read(**/.env)",
-      "Read(**/.env.*)",
-      "Read(**/secrets/**)",
-      "Read(**/credentials/**)",
-      "Read(**/*.pem)",
-      "Read(**/*.key)",
-      "Read(**/*.p12)",
-      "Read(**/*password*)",
-      "Write(.env)",
-      "Write(.env.*)",
-      "Write(**/.env)",
-      "Write(**/.env.*)",
-      "Edit(.env)",
-      "Edit(.env.*)",
-      "Edit(**/.env)",
-      "Edit(**/.env.*)"
+  "outputStyle": "Explanatory",
+  "language": "korean",
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": true,
+    "excludedCommands": [
+      "docker",
+      "watchman"
+    ],
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "npmjs.org",
+        "*.npmjs.org",
+        "registry.npmjs.org",
+        "pypi.org",
+        "*.pypi.org"
+      ],
+      "allowLocalBinding": true
+    }
+  },
+  "spinnerVerbs": {
+    "mode": "append",
+    "verbs": [
+      "Analyzing",
+      "Reviewing",
+      "Composing"
     ]
-  }
+  },
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "high",
+  "autoUpdatesChannel": "latest",
+  "skipDangerousModePermissionPrompt": true,
+  "description": "Claude Code Global Settings - Applied to all projects (permissions.deny for security)",
+  "version": "1.12.0",
+  "showTurnDuration": true,
+  "teammateMode": "in-process"
 }
