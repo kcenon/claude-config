@@ -362,7 +362,6 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
                     cp -r "$skill_dir" "$HOME/.claude/skills/"
                 fi
             done
-            local skill_count
             skill_count=$(find "$HOME/.claude/skills" -name "SKILL.md" | wc -l | tr -d ' ')
             success "Global Skills (${skill_count}개) 설치 완료!"
         fi
