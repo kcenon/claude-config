@@ -44,7 +44,8 @@
 
   "statusLine": {
     "type": "command",
-    "command": "pwsh.exe -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.claude\\scripts\\statusline-command.ps1')\""
+    "command": "pwsh.exe -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.claude\\scripts\\statusline-command.ps1')\"",
+    "refreshInterval": 30
   },
   "alwaysThinkingEnabled": true,
   "teammateMode": "in-process",

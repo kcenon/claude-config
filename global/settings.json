@@ -251,7 +251,8 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "~/.claude/scripts/statusline-command.sh"
+    "command": "~/.claude/scripts/statusline-command.sh",
+    "refreshInterval": 30
   },
   "outputStyle": "Explanatory",
   "language": "korean",

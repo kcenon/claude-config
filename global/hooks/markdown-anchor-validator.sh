@@ -51,9 +51,9 @@ AWK_OUTPUT=$(awk '
 FNR == 1 { f = FILENAME; c = 0 }
 /^[[:space:]]*(```|~~~)/ { c = !c; next }
 c { next }
-/^#{1,6}[[:space:]]/ {
+/^#+[[:space:]]/ {
     h = $0
-    sub(/^#{1,6}[[:space:]]+/, "", h)
+    sub(/^#+[[:space:]]+/, "", h)
     sub(/[[:space:]#]*$/, "", h)
     if (h != "") printf "H\t%s\t%s\n", f, h
 }
