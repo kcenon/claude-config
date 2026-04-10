@@ -399,6 +399,13 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
         Write-Success "Agents directory installed!"
     }
 
+    # .claudeignore (token optimization)
+    $claudeIgnore = Join-Path $BackupDir "project/.claudeignore"
+    if (Test-Path $claudeIgnore) {
+        Copy-Item -Path $claudeIgnore -Destination $projectDir -Force
+        Write-Success ".claudeignore installed!"
+    }
+
     # CLAUDE.local.md creation
     Write-Host ""
     $createLocal = Read-Host "Create personal CLAUDE.local.md? (y/n) [default: y]"

@@ -490,6 +490,12 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         success "Agents 디렉토리 설치 완료!"
     fi
 
+    # .claudeignore 설치 (token optimization)
+    if [ -f "$BACKUP_DIR/project/.claudeignore" ]; then
+        cp "$BACKUP_DIR/project/.claudeignore" "$PROJECT_DIR/"
+        success ".claudeignore 설치 완료!"
+    fi
+
     # CLAUDE.local.md 생성 (개인 설정용)
     echo ""
     read -p "개인용 CLAUDE.local.md를 생성하시겠습니까? (y/n) [기본값: y]: " CREATE_LOCAL
@@ -541,6 +547,7 @@ fi
 if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" = "5" ]; then
     echo "  📂 프로젝트 설정:"
     echo "    - $PROJECT_DIR/CLAUDE.md"
+    echo "    - $PROJECT_DIR/.claudeignore (Token Optimization)"
     echo "    - $PROJECT_DIR/.claude/rules/ (Guidelines)"
     echo "    - $PROJECT_DIR/.claude/settings.json (Hook 설정)"
     if [ -d "$BACKUP_DIR/project/.claude/skills" ]; then

@@ -196,6 +196,7 @@ install_project() {
     [ -d "$INSTALL_DIR/project/.claude/commands" ] && cp -r "$INSTALL_DIR/project/.claude/commands" "$PROJECT_DIR/.claude/"
     [ -d "$INSTALL_DIR/project/.claude/agents" ] && cp -r "$INSTALL_DIR/project/.claude/agents" "$PROJECT_DIR/.claude/"
     [ -f "$INSTALL_DIR/project/.claude/settings.json" ] && cp "$INSTALL_DIR/project/.claude/settings.json" "$PROJECT_DIR/.claude/"
+    [ -f "$INSTALL_DIR/project/.claudeignore" ] && cp "$INSTALL_DIR/project/.claudeignore" "$PROJECT_DIR/"
 
     success "프로젝트 설정 설치 완료"
 }

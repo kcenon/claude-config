@@ -10,6 +10,10 @@
 # Excludes EVERYTHING except core essentials
 # Command-specific modules are loaded on demand (see conditional-loading.md)
 
+# Template repository (prevent double-loading when claude-config is inside project)
+claude-config/project/.claude/
+claude-config/global/
+
 # LARGE META-DOCUMENTATION (Load on demand via @load directive)
 # These are about token optimization itself, rarely needed
 # Migration: GAP — design docs have no official exclusion mechanism

@@ -264,6 +264,11 @@ function Install-ProjectSettings {
         Copy-Item -Path $settingsJson -Destination $projClaudeDir -Force
     }
 
+    $claudeIgnore = Join-Path $InstallDir 'project' '.claudeignore'
+    if (Test-Path $claudeIgnore) {
+        Copy-Item -Path $claudeIgnore -Destination $projDir -Force
+    }
+
     Write-Ok "프로젝트 설정 설치 완료"
 
     # Store for summary

@@ -11,15 +11,7 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 1. **Project overrides global** — Project `CLAUDE.md` takes precedence
 2. **YAML frontmatter** — Rules load based on `alwaysApply` and `paths`
 
-## Working Principles
-
-- **Challenge the request** — If a simpler approach exists, say so. Don't pick silently between interpretations.
-- **Minimize code** — No premature abstraction. If 200 lines could be 50, rewrite.
-- **Surgical edits** — Only change lines that trace to the request. Don't touch adjacent code or style.
-- **Verify first** — Reproduce bugs before fixing. Define "done" before coding.
-- Stay focused on the user's original request. Note unrelated issues at the end without acting.
-- If the same approach fails 3 times, stop and propose alternatives.
-- **Bias toward execution** — When asked to update or edit documents, start making changes immediately. Do not spend the entire session analyzing and planning — apply changes incrementally and show progress. Only create a brief plan (max 5 bullet points) before starting execution.
+> Core principles, environment, and communication rules load automatically via project rule frontmatter (`alwaysApply: true`).
 
 ## GitHub / CI
 
@@ -50,20 +42,10 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 - After resolving conflicts, verify no conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`) remain before committing.
 - If a merge conflict appears intractable, prefer `git merge --abort` and ask the user for direction rather than producing a broken merge.
 
-## Session Management
-
-- When a multi-step workflow is interrupted, write progress state to `.claude/resume.md` in the project directory so the next session can resume seamlessly.
-- At session start, check for `.claude/resume.md` and offer to resume if it exists.
-
-## Platform Notes
-
-- PowerShell scripts with non-ASCII characters (Korean, CJK): use UTF-8 with BOM encoding.
-- When converting between document formats, prefer Mermaid for diagram representation over ASCII art or SVG generation.
-
 ## Configuration Updates
 
 Edit module files, then restart session to apply changes.
 
 ---
 
-*Version: 2.6.0 | Last updated: 2026-04-08*
+*Version: 3.0.0 | Last updated: 2026-04-10*
