@@ -34,16 +34,6 @@ function Write-Err {
     Write-Host "  $Message" -ForegroundColor Red
 }
 
-function New-Backup {
-    param([string]$Target)
-    if (Test-Path $Target) {
-        $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
-        $backupName = "${Target}.backup_${timestamp}"
-        Copy-Item -Path $Target -Destination $backupName -Recurse -Force
-        Write-Info "Existing file backed up: $backupName"
-    }
-}
-
 function Ensure-Directory {
     param([string]$Dir)
     if (-not (Test-Path $Dir)) {
@@ -218,23 +208,7 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
     $claudeDir = Join-Path $HOME ".claude"
     Ensure-Directory $claudeDir
 
-    # Check for existing files
-    $backupExisting = 'y'
-    $existingMd = Join-Path $claudeDir "CLAUDE.md"
-    if (Test-Path $existingMd) {
-        Write-Warn "Existing CLAUDE.md found."
-        $backupExisting = Read-Host "Backup and overwrite? (y/n) [default: y]"
-        if ([string]::IsNullOrEmpty($backupExisting)) { $backupExisting = 'y' }
-    }
-
-    if ($backupExisting -eq 'y') {
-        # Backup existing files
-        New-Backup (Join-Path $claudeDir "CLAUDE.md")
-        New-Backup (Join-Path $claudeDir "conversation-language.md")
-        New-Backup (Join-Path $claudeDir "git-identity.md")
-        New-Backup (Join-Path $claudeDir "token-management.md")
-
-        # Copy configuration files
+    # Copy configuration files
         $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'conversation-language.md', 'git-identity.md', 'token-management.md')
         foreach ($gf in $globalFiles) {
             $src = Join-Path $BackupDir "global/$gf"
@@ -244,79 +218,75 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
             }
         }
 
-        # Install settings.windows.json as settings.json
-        $settingsSource = Join-Path $BackupDir "global/settings.windows.json"
-        if (Test-Path $settingsSource) {
-            New-Backup (Join-Path $claudeDir "settings.json")
-            Copy-Item -Path $settingsSource -Destination (Join-Path $claudeDir "settings.json") -Force
-            Write-Success "Hook settings (settings.json) installed! [Windows version]"
-        }
+    # Install settings.windows.json as settings.json
+    $settingsSource = Join-Path $BackupDir "global/settings.windows.json"
+    if (Test-Path $settingsSource) {
+        Copy-Item -Path $settingsSource -Destination (Join-Path $claudeDir "settings.json") -Force
+        Write-Success "Hook settings (settings.json) installed! [Windows version]"
+    }
 
-        # Install PowerShell hook scripts
-        $hooksSource = Join-Path $BackupDir "global/hooks"
-        if (Test-Path $hooksSource) {
-            $hooksDir = Join-Path $claudeDir "hooks"
-            Ensure-Directory $hooksDir
-            Copy-Item -Path "$hooksSource\*.ps1" -Destination $hooksDir -Force -ErrorAction SilentlyContinue
-            Write-Success "PowerShell hook scripts (hooks/*.ps1) installed!"
-        }
+    # Install PowerShell hook scripts
+    $hooksSource = Join-Path $BackupDir "global/hooks"
+    if (Test-Path $hooksSource) {
+        $hooksDir = Join-Path $claudeDir "hooks"
+        Ensure-Directory $hooksDir
+        Copy-Item -Path "$hooksSource\*.ps1" -Destination $hooksDir -Force -ErrorAction SilentlyContinue
+        Write-Success "PowerShell hook scripts (hooks/*.ps1) installed!"
+    }
 
-        # Install PowerShell statusline and utility scripts
-        $scriptsSource = Join-Path $BackupDir "global/scripts"
-        if (Test-Path $scriptsSource) {
-            $scriptsDir = Join-Path $claudeDir "scripts"
-            Ensure-Directory $scriptsDir
-            Copy-Item -Path "$scriptsSource\*.ps1" -Destination $scriptsDir -Force -ErrorAction SilentlyContinue
-            Write-Success "Statusline scripts (scripts/*.ps1) installed!"
-        }
+    # Install PowerShell statusline and utility scripts
+    $scriptsSource = Join-Path $BackupDir "global/scripts"
+    if (Test-Path $scriptsSource) {
+        $scriptsDir = Join-Path $claudeDir "scripts"
+        Ensure-Directory $scriptsDir
+        Copy-Item -Path "$scriptsSource\*.ps1" -Destination $scriptsDir -Force -ErrorAction SilentlyContinue
+        Write-Success "Statusline scripts (scripts/*.ps1) installed!"
+    }
 
-        # Install ccstatusline settings (~/.config/ccstatusline/ — ccstatusline default settings path)
-        $ccstatuslineSource = Join-Path $BackupDir "global/ccstatusline"
-        if (Test-Path $ccstatuslineSource) {
-            $ccstatuslineDir = Join-Path $HOME ".config/ccstatusline"
-            Ensure-Directory $ccstatuslineDir
-            Copy-Item -Path "$ccstatuslineSource\settings.json" -Destination $ccstatuslineDir -Force
-            Write-Success "ccstatusline settings (~/.config/ccstatusline/settings.json) installed!"
-        }
+    # Install ccstatusline settings (~/.config/ccstatusline/ — ccstatusline default settings path)
+    $ccstatuslineSource = Join-Path $BackupDir "global/ccstatusline"
+    if (Test-Path $ccstatuslineSource) {
+        $ccstatuslineDir = Join-Path $HOME ".config/ccstatusline"
+        Ensure-Directory $ccstatuslineDir
+        Copy-Item -Path "$ccstatuslineSource\settings.json" -Destination $ccstatuslineDir -Force
+        Write-Success "ccstatusline settings (~/.config/ccstatusline/settings.json) installed!"
+    }
 
-        # npm package installation (statusline dependencies)
-        Write-Host ""
-        if (Get-Command npm -ErrorAction SilentlyContinue) {
-            $installNpm = Read-Host "Install statusline npm packages? (ccstatusline, claude-limitline) (y/n) [default: y]"
-            if ([string]::IsNullOrEmpty($installNpm)) { $installNpm = 'y' }
-            if ($installNpm -eq 'y') {
-                Write-Info "Installing npm packages..."
-                try {
-                    $npmOutput = npm install -g ccstatusline claude-limitline 2>&1
-                    if ($LASTEXITCODE -eq 0) {
-                        Write-Success "npm packages installed! (ccstatusline, claude-limitline)"
-                    } else {
-                        Write-Warn "npm package installation failed. Install manually:"
-                        Write-Host "    npm install -g ccstatusline claude-limitline"
-                    }
-                } catch {
+    # npm package installation (statusline dependencies)
+    Write-Host ""
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+        $installNpm = Read-Host "Install statusline npm packages? (ccstatusline, claude-limitline) (y/n) [default: y]"
+        if ([string]::IsNullOrEmpty($installNpm)) { $installNpm = 'y' }
+        if ($installNpm -eq 'y') {
+            Write-Info "Installing npm packages..."
+            try {
+                $npmOutput = npm install -g ccstatusline claude-limitline 2>&1
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Success "npm packages installed! (ccstatusline, claude-limitline)"
+                } else {
                     Write-Warn "npm package installation failed. Install manually:"
                     Write-Host "    npm install -g ccstatusline claude-limitline"
                 }
-            } else {
-                Write-Info "npm package installation skipped"
-                Write-Host "  Manual install: npm install -g ccstatusline claude-limitline"
+            } catch {
+                Write-Warn "npm package installation failed. Install manually:"
+                Write-Host "    npm install -g ccstatusline claude-limitline"
             }
         } else {
-            Write-Warn "npm is not installed."
-            Write-Host "  After installing Node.js/npm, run:"
-            Write-Host "    npm install -g ccstatusline claude-limitline"
+            Write-Info "npm package installation skipped"
+            Write-Host "  Manual install: npm install -g ccstatusline claude-limitline"
         }
-
-        Write-Success "Global settings installation complete!"
-
-        # Git identity personalization notice
-        Write-Host ""
-        Write-Warn "Important: Modify git-identity.md with your personal info!"
-        Write-Host "  Edit: notepad `$HOME\.claude\git-identity.md"
     } else {
-        Write-Info "Global settings installation skipped"
+        Write-Warn "npm is not installed."
+        Write-Host "  After installing Node.js/npm, run:"
+        Write-Host "    npm install -g ccstatusline claude-limitline"
     }
+
+    Write-Success "Global settings installation complete!"
+
+    # Git identity personalization notice
+    Write-Host ""
+    Write-Warn "Important: Modify git-identity.md with your personal info!"
+    Write-Host "  Edit: notepad `$HOME\.claude\git-identity.md"
 }
 
 # ── Project settings installation ─────────────────────────────
@@ -340,16 +310,6 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
 
     Write-Info "Install path: $projectDir"
 
-    # Backup existing files
-    $existingProjectMd = Join-Path $projectDir "CLAUDE.md"
-    if (Test-Path $existingProjectMd) {
-        New-Backup $existingProjectMd
-    }
-    $existingRules = Join-Path $projectDir ".claude/rules"
-    if (Test-Path $existingRules) {
-        New-Backup $existingRules
-    }
-
     # Copy files
     Copy-Item -Path (Join-Path $BackupDir "project/CLAUDE.md") -Destination $projectDir -Force
 
@@ -360,7 +320,6 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
     # settings.json
     $projectSettings = Join-Path $BackupDir "project/.claude/settings.json"
     if (Test-Path $projectSettings) {
-        New-Backup (Join-Path $projectClaudeDir "settings.json")
         Copy-Item -Path $projectSettings -Destination $projectClaudeDir -Force
         Write-Success "Project hook settings (.claude/settings.json) installed!"
     }
@@ -375,8 +334,6 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
     # Skills directory
     $sourceSkills = Join-Path $BackupDir "project/.claude/skills"
     if (Test-Path $sourceSkills) {
-        $existingSkills = Join-Path $projectClaudeDir "skills"
-        if (Test-Path $existingSkills) { New-Backup $existingSkills }
         Copy-Item -Path $sourceSkills -Destination $projectClaudeDir -Recurse -Force
         Write-Success "Skills directory installed!"
     }
@@ -384,8 +341,6 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
     # commands directory
     $sourceCommands = Join-Path $BackupDir "project/.claude/commands"
     if (Test-Path $sourceCommands) {
-        $existingCommands = Join-Path $projectClaudeDir "commands"
-        if (Test-Path $existingCommands) { New-Backup $existingCommands }
         Copy-Item -Path $sourceCommands -Destination $projectClaudeDir -Recurse -Force
         Write-Success "Commands directory installed!"
     }
@@ -393,8 +348,6 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
     # agents directory
     $sourceAgents = Join-Path $BackupDir "project/.claude/agents"
     if (Test-Path $sourceAgents) {
-        $existingAgents = Join-Path $projectClaudeDir "agents"
-        if (Test-Path $existingAgents) { New-Backup $existingAgents }
         Copy-Item -Path $sourceAgents -Destination $projectClaudeDir -Recurse -Force
         Write-Success "Agents directory installed!"
     }

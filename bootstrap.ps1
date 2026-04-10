@@ -92,15 +92,6 @@ function Install-GlobalSettings {
         New-Item -ItemType Directory -Path $ClaudeDir -Force | Out-Null
     }
 
-    # Backup existing CLAUDE.md
-    $existingMd = Join-Path $ClaudeDir 'CLAUDE.md'
-    if (Test-Path -LiteralPath $existingMd) {
-        $ts = Get-Date -Format 'yyyyMMdd_HHmmss'
-        $backupName = "${existingMd}.backup_${ts}"
-        Copy-Item -LiteralPath $existingMd -Destination $backupName -Force
-        Write-Info "기존 CLAUDE.md 백업: $backupName"
-    }
-
     # Copy files
     $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'conversation-language.md', 'git-identity.md', 'token-management.md')
     foreach ($gf in $globalFiles) {
@@ -115,11 +106,6 @@ function Install-GlobalSettings {
     $tmuxConf = Join-Path $InstallDir 'global' 'tmux.conf'
     if (Test-Path -LiteralPath $tmuxConf) {
         $homeTmux = Join-Path $HOME '.tmux.conf'
-        if (Test-Path -LiteralPath $homeTmux) {
-            $ts = Get-Date -Format 'yyyyMMdd_HHmmss'
-            Copy-Item -LiteralPath $homeTmux -Destination "${homeTmux}.backup_${ts}" -Force
-            Write-Info "기존 .tmux.conf 백업: ${homeTmux}.backup_${ts}"
-        }
         Copy-Item -LiteralPath $tmuxConf -Destination $homeTmux -Force
         $tmuxLogDir = Join-Path $HOME '.local' 'tmux_logs'
         if (-not (Test-Path $tmuxLogDir)) {

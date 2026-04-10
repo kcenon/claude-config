@@ -47,16 +47,6 @@ error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
-# 함수: 백업 생성
-create_backup() {
-    local target="$1"
-    if [ -e "$target" ]; then
-        local backup_name="${target}.backup_$(date +%Y%m%d_%H%M%S)"
-        cp -r "$target" "$backup_name"
-        info "기존 파일 백업: $backup_name"
-    fi
-}
-
 # 함수: 디렉토리 생성
 ensure_dir() {
     local dir="$1"
@@ -283,137 +273,113 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     # ~/.claude 디렉토리 생성
     ensure_dir "$HOME/.claude"
 
-    # 기존 파일 백업 여부 확인
-    BACKUP_EXISTING="y"
-    if [ -f "$HOME/.claude/CLAUDE.md" ]; then
-        warning "기존 CLAUDE.md가 존재합니다."
-        read -p "백업 후 덮어쓰시겠습니까? (y/n) [기본값: y]: " BACKUP_EXISTING
-        BACKUP_EXISTING=${BACKUP_EXISTING:-y}
+    # 파일 설치
+    for gf in CLAUDE.md commit-settings.md conversation-language.md git-identity.md token-management.md; do
+        [ -f "$BACKUP_DIR/global/$gf" ] && cp "$BACKUP_DIR/global/$gf" "$HOME/.claude/" && success "$gf 설치됨"
+    done
+
+    # settings.json 설치 (Hook 설정)
+    if [ -f "$BACKUP_DIR/global/settings.json" ]; then
+        cp "$BACKUP_DIR/global/settings.json" "$HOME/.claude/"
+        success "Hook 설정 (settings.json) 설치 완료!"
     fi
 
-    # 파일 설치
-    if [ "$BACKUP_EXISTING" = "y" ]; then
-        create_backup "$HOME/.claude/CLAUDE.md"
-        for gf in conversation-language.md git-identity.md token-management.md; do
-            [ -f "$HOME/.claude/$gf" ] && create_backup "$HOME/.claude/$gf"
-        done
+    # hooks 디렉토리 설치 (외부 스크립트)
+    if [ -d "$BACKUP_DIR/global/hooks" ]; then
+        ensure_dir "$HOME/.claude/hooks"
+        cp "$BACKUP_DIR/global/hooks"/*.sh "$HOME/.claude/hooks/" 2>/dev/null || true
+        chmod +x "$HOME/.claude/hooks/"*.sh 2>/dev/null || true
+        success "Hook 스크립트 (hooks/) 설치 완료!"
+    fi
 
-        for gf in CLAUDE.md commit-settings.md conversation-language.md git-identity.md token-management.md; do
-            [ -f "$BACKUP_DIR/global/$gf" ] && cp "$BACKUP_DIR/global/$gf" "$HOME/.claude/" && success "$gf 설치됨"
-        done
+    # 공유 검증 라이브러리 설치 (commit-message-guard.sh에서 사용)
+    if [ -f "$BACKUP_DIR/hooks/lib/validate-commit-message.sh" ]; then
+        ensure_dir "$HOME/.claude/hooks/lib"
+        cp "$BACKUP_DIR/hooks/lib/validate-commit-message.sh" "$HOME/.claude/hooks/lib/"
+        chmod +x "$HOME/.claude/hooks/lib/validate-commit-message.sh"
+        success "공유 검증 라이브러리 설치 완료!"
+    fi
 
-        # settings.json 설치 (Hook 설정)
-        if [ -f "$BACKUP_DIR/global/settings.json" ]; then
-            create_backup "$HOME/.claude/settings.json"
-            cp "$BACKUP_DIR/global/settings.json" "$HOME/.claude/"
-            success "Hook 설정 (settings.json) 설치 완료!"
-        fi
+    # scripts 디렉토리 설치 (statusline 등)
+    if [ -d "$BACKUP_DIR/global/scripts" ]; then
+        ensure_dir "$HOME/.claude/scripts"
+        cp "$BACKUP_DIR/global/scripts"/*.sh "$HOME/.claude/scripts/" 2>/dev/null || true
+        chmod +x "$HOME/.claude/scripts/"*.sh 2>/dev/null || true
+        success "Statusline 스크립트 (scripts/) 설치 완료!"
+    fi
 
-        # hooks 디렉토리 설치 (외부 스크립트)
-        if [ -d "$BACKUP_DIR/global/hooks" ]; then
-            ensure_dir "$HOME/.claude/hooks"
-            cp "$BACKUP_DIR/global/hooks"/*.sh "$HOME/.claude/hooks/" 2>/dev/null || true
-            chmod +x "$HOME/.claude/hooks/"*.sh 2>/dev/null || true
-            success "Hook 스크립트 (hooks/) 설치 완료!"
-        fi
+    # commit-settings.md 설치 (CLAUDE.md에서 @./commit-settings.md로 참조)
+    if [ -f "$BACKUP_DIR/global/commit-settings.md" ]; then
+        cp "$BACKUP_DIR/global/commit-settings.md" "$HOME/.claude/"
+        success "commit-settings.md 설치 완료!"
+    fi
 
-        # 공유 검증 라이브러리 설치 (commit-message-guard.sh에서 사용)
-        if [ -f "$BACKUP_DIR/hooks/lib/validate-commit-message.sh" ]; then
-            ensure_dir "$HOME/.claude/hooks/lib"
-            cp "$BACKUP_DIR/hooks/lib/validate-commit-message.sh" "$HOME/.claude/hooks/lib/"
-            chmod +x "$HOME/.claude/hooks/lib/validate-commit-message.sh"
-            success "공유 검증 라이브러리 설치 완료!"
-        fi
+    # .claudeignore 설치
+    if [ -f "$BACKUP_DIR/global/.claudeignore" ]; then
+        cp "$BACKUP_DIR/global/.claudeignore" "$HOME/.claude/"
+        success ".claudeignore 설치 완료!"
+    fi
 
-        # scripts 디렉토리 설치 (statusline 등)
-        if [ -d "$BACKUP_DIR/global/scripts" ]; then
-            ensure_dir "$HOME/.claude/scripts"
-            cp "$BACKUP_DIR/global/scripts"/*.sh "$HOME/.claude/scripts/" 2>/dev/null || true
-            chmod +x "$HOME/.claude/scripts/"*.sh 2>/dev/null || true
-            success "Statusline 스크립트 (scripts/) 설치 완료!"
-        fi
+    # tmux.conf 설치
+    if [ -f "$BACKUP_DIR/global/tmux.conf" ]; then
+        cp "$BACKUP_DIR/global/tmux.conf" "$HOME/.claude/"
+        success "tmux.conf 설치 완료!"
+    fi
 
-        # commit-settings.md 설치 (CLAUDE.md에서 @./commit-settings.md로 참조)
-        if [ -f "$BACKUP_DIR/global/commit-settings.md" ]; then
-            cp "$BACKUP_DIR/global/commit-settings.md" "$HOME/.claude/"
-            success "commit-settings.md 설치 완료!"
-        fi
-
-        # .claudeignore 설치
-        if [ -f "$BACKUP_DIR/global/.claudeignore" ]; then
-            cp "$BACKUP_DIR/global/.claudeignore" "$HOME/.claude/"
-            success ".claudeignore 설치 완료!"
-        fi
-
-        # tmux.conf 설치
-        if [ -f "$BACKUP_DIR/global/tmux.conf" ]; then
-            cp "$BACKUP_DIR/global/tmux.conf" "$HOME/.claude/"
-            success "tmux.conf 설치 완료!"
-        fi
-
-        # skills 디렉토리 설치 (global skills: harness, pr-work, issue-work, etc.)
-        if [ -d "$BACKUP_DIR/global/skills" ]; then
-            if [ -d "$HOME/.claude/skills" ]; then
-                create_backup "$HOME/.claude/skills"
+    # skills 디렉토리 설치 (global skills: harness, pr-work, issue-work, etc.)
+    if [ -d "$BACKUP_DIR/global/skills" ]; then
+        mkdir -p "$HOME/.claude/skills"
+        for skill_dir in "$BACKUP_DIR/global/skills"/*/; do
+            if [ -d "$skill_dir" ]; then
+                cp -r "$skill_dir" "$HOME/.claude/skills/"
             fi
-            mkdir -p "$HOME/.claude/skills"
-            for skill_dir in "$BACKUP_DIR/global/skills"/*/; do
-                if [ -d "$skill_dir" ]; then
-                    cp -r "$skill_dir" "$HOME/.claude/skills/"
-                fi
-            done
-            skill_count=$(find "$HOME/.claude/skills" -name "SKILL.md" | wc -l | tr -d ' ')
-            success "Global Skills (${skill_count}개) 설치 완료!"
-        fi
+        done
+        skill_count=$(find "$HOME/.claude/skills" -name "SKILL.md" | wc -l | tr -d ' ')
+        success "Global Skills (${skill_count}개) 설치 완료!"
+    fi
 
-        # commands 디렉토리 설치
-        if [ -d "$BACKUP_DIR/global/commands" ]; then
-            if [ -d "$HOME/.claude/commands" ]; then
-                create_backup "$HOME/.claude/commands"
-            fi
-            cp -r "$BACKUP_DIR/global/commands" "$HOME/.claude/"
-            success "Commands 디렉토��� 설치 완료!"
-        fi
+    # commands 디렉토리 설치
+    if [ -d "$BACKUP_DIR/global/commands" ]; then
+        cp -r "$BACKUP_DIR/global/commands" "$HOME/.claude/"
+        success "Commands 디렉토리 설치 완료!"
+    fi
 
-        # ccstatusline 설정 복사 (~/.config/ccstatusline/ — ccstatusline의 기본 설정 경로)
-        if [ -d "$BACKUP_DIR/global/ccstatusline" ]; then
-            ensure_dir "$HOME/.config/ccstatusline"
-            cp "$BACKUP_DIR/global/ccstatusline/settings.json" "$HOME/.config/ccstatusline/"
-            success "ccstatusline 설정 (~/.config/ccstatusline/settings.json) 설��� 완료!"
-        fi
+    # ccstatusline 설정 복사 (~/.config/ccstatusline/ — ccstatusline의 기본 설정 경로)
+    if [ -d "$BACKUP_DIR/global/ccstatusline" ]; then
+        ensure_dir "$HOME/.config/ccstatusline"
+        cp "$BACKUP_DIR/global/ccstatusline/settings.json" "$HOME/.config/ccstatusline/"
+        success "ccstatusline 설정 설치 완료!"
+    fi
 
-        # npm 패키지 설치 (statusline 의존성)
-        echo ""
-        if command -v npm &> /dev/null; then
-            read -p "Statusline npm 패키지를 설치하시겠습니까? (ccstatusline, claude-limitline) (y/n) [기본값: y]: " INSTALL_NPM
-            INSTALL_NPM=${INSTALL_NPM:-y}
-            if [ "$INSTALL_NPM" = "y" ]; then
-                info "npm 패키지 설치 중..."
-                if npm install -g ccstatusline claude-limitline 2>/dev/null; then
-                    success "npm 패키지 설치 완료! (ccstatusline, claude-limitline)"
-                else
-                    warning "npm 패키지 설치 실패. 수동으로 설치하세요:"
-                    echo "    npm install -g ccstatusline claude-limitline"
-                fi
+    # npm 패키지 설치 (statusline 의존성)
+    echo ""
+    if command -v npm &> /dev/null; then
+        read -p "Statusline npm 패키지를 설치하시겠습니까? (ccstatusline, claude-limitline) (y/n) [기본값: y]: " INSTALL_NPM
+        INSTALL_NPM=${INSTALL_NPM:-y}
+        if [ "$INSTALL_NPM" = "y" ]; then
+            info "npm 패키지 설치 중..."
+            if npm install -g ccstatusline claude-limitline 2>/dev/null; then
+                success "npm 패키지 설치 완료! (ccstatusline, claude-limitline)"
             else
-                info "npm 패키지 설치 건너뜀"
-                echo "  수동 설치: npm install -g ccstatusline claude-limitline"
+                warning "npm 패키지 설치 실패. 수동으로 설치하세요:"
+                echo "    npm install -g ccstatusline claude-limitline"
             fi
         else
-            warning "npm이 설치되어 있지 않습니다."
-            echo "  Node.js/npm 설치 후 아래 명령을 실행하세요:"
-            echo "    npm install -g ccstatusline claude-limitline"
+            info "npm 패키지 설치 건너뜀"
+            echo "  수동 설치: npm install -g ccstatusline claude-limitline"
         fi
-
-        success "글로벌 설정 설치 완료!"
-
-        # Git identity 개인화 안내
-        echo ""
-        warning "중요: git-identity.md를 개인 정보로 수정하세요!"
-        echo "  편집: vi ~/.claude/git-identity.md"
     else
-        info "글로벌 설정 설치 건너뜀"
+        warning "npm이 설치되어 있지 않습니다."
+        echo "  Node.js/npm 설치 후 아래 명령을 실행하세요:"
+        echo "    npm install -g ccstatusline claude-limitline"
     fi
+
+    success "글로벌 설정 설치 완료!"
+
+    # Git identity 개인화 안내
+    echo ""
+    warning "중요: git-identity.md를 개인 정보로 수정하세요!"
+    echo "  편집: vi ~/.claude/git-identity.md"
 fi
 
 # 프로젝트 설정 설치
@@ -436,14 +402,6 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
 
     info "설치 경로: $PROJECT_DIR"
 
-    # 기존 파일 백업
-    if [ -f "$PROJECT_DIR/CLAUDE.md" ]; then
-        create_backup "$PROJECT_DIR/CLAUDE.md"
-    fi
-    if [ -d "$PROJECT_DIR/.claude/rules" ]; then
-        create_backup "$PROJECT_DIR/.claude/rules"
-    fi
-
     # 파일 복사
     cp "$BACKUP_DIR/project/CLAUDE.md" "$PROJECT_DIR/"
 
@@ -452,7 +410,6 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
 
     # settings.json 설치 (Hook 설정)
     if [ -f "$BACKUP_DIR/project/.claude/settings.json" ]; then
-        create_backup "$PROJECT_DIR/.claude/settings.json"
         cp "$BACKUP_DIR/project/.claude/settings.json" "$PROJECT_DIR/.claude/"
         success "프로젝트 Hook 설정 (.claude/settings.json) 설치 완료!"
     fi
@@ -465,27 +422,18 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
 
     # Skills 디렉토리 설치
     if [ -d "$BACKUP_DIR/project/.claude/skills" ]; then
-        if [ -d "$PROJECT_DIR/.claude/skills" ]; then
-            create_backup "$PROJECT_DIR/.claude/skills"
-        fi
         cp -r "$BACKUP_DIR/project/.claude/skills" "$PROJECT_DIR/.claude/"
         success "Skills 디렉토리 설치 완료!"
     fi
 
     # commands 디렉토리 설치
     if [ -d "$BACKUP_DIR/project/.claude/commands" ]; then
-        if [ -d "$PROJECT_DIR/.claude/commands" ]; then
-            create_backup "$PROJECT_DIR/.claude/commands"
-        fi
         cp -r "$BACKUP_DIR/project/.claude/commands" "$PROJECT_DIR/.claude/"
         success "Commands 디렉토리 설치 완료!"
     fi
 
     # agents 디렉토리 설치
     if [ -d "$BACKUP_DIR/project/.claude/agents" ]; then
-        if [ -d "$PROJECT_DIR/.claude/agents" ]; then
-            create_backup "$PROJECT_DIR/.claude/agents"
-        fi
         cp -r "$BACKUP_DIR/project/.claude/agents" "$PROJECT_DIR/.claude/"
         success "Agents 디렉토리 설치 완료!"
     fi

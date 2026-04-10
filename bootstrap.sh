@@ -91,13 +91,6 @@ install_global() {
     # ~/.claude 디렉토리 생성
     mkdir -p "$CLAUDE_DIR"
 
-    # 기존 파일 백업
-    if [ -f "$CLAUDE_DIR/CLAUDE.md" ]; then
-        local backup_name="$CLAUDE_DIR/CLAUDE.md.backup_$(date +%Y%m%d_%H%M%S)"
-        cp "$CLAUDE_DIR/CLAUDE.md" "$backup_name"
-        info "기존 CLAUDE.md 백업: $backup_name"
-    fi
-
     # 파일 복사
     for gf in CLAUDE.md commit-settings.md conversation-language.md git-identity.md token-management.md; do
         [ -f "$INSTALL_DIR/global/$gf" ] && cp "$INSTALL_DIR/global/$gf" "$CLAUDE_DIR/" && ok "$gf 설치됨"
@@ -105,11 +98,6 @@ install_global() {
 
     # tmux 설정 설치
     if [ -f "$INSTALL_DIR/global/tmux.conf" ]; then
-        if [ -f "$HOME/.tmux.conf" ]; then
-            local backup_name="$HOME/.tmux.conf.backup_$(date +%Y%m%d_%H%M%S)"
-            cp "$HOME/.tmux.conf" "$backup_name"
-            info "기존 .tmux.conf 백업: $backup_name"
-        fi
         cp "$INSTALL_DIR/global/tmux.conf" "$HOME/.tmux.conf"
         mkdir -p "$HOME/.local/tmux_logs"
         success "tmux 설정 설치 완료"
