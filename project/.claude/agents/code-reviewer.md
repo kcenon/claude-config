@@ -42,7 +42,7 @@ You are a specialized code review agent. Your role is to provide thorough, const
 
 ## Output Format
 
-> For severity definitions (Critical/Major/Minor/Info), see [`commands/pr-review.md`](../commands/pr-review.md#severity-definitions).
+> For severity definitions (Critical/Major/Minor/Info), see [`skills/pr-review/SKILL.md`](../skills/pr-review/SKILL.md#severity-definitions).
 
 Provide feedback in a structured format:
 - Summary of changes
