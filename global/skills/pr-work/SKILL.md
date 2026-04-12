@@ -336,7 +336,27 @@ If workflows still fail, repeat steps 2-8. Max 3 retry attempts with 30s CI poll
 
 ### 10. Auto-Merge on Success
 
-When all CI checks pass after fixing:
+**ABSOLUTE CI GATE — MANDATORY PRE-MERGE VERIFICATION:**
+
+Before executing `gh pr merge`, you MUST run `gh pr checks` and verify every single check:
+
+```bash
+gh pr checks $PR_NUMBER --repo $ORG/$PROJECT
+```
+
+**Do NOT merge if ANY check shows:**
+- `fail` or `failure` conclusion (regardless of perceived cause)
+- `pending`, `queued`, or `in_progress` status
+- `cancelled`, `timed_out`, or `startup_failure` conclusion
+
+**ALL checks must show `pass` or `neutral` to proceed.** No exceptions. No rationalization.
+Never judge a failure as "unrelated", "pre-existing", or "infrastructure-only" — all failures block merge.
+
+If any check is not passing, STOP. Do NOT proceed to merge. Instead:
+1. Report the full `gh pr checks` output to the user
+2. Either fix the failure and re-poll, or let the user decide
+
+Only when ALL checks pass:
 
 ```bash
 gh pr merge $PR_NUMBER --repo $ORG/$PROJECT --squash --delete-branch
@@ -372,7 +392,9 @@ See [_policy.md](../_policy.md) for common rules.
 
 ## Output
 
-After completion, provide summary:
+**CRITICAL**: Do NOT produce a "Success" summary if CI has any failing, pending, or incomplete checks. A task is only successful when `gh pr checks` confirms ALL checks pass.
+
+After successful merge, provide summary:
 
 ```markdown
 ## PR Fix Summary
@@ -384,7 +406,8 @@ After completion, provide summary:
 | Branch | $HEAD_BRANCH |
 | Execution mode | Solo / Team |
 | Attempts | X/3 |
-| Final Status | Success / Escalated |
+| CI Status | All checks passed (`gh pr checks` verified) |
+| Final Status | Success — Merged |
 
 ### Workflows Fixed
 | Workflow | Status | Fix Applied |
@@ -395,15 +418,29 @@ After completion, provide summary:
 ### Commits Made
 1. `fix(scope): description` - hash
 2. `fix(scope): description` - hash
+```
 
-### Current Status
-- [ ] All workflows passing
-- [ ] Ready for review
+If CI failed or max retries exceeded, use this format instead:
 
-### Escalation (if applicable)
+```markdown
+## PR Fix Summary (INCOMPLETE)
+
+| Item | Value |
+|------|-------|
+| Repository | $ORG/$PROJECT |
+| PR | #$PR_NUMBER |
+| Branch | $HEAD_BRANCH |
+| Attempts | X/3 |
+| CI Status | FAILING — [list failed checks] |
+| Final Status | Escalated — NOT merged |
+
+### Escalation
 - Escalation reason: [reason]
 - PR comment added: Yes/No
 - Label applied: needs-manual-review
+
+### Action Required
+- User must resolve CI failures before merge
 ```
 
 ## Error Handling

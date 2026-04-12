@@ -20,9 +20,10 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 - Poll CI status at 30-second intervals. Max 10 minutes per run. Never use `gh run watch`.
 - If the 10-minute polling limit is reached with CI still running: stop polling, report current status to the user, and **do NOT merge**. The user decides next steps.
 - **Before merge, always use `gh pr checks <PR_NUMBER>` to verify ALL individual check statuses.** Do NOT rely on `gh run list` alone — it shows workflow-level status which can report "success" while individual sub-checks (e.g., platform-specific test jobs) are still failing.
-- **Any CI failure — including test timeouts — must be investigated and fixed before merging.** Never treat a failing check as "flaky" or ignorable. If a test times out, adjust the test workload, increase the timeout, or fix the underlying performance issue before proceeding with merge.
+- **Any CI failure — including test timeouts — must be investigated and fixed before merging.** Never treat a failing check as "flaky" or ignorable. Never rationalize a failure as "unrelated", "pre-existing", or "infrastructure-only". If a test times out, adjust the test workload, increase the timeout, or fix the underlying performance issue before proceeding with merge.
+- **A task is NOT complete if CI has any failure.** Do not produce a completion summary, do not mark a task as done, and do not report success while any CI check is failing, pending, or incomplete. Report the task as INCOMPLETE with the failing checks listed.
 - When creating GitHub issues, verify labels exist on the target repository before using them. Run `gh label list -R <repo>` first to avoid creation failures from invalid labels.
-- After completing issue work or PR creation, always verify CI status before considering the task done. If CI is still pending, note it explicitly in the task summary rather than marking the task as completed.
+- After completing issue work or PR creation, always verify CI status with `gh pr checks` before considering the task done. If CI is still pending or failing, note it explicitly in the task summary as INCOMPLETE rather than marking the task as completed.
 
 ## Build & Test
 

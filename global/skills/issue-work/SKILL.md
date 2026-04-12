@@ -406,11 +406,31 @@ or leave the PR open for manual merge.
 **Do NOT** use `gh run watch` — it blocks the entire session.
 
 On CI failure, fix the issue and push. Repeat up to 3 attempts. After 3 failures,
-convert the PR to draft and report the status.
+convert the PR to draft, report the status, and **do NOT proceed to merge or produce a completion summary**. The task is NOT complete until all CI checks pass and the PR is merged.
 
 ### 10. Squash Merge
 
-When all CI checks pass:
+**ABSOLUTE CI GATE — MANDATORY PRE-MERGE VERIFICATION:**
+
+Before executing `gh pr merge`, you MUST run `gh pr checks` and verify every single check:
+
+```bash
+gh pr checks $PR_NUMBER --repo $ORG/$PROJECT
+```
+
+**Do NOT merge if ANY check shows:**
+- `fail` or `failure` conclusion (regardless of perceived cause)
+- `pending`, `queued`, or `in_progress` status
+- `cancelled`, `timed_out`, or `startup_failure` conclusion
+
+**ALL checks must show `pass` or `neutral` to proceed.** No exceptions. No rationalization.
+Never judge a failure as "unrelated", "pre-existing", or "infrastructure-only" — all failures block merge.
+
+If any check is not passing, STOP. Do NOT proceed to merge. Instead:
+1. Report the full `gh pr checks` output to the user
+2. Either fix the failure and re-poll, or let the user decide
+
+Only when ALL checks pass:
 
 ```bash
 gh pr merge $PR_NUMBER --repo $ORG/$PROJECT --squash --delete-branch
@@ -463,7 +483,9 @@ See [_policy.md](../_policy.md) for common rules.
 
 ## Output
 
-After completion, provide summary:
+**CRITICAL**: Do NOT produce a completion summary if CI has any failing, pending, or incomplete checks. A task is only complete when the PR is merged with all CI checks passing.
+
+After successful merge, provide summary:
 
 ```markdown
 ## Work Summary
@@ -475,6 +497,8 @@ After completion, provide summary:
 | Branch | $BRANCH_NAME |
 | Execution mode | Solo / Team |
 | PR | [#PR_NUMBER](https://github.com/$ORG/$PROJECT/pull/PR_NUMBER) |
+| CI Status | All checks passed |
+| Merged | Yes |
 | Commits | N commits |
 
 ### Changes Made
@@ -486,6 +510,25 @@ After completion, provide summary:
 
 ### Next Steps
 - Any follow-up items
+```
+
+If CI failed or the PR was not merged, use this format instead:
+
+```markdown
+## Work Summary (INCOMPLETE)
+
+| Item | Value |
+|------|-------|
+| Repository | $ORG/$PROJECT |
+| Issue | #$ISSUE_NUMBER - Title |
+| Branch | $BRANCH_NAME |
+| PR | [#PR_NUMBER](https://github.com/$ORG/$PROJECT/pull/PR_NUMBER) |
+| CI Status | FAILING — [list failed checks] |
+| Merged | No |
+| Reason | [CI failure / Max retries exceeded / Timeout] |
+
+### Action Required
+- User must resolve CI failures before merge
 ```
 
 **IMPORTANT**: Always include the full PR URL in the output (e.g., `https://github.com/org/repo/pull/123`).

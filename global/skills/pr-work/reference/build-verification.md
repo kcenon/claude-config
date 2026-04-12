@@ -97,12 +97,23 @@ gh run view $RUN_ID --repo $ORG/$PROJECT --json status,conclusion -q '{status: .
 gh run view $RUN_ID --repo $ORG/$PROJECT --log-failed 2>&1 | head -100
 ```
 
+## Final Pre-Merge Verification (MANDATORY)
+
+After polling shows all runs completed + success, you MUST run `gh pr checks` as a final gate:
+
+```bash
+gh pr checks $PR_NUMBER --repo $ORG/$PROJECT
+```
+
+This catches individual sub-checks (e.g., platform-specific jobs) that `gh run list`/`gh run view` may miss. **Do NOT skip this step.** If any check shows `fail`, `pending`, or any non-pass status, do NOT merge.
+
 ## CI Polling Limits
 
 **Do NOT** use `gh run watch` — it blocks the entire session.
 **Do NOT** poll more frequently than every 30 seconds — respect API rate limits.
 **Do NOT** block indefinitely — max 10 minutes of polling per run.
-**Do NOT** merge while any check is `queued` or `in_progress`.
+**Do NOT** merge while any check is `queued`, `in_progress`, or has `failure` conclusion.
+**Do NOT** rationalize any failure as "unrelated" or "pre-existing" — all failures block merge.
 
 If the 10-minute polling limit is reached with CI still running:
 1. Stop polling immediately
