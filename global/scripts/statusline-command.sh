@@ -25,7 +25,12 @@ if [ -z "$COLUMNS" ] || [ "$COLUMNS" -le 0 ] 2>/dev/null; then
             _P=$(ps -o ppid= -p "$_P" 2>/dev/null | tr -d ' ')
         done
     fi
-    [ -n "$_W" ] && [ "$_W" -gt 0 ] 2>/dev/null && export COLUMNS="$_W"
+    # Container fallback: when no TTY method works (e.g., Docker without
+    # allocated TTY), default to 120 columns for reasonable status display.
+    if [ -z "$_W" ] || [ "$_W" -le 0 ] 2>/dev/null; then
+        _W=120
+    fi
+    export COLUMNS="$_W"
 fi
 
 # Read stdin once and store it
