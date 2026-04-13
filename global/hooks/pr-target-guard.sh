@@ -58,14 +58,15 @@ if [ -z "$CMD" ]; then
 fi
 
 # Scope gate: only check 'gh pr create' commands
-if ! echo "$CMD" | grep -qE 'gh\s+pr\s+create'; then
+if ! echo "$CMD" | grep -qE 'gh[[:space:]]+pr[[:space:]]+create'; then
     allow_response
 fi
 
 # Extract --base value (supports: --base main, --base=main, -B main)
-BASE=""
-if echo "$CMD" | grep -qE '(--base[= ]|--base$|-B\s)'; then
-    BASE=$(echo "$CMD" | grep -oE '(--base[= ]|-B\s*)["\x27]?([a-zA-Z0-9._/-]+)' | head -1 | sed -E "s/(--base[= ]|-B\s*)[\"']?//")
+# Uses sed -nE with /p for POSIX compatibility (BSD grep lacks \x27, \s)
+BASE=$(echo "$CMD" | sed -nE "s/.*(--base[= ])[\"']?([a-zA-Z0-9._/-]+).*/\2/p" | head -1)
+if [ -z "$BASE" ]; then
+    BASE=$(echo "$CMD" | sed -nE "s/.*-B[[:space:]]*[\"']?([a-zA-Z0-9._/-]+).*/\1/p" | head -1)
 fi
 
 # If no --base flag found, the PR uses the repo default branch (develop).
@@ -83,11 +84,11 @@ if [ "$BASE" != "main" ]; then
 fi
 
 # Base is 'main' — check if this is a release PR (--head develop)
-HEAD=""
-if echo "$CMD" | grep -qE '(--head[= ]|-H\s)'; then
-    HEAD=$(echo "$CMD" | grep -oE '(--head[= ]|-H\s*)["\x27]?([a-zA-Z0-9._/-]+)' | head -1 | sed -E "s/(--head[= ]|-H\s*)[\"']?//")
-    HEAD=$(echo "$HEAD" | sed -E "s/^[\"']//;s/[\"']$//")
+HEAD=$(echo "$CMD" | sed -nE "s/.*(--head[= ])[\"']?([a-zA-Z0-9._/-]+).*/\2/p" | head -1)
+if [ -z "$HEAD" ]; then
+    HEAD=$(echo "$CMD" | sed -nE "s/.*-H[[:space:]]*[\"']?([a-zA-Z0-9._/-]+).*/\1/p" | head -1)
 fi
+HEAD=$(echo "$HEAD" | sed -E "s/^[\"']//;s/[\"']$//")
 
 # Allow release PRs: develop → main
 if [ "$HEAD" = "develop" ]; then
