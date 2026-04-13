@@ -223,7 +223,7 @@ If splitting required:
 ```bash
 cd $PROJECT
 git fetch origin
-git checkout main && git pull origin main
+git checkout develop && git pull origin develop
 
 # Extract issue title for branch name
 ISSUE_TITLE=$(gh issue view $ISSUE_NUMBER --repo $ORG/$PROJECT --json title -q '.title')
