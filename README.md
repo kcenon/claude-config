@@ -831,6 +831,7 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 ## Additional Resources
 
 - **Configuration Examples**: See `global/` and `project/` directories
+- **Branching Strategy**: [docs/branching-strategy.md](docs/branching-strategy.md) - Branch model, CI policy, and release workflow
 - **Custom Extensions Guide**: [docs/CUSTOM_EXTENSIONS.md](docs/CUSTOM_EXTENSIONS.md) - Understand which features are official vs custom
 - **Token Optimization**: [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md) - Rule optimization (86% reduction)
 - **Skill Token Report**: [docs/SKILL_TOKEN_REPORT.md](docs/SKILL_TOKEN_REPORT.md) - Per-skill consumption analysis

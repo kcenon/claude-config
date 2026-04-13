@@ -802,6 +802,7 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 ## 추가 리소스
 
 - **설정 예제**: `global/` 및 `project/` 디렉토리 참조
+- **브랜칭 전략**: [docs/branching-strategy.md](docs/branching-strategy.md) - 브랜치 모델, CI 정책, 릴리스 워크플로우
 - **커스텀 확장 가이드**: [docs/CUSTOM_EXTENSIONS.md](docs/CUSTOM_EXTENSIONS.md) - 공식 기능과 커스텀 기능 구분
 - **토큰 최적화**: [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md) - 규칙 최적화 (86% 절감)
 - **스킬 토큰 리포트**: [docs/SKILL_TOKEN_REPORT.md](docs/SKILL_TOKEN_REPORT.md) - 스킬별 토큰 소모 분석
