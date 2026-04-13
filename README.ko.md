@@ -309,9 +309,20 @@ claude_config_backup/
 │
 ├── hooks/                       # Git hooks
 │   ├── pre-commit              # 커밋 전 스킬 검증
-│   └── install-hooks.sh        # Hook 설치 스크립트
+│   ├── pre-push                # 보호 브랜치 직접 푸시 차단
+│   ├── pre-push.ps1            # Pre-push (PowerShell)
+│   ├── commit-msg              # 커밋 메시지 형식 검증
+│   ├── install-hooks.sh/.ps1   # Hook 설치 스크립트
+│   └── lib/
+│       └── validate-commit-message.sh  # 공유 검증 라이브러리
+│
+├── .github/
+│   └── workflows/
+│       ├── validate-skills.yml # CI 스킬 검증 (main 대상 PR만)
+│       └── validate-hooks.yml  # CI 훅 검증 (main 대상 PR만)
 │
 ├── docs/                        # 설계 문서 및 가이드
+│   ├── branching-strategy.md   # 브랜치 모델, CI 정책, 릴리스 워크플로우
 │   ├── TOKEN_OPTIMIZATION.md
 │   ├── SKILL_TOKEN_REPORT.md
 │   ├── CUSTOM_EXTENSIONS.md

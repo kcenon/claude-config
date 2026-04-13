@@ -2,10 +2,19 @@
 
 ## Changelog
 
-- **1.9.0** (2026-04-13): Branching strategy and CI policy documentation
+- **1.9.1** (2026-04-13): Documentation completeness fixes
+  - Fixed `docs/branching-strategy.md`: corrected CI policy table (develop PRs do not trigger CI)
+  - Added branch protection configuration table and path-filter explanation
+  - Updated `README.md` directory structure: added commit-msg hook, lib/, validate-hooks.yml, branching-strategy.md
+  - Updated `README.ko.md` directory structure: added pre-push, commit-msg, lib/, .github/workflows, branching-strategy.md
+
+- **1.9.0** (2026-04-13): Simplified git-flow branching strategy (Epic #258)
   - Added `project/.claude/rules/workflow/branching-strategy.md` with branch model, workflow, and CI policy
   - Updated `global/CLAUDE.md` Standard Workflows with branching strategy and protected branch rules
   - Updated `project/CLAUDE.md` Auto-Loaded Rules to reference new branching-strategy rule
+  - Restricted CI triggers to main-targeting PRs only (`validate-skills.yml`, `validate-hooks.yml`)
+  - Updated skills for develop-based workflow: `/issue-work`, `/release`, `/branch-cleanup`
+  - Created `docs/branching-strategy.md` contributor reference document
   - Bumped CLAUDE.md version from 3.0.0 to 3.1.0
 
 - **1.8.0** (2026-04-13): Pre-push hook for protected branch enforcement
