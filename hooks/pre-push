@@ -1,0 +1,37 @@
+#!/bin/bash
+# pre-push — git hook to block direct pushes to protected branches
+# Receives the remote name ($1) and remote URL ($2) from git.
+# Reads lines from stdin: <local ref> <local sha> <remote ref> <remote sha>
+#
+# Protected branches: main, develop
+# Bypass:  git push --no-verify (forbidden by global CLAUDE.md policy)
+#
+# Install: hooks/install-hooks.sh copies this to .git/hooks/pre-push
+
+set -euo pipefail
+
+# Protected branch names
+PROTECTED_BRANCHES="main develop"
+
+# Read push info from stdin
+while read -r local_ref local_sha remote_ref remote_sha; do
+    # Extract the branch name from the remote ref
+    remote_branch="${remote_ref#refs/heads/}"
+
+    for protected in $PROTECTED_BRANCHES; do
+        if [ "$remote_branch" = "$protected" ]; then
+            echo "" >&2
+            echo "pre-push hook: direct push to '$protected' is blocked." >&2
+            echo "" >&2
+            echo "Protected branches (${PROTECTED_BRANCHES}) require pull requests." >&2
+            echo "Use the following workflow instead:" >&2
+            echo "  1. Push to a feature branch:  git push origin <feature-branch>" >&2
+            echo "  2. Create a pull request to merge into '$protected'" >&2
+            echo "  3. Merge via the pull request after review and CI checks" >&2
+            echo "" >&2
+            exit 1
+        fi
+    done
+done
+
+exit 0

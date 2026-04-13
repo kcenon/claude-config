@@ -326,6 +326,8 @@ claude_config_backup/
 │
 ├── hooks/                       # Git hooks
 │   ├── pre-commit              # Pre-commit skill validation
+│   ├── pre-push                # Pre-push protected branch guard
+│   ├── pre-push.ps1            # Pre-push (PowerShell variant)
 │   └── install-hooks.sh/.ps1   # Hook installation script
 │
 ├── .github/
@@ -627,18 +629,25 @@ Existing files are automatically backed up with `.backup_YYYYMMDD_HHMMSS` format
 
 ---
 
-## Pre-commit Hook
+## Git Hooks
 
-Install the pre-commit hook to automatically validate SKILL.md files before commit:
+Install git hooks to enforce commit and push policies:
 
 ```bash
 ./hooks/install-hooks.sh
 ```
 
-The hook will:
-- Detect changes to SKILL.md files
-- Run `validate_skills.sh` automatically
-- Block commits with invalid SKILL.md files
+### Pre-commit Hook
+
+- Detects changes to SKILL.md files
+- Runs `validate_skills.sh` automatically
+- Blocks commits with invalid SKILL.md files
+
+### Pre-push Hook
+
+- Blocks direct pushes to protected branches (`main`, `develop`)
+- Requires pull request workflow for protected branches
+- Cross-platform: `pre-push` (bash) and `pre-push.ps1` (PowerShell)
 
 ---
 
