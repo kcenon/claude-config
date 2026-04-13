@@ -328,13 +328,18 @@ claude_config_backup/
 │   ├── pre-commit              # Pre-commit skill validation
 │   ├── pre-push                # Pre-push protected branch guard
 │   ├── pre-push.ps1            # Pre-push (PowerShell variant)
-│   └── install-hooks.sh/.ps1   # Hook installation script
+│   ├── commit-msg              # Commit message format validation
+│   ├── install-hooks.sh/.ps1   # Hook installation script
+│   └── lib/
+│       └── validate-commit-message.sh  # Shared validation library
 │
 ├── .github/
 │   └── workflows/
-│       └── validate-skills.yml # CI skill validation
+│       ├── validate-skills.yml # CI skill validation (main-targeting PRs only)
+│       └── validate-hooks.yml  # CI hook validation (main-targeting PRs only)
 │
 ├── docs/                        # Design docs and guides
+│   ├── branching-strategy.md   # Branch model, CI policy, release workflow
 │   ├── TOKEN_OPTIMIZATION.md
 │   ├── SKILL_TOKEN_REPORT.md
 │   ├── CUSTOM_EXTENSIONS.md
