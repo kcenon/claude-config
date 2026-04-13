@@ -35,6 +35,8 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 ## Standard Workflows
 
 - **Issue-to-PR lifecycle**: implement → local build/test → create PR → monitor CI → squash merge → close issue → close epic if all sub-issues done.
+- **Branching strategy**: `develop` is the default working branch. Create feature branches from `develop`, squash merge back via PR, then delete the feature branch. Release by creating a PR from `develop` to `main` — CI runs only on main-targeting PRs.
+- **Protected branches**: Never push directly to `main` or `develop`. Always use PRs with squash merge.
 - Skip lengthy planning phases. Start implementation immediately, analyzing code as you go.
 - After merging, check if parent epic should be closed.
 - When using multi-agent teams, always commit work-in-progress before switching contexts or spawning new agents that modify the working directory. This prevents data loss from agent overwrites.
@@ -49,4 +51,4 @@ Edit module files, then restart session to apply changes.
 
 ---
 
-*Version: 3.0.0 | Last updated: 2026-04-10*
+*Version: 3.1.0 | Last updated: 2026-04-13*
