@@ -1,0 +1,57 @@
+name: Validate PR Target
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize]
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify source branch is develop
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const headBranch = pr.head.ref;
+            const baseBranch = pr.base.ref;
+
+            if (baseBranch !== 'main') {
+              return;
+            }
+
+            if (headBranch === 'develop') {
+              core.info(`Release PR from develop to main -- allowed.`);
+              return;
+            }
+
+            const message = [
+              `## Branch Policy Violation`,
+              ``,
+              `This PR targets \`main\` from \`${headBranch}\`, but only \`develop\` may merge into \`main\`.`,
+              ``,
+              `### Required Workflow`,
+              `1. Create a PR from your branch to \`develop\``,
+              `2. After merging to \`develop\`, create a release PR using \`/release <version>\``,
+              ``,
+              `This PR has been closed automatically.`,
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: message,
+            });
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              state: 'closed',
+            });
+
+            core.setFailed(
+              `PR #${pr.number} targets main from ${headBranch} (only develop is allowed). PR has been closed.`
+            );

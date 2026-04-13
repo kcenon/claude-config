@@ -125,6 +125,29 @@ Store the result in `$EXEC_MODE` (solo | team).
 
 ## Solo Mode
 
+### 0. Branch Integrity Check
+
+Before starting the release, verify that `main` has not diverged from `develop`
+due to unauthorized direct merges:
+
+```bash
+git fetch origin main develop
+
+# Verify all commits on main are ancestors of develop
+if ! git merge-base --is-ancestor origin/main origin/develop; then
+    echo "WARNING: main contains commits not present on develop."
+    echo "This indicates unauthorized direct merges to main."
+    echo ""
+    echo "Divergent commits on main:"
+    git log origin/develop..origin/main --oneline
+    echo ""
+    echo "Resolution: cherry-pick divergent commits to develop or reset main to last release tag."
+fi
+```
+
+**If divergence is detected**: Stop and ask the user how to resolve before proceeding.
+Do NOT create a release PR while main and develop have diverged.
+
 ### 1. Validate Version Format
 
 Ensure version follows semantic versioning:
