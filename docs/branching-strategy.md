@@ -54,7 +54,7 @@ main ← develop ← feature/*
 
 2. **Open a pull request** targeting `develop`.
 
-3. **Wait for CI checks** to pass. All checks must reach `completed` status before merge.
+3. **Merge via squash merge** after review. Note: CI does not run on develop-targeting PRs (see [CI/CD Policy](#cicd-policy)).
 
 4. **Request review** if required by your team's policy.
 
@@ -91,23 +91,49 @@ main ← develop ← feature/*
 | Event | CI Triggered? |
 |-------|---------------|
 | Pull request to `main` | Yes — full validation (skills, hooks, shellcheck) |
-| Pull request to `develop` | Yes — same checks as `main` |
-| Push to feature branch | No |
+| Pull request to `develop` | No — code review only |
+| Push to any branch | No |
 | Tag push (`v*`) | No (releases are created manually) |
+
+Both workflows use **path filters** — they only trigger when relevant files change:
+- `validate-skills.yml`: triggers on changes to `global/skills/**`, `project/.claude/skills/**`, `plugin/skills/**`
+- `validate-hooks.yml`: triggers on changes to `global/hooks/**`, `tests/hooks/**`
 
 ### CI Checks
 
-| Workflow | What It Validates |
-|----------|-------------------|
-| `validate-skills.yml` | SKILL.md frontmatter format, name, description length |
-| `validate-hooks.yml` | Hook script correctness (test suite + shellcheck) |
+| Workflow | What It Validates | Path Filter |
+|----------|-------------------|-------------|
+| `validate-skills.yml` | SKILL.md frontmatter format, name, description length | `**/skills/**` |
+| `validate-hooks.yml` | Hook script correctness (test suite + shellcheck) | `global/hooks/**`, `tests/hooks/**` |
 
 ### Merge Rules
 
-- **All CI checks must pass** before merging. No exceptions.
-- **Squash merge** is the preferred merge strategy to keep history clean.
+**Release PRs (develop → main):**
+- All triggered CI checks must pass before merging.
+- **Squash merge** is the only allowed merge strategy.
 - **Never merge** while any check is `queued` or `in_progress`.
-- **CI failures must be investigated** — do not dismiss failures as flaky or unrelated.
+- CI failures must be investigated — do not dismiss failures as flaky or unrelated.
+
+**Feature PRs (feature → develop):**
+- CI does not run. Code review is the quality gate.
+- **Squash merge** is the only allowed merge strategy.
+
+### Branch Protection Configuration
+
+| Setting | `main` | `develop` |
+|---------|--------|-----------|
+| PR required | Yes | Yes |
+| Required status checks | None (path-filtered CI runs when triggered) | None |
+| Enforce admins | Yes | Yes |
+| Force pushes | Blocked | Blocked |
+| Branch deletion | Blocked | Blocked |
+| Merge method | Squash only | Squash only |
+
+> **Note**: Required status checks are not enforced at the branch protection level because
+> path-filtered CI workflows do not trigger on every PR. When a workflow doesn't trigger,
+> its required check would remain pending indefinitely, blocking all merges. Instead, CI
+> runs as advisory checks — they execute when path filters match and block merge only when
+> they fail.
 
 ## Enforcement Layers
 
@@ -115,7 +141,7 @@ main ← develop ← feature/*
 |-------|------|-------|
 | GitHub branch protection | Server-side | Blocks direct push to `main` and `develop` |
 | `pre-push` git hook | Client-side | Blocks direct push to `main` and `develop` locally |
-| Squash merge policy | Convention | Enforced by team practice and PR review |
+| Squash merge only | Server-side | Only squash merge allowed in GitHub settings |
 | Auto-delete branches | Server-side | Cleans up feature branches after PR merge |
 
 ## FAQ
