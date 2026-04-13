@@ -230,6 +230,7 @@ claude_config_backup/
 │   │   └── weekly-usage.sh/.ps1
 │   └── skills/                 # Global skills (user-invocable)
 │       ├── branch-cleanup/     # Clean merged/stale branches
+│       ├── doc-index/          # Generate documentation index files
 │       ├── doc-review/         # Markdown document review
 │       ├── implement-all-levels/ # Enforce complete implementation
 │       ├── issue-create/       # Create GitHub issues (5W1H)
@@ -528,6 +529,7 @@ Invoke any skill by typing its command in Claude Code.
 | Command | What it does |
 |---------|-------------|
 | `/harness` | Design agent teams and generate skills for any domain |
+| `/doc-index` | Generate documentation index files (manifest, bundles, graph, router) |
 | `/doc-review` | Review markdown documents for accuracy, anchors, cross-references |
 | `/git-status` | Repository status with actionable insights |
 | `/implement-all-levels` | Enforce complete implementation of all tiers for tiered features |

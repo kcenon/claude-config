@@ -221,6 +221,7 @@ claude_config_backup/
 │   │   └── weekly-usage.sh
 │   └── skills/                 # 글로벌 Skills (사용자 호출형)
 │       ├── branch-cleanup/     # 병합/오래된 브랜치 정리
+│       ├── doc-index/          # 문서 인덱스 파일 생성
 │       ├── doc-review/         # 마크다운 문서 리뷰
 │       ├── implement-all-levels/ # 완전 구현 강제
 │       ├── issue-create/       # GitHub 이슈 생성 (5W1H)
@@ -512,6 +513,7 @@ Claude Code에서 명령어를 입력하여 스킬을 실행할 수 있습니다
 | 명령어 | 기능 |
 |--------|------|
 | `/harness` | Agent team 설계 및 모든 도메인에 대한 스킬 생성 |
+| `/doc-index` | 문서 인덱스 파일 생성 (manifest, bundles, graph, router) |
 | `/doc-review` | 정확성, 앵커, 상호 참조에 대한 마크다운 문서 리뷰 |
 | `/git-status` | 실행 가능한 인사이트가 포함된 저장소 상태 |
 | `/implement-all-levels` | 계층형 기능의 모든 티어에 대한 완전한 구현 강제 |
