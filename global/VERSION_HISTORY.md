@@ -2,6 +2,11 @@
 
 ## Changelog
 
+- **1.9.2** (2026-04-13): Release flow — recreate develop from main after squash merge
+  - Changed release procedure: delete and recreate `develop` from `main` after each release
+  - Prevents history divergence caused by squash merge producing different commit SHAs
+  - Updated: `docs/branching-strategy.md`, `global/skills/release/SKILL.md`, `global/CLAUDE.md`, branching-strategy rule
+
 - **1.9.1** (2026-04-13): Documentation completeness fixes
   - Fixed `docs/branching-strategy.md`: corrected CI policy table (develop PRs do not trigger CI)
   - Added branch protection configuration table and path-filter explanation

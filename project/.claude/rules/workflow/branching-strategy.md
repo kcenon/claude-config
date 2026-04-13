@@ -19,7 +19,7 @@ alwaysApply: true
 2. Squash merge to `develop` via PR
 3. Delete work branch after merge
 4. Release: squash merge `develop` → `main` via PR (CI gate)
-5. `develop` is never deleted
+5. After release merge: delete `develop`, recreate from `main`
 
 ## CI Policy
 

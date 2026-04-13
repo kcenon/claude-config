@@ -73,7 +73,7 @@ main ← develop ← feature/*
 
 2. **Review the changelog** — use `/release` to generate it automatically from commit history.
 
-3. **Merge into `main`** after CI passes.
+3. **Merge into `main`** via squash merge after CI passes.
 
 4. **Tag the release** on `main`:
 
@@ -85,6 +85,27 @@ main ← develop ← feature/*
    ```
 
 5. **Create a GitHub Release** from the tag.
+
+6. **Recreate `develop` from `main`** to synchronize histories:
+
+   ```bash
+   # Delete the old develop branch (remote and local)
+   git push origin --delete develop
+   git branch -D develop
+
+   # Recreate develop from the updated main
+   git checkout -b develop main
+   git push -u origin develop
+
+   # Set develop as default branch (if not already)
+   gh api -X PATCH repos/$ORG/$PROJECT -f default_branch=develop
+   ```
+
+> **Why recreate develop?** Squash merging develop → main produces a single commit on
+> `main` with a different SHA than the original commits on `develop`. This causes the
+> two branches to diverge in git history, making subsequent develop → main PRs show
+> conflicts on already-merged content. Deleting and recreating `develop` from `main`
+> after each release keeps the histories aligned.
 
 ## CI/CD Policy
 

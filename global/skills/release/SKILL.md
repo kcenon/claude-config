@@ -258,8 +258,6 @@ gh pr checks $PR_NUMBER --repo $ORG/$PROJECT
 gh pr merge $PR_NUMBER --repo $ORG/$PROJECT --squash
 ```
 
-**IMPORTANT**: Do NOT use `--delete-branch` — the `develop` branch must be retained.
-
 If CI fails, diagnose and fix on `develop`, push, and re-poll. Max 3 attempts.
 
 ### 7. Create Git Tag on main
@@ -274,9 +272,37 @@ git tag -a "v$VERSION" -m "Release v$VERSION"
 
 # Push tag to remote
 git push origin "v$VERSION"
+```
 
-# Return to develop branch
-git checkout develop
+### 7.5. Recreate develop from main
+
+After squash merge, `develop` and `main` have diverged histories. Delete and recreate
+`develop` from `main` to resynchronize:
+
+```bash
+# Delete old develop (remote + local)
+git push origin --delete develop
+git branch -D develop 2>/dev/null
+
+# Recreate from main
+git checkout -b develop main
+git push -u origin develop
+
+# Restore default branch setting
+gh api -X PATCH repos/$ORG/$PROJECT -f default_branch=develop
+
+# Restore branch protection on develop
+gh api -X PUT repos/$ORG/$PROJECT/branches/develop/protection \
+  --input - <<'PROTECTION'
+{
+  "required_status_checks": null,
+  "enforce_admins": true,
+  "required_pull_request_reviews": {
+    "required_approving_review_count": 0
+  },
+  "restrictions": null
+}
+PROTECTION
 ```
 
 ### 8. Create GitHub Release
