@@ -2,6 +2,11 @@
 
 ## Changelog
 
+- **1.8.0** (2026-04-13): Pre-push hook for protected branch enforcement
+  - Added `hooks/pre-push` (bash) and `hooks/pre-push.ps1` (PowerShell) to block direct pushes to `main` and `develop`
+  - Updated `hooks/install-hooks.sh` and `hooks/install-hooks.ps1` to install the pre-push hook
+  - Protected branches require pull request workflow; bypass via `--no-verify` is forbidden by policy
+
 - **1.7.0** (2026-04-08): Usage-report-driven behavioral guardrails, agent migration, and platform fixes
   - Migrated agent config files from `allowed-tools` to `tools` format (7 files across project and plugin)
   - Added behavioral rules to CLAUDE.md: bias toward execution, CI verification, multi-repo parallel agents
