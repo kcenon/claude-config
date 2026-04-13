@@ -24,3 +24,12 @@ alwaysApply: true
 ## CI Policy
 
 CI runs only on PRs targeting `main`. Feature PRs to `develop` do not trigger CI.
+
+## Enforcement Layers
+
+| Layer | Mechanism | Scope |
+|-------|-----------|-------|
+| Pre-push hook | `hooks/pre-push` | Blocks direct push to `main`/`develop` |
+| PreToolUse hook | `pr-target-guard` | Blocks `gh pr create --base main` (unless `--head develop`) |
+| GitHub Actions | `validate-pr-target.yml` | Auto-closes non-develop PRs targeting `main` |
+| Release skill | integrity check | Warns if `main` diverged from `develop` before release |

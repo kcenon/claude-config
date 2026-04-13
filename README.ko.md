@@ -1,7 +1,7 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
-  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.7.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.9.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
 </p>
@@ -214,6 +214,9 @@ claude_config_backup/
 │   │   ├── worktree-create.sh/.ps1
 │   │   ├── worktree-remove.sh/.ps1
 │   │   ├── team-limit-guard.sh/.ps1
+│   │   ├── commit-message-guard.sh/.ps1
+│   │   ├── conflict-guard.sh/.ps1
+│   │   ├── pr-target-guard.sh/.ps1
 │   │   ├── version-check.sh/.ps1
 │   │   └── cleanup.sh/.ps1
 │   ├── scripts/                # 유틸리티 스크립트
@@ -319,8 +322,9 @@ claude_config_backup/
 │
 ├── .github/
 │   └── workflows/
-│       ├── validate-skills.yml # CI 스킬 검증 (main 대상 PR만)
-│       └── validate-hooks.yml  # CI 훅 검증 (main 대상 PR만)
+│       ├── validate-skills.yml     # CI 스킬 검증 (main 대상 PR만)
+│       ├── validate-hooks.yml      # CI 훅 검증 (main 대상 PR만)
+│       └── validate-pr-target.yml  # develop 외 브랜치의 main 머지 차단
 │
 ├── docs/                        # 설계 문서 및 가이드
 │   ├── branching-strategy.md   # 브랜치 모델, CI 정책, 릴리스 워크플로우
@@ -381,6 +385,11 @@ claude_config_backup/
 - 알려진 문제가 있는 Claude Code 버전에 대해 경고가 표시됩니다
 - 세션 종료 시 오래된 임시 파일이 정리됩니다
 - 자동 압축 전 컨텍스트가 스냅샷됩니다
+
+### PR을 생성할 때
+- `develop` 외 브랜치에서 `main`을 타겟하는 PR이 차단됩니다 (PreToolUse hook)
+- 서버 측: GitHub Actions가 위반 PR을 자동으로 닫고 안내 코멘트를 남깁니다
+- 릴리즈 PR (`develop` → `main`)은 `/release` 스킬을 통해 허용됩니다
 
 ### Agent Teams 사용 시
 - 동시 팀 수가 제한됩니다 (`MAX_TEAMS`로 설정 가능)
