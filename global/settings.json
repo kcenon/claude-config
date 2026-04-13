@@ -75,6 +75,11 @@
             "type": "command",
             "command": "~/.claude/hooks/conflict-guard.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/pr-target-guard.sh",
+            "timeout": 5
           }
         ]
       },

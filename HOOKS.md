@@ -19,6 +19,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Check for known Claude Code bugs | [Version Check](#8-version-check-sessionstart) |
 | Validate commit messages before git commit | [Commit Message Guard](#10-commit-message-guard-pretooluse) |
 | Prevent git merge/rebase on dirty trees | [Conflict Guard](#11-conflict-guard-pretooluse) |
+| Block PRs targeting main from non-develop branches | [PR Target Guard](#12-pr-target-guard-pretooluse) |
 | Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
 | Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
 | Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
@@ -242,6 +243,39 @@ Hooks are user-defined commands that automatically execute during specific Claud
 - Fail-open: if parsing fails or git is not available, the command is allowed
 - Advisory only (conflict prevention), not security-critical
 - Cross-platform: `conflict-guard.sh` and `conflict-guard.ps1`
+
+## 12. PR Target Guard (PreToolUse)
+
+*Enforces branching policy: only `develop` may merge into `main`.*
+
+**Purpose**: Intercepts `gh pr create` commands and blocks those targeting `main` unless the source branch is `develop` (a legitimate release PR).
+
+**Trigger**: `Bash` tool calls containing `gh pr create`
+
+**Files**: `global/hooks/pr-target-guard.sh`, `global/hooks/pr-target-guard.ps1`
+
+**Logic**:
+1. Scope gate: only process `gh pr create` commands (all others pass through)
+2. Extract `--base` value (`--base main`, `--base=main`, `-B main`)
+3. If `--base main` detected:
+   - Allow if `--head develop` is also present (release PR via `/release`)
+   - Deny otherwise with guidance message
+4. If no `--base` flag: allow (defaults to `develop`)
+
+**Fail policy**: Fail-closed (deny if JSON parsing fails)
+
+**Complements**:
+- `pre-push` git hook: blocks `git push origin main/develop`
+- `validate-pr-target.yml` GitHub Actions: auto-closes non-develop PRs to main (server-side)
+
+**Configuration**:
+```json
+{
+  "type": "command",
+  "command": "~/.claude/hooks/pr-target-guard.sh",
+  "timeout": 5
+}
+```
 
 ### Hook Response Format
 
