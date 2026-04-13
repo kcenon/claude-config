@@ -219,6 +219,9 @@ claude_config_backup/
 │   │   ├── worktree-create.sh/.ps1
 │   │   ├── worktree-remove.sh/.ps1
 │   │   ├── team-limit-guard.sh/.ps1
+│   │   ├── commit-message-guard.sh/.ps1
+│   │   ├── conflict-guard.sh/.ps1
+│   │   ├── pr-target-guard.sh/.ps1
 │   │   ├── version-check.sh/.ps1
 │   │   ├── cleanup.sh/.ps1
 │   │   └── lib/               # Shared libraries
@@ -336,8 +339,9 @@ claude_config_backup/
 │
 ├── .github/
 │   └── workflows/
-│       ├── validate-skills.yml # CI skill validation (main-targeting PRs only)
-│       └── validate-hooks.yml  # CI hook validation (main-targeting PRs only)
+│       ├── validate-skills.yml     # CI skill validation (main-targeting PRs only)
+│       ├── validate-hooks.yml      # CI hook validation (main-targeting PRs only)
+│       └── validate-pr-target.yml  # Enforce develop-only merges to main
 │
 ├── docs/                        # Design docs and guides
 │   ├── branching-strategy.md   # Branch model, CI policy, release workflow
@@ -398,6 +402,11 @@ These behaviors activate immediately after installation — no configuration nee
 - Known problematic Claude Code versions trigger a warning
 - Old temporary files are cleaned up on session end
 - Context is snapshot before auto-compaction
+
+### When you create PRs
+- PRs targeting `main` from non-`develop` branches are blocked (PreToolUse hook)
+- Server-side: GitHub Actions auto-closes violating PRs with an explanatory comment
+- Release PRs (`develop` → `main`) are allowed through the `/release` skill
 
 ### When using Agent Teams
 - Concurrent team count is limited (configurable via `MAX_TEAMS`)
