@@ -71,8 +71,12 @@ git fetch --prune origin
 # Get current branch
 CURRENT_BRANCH=$(git branch --show-current)
 
-# List branches merged into main/master
-MERGED_BRANCHES=$(git branch --merged main 2>/dev/null || git branch --merged master)
+# List branches merged into develop, main, or master
+MERGED_BRANCHES=$(
+  { git branch --merged develop 2>/dev/null; \
+    git branch --merged main 2>/dev/null; \
+    git branch --merged master 2>/dev/null; } | sort -u
+)
 
 # Filter out protected branches and current branch
 echo "$MERGED_BRANCHES" | grep -v -E "^\*|main|master|develop|release/|hotfix/"

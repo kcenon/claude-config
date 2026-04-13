@@ -2,6 +2,10 @@
 
 ## Changelog
 
+- **1.8.0** (2026-04-13): Add branching strategy rule
+  - Added `workflow/branching-strategy.md` with branch model, workflow, and CI policy (`alwaysApply: true`)
+  - Updated `CLAUDE.md` Auto-Loaded Rules to reference new branching-strategy rule
+
 - **1.7.0** (2026-04-08): Sync behavioral guardrails and platform fixes from global v1.7.0
   - Added behavioral guardrails to core/principles.md (focus, 3-failure escape hatch, bias toward execution)
   - Added platform notes to core/environment.md (UTF-8 BOM for PowerShell, Mermaid preference)

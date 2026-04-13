@@ -18,6 +18,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Log session activity | [Session Logging](#3-session-logging-sessionstartsessionend) |
 | Check for known Claude Code bugs | [Version Check](#8-version-check-sessionstart) |
 | Validate commit messages before git commit | [Commit Message Guard](#10-commit-message-guard-pretooluse) |
+| Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
 | Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
 | Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
 
@@ -439,6 +440,38 @@ which black
 which prettier
 which clang-format
 ```
+
+## Git Hooks: Pre-push Protected Branch Guard
+
+*Prevent accidental pushes to main or develop — requires pull request workflow for protected branches.*
+
+> **Note**: This is a standard git hook (`.git/hooks/pre-push`), not a Claude Code event hook. It runs whenever `git push` is executed, regardless of whether Claude Code is active.
+
+**Purpose**: Block direct pushes to protected branches (`main`, `develop`)
+
+**Install**: `./hooks/install-hooks.sh` (or `.\hooks\install-hooks.ps1` on Windows)
+
+**Protected branches**: `main`, `develop`
+
+**How it works**:
+1. Git invokes the hook before pushing, passing remote info via stdin
+2. The hook extracts the target branch from each ref being pushed
+3. If the target branch matches a protected branch, the push is blocked with an error message
+4. The error message guides the user to use the feature-branch + pull request workflow
+
+**Behavior**:
+- Exits with code 1 to block the push when targeting a protected branch
+- Exits with code 0 to allow the push for non-protected branches
+- Bypass: `git push --no-verify` (forbidden by project policy)
+
+**Cross-platform**:
+
+| File | Runtime |
+|------|---------|
+| `hooks/pre-push` | bash |
+| `hooks/pre-push.ps1` | PowerShell 7+ |
+
+---
 
 ## References
 

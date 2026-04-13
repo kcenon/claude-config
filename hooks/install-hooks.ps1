@@ -87,6 +87,31 @@ if (Test-Path -LiteralPath $commitMsgDst) {
     Write-SuccessMessage "commit-msg hook 설치 완료!"
 }
 
+# ── Install pre-push hook ──────────────────────────────────
+
+Write-Host ""
+Write-InfoMessage "pre-push hook 설치 중..."
+
+$prePushDst = Join-Path $GitHooksDir 'pre-push'
+
+if (Test-Path -LiteralPath $prePushDst) {
+    Write-WarningMessage "기존 pre-push hook이 존재합니다."
+    $reply = Read-Host "덮어쓰시겠습니까? (y/n)"
+    if ($reply -ne 'y' -and $reply -ne 'Y') {
+        Write-InfoMessage "pre-push 설치를 건너뜁니다."
+    } else {
+        $prePushSrc = Join-Path $ScriptDir 'pre-push'
+        Copy-Item -LiteralPath $prePushSrc -Destination $prePushDst -Force
+        if (-not $IsWindows) { & chmod +x $prePushDst 2>$null }
+        Write-SuccessMessage "pre-push hook 설치 완료!"
+    }
+} else {
+    $prePushSrc = Join-Path $ScriptDir 'pre-push'
+    Copy-Item -LiteralPath $prePushSrc -Destination $prePushDst -Force
+    if (-not $IsWindows) { & chmod +x $prePushDst 2>$null }
+    Write-SuccessMessage "pre-push hook 설치 완료!"
+}
+
 # ── Install shared validation library ───────────────────────
 
 Write-InfoMessage "검증 라이브러리 설치 중..."
@@ -113,3 +138,4 @@ Get-ChildItem -LiteralPath $GitHooksDir -File |
 Write-Host ""
 Write-SuccessMessage "Git hooks 설치가 완료되었습니다."
 Write-InfoMessage "커밋 시 SKILL.md 검증과 커밋 메시지 검증이 자동으로 실행됩니다."
+Write-InfoMessage "push 시 보호 브랜치(main, develop) 직접 push가 차단됩니다."

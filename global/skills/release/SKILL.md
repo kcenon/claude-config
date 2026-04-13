@@ -223,17 +223,63 @@ Structure the changelog with categories:
 - chore: maintenance task (stu5678)
 ```
 
-### 5. Create Git Tag
+### 5. Create Release PR (develop -> main)
+
+Create a pull request from `develop` to `main` with the changelog as the PR body:
 
 ```bash
-# Create annotated tag
+# Ensure we are on the develop branch with latest changes
+git checkout develop
+git pull origin develop
+
+# Create release PR targeting main
+PR_URL=$(gh pr create --repo $ORG/$PROJECT \
+  --base main --head develop \
+  --title "release: v$VERSION" \
+  --body "$CHANGELOG")
+
+PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+echo "Created release PR #$PR_NUMBER: $PR_URL"
+```
+
+### 6. Monitor CI and Merge
+
+Wait for CI to pass on the release PR, then squash merge:
+
+```bash
+# Wait briefly for workflows to register
+sleep 8
+
+# Poll CI checks (30s intervals, 10min max)
+# See issue-work reference for full CI monitoring protocol
+gh pr checks $PR_NUMBER --repo $ORG/$PROJECT
+
+# ALL checks must pass before proceeding
+gh pr merge $PR_NUMBER --repo $ORG/$PROJECT --squash
+```
+
+**IMPORTANT**: Do NOT use `--delete-branch` — the `develop` branch must be retained.
+
+If CI fails, diagnose and fix on `develop`, push, and re-poll. Max 3 attempts.
+
+### 7. Create Git Tag on main
+
+```bash
+# Switch to main and pull the merged commit
+git checkout main
+git pull origin main
+
+# Create annotated tag on main
 git tag -a "v$VERSION" -m "Release v$VERSION"
 
 # Push tag to remote
 git push origin "v$VERSION"
+
+# Return to develop branch
+git checkout develop
 ```
 
-### 6. Create GitHub Release
+### 8. Create GitHub Release
 
 ```bash
 # Build release command

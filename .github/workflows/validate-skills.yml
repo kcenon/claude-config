@@ -1,13 +1,8 @@
 name: Validate Skills
 
 on:
-  push:
-    paths:
-      - 'project/.claude/skills/**'
-      - 'plugin/skills/**'
-      - 'global/skills/**'
-      - 'scripts/validate_skills.sh'
   pull_request:
+    branches: [main]
     paths:
       - 'project/.claude/skills/**'
       - 'plugin/skills/**'

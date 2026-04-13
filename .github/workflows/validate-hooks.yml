@@ -1,11 +1,8 @@
 name: Validate Hooks
 
 on:
-  push:
-    paths:
-      - 'global/hooks/**'
-      - 'tests/hooks/**'
   pull_request:
+    branches: [main]
     paths:
       - 'global/hooks/**'
       - 'tests/hooks/**'
