@@ -11,6 +11,7 @@ Loaded every session via `alwaysApply: true`:
 - `core/environment.md` -- KST timezone, Korean locale, platform notes
 - `workflow/git-commit-format.md` -- Conventional Commits format
 - `workflow/session-resume.md` -- Resume interrupted workflows
+- `workflow/branching-strategy.md` -- Branch model, CI policy
 
 ## On-Demand Rules (path-triggered)
 
