@@ -98,6 +98,10 @@ install_hook "pre-commit"
 echo ""
 install_hook "commit-msg"
 
+# pre-push hook 설치
+echo ""
+install_hook "pre-push"
+
 # 공유 검증 라이브러리 설치
 info "검증 라이브러리 설치 중..."
 mkdir -p "$GIT_HOOKS_DIR/lib"
@@ -112,3 +116,4 @@ ls -la "$GIT_HOOKS_DIR" | grep -v ".sample"
 echo ""
 success "Git hooks 설치가 완료되었습니다."
 info "커밋 시 SKILL.md 검증과 커밋 메시지 검증이 자동으로 실행됩니다."
+info "push 시 보호 브랜치(main, develop) 직접 push가 차단됩니다."
