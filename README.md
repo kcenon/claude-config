@@ -1,7 +1,7 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
-  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.7.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.9.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
 </p>
@@ -858,10 +858,24 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## Version
 
-**Current**: 1.7.0 (2026-04-06)
+**Current**: 1.9.0 (2026-04-13)
 
 <details>
 <summary>Changelog</summary>
+
+#### v1.9.0 (2026-04-13)
+- **Multi-layered branch defense**: Four enforcement layers to prevent non-release merges to `main`
+  - PreToolUse hook (`pr-target-guard`): blocks `gh pr create --base main` unless `--head develop`
+  - GitHub Actions (`validate-pr-target.yml`): auto-closes PRs targeting `main` from non-develop branches
+  - Release skill integrity check: detects main/develop divergence before release
+  - Documentation: enforcement layers table in branching-strategy.md
+- **CI fix**: Removed invalid inline Python heredoc blocks from `validate-skills.yml` that caused every workflow run to fail with YAML parse errors
+- **README updates**: Added "When you create PRs" section, updated directory tree with missing hooks and workflows
+
+#### v1.8.0 (2026-04-13)
+- **Simplified git-flow branching strategy**: develop as default branch, CI on main-targeting PRs only
+- **Pre-push hook**: blocks direct pushes to protected branches (main, develop)
+- **Branching documentation**: comprehensive branch model, CI policy, and release workflow guide
 
 #### v1.7.0 (2026-04-06)
 - **Full Windows PowerShell parity**: All 42 bash scripts now have PowerShell (.ps1) counterparts
