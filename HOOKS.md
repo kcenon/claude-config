@@ -18,6 +18,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Log session activity | [Session Logging](#3-session-logging-sessionstartsessionend) |
 | Check for known Claude Code bugs | [Version Check](#8-version-check-sessionstart) |
 | Validate commit messages before git commit | [Commit Message Guard](#10-commit-message-guard-pretooluse) |
+| Prevent git merge/rebase on dirty trees | [Conflict Guard](#11-conflict-guard-pretooluse) |
 | Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
 | Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
 | Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
@@ -223,6 +224,24 @@ Hooks are user-defined commands that automatically execute during specific Claud
 - Cross-platform: `commit-message-guard.sh` and `commit-message-guard.ps1`
 
 **Shared validation library**: Both this PreToolUse hook and the git `commit-msg` hook (installed by `hooks/install-hooks.sh`) source the same validator at `hooks/lib/validate-commit-message.sh`, ensuring rule consistency across enforcement layers.
+
+### 11. Conflict Guard (PreToolUse)
+
+*Prevents git merge/rebase/cherry-pick/pull when the working tree is dirty or another operation is already in progress.*
+
+**Purpose**: Block conflict-prone git operations when conditions would cause data loss or nested conflicts.
+
+**Trigger**: Bash commands matching `git merge`, `git rebase`, `git cherry-pick`, or `git pull`.
+
+**Checks performed**:
+1. **Existing operation**: Denies if `MERGE_HEAD`, `REBASE_HEAD`, or `CHERRY_PICK_HEAD` exists (another operation is in progress)
+2. **Uncommitted changes**: Denies if `git status --porcelain` is non-empty (dirty working tree)
+
+**Behavior**:
+- Returns JSON with `permissionDecision: "deny"` describing the blocking condition
+- Fail-open: if parsing fails or git is not available, the command is allowed
+- Advisory only (conflict prevention), not security-critical
+- Cross-platform: `conflict-guard.sh` and `conflict-guard.ps1`
 
 ### Hook Response Format
 
