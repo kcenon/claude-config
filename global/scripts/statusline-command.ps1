@@ -60,14 +60,33 @@ if (Get-Command ccstatusline -ErrorAction SilentlyContinue) {
 # off a background ccstatusline run with rate_limits stripped from stdin to
 # force fetchUsageData(). The next status bar refresh picks up the fresh file.
 $UsageCache = Join-Path $HOME ".cache" "ccstatusline" "usage.json"
+$UsageLock = Join-Path $HOME ".cache" "ccstatusline" "usage.lock"
 $UsageCacheTtl = 180
+
+# Detect ccstatusline's own rate-limit lock. When the OAuth usage API returns
+# 429, ccstatusline writes {"blockedUntil":<epoch>} into usage.lock; until that
+# timestamp passes, any spawned ccstatusline is a no-op. Skip the background
+# refresh in that window to avoid spawning wasted jobs every 30s, and expose
+# $lockRemaining so the Extra line can show the reason the values are stale.
+$lockRemaining = 0
+if (Test-Path $UsageLock) {
+    try {
+        $lockData = Get-Content $UsageLock -Raw | ConvertFrom-Json
+        $blockedUntil = [int64]$lockData.blockedUntil
+        $nowEpoch = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+        if ($blockedUntil -gt $nowEpoch) {
+            $lockRemaining = [int]($blockedUntil - $nowEpoch)
+        }
+    } catch { }
+}
+
 if ($CcslExe -and $StdinData) {
     $needsRefresh = $true
     if (Test-Path $UsageCache) {
         $cacheAge = (New-TimeSpan -Start (Get-Item $UsageCache).LastWriteTimeUtc -End ([DateTime]::UtcNow)).TotalSeconds
         if ($cacheAge -lt $UsageCacheTtl) { $needsRefresh = $false }
     }
-    if ($needsRefresh) {
+    if ($needsRefresh -and $lockRemaining -eq 0) {
         try {
             $stripped = $StdinData | Select-Object -Property * -ExcludeProperty rate_limits | ConvertTo-Json -Depth 32 -Compress
             Start-Job -ScriptBlock {
@@ -89,7 +108,20 @@ if (Test-Path $UsageCache) {
             $remainPct = [math]::Floor(100 - $usage.extraUsageUtilization)
             $ESC = [char]0x1B
             $c = if ($remainPct -gt 50) { '32' } elseif ($remainPct -gt 20) { '33' } else { '31' }
-            Write-Output "${ESC}[${c}mExtra: `$$usedUsd/`$$limitUsd (${remainPct}%)${ESC}[0m | ${ESC}[${c}mRemain: `$$remainUsd${ESC}[0m"
+
+            # When ccstatusline's usage lock is active, the cached values above
+            # are frozen until the lock expires. Append a dim-gray "(locked Nm)"
+            # marker so the user can tell the stale values are intentional.
+            $lockedSuffix = ""
+            if ($lockRemaining -gt 0) {
+                if ($lockRemaining -ge 60) {
+                    $lockedSuffix = " ${ESC}[90m(locked $([math]::Floor($lockRemaining / 60))m)${ESC}[0m"
+                } else {
+                    $lockedSuffix = " ${ESC}[90m(locked ${lockRemaining}s)${ESC}[0m"
+                }
+            }
+
+            Write-Output "${ESC}[${c}mExtra: `$$usedUsd/`$$limitUsd (${remainPct}%)${ESC}[0m | ${ESC}[${c}mRemain: `$$remainUsd${ESC}[0m${lockedSuffix}"
         }
     } catch { }
 }
