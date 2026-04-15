@@ -56,6 +56,8 @@ Analyze and fix failed CI/CD workflows for a pull request.
 
 - `[--force-large]`: Allow `--limit > 10`. Required to bypass the safe-batch cap.
 
+- `[--no-confirm]`: Skip the chunked confirmation gate fired every 5 items in batch mode. Intended for CI-driven or fully unattended batches; interactive sessions should leave it off so the gate can serve as both a user-control checkpoint and an attention refresh for accumulated context.
+
 - `[--dry-run]`: Show batch plan only, do not execute
 
 - `[--org <organization>]`: Scope to a specific GitHub organization
@@ -75,8 +77,10 @@ EXEC_MODE=""
 BATCH_MODE="single"   # single | single-repo | cross-repo
 BATCH_LIMIT=5
 MAX_LIMIT=10
+CONFIRM_INTERVAL=5
 DRY_RUN=false
 FORCE_LARGE=false
+NO_CONFIRM=false
 
 # Extract flags
 ORIGINAL_ARGS="$ARGS"
@@ -84,6 +88,7 @@ if [[ "$ARGS" == *"--solo"* ]]; then EXEC_MODE="solo"; ARGS=$(echo "$ARGS" | sed
 if [[ "$ARGS" == *"--team"* ]]; then EXEC_MODE="team"; ARGS=$(echo "$ARGS" | sed 's/--team//g'); fi
 if [[ "$ARGS" == *"--dry-run"* ]]; then DRY_RUN=true; ARGS=$(echo "$ARGS" | sed 's/--dry-run//g'); fi
 if [[ "$ARGS" == *"--force-large"* ]]; then FORCE_LARGE=true; ARGS=$(echo "$ARGS" | sed 's/--force-large//g'); fi
+if [[ "$ARGS" == *"--no-confirm"* ]]; then NO_CONFIRM=true; ARGS=$(echo "$ARGS" | sed 's/--no-confirm//g'); fi
 if [[ "$ARGS" =~ --limit[[:space:]]+([0-9]+) ]]; then BATCH_LIMIT="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--limit[[:space:]]+[0-9]+//g'); fi
 if [[ "$ARGS" =~ --org[[:space:]]+([^[:space:]]+) ]]; then ORG="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--org[[:space:]]+[^[:space:]]+//g'); fi
 
