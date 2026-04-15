@@ -34,6 +34,9 @@ jobs:
       - name: Run drift benchmark extractor tests
         run: bash tests/batch_drift_benchmark/test-extractors.sh
 
+      - name: Run scratch repo seeding tests
+        run: bash tests/batch_drift_benchmark/test-seed-scratch-repo.sh
+
   shellcheck:
     runs-on: ${{ matrix.os }}
     strategy:
