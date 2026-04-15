@@ -123,7 +123,64 @@ Use this exact template (substitute `${PROCESSED+1}` and `${TOTAL}`):
 
 ### B-4. Sequential Execution Loop
 
-Process each item one at a time:
+Process each item one at a time. The default dispatch strategy is **subagent delegation**: each item is handed off to a fresh `general-purpose` Agent so the parent's attention pool is not polluted by gh outputs, build logs, and file reads. Pass `--inline` at the command line to use the legacy single-context loop instead.
+
+#### B-4.a. Default — Subagent Delegation
+
+```
+PROCESSED=0
+RESULTS=[]   # Parent-side queue: only {item_id, repo, title, mode, status, pr_url, ci_conclusion}
+
+for each item in approved batch plan:
+    1. Log progress: "[N/TOTAL] Dispatching: $REPO #$ISSUE_NUMBER — $TITLE ($MODE)"
+
+    2. Delegate the full single-item workflow to a fresh subagent:
+
+       Agent(
+           subagent_type: "general-purpose",
+           description: "Process $REPO #$ISSUE_NUMBER",
+           prompt: """
+               Execute /issue-work $REPO $ISSUE_NUMBER --$MODE with full CLAUDE.md compliance.
+
+               Required rules (do not skip):
+               - PR title/body, commit messages, issue comments: English only
+               - Commit format: type(scope): description (no Claude/AI attribution, no emojis)
+               - ABSOLUTE CI GATE: gh pr checks must show every check passing before merge
+               - Branch: feature off develop, squash merge back via PR
+
+               Run Solo Mode Steps 1-12 (or Team Mode T-1 through T-6 for team mode). If team
+               mode, you MUST call TeamDelete() after completing the item.
+
+               Report under 100 words as a single JSON line:
+               {"item": "$REPO#$ISSUE_NUMBER", "status": "merged|failed|skipped",
+                "pr_url": "https://github.com/...", "ci_conclusion": "success|failure|timeout",
+                "reason": "<short reason if not merged>"}
+           """
+       )
+
+    3. Parse the subagent's final JSON line and append it to RESULTS.
+       Do NOT retain the full subagent transcript — the 100-word summary IS the parent-side record.
+
+    4. Write batch progress to .claude/resume.md (for session recovery)
+
+    5. Log completion: "[N/TOTAL] Completed: $REPO #$ISSUE_NUMBER — $status"
+
+    6. Pause 2 seconds between items (rate limiting)
+
+    7. PROCESSED=$((PROCESSED + 1))
+       Chunked confirmation gate (see B-4.1) — fires every CONFIRM_INTERVAL
+       items and only when more items remain.
+```
+
+**Why delegation is the default**: Subagents start with a fresh system prompt + CLAUDE.md attention pool. Item 30 in a delegated batch has the same context discipline as item 1 in a brand-new session. This is the most structurally robust mitigation short of process-level isolation, and it reuses Claude Code's built-in subagent infrastructure.
+
+**Parent-side state budget**: ~100 words per item. A 30-item delegated batch costs the parent ~3K tokens of queue state, versus ~150K tokens of accumulated tool output in an inline batch of the same size. The `RESULTS` queue is the single source of truth for the B-5 summary.
+
+**Inside the subagent**: The subagent runs the single-item Solo or Team workflow verbatim, including its own `TeamDelete()` cleanup for team-mode items. It does not know it is part of a batch, so it cannot be distracted by prior items.
+
+#### B-4.b. Legacy — Inline Execution (`--inline` flag)
+
+When `$INLINE_MODE == "true"`, fall back to processing each item directly in the parent context:
 
 ```
 PROCESSED=0
@@ -138,7 +195,7 @@ for each item in approved batch plan:
        - $ISSUE_NUMBER from item
        - $EXEC_MODE from estimated mode (solo or team)
 
-    3. Execute the single-item workflow:
+    3. Execute the single-item workflow directly in the parent context:
        - If solo: run Solo Mode Steps 1-12
        - If team: run Team Mode Steps T-1 through T-6
        Ensure TeamDelete() is called after each team-mode item.
@@ -158,6 +215,22 @@ for each item in approved batch plan:
        Chunked confirmation gate (see B-4.1) — fires every CONFIRM_INTERVAL
        items and only when more items remain.
 ```
+
+Use `--inline` for tiny batches (≤3 items) or when several issues share a root cause and inter-item context is actually a feature, not a bug.
+
+#### B-4.c. Delegation vs Inline Trade-offs
+
+| Dimension | Subagent delegation (default) | Inline (`--inline`) |
+|-----------|-------------------------------|---------------------|
+| Parent context growth per item | ~100 words (fixed) | ~5K tokens (accumulating) |
+| Rule compliance at item 30 | Matches item 1 | Drift visible around items 15-25 |
+| Token overhead vs inline | +10-15% (subagent startup cost) | Baseline |
+| Inter-item context | None (each item fresh) | Preserved (can reference prior fixes) |
+| Team-mode cleanup | Subagent owns `TeamDelete()` | Parent owns `TeamDelete()` |
+| Failure blast radius | Isolated to subagent | Can corrupt parent state |
+| Best for | Batches >3 items, long runs | Tiny batches, related fixes sharing context |
+
+**Rule of thumb**: Default to delegation. Only reach for `--inline` when you can name a specific reason the inter-item context matters. If you find yourself adding `--inline` out of habit, you are paying for rule drift you did not want.
 
 ### B-4.1. Chunked Confirmation Gate
 
