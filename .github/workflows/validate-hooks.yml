@@ -5,7 +5,9 @@ on:
     branches: [main]
     paths:
       - 'global/hooks/**'
+      - 'hooks/**'
       - 'tests/hooks/**'
+      - 'tests/batch_drift_benchmark/**'
 
 jobs:
   test:
@@ -29,6 +31,9 @@ jobs:
       - name: Run hook tests
         run: bash tests/hooks/test-runner.sh
 
+      - name: Run drift benchmark extractor tests
+        run: bash tests/batch_drift_benchmark/test-extractors.sh
+
   shellcheck:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -50,7 +55,7 @@ jobs:
       - name: Run shellcheck on hook scripts
         run: |
           failed=0
-          for script in global/hooks/*.sh; do
+          for script in global/hooks/*.sh tests/batch_drift_benchmark/*.sh; do
             echo "Checking $script..."
             if ! shellcheck -S warning -e SC2086 "$script"; then
               failed=1
