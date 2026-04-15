@@ -241,39 +241,94 @@ Use `--inline` for tiny batches (<=3 items) or when several PRs share a root cau
 
 ## B-4.1. Chunked Confirmation Gate
 
-After every `CONFIRM_INTERVAL` items (default 5), and only while items remain in the batch, halt execution and prompt the user via `AskUserQuestion`. Skip the gate entirely when `--no-confirm` was passed.
+After every `CONFIRM_INTERVAL` items (default 5), and only while items remain in the batch, halt execution. Three mutually exclusive behaviors are possible depending on the flags passed at invocation:
+
+| Flags | Gate behavior at every `CONFIRM_INTERVAL` items |
+|-------|-------------------------------------------------|
+| `--no-confirm` | Gate skipped entirely. Loop runs straight through. |
+| `--auto-restart` (and NOT `--no-restart`) | Forced session restart: write `.claude/resume.md`, print a resume hint, and `exit 0`. |
+| Default (neither flag) | Interactive `AskUserQuestion` prompt with Continue / Pause / Cancel options. |
+| `--auto-restart --no-restart` | `--no-restart` wins: falls back to the interactive gate. |
 
 ```
-if [[ "$NO_CONFIRM" != "true" ]] \
-   && (( PROCESSED % CONFIRM_INTERVAL == 0 )) \
-   && (( PROCESSED < TOTAL )); then
-    decision=$(AskUserQuestion
-        question="Processed ${PROCESSED}/${TOTAL} PRs. Continue, pause, or cancel?"
-        header="Batch gate"
-        options=(
-            "Continue (Recommended)" "Resume the next chunk of ${CONFIRM_INTERVAL} PRs."
-            "Pause and save resume state" "Write .claude/resume.md and exit; the next session can pick up from item $((PROCESSED + 1))."
-            "Cancel batch" "Stop now without writing resume state. Already-fixed PRs stay fixed."
+if (( PROCESSED % CONFIRM_INTERVAL == 0 )) && (( PROCESSED < TOTAL )); then
+    if [[ "$NO_CONFIRM" == "true" ]]; then
+        : # gate disabled; fall through to next PR
+    elif [[ "$AUTO_RESTART" == "true" && "$NO_RESTART" != "true" ]]; then
+        # Forced session restart for full process-level attention reset.
+        # Dense CI log accumulation in pr-work makes this the strongest
+        # available mitigation short of spawning a separate OS process.
+        write_resume_md_for_batch
+        echo "[${PROCESSED}/${TOTAL}] Session restart triggered for context refresh."
+        echo "Resume with: claude  (.claude/resume.md will be detected automatically)"
+        exit 0
+    else
+        decision=$(AskUserQuestion
+            question="Processed ${PROCESSED}/${TOTAL} PRs. Continue, pause, or cancel?"
+            header="Batch gate"
+            options=(
+                "Continue (Recommended)" "Resume the next chunk of ${CONFIRM_INTERVAL} PRs."
+                "Pause and save resume state" "Write .claude/resume.md and exit; the next session can pick up from item $((PROCESSED + 1))."
+                "Cancel batch" "Stop now without writing resume state. Already-fixed PRs stay fixed."
+            )
         )
-    )
-    case "$decision" in
-        Pause*) write_resume_md_for_batch; exit 0 ;;
-        Cancel*) exit 0 ;;
-        Continue*) : ;;  # fall through to next item
-    esac
+        case "$decision" in
+            Pause*) write_resume_md_for_batch; exit 0 ;;
+            Cancel*) exit 0 ;;
+            Continue*) : ;;  # fall through to next PR
+        esac
+    fi
 fi
 ```
 
-**Why the gate matters beyond user control**: Each `AskUserQuestion` prompt produces a fresh user message in the conversation. That message acts as an attention anchor -- when the model responds, recently-buried `CLAUDE.md` rules and skill instructions regain salience. The gate doubles as both an interactive checkpoint and a context-refresh mechanism for long-running batches, which is particularly valuable in `pr-work` where each item involves dense CI log analysis.
+**Why the interactive gate matters beyond user control**: Each `AskUserQuestion` prompt produces a fresh user message in the conversation. That message acts as an attention anchor -- when the model responds, recently-buried `CLAUDE.md` rules and skill instructions regain salience. The gate doubles as both an interactive checkpoint and a context-refresh mechanism for long-running batches, which is particularly valuable in `pr-work` where each item involves dense CI log analysis.
 
-**Resume state on pause**: When the user chooses "Pause", write `.claude/resume.md` per the `session-resume` workflow. Use the **Batch Workflow Resume Format** described in `workflow/reference/session-resume-templates.md` so a future session can pick up at item `$((PROCESSED + 1))`.
+**Why `--auto-restart` goes further**: An interactive gate still runs inside the same Claude process, so accumulated CI log fetches, diff reads, and gh outputs remain in the context window even after the user clicks "Continue". `--auto-restart` ends the process entirely: a fresh `claude` session starts with an empty tool-result history, the full CLAUDE.md and skill files reloaded at position zero, and resumes work from `resume.md`. For `pr-work` batches specifically, where each failed PR brings its own CI log payload, this is the strongest context cleanup available short of spawning a separate OS process per PR.
+
+**Resume state on pause or auto-restart**: Both `Pause` (interactive) and `--auto-restart` call `write_resume_md_for_batch`, which writes `.claude/resume.md` using the **Batch Workflow Resume Format** described in `workflow/reference/session-resume-templates.md`. The file must include the per-PR progress table so a future session can distinguish `DONE`, `IN PROGRESS`, and `PENDING` PRs and pick up at `$((PROCESSED + 1))`.
+
+Minimal shape of `write_resume_md_for_batch`:
+
+```
+write_resume_md_for_batch() {
+    mkdir -p .claude
+    cat > .claude/resume.md <<EOF
+# Session Resume State
+
+**Saved**: $(date '+%Y-%m-%d %H:%M KST')
+**Workflow**: pr-work (batch)
+
+## Batch Context
+
+| Field | Value |
+|-------|-------|
+| Batch Mode | ${BATCH_MODE} |
+| Total Items | ${TOTAL} |
+| Completed | ${PROCESSED} |
+| Current Item | $((PROCESSED + 1)) |
+
+## Batch Progress
+
+${BATCH_PROGRESS_TABLE}
+
+## Next Action
+
+Continue batch from PR $((PROCESSED + 1)). Invocation flags: ${ORIGINAL_FLAGS}.
+EOF
+}
+```
 
 **`--no-confirm` use cases**:
 - CI-driven `pr-work` invocations where a separate orchestrator monitors the run
 - Recovery scripts that retry transient CI failures programmatically
 - `--dry-run` follow-up runs already pre-approved by the operator
 
-In interactive sessions, leave it off -- the attention-refresh side effect is one of the strongest available drift mitigations for long PR-fixing batches.
+**`--auto-restart` use cases**:
+- Very long unattended batches (near or above `--limit 10`) where interactive confirmation is impractical but rule drift is a concern
+- Overnight or CI-dispatched batches paired with a wrapper that re-invokes `claude` on exit (see the external orchestrator pattern)
+- Recovery runs after a crash where starting each chunk with a clean slate is safer than resuming a long in-memory session
+
+In interactive sessions without a wrapper to restart the process, leave `--auto-restart` off -- the attention-refresh side effect of the interactive gate is the strongest drift mitigation available without actually exiting.
 
 **Failure handling per item:**
 - CI failure after 3 retries -> mark FAILED, add escalation comment to PR, continue to next
