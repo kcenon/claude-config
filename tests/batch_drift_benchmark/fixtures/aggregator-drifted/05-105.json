@@ -1,0 +1,10 @@
+{
+  "issue_number": 5,
+  "pr_number": 105,
+  "pr_body": "Implements typo fix for file-05.\n\nCloses #5",
+  "pr_json": {
+    "mergedAt": "2026-04-15T10:04:00Z",
+    "statusCheckRollup": [{"conclusion": "SUCCESS"}]
+  },
+  "commit_messages": "fix(docs): correct typo in file-05.md"
+}

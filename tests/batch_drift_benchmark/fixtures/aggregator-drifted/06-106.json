@@ -1,0 +1,10 @@
+{
+  "issue_number": 0,
+  "pr_number": 106,
+  "pr_body": "한글 본문. AI-assisted change. No closing keyword.",
+  "pr_json": {
+    "mergedAt": "2026-04-15T10:05:00Z",
+    "statusCheckRollup": [{"conclusion": "FAILURE"}]
+  },
+  "commit_messages": "Added the thing"
+}
