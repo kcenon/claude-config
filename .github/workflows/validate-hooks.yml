@@ -37,6 +37,12 @@ jobs:
       - name: Run scratch repo seeding tests
         run: bash tests/batch_drift_benchmark/test-seed-scratch-repo.sh
 
+      - name: Run aggregator tests
+        run: bash tests/batch_drift_benchmark/test-aggregate-results.sh
+
+      - name: Run benchmark orchestrator tests
+        run: bash tests/batch_drift_benchmark/test-run-benchmark.sh
+
   shellcheck:
     runs-on: ${{ matrix.os }}
     strategy:
