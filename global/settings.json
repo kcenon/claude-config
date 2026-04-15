@@ -80,6 +80,11 @@
             "type": "command",
             "command": "~/.claude/hooks/pr-target-guard.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/pr-language-guard.sh",
+            "timeout": 5
           }
         ]
       },

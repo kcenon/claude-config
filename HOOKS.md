@@ -20,6 +20,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Validate commit messages before git commit | [Commit Message Guard](#10-commit-message-guard-pretooluse) |
 | Prevent git merge/rebase on dirty trees | [Conflict Guard](#11-conflict-guard-pretooluse) |
 | Block PRs targeting main from non-develop branches | [PR Target Guard](#12-pr-target-guard-pretooluse) |
+| Block non-English titles/bodies in gh PR/issue commands | [PR Language Guard](#13-pr-language-guard-pretooluse) |
 | Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
 | Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
 | Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
@@ -274,6 +275,57 @@ Hooks are user-defined commands that automatically execute during specific Claud
   "type": "command",
   "command": "~/.claude/hooks/pr-target-guard.sh",
   "timeout": 5
+}
+```
+
+### 13. PR Language Guard (PreToolUse)
+
+*Hard-blocks non-English titles and bodies in `gh pr` and `gh issue` commands — eliminates the rule drift that lets Korean PR/issue content slip through in long-running batch workflows.*
+
+**Purpose**: Enforces the "All GitHub Issues and Pull Requests must be written in English" rule from `commit-settings.md` at the Bash tool boundary. Mirrors the `commit-message-guard` enforcement model that proved effective for commit messages.
+
+**Trigger**: `Bash` tool calls matching `gh (pr|issue) (create|edit|comment)`.
+
+**Files**: `global/hooks/pr-language-guard.sh`, `global/hooks/pr-language-guard.ps1`
+
+**Shared validation library**: `hooks/lib/validate-language.sh` (single source of truth — same pattern as `validate-commit-message.sh`).
+
+**Logic**:
+1. Scope gate: only process `gh (pr|issue) (create|edit|comment)` commands (all others pass through). Six combinations are guarded — `gh pr create`, `gh pr edit`, `gh pr comment`, `gh issue create`, `gh issue edit`, `gh issue comment`.
+2. Skip command-substitution / heredoc bodies (`--body "$(...)"`) and `--body-file` references — these cannot be parsed at the shell layer, so the hook defers to other safeguards.
+3. Extract `--title` / `-t` and `--body` / `-b` values, supporting both double-quoted and single-quoted forms and `--flag value` / `--flag=value` layouts.
+4. Reject if any extracted value contains a byte outside ASCII printable (0x20-0x7E) or ASCII whitespace (0x09-0x0D).
+5. Deny reason includes the first offending character so Claude can self-correct (e.g. `first: '한'`).
+
+**Allowed characters**: ASCII printable (0x20-0x7E) and ASCII whitespace (tab, LF, VT, FF, CR). Anything else — accented Latin, CJK, emoji, symbols outside ASCII — is blocked.
+
+**Not covered**: `gh pr review --body` is intentionally not guarded (review comments may have different tone/content needs and would warrant a separate policy decision).
+
+**Fail policy**: Fail-open. If stdin parsing fails or the command is unrecognized, the hook returns `allow`. Server-side review and `commit-msg` hooks remain as additional layers.
+
+**Behavior**:
+- Returns JSON with `permissionDecision: "deny"` listing the first non-ASCII grapheme found
+- Defers to other layers for command-substitution and `--body-file` cases
+- Timeout: 5 seconds
+- Cross-platform: `pr-language-guard.sh` and `pr-language-guard.ps1`
+
+**Configuration**:
+```json
+{
+  "type": "command",
+  "command": "~/.claude/hooks/pr-language-guard.sh",
+  "timeout": 5
+}
+```
+
+**Example deny response**:
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "PR/issue --body rejected: Text contains non-ASCII characters (first run: '한국어'). GitHub Issues and Pull Requests must be written in English only — see commit-settings.md."
+  }
 }
 ```
 
