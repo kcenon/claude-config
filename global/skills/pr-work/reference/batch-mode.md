@@ -110,6 +110,24 @@ Present the batch plan as a table. Use `AskUserQuestion` for a single approval:
 
 If `--dry-run` is set, display the plan and exit without prompting.
 
+## B-4.0. Per-Item Rule Reminder
+
+Before starting work on each PR, emit a 5-line reminder block as a fresh tool result so the rules sit in the recent attention window instead of being buried by accumulating context. The reminder must be **exactly 5 lines or fewer** to keep the per-iteration token cost bounded.
+
+Use this exact template (substitute `${PROCESSED+1}` and `${TOTAL}`):
+
+```
+[Item ${PROCESSED+1}/${TOTAL}] Required rules:
+- PR title/body, commit messages, issue comments: English only
+- Commit format: type(scope): description (no Claude/AI attribution, no emojis)
+- ABSOLUTE CI GATE: gh pr checks must show every check passing before merge
+- Never rationalize a CI failure as "unrelated" or "pre-existing"
+```
+
+**Why inline instead of @load**: A `@load: reference/...` call at batch start surfaces the doc once, after which the model's attention drifts as tool results accumulate. Inlining the same invariants per iteration makes them part of the most recent tool output every time, which is where attention is strongest. The 5-line cap keeps the cumulative cost linear in batch size but still tiny (~25 tokens per item).
+
+**No reference loads inside the loop**: Do not call `@load: reference/error-handling.md`, `@load: reference/ci-debugging.md`, or any other reference file from inside the per-item loop. If the single-item workflow needs a reference doc, the Solo/Team workflow loads it on its own -- keep the loop free of additional loads so the inline reminder remains the most recent context anchor.
+
 ## B-4. Sequential Execution Loop
 
 Process each item one at a time:
@@ -118,6 +136,9 @@ Process each item one at a time:
 PROCESSED=0
 for each item in approved batch plan:
     1. Log progress: "[N/TOTAL] Starting: $REPO PR #$PR_NUMBER -- $TITLE ($MODE)"
+
+    1a. Emit inline rule reminder (see B-4.0). Do NOT @load any reference
+        files inside the loop -- the per-item reminder replaces that role.
 
     2. Set context variables for this item:
        - $ORG, $PROJECT from repo

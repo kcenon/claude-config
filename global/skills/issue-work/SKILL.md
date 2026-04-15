@@ -140,6 +140,11 @@ fi
 
 See `reference/batch-mode.md` for the complete batch mode workflow including discovery, priority sorting, plan approval, and sequential execution.
 
+**Batch-only behaviors** (do not apply in single-item mode):
+- **Per-item rule reminder** (B-4.0): a 5-line invariant block is emitted as a fresh tool result before each item so language/CI/attribution rules stay in the recent attention window.
+- **No `@load: reference/...` inside the per-item loop**: keep the inline reminder as the most recent context anchor.
+- **Chunked confirmation gate** (B-4.1): user confirmation prompt every 5 items, bypassable with `--no-confirm`.
+
 ---
 
 ### Phase 0: Execution Mode Selection (Single-Item Mode)
