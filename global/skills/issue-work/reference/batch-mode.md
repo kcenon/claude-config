@@ -55,7 +55,8 @@ Sort ALL_ISSUES by: score ascending → `createdAt` ascending → repo name asce
 
 Apply filters:
 - `--priority <level>`: exclude issues below the specified priority level
-- `--limit N`: take only the first N items after sorting (default: 20, max: 50)
+- `--limit N`: take only the first N items after sorting (default: 5, max: 10)
+  - Values above 10 require `--force-large` to bypass the safe-batch cap. The cap exists because rule drift becomes empirically visible around items 15-25 in long batches; keeping batches at 5 by default preserves rule fidelity, and large runs require explicit operator acknowledgment.
 
 If no issues found after filtering, report "No open issues found matching criteria" and exit.
 
