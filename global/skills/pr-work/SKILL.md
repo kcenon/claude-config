@@ -1,7 +1,7 @@
 ---
 name: pr-work
 description: "Analyze and fix failed CI/CD workflows for a pull request. Use when CI checks fail, GitHub Actions show red, build/test/lint errors block a PR, or the user says 'fix CI', 'fix the build', 'PR is failing', or 'check failed'. Supports solo, team, and batch modes with automated retry and escalation."
-argument-hint: "[project-name] [pr-number] [--solo|--team] [--limit N] [--dry-run]"
+argument-hint: "[project-name] [pr-number] [--solo|--team] [--limit N] [--dry-run] [--inline]"
 user-invocable: true
 ---
 
@@ -32,6 +32,7 @@ Analyze and fix failed CI/CD workflows for a pull request.
 /pr-work --org mycompany                            # Batch: all repos in org
 /pr-work hospital_erp_system --limit 5              # Batch: top 5 failing PRs
 /pr-work hospital_erp_system --dry-run              # Preview batch plan only
+/pr-work hospital_erp_system --inline               # Batch: process items in the parent context (legacy)
 ```
 
 ## Arguments
@@ -60,6 +61,11 @@ Analyze and fix failed CI/CD workflows for a pull request.
 
 - `[--dry-run]`: Show batch plan only, do not execute
 
+- `[--inline]`: Process each batch item in the parent conversation context instead of delegating to a fresh subagent.
+  - **Default (omitted)**: Each failing PR is handled by a fresh `general-purpose` Agent. The parent keeps only the queue state and a short per-item summary; CI log fetches, diff reads, and build outputs live inside the subagent and are discarded on completion. This is the preferred mode for batches >3 items because rule compliance at item 30 looks like item 1.
+  - **With `--inline`**: The parent executes Solo/Team workflow directly for every item. Lower token overhead (~10-15% savings) but accumulated CI log noise drives rule drift around items 15-25. Use for tiny batches (≤3 items) or when several PRs share a root cause and you want cross-item context.
+  - Ignored in single-item mode.
+
 - `[--org <organization>]`: Scope to a specific GitHub organization
 
 **Auto-checkout**: In single-item mode, the command automatically detects and checks out the PR's branch.
@@ -81,6 +87,7 @@ CONFIRM_INTERVAL=5
 DRY_RUN=false
 FORCE_LARGE=false
 NO_CONFIRM=false
+INLINE_MODE=false
 
 # Extract flags
 ORIGINAL_ARGS="$ARGS"
@@ -89,6 +96,7 @@ if [[ "$ARGS" == *"--team"* ]]; then EXEC_MODE="team"; ARGS=$(echo "$ARGS" | sed
 if [[ "$ARGS" == *"--dry-run"* ]]; then DRY_RUN=true; ARGS=$(echo "$ARGS" | sed 's/--dry-run//g'); fi
 if [[ "$ARGS" == *"--force-large"* ]]; then FORCE_LARGE=true; ARGS=$(echo "$ARGS" | sed 's/--force-large//g'); fi
 if [[ "$ARGS" == *"--no-confirm"* ]]; then NO_CONFIRM=true; ARGS=$(echo "$ARGS" | sed 's/--no-confirm//g'); fi
+if [[ "$ARGS" == *"--inline"* ]]; then INLINE_MODE=true; ARGS=$(echo "$ARGS" | sed 's/--inline//g'); fi
 if [[ "$ARGS" =~ --limit[[:space:]]+([0-9]+) ]]; then BATCH_LIMIT="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--limit[[:space:]]+[0-9]+//g'); fi
 if [[ "$ARGS" =~ --org[[:space:]]+([^[:space:]]+) ]]; then ORG="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--org[[:space:]]+[^[:space:]]+//g'); fi
 
@@ -169,7 +177,8 @@ fi
 See `reference/batch-mode.md` for the complete batch mode workflow including discovery, priority sorting, plan approval, and sequential execution.
 
 **Batch-only behaviors** (do not apply in single-item mode):
-- **Per-item rule reminder** (B-4.0): a 5-line invariant block is emitted as a fresh tool result before each PR so language/CI/attribution rules stay in the recent attention window.
+- **Subagent delegation by default** (B-4): each failing PR is dispatched to a fresh `general-purpose` Agent so CI log fetches and file reads live inside the subagent and never reach the parent. The parent retains only `{pr_number, repo, status, ci_conclusion}` per item. Pass `--inline` to fall back to the legacy single-context loop.
+- **Per-item rule reminder** (B-4.0): a 5-line invariant block is emitted as a fresh tool result before each PR so language/CI/attribution rules stay in the recent attention window. In delegated mode this reminder is embedded in the subagent prompt; in `--inline` mode it is emitted directly in the parent context.
 - **No `@load: reference/...` inside the per-item loop**: keep the inline reminder as the most recent context anchor.
 - **Chunked confirmation gate** (B-4.1): user confirmation prompt every 5 items, bypassable with `--no-confirm`.
 
