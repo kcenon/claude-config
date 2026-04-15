@@ -51,6 +51,10 @@ Automate GitHub issue workflow with project name as argument.
 
 - `[--no-confirm]`: Skip the chunked confirmation gate fired every 5 items in batch mode. Intended for CI-driven or fully unattended batches; interactive sessions should leave it off so the gate can serve as both a user-control checkpoint and an attention refresh for accumulated context.
 
+- `[--auto-restart]`: Force a session restart every `CONFIRM_INTERVAL` items instead of showing the interactive chunked gate. The batch writes `.claude/resume.md` using the Batch Workflow Resume Format and exits cleanly; a fresh `claude` session picks up the next item from the resume file. Use for long unattended batches where a full process-level attention reset per chunk matters more than human confirmation. Ignored in single-item mode.
+
+- `[--no-restart]`: Suppress the forced restart. When combined with `--auto-restart`, the batch falls back to the interactive chunked gate. Meaningful primarily as a defensive flag in scripts that want to guarantee no session exit even if `--auto-restart` is set elsewhere (aliases, wrappers, or a future default change).
+
 - `[--dry-run]`: Show batch plan only, do not execute
 
 - `[--inline]`: Process each batch item in the parent conversation context instead of delegating to a fresh subagent.
@@ -68,7 +72,7 @@ Parse `$ARGUMENTS` and extract project, organization, issue number, and batch fl
 ```bash
 ARGS="$ARGUMENTS"
 ISSUE_NUMBER="" PROJECT="" ORG="" EXEC_MODE=""
-BATCH_MODE="single"  BATCH_LIMIT=5  DRY_RUN=false  PRIORITY_FILTER="all"  FORCE_LARGE=false  NO_CONFIRM=false  INLINE_MODE=false
+BATCH_MODE="single"  BATCH_LIMIT=5  DRY_RUN=false  PRIORITY_FILTER="all"  FORCE_LARGE=false  NO_CONFIRM=false  INLINE_MODE=false  AUTO_RESTART=false  NO_RESTART=false
 MAX_LIMIT=10
 CONFIRM_INTERVAL=5
 
@@ -78,6 +82,8 @@ if [[ "$ARGS" == *"--team"* ]]; then EXEC_MODE="team"; ARGS=$(echo "$ARGS" | sed
 if [[ "$ARGS" == *"--dry-run"* ]]; then DRY_RUN=true; ARGS=$(echo "$ARGS" | sed 's/--dry-run//g'); fi
 if [[ "$ARGS" == *"--force-large"* ]]; then FORCE_LARGE=true; ARGS=$(echo "$ARGS" | sed 's/--force-large//g'); fi
 if [[ "$ARGS" == *"--no-confirm"* ]]; then NO_CONFIRM=true; ARGS=$(echo "$ARGS" | sed 's/--no-confirm//g'); fi
+if [[ "$ARGS" == *"--no-restart"* ]]; then NO_RESTART=true; ARGS=$(echo "$ARGS" | sed 's/--no-restart//g'); fi
+if [[ "$ARGS" == *"--auto-restart"* ]]; then AUTO_RESTART=true; ARGS=$(echo "$ARGS" | sed 's/--auto-restart//g'); fi
 if [[ "$ARGS" == *"--inline"* ]]; then INLINE_MODE=true; ARGS=$(echo "$ARGS" | sed 's/--inline//g'); fi
 if [[ "$ARGS" =~ --limit[[:space:]]+([0-9]+) ]]; then BATCH_LIMIT="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--limit[[:space:]]+[0-9]+//g'); fi
 if [[ "$ARGS" =~ --priority[[:space:]]+(critical|high|medium|low|all) ]]; then PRIORITY_FILTER="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--priority[[:space:]]+\w+//g'); fi
@@ -151,7 +157,7 @@ See `reference/batch-mode.md` for the complete batch mode workflow including dis
 - **Subagent delegation by default** (B-4): each item is dispatched to a fresh `general-purpose` Agent so it starts with an unpolluted attention pool. The parent retains only `{item_id, status, pr_url, ci_conclusion}` per item. Pass `--inline` to fall back to the legacy single-context loop.
 - **Per-item rule reminder** (B-4.0): a 5-line invariant block is emitted as a fresh tool result before each item so language/CI/attribution rules stay in the recent attention window. In delegated mode this reminder is embedded in the subagent prompt; in `--inline` mode it is emitted directly in the parent context.
 - **No `@load: reference/...` inside the per-item loop**: keep the inline reminder as the most recent context anchor.
-- **Chunked confirmation gate** (B-4.1): user confirmation prompt every 5 items, bypassable with `--no-confirm`.
+- **Chunked confirmation gate** (B-4.1): user confirmation prompt every 5 items, bypassable with `--no-confirm`. When `--auto-restart` is set (and `--no-restart` is not), the gate is replaced by a forced session restart that writes `.claude/resume.md` and exits; a fresh `claude` session resumes from the next item.
 
 ---
 
