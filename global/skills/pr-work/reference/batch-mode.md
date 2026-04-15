@@ -115,6 +115,7 @@ If `--dry-run` is set, display the plan and exit without prompting.
 Process each item one at a time:
 
 ```
+PROCESSED=0
 for each item in approved batch plan:
     1. Log progress: "[N/TOTAL] Starting: $REPO PR #$PR_NUMBER -- $TITLE ($MODE)"
 
@@ -138,7 +139,47 @@ for each item in approved batch plan:
     6. Log completion: "[N/TOTAL] Completed: $REPO PR #$PR_NUMBER -- $RESULT"
 
     7. Pause 2 seconds between items (rate limiting)
+
+    8. PROCESSED=$((PROCESSED + 1))
+       Chunked confirmation gate (see B-4.1) -- fires every CONFIRM_INTERVAL
+       items and only when more items remain.
 ```
+
+## B-4.1. Chunked Confirmation Gate
+
+After every `CONFIRM_INTERVAL` items (default 5), and only while items remain in the batch, halt execution and prompt the user via `AskUserQuestion`. Skip the gate entirely when `--no-confirm` was passed.
+
+```
+if [[ "$NO_CONFIRM" != "true" ]] \
+   && (( PROCESSED % CONFIRM_INTERVAL == 0 )) \
+   && (( PROCESSED < TOTAL )); then
+    decision=$(AskUserQuestion
+        question="Processed ${PROCESSED}/${TOTAL} PRs. Continue, pause, or cancel?"
+        header="Batch gate"
+        options=(
+            "Continue (Recommended)" "Resume the next chunk of ${CONFIRM_INTERVAL} PRs."
+            "Pause and save resume state" "Write .claude/resume.md and exit; the next session can pick up from item $((PROCESSED + 1))."
+            "Cancel batch" "Stop now without writing resume state. Already-fixed PRs stay fixed."
+        )
+    )
+    case "$decision" in
+        Pause*) write_resume_md_for_batch; exit 0 ;;
+        Cancel*) exit 0 ;;
+        Continue*) : ;;  # fall through to next item
+    esac
+fi
+```
+
+**Why the gate matters beyond user control**: Each `AskUserQuestion` prompt produces a fresh user message in the conversation. That message acts as an attention anchor -- when the model responds, recently-buried `CLAUDE.md` rules and skill instructions regain salience. The gate doubles as both an interactive checkpoint and a context-refresh mechanism for long-running batches, which is particularly valuable in `pr-work` where each item involves dense CI log analysis.
+
+**Resume state on pause**: When the user chooses "Pause", write `.claude/resume.md` per the `session-resume` workflow. Use the **Batch Workflow Resume Format** described in `workflow/reference/session-resume-templates.md` so a future session can pick up at item `$((PROCESSED + 1))`.
+
+**`--no-confirm` use cases**:
+- CI-driven `pr-work` invocations where a separate orchestrator monitors the run
+- Recovery scripts that retry transient CI failures programmatically
+- `--dry-run` follow-up runs already pre-approved by the operator
+
+In interactive sessions, leave it off -- the attention-refresh side effect is one of the strongest available drift mitigations for long PR-fixing batches.
 
 **Failure handling per item:**
 - CI failure after 3 retries -> mark FAILED, add escalation comment to PR, continue to next
