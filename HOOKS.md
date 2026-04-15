@@ -21,6 +21,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Prevent git merge/rebase on dirty trees | [Conflict Guard](#11-conflict-guard-pretooluse) |
 | Block PRs targeting main from non-develop branches | [PR Target Guard](#12-pr-target-guard-pretooluse) |
 | Block non-English titles/bodies in gh PR/issue commands | [PR Language Guard](#13-pr-language-guard-pretooluse) |
+| Block gh pr merge when any check is non-passing | [Merge Gate Guard](#14-merge-gate-guard-pretooluse) |
 | Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
 | Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
 | Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
@@ -325,6 +326,60 @@ Hooks are user-defined commands that automatically execute during specific Claud
     "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
     "permissionDecisionReason": "PR/issue --body rejected: Text contains non-ASCII characters (first run: '한국어'). GitHub Issues and Pull Requests must be written in English only — see commit-settings.md."
+  }
+}
+```
+
+### 14. Merge Gate Guard (PreToolUse)
+
+*Hard-blocks `gh pr merge` when any PR check is failing, pending, or cancelled — eliminates the rule drift that lets failing CI rationalizations slip through in long-running batch workflows.*
+
+**Purpose**: Enforces the "ABSOLUTE CI GATE" rule from `global/CLAUDE.md` at the Bash tool boundary. Mirrors the `commit-message-guard` and `pr-language-guard` enforcement model: a deterministic hook gate that catches drift where the model occasionally rationalizes failing checks as "unrelated", "infrastructure", or "pre-existing".
+
+**Trigger**: `Bash` tool calls matching `gh pr merge`.
+
+**Files**: `global/hooks/merge-gate-guard.sh`, `global/hooks/merge-gate-guard.ps1`
+
+**Logic**:
+1. Scope gate: only process `gh pr merge` commands (all others pass through).
+2. Extract PR number from positional integer, URL form (`https://github.com/owner/repo/pull/N`), or anywhere after `gh pr merge`. Allow if no PR number is found (interactive mode).
+3. Extract `--repo` / `-R` value if present.
+4. Invoke `gh pr checks <PR> --json bucket,name,state` (with `-R` if specified).
+5. Parse the JSON array. Allowed buckets: `pass` and `skipping`. Anything in `fail`, `pending`, `cancel`, or unknown buckets blocks the merge.
+6. Deny reason includes every non-passing check name with its bucket and state, plus a reminder not to rationalize failures.
+
+**Allow policy**: A check qualifies as passing if its `bucket` is `pass` or `skipping`. The `skipping` bucket covers checks intentionally skipped (e.g. `paths-ignore` matches) and is treated as neutral, the same way GitHub itself does for branch protection rules.
+
+**Fail policy**: **Fail-OPEN** on `gh` CLI errors. Unlike most other guards, this hook allows the merge when:
+- `gh` CLI is not installed
+- `gh pr checks` returns a non-zero exit code (e.g. transient network error, auth failure, unresolvable PR)
+- The JSON response cannot be parsed
+- The PR has no checks configured at all
+
+A diagnostic is written to stderr in each fail-open case so the user can see why the gate did not run. The rationale is that this hook is a "best-effort gate", not a "hard fail on tool unavailability" — server-side branch protection rules remain as the authoritative gate, so a transient failure here should not permanently block user work.
+
+**Behavior**:
+- Returns JSON with `permissionDecision: "deny"` listing every non-passing check
+- Fail-open on any gh CLI error; diagnostics written to stderr
+- Timeout: 30 seconds (longer than other guards because it makes an external API call)
+- Cross-platform: `merge-gate-guard.sh` and `merge-gate-guard.ps1`
+
+**Configuration**:
+```json
+{
+  "type": "command",
+  "command": "~/.claude/hooks/merge-gate-guard.sh",
+  "timeout": 30
+}
+```
+
+**Example deny response**:
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "Merge blocked by ABSOLUTE CI GATE: PR #100 has non-passing checks: Build Linux [fail/FAILURE], Build Windows [pending/IN_PROGRESS]. Wait for all checks to pass before merging — never rationalize a failure as unrelated, infrastructure, or pre-existing."
   }
 }
 ```
