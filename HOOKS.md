@@ -22,6 +22,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Block PRs targeting main from non-develop branches | [PR Target Guard](#12-pr-target-guard-pretooluse) |
 | Block non-English titles/bodies in gh PR/issue commands | [PR Language Guard](#13-pr-language-guard-pretooluse) |
 | Block gh pr merge when any check is non-passing | [Merge Gate Guard](#14-merge-gate-guard-pretooluse) |
+| Block AI/Claude attribution in gh PR/issue commands | [Attribution Guard](#15-attribution-guard-pretooluse) |
 | Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
 | Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
 | Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
@@ -380,6 +381,59 @@ A diagnostic is written to stderr in each fail-open case so the user can see why
     "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
     "permissionDecisionReason": "Merge blocked by ABSOLUTE CI GATE: PR #100 has non-passing checks: Build Linux [fail/FAILURE], Build Windows [pending/IN_PROGRESS]. Wait for all checks to pass before merging — never rationalize a failure as unrelated, infrastructure, or pre-existing."
+  }
+}
+```
+
+### 15. Attribution Guard (PreToolUse)
+
+*Hard-blocks AI/Claude attribution markers (Co-Authored-By: Claude, "Generated with Claude", Anthropic, etc.) in `gh pr` and `gh issue` titles and bodies — extends the existing commit-message attribution check to PR/issue text.*
+
+**Purpose**: Enforces the "No AI/Claude attribution in commits, issues, or PRs" rule from `commit-settings.md`. The existing `commit-message-guard` only inspects `git commit -m` messages; PR and issue bodies created via `gh` previously bypassed it. This hook closes that gap by gating the same Bash boundary that `pr-language-guard` uses.
+
+**Trigger**: `Bash` tool calls matching `gh (pr|issue) (create|edit|comment)`.
+
+**Files**: `global/hooks/attribution-guard.sh`, `global/hooks/attribution-guard.ps1`
+
+**Shared validation library**: `hooks/lib/validate-commit-message.sh` exposes `CMV_ATTRIBUTION_REGEX` and `validate_no_attribution()` — the same regex used by `commit-message-guard` for git commit messages. Both bash hooks source this single source of truth so attribution rules stay in lockstep across enforcement layers. The PowerShell variant inlines the equivalent regex (since the bash library cannot be sourced from PowerShell); update both when changing the pattern.
+
+**Patterns blocked** (case-insensitive):
+- `claude` (any standalone occurrence)
+- `anthropic`
+- `ai-assisted`
+- `co-authored-by: claude` (with optional whitespace)
+- `generated with` (matches "Generated with Claude Code" etc.)
+
+**Logic**:
+1. Scope gate: only process `gh (pr|issue) (create|edit|comment)` commands. Six combinations are guarded: `gh pr create|edit|comment`, `gh issue create|edit|comment`.
+2. Skip command-substitution / heredoc bodies (`--body "$(...)"`) and `--body-file` references — these cannot be parsed at the shell layer.
+3. Extract `--title` / `-t` and `--body` / `-b` values supporting double-quoted, single-quoted, and `--flag value` / `--flag=value` layouts.
+4. Pass each value through `validate_no_attribution()`. Reject if the regex matches.
+
+**Fail policy**: Fail-open. If stdin parsing fails or the command is unrecognized, the hook returns `allow`. The `commit-msg` git hook and `commit-message-guard` PreToolUse hook remain as additional layers for committed content.
+
+**Behavior**:
+- Returns JSON with `permissionDecision: "deny"` when attribution is detected
+- Defers to other layers for command-substitution and `--body-file` cases
+- Timeout: 5 seconds
+- Cross-platform: `attribution-guard.sh` and `attribution-guard.ps1`
+
+**Configuration**:
+```json
+{
+  "type": "command",
+  "command": "~/.claude/hooks/attribution-guard.sh",
+  "timeout": 5
+}
+```
+
+**Example deny response**:
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "PR/issue --body rejected: Text contains AI/Claude attribution (claude, anthropic, ai-assisted, generated with, co-authored-by: claude). Remove attribution before submitting."
   }
 }
 ```

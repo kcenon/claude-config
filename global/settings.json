@@ -90,6 +90,11 @@
             "type": "command",
             "command": "~/.claude/hooks/merge-gate-guard.sh",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/attribution-guard.sh",
+            "timeout": 5
           }
         ]
       },
