@@ -16,6 +16,33 @@
 # Allowed commit types (Conventional Commits)
 readonly CMV_TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|security"
 
+# AI attribution regex — single source of truth shared with attribution-guard
+# (PR/issue body checks). Same pattern enforced across commit messages, PR
+# titles/bodies, and issue titles/bodies so an attribution leak cannot slip
+# through one channel while being blocked in another.
+readonly CMV_ATTRIBUTION_REGEX='(claude|anthropic|ai-assisted|co-authored-by:[[:space:]]*claude|generated[[:space:]]+with)'
+
+# validate_no_attribution <text>
+# Returns 0 if text contains no AI/Claude attribution, 1 if attribution is found.
+# On failure, prints reason to stderr.
+#
+# Used by both validate_commit_message (this file) and attribution-guard.sh
+# (the PR/issue body PreToolUse hook) so the regex stays in one place.
+validate_no_attribution() {
+    local text="$1"
+
+    if [ -z "$text" ]; then
+        return 0
+    fi
+
+    if printf '%s' "$text" | grep -iqE "$CMV_ATTRIBUTION_REGEX"; then
+        echo "Text contains AI/Claude attribution (claude, anthropic, ai-assisted, generated with, co-authored-by: claude). Remove attribution before submitting." >&2
+        return 1
+    fi
+
+    return 0
+}
+
 # validate_commit_message <message>
 # Returns 0 on valid, 1 on invalid.
 # On failure, prints reason to stderr.
@@ -51,8 +78,8 @@ validate_commit_message() {
             ;;
     esac
 
-    # Rule 4: No AI/Claude attribution
-    if printf '%s' "$msg" | grep -iqE '(claude|anthropic|ai-assisted|co-authored-by:[[:space:]]*claude|generated[[:space:]]+with)'; then
+    # Rule 4: No AI/Claude attribution (delegates to shared helper for SSOT)
+    if ! validate_no_attribution "$msg" 2>/dev/null; then
         echo "Commit message must not contain AI/Claude attribution (claude, anthropic, ai-assisted, generated with, co-authored-by: claude)." >&2
         return 1
     fi
