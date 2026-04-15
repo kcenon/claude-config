@@ -43,7 +43,10 @@ Automate GitHub issue workflow with project name as argument.
   - If omitted in single-item mode: auto-recommend based on issue size, then ask user
   - If omitted in batch mode: auto-decide per item using weighted scoring (no per-item prompt)
 
-- `[--limit N]`: Maximum number of items to process in batch mode (default: 20, max: 50)
+- `[--limit N]`: Maximum number of items to process in batch mode (default: 5, max: 10)
+  - Values above 10 require `--force-large` to acknowledge rule drift risk. Empirically, drift becomes visible around items 15-25 in long batches; the conservative default keeps batches inside the safe zone.
+
+- `[--force-large]`: Allow `--limit > 10`. Required to bypass the safe-batch cap.
 
 - `[--dry-run]`: Show batch plan only, do not execute
 
@@ -57,14 +60,26 @@ Parse `$ARGUMENTS` and extract project, organization, issue number, and batch fl
 ```bash
 ARGS="$ARGUMENTS"
 ISSUE_NUMBER="" PROJECT="" ORG="" EXEC_MODE=""
-BATCH_MODE="single"  BATCH_LIMIT=20  DRY_RUN=false  PRIORITY_FILTER="all"
+BATCH_MODE="single"  BATCH_LIMIT=5  DRY_RUN=false  PRIORITY_FILTER="all"  FORCE_LARGE=false
+MAX_LIMIT=10
 
 # Extract flags
 if [[ "$ARGS" == *"--solo"* ]]; then EXEC_MODE="solo"; ARGS=$(echo "$ARGS" | sed 's/--solo//g'); fi
 if [[ "$ARGS" == *"--team"* ]]; then EXEC_MODE="team"; ARGS=$(echo "$ARGS" | sed 's/--team//g'); fi
 if [[ "$ARGS" == *"--dry-run"* ]]; then DRY_RUN=true; ARGS=$(echo "$ARGS" | sed 's/--dry-run//g'); fi
+if [[ "$ARGS" == *"--force-large"* ]]; then FORCE_LARGE=true; ARGS=$(echo "$ARGS" | sed 's/--force-large//g'); fi
 if [[ "$ARGS" =~ --limit[[:space:]]+([0-9]+) ]]; then BATCH_LIMIT="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--limit[[:space:]]+[0-9]+//g'); fi
 if [[ "$ARGS" =~ --priority[[:space:]]+(critical|high|medium|low|all) ]]; then PRIORITY_FILTER="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--priority[[:space:]]+\w+//g'); fi
+
+# Hard cap on batch size to mitigate rule drift in long batches.
+# Drift becomes empirically visible around items 15-25; default 5 keeps the
+# operator inside the safe zone, and bypassing requires explicit acknowledgment.
+if (( BATCH_LIMIT > MAX_LIMIT )) && [[ "$FORCE_LARGE" != "true" ]]; then
+    echo "Error: --limit ${BATCH_LIMIT} exceeds safe cap of ${MAX_LIMIT}." >&2
+    echo "Long batches risk rule drift around items 15-25." >&2
+    echo "Either split the batch into smaller runs or pass --force-large to override." >&2
+    exit 1
+fi
 
 # Extract issue number if present (numeric argument)
 if [[ "$ARGS" =~ [[:space:]]([0-9]+)([[:space:]]|$) ]]; then

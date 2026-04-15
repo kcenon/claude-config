@@ -65,7 +65,7 @@ Assign each failing PR a severity score:
 
 Sort FAILING_PRS by: score ascending -> `createdAt` ascending -> repo name ascending.
 
-Apply `--limit N` (default: 20, max: 50). If no failing PRs found, report "No open PRs with failed CI found" and exit.
+Apply `--limit N` (default: 5, max: 10). Values above 10 require `--force-large` to bypass the safe-batch cap. The cap exists because rule drift becomes empirically visible around items 15-25 in long batches; keeping batches at 5 by default preserves rule fidelity, and large runs require explicit operator acknowledgment. If no failing PRs found, report "No open PRs with failed CI found" and exit.
 
 ## B-2. Auto Size/Mode Estimation per Item
 
