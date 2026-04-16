@@ -164,7 +164,8 @@ fi
 
 echo "==> capturing baseline PR list"
 BEFORE_PRS=$(gh pr list --repo "$SCRATCH_REPO" --state all --limit 500 \
-    --json number -q '[.[].number] | sort' | jq -c .)
+    --json number -q '[.[].number] | sort')
+BEFORE_PRS="${BEFORE_PRS:-[]}"
 
 STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 echo "==> invoking strategy: $STRATEGY"
@@ -180,7 +181,8 @@ echo "==> strategy exited rc=$STRATEGY_RC (non-zero OK — per-item failures do 
 
 echo "==> diffing PR list to identify items"
 AFTER_PRS=$(gh pr list --repo "$SCRATCH_REPO" --state all --limit 500 \
-    --json number -q '[.[].number] | sort' | jq -c .)
+    --json number -q '[.[].number] | sort')
+AFTER_PRS="${AFTER_PRS:-[]}"
 
 NEW_PRS=$(jq -n --argjson a "$BEFORE_PRS" --argjson b "$AFTER_PRS" '$b - $a | sort')
 
