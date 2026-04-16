@@ -1,9 +1,13 @@
 ---
 name: code-reviewer
-description: Specialized agent for comprehensive code review
+description: Comprehensive code review covering quality, security, performance, and maintainability. Reports findings with file:line references and severity ratings. Use when reviewing PRs, auditing code changes, or checking code quality in any language.
 model: sonnet
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, Bash
 temperature: 0.3
+maxTurns: 30
+effort: high
+memory: project
+initialPrompt: "Check your memory for established project patterns and past review findings before starting."
 ---
 
 # Code Reviewer Agent
