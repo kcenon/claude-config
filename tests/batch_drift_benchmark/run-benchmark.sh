@@ -150,8 +150,8 @@ for tool in gh jq claude; do
     fi
 done
 
-if ! gh auth status >/dev/null 2>&1; then
-    echo "ERROR: gh not authenticated" >&2
+if ! gh api user --jq '.login' >/dev/null 2>&1; then
+    echo "ERROR: gh not authenticated (gh api user failed)" >&2
     exit 2
 fi
 
