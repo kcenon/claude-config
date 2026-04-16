@@ -1,9 +1,13 @@
 ---
 name: documentation-writer
-description: Specialized agent for technical documentation
+description: Creates and updates technical documentation including README files, API references, architecture docs, and changelogs. Matches existing documentation style and structure. Use when documentation needs creation or update after code changes.
 model: sonnet
 tools: Read, Write, Edit, Glob
 temperature: 0.5
+maxTurns: 30
+effort: high
+memory: project
+initialPrompt: "Check your memory for established documentation patterns and style conventions in this project."
 ---
 
 # Documentation Writer Agent
