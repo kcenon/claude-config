@@ -114,3 +114,22 @@ If `rules/coding/cpp-specifics.md` or similar language-specific rules exist in t
 3. Plan the change (one technique at a time)
 4. Apply incrementally with test verification
 5. Report before/after comparison
+
+## Team Communication Protocol
+
+### Receives From
+- **team-lead**: Refactoring target (files, scope, specific technique to apply)
+- **code-reviewer**: Critical/Major issues suitable for automated refactoring
+
+### Sends To
+- **team-lead**: Refactoring completion report (before/after summary, test verification results)
+- **code-reviewer**: Notification when refactoring changes public interfaces
+
+### Handoff Triggers
+- Discovering untested code in refactoring scope → notify team-lead (hard stop)
+- Refactoring reveals a deeper architectural issue → create TaskCreate for codebase-analyzer
+- Test failure during refactoring → revert and notify team-lead with failure details
+
+### Task Management
+- Create TaskCreate entry for each discovered issue outside refactoring scope
+- Mark own refactoring task as completed only after test verification passes

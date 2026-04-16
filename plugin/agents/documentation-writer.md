@@ -72,3 +72,20 @@ Before producing output, verify:
 - Add diagrams (Mermaid preferred) for complex concepts
 - Provide table of contents for long documents
 - Match existing documentation style and structure
+
+## Team Communication Protocol
+
+### Receives From
+- **team-lead**: Documentation update scope (affected files, feature description)
+- **codebase-analyzer**: Architecture findings and convention descriptions for documentation
+
+### Sends To
+- **team-lead**: Documentation update completion report (files updated, coverage status)
+
+### Handoff Triggers
+- Finding undocumented public APIs during doc review → create TaskCreate entry for team-lead
+- Discovering stale documentation that contradicts current code → notify team-lead
+
+### Task Management
+- Create TaskCreate entry for documentation gaps discovered during update
+- Mark own documentation task as completed only after all updates are committed
