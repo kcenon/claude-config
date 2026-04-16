@@ -18,6 +18,12 @@ NC='\033[0m'
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BACKUP_DIR="$(dirname "$SCRIPT_DIR")"
 
+# Fast path: regenerate shared workflow reference mirrors from canonical.
+# Canonical lives in project/.claude/rules/workflow/; see docs/CUSTOM_EXTENSIONS.md.
+if [[ "${1:-}" == "--references-only" ]]; then
+    exec "$SCRIPT_DIR/sync_references.sh"
+fi
+
 echo -e "${BLUE}"
 cat << 'EOF'
 ╔═══════════════════════════════════════════════════════════════╗

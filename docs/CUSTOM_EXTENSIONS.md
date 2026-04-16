@@ -177,6 +177,35 @@ For non-blocking operations (formatting, logging), use `async: true`:
 
 **Portability**: These are guidelines that can be adopted in any project, but the specific templates are custom to this configuration.
 
+### Shared Workflow References (SSOT)
+
+**Type**: Repository-internal convention
+
+Four workflow reference files are consumed by both rule loading and skill imports, plus bundled into the plugin distribution. To avoid silent drift, the repository uses a single source of truth:
+
+| Role | Location |
+|------|----------|
+| **Canonical** | `project/.claude/rules/workflow/` |
+| Mirror (project skill import) | `project/.claude/skills/project-workflow/reference/` |
+| Mirror (plugin bundle) | `plugin/skills/project-workflow/reference/` |
+
+Files kept in sync:
+- `git-commit-format.md`
+- `github-issue-5w1h.md`
+- `github-pr-5w1h.md`
+- `performance-analysis.md`
+
+**Editing**: Modify the canonical file only. Regenerate mirrors with:
+
+```bash
+scripts/sync_references.sh      # macOS / Linux / WSL
+pwsh scripts/sync_references.ps1   # Windows
+```
+
+**CI enforcement**: `.github/workflows/validate-skills.yml` runs `scripts/check_references.sh` on every PR. The job fails (exit 2) if any mirror drifts from canonical.
+
+**Why this pattern**: Symlinks do not round-trip reliably through `git clone` on default Windows configurations. Build-time sync keeps all three files byte-identical without requiring platform-specific filesystem features.
+
 ## Using This Configuration Elsewhere
 
 ### What Works Out of the Box
