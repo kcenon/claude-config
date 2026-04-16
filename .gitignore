@@ -33,3 +33,7 @@ settings.local.json
 
 # Session logs
 session.log
+
+# Benchmark runtime outputs (committed results go in results/)
+tests/batch_drift_benchmark/logs/
+tests/batch_drift_regression/last-run-summary.json
