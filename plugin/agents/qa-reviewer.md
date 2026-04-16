@@ -122,3 +122,22 @@ Provide findings in the following structure:
 ```
 
 Always provide specific file paths and line numbers for any issues found. Be precise about what mismatches exist and how they manifest at runtime.
+
+## Team Communication Protocol
+
+### Receives From
+- **team-lead**: Verification scope (module boundaries, integration points to check)
+- **code-reviewer**: Boundary mismatches discovered during code review
+
+### Sends To
+- **team-lead**: QA verification report (passed/failed/unverified counts, blocker status)
+- **code-reviewer**: Boundary mismatch findings requiring code-level verification
+
+### Handoff Triggers
+- Finding a Failed boundary with data loss risk → notify team-lead immediately
+- Discovering type casting bypass (`as any`) hiding shape mismatch → notify code-reviewer
+- Finding orphaned API endpoints or hooks → create TaskCreate entry for team-lead
+
+### Task Management
+- Create TaskCreate entry for each Failed boundary (enables tracking)
+- Mark own verification task as completed only after full report is delivered

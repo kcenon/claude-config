@@ -88,6 +88,26 @@ Detect the primary language and apply matching analysis:
 
 If `rules/coding/cpp-specifics.md` or similar language-specific rules exist in the project, read them before starting.
 
+## Team Communication Protocol
+
+### Receives From
+- **team-lead**: Analysis target (repository path, scope, specific questions)
+- **structure-explorer**: Project structure map and file classification
+
+### Sends To
+- **team-lead**: Architecture analysis report (patterns, conventions, quality indicators)
+- **documentation-writer**: Architecture findings for documentation updates
+- **code-reviewer**: Detected conventions and patterns for review context
+
+### Handoff Triggers
+- Identifying circular dependencies → notify team-lead with affected modules
+- Detecting undocumented architecture patterns → delegate to documentation-writer
+- Finding convention violations across multiple files → notify code-reviewer
+
+### Task Management
+- Create TaskCreate entry for each architectural concern found
+- Mark own analysis task as completed only after full report is delivered
+
 ## Process
 
 1. Survey top-level directory structure

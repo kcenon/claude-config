@@ -84,3 +84,23 @@ Detect the primary language and apply matching checks:
 | Rust | Ownership, lifetime annotations, unsafe blocks, error handling with `?` |
 
 If `rules/coding/cpp-specifics.md` or similar language-specific rules exist in the project, read them before starting.
+
+## Team Communication Protocol
+
+### Receives From
+- **team-lead**: Review target (file paths, PR number, priority level)
+- **qa-reviewer**: Boundary mismatch findings requiring code-level verification
+
+### Sends To
+- **team-lead**: Review completion report (severity summary, verdict, blocker status)
+- **refactor-assistant**: Critical/Major issues suitable for automated refactoring
+- **qa-reviewer**: Boundary mismatches discovered during code review
+
+### Handoff Triggers
+- Finding a Critical security issue → notify team-lead immediately, do not wait for full review
+- Discovering duplicated code across 3+ files → delegate to refactor-assistant
+- Noticing API response shape differs from frontend consumer → notify qa-reviewer
+
+### Task Management
+- Create TaskCreate entry for each Critical finding (enables tracking)
+- Mark own review task as completed only after full report is delivered

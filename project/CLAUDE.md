@@ -43,7 +43,7 @@ Load with `@load: reference/<name>`:
 
 ## Agents
 
-`code-reviewer`, `codebase-analyzer`, `documentation-writer`, `qa-reviewer`, `refactor-assistant`, `structure-explorer`
+`code-reviewer`, `codebase-analyzer`, `dependency-auditor`, `documentation-writer`, `qa-reviewer`, `refactor-assistant`, `structure-explorer`, `test-strategist`
 
 ## Skills
 
