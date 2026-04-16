@@ -5,9 +5,12 @@ on:
     branches: [main]
     paths:
       - 'project/.claude/skills/**'
+      - 'project/.claude/rules/workflow/**'
       - 'plugin/skills/**'
       - 'global/skills/**'
       - 'scripts/validate_skills.sh'
+      - 'scripts/check_references.sh'
+      - 'scripts/sync_references.sh'
 
 jobs:
   validate:
@@ -26,3 +29,6 @@ jobs:
 
       - name: Validate SKILL.md files
         run: ./scripts/validate_skills.sh
+
+      - name: Check workflow reference mirrors match canonical
+        run: ./scripts/check_references.sh
