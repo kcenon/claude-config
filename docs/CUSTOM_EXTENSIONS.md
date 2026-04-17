@@ -31,7 +31,7 @@ These features are part of the official Claude Code product and are portable:
 
 | Feature | Description | Documentation |
 |---------|-------------|---------------|
-| **CLAUDE.md memory hierarchy** | 5-tier memory system (Enterprise, Project, Rules, User, Local) | [Memory documentation](https://docs.anthropic.com/en/docs/claude-code) |
+| **CLAUDE.md memory hierarchy** | 5-tier memory system (Enterprise, Project, Rules, User, Local) | [Memory documentation](https://code.claude.com/docs/en/memory) |
 | **`.claude/rules/` directory** | Auto-loaded rule files with YAML frontmatter | Official feature |
 | **YAML frontmatter** | `paths` and `alwaysApply` for conditional loading | Official feature |
 | **settings.json** | Hook configuration (PreToolUse, PostToolUse, etc.) | Official feature |
@@ -329,10 +329,12 @@ When adopting this configuration in a new environment:
 
 For authoritative information on Claude Code features:
 
-- [Claude Code Documentation](https://docs.anthropic.com/en/docs/claude-code)
-- [Memory Hierarchy](https://docs.anthropic.com/en/docs/claude-code/memory)
-- [Rules and Settings](https://docs.anthropic.com/en/docs/claude-code/settings)
-- [Hooks Configuration](https://docs.anthropic.com/en/docs/claude-code/hooks)
+- [Claude Code Documentation](https://code.claude.com/docs/en)
+- [Memory Hierarchy](https://code.claude.com/docs/en/memory)
+- [Rules and Settings](https://code.claude.com/docs/en/settings)
+- [Hooks Configuration](https://code.claude.com/docs/en/hooks)
+
+> **2026 URL migration**: Claude Code documentation moved from `docs.anthropic.com/en/docs/claude-code/*` (and legacy `docs.claude.com/en/docs/claude-code/*`) to `code.claude.com/docs/en/*`. Old URLs 301-redirect but search rankings suffer; all links in this repo should use `code.claude.com`. See [issue #336](https://github.com/kcenon/claude-config/issues/336).
 
 ## Reporting Issues
 
