@@ -290,6 +290,28 @@ else
     info "설치: pip3 install pyyaml"
 fi
 
+# Schema-based validation against canonical Claude Code 2026 spec.
+# Soft-fail (warn-only) so this incremental check can land without breaking
+# downstream consumers. Tighten by removing --warn-only after a grace period.
+echo ""
+echo "======================================================"
+info "공식 스펙 검증 (spec_lint)"
+echo "======================================================"
+echo ""
+
+if [ -x "$SCRIPT_DIR/spec_lint.sh" ]; then
+    if "$SCRIPT_DIR/spec_lint.sh" --warn-only --quiet; then
+        success "spec_lint: 위반 사항 없음"
+        record_pass
+    else
+        warning "spec_lint: 위반 사항 발견 (warn-only)"
+        record_warning
+    fi
+else
+    warning "spec_lint.sh 누락 — 스키마 검증 건너뜀"
+    record_warning
+fi
+
 # 검증 결과 요약
 echo ""
 echo "======================================================"

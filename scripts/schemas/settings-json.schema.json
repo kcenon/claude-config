@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kcenon/claude-config/scripts/schemas/settings-json.schema.json",
+  "title": "Claude Code settings.json",
+  "description": "Canonical schema for Claude Code global/project settings.json. additionalProperties is true to allow harness-specific extensions.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "$schema": { "type": "string" },
+    "respectGitignore": { "type": "boolean" },
+    "cleanupPeriodDays": { "type": "integer", "minimum": 0 },
+    "env": {
+      "type": "object",
+      "additionalProperties": { "type": ["string", "number", "boolean"] }
+    },
+    "attribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "commit": { "type": "string" },
+        "issue":  { "type": "string" },
+        "pr":     { "type": "string" }
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "defaultMode": {
+          "type": "string",
+          "enum": ["default", "acceptEdits", "bypassPermissions", "plan"]
+        },
+        "allow": { "type": "array", "items": { "type": "string" } },
+        "ask":   { "type": "array", "items": { "type": "string" } },
+        "deny":  { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "hooks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "matcher": { "type": "string" },
+            "hooks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["type", "command"],
+                "additionalProperties": true,
+                "properties": {
+                  "type":    { "type": "string", "enum": ["command"] },
+                  "command": { "type": "string", "minLength": 1 },
+                  "timeout": { "type": "integer", "minimum": 0 },
+                  "async":   { "type": "boolean" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "statusLine": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "type":            { "type": "string" },
+        "command":         { "type": "string" },
+        "refreshInterval": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "outputStyle": { "type": "string" },
+    "language":    { "type": "string" },
+    "sandbox": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled":                    { "type": "boolean" },
+        "autoAllowBashIfSandboxed":   { "type": "boolean" },
+        "allowUnsandboxedCommands":   { "type": "boolean" },
+        "excludedCommands":           { "type": "array", "items": { "type": "string" } },
+        "network": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "allowedDomains":     { "type": "array", "items": { "type": "string" } },
+            "allowLocalBinding":  { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "spinnerVerbs": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "mode":  { "type": "string", "enum": ["append", "replace"] },
+        "verbs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "alwaysThinkingEnabled":             { "type": "boolean" },
+    "effortLevel":                       { "type": "string", "enum": ["low", "medium", "high", "xhigh", "max"] },
+    "autoUpdatesChannel":                { "type": "string" },
+    "skipDangerousModePermissionPrompt": { "type": "boolean" },
+    "description":                       { "type": "string" },
+    "version":                           { "type": "string" },
+    "showTurnDuration":                  { "type": "boolean" },
+    "teammateMode":                      { "type": "string", "enum": ["in-process", "subprocess"] }
+  }
+}

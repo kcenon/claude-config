@@ -30,6 +30,32 @@ if [[ "${1:-}" == "--versions-only" ]]; then
     exec "$SCRIPT_DIR/sync_versions.sh"
 fi
 
+# Fast path: validate SKILL.md / plugin.json / settings.json against
+# canonical Claude Code 2026 schemas. See scripts/schemas/.
+if [[ "${1:-}" == "--lint" ]]; then
+    shift
+    exec "$SCRIPT_DIR/spec_lint.sh" "$@"
+fi
+
+# Pre-flight: refuse to sync if canonical files violate the schema.
+# Bypass with --skip-lint for emergency syncs (e.g., reverting a bad change).
+SKIP_LINT=false
+for arg in "$@"; do
+    if [ "$arg" = "--skip-lint" ]; then
+        SKIP_LINT=true
+        break
+    fi
+done
+if [ "$SKIP_LINT" = false ] && [ -x "$SCRIPT_DIR/spec_lint.sh" ]; then
+    if ! "$SCRIPT_DIR/spec_lint.sh" --quiet >/dev/null 2>&1; then
+        printf '\033[0;31m❌ spec_lint detected schema violations.\033[0m\n' >&2
+        printf '   Run: %s/sync.sh --lint\n' "$SCRIPT_DIR" >&2
+        printf '   Sync aborted to prevent deploying drift.\n' >&2
+        printf '   Bypass with --skip-lint (emergency only).\n' >&2
+        exit 1
+    fi
+fi
+
 echo -e "${BLUE}"
 cat << 'EOF'
 ╔═══════════════════════════════════════════════════════════════╗

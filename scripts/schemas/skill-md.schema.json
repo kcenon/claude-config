@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kcenon/claude-config/scripts/schemas/skill-md.schema.json",
+  "title": "Claude Code SKILL.md Frontmatter",
+  "description": "Canonical schema for Claude Code 2026 SKILL.md YAML frontmatter. 14 official fields.",
+  "type": "object",
+  "required": ["name", "description"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Skill identifier. Lowercase letters, digits, and hyphens only. Max 64 chars."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "description": "Skill trigger description. Max 1024 chars. >=100 chars recommended for trigger quality."
+    },
+    "when_to_use": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Plain-language hint of when this skill applies."
+    },
+    "argument-hint": {
+      "type": "string",
+      "description": "Usage hint shown to the user, e.g., \"<file-or-directory> [--verbose]\"."
+    },
+    "disable-model-invocation": {
+      "type": "boolean",
+      "description": "When true, the model cannot auto-invoke this skill (user-only)."
+    },
+    "user-invocable": {
+      "type": "boolean",
+      "description": "When true, the user can invoke this skill via slash command."
+    },
+    "allowed-tools": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ],
+      "description": "Tools the skill is allowed to call. Scalar (\"Bash(git *)\") or array form."
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Preferred model identifier (e.g., haiku, sonnet, opus)."
+    },
+    "effort": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "xhigh", "max"],
+      "description": "Effort level for model invocation."
+    },
+    "context": {
+      "type": "string",
+      "enum": ["fork"],
+      "description": "Context strategy. \"fork\" runs the skill in a forked context window."
+    },
+    "agent": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ],
+      "description": "Agent name(s) this skill prefers to delegate to."
+    },
+    "hooks": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        { "type": "object" }
+      ],
+      "description": "Hook bindings scoped to this skill."
+    },
+    "paths": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ],
+      "description": "Glob path patterns this skill applies to (comma-separated string or array)."
+    },
+    "shell": {
+      "type": "string",
+      "enum": ["bash", "powershell"],
+      "description": "Preferred shell when the skill runs commands."
+    }
+  }
+}

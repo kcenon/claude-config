@@ -7,10 +7,15 @@ on:
       - 'project/.claude/skills/**'
       - 'project/.claude/rules/workflow/**'
       - 'plugin/skills/**'
+      - 'plugin-lite/skills/**'
       - 'global/skills/**'
       - 'scripts/validate_skills.sh'
       - 'scripts/check_references.sh'
       - 'scripts/sync_references.sh'
+      - 'scripts/spec_lint.sh'
+      - 'scripts/spec_lint.ps1'
+      - 'scripts/spec_lint.py'
+      - 'scripts/schemas/**'
       - 'VERSION_MAP.yml'
       - 'scripts/check_versions.sh'
       - 'scripts/sync_versions.sh'
@@ -18,6 +23,7 @@ on:
       - 'plugin-lite/.claude-plugin/plugin.json'
       - 'global/settings.json'
       - 'global/settings.windows.json'
+      - 'project/.claude/settings.json'
       - 'README.md'
       - 'README.ko.md'
 
@@ -33,14 +39,20 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install PyYAML
-        run: pip install pyyaml
+      - name: Install Python dependencies
+        run: pip install pyyaml jsonschema
 
       - name: Validate SKILL.md files
         run: ./scripts/validate_skills.sh
+
+      - name: Lint against canonical Claude Code 2026 schemas
+        run: ./scripts/spec_lint.sh --strict
 
       - name: Check workflow reference mirrors match canonical
         run: ./scripts/check_references.sh
 
       - name: Check VERSION_MAP consumers match declared values
         run: ./scripts/check_versions.sh
+
+      - name: Run spec linter test suite
+        run: bash tests/scripts/test-spec-lint.sh

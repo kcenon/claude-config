@@ -344,6 +344,33 @@ foreach ($skillFile in $skillFiles) {
     }
 }
 
+# ── Schema-based validation against canonical Claude Code 2026 spec ──
+# Soft-fail (warn-only) so this incremental check can land without breaking
+# downstream consumers. Tighten by removing -WarnOnly after a grace period.
+
+Write-Host ""
+Write-Host "======================================================"
+Write-InfoMessage "공식 스펙 검증 (spec_lint)"
+Write-Host "======================================================"
+Write-Host ""
+
+$specLintPs1 = Join-Path $ScriptDir 'spec_lint.ps1'
+if (Test-Path -LiteralPath $specLintPs1) {
+    & $specLintPs1 -WarnOnly -Quiet
+    if ($LASTEXITCODE -eq 0) {
+        Write-SuccessMessage "spec_lint: 위반 사항 없음"
+        Record-Pass
+    }
+    else {
+        Write-WarningMessage "spec_lint: 위반 사항 발견 (warn-only)"
+        Record-Warning
+    }
+}
+else {
+    Write-WarningMessage "spec_lint.ps1 누락 -- 스키마 검증 건너뜀"
+    Record-Warning
+}
+
 # ── Validation result summary ────────────────────────────────
 
 Write-Host ""
