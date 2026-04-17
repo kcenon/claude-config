@@ -5,6 +5,8 @@ argument-hint: "[docs-directory] [--scope anchors|accuracy|ssot|all] [--fix] [--
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: "Bash(git *)"
+context: fork
+agent: general-purpose
 ---
 
 # Document Review Command
@@ -258,6 +260,8 @@ See [_policy.md](../_policy.md) for common rules.
 | **Commits** | Commit messages in English, conventional commit format |
 
 ## Output
+
+This skill runs in a forked context (`context: fork`) using the `general-purpose` agent — write access is required for `--fix` mode. The forked subagent does not see the calling conversation's history; operate entirely from the supplied arguments.
 
 After completion, provide a structured review report:
 
