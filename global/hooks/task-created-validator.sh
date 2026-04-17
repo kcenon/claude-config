@@ -22,7 +22,6 @@ fi
 # "field present but empty string" — both rules below should fire on the latter.
 SENTINEL=$'\x01'
 RAW=""
-HAS_FIELD=0
 
 if command -v jq >/dev/null 2>&1; then
     RAW=$(printf '%s' "$INPUT" | jq -r '
