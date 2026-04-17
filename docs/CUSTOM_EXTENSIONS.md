@@ -234,6 +234,54 @@ The `/release` skill wraps this flow — pass `--target <field>` to bump one tra
 
 **Why independent tracks**: `plugin` and `plugin-lite` release on their own cadence (different users install different variants), and `settings-schema` rev-locks to schema-breaking changes in `global/settings.json`. A single monorepo version would force lockstep releases where none is semantically required.
 
+### Spec Linter (Official-Spec SSOT)
+
+**Type**: Repository-internal convention
+
+The spec linter validates `SKILL.md` frontmatter, `plugin.json`, and `settings.json` against canonical Claude Code 2026 schemas. Three JSON Schema (Draft 2020-12) files under `scripts/schemas/` declare the official field set; the linter enforces them across every checked-in consumer in the repo.
+
+| File | Validates | Schema |
+|------|-----------|--------|
+| `**/SKILL.md` (frontmatter) | 14 official fields, `additionalProperties: false` | `scripts/schemas/skill-md.schema.json` |
+| `*/.claude-plugin/plugin.json` | `name`, `version` (semver), `description`, `author`, `repository`, `compatibility`, ... | `scripts/schemas/plugin-json.schema.json` |
+| `global/settings.json`, `global/settings.windows.json`, `project/.claude/settings.json` | `attribution`, `permissions`, `hooks`, `sandbox`, enums (`teammateMode`, `effortLevel`, ...) | `scripts/schemas/settings-json.schema.json` |
+
+`SKILL.md` uses `additionalProperties: false` to reject unknown fields (typos, deprecated names) — the linter prints a "did you mean" suggestion using closest-match search. `plugin.json` and `settings.json` use `additionalProperties: true` so harness-specific or forward-compat fields are tolerated, but declared fields with enums or patterns (e.g., semver, `defaultMode`) are still strictly enforced.
+
+**Running locally**:
+
+```bash
+# Repo-wide lint (advisory; reports without blocking)
+scripts/spec_lint.sh --warn-only
+
+# Repo-wide lint (strict; same flag CI uses)
+scripts/spec_lint.sh --strict
+
+# Single file or mode-specific
+scripts/spec_lint.sh --mode skill global/skills/release/SKILL.md
+
+# Fast path via sync.sh
+scripts/sync.sh --lint --warn-only
+```
+
+PowerShell twin: `pwsh scripts/spec_lint.ps1 [-WarnOnly|-Strict|-Quiet] [-Mode skill|plugin|settings <file>...]`. Both wrappers shell out to `scripts/spec_lint.py`, which requires `pyyaml` and `jsonschema` (installed in CI; install locally with `pip install pyyaml jsonschema`).
+
+**Exit codes**: `0` clean, `1` violations, `2` setup error or `--strict` violations. The `--warn-only` flag forces `0` regardless of violations (used by `scripts/sync.sh` and `scripts/validate_skills.sh` for soft rollout). The `--strict` flag promotes `1` to `2` so CI can distinguish strict-mode failures from regular violations.
+
+**Updating schemas when the Claude Code spec changes**:
+
+1. Bump the `$id` URL version (or update `description` to record the spec source date).
+2. Add or remove fields in the `properties` block; update `required`, enums, and patterns to match the new spec.
+3. For `SKILL.md`, keep `additionalProperties: false` so new fields fail loudly until the schema catches up.
+4. Run `bash tests/scripts/test-spec-lint.sh` (or `pwsh tests/scripts/test-spec-lint.ps1`) to verify the regression suite still passes — case 12 lints every checked-in file in the repo.
+5. Run `scripts/spec_lint.sh --warn-only` against the working tree and address any newly surfaced violations before flipping back to strict.
+
+**CI enforcement**: `.github/workflows/validate-skills.yml` runs `scripts/spec_lint.sh --strict` on every PR targeting `main`, plus the test suite in `tests/scripts/test-spec-lint.sh`. The job fails (exit 2) on any violation. Path filters trigger the workflow on changes to `scripts/spec_lint.*`, `scripts/schemas/**`, and any `SKILL.md`, `plugin.json`, or `settings.json` consumer.
+
+**Why a separate linter alongside `validate_skills.sh`**: `validate_skills.sh` enforces project-specific conventions (mirror sync, description quality, naming); the spec linter enforces the *official Claude Code spec*. Splitting them lets us upgrade the spec independently of in-repo conventions, and lets the spec linter run in advisory mode (`--warn-only` from `sync.sh` and `validate_skills.sh`) during a soft rollout while `validate_skills.sh` continues to gate the existing rules.
+
+> Tracked in issue [#334](https://github.com/kcenon/claude-config/issues/334) (parent epic [#328](https://github.com/kcenon/claude-config/issues/328)).
+
 ## Using This Configuration Elsewhere
 
 ### What Works Out of the Box
@@ -282,4 +330,4 @@ If a feature from this configuration doesn't work:
 
 ---
 
-*Version: 1.2.0 | Last updated: 2026-02-04*
+*Version: 1.3.0 | Last updated: 2026-04-17*
