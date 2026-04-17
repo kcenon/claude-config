@@ -5,8 +5,7 @@ argument-hint: "<version> [--target <field>] [--draft] [--prerelease] [--solo|--
 user-invocable: true
 disable-model-invocation: true
 context: fork
-allowed-tools:
-  - Bash
+allowed-tools: "Bash(git *) Bash(gh *)"
 ---
 
 # Release Command

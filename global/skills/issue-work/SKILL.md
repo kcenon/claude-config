@@ -4,6 +4,7 @@ description: Automate GitHub issue workflow - select issue, create branch, imple
 argument-hint: "[project-name] [issue-number] [--solo|--team] [--limit N] [--dry-run] [--inline]"
 user-invocable: true
 disable-model-invocation: true
+allowed-tools: "Bash(gh *)"
 ---
 
 # Issue Work Command

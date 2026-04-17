@@ -4,6 +4,7 @@ description: "Analyze and fix failed CI/CD workflows for a pull request. Use whe
 argument-hint: "[project-name] [pr-number] [--solo|--team] [--limit N] [--dry-run] [--inline]"
 user-invocable: true
 disable-model-invocation: true
+allowed-tools: "Bash(gh *)"
 ---
 
 # PR Work Command

@@ -5,8 +5,7 @@ argument-hint: "[project-name] [--dry-run] [--include-remote]"
 user-invocable: true
 disable-model-invocation: true
 context: fork
-allowed-tools:
-  - Bash
+allowed-tools: "Bash(git *)"
 ---
 
 # Branch Cleanup Command

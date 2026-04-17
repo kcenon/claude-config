@@ -4,8 +4,7 @@ description: Create well-structured GitHub issues using the 5W1H framework with 
 argument-hint: "<project-name> [--type bug|feature] [--priority high|medium]"
 user-invocable: true
 disable-model-invocation: true
-allowed-tools:
-  - Bash
+allowed-tools: "Bash(gh issue *)"
 ---
 
 # Issue Create Command
