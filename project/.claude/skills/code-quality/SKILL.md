@@ -9,6 +9,7 @@ allowed-tools:
   - Grep
   - Glob
   - Read
+paths: "**/*.{cpp,py,ts,go,rs,kt,java,kt}"
 ---
 
 # Code Quality Analysis Command
