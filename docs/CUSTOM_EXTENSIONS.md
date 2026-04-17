@@ -206,6 +206,34 @@ pwsh scripts/sync_references.ps1   # Windows
 
 **Why this pattern**: Symlinks do not round-trip reliably through `git clone` on default Windows configurations. Build-time sync keeps all three files byte-identical without requiring platform-specific filesystem features.
 
+### Version Declarations (VERSION_MAP SSOT)
+
+**Type**: Repository-internal convention
+
+Four independent version fields are declared across the suite. `VERSION_MAP.yml` at the repo root is the single source of truth; each field moves on its own SemVer track.
+
+| Field             | Consumers                                                  |
+|-------------------|------------------------------------------------------------|
+| `suite`           | `README.md`, `README.ko.md` (shields.io badge URL)         |
+| `plugin`          | `plugin/.claude-plugin/plugin.json` (`version`)            |
+| `plugin-lite`     | `plugin-lite/.claude-plugin/plugin.json` (`version`)       |
+| `settings-schema` | `global/settings.json`, `global/settings.windows.json`     |
+
+**Bumping a version**: edit the target field in `VERSION_MAP.yml`, then propagate:
+
+```bash
+scripts/sync_versions.sh      # macOS / Linux / WSL
+pwsh scripts/sync_versions.ps1   # Windows
+# or, via sync.sh fast path:
+scripts/sync.sh --versions-only
+```
+
+The `/release` skill wraps this flow — pass `--target <field>` to bump one track.
+
+**CI enforcement**: `.github/workflows/validate-skills.yml` runs `scripts/check_versions.sh` on every PR. The job fails (exit 2) if any consumer drifts from its declared field in `VERSION_MAP.yml`.
+
+**Why independent tracks**: `plugin` and `plugin-lite` release on their own cadence (different users install different variants), and `settings-schema` rev-locks to schema-breaking changes in `global/settings.json`. A single monorepo version would force lockstep releases where none is semantically required.
+
 ## Using This Configuration Elsewhere
 
 ### What Works Out of the Box
