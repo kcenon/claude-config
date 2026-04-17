@@ -16,6 +16,7 @@ Exit code: 0 on success, 1 on any violation (unless --warn-only).
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 import sys
 from pathlib import Path
@@ -85,6 +86,52 @@ def format_path(error: jsonschema.ValidationError) -> str:
     return ".".join(str(p) for p in error.absolute_path)
 
 
+def known_field_names(schema: dict, instance_path: tuple) -> list[str]:
+    """Return the list of declared property names for the (sub)schema at instance_path."""
+    node = schema
+    for key in instance_path:
+        if not isinstance(node, dict):
+            return []
+        if "properties" in node and key in node["properties"]:
+            node = node["properties"][key]
+        elif "additionalProperties" in node and isinstance(node["additionalProperties"], dict):
+            node = node["additionalProperties"]
+        else:
+            return []
+    if isinstance(node, dict) and "properties" in node:
+        return sorted(node["properties"].keys())
+    return []
+
+
+def annotate_unknown_field(message: str, schema: dict,
+                           instance_path: tuple) -> str:
+    """For 'Additional properties are not allowed' errors, suggest the closest known field."""
+    if "Additional properties are not allowed" not in message:
+        return message
+    # Extract offending field names from the jsonschema message form:
+    # "Additional properties are not allowed ('foo', 'bar' were unexpected)"
+    # or singular "Additional properties are not allowed ('foo' was unexpected)"
+    start = message.find("(")
+    end = max(message.find(" were unexpected"), message.find(" was unexpected"))
+    if start == -1 or end == -1:
+        return message
+    offenders = [
+        s.strip().strip("'\"")
+        for s in message[start + 1:end].split(",")
+    ]
+    known = known_field_names(schema, instance_path)
+    if not known:
+        return message
+    hints = []
+    for name in offenders:
+        guess = difflib.get_close_matches(name, known, n=1, cutoff=0.6)
+        if guess:
+            hints.append(f"'{name}' (did you mean '{guess[0]}'?)")
+        else:
+            hints.append(f"'{name}'")
+    return f"unknown field(s): {', '.join(hints)}"
+
+
 def validate_instance(instance: dict, schema: dict, file_path: Path,
                       base_line: int = 1) -> list[str]:
     validator = Draft202012Validator(schema)
@@ -92,7 +139,8 @@ def validate_instance(instance: dict, schema: dict, file_path: Path,
     messages: list[str] = []
     for err in errors:
         field = format_path(err)
-        messages.append(f"{file_path}:{base_line}:{field}: {err.message}")
+        msg = annotate_unknown_field(err.message, schema, tuple(err.absolute_path))
+        messages.append(f"{file_path}:{base_line}:{field}: {msg}")
     return messages
 
 
@@ -146,6 +194,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="Validation mode.")
     parser.add_argument("--warn-only", action="store_true",
                         help="Print violations but exit 0 (advisory mode).")
+    parser.add_argument("--strict", action="store_true",
+                        help="Exit with code 2 (instead of 1) on violations. "
+                             "Lets CI distinguish strict-mode failures from regular violations.")
     parser.add_argument("--quiet", action="store_true",
                         help="Print only violations and the final summary line.")
     parser.add_argument("files", nargs="+", help="One or more files to lint.")
@@ -167,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"spec_lint: mode={args.mode} files={total_files} violations={total_violations}")
 
     if total_violations and not args.warn_only:
-        return 1
+        return 2 if args.strict else 1
     return 0
 
 
