@@ -109,8 +109,13 @@ function Get-MarkdownReferences {
             }
         }
 
+        # Strip inline-code spans before extracting references so that
+        # example syntax inside backticks (e.g., `[a](#missing)`) is not
+        # treated as a live reference.
+        $scanLine = $line -replace '`[^`]*`', ''
+
         # Extract intra-file references: ](#anchor)
-        $intraMatches = [regex]::Matches($line, '\]\(#([^)]+)\)')
+        $intraMatches = [regex]::Matches($scanLine, '\]\(#([^)]+)\)')
         foreach ($m in $intraMatches) {
             $result.IntraRefs.Add(@{
                 LineNum = $lineNum
@@ -119,7 +124,7 @@ function Get-MarkdownReferences {
         }
 
         # Extract inter-file references: ](path.md#anchor) — exclude URLs (no colon in path)
-        $interMatches = [regex]::Matches($line, '\]\(([^:)#]*\.md)#([^)]+)\)')
+        $interMatches = [regex]::Matches($scanLine, '\]\(([^:)#]*\.md)#([^)]+)\)')
         foreach ($m in $interMatches) {
             $result.InterRefs.Add(@{
                 LineNum = $lineNum
