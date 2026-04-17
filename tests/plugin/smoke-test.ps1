@@ -72,32 +72,21 @@ function Test-Plugin {
     $manifest = Join-Path $PluginDir '.claude-plugin' 'plugin.json'
     Test-JsonFile -FilePath $manifest
 
-    # Check referenced directories from manifest
-    if (Test-Path -LiteralPath $manifest) {
-        try {
-            $manifestData = Get-Content -Raw -LiteralPath $manifest | ConvertFrom-Json
+    # Validate components at their default locations. Claude Code auto-discovers
+    # agents/, skills/, hooks/hooks.json at the plugin root - no manifest path
+    # fields are required (see issue #331).
+    $agentsDir = Join-Path $PluginDir 'agents'
+    $skillsDir = Join-Path $PluginDir 'skills'
+    $hooksJson = Join-Path $PluginDir 'hooks' 'hooks.json'
 
-            $agentsRef = $manifestData.agents
-            $skillsRef = $manifestData.skills
-            $hooksRef  = $manifestData.hooks
-
-            if ($agentsRef) {
-                Test-DirectoryExists -Dir (Join-Path $PluginDir $agentsRef) -Label "$name/agents"
-            }
-            if ($skillsRef) {
-                Test-DirectoryExists -Dir (Join-Path $PluginDir $skillsRef) -Label "$name/skills"
-            }
-            if ($hooksRef) {
-                $hooksPath = Join-Path $PluginDir $hooksRef
-                if (Test-Path -LiteralPath $hooksPath) {
-                    Pass "$name hooks file exists"
-                } else {
-                    Fail "$name hooks file missing: $hooksPath"
-                }
-            }
-        } catch {
-            # Manifest parse failed, already reported above
-        }
+    if (Test-Path -LiteralPath $agentsDir -PathType Container) {
+        Test-DirectoryExists -Dir $agentsDir -Label "$name/agents"
+    }
+    if (Test-Path -LiteralPath $skillsDir -PathType Container) {
+        Test-DirectoryExists -Dir $skillsDir -Label "$name/skills"
+    }
+    if (Test-Path -LiteralPath $hooksJson -PathType Leaf) {
+        Test-JsonFile -FilePath $hooksJson
     }
 
     # Validate SKILL.md frontmatter

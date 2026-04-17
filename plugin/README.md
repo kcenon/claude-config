@@ -68,11 +68,14 @@ plugin/
 
 ## Plugin Manifest Compatibility
 
-Verified against Claude Code plugin system (March 2026). The `plugin.json` manifest
-uses the standard schema with `skills` and `hooks` component paths.
+Verified against Claude Code plugin system (April 2026). The `plugin.json` manifest
+contains only the official schema fields (`name`, `version`, `description`, `author`,
+`homepage`, `repository`, `license`, `compatibility`, `keywords`).
 
-Additional manifest fields (`agents`, `mcpServers`, `lspServers`) are supported by the
-plugin system but not used by this plugin as it does not bundle those components.
+Component directories (`agents/`, `skills/`, `hooks/hooks.json`, `.mcp.json`, `.lsp.json`)
+are auto-discovered by Claude Code at the plugin root — no explicit path fields are
+declared in the manifest. Explicit path fields are only needed when overriding the
+default discovery layout.
 
 ## Requirements
 
