@@ -24,6 +24,12 @@ if [[ "${1:-}" == "--references-only" ]]; then
     exec "$SCRIPT_DIR/sync_references.sh"
 fi
 
+# Fast path: propagate VERSION_MAP.yml values into consumer files.
+# See docs/CUSTOM_EXTENSIONS.md for version track layout.
+if [[ "${1:-}" == "--versions-only" ]]; then
+    exec "$SCRIPT_DIR/sync_versions.sh"
+fi
+
 echo -e "${BLUE}"
 cat << 'EOF'
 ╔═══════════════════════════════════════════════════════════════╗

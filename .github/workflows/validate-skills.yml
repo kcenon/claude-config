@@ -11,6 +11,15 @@ on:
       - 'scripts/validate_skills.sh'
       - 'scripts/check_references.sh'
       - 'scripts/sync_references.sh'
+      - 'VERSION_MAP.yml'
+      - 'scripts/check_versions.sh'
+      - 'scripts/sync_versions.sh'
+      - 'plugin/.claude-plugin/plugin.json'
+      - 'plugin-lite/.claude-plugin/plugin.json'
+      - 'global/settings.json'
+      - 'global/settings.windows.json'
+      - 'README.md'
+      - 'README.ko.md'
 
 jobs:
   validate:
@@ -32,3 +41,6 @@ jobs:
 
       - name: Check workflow reference mirrors match canonical
         run: ./scripts/check_references.sh
+
+      - name: Check VERSION_MAP consumers match declared values
+        run: ./scripts/check_versions.sh
