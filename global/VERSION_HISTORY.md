@@ -2,6 +2,9 @@
 
 ## Changelog
 
+- **Unreleased**: Adopt InstructionsLoaded, PostCompact, and TaskCreated hook events (Issue #333)
+  - Subscribed three new harness events in `global/settings.json` and `global/settings.windows.json`. `InstructionsLoaded` runs `instructions-loaded-reinforcer` to re-inject `commit-settings.md`, branching policy, and Conventional Commits rules immediately after `CLAUDE.md` and `.claude/rules/*.md` are ingested, eliminating policy drift in long sessions. `PostCompact` runs `post-compact-restore` to re-assert `core/principles.md` after every automatic compaction, pairing with the existing `pre-compact-snapshot` (PreCompact) hook and writing a correlated record to `~/.claude/logs/compact-snapshots.log`. `TaskCreated` runs `task-created-validator` as a synchronous blocking gate that rejects task descriptions shorter than 20 characters or missing a `- [ ]` acceptance-criteria checkbox, mirroring the `commit-message-guard` enforcement model. All three hooks ship with bash and PowerShell variants and fail-open on missing dependencies. Documentation added to `HOOKS.md` sections 16-18 and the Quick Navigation table.
+
 - **Unreleased**: Modernize SKILL.md frontmatter (Issue #332)
   - Added `disable-model-invocation: true` to global workflow skills (`branch-cleanup`, `doc-index`, `doc-review`, `harness`, `implement-all-levels`, `issue-create`, `issue-work`, `pr-work`, `release`, `research`) so they only fire when the user explicitly invokes the slash command, eliminating spurious model-driven activation.
   - Added `allowed-tools` to global workflow skills (`branch-cleanup`, `issue-create`, `issue-work`, `pr-work`, `release`) declaring the tools each skill needs up front, so harness pre-approval skips per-tool prompts at runtime.
