@@ -11,6 +11,10 @@
 .PARAMETER WarnOnly
     Print violations but exit 0 (advisory mode for soft rollouts).
 
+.PARAMETER Strict
+    Exit with code 2 (instead of 1) on violations. Lets CI distinguish strict-mode
+    failures from regular violations.
+
 .PARAMETER Quiet
     Print only violations and the final summary line.
 
@@ -37,6 +41,7 @@
 [CmdletBinding()]
 param(
     [switch]$WarnOnly,
+    [switch]$Strict,
     [switch]$Quiet,
     [ValidateSet('skill', 'plugin', 'settings')]
     [string]$Mode,
@@ -83,6 +88,7 @@ if (-not (Test-Path -LiteralPath $SpecLintPy)) {
 
 $commonArgs = @()
 if ($WarnOnly) { $commonArgs += '--warn-only' }
+if ($Strict)   { $commonArgs += '--strict' }
 if ($Quiet)    { $commonArgs += '--quiet' }
 
 # ── Explicit mode (caller supplied files) ────────────────────

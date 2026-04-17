@@ -20,6 +20,7 @@ SPEC_LINT_PY="$SCRIPT_DIR/spec_lint.py"
 
 # Parse args
 WARN_ONLY=""
+STRICT=""
 QUIET=""
 EXPLICIT_MODE=""
 EXPLICIT_FILES=()
@@ -27,6 +28,7 @@ EXPLICIT_FILES=()
 while [ $# -gt 0 ]; do
     case "$1" in
         --warn-only) WARN_ONLY="--warn-only"; shift ;;
+        --strict)    STRICT="--strict"; shift ;;
         --quiet)     QUIET="--quiet"; shift ;;
         --mode)
             EXPLICIT_MODE="${2:-}"
@@ -77,7 +79,7 @@ if [ -n "$EXPLICIT_MODE" ]; then
         echo "ERROR: --mode requires at least one file path" >&2
         exit 2
     fi
-    exec "$PYTHON" "$SPEC_LINT_PY" --mode "$EXPLICIT_MODE" $WARN_ONLY $QUIET "${EXPLICIT_FILES[@]}"
+    exec "$PYTHON" "$SPEC_LINT_PY" --mode "$EXPLICIT_MODE" $WARN_ONLY $STRICT $QUIET "${EXPLICIT_FILES[@]}"
 fi
 
 # Default mode: discover and lint all known files in the repo
@@ -100,7 +102,7 @@ for dir in "${SKILL_DIRS[@]}"; do
 done
 if [ ${#SKILL_FILES[@]} -gt 0 ]; then
     echo "[spec_lint] mode=skill files=${#SKILL_FILES[@]}"
-    if ! "$PYTHON" "$SPEC_LINT_PY" --mode skill $WARN_ONLY $QUIET "${SKILL_FILES[@]}"; then
+    if ! "$PYTHON" "$SPEC_LINT_PY" --mode skill $WARN_ONLY $STRICT $QUIET "${SKILL_FILES[@]}"; then
         overall_rc=1
     fi
 fi
@@ -114,7 +116,7 @@ for candidate in \
 done
 if [ ${#PLUGIN_FILES[@]} -gt 0 ]; then
     echo "[spec_lint] mode=plugin files=${#PLUGIN_FILES[@]}"
-    if ! "$PYTHON" "$SPEC_LINT_PY" --mode plugin $WARN_ONLY $QUIET "${PLUGIN_FILES[@]}"; then
+    if ! "$PYTHON" "$SPEC_LINT_PY" --mode plugin $WARN_ONLY $STRICT $QUIET "${PLUGIN_FILES[@]}"; then
         overall_rc=1
     fi
 fi
@@ -129,7 +131,7 @@ for candidate in \
 done
 if [ ${#SETTINGS_FILES[@]} -gt 0 ]; then
     echo "[spec_lint] mode=settings files=${#SETTINGS_FILES[@]}"
-    if ! "$PYTHON" "$SPEC_LINT_PY" --mode settings $WARN_ONLY $QUIET "${SETTINGS_FILES[@]}"; then
+    if ! "$PYTHON" "$SPEC_LINT_PY" --mode settings $WARN_ONLY $STRICT $QUIET "${SETTINGS_FILES[@]}"; then
         overall_rc=1
     fi
 fi
