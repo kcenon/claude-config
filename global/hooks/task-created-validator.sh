@@ -18,22 +18,29 @@ if [ -z "$INPUT" ]; then
 fi
 
 # Extract description. Try common field paths used by TaskCreate.
-DESC=""
+# Use a sentinel byte (0x01) to distinguish "field missing" (no output) from
+# "field present but empty string" — both rules below should fire on the latter.
+SENTINEL=$'\x01'
+RAW=""
+HAS_FIELD=0
+
 if command -v jq >/dev/null 2>&1; then
-    DESC=$(printf '%s' "$INPUT" | jq -r '
-        .tool_input.description //
-        .description //
-        .task.description //
-        empty
-    ' 2>/dev/null) || DESC=""
+    RAW=$(printf '%s' "$INPUT" | jq -r '
+        if   (.tool_input.description? // null) != null then .tool_input.description
+        elif (.description? // null)            != null then .description
+        elif (.task.description? // null)       != null then .task.description
+        else "'"$SENTINEL"'"
+        end
+    ' 2>/dev/null) || RAW="$SENTINEL"
 elif command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1; then
     PY=$(command -v python3 || command -v python)
-    DESC=$(printf '%s' "$INPUT" | "$PY" -c '
+    RAW=$(printf '%s' "$INPUT" | "$PY" -c '
 import sys, json
+SENTINEL = "\x01"
 try:
     d = json.load(sys.stdin)
 except Exception:
-    sys.exit(0)
+    sys.stdout.write(SENTINEL); sys.exit(0)
 for path in (("tool_input","description"), ("description",), ("task","description")):
     cur = d
     ok = True
@@ -44,13 +51,21 @@ for path in (("tool_input","description"), ("description",), ("task","descriptio
             ok = False
             break
     if ok and isinstance(cur, str):
-        sys.stdout.write(cur)
-        break
-' 2>/dev/null) || DESC=""
+        sys.stdout.write(cur); sys.exit(0)
+sys.stdout.write(SENTINEL)
+' 2>/dev/null) || RAW="$SENTINEL"
 else
     # No JSON parser available — fail open rather than block legitimate tasks.
     exit 0
 fi
+
+# Field missing entirely: nothing to validate.
+if [ "$RAW" = "$SENTINEL" ]; then
+    exit 0
+fi
+
+DESC="$RAW"
+HAS_FIELD=1
 
 # Trim whitespace
 TRIMMED=$(printf '%s' "$DESC" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')

@@ -16,19 +16,25 @@ $json = Read-HookInput
 if (-not $json) { exit 0 }
 
 # Extract description from common TaskCreate field paths.
+# $null = field missing (fail open), '' = explicitly empty (block).
 $desc = $null
-foreach ($path in @(
+$hasField = $false
+foreach ($getter in @(
     { $json.tool_input.description },
     { $json.description },
     { $json.task.description }
 )) {
     try {
-        $val = & $path
-        if ($val) { $desc = [string]$val; break }
+        $val = & $getter
+        if ($null -ne $val) {
+            $desc = [string]$val
+            $hasField = $true
+            break
+        }
     } catch { }
 }
 
-if (-not $desc) { $desc = '' }
+if (-not $hasField) { exit 0 }
 
 $trimmed = $desc.Trim()
 
