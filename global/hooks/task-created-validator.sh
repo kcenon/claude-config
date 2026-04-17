@@ -65,7 +65,6 @@ if [ "$RAW" = "$SENTINEL" ]; then
 fi
 
 DESC="$RAW"
-HAS_FIELD=1
 
 # Trim whitespace
 TRIMMED=$(printf '%s' "$DESC" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')

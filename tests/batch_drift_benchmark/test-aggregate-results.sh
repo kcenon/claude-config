@@ -52,10 +52,10 @@ else
     FAIL=$((FAIL + 1)); ERRORS+=("help missing script name"); echo "  FAIL: help missing script name"
 fi
 
-missing_strategy=$(bash "$SCRIPT" --started-at x --completed-at y "$CLEAN_DIR" 2>&1); rc=$?
+bash "$SCRIPT" --started-at x --completed-at y "$CLEAN_DIR" > /dev/null 2>&1; rc=$?
 if [ "$rc" -ne 0 ]; then PASS=$((PASS + 1)); echo "  PASS: missing --strategy rejected"; else FAIL=$((FAIL + 1)); echo "  FAIL: missing --strategy should fail"; fi
 
-bad_dir_out=$(bash "$SCRIPT" --strategy s --started-at x --completed-at y /no/such/path 2>&1); rc=$?
+bash "$SCRIPT" --strategy s --started-at x --completed-at y /no/such/path > /dev/null 2>&1; rc=$?
 if [ "$rc" -ne 0 ]; then PASS=$((PASS + 1)); echo "  PASS: non-existent raw dir rejected"; else FAIL=$((FAIL + 1)); echo "  FAIL: bad dir should fail"; fi
 
 echo ""
