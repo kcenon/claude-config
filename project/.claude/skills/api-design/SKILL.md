@@ -10,6 +10,8 @@ allowed-tools:
   - Bash
 model: sonnet
 argument-hint: "<endpoint-or-file>"
+paths: "**/api/**, **/routes/**, **/handlers/**"
+when_to_use: "designing or reviewing API endpoints"
 ---
 
 # API Design Skill

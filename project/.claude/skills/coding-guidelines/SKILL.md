@@ -9,6 +9,8 @@ allowed-tools:
   - Grep
 model: sonnet
 argument-hint: "<file-path>"
+paths: "**/*.{cpp,py,ts,go,rs,kt}"
+when_to_use: "reviewing or writing code"
 ---
 
 # Coding Guidelines Skill

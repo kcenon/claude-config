@@ -3,6 +3,7 @@ name: harness
 description: "Design and build domain-specific agent team harnesses. Analyzes project domains, selects architecture patterns (Pipeline, Fan-out/Fan-in, Expert Pool, Producer-Reviewer, Supervisor, Hierarchical, Generator-Evaluator, Long-Running Session), defines specialized agents (.claude/agents/), and generates skills (.claude/skills/) with orchestration. Use when building new agent teams, designing multi-agent workflows, creating domain harnesses, restructuring agent architectures, setting up long-running multi-session projects, or configuring agent frontmatter (tools, memory, permissions)."
 argument-hint: "[domain-or-project-description]"
 user-invocable: true
+disable-model-invocation: true
 ---
 
 # Harness -- Agent Team & Skill Architect

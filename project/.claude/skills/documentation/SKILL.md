@@ -8,6 +8,7 @@ allowed-tools:
   - Glob
 model: haiku
 argument-hint: "<file-or-topic>"
+paths: "**/*.md, **/README*"
 ---
 
 # Documentation Skill

@@ -3,6 +3,7 @@ name: implement-all-levels
 description: Enforce complete implementation of all tiers/difficulty levels for tiered features. Prevents partial implementations.
 argument-hint: "<feature-description> [--solo|--team]"
 user-invocable: true
+disable-model-invocation: true
 ---
 
 # Implement All Levels Command

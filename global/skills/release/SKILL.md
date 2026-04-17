@@ -3,9 +3,9 @@ name: release
 description: Create a release with automated changelog generation from commits since last release using semantic versioning.
 argument-hint: "<version> [--target <field>] [--draft] [--prerelease] [--solo|--team]"
 user-invocable: true
+disable-model-invocation: true
 context: fork
-allowed-tools:
-  - Bash
+allowed-tools: "Bash(git *) Bash(gh *)"
 ---
 
 # Release Command
