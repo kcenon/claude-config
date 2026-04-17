@@ -61,7 +61,7 @@ assert_eq "$help_rc" "0" "--help exits 0"
 assert_contains "$help_out" "seed-scratch-repo.sh" "help mentions script name"
 assert_contains "$help_out" "--dry-run" "help documents --dry-run"
 assert_contains "$help_out" "Idempotence" "help explains idempotence"
-help_out_short=$(bash "$SCRIPT" -h 2>&1); help_short_rc=$?
+bash "$SCRIPT" -h > /dev/null 2>&1; help_short_rc=$?
 assert_eq "$help_short_rc" "0" "-h exits 0"
 
 echo ""

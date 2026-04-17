@@ -59,19 +59,19 @@ no_strategy_out=$(bash "$SCRIPT" --dry-run 2>&1); rc=$?
 assert_nonzero_exit "$rc" "missing --strategy rejected"
 assert_contains "$no_strategy_out" "strategy" "missing strategy error mentions strategy"
 
-bad_strategy_out=$(bash "$SCRIPT" --strategy foo --dry-run 2>&1); rc=$?
+bash "$SCRIPT" --strategy foo --dry-run > /dev/null 2>&1; rc=$?
 assert_nonzero_exit "$rc" "invalid --strategy rejected"
 
-items_zero_out=$(bash "$SCRIPT" --strategy subagent --items 0 --dry-run 2>&1); rc=$?
+bash "$SCRIPT" --strategy subagent --items 0 --dry-run > /dev/null 2>&1; rc=$?
 assert_nonzero_exit "$rc" "--items 0 rejected"
 
-items_over_out=$(bash "$SCRIPT" --strategy subagent --items 201 --dry-run 2>&1); rc=$?
+bash "$SCRIPT" --strategy subagent --items 201 --dry-run > /dev/null 2>&1; rc=$?
 assert_nonzero_exit "$rc" "--items 201 rejected"
 
-items_nan_out=$(bash "$SCRIPT" --strategy subagent --items abc --dry-run 2>&1); rc=$?
+bash "$SCRIPT" --strategy subagent --items abc --dry-run > /dev/null 2>&1; rc=$?
 assert_nonzero_exit "$rc" "--items abc rejected"
 
-unknown_flag_out=$(bash "$SCRIPT" --strategy subagent --no-such-flag --dry-run 2>&1); rc=$?
+bash "$SCRIPT" --strategy subagent --no-such-flag --dry-run > /dev/null 2>&1; rc=$?
 assert_nonzero_exit "$rc" "unknown flag rejected"
 
 echo ""
