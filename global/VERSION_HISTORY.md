@@ -2,6 +2,14 @@
 
 ## Changelog
 
+- **Unreleased**: Modernize SKILL.md frontmatter (Issue #332)
+  - Added `disable-model-invocation: true` to global workflow skills (`branch-cleanup`, `doc-index`, `doc-review`, `harness`, `implement-all-levels`, `issue-create`, `issue-work`, `pr-work`, `release`, `research`) so they only fire when the user explicitly invokes the slash command, eliminating spurious model-driven activation.
+  - Added `allowed-tools` to global workflow skills (`branch-cleanup`, `issue-create`, `issue-work`, `pr-work`, `release`) declaring the tools each skill needs up front, so harness pre-approval skips per-tool prompts at runtime.
+  - Added `paths` globs to plugin and project knowledge skills (`api-design`, `ci-debugging`, `coding-guidelines`, `documentation`) so they auto-load only when matching files are open.
+  - Added `when_to_use` to plugin and project mirror skills (`api-design`, `ci-debugging`, `coding-guidelines`) to give Claude a clear trigger guideline distinct from the user-facing description.
+  - Extended workflow frontmatter to `doc-review`, `git-status`, and `doc-update` so the same fields apply consistently across the global and project skill catalogs.
+  - Touched files: 22 SKILL.md files across `global/skills/`, `plugin/skills/`, and `project/.claude/skills/`. No behavioral change to skill bodies.
+
 - **1.9.2** (2026-04-13): Release flow — recreate develop from main after squash merge
   - Changed release procedure: delete and recreate `develop` from `main` after each release
   - Prevents history divergence caused by squash merge producing different commit SHAs
