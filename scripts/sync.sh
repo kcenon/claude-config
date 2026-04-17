@@ -30,6 +30,13 @@ if [[ "${1:-}" == "--versions-only" ]]; then
     exec "$SCRIPT_DIR/sync_versions.sh"
 fi
 
+# Fast path: validate SKILL.md / plugin.json / settings.json against
+# canonical Claude Code 2026 schemas. See scripts/schemas/.
+if [[ "${1:-}" == "--lint" ]]; then
+    shift
+    exec "$SCRIPT_DIR/spec_lint.sh" "$@"
+fi
+
 echo -e "${BLUE}"
 cat << 'EOF'
 ╔═══════════════════════════════════════════════════════════════╗

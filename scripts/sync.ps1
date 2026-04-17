@@ -19,6 +19,14 @@ Import-Module $ModulePath -Force
 $ScriptDir = $PSScriptRoot
 $BackupDir = Split-Path -Parent $ScriptDir
 
+# Fast path: validate SKILL.md / plugin.json / settings.json against
+# canonical Claude Code 2026 schemas. See scripts/schemas/.
+if ($args.Count -gt 0 -and $args[0] -eq '--lint') {
+    $forwarded = if ($args.Count -gt 1) { $args[1..($args.Count - 1)] } else { @() }
+    & (Join-Path $ScriptDir 'spec_lint.ps1') @forwarded
+    exit $LASTEXITCODE
+}
+
 Write-Banner -Title 'Claude Configuration Sync Tool'
 
 # ── File comparison function ─────────────────────────────────
