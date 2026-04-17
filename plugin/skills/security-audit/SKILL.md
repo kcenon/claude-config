@@ -4,6 +4,7 @@ description: "Comprehensive security audit covering OWASP Top 10, input validati
 allowed-tools: Read, Grep, Glob
 model: sonnet
 context: fork
+agent: Explore
 argument-hint: "<file-or-directory>"
 ---
 
@@ -54,3 +55,32 @@ argument-hint: "<file-or-directory>"
 8. Insecure Deserialization
 9. Using Components with Known Vulnerabilities
 10. Insufficient Logging & Monitoring
+
+## Output
+
+This skill runs in a forked context (`context: fork`) using the read-only `Explore` agent. It does not have access to the calling conversation's history — operate entirely from the supplied `<file-or-directory>` argument.
+
+Return a structured report at the end of analysis:
+
+```markdown
+## Security Audit Report
+
+| Category | Findings |
+|----------|----------|
+| Critical | N items |
+| High | N items |
+| Medium | N items |
+| Low | N items |
+
+### Critical Findings
+1. `file.ext:line` — finding + recommended fix
+2. ...
+
+### High Findings
+1. ...
+
+### Coverage
+- Files inspected: N
+- OWASP categories evaluated: 1, 2, 3, ...
+- Categories not applicable: ...
+```

@@ -282,6 +282,20 @@ PowerShell twin: `pwsh scripts/spec_lint.ps1 [-WarnOnly|-Strict|-Quiet] [-Mode s
 
 > Tracked in issue [#334](https://github.com/kcenon/claude-config/issues/334) (parent epic [#328](https://github.com/kcenon/claude-config/issues/328)).
 
+### Skill Context Isolation (`context: fork`)
+
+Audit and review skills run in an isolated subagent context so their findings do not consume the calling session's tokens.
+
+| Skill | Agent | Why fork |
+|-------|-------|----------|
+| `plugin/skills/security-audit` | `Explore` (read-only) | Audit findings can exceed 10K tokens; isolation preserves the main context |
+| `plugin/skills/performance-review` | `Explore` (read-only) | Same — large analysis output, read-only by design |
+| `global/skills/doc-review` | `general-purpose` | Needs write access for `--fix` mode; isolation keeps doc-review noise out of the calling thread |
+
+The forked subagent does not see the calling conversation's history. Each skill body is self-contained and operates entirely from the supplied arguments, returning a structured report at the end. Per the official spec, `context: fork` only makes sense for skills with explicit task instructions — guideline-only skills should keep the default inline context.
+
+> Tracked in issue [#335](https://github.com/kcenon/claude-config/issues/335) (parent epic [#328](https://github.com/kcenon/claude-config/issues/328)).
+
 ## Using This Configuration Elsewhere
 
 ### What Works Out of the Box
