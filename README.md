@@ -11,6 +11,10 @@
 </p>
 
 <p align="center">
+  <em>Docs note (2026): Claude Code documentation moved to <code>code.claude.com/docs/en/*</code>. All references in this repo use the new URLs. See <a href="COMPATIBILITY.md#settings-field-inventory-and-stability">COMPATIBILITY.md</a> for settings field stability classification.</em>
+</p>
+
+<p align="center">
   <a href="#quick-start">Quick Start</a> •
   <a href="#what-you-get">What You Get</a> •
   <a href="#one-line-installation">Installation</a> •

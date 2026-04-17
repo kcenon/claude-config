@@ -854,5 +854,5 @@ which clang-format
 
 ## References
 
-- [Claude Code Hooks Official Documentation](https://docs.anthropic.com/claude-code/hooks)
-- [Settings Official Documentation](https://docs.anthropic.com/claude-code/settings)
+- [Claude Code Hooks Official Documentation](https://code.claude.com/docs/en/hooks)
+- [Settings Official Documentation](https://code.claude.com/docs/en/settings)

@@ -16,7 +16,7 @@ This document maps claude-config versions to their minimum Claude Code requireme
 | **1.1.0** | **1.0.0+** | Rules (`.claude/rules/`), commands, agents, MCP configuration |
 | **1.0.0** | **1.0.0+** | Initial CLAUDE.md, basic settings |
 
-> **Note**: Minimum versions are estimates based on when Claude Code introduced the underlying features. Check the [Claude Code changelog](https://docs.anthropic.com/en/docs/claude-code/changelog) for exact feature availability.
+> **Note**: Minimum versions are estimates based on when Claude Code introduced the underlying features. Check the [Claude Code changelog](https://code.claude.com/docs/en/changelog) for exact feature availability.
 
 ---
 
@@ -73,6 +73,70 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | Team limit guard | TeamCreate PreToolUse matcher |
 | Version check hook | SessionStart hook event, `claude --version` |
 | Auto-formatting hooks | PostToolUse hook event (project settings) |
+
+---
+
+## Settings Field Inventory and Stability
+
+Every non-schema field in `global/settings.json` and `global/settings.windows.json` is
+catalogued here with its status relative to the official Claude Code settings
+reference: [`code.claude.com/docs/en/settings`](https://code.claude.com/docs/en/settings).
+
+**Status legend:**
+
+| Status | Meaning |
+|---|---|
+| **Stable** | Documented on `code.claude.com/docs/en/settings`. Changes follow deprecation policy. |
+| **Experimental** | Officially documented as experimental, opt-in, or subject to removal. |
+| **Undocumented** | Not listed on the official settings page. May be session-only, internal, or pending documentation. |
+| **Misplaced** | Documented but belongs in a different file (e.g., `~/.claude.json`). May trigger a schema warning. |
+
+### settings.json top-level fields
+
+| Field | Status | Min CC Version | Notes |
+|---|---|---:|---|
+| `$schema` | Stable | 2.0.0+ | Points to JSON Schema Store; enables editor validation. |
+| `description` | Undocumented | — | Self-descriptor string; not read by Claude Code. Advisory only. |
+| `version` | Undocumented | — | claude-config's own version string; not a Claude Code field. |
+| `respectGitignore` | Stable | 2.0.0+ | Controls `@` file picker. Default `true`. |
+| `cleanupPeriodDays` | Stable | 2.0.0+ | Session file retention. Minimum 1, rejected at 0. |
+| `language` | Stable | 2.0.0+ | Preferred response language. |
+| `outputStyle` | Stable | 2.0.0+ | Adjusts the system prompt (e.g. `"Explanatory"`). |
+| `attribution.commit` | Stable | 2.0.0+ | Empty string hides commit attribution. |
+| `attribution.pr` | Stable | 2.0.0+ | Empty string hides PR attribution. |
+| `attribution.issue` | Undocumented | — | Not on settings reference; used by claude-config's `attribution-guard` hook. Verify on each CC release. |
+| `permissions.defaultMode` | Stable | 2.0.0+ | Valid: `default`, `acceptEdits`, `plan`, `auto`, `dontAsk`, `bypassPermissions`. |
+| `permissions.deny` / `allow` / `ask` | Stable | 1.0.0+ | Permission rule arrays. |
+| `hooks` | Stable | 1.0.0+ | Lifecycle hook events. See [HOOKS.md](HOOKS.md). |
+| `statusLine` | Stable | 2.1.0+ | Custom status line script. |
+| `sandbox.enabled` / `autoAllowBashIfSandboxed` / `allowUnsandboxedCommands` / `excludedCommands` | Stable | 2.0.0+ | Bash sandboxing (macOS, Linux, WSL2). |
+| `sandbox.network.allowedDomains` / `allowLocalBinding` | Stable | 2.0.0+ | Sandbox network policy. |
+| `spinnerVerbs` | Stable | 2.1.0+ | Customize spinner action verbs. |
+| `alwaysThinkingEnabled` | Stable | 2.0.0+ | Enable extended thinking by default. |
+| `effortLevel` | Stable | 2.0.0+ | Valid: `low`, `medium`, `high`, `xhigh`. **Note:** `max` is NOT officially supported despite our local schema permitting it ([tracked](https://github.com/kcenon/claude-config/issues/336)). |
+| `autoUpdatesChannel` | Stable | 2.1.0+ | `"stable"` or `"latest"`. |
+| `skipDangerousModePermissionPrompt` | Stable | 2.0.0+ | Ignored in project settings (security). |
+| `showTurnDuration` | **Misplaced** | 2.1.0+ | Officially belongs in `~/.claude.json`, not `settings.json`. May trigger schema validation warning in future CC versions. Consider moving. |
+| `teammateMode` | **Misplaced** | 2.1.0+ | Same as above — belongs in `~/.claude.json`. Valid values: `auto`, `in-process`, `tmux`. |
+
+### env fields in settings.json
+
+| Field | Status | Min CC Version | Notes |
+|---|---|---:|---|
+| `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | **Experimental** | 2.1.0+ | Documented as experimental on `code.claude.com/docs/en/env-vars`. Set to `1` to enable agent teams. Subject to renaming or removal. |
+| `env.MAX_TEAMS` | Undocumented | 2.1.0+ | Paired with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`. Not on env-vars reference page. |
+| `env.ENABLE_TOOL_SEARCH` | Undocumented | 2.1.0+ | Deferred-tool schema loading. Mentioned indirectly on env-vars page but not formally documented. |
+| `env.MAX_MCP_OUTPUT_TOKENS` | Undocumented | 2.0.0+ | MCP output token cap. Not on env-vars reference page. |
+
+### Operational guidance
+
+1. **Before upgrading Claude Code**: Review Experimental/Undocumented rows. If a row disappears from code.claude.com docs entirely, the feature may be removed.
+2. **When a flag silently stops working**: Run `/config` in an interactive session and check whether the field is rejected, then check code.claude.com for renaming.
+3. **Misplaced fields**: The two Misplaced rows are accepted today but may trigger schema validation errors in future CC versions. A follow-up migration is tracked separately.
+
+### SessionStart version check (optional)
+
+`global/hooks/version-check.sh` currently warns on known-bad versions (see "Known Problematic Versions" below). A future enhancement could extend it to warn when the detected Claude Code version has known breaking changes to any Experimental field above.
 
 ---
 
@@ -133,4 +197,4 @@ When upgrading Claude Code itself:
 
 ---
 
-*Last updated: 2026-04-04 | claude-config v1.6.0*
+*Last updated: 2026-04-17 | claude-config v1.6.0*
