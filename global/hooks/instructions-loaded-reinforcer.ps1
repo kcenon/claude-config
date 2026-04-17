@@ -1,7 +1,8 @@
 #Requires -Version 7.0
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -WarningAction SilentlyContinue
 
 # instructions-loaded-reinforcer.ps1
 # Re-asserts critical policy after CLAUDE.md / .claude/rules/*.md loads.
@@ -17,7 +18,7 @@ if ($env:CLAUDE_HOME) {
 }
 foreach ($candidate in $candidates) {
     if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
-        $policyText = Get-Content -LiteralPath $candidate -Raw
+        $policyText = (([System.IO.File]::ReadAllText($candidate, [System.Text.Encoding]::UTF8)) -replace "`r`n", "`n").TrimEnd("`n")
         break
     }
 }
@@ -48,6 +49,8 @@ Conventional Commits: ``type(scope): description`` or ``type: description``.
 Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, security.
 Description: lowercase start, no trailing period, no emojis, no AI attribution.
 "@
+
+$reinforcement = ($reinforcement -replace "`r`n", "`n").TrimEnd("`n") + "`n"
 
 $response = @{
     hookSpecificOutput = @{

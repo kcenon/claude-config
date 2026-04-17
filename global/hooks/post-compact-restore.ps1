@@ -1,7 +1,8 @@
 #Requires -Version 7.0
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -WarningAction SilentlyContinue
 
 # post-compact-restore.ps1
 # Re-injects core/principles.md after automatic context compaction.
@@ -37,7 +38,7 @@ $candidates += (Join-Path (Split-Path -Parent $PWD.Path) '.claude' 'rules' 'core
 
 foreach ($candidate in $candidates) {
     if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
-        $principlesText = Get-Content -LiteralPath $candidate -Raw
+        $principlesText = (([System.IO.File]::ReadAllText($candidate, [System.Text.Encoding]::UTF8)) -replace "`r`n", "`n").TrimEnd("`n")
         break
     }
 }
@@ -66,6 +67,8 @@ Context was just compacted. Re-asserting core principles to prevent drift:
 
 $principlesText
 "@
+
+$context = ($context -replace "`r`n", "`n").TrimEnd("`n") + "`n"
 
 $response = @{
     hookSpecificOutput = @{

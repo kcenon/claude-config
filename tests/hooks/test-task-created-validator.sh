@@ -72,6 +72,12 @@ assert_exit '' 0 "empty stdin -> approve (fail open)"
 assert_exit '{}' 0 "empty JSON object -> approve (fail open, no description)"
 
 echo ""
+echo "[malformed JSON — graceful pass-through]"
+assert_exit 'not json at all' 0 "garbage stdin -> approve (graceful)"
+assert_exit '{"tool_input":' 0 "truncated JSON -> approve (graceful)"
+assert_exit '{"description": null}' 0 "null description -> approve (no field)"
+
+echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
 if [ ${#ERRORS[@]} -gt 0 ]; then
     echo ""

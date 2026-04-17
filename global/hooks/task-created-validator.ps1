@@ -1,7 +1,8 @@
 #Requires -Version 7.0
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -WarningAction SilentlyContinue
 
 # task-created-validator.ps1
 # Validates task quality at creation time.
