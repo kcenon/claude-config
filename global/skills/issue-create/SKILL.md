@@ -3,6 +3,7 @@ name: issue-create
 description: Create well-structured GitHub issues using the 5W1H framework with proper labels and acceptance criteria.
 argument-hint: "<project-name> [--type bug|feature] [--priority high|medium]"
 user-invocable: true
+disable-model-invocation: true
 allowed-tools:
   - Bash
 ---

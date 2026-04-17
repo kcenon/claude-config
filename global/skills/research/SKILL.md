@@ -2,6 +2,7 @@
 name: research
 description: "Conduct structured research on any topic: web search, codebase analysis, and document synthesis into organized reports. Use when investigating technologies, analyzing alternatives, gathering reference materials, fact-checking claims, or producing technical documentation from research. Use this skill whenever the user asks to research, investigate, compare, or survey a topic."
 user-invocable: true
+disable-model-invocation: true
 argument-hint: "<topic> [--depth shallow|standard|deep] [--output file.md] [--sources web|code|both] [--lang en|ko|ja|...] [--template auto|plain] [--integrate]"
 allowed-tools:
   - WebSearch

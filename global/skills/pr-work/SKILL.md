@@ -3,6 +3,7 @@ name: pr-work
 description: "Analyze and fix failed CI/CD workflows for a pull request. Use when CI checks fail, GitHub Actions show red, build/test/lint errors block a PR, or the user says 'fix CI', 'fix the build', 'PR is failing', or 'check failed'. Supports solo, team, and batch modes with automated retry and escalation."
 argument-hint: "[project-name] [pr-number] [--solo|--team] [--limit N] [--dry-run] [--inline]"
 user-invocable: true
+disable-model-invocation: true
 ---
 
 # PR Work Command

@@ -3,6 +3,7 @@ name: doc-review
 description: Comprehensive markdown document review - anchors, accuracy, SSOT, cross-references, and redundancy analysis.
 argument-hint: "[docs-directory] [--scope anchors|accuracy|ssot|all] [--fix] [--solo|--team]"
 user-invocable: true
+disable-model-invocation: true
 ---
 
 # Document Review Command

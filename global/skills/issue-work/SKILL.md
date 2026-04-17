@@ -3,6 +3,7 @@ name: issue-work
 description: Automate GitHub issue workflow - select issue, create branch, implement, build, test, and create PR.
 argument-hint: "[project-name] [issue-number] [--solo|--team] [--limit N] [--dry-run] [--inline]"
 user-invocable: true
+disable-model-invocation: true
 ---
 
 # Issue Work Command

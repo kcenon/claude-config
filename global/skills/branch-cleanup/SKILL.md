@@ -3,6 +3,7 @@ name: branch-cleanup
 description: Clean up merged and stale branches from local and remote repositories. Use when branch list is cluttered or after merging PRs.
 argument-hint: "[project-name] [--dry-run] [--include-remote]"
 user-invocable: true
+disable-model-invocation: true
 context: fork
 allowed-tools:
   - Bash
