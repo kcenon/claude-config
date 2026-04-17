@@ -51,14 +51,14 @@ done
 
 # Locate Python interpreter
 PYTHON=""
-for candidate in python3 python; do
+for candidate in python3 python py; do
     if command -v "$candidate" >/dev/null 2>&1; then
         PYTHON="$candidate"
         break
     fi
 done
 if [ -z "$PYTHON" ]; then
-    echo "ERROR: python3 (or python) not found in PATH" >&2
+    echo "ERROR: python3, python, or py not found in PATH" >&2
     exit 2
 fi
 

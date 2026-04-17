@@ -13,7 +13,7 @@ $ModulePath = Join-Path (Split-Path $PSScriptRoot) 'global' 'hooks' 'lib' 'Commo
 if (-not (Test-Path $ModulePath)) {
     $ModulePath = Join-Path $PSScriptRoot '..' 'global' 'hooks' 'lib' 'CommonHelpers.psm1'
 }
-Import-Module $ModulePath -Force
+Import-Module $ModulePath -Force -WarningAction SilentlyContinue
 
 # Script and backup directory paths
 $ScriptDir = $PSScriptRoot
@@ -22,9 +22,43 @@ $BackupDir = Split-Path -Parent $ScriptDir
 # Fast path: validate SKILL.md / plugin.json / settings.json against
 # canonical Claude Code 2026 schemas. See scripts/schemas/.
 if ($args.Count -gt 0 -and $args[0] -eq '--lint') {
-    $forwarded = if ($args.Count -gt 1) { $args[1..($args.Count - 1)] } else { @() }
-    & (Join-Path $ScriptDir 'spec_lint.ps1') @forwarded
+    # Translate bash-style flags to a splatted hashtable so callers can use the
+    # same flag names across both sync.sh and sync.ps1.
+    $lintParams = @{}
+    $lintFiles  = @()
+    if ($args.Count -gt 1) {
+        for ($i = 1; $i -lt $args.Count; $i++) {
+            switch ($args[$i]) {
+                '--warn-only' { $lintParams['WarnOnly'] = $true }
+                '--strict'    { $lintParams['Strict']   = $true }
+                '--quiet'     { $lintParams['Quiet']    = $true }
+                '--mode'      {
+                    if ($i + 1 -lt $args.Count) {
+                        $i++
+                        $lintParams['Mode'] = $args[$i]
+                    }
+                }
+                default       { $lintFiles += $args[$i] }
+            }
+        }
+    }
+    & (Join-Path $ScriptDir 'spec_lint.ps1') @lintParams @lintFiles
     exit $LASTEXITCODE
+}
+
+# Pre-flight: refuse to sync if canonical files violate the schema.
+# Bypass with --skip-lint for emergency syncs (e.g., reverting a bad change).
+$skipLint = $args -contains '--skip-lint'
+$specLintPs1 = Join-Path $ScriptDir 'spec_lint.ps1'
+if (-not $skipLint -and (Test-Path -LiteralPath $specLintPs1)) {
+    & $specLintPs1 -Quiet *> $null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host 'spec_lint detected schema violations.' -ForegroundColor Red
+        Write-Host "   Run: $ScriptDir\sync.ps1 --lint"
+        Write-Host '   Sync aborted to prevent deploying drift.'
+        Write-Host '   Bypass with --skip-lint (emergency only).'
+        exit 1
+    }
 }
 
 Write-Banner -Title 'Claude Configuration Sync Tool'

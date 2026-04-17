@@ -9,9 +9,12 @@ Usage:
 
 Options:
     --warn-only   Print violations but exit 0 (advisory mode for soft rollouts).
+    --strict      Exit with code 2 (instead of 1) on violations, so CI can
+                  distinguish strict-mode failures from regular violations.
     --quiet       Print only violations and the final summary line.
 
-Exit code: 0 on success, 1 on any violation (unless --warn-only).
+Exit code: 0 on success; 1 on violations (default); 2 on violations with --strict,
+or on setup errors (missing PyYAML/jsonschema, missing schema file, missing input file).
 """
 from __future__ import annotations
 

@@ -270,6 +270,61 @@ Write-Host "[case 12: full repo lints clean (regression guard)]"
 & $Wrapper -Quiet *> $null
 Assert-Exit 0 $LASTEXITCODE 'all canonical SKILL.md/plugin.json/settings.json pass'
 
+# ── sync.ps1 integration: --lint fast-path is side-effect free ─
+Write-Host ""
+Write-Host "[case 13: sync.ps1 --lint is a side-effect-free fast path]"
+$syncPs1 = Join-Path $RootDir 'scripts' 'sync.ps1'
+& pwsh -NoProfile -File $syncPs1 '--lint' '--quiet' *> $null
+Assert-Exit 0 $LASTEXITCODE 'sync.ps1 --lint returns linter exit code (no prompts)'
+
+# ── sync.ps1 integration: pre-flight aborts on lint failure ──
+Write-Host ""
+Write-Host "[case 14: sync.ps1 (no flag) aborts when spec_lint detects violations]"
+# Stage a sandbox copy of sync.ps1 next to a stub spec_lint.ps1 that always fails.
+# sync.ps1 imports CommonHelpers.psm1 from ../global/hooks/lib — stub it too.
+$Sandbox = Join-Path $Work 'sync-abort-sandbox'
+$SandboxScripts = Join-Path $Sandbox 'scripts'
+$SandboxLib     = Join-Path $Sandbox 'global' 'hooks' 'lib'
+New-Item -ItemType Directory -Path $SandboxScripts -Force | Out-Null
+New-Item -ItemType Directory -Path $SandboxLib     -Force | Out-Null
+@'
+#Requires -Version 7.0
+exit 1
+'@ | Set-Content -LiteralPath (Join-Path $SandboxScripts 'spec_lint.ps1') -Encoding UTF8
+@'
+function Write-InfoMessage    { param([string]$Msg) Write-Host $Msg }
+function Write-SuccessMessage { param([string]$Msg) Write-Host $Msg }
+function Write-WarningMessage { param([string]$Msg) Write-Host $Msg }
+function Write-ErrorMessage   { param([string]$Msg) Write-Host $Msg }
+function Write-Banner         { param([string]$Title) Write-Host "=== $Title ===" }
+function Get-EnterprisePath   { return 'C:/stub/enterprise' }
+function Test-Administrator   { return $true }
+function Ensure-Directory     { param([string]$Path) New-Item -ItemType Directory -Path $Path -Force | Out-Null }
+Export-ModuleMember -Function *
+'@ | Set-Content -LiteralPath (Join-Path $SandboxLib 'CommonHelpers.psm1') -Encoding UTF8
+Copy-Item -LiteralPath $syncPs1 -Destination $SandboxScripts -Force
+$abortOut = & pwsh -NoProfile -File (Join-Path $SandboxScripts 'sync.ps1') 2>&1 | Out-String
+Assert-Exit 1 $LASTEXITCODE 'sync.ps1 aborts with exit 1 when linter fails'
+Assert-Contains 'spec_lint detected schema violations' $abortOut 'abort message present'
+Assert-Contains '--skip-lint' $abortOut 'bypass hint present'
+
+# ── sync.ps1 integration: --skip-lint bypasses pre-flight ────
+Write-Host ""
+Write-Host "[case 15: sync.ps1 --skip-lint bypasses pre-flight even when linter fails]"
+# Use pre-supplied stdin so any Read-Host call returns immediately.
+$bypassOut = '3' | & pwsh -NoProfile -File (Join-Path $SandboxScripts 'sync.ps1') '--skip-lint' 2>&1 | Out-String
+# We don't assert downstream exit code (sandbox lacks the real backup tree).
+# The contract: bypass is honored, abort message MUST NOT appear.
+if ($bypassOut -like '*spec_lint detected schema violations*') {
+    $script:FAIL++
+    $script:ERRORS += 'FAIL: --skip-lint should suppress abort message but did not'
+    Write-Host '  FAIL: --skip-lint suppresses abort message'
+} else {
+    $script:PASS++
+    Write-Host '  PASS: --skip-lint suppresses abort message'
+}
+Assert-Contains 'Claude Configuration Sync Tool' $bypassOut 'banner displayed (pre-flight bypassed)'
+
 # ── Summary ──────────────────────────────────────────────────
 Write-Host ""
 Write-Host '=== Summary ==='

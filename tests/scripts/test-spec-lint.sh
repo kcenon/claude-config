@@ -257,6 +257,50 @@ echo "[case 12: full repo lints clean (regression guard)]"
 bash "$WRAPPER" --quiet >/dev/null 2>&1; rc=$?
 assert_exit 0 "$rc" "all canonical SKILL.md/plugin.json/settings.json pass"
 
+# ── sync.sh integration: --lint fast-path is side-effect free ─
+echo ""
+echo "[case 13: sync.sh --lint is a side-effect-free fast path]"
+# --lint exec()s spec_lint.sh and returns its exit code without prompting.
+bash "$ROOT_DIR/scripts/sync.sh" --lint --quiet </dev/null >/dev/null 2>&1; rc=$?
+assert_exit 0 "$rc" "sync.sh --lint returns linter's exit code (no prompts)"
+
+# ── sync.sh integration: pre-flight aborts on lint failure ───
+echo ""
+echo "[case 14: sync.sh (no flag) aborts when spec_lint detects violations]"
+# Stage a sandbox copy of sync.sh next to a stub spec_lint.sh that always fails.
+# This proves the pre-flight guard runs BEFORE any interactive prompt.
+SANDBOX="$WORK/sync-abort-sandbox"
+mkdir -p "$SANDBOX/scripts"
+cat > "$SANDBOX/scripts/spec_lint.sh" <<'STUB'
+#!/bin/bash
+exit 1
+STUB
+chmod +x "$SANDBOX/scripts/spec_lint.sh"
+cp "$ROOT_DIR/scripts/sync.sh" "$SANDBOX/scripts/sync.sh"
+out=$(bash "$SANDBOX/scripts/sync.sh" </dev/null 2>&1); rc=$?
+assert_exit 1 "$rc" "sync.sh aborts with exit 1 when linter fails"
+assert_output_contains "Sync aborted" "$out" "abort message present"
+assert_output_contains "--skip-lint"  "$out" "bypass hint present"
+
+# ── sync.sh integration: --skip-lint bypasses pre-flight ─────
+echo ""
+echo "[case 15: sync.sh --skip-lint bypasses pre-flight even when linter fails]"
+# Same sandbox, but with --skip-lint: must get PAST the pre-flight abort.
+# Don't assert downstream exit code (the sandbox lacks the real backup tree,
+# so set -e will trip later inside compare_files). The contract under test
+# is: bypass is honored. Banner output proves the pre-flight did not abort.
+out=$(printf '3\nn\nn\n' | bash "$SANDBOX/scripts/sync.sh" --skip-lint 2>&1 || true)
+assert_output_contains "Claude Configuration Sync Tool" "$out" "banner displayed (pre-flight bypassed)"
+# Negative assertion: the abort message must NOT appear when --skip-lint is set.
+if echo "$out" | grep -Fq "Sync aborted to prevent deploying drift"; then
+    FAIL=$((FAIL + 1))
+    ERRORS+=("FAIL: --skip-lint should suppress abort message but did not")
+    echo "  FAIL: --skip-lint suppresses abort message"
+else
+    PASS=$((PASS + 1))
+    echo "  PASS: --skip-lint suppresses abort message"
+fi
+
 # ── Summary ──────────────────────────────────────────────────
 echo ""
 echo "=== Summary ==="
