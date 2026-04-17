@@ -7,6 +7,20 @@
 #
 # Performance: Uses single-pass awk extraction + bulk sed/tr pipeline
 # to minimize subprocess spawns (~15 total vs ~4800 in naive approach)
+#
+# Requires bash 4+ (associative arrays). macOS ships bash 3.2; on that
+# platform the script auto-re-execs via Homebrew bash if available, or
+# falls back to "allow" with a skip notice so the hook never blocks on
+# an environment issue.
+if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
+    for candidate in /opt/homebrew/bin/bash /usr/local/bin/bash /usr/bin/bash; do
+        if [ -x "$candidate" ] && "$candidate" -c 'test "${BASH_VERSINFO[0]}" -ge 4' 2>/dev/null; then
+            exec "$candidate" "$0" "$@"
+        fi
+    done
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"markdown-anchor-validator skipped: bash 4+ required, found %s. Install via: brew install bash"}}' "${BASH_VERSION}"
+    exit 0
+fi
 
 set -euo pipefail
 # C.UTF-8 is universally available and enables Unicode in sed/tr character classes (e.g., [:alnum:] matching Korean)

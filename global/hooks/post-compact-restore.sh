@@ -34,7 +34,10 @@ for candidate in \
 done
 
 if [ -z "$PRINCIPLES_TEXT" ]; then
-    PRINCIPLES_TEXT=$(cat <<'EOF'
+    # Use read -d '' to avoid a bash 3.2 parsing bug where $(cat <<'EOF' ...)
+    # mishandles apostrophes inside the heredoc body. `|| true` absorbs the
+    # non-zero status that `read` returns when it reaches EOF.
+    read -r -d '' PRINCIPLES_TEXT <<'EOF' || true
 # Core Principles
 
 1. **Think Before Acting** — State assumptions explicitly. If uncertain, ask.
@@ -48,17 +51,15 @@ if [ -z "$PRINCIPLES_TEXT" ]; then
 - If the same approach fails 3 times, stop and propose alternatives rather than retrying blindly.
 - Bias toward execution — start making changes immediately when asked to update or edit documents.
 EOF
-)
 fi
 
-CONTEXT=$(cat <<EOF
+read -r -d '' CONTEXT <<EOF || true
 ## Post-Compaction Restore (auto-injected)
 
 Context was just compacted. Re-asserting core principles to prevent drift:
 
 ${PRINCIPLES_TEXT}
 EOF
-)
 
 if command -v jq >/dev/null 2>&1; then
     jq -nc --arg ctx "$CONTEXT" '{hookSpecificOutput: {hookEventName: "PostCompact", additionalContext: $ctx}}'
