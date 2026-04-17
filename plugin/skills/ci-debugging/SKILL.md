@@ -6,6 +6,7 @@ model: sonnet
 context: fork
 argument-hint: "<run-id-or-url>"
 paths: ".github/workflows/**, Makefile, CMakeLists.txt"
+when_to_use: "CI failure, build error, test timeout"
 ---
 
 # CI/CD Debugging Skill
