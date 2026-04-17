@@ -1,7 +1,7 @@
 ---
 name: release
 description: Create a release with automated changelog generation from commits since last release using semantic versioning.
-argument-hint: "<version> [--draft] [--prerelease] [--solo|--team]"
+argument-hint: "<version> [--target <field>] [--draft] [--prerelease] [--solo|--team]"
 user-invocable: true
 context: fork
 allowed-tools:
@@ -34,12 +34,37 @@ Create a release with automated changelog generation from commits since last rel
 `$ARGUMENTS` format: `<version> [options]` or `<organization>/<project-name> <version> [options]`
 
 - **version**: Semantic version (e.g., 1.2.0, 2.0.0-beta.1)
+- **--target**: Which version track to bump. One of: `suite` (default), `plugin`, `plugin-lite`, `settings-schema`. See "Version Source" below.
 - **--draft**: Create as draft release (not published)
 - **--prerelease**: Mark as pre-release
 - **--solo**: Force solo mode — single agent handles all steps sequentially
 - **--team**: Force team mode — dev + reviewer + doc-writer in parallel
 - If neither provided: auto-recommend based on commit count since last release
 - **--org**: GitHub organization or user (optional, auto-detected if not provided)
+
+## Version Source
+
+When this skill runs in the claude-config repository (or any repo that declares a
+`VERSION_MAP.yml` at the root), versions are tracked as **independent SemVer fields**:
+
+| Field             | Consumers                                                  |
+|-------------------|------------------------------------------------------------|
+| `suite`           | `README.md`, `README.ko.md` (shields.io badge)             |
+| `plugin`          | `plugin/.claude-plugin/plugin.json`                        |
+| `plugin-lite`     | `plugin-lite/.claude-plugin/plugin.json`                   |
+| `settings-schema` | `global/settings.json`, `global/settings.windows.json`     |
+
+Each field moves on its own SemVer track — bumping `plugin` does NOT bump the others.
+`--target <field>` selects which field to update; default is `suite`.
+
+Propagation rule:
+1. The skill edits `VERSION_MAP.yml` — set `<target>: <new-version>`.
+2. The skill runs `scripts/sync_versions.sh` (or `.ps1` on Windows) to copy values
+   from the map into each consumer file.
+3. `scripts/check_versions.sh` runs in CI to catch any future drift.
+
+If no `VERSION_MAP.yml` exists at the repo root, the skill falls back to its legacy
+single-version behavior (version passed as the sole argument, no multi-track bumping).
 
 ## Organization Detection
 
@@ -166,6 +191,47 @@ if git tag -l "v$VERSION" | grep -q "v$VERSION"; then
 fi
 ```
 
+### 1.5. Update VERSION_MAP and Sync Consumers (when VERSION_MAP.yml exists)
+
+If `VERSION_MAP.yml` exists at the repo root, parse `--target` (default `suite`),
+update the map, and propagate to consumers before cutting the release PR:
+
+```bash
+if [ -f VERSION_MAP.yml ]; then
+    # Parse --target flag (default: suite)
+    TARGET="suite"
+    if [[ "$ARGUMENTS" =~ --target[[:space:]]+(suite|plugin|plugin-lite|settings-schema) ]]; then
+        TARGET="${BASH_REMATCH[1]}"
+    fi
+
+    # Update VERSION_MAP.yml: set <target>: <new-version>
+    sed -E -i.bak "s/^(${TARGET}:)[[:space:]]*[^[:space:]#]+/\1 ${VERSION}/" VERSION_MAP.yml
+    rm -f VERSION_MAP.yml.bak
+
+    # Propagate to consumer files
+    if [ -x scripts/sync_versions.sh ]; then
+        bash scripts/sync_versions.sh
+    fi
+
+    # Verify no drift before proceeding
+    if [ -x scripts/check_versions.sh ]; then
+        bash scripts/check_versions.sh
+    fi
+
+    # Stage the changes so they land in the release PR
+    git add VERSION_MAP.yml
+    git add plugin/.claude-plugin/plugin.json plugin-lite/.claude-plugin/plugin.json 2>/dev/null || true
+    git add global/settings.json global/settings.windows.json 2>/dev/null || true
+    git add README.md README.ko.md 2>/dev/null || true
+    git commit -m "chore(release): bump ${TARGET} to ${VERSION}"
+    git push origin develop
+fi
+```
+
+**Tag format**: for `--target suite` (or when VERSION_MAP.yml is absent), use `v$VERSION`.
+For other targets, use `<target>-v$VERSION` (e.g., `plugin-v2.3.1`) to keep SemVer tracks
+separate in the git tag history.
+
 ### 2. Get Previous Release Tag
 
 ```bash
@@ -290,11 +356,17 @@ If CI fails, diagnose and fix on `develop`, push, and re-poll. Max 3 attempts.
 git checkout main
 git pull origin main
 
+# Determine tag name based on --target (default: suite -> v$VERSION)
+TAG_NAME="v$VERSION"
+if [ -f VERSION_MAP.yml ] && [ "${TARGET:-suite}" != "suite" ]; then
+    TAG_NAME="${TARGET}-v$VERSION"
+fi
+
 # Create annotated tag on main
-git tag -a "v$VERSION" -m "Release v$VERSION"
+git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
 
 # Push tag to remote
-git push origin "v$VERSION"
+git push origin "$TAG_NAME"
 ```
 
 ### 7.5. Recreate develop from main
