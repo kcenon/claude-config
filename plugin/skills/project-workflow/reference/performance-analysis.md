@@ -1,3 +1,9 @@
+---
+paths:
+  - "**/*"
+alwaysApply: false
+---
+
 # Performance Analysis Procedure
 
 > **Version**: 1.1.0

@@ -53,8 +53,21 @@ fi
 # off a background ccstatusline run with rate_limits stripped from stdin to
 # force fetchUsageData(). The next status bar refresh picks up the fresh file.
 USAGE_CACHE="$HOME/.cache/ccstatusline/usage.json"
+USAGE_LOCK="$HOME/.cache/ccstatusline/usage.lock"
 USAGE_CACHE_TTL=180
+lock_remaining=0
 if command -v jq &> /dev/null; then
+    # Detect ccstatusline's own rate-limit lock. When the OAuth usage API returns
+    # 429, ccstatusline writes {"blockedUntil":<epoch>} into usage.lock; until that
+    # timestamp passes, any spawned ccstatusline is a no-op. Skip the background
+    # refresh in that window to avoid spawning wasted processes every 30s, and
+    # expose lock_remaining so the Extra line can show the reason it is stale.
+    if [ -f "$USAGE_LOCK" ]; then
+        blocked_until=$(jq -r '.blockedUntil // 0' "$USAGE_LOCK" 2>/dev/null)
+        now=$(date +%s)
+        [ "$blocked_until" -gt "$now" ] 2>/dev/null && lock_remaining=$(( blocked_until - now ))
+    fi
+
     needs_refresh=1
     if [ -f "$USAGE_CACHE" ]; then
         if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -65,7 +78,7 @@ if command -v jq &> /dev/null; then
         cache_age=$(( $(date +%s) - cache_mtime ))
         [ "$cache_age" -lt "$USAGE_CACHE_TTL" ] && needs_refresh=0
     fi
-    if [ "$needs_refresh" -eq 1 ]; then
+    if [ "$needs_refresh" -eq 1 ] && [ "$lock_remaining" -eq 0 ]; then
         ( echo "$INPUT" | jq -c 'del(.rate_limits)' 2>/dev/null \
             | $CCSL_CMD >/dev/null 2>&1 ) &
         disown 2>/dev/null || true
@@ -96,7 +109,19 @@ if [ -f "$USAGE_CACHE" ] && command -v jq &> /dev/null; then
         fi
         reset="\033[0m"
 
-        printf "${color}Extra: \$%s/\$%s (%s%%)${reset} | ${color}Remain: \$%s${reset}\n" \
-            "$used_usd" "$limit_usd" "$remain_pct" "$remain_usd"
+        # When ccstatusline's usage lock is active, the cached values above are
+        # frozen until the lock expires. Append a dim-gray "(locked Nm)" marker
+        # so the user can tell the stale values are intentional, not a script bug.
+        locked_suffix=""
+        if [ "$lock_remaining" -gt 0 ] 2>/dev/null; then
+            if [ "$lock_remaining" -ge 60 ]; then
+                locked_suffix=$(printf " \033[90m(locked %dm)\033[0m" $((lock_remaining / 60)))
+            else
+                locked_suffix=$(printf " \033[90m(locked %ds)\033[0m" "$lock_remaining")
+            fi
+        fi
+
+        printf "${color}Extra: \$%s/\$%s (%s%%)${reset} | ${color}Remain: \$%s${reset}%b\n" \
+            "$used_usd" "$limit_usd" "$remain_pct" "$remain_usd" "$locked_suffix"
     fi
 fi

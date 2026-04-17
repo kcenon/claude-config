@@ -93,6 +93,21 @@
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/pr-target-guard.ps1",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/pr-language-guard.ps1",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/merge-gate-guard.ps1",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/attribution-guard.ps1",
+            "timeout": 5
           }
         ]
       },

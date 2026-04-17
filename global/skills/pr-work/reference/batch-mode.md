@@ -65,7 +65,7 @@ Assign each failing PR a severity score:
 
 Sort FAILING_PRS by: score ascending -> `createdAt` ascending -> repo name ascending.
 
-Apply `--limit N` (default: 20, max: 50). If no failing PRs found, report "No open PRs with failed CI found" and exit.
+Apply `--limit N` (default: 5, max: 10). Values above 10 require `--force-large` to bypass the safe-batch cap. The cap exists because rule drift becomes empirically visible around items 15-25 in long batches; keeping batches at 5 by default preserves rule fidelity, and large runs require explicit operator acknowledgment. If no failing PRs found, report "No open PRs with failed CI found" and exit.
 
 ## B-2. Auto Size/Mode Estimation per Item
 
@@ -110,20 +110,99 @@ Present the batch plan as a table. Use `AskUserQuestion` for a single approval:
 
 If `--dry-run` is set, display the plan and exit without prompting.
 
-## B-4. Sequential Execution Loop
+## B-4.0. Per-Item Rule Reminder
 
-Process each item one at a time:
+Before starting work on each PR, emit a 5-line reminder block as a fresh tool result so the rules sit in the recent attention window instead of being buried by accumulating context. The reminder must be **exactly 5 lines or fewer** to keep the per-iteration token cost bounded.
+
+Use this exact template (substitute `${PROCESSED+1}` and `${TOTAL}`):
 
 ```
+[Item ${PROCESSED+1}/${TOTAL}] Required rules:
+- PR title/body, commit messages, issue comments: English only
+- Commit format: type(scope): description (no Claude/AI attribution, no emojis)
+- ABSOLUTE CI GATE: gh pr checks must show every check passing before merge
+- Never rationalize a CI failure as "unrelated" or "pre-existing"
+```
+
+**Why inline instead of @load**: A `@load: reference/...` call at batch start surfaces the doc once, after which the model's attention drifts as tool results accumulate. Inlining the same invariants per iteration makes them part of the most recent tool output every time, which is where attention is strongest. The 5-line cap keeps the cumulative cost linear in batch size but still tiny (~25 tokens per item).
+
+**No reference loads inside the loop**: Do not call `@load: reference/error-handling.md`, `@load: reference/ci-debugging.md`, or any other reference file from inside the per-item loop. If the single-item workflow needs a reference doc, the Solo/Team workflow loads it on its own -- keep the loop free of additional loads so the inline reminder remains the most recent context anchor.
+
+## B-4. Sequential Execution Loop
+
+Process each item one at a time. The default dispatch strategy is **subagent delegation**: each failing PR is handed off to a fresh `general-purpose` Agent so the parent's attention pool is not polluted by CI log fetches, diff reads, and build output. Pass `--inline` at the command line to use the legacy single-context loop instead.
+
+### B-4.a. Default -- Subagent Delegation
+
+```
+PROCESSED=0
+RESULTS=[]   # Parent-side queue: only {pr_number, repo, title, mode, status, ci_conclusion}
+
+for each item in approved batch plan:
+    1. Log progress: "[N/TOTAL] Dispatching: $REPO PR #$PR_NUMBER -- $TITLE ($MODE)"
+
+    2. Delegate the full single-item workflow to a fresh subagent:
+
+       Agent(
+           subagent_type: "general-purpose",
+           description: "Fix $REPO PR #$PR_NUMBER",
+           prompt: """
+               Execute /pr-work $REPO $PR_NUMBER --$MODE with full CLAUDE.md compliance.
+
+               Required rules (do not skip):
+               - PR title/body, commit messages, issue comments: English only
+               - Commit format: type(scope): description (no Claude/AI attribution, no emojis)
+               - ABSOLUTE CI GATE: gh pr checks must show every check passing before merge
+               - Never rationalize a CI failure as "unrelated" or "pre-existing"
+
+               Run Solo Mode Steps 1-11 (or Team Mode T-1 through T-6 for team mode). If team
+               mode, you MUST call TeamDelete() after completing the item.
+
+               Report under 100 words as a single JSON line:
+               {"item": "$REPO#$PR_NUMBER", "status": "fixed|failed|skipped",
+                "ci_conclusion": "success|failure|timeout",
+                "reason": "<short reason if not fixed>"}
+           """
+       )
+
+    3. Parse the subagent's final JSON line and append it to RESULTS.
+       Do NOT retain the full subagent transcript -- the 100-word summary IS the parent-side record.
+
+    4. Write batch progress to .claude/resume.md (for session recovery)
+
+    5. Log completion: "[N/TOTAL] Completed: $REPO PR #$PR_NUMBER -- $status"
+
+    6. Pause 2 seconds between items (rate limiting)
+
+    7. PROCESSED=$((PROCESSED + 1))
+       Chunked confirmation gate (see B-4.1) -- fires every CONFIRM_INTERVAL
+       items and only when more items remain.
+```
+
+**Why delegation is the default**: Subagents start with a fresh system prompt + CLAUDE.md attention pool. PR #30 in a delegated batch has the same CI-gate discipline as PR #1 in a brand-new session. This is particularly valuable in `pr-work` where each item involves dense CI log analysis and the temptation to rationalize "unrelated" failures grows with accumulated context.
+
+**Parent-side state budget**: ~100 words per item. A 30-PR delegated batch costs the parent ~3K tokens of queue state, versus ~150K tokens of CI logs and diffs in an inline batch of the same size. The `RESULTS` queue is the single source of truth for the B-5 summary.
+
+**Inside the subagent**: The subagent runs the single-item Solo or Team workflow verbatim, including its own `TeamDelete()` cleanup for team-mode items. It does not know it is part of a batch, so it cannot drag context from a previous item's failing tests into the current one's diagnosis.
+
+### B-4.b. Legacy -- Inline Execution (`--inline` flag)
+
+When `$INLINE_MODE == "true"`, fall back to processing each item directly in the parent context:
+
+```
+PROCESSED=0
 for each item in approved batch plan:
     1. Log progress: "[N/TOTAL] Starting: $REPO PR #$PR_NUMBER -- $TITLE ($MODE)"
+
+    1a. Emit inline rule reminder (see B-4.0). Do NOT @load any reference
+        files inside the loop -- the per-item reminder replaces that role.
 
     2. Set context variables for this item:
        - $ORG, $PROJECT from repo
        - $PR_NUMBER from item
        - $EXEC_MODE from estimated mode (solo or team)
 
-    3. Execute the single-item workflow:
+    3. Execute the single-item workflow directly in the parent context:
        - If solo: run Solo Mode Steps 1-11
        - If team: run Team Mode Steps T-1 through T-6
        Ensure TeamDelete() is called after each team-mode item.
@@ -138,7 +217,118 @@ for each item in approved batch plan:
     6. Log completion: "[N/TOTAL] Completed: $REPO PR #$PR_NUMBER -- $RESULT"
 
     7. Pause 2 seconds between items (rate limiting)
+
+    8. PROCESSED=$((PROCESSED + 1))
+       Chunked confirmation gate (see B-4.1) -- fires every CONFIRM_INTERVAL
+       items and only when more items remain.
 ```
+
+Use `--inline` for tiny batches (<=3 items) or when several PRs share a root cause and you want the diagnosis of PR #1 to inform PR #2.
+
+### B-4.c. Delegation vs Inline Trade-offs
+
+| Dimension | Subagent delegation (default) | Inline (`--inline`) |
+|-----------|-------------------------------|---------------------|
+| Parent context growth per item | ~100 words (fixed) | ~5K tokens (accumulating) |
+| CI-gate discipline at item 30 | Matches item 1 | Drift visible around items 15-25 |
+| Token overhead vs inline | +10-15% (subagent startup cost) | Baseline |
+| Inter-item context | None (each PR fresh) | Preserved (root-cause sharing possible) |
+| Team-mode cleanup | Subagent owns `TeamDelete()` | Parent owns `TeamDelete()` |
+| Failure blast radius | Isolated to subagent | Can corrupt parent state |
+| Best for | Batches >3 items, long runs | Tiny batches, PRs sharing a root cause |
+
+**Rule of thumb**: Default to delegation. Only reach for `--inline` when you can name a specific reason the inter-item context matters -- e.g., "these 3 PRs are all failing on the same flaky dependency and fixing it once will cascade." If you find yourself adding `--inline` out of habit, you are paying for rule drift you did not want.
+
+## B-4.1. Chunked Confirmation Gate
+
+After every `CONFIRM_INTERVAL` items (default 5), and only while items remain in the batch, halt execution. Three mutually exclusive behaviors are possible depending on the flags passed at invocation:
+
+| Flags | Gate behavior at every `CONFIRM_INTERVAL` items |
+|-------|-------------------------------------------------|
+| `--no-confirm` | Gate skipped entirely. Loop runs straight through. |
+| `--auto-restart` (and NOT `--no-restart`) | Forced session restart: write `.claude/resume.md`, print a resume hint, and `exit 0`. |
+| Default (neither flag) | Interactive `AskUserQuestion` prompt with Continue / Pause / Cancel options. |
+| `--auto-restart --no-restart` | `--no-restart` wins: falls back to the interactive gate. |
+
+```
+if (( PROCESSED % CONFIRM_INTERVAL == 0 )) && (( PROCESSED < TOTAL )); then
+    if [[ "$NO_CONFIRM" == "true" ]]; then
+        : # gate disabled; fall through to next PR
+    elif [[ "$AUTO_RESTART" == "true" && "$NO_RESTART" != "true" ]]; then
+        # Forced session restart for full process-level attention reset.
+        # Dense CI log accumulation in pr-work makes this the strongest
+        # available mitigation short of spawning a separate OS process.
+        write_resume_md_for_batch
+        echo "[${PROCESSED}/${TOTAL}] Session restart triggered for context refresh."
+        echo "Resume with: claude  (.claude/resume.md will be detected automatically)"
+        exit 0
+    else
+        decision=$(AskUserQuestion
+            question="Processed ${PROCESSED}/${TOTAL} PRs. Continue, pause, or cancel?"
+            header="Batch gate"
+            options=(
+                "Continue (Recommended)" "Resume the next chunk of ${CONFIRM_INTERVAL} PRs."
+                "Pause and save resume state" "Write .claude/resume.md and exit; the next session can pick up from item $((PROCESSED + 1))."
+                "Cancel batch" "Stop now without writing resume state. Already-fixed PRs stay fixed."
+            )
+        )
+        case "$decision" in
+            Pause*) write_resume_md_for_batch; exit 0 ;;
+            Cancel*) exit 0 ;;
+            Continue*) : ;;  # fall through to next PR
+        esac
+    fi
+fi
+```
+
+**Why the interactive gate matters beyond user control**: Each `AskUserQuestion` prompt produces a fresh user message in the conversation. That message acts as an attention anchor -- when the model responds, recently-buried `CLAUDE.md` rules and skill instructions regain salience. The gate doubles as both an interactive checkpoint and a context-refresh mechanism for long-running batches, which is particularly valuable in `pr-work` where each item involves dense CI log analysis.
+
+**Why `--auto-restart` goes further**: An interactive gate still runs inside the same Claude process, so accumulated CI log fetches, diff reads, and gh outputs remain in the context window even after the user clicks "Continue". `--auto-restart` ends the process entirely: a fresh `claude` session starts with an empty tool-result history, the full CLAUDE.md and skill files reloaded at position zero, and resumes work from `resume.md`. For `pr-work` batches specifically, where each failed PR brings its own CI log payload, this is the strongest context cleanup available short of spawning a separate OS process per PR.
+
+**Resume state on pause or auto-restart**: Both `Pause` (interactive) and `--auto-restart` call `write_resume_md_for_batch`, which writes `.claude/resume.md` using the **Batch Workflow Resume Format** described in `workflow/reference/session-resume-templates.md`. The file must include the per-PR progress table so a future session can distinguish `DONE`, `IN PROGRESS`, and `PENDING` PRs and pick up at `$((PROCESSED + 1))`.
+
+Minimal shape of `write_resume_md_for_batch`:
+
+```
+write_resume_md_for_batch() {
+    mkdir -p .claude
+    cat > .claude/resume.md <<EOF
+# Session Resume State
+
+**Saved**: $(date '+%Y-%m-%d %H:%M KST')
+**Workflow**: pr-work (batch)
+
+## Batch Context
+
+| Field | Value |
+|-------|-------|
+| Batch Mode | ${BATCH_MODE} |
+| Total Items | ${TOTAL} |
+| Completed | ${PROCESSED} |
+| Current Item | $((PROCESSED + 1)) |
+
+## Batch Progress
+
+${BATCH_PROGRESS_TABLE}
+
+## Next Action
+
+Continue batch from PR $((PROCESSED + 1)). Invocation flags: ${ORIGINAL_FLAGS}.
+EOF
+}
+```
+
+**`--no-confirm` use cases**:
+- CI-driven `pr-work` invocations where a separate orchestrator monitors the run
+- Recovery scripts that retry transient CI failures programmatically
+- `--dry-run` follow-up runs already pre-approved by the operator
+
+**`--auto-restart` use cases**:
+- Very long unattended batches (near or above `--limit 10`) where interactive confirmation is impractical but rule drift is a concern
+- Overnight or CI-dispatched batches paired with a wrapper that re-invokes `claude` on exit (see the external orchestrator pattern)
+- Recovery runs after a crash where starting each chunk with a clean slate is safer than resuming a long in-memory session
+
+In interactive sessions without a wrapper to restart the process, leave `--auto-restart` off -- the attention-refresh side effect of the interactive gate is the strongest drift mitigation available without actually exiting.
 
 **Failure handling per item:**
 - CI failure after 3 retries -> mark FAILED, add escalation comment to PR, continue to next

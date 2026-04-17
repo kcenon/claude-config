@@ -3,6 +3,7 @@ name: doc-update
 description: "Update documentation files with an execution-first approach: read source, plan briefly, edit immediately, summarize changes, and commit. Use when updating docs, syncing documentation with code changes, or batch-editing markdown files."
 argument-hint: "<file-or-directory> [--commit] [--dry-run]"
 user-invocable: true
+disable-model-invocation: true
 context: fork
 allowed-tools:
   - Bash

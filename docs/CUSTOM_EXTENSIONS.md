@@ -31,7 +31,7 @@ These features are part of the official Claude Code product and are portable:
 
 | Feature | Description | Documentation |
 |---------|-------------|---------------|
-| **CLAUDE.md memory hierarchy** | 5-tier memory system (Enterprise, Project, Rules, User, Local) | [Memory documentation](https://docs.anthropic.com/en/docs/claude-code) |
+| **CLAUDE.md memory hierarchy** | 5-tier memory system (Enterprise, Project, Rules, User, Local) | [Memory documentation](https://code.claude.com/docs/en/memory) |
 | **`.claude/rules/` directory** | Auto-loaded rule files with YAML frontmatter | Official feature |
 | **YAML frontmatter** | `paths` and `alwaysApply` for conditional loading | Official feature |
 | **settings.json** | Hook configuration (PreToolUse, PostToolUse, etc.) | Official feature |
@@ -177,6 +177,125 @@ For non-blocking operations (formatting, logging), use `async: true`:
 
 **Portability**: These are guidelines that can be adopted in any project, but the specific templates are custom to this configuration.
 
+### Shared Workflow References (SSOT)
+
+**Type**: Repository-internal convention
+
+Four workflow reference files are consumed by both rule loading and skill imports, plus bundled into the plugin distribution. To avoid silent drift, the repository uses a single source of truth:
+
+| Role | Location |
+|------|----------|
+| **Canonical** | `project/.claude/rules/workflow/` |
+| Mirror (project skill import) | `project/.claude/skills/project-workflow/reference/` |
+| Mirror (plugin bundle) | `plugin/skills/project-workflow/reference/` |
+
+Files kept in sync:
+- `git-commit-format.md`
+- `github-issue-5w1h.md`
+- `github-pr-5w1h.md`
+- `performance-analysis.md`
+
+**Editing**: Modify the canonical file only. Regenerate mirrors with:
+
+```bash
+scripts/sync_references.sh      # macOS / Linux / WSL
+pwsh scripts/sync_references.ps1   # Windows
+```
+
+**CI enforcement**: `.github/workflows/validate-skills.yml` runs `scripts/check_references.sh` on every PR. The job fails (exit 2) if any mirror drifts from canonical.
+
+**Why this pattern**: Symlinks do not round-trip reliably through `git clone` on default Windows configurations. Build-time sync keeps all three files byte-identical without requiring platform-specific filesystem features.
+
+### Version Declarations (VERSION_MAP SSOT)
+
+**Type**: Repository-internal convention
+
+Four independent version fields are declared across the suite. `VERSION_MAP.yml` at the repo root is the single source of truth; each field moves on its own SemVer track.
+
+| Field             | Consumers                                                  |
+|-------------------|------------------------------------------------------------|
+| `suite`           | `README.md`, `README.ko.md` (shields.io badge URL)         |
+| `plugin`          | `plugin/.claude-plugin/plugin.json` (`version`)            |
+| `plugin-lite`     | `plugin-lite/.claude-plugin/plugin.json` (`version`)       |
+| `settings-schema` | `global/settings.json`, `global/settings.windows.json`     |
+
+**Bumping a version**: edit the target field in `VERSION_MAP.yml`, then propagate:
+
+```bash
+scripts/sync_versions.sh      # macOS / Linux / WSL
+pwsh scripts/sync_versions.ps1   # Windows
+# or, via sync.sh fast path:
+scripts/sync.sh --versions-only
+```
+
+The `/release` skill wraps this flow — pass `--target <field>` to bump one track.
+
+**CI enforcement**: `.github/workflows/validate-skills.yml` runs `scripts/check_versions.sh` on every PR. The job fails (exit 2) if any consumer drifts from its declared field in `VERSION_MAP.yml`.
+
+**Why independent tracks**: `plugin` and `plugin-lite` release on their own cadence (different users install different variants), and `settings-schema` rev-locks to schema-breaking changes in `global/settings.json`. A single monorepo version would force lockstep releases where none is semantically required.
+
+### Spec Linter (Official-Spec SSOT)
+
+**Type**: Repository-internal convention
+
+The spec linter validates `SKILL.md` frontmatter, `plugin.json`, and `settings.json` against canonical Claude Code 2026 schemas. Three JSON Schema (Draft 2020-12) files under `scripts/schemas/` declare the official field set; the linter enforces them across every checked-in consumer in the repo.
+
+| File | Validates | Schema |
+|------|-----------|--------|
+| `**/SKILL.md` (frontmatter) | 14 official fields, `additionalProperties: false` | `scripts/schemas/skill-md.schema.json` |
+| `*/.claude-plugin/plugin.json` | `name`, `version` (semver), `description`, `author`, `repository`, `compatibility`, ... | `scripts/schemas/plugin-json.schema.json` |
+| `global/settings.json`, `global/settings.windows.json`, `project/.claude/settings.json` | `attribution`, `permissions`, `hooks`, `sandbox`, enums (`teammateMode`, `effortLevel`, ...) | `scripts/schemas/settings-json.schema.json` |
+
+`SKILL.md` uses `additionalProperties: false` to reject unknown fields (typos, deprecated names) — the linter prints a "did you mean" suggestion using closest-match search. `plugin.json` and `settings.json` use `additionalProperties: true` so harness-specific or forward-compat fields are tolerated, but declared fields with enums or patterns (e.g., semver, `defaultMode`) are still strictly enforced.
+
+**Running locally**:
+
+```bash
+# Repo-wide lint (advisory; reports without blocking)
+scripts/spec_lint.sh --warn-only
+
+# Repo-wide lint (strict; same flag CI uses)
+scripts/spec_lint.sh --strict
+
+# Single file or mode-specific
+scripts/spec_lint.sh --mode skill global/skills/release/SKILL.md
+
+# Fast path via sync.sh
+scripts/sync.sh --lint --warn-only
+```
+
+PowerShell twin: `pwsh scripts/spec_lint.ps1 [-WarnOnly|-Strict|-Quiet] [-Mode skill|plugin|settings <file>...]`. Both wrappers shell out to `scripts/spec_lint.py`, which requires `pyyaml` and `jsonschema` (installed in CI; install locally with `pip install pyyaml jsonschema`).
+
+**Exit codes**: `0` clean, `1` violations, `2` setup error or `--strict` violations. The `--warn-only` flag forces `0` regardless of violations (used by `scripts/sync.sh` and `scripts/validate_skills.sh` for soft rollout). The `--strict` flag promotes `1` to `2` so CI can distinguish strict-mode failures from regular violations.
+
+**Updating schemas when the Claude Code spec changes**:
+
+1. Bump the `$id` URL version (or update `description` to record the spec source date).
+2. Add or remove fields in the `properties` block; update `required`, enums, and patterns to match the new spec.
+3. For `SKILL.md`, keep `additionalProperties: false` so new fields fail loudly until the schema catches up.
+4. Run `bash tests/scripts/test-spec-lint.sh` (or `pwsh tests/scripts/test-spec-lint.ps1`) to verify the regression suite still passes — case 12 lints every checked-in file in the repo.
+5. Run `scripts/spec_lint.sh --warn-only` against the working tree and address any newly surfaced violations before flipping back to strict.
+
+**CI enforcement**: `.github/workflows/validate-skills.yml` runs `scripts/spec_lint.sh --strict` on every PR targeting `main`, plus the test suite in `tests/scripts/test-spec-lint.sh`. The job fails (exit 2) on any violation. Path filters trigger the workflow on changes to `scripts/spec_lint.*`, `scripts/schemas/**`, and any `SKILL.md`, `plugin.json`, or `settings.json` consumer.
+
+**Why a separate linter alongside `validate_skills.sh`**: `validate_skills.sh` enforces project-specific conventions (mirror sync, description quality, naming); the spec linter enforces the *official Claude Code spec*. Splitting them lets us upgrade the spec independently of in-repo conventions, and lets the spec linter run in advisory mode (`--warn-only` from `sync.sh` and `validate_skills.sh`) during a soft rollout while `validate_skills.sh` continues to gate the existing rules.
+
+> Tracked in issue [#334](https://github.com/kcenon/claude-config/issues/334) (parent epic [#328](https://github.com/kcenon/claude-config/issues/328)).
+
+### Skill Context Isolation (`context: fork`)
+
+Audit and review skills run in an isolated subagent context so their findings do not consume the calling session's tokens.
+
+| Skill | Agent | Why fork |
+|-------|-------|----------|
+| `plugin/skills/security-audit` | `Explore` (read-only) | Audit findings can exceed 10K tokens; isolation preserves the main context |
+| `plugin/skills/performance-review` | `Explore` (read-only) | Same — large analysis output, read-only by design |
+| `global/skills/doc-review` | `general-purpose` | Needs write access for `--fix` mode; isolation keeps doc-review noise out of the calling thread |
+
+The forked subagent does not see the calling conversation's history. Each skill body is self-contained and operates entirely from the supplied arguments, returning a structured report at the end. Per the official spec, `context: fork` only makes sense for skills with explicit task instructions — guideline-only skills should keep the default inline context.
+
+> Tracked in issue [#335](https://github.com/kcenon/claude-config/issues/335) (parent epic [#328](https://github.com/kcenon/claude-config/issues/328)).
+
 ## Using This Configuration Elsewhere
 
 ### What Works Out of the Box
@@ -210,10 +329,12 @@ When adopting this configuration in a new environment:
 
 For authoritative information on Claude Code features:
 
-- [Claude Code Documentation](https://docs.anthropic.com/en/docs/claude-code)
-- [Memory Hierarchy](https://docs.anthropic.com/en/docs/claude-code/memory)
-- [Rules and Settings](https://docs.anthropic.com/en/docs/claude-code/settings)
-- [Hooks Configuration](https://docs.anthropic.com/en/docs/claude-code/hooks)
+- [Claude Code Documentation](https://code.claude.com/docs/en)
+- [Memory Hierarchy](https://code.claude.com/docs/en/memory)
+- [Rules and Settings](https://code.claude.com/docs/en/settings)
+- [Hooks Configuration](https://code.claude.com/docs/en/hooks)
+
+> **2026 URL migration**: Claude Code documentation moved from `docs.anthropic.com/en/docs/claude-code/*` (and legacy `docs.claude.com/en/docs/claude-code/*`) to `code.claude.com/docs/en/*`. Old URLs 301-redirect but search rankings suffer; all links in this repo should use `code.claude.com`. See [issue #336](https://github.com/kcenon/claude-config/issues/336).
 
 ## Reporting Issues
 
@@ -225,4 +346,4 @@ If a feature from this configuration doesn't work:
 
 ---
 
-*Version: 1.2.0 | Last updated: 2026-02-04*
+*Version: 1.3.0 | Last updated: 2026-04-17*

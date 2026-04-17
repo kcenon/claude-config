@@ -12,6 +12,7 @@ Write `.claude/resume.md` in the project directory when:
 - A multi-step workflow (issue-work, pr-work) is in progress
 - The user signals they need to leave or switch context
 - A long-running CI check is pending and the session may end
+- A batch workflow is running under `--auto-restart` and has reached a `CONFIRM_INTERVAL` boundary — the skill writes `resume.md` automatically and exits, so the next `claude` session resumes the batch from the next item (see `global/skills/issue-work/reference/batch-mode.md` B-4.1)
 
 > Templates (single + batch format): see `reference/session-resume-templates.md`
 

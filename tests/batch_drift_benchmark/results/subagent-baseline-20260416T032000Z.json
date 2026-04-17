@@ -1,0 +1,73 @@
+{
+  "strategy": "subagent-baseline",
+  "started_at": "2026-04-16T03:15:00Z",
+  "completed_at": "2026-04-16T03:20:00Z",
+  "items": [
+    {
+      "index": 1,
+      "issue": 1,
+      "pr": 31,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 2,
+      "issue": 2,
+      "pr": 32,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 3,
+      "issue": 3,
+      "pr": 33,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 4,
+      "issue": 4,
+      "pr": 34,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 5,
+      "issue": 5,
+      "pr": 35,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    }
+  ],
+  "summary": {
+    "items_1_to_5": {
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    "items_6_to_30": {
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    }
+  }
+}

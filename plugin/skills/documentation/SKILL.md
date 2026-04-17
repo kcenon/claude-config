@@ -3,6 +3,7 @@ name: documentation
 description: "Provides documentation standards for README files, API references, code comments, changelogs, architecture docs, and project cleanup guidelines. Use when writing documentation, creating README files, documenting APIs, adding code comments, maintaining changelogs, or cleaning up project files."
 model: haiku
 argument-hint: "<file-or-topic>"
+paths: "**/*.md, **/README*"
 ---
 
 # Documentation Skill

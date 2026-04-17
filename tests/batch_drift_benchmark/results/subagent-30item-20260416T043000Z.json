@@ -1,0 +1,323 @@
+{
+  "strategy": "subagent-30item",
+  "started_at": "2026-04-16T04:31:00Z",
+  "completed_at": "2026-04-16T04:37:10Z",
+  "items": [
+    {
+      "index": 1,
+      "issue": 6,
+      "pr": 41,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 2,
+      "issue": 7,
+      "pr": 42,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 3,
+      "issue": 9,
+      "pr": 43,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 4,
+      "issue": 11,
+      "pr": 44,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 5,
+      "issue": 12,
+      "pr": 45,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 6,
+      "issue": 13,
+      "pr": 46,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 7,
+      "issue": 14,
+      "pr": 47,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 8,
+      "issue": 15,
+      "pr": 48,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 9,
+      "issue": 8,
+      "pr": 49,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 10,
+      "issue": 10,
+      "pr": 50,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 11,
+      "issue": 16,
+      "pr": 51,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 12,
+      "issue": 17,
+      "pr": 52,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 13,
+      "issue": 18,
+      "pr": 53,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 14,
+      "issue": 19,
+      "pr": 54,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 15,
+      "issue": 20,
+      "pr": 55,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 16,
+      "issue": 40,
+      "pr": 56,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 17,
+      "issue": 21,
+      "pr": 57,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 18,
+      "issue": 22,
+      "pr": 58,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 19,
+      "issue": 23,
+      "pr": 59,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 20,
+      "issue": 24,
+      "pr": 60,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 21,
+      "issue": 25,
+      "pr": 61,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 22,
+      "issue": 26,
+      "pr": 62,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 23,
+      "issue": 27,
+      "pr": 63,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 24,
+      "issue": 28,
+      "pr": 64,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 25,
+      "issue": 29,
+      "pr": 65,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 26,
+      "issue": 30,
+      "pr": 66,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 27,
+      "issue": 36,
+      "pr": 67,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 28,
+      "issue": 37,
+      "pr": 70,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 29,
+      "issue": 38,
+      "pr": 71,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    {
+      "index": 30,
+      "issue": 39,
+      "pr": 72,
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    }
+  ],
+  "summary": {
+    "items_1_to_5": {
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    },
+    "items_6_to_30": {
+      "language_violations": 0,
+      "attribution_leaks": 0,
+      "ci_gate_violations": 0,
+      "missing_closes": 0,
+      "commit_format_violations": 0
+    }
+  }
+}

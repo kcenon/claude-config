@@ -7,6 +7,20 @@
 #
 # Performance: Uses single-pass awk extraction + bulk sed/tr pipeline
 # to minimize subprocess spawns (~15 total vs ~4800 in naive approach)
+#
+# Requires bash 4+ (associative arrays). macOS ships bash 3.2; on that
+# platform the script auto-re-execs via Homebrew bash if available, or
+# falls back to "allow" with a skip notice so the hook never blocks on
+# an environment issue.
+if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
+    for candidate in /opt/homebrew/bin/bash /usr/local/bin/bash /usr/bin/bash; do
+        if [ -x "$candidate" ] && "$candidate" -c 'test "${BASH_VERSINFO[0]}" -ge 4' 2>/dev/null; then
+            exec "$candidate" "$0" "$@"
+        fi
+    done
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"markdown-anchor-validator skipped: bash 4+ required, found %s. Install via: brew install bash"}}' "${BASH_VERSION}"
+    exit 0
+fi
 
 set -euo pipefail
 # C.UTF-8 is universally available and enables Unicode in sed/tr character classes (e.g., [:alnum:] matching Korean)
@@ -14,7 +28,19 @@ export LC_ALL=C.UTF-8 2>/dev/null || export LC_ALL=C.utf8 2>/dev/null || true
 
 # Read input from stdin (Claude Code passes JSON via stdin)
 INPUT=$(cat)
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+
+# jq is required to parse the hook input JSON. If it's missing, fail open
+# with a warning rather than aborting silently (which would leave Claude
+# Code without a decision response and effectively break the hook).
+if ! command -v jq >/dev/null 2>&1; then
+    echo "markdown-anchor-validator: jq not found on PATH; skipping validation" >&2
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
+    exit 0
+fi
+
+# Tolerate jq pipeline failures (malformed input, pipefail): treat as empty CMD
+# and fall back to the env-var path below.
+CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || CMD=""
 # Fallback to environment variable for backward compatibility
 if [ -z "$CMD" ]; then
     CMD="${CLAUDE_TOOL_INPUT:-}"
@@ -51,30 +77,36 @@ AWK_OUTPUT=$(awk '
 FNR == 1 { f = FILENAME; c = 0 }
 /^[[:space:]]*(```|~~~)/ { c = !c; next }
 c { next }
-/^#+[[:space:]]/ {
+# Headings: CommonMark/GitHub accept 1-6 hashes only; 7+ is regular text.
+/^#{1,6}[[:space:]]/ {
     h = $0
-    sub(/^#+[[:space:]]+/, "", h)
+    sub(/^#{1,6}[[:space:]]+/, "", h)
     sub(/[[:space:]#]*$/, "", h)
     if (h != "") printf "H\t%s\t%s\n", f, h
 }
 {
+    # Strip inline-code spans so that example syntax inside backticks
+    # (e.g., `[a](#missing)`) does not count as a live reference.
     line = $0
+    gsub(/`[^`]*`/, "", line)
+
     # Intra-file refs: ](#anchor)
-    while (match(line, /\]\(#[^)]+\)/)) {
-        ref = substr(line, RSTART + 3, RLENGTH - 4)
+    work = line
+    while (match(work, /\]\(#[^)]+\)/)) {
+        ref = substr(work, RSTART + 3, RLENGTH - 4)
         printf "I\t%s\t%d\t%s\n", f, FNR, ref
-        line = substr(line, RSTART + RLENGTH)
+        work = substr(work, RSTART + RLENGTH)
     }
     # Inter-file refs: ](path.md#anchor) — exclude URLs (no colon in path)
-    line = $0
-    while (match(line, /\]\([^:)#]*\.md#[^)]+\)/)) {
-        ref = substr(line, RSTART + 2, RLENGTH - 3)
+    work = line
+    while (match(work, /\]\([^:)#]*\.md#[^)]+\)/)) {
+        ref = substr(work, RSTART + 2, RLENGTH - 3)
         idx = index(ref, "#")
         ref_file = substr(ref, 1, idx - 1)
         anchor = substr(ref, idx + 1)
         sub(/^\.\//, "", ref_file)
         printf "X\t%s\t%d\t%s\t%s\n", f, FNR, ref_file, anchor
-        line = substr(line, RSTART + RLENGTH)
+        work = substr(work, RSTART + RLENGTH)
     }
 }
 ' "${MD_FILES[@]}" 2>/dev/null) || true
@@ -152,22 +184,23 @@ if [ ${#ERRORS[@]} -eq 0 ]; then
     exit 0
 fi
 
-# Build error message for JSON output
+# Build the error message as real text (actual newlines, not literal "\n"),
+# then let jq produce a correctly-escaped JSON string. This handles `\`, `"`,
+# control characters, and any non-ASCII content reliably.
 ERROR_MSG="Broken markdown anchor(s) found:"
 for err in "${ERRORS[@]}"; do
-    ERROR_MSG="${ERROR_MSG}\n  - ${err}"
+    ERROR_MSG+=$'\n  - '"${err}"
 done
-ERROR_MSG="${ERROR_MSG}\n\nFix the anchors or update the references before committing."
+ERROR_MSG+=$'\n\nFix the anchors or update the references before committing.'
 
-# Escape double quotes for JSON safety
-ERROR_MSG="${ERROR_MSG//\"/\\\"}"
+REASON_JSON=$(printf '%s' "$ERROR_MSG" | jq -Rs .)
 
 cat <<EOF
 {
   "hookSpecificOutput": {
     "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
-    "permissionDecisionReason": "${ERROR_MSG}"
+    "permissionDecisionReason": ${REASON_JSON}
   }
 }
 EOF

@@ -11,6 +11,10 @@
 </p>
 
 <p align="center">
+  <em>Docs note (2026): Claude Code documentation moved to <code>code.claude.com/docs/en/*</code>. All references in this repo use the new URLs. See <a href="COMPATIBILITY.md#settings-field-inventory-and-stability">COMPATIBILITY.md</a> for settings field stability classification.</em>
+</p>
+
+<p align="center">
   <a href="#quick-start">Quick Start</a> •
   <a href="#what-you-get">What You Get</a> •
   <a href="#one-line-installation">Installation</a> •
@@ -45,6 +49,8 @@ vi ~/.claude/git-identity.md
 | Backup settings | `./scripts/backup.sh` | `.\scripts\backup.ps1` |
 | Sync settings | `./scripts/sync.sh` | `.\scripts\sync.ps1` |
 | Verify backup | `./scripts/verify.sh` | `.\scripts\verify.ps1` |
+| Batch open issues | `./scripts/batch-issue-work.sh <org/repo>` | `.\scripts\batch-issue-work.ps1 -OrgProject <org/repo>` |
+| Batch failing PRs | `./scripts/batch-pr-work.sh <org/repo>` | `.\scripts\batch-pr-work.ps1 -OrgProject <org/repo>` |
 
 For detailed scenarios, see [Use Cases](#use-cases).
 
@@ -721,6 +727,54 @@ cd ~/claude_config_backup
 # Modify Git identity
 vi ~/.claude/git-identity.md
 ```
+
+---
+
+### Use Case D: Batch-Process Open Issues or Failing PRs
+
+External orchestrators that spawn one fresh `claude` process per item.
+Each process handles exactly one issue (or PR), so context state cannot
+leak between items — item N+1 starts with the same CLAUDE.md / skill
+attention pool as item 1. Complements the in-session batch mode of
+`/issue-work` and `/pr-work` by pushing isolation to the OS process
+boundary.
+
+Use these wrappers when:
+
+- You expect the batch to exceed the in-session safe cap (default 5, hard
+  cap 10 without `--force-large`) and want stricter per-item isolation.
+- You are running unattended (cron, CI, overnight) and want each item to
+  start from a clean slate regardless of how long the batch runs.
+- You need per-item logs on disk for post-run analysis rather than a
+  single scrollback in a live terminal.
+
+```bash
+# Process up to 5 open issues in a repo (default limit)
+./scripts/batch-issue-work.sh kcenon/claude-config
+
+# Process up to 3 open issues
+./scripts/batch-issue-work.sh kcenon/claude-config 3
+
+# Process failing PRs instead
+./scripts/batch-pr-work.sh kcenon/claude-config
+```
+
+```powershell
+# PowerShell equivalents
+.\scripts\batch-issue-work.ps1 -OrgProject kcenon/claude-config
+.\scripts\batch-issue-work.ps1 -OrgProject kcenon/claude-config -Limit 3
+.\scripts\batch-pr-work.ps1    -OrgProject kcenon/claude-config
+```
+
+Per-item logs are written to `~/.claude/batch-logs/<timestamp>/`:
+
+- `issue-<number>.log` for each issue handled by `batch-issue-work`
+- `pr-<number>.log` for each PR handled by `batch-pr-work`
+
+On any item failure, the batch **pauses and exits non-zero**. Successful
+items are not rolled back. Inspect the log for the failed item, fix the
+underlying cause, and re-run the orchestrator — items already merged will
+be skipped because they are no longer in the open list.
 
 ---
 

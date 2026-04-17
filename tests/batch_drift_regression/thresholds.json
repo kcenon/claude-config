@@ -1,0 +1,7 @@
+{
+  "language_violations": 0,
+  "attribution_leaks": 0,
+  "ci_gate_violations": 0,
+  "missing_closes": 1,
+  "commit_format_violations": 0
+}

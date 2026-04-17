@@ -1,8 +1,10 @@
 ---
 name: issue-work
 description: Automate GitHub issue workflow - select issue, create branch, implement, build, test, and create PR.
-argument-hint: "[project-name] [issue-number] [--solo|--team] [--limit N] [--dry-run]"
+argument-hint: "[project-name] [issue-number] [--solo|--team] [--limit N] [--dry-run] [--inline]"
 user-invocable: true
+disable-model-invocation: true
+allowed-tools: "Bash(gh *)"
 ---
 
 # Issue Work Command
@@ -22,6 +24,7 @@ Automate GitHub issue workflow with project name as argument.
 /issue-work --org mycompany                      # Batch: all repos in org
 /issue-work vi_slam --limit 5                    # Batch: top 5 priority issues
 /issue-work vi_slam --dry-run                    # Preview batch plan only
+/issue-work vi_slam --inline                     # Batch: process items in the parent context (legacy)
 ```
 
 ## Arguments
@@ -43,9 +46,23 @@ Automate GitHub issue workflow with project name as argument.
   - If omitted in single-item mode: auto-recommend based on issue size, then ask user
   - If omitted in batch mode: auto-decide per item using weighted scoring (no per-item prompt)
 
-- `[--limit N]`: Maximum number of items to process in batch mode (default: 20, max: 50)
+- `[--limit N]`: Maximum number of items to process in batch mode (default: 5, max: 10)
+  - Values above 10 require `--force-large` to acknowledge rule drift risk. Empirically, drift becomes visible around items 15-25 in long batches; the conservative default keeps batches inside the safe zone.
+
+- `[--force-large]`: Allow `--limit > 10`. Required to bypass the safe-batch cap.
+
+- `[--no-confirm]`: Skip the chunked confirmation gate fired every 5 items in batch mode. Intended for CI-driven or fully unattended batches; interactive sessions should leave it off so the gate can serve as both a user-control checkpoint and an attention refresh for accumulated context.
+
+- `[--auto-restart]`: Force a session restart every `CONFIRM_INTERVAL` items instead of showing the interactive chunked gate. The batch writes `.claude/resume.md` using the Batch Workflow Resume Format and exits cleanly; a fresh `claude` session picks up the next item from the resume file. Use for long unattended batches where a full process-level attention reset per chunk matters more than human confirmation. Ignored in single-item mode.
+
+- `[--no-restart]`: Suppress the forced restart. When combined with `--auto-restart`, the batch falls back to the interactive chunked gate. Meaningful primarily as a defensive flag in scripts that want to guarantee no session exit even if `--auto-restart` is set elsewhere (aliases, wrappers, or a future default change).
 
 - `[--dry-run]`: Show batch plan only, do not execute
+
+- `[--inline]`: Process each batch item in the parent conversation context instead of delegating to a fresh subagent.
+  - **Default (omitted)**: Each batch item is handled by a fresh `general-purpose` Agent. The parent keeps only the queue state and a short per-item summary; gh outputs, build logs, and file reads live inside the subagent and are discarded on completion. This is the preferred mode for batches >3 items because rule compliance at item 30 looks like item 1.
+  - **With `--inline`**: The parent executes Solo/Team workflow directly for every item. Lower token overhead (~10-15% savings) but accumulated tool results cause rule drift around items 15-25. Use for tiny batches (≤3 items) or when inter-item context is actually useful (e.g., fixing related regressions).
+  - Ignored in single-item mode.
 
 - `[--priority <level>]`: Filter batch to this priority level and above
   - Levels: `critical`, `high`, `medium`, `low`, `all` (default: `all`)
@@ -57,14 +74,31 @@ Parse `$ARGUMENTS` and extract project, organization, issue number, and batch fl
 ```bash
 ARGS="$ARGUMENTS"
 ISSUE_NUMBER="" PROJECT="" ORG="" EXEC_MODE=""
-BATCH_MODE="single"  BATCH_LIMIT=20  DRY_RUN=false  PRIORITY_FILTER="all"
+BATCH_MODE="single"  BATCH_LIMIT=5  DRY_RUN=false  PRIORITY_FILTER="all"  FORCE_LARGE=false  NO_CONFIRM=false  INLINE_MODE=false  AUTO_RESTART=false  NO_RESTART=false
+MAX_LIMIT=10
+CONFIRM_INTERVAL=5
 
 # Extract flags
 if [[ "$ARGS" == *"--solo"* ]]; then EXEC_MODE="solo"; ARGS=$(echo "$ARGS" | sed 's/--solo//g'); fi
 if [[ "$ARGS" == *"--team"* ]]; then EXEC_MODE="team"; ARGS=$(echo "$ARGS" | sed 's/--team//g'); fi
 if [[ "$ARGS" == *"--dry-run"* ]]; then DRY_RUN=true; ARGS=$(echo "$ARGS" | sed 's/--dry-run//g'); fi
+if [[ "$ARGS" == *"--force-large"* ]]; then FORCE_LARGE=true; ARGS=$(echo "$ARGS" | sed 's/--force-large//g'); fi
+if [[ "$ARGS" == *"--no-confirm"* ]]; then NO_CONFIRM=true; ARGS=$(echo "$ARGS" | sed 's/--no-confirm//g'); fi
+if [[ "$ARGS" == *"--no-restart"* ]]; then NO_RESTART=true; ARGS=$(echo "$ARGS" | sed 's/--no-restart//g'); fi
+if [[ "$ARGS" == *"--auto-restart"* ]]; then AUTO_RESTART=true; ARGS=$(echo "$ARGS" | sed 's/--auto-restart//g'); fi
+if [[ "$ARGS" == *"--inline"* ]]; then INLINE_MODE=true; ARGS=$(echo "$ARGS" | sed 's/--inline//g'); fi
 if [[ "$ARGS" =~ --limit[[:space:]]+([0-9]+) ]]; then BATCH_LIMIT="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--limit[[:space:]]+[0-9]+//g'); fi
 if [[ "$ARGS" =~ --priority[[:space:]]+(critical|high|medium|low|all) ]]; then PRIORITY_FILTER="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--priority[[:space:]]+\w+//g'); fi
+
+# Hard cap on batch size to mitigate rule drift in long batches.
+# Drift becomes empirically visible around items 15-25; default 5 keeps the
+# operator inside the safe zone, and bypassing requires explicit acknowledgment.
+if (( BATCH_LIMIT > MAX_LIMIT )) && [[ "$FORCE_LARGE" != "true" ]]; then
+    echo "Error: --limit ${BATCH_LIMIT} exceeds safe cap of ${MAX_LIMIT}." >&2
+    echo "Long batches risk rule drift around items 15-25." >&2
+    echo "Either split the batch into smaller runs or pass --force-large to override." >&2
+    exit 1
+fi
 
 # Extract issue number if present (numeric argument)
 if [[ "$ARGS" =~ [[:space:]]([0-9]+)([[:space:]]|$) ]]; then
@@ -120,6 +154,12 @@ fi
 ## Batch Mode Instructions
 
 See `reference/batch-mode.md` for the complete batch mode workflow including discovery, priority sorting, plan approval, and sequential execution.
+
+**Batch-only behaviors** (do not apply in single-item mode):
+- **Subagent delegation by default** (B-4): each item is dispatched to a fresh `general-purpose` Agent so it starts with an unpolluted attention pool. The parent retains only `{item_id, status, pr_url, ci_conclusion}` per item. Pass `--inline` to fall back to the legacy single-context loop.
+- **Per-item rule reminder** (B-4.0): a 5-line invariant block is emitted as a fresh tool result before each item so language/CI/attribution rules stay in the recent attention window. In delegated mode this reminder is embedded in the subagent prompt; in `--inline` mode it is emitted directly in the parent context.
+- **No `@load: reference/...` inside the per-item loop**: keep the inline reminder as the most recent context anchor.
+- **Chunked confirmation gate** (B-4.1): user confirmation prompt every 5 items, bypassable with `--no-confirm`. When `--auto-restart` is set (and `--no-restart` is not), the gate is replaced by a forced session restart that writes `.claude/resume.md` and exits; a fresh `claude` session resumes from the next item.
 
 ---
 

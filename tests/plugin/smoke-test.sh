@@ -54,28 +54,21 @@ validate_plugin() {
   local manifest="$plugin_dir/.claude-plugin/plugin.json"
   check_json "$manifest"
 
-  # Check referenced directories from manifest
-  if [ -f "$manifest" ]; then
-    local agents_ref skills_ref hooks_ref
+  # Validate components at their default locations. Claude Code auto-discovers
+  # agents/, skills/, hooks/hooks.json at the plugin root — no manifest path
+  # fields are required (see issue #331).
+  local agents_dir="$plugin_dir/agents"
+  local skills_dir="$plugin_dir/skills"
+  local hooks_json="$plugin_dir/hooks/hooks.json"
 
-    agents_ref="$(jq -r '.agents // empty' "$manifest")"
-    skills_ref="$(jq -r '.skills // empty' "$manifest")"
-    hooks_ref="$(jq -r '.hooks // empty' "$manifest")"
-
-    if [ -n "$agents_ref" ]; then
-      check_dir "$plugin_dir/$agents_ref" "$name/agents"
-    fi
-    if [ -n "$skills_ref" ]; then
-      check_dir "$plugin_dir/$skills_ref" "$name/skills"
-    fi
-    if [ -n "$hooks_ref" ]; then
-      local hooks_path="$plugin_dir/$hooks_ref"
-      if [ -f "$hooks_path" ]; then
-        pass "$name hooks file exists"
-      else
-        fail "$name hooks file missing: $hooks_path"
-      fi
-    fi
+  if [ -d "$agents_dir" ]; then
+    check_dir "$agents_dir" "$name/agents"
+  fi
+  if [ -d "$skills_dir" ]; then
+    check_dir "$skills_dir" "$name/skills"
+  fi
+  if [ -f "$hooks_json" ]; then
+    check_json "$hooks_json"
   fi
 
   # Validate SKILL.md frontmatter

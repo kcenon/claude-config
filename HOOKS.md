@@ -20,6 +20,12 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Validate commit messages before git commit | [Commit Message Guard](#10-commit-message-guard-pretooluse) |
 | Prevent git merge/rebase on dirty trees | [Conflict Guard](#11-conflict-guard-pretooluse) |
 | Block PRs targeting main from non-develop branches | [PR Target Guard](#12-pr-target-guard-pretooluse) |
+| Block non-English titles/bodies in gh PR/issue commands | [PR Language Guard](#13-pr-language-guard-pretooluse) |
+| Block gh pr merge when any check is non-passing | [Merge Gate Guard](#14-merge-gate-guard-pretooluse) |
+| Block AI/Claude attribution in gh PR/issue commands | [Attribution Guard](#15-attribution-guard-pretooluse) |
+| Re-inject critical policy after instruction load | [Instructions Loaded Reinforcer](#16-instructions-loaded-reinforcer-instructionsloaded) |
+| Restore core principles after context compaction | [Post-Compact Restore](#17-post-compact-restore-postcompact) |
+| Validate task descriptions at creation time | [Task Created Validator](#18-task-created-validator-taskcreated) |
 | Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
 | Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
 | Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
@@ -277,6 +283,326 @@ Hooks are user-defined commands that automatically execute during specific Claud
 }
 ```
 
+### 13. PR Language Guard (PreToolUse)
+
+*Hard-blocks non-English titles and bodies in `gh pr` and `gh issue` commands — eliminates the rule drift that lets Korean PR/issue content slip through in long-running batch workflows.*
+
+**Purpose**: Enforces the "All GitHub Issues and Pull Requests must be written in English" rule from `commit-settings.md` at the Bash tool boundary. Mirrors the `commit-message-guard` enforcement model that proved effective for commit messages.
+
+**Trigger**: `Bash` tool calls matching `gh (pr|issue) (create|edit|comment)`.
+
+**Files**: `global/hooks/pr-language-guard.sh`, `global/hooks/pr-language-guard.ps1`
+
+**Shared validation library**: `hooks/lib/validate-language.sh` (single source of truth — same pattern as `validate-commit-message.sh`).
+
+**Logic**:
+1. Scope gate: only process `gh (pr|issue) (create|edit|comment)` commands (all others pass through). Six combinations are guarded — `gh pr create`, `gh pr edit`, `gh pr comment`, `gh issue create`, `gh issue edit`, `gh issue comment`.
+2. Skip command-substitution / heredoc bodies (`--body "$(...)"`) and `--body-file` references — these cannot be parsed at the shell layer, so the hook defers to other safeguards.
+3. Extract `--title` / `-t` and `--body` / `-b` values, supporting both double-quoted and single-quoted forms and `--flag value` / `--flag=value` layouts.
+4. Reject if any extracted value contains a byte outside ASCII printable (0x20-0x7E) or ASCII whitespace (0x09-0x0D).
+5. Deny reason includes the first offending character so Claude can self-correct (e.g. `first: '한'`).
+
+**Allowed characters**: ASCII printable (0x20-0x7E) and ASCII whitespace (tab, LF, VT, FF, CR). Anything else — accented Latin, CJK, emoji, symbols outside ASCII — is blocked.
+
+**Not covered**: `gh pr review --body` is intentionally not guarded (review comments may have different tone/content needs and would warrant a separate policy decision).
+
+**Fail policy**: Fail-open. If stdin parsing fails or the command is unrecognized, the hook returns `allow`. Server-side review and `commit-msg` hooks remain as additional layers.
+
+**Behavior**:
+- Returns JSON with `permissionDecision: "deny"` listing the first non-ASCII grapheme found
+- Defers to other layers for command-substitution and `--body-file` cases
+- Timeout: 5 seconds
+- Cross-platform: `pr-language-guard.sh` and `pr-language-guard.ps1`
+
+**Configuration**:
+```json
+{
+  "type": "command",
+  "command": "~/.claude/hooks/pr-language-guard.sh",
+  "timeout": 5
+}
+```
+
+**Example deny response**:
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "PR/issue --body rejected: Text contains non-ASCII characters (first run: '한국어'). GitHub Issues and Pull Requests must be written in English only — see commit-settings.md."
+  }
+}
+```
+
+### 14. Merge Gate Guard (PreToolUse)
+
+*Hard-blocks `gh pr merge` when any PR check is failing, pending, or cancelled — eliminates the rule drift that lets failing CI rationalizations slip through in long-running batch workflows.*
+
+**Purpose**: Enforces the "ABSOLUTE CI GATE" rule from `global/CLAUDE.md` at the Bash tool boundary. Mirrors the `commit-message-guard` and `pr-language-guard` enforcement model: a deterministic hook gate that catches drift where the model occasionally rationalizes failing checks as "unrelated", "infrastructure", or "pre-existing".
+
+**Trigger**: `Bash` tool calls matching `gh pr merge`.
+
+**Files**: `global/hooks/merge-gate-guard.sh`, `global/hooks/merge-gate-guard.ps1`
+
+**Logic**:
+1. Scope gate: only process `gh pr merge` commands (all others pass through).
+2. Extract PR number from positional integer, URL form (`https://github.com/owner/repo/pull/N`), or anywhere after `gh pr merge`. Allow if no PR number is found (interactive mode).
+3. Extract `--repo` / `-R` value if present.
+4. Invoke `gh pr checks <PR> --json bucket,name,state` (with `-R` if specified).
+5. Parse the JSON array. Allowed buckets: `pass` and `skipping`. Anything in `fail`, `pending`, `cancel`, or unknown buckets blocks the merge.
+6. Deny reason includes every non-passing check name with its bucket and state, plus a reminder not to rationalize failures.
+
+**Allow policy**: A check qualifies as passing if its `bucket` is `pass` or `skipping`. The `skipping` bucket covers checks intentionally skipped (e.g. `paths-ignore` matches) and is treated as neutral, the same way GitHub itself does for branch protection rules.
+
+**Fail policy**: **Fail-OPEN** on `gh` CLI errors. Unlike most other guards, this hook allows the merge when:
+- `gh` CLI is not installed
+- `gh pr checks` returns a non-zero exit code (e.g. transient network error, auth failure, unresolvable PR)
+- The JSON response cannot be parsed
+- The PR has no checks configured at all
+
+A diagnostic is written to stderr in each fail-open case so the user can see why the gate did not run. The rationale is that this hook is a "best-effort gate", not a "hard fail on tool unavailability" — server-side branch protection rules remain as the authoritative gate, so a transient failure here should not permanently block user work.
+
+**Behavior**:
+- Returns JSON with `permissionDecision: "deny"` listing every non-passing check
+- Fail-open on any gh CLI error; diagnostics written to stderr
+- Timeout: 30 seconds (longer than other guards because it makes an external API call)
+- Cross-platform: `merge-gate-guard.sh` and `merge-gate-guard.ps1`
+
+**Configuration**:
+```json
+{
+  "type": "command",
+  "command": "~/.claude/hooks/merge-gate-guard.sh",
+  "timeout": 30
+}
+```
+
+**Example deny response**:
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "Merge blocked by ABSOLUTE CI GATE: PR #100 has non-passing checks: Build Linux [fail/FAILURE], Build Windows [pending/IN_PROGRESS]. Wait for all checks to pass before merging — never rationalize a failure as unrelated, infrastructure, or pre-existing."
+  }
+}
+```
+
+### 15. Attribution Guard (PreToolUse)
+
+*Hard-blocks AI/Claude attribution markers (Co-Authored-By: Claude, "Generated with Claude", Anthropic, etc.) in `gh pr` and `gh issue` titles and bodies — extends the existing commit-message attribution check to PR/issue text.*
+
+**Purpose**: Enforces the "No AI/Claude attribution in commits, issues, or PRs" rule from `commit-settings.md`. The existing `commit-message-guard` only inspects `git commit -m` messages; PR and issue bodies created via `gh` previously bypassed it. This hook closes that gap by gating the same Bash boundary that `pr-language-guard` uses.
+
+**Trigger**: `Bash` tool calls matching `gh (pr|issue) (create|edit|comment)`.
+
+**Files**: `global/hooks/attribution-guard.sh`, `global/hooks/attribution-guard.ps1`
+
+**Shared validation library**: `hooks/lib/validate-commit-message.sh` exposes `CMV_ATTRIBUTION_REGEX` and `validate_no_attribution()` — the same regex used by `commit-message-guard` for git commit messages. Both bash hooks source this single source of truth so attribution rules stay in lockstep across enforcement layers. The PowerShell variant inlines the equivalent regex (since the bash library cannot be sourced from PowerShell); update both when changing the pattern.
+
+**Patterns blocked** (case-insensitive):
+- `claude` (any standalone occurrence)
+- `anthropic`
+- `ai-assisted`
+- `co-authored-by: claude` (with optional whitespace)
+- `generated with` (matches "Generated with Claude Code" etc.)
+
+**Logic**:
+1. Scope gate: only process `gh (pr|issue) (create|edit|comment)` commands. Six combinations are guarded: `gh pr create|edit|comment`, `gh issue create|edit|comment`.
+2. Skip command-substitution / heredoc bodies (`--body "$(...)"`) and `--body-file` references — these cannot be parsed at the shell layer.
+3. Extract `--title` / `-t` and `--body` / `-b` values supporting double-quoted, single-quoted, and `--flag value` / `--flag=value` layouts.
+4. Pass each value through `validate_no_attribution()`. Reject if the regex matches.
+
+**Fail policy**: Fail-open. If stdin parsing fails or the command is unrecognized, the hook returns `allow`. The `commit-msg` git hook and `commit-message-guard` PreToolUse hook remain as additional layers for committed content.
+
+**Behavior**:
+- Returns JSON with `permissionDecision: "deny"` when attribution is detected
+- Defers to other layers for command-substitution and `--body-file` cases
+- Timeout: 5 seconds
+- Cross-platform: `attribution-guard.sh` and `attribution-guard.ps1`
+
+**Configuration**:
+```json
+{
+  "type": "command",
+  "command": "~/.claude/hooks/attribution-guard.sh",
+  "timeout": 5
+}
+```
+
+**Example deny response**:
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "PR/issue --body rejected: Text contains AI/Claude attribution (claude, anthropic, ai-assisted, generated with, co-authored-by: claude). Remove attribution before submitting."
+  }
+}
+```
+
+### 16. Instructions Loaded Reinforcer (InstructionsLoaded)
+
+*Re-asserts critical policy (commit-settings, branching, conventional commits) immediately after `CLAUDE.md` and `.claude/rules/*.md` are loaded — closes the gap where long sessions drift away from policy that lives only in the system prompt.*
+
+**Purpose**: Inject a policy-reinforcement block right after Claude finishes loading instruction files. The block restates AI-attribution prohibition, English-only PR/issue rule, branching policy, and Conventional Commits format so they remain in active context even when the original instruction files scroll out.
+
+**Trigger**: `InstructionsLoaded` event — fires once per session, after `CLAUDE.md` / `.claude/rules/*.md` have been ingested.
+
+**Files**: `global/hooks/instructions-loaded-reinforcer.sh`, `global/hooks/instructions-loaded-reinforcer.ps1`
+
+**Logic**:
+1. Locate `commit-settings.md` in `~/.claude/commit-settings.md` (falls back to `${CLAUDE_HOME}/commit-settings.md`, then to an inline minimal policy if neither file exists).
+2. Compose a reinforcement block containing the located policy text plus branching and commit-format reminders.
+3. Emit JSON via `jq` if available; otherwise hand-escape and print the JSON literal.
+
+**Behavior**:
+- Returns JSON with `hookSpecificOutput.additionalContext` carrying the reinforcement text
+- Always exits 0 — the hook never blocks instruction loading; it only augments context
+- Cross-platform: `instructions-loaded-reinforcer.sh` and `instructions-loaded-reinforcer.ps1`
+
+**Configuration**:
+```json
+{
+  "type": "command",
+  "command": "~/.claude/hooks/instructions-loaded-reinforcer.sh",
+  "timeout": 5
+}
+```
+
+**Sample input** (JSON via stdin):
+```json
+{
+  "session_id": "abc123",
+  "hook_event_name": "InstructionsLoaded",
+  "cwd": "/path/to/project"
+}
+```
+
+**Sample output**:
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "InstructionsLoaded",
+    "additionalContext": "## Critical Policy Reinforcement (auto-injected after instruction load)\n\n# Commit, Issue, and PR Settings\n\nNo AI/Claude attribution in commits, issues, or PRs.\nAll GitHub Issues and Pull Requests must be written in English.\n\n## Branching\n\n- Default working branch: `develop`. Never push directly to `main` or `develop`.\n..."
+  }
+}
+```
+
+### 17. Post-Compact Restore (PostCompact)
+
+*Re-injects `core/principles.md` immediately after Claude Code automatically compacts the conversation — pairs with `pre-compact-snapshot` to keep the four core principles in context across long sessions.*
+
+**Purpose**: When automatic context compaction discards the original `CLAUDE.md` and rule files, this hook re-asserts the four core principles (Think, Minimize, Surgical, Verify) plus behavioral guardrails so the model does not regress to pre-policy defaults after compaction.
+
+**Trigger**: `PostCompact` event — fires once whenever the harness completes an automatic compaction cycle. Pairs with the existing `pre-compact-snapshot` hook (PreCompact event) which captures pre-compact state.
+
+**Files**: `global/hooks/post-compact-restore.sh`, `global/hooks/post-compact-restore.ps1`
+
+**Logic**:
+1. Append a restore record (timestamp, session id, working directory) to `~/.claude/logs/compact-snapshots.log` — the same log written by `pre-compact-snapshot.sh` so PreCompact / PostCompact pairs can be correlated.
+2. Locate `core/principles.md` from one of: `${CLAUDE_PROJECT_DIR}/.claude/rules/core/principles.md`, `~/.claude/rules/core/principles.md`, or the current working directory tree (falls back to an inline minimal principles block if no file is found).
+3. Wrap the located text in a "Post-Compaction Restore" section explaining why it is being re-asserted.
+4. Emit JSON via `jq` if available; otherwise hand-escape and print the JSON literal.
+
+**Behavior**:
+- Returns JSON with `hookSpecificOutput.additionalContext` carrying the principles re-assertion
+- Always exits 0 — the hook never blocks compaction; it only augments the post-compact context
+- Writes to `~/.claude/logs/compact-snapshots.log` (created on demand)
+- Cross-platform: `post-compact-restore.sh` and `post-compact-restore.ps1`
+
+**Configuration**:
+```json
+{
+  "type": "command",
+  "command": "~/.claude/hooks/post-compact-restore.sh",
+  "timeout": 5
+}
+```
+
+**Sample input** (JSON via stdin):
+```json
+{
+  "session_id": "abc123",
+  "hook_event_name": "PostCompact",
+  "cwd": "/path/to/project"
+}
+```
+
+**Sample output**:
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PostCompact",
+    "additionalContext": "## Post-Compaction Restore (auto-injected)\n\nContext was just compacted. Re-asserting core principles to prevent drift:\n\n# Core Principles\n\n1. **Think Before Acting** — State assumptions explicitly. If uncertain, ask.\n..."
+  }
+}
+```
+
+### 18. Task Created Validator (TaskCreated)
+
+*Hard-blocks low-quality task descriptions at the `TaskCreate` boundary — enforces a minimum length and at least one acceptance-criteria checkbox so that downstream teammates and reviewers never receive vague work items.*
+
+**Purpose**: Validate that every task created via `TaskCreate` carries enough scope and acceptance criteria to be actionable. Mirrors the `commit-message-guard` enforcement model: a deterministic gate that catches the drift where short, ambiguous task descriptions leak into multi-agent batch workflows.
+
+**Trigger**: `TaskCreated` event — fires synchronously when any agent (lead or teammate) calls `TaskCreate`. Blocking: a non-zero exit halts task creation and surfaces the rejection reason to the calling model.
+
+**Files**: `global/hooks/task-created-validator.sh`, `global/hooks/task-created-validator.ps1`
+
+**Rules enforced**:
+1. **Description length**: trimmed description must be at least 20 characters.
+2. **Acceptance criteria**: description must contain at least one `- [ ]` markdown checkbox marker.
+
+**Logic**:
+1. Read JSON from stdin. If empty, fail open (nothing to validate).
+2. Extract description from one of `tool_input.description`, `description`, or `task.description` — supports `jq` first, falls back to `python3` / `python`. If neither parser is available, fail open.
+3. If no description field is present, fail open. If the field is present but fails either rule, exit 2 with a guidance message on stderr.
+
+**Decision control**: Uses **exit code only** (not JSON `permissionDecision`):
+
+| Exit Code | Effect |
+|-----------|--------|
+| `0` | Approve task creation |
+| `2` | Block creation — stderr message sent as feedback to the model |
+
+**Fail policy**: Fail-open on missing field, missing JSON parser, or unparseable input. Fail-closed only when the description is present and demonstrably violates a rule. The rationale matches `merge-gate-guard`: a tooling gap should not permanently block legitimate work.
+
+**Behavior**:
+- Returns exit code 0 on approval, exit code 2 on rejection with a stderr message naming the failed rule
+- Reads JSON from stdin via `jq` or `python` (no JSON parser → fail-open)
+- Timeout: 5 seconds
+- Cross-platform: `task-created-validator.sh` and `task-created-validator.ps1`
+
+**Configuration**:
+```json
+{
+  "type": "command",
+  "command": "~/.claude/hooks/task-created-validator.sh",
+  "timeout": 5
+}
+```
+
+**Sample input** (JSON via stdin):
+```json
+{
+  "session_id": "abc123",
+  "hook_event_name": "TaskCreated",
+  "tool_input": {
+    "subject": "Implement validation",
+    "description": "Add input validation to the user form.\n\nAcceptance:\n- [ ] Empty fields rejected\n- [ ] Email format validated"
+  }
+}
+```
+
+**Sample rejection** (stderr, exit 2):
+```
+TaskCreated rejected: description must be at least 20 characters (got 12). Add scope, context, and acceptance criteria.
+```
+
+```
+TaskCreated rejected: description must contain at least one '- [ ]' checkbox marker for acceptance criteria.
+```
+
 ### Hook Response Format
 
 All PreToolUse hooks must output JSON to stdout and exit with code 0:
@@ -528,5 +854,5 @@ which clang-format
 
 ## References
 
-- [Claude Code Hooks Official Documentation](https://docs.anthropic.com/claude-code/hooks)
-- [Settings Official Documentation](https://docs.anthropic.com/claude-code/settings)
+- [Claude Code Hooks Official Documentation](https://code.claude.com/docs/en/hooks)
+- [Settings Official Documentation](https://code.claude.com/docs/en/settings)

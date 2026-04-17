@@ -6,8 +6,6 @@
       { "id": "2", "type": "separator" },
       { "id": "5", "type": "session-cost", "color": "yellow" },
       { "id": "6", "type": "separator" },
-      { "id": "7", "type": "block-timer", "color": "cyan" },
-      { "id": "8", "type": "separator" },
       { "id": "9", "type": "git-branch", "color": "magenta" },
       { "id": "10", "type": "separator" },
       { "id": "11", "type": "git-changes", "color": "yellow" }

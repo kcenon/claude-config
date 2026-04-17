@@ -1,8 +1,10 @@
 ---
 name: pr-work
 description: "Analyze and fix failed CI/CD workflows for a pull request. Use when CI checks fail, GitHub Actions show red, build/test/lint errors block a PR, or the user says 'fix CI', 'fix the build', 'PR is failing', or 'check failed'. Supports solo, team, and batch modes with automated retry and escalation."
-argument-hint: "[project-name] [pr-number] [--solo|--team] [--limit N] [--dry-run]"
+argument-hint: "[project-name] [pr-number] [--solo|--team] [--limit N] [--dry-run] [--inline]"
 user-invocable: true
+disable-model-invocation: true
+allowed-tools: "Bash(gh *)"
 ---
 
 # PR Work Command
@@ -32,6 +34,7 @@ Analyze and fix failed CI/CD workflows for a pull request.
 /pr-work --org mycompany                            # Batch: all repos in org
 /pr-work hospital_erp_system --limit 5              # Batch: top 5 failing PRs
 /pr-work hospital_erp_system --dry-run              # Preview batch plan only
+/pr-work hospital_erp_system --inline               # Batch: process items in the parent context (legacy)
 ```
 
 ## Arguments
@@ -51,9 +54,23 @@ Analyze and fix failed CI/CD workflows for a pull request.
   - If omitted in single-item mode: auto-recommend based on failure complexity, then ask user
   - If omitted in batch mode: auto-decide per item using weighted scoring (no per-item prompt)
 
-- `[--limit N]`: Maximum number of items to process in batch mode (default: 20, max: 50)
+- `[--limit N]`: Maximum number of items to process in batch mode (default: 5, max: 10)
+  - Values above 10 require `--force-large` to acknowledge rule drift risk. Empirically, drift becomes visible around items 15-25 in long batches; the conservative default keeps batches inside the safe zone.
+
+- `[--force-large]`: Allow `--limit > 10`. Required to bypass the safe-batch cap.
+
+- `[--no-confirm]`: Skip the chunked confirmation gate fired every 5 items in batch mode. Intended for CI-driven or fully unattended batches; interactive sessions should leave it off so the gate can serve as both a user-control checkpoint and an attention refresh for accumulated context.
+
+- `[--auto-restart]`: Force a session restart every `CONFIRM_INTERVAL` items instead of showing the interactive chunked gate. The batch writes `.claude/resume.md` using the Batch Workflow Resume Format and exits cleanly; a fresh `claude` session picks up the next PR from the resume file. Use for long unattended PR-fixing batches where a full process-level attention reset per chunk matters more than human confirmation. Ignored in single-item mode.
+
+- `[--no-restart]`: Suppress the forced restart. When combined with `--auto-restart`, the batch falls back to the interactive chunked gate. Meaningful primarily as a defensive flag in scripts that want to guarantee no session exit even if `--auto-restart` is set elsewhere (aliases, wrappers, or a future default change).
 
 - `[--dry-run]`: Show batch plan only, do not execute
+
+- `[--inline]`: Process each batch item in the parent conversation context instead of delegating to a fresh subagent.
+  - **Default (omitted)**: Each failing PR is handled by a fresh `general-purpose` Agent. The parent keeps only the queue state and a short per-item summary; CI log fetches, diff reads, and build outputs live inside the subagent and are discarded on completion. This is the preferred mode for batches >3 items because rule compliance at item 30 looks like item 1.
+  - **With `--inline`**: The parent executes Solo/Team workflow directly for every item. Lower token overhead (~10-15% savings) but accumulated CI log noise drives rule drift around items 15-25. Use for tiny batches (≤3 items) or when several PRs share a root cause and you want cross-item context.
+  - Ignored in single-item mode.
 
 - `[--org <organization>]`: Scope to a specific GitHub organization
 
@@ -70,16 +87,38 @@ PROJECT=""
 ORG=""
 EXEC_MODE=""
 BATCH_MODE="single"   # single | single-repo | cross-repo
-BATCH_LIMIT=20
+BATCH_LIMIT=5
+MAX_LIMIT=10
+CONFIRM_INTERVAL=5
 DRY_RUN=false
+FORCE_LARGE=false
+NO_CONFIRM=false
+INLINE_MODE=false
+AUTO_RESTART=false
+NO_RESTART=false
 
 # Extract flags
 ORIGINAL_ARGS="$ARGS"
 if [[ "$ARGS" == *"--solo"* ]]; then EXEC_MODE="solo"; ARGS=$(echo "$ARGS" | sed 's/--solo//g'); fi
 if [[ "$ARGS" == *"--team"* ]]; then EXEC_MODE="team"; ARGS=$(echo "$ARGS" | sed 's/--team//g'); fi
 if [[ "$ARGS" == *"--dry-run"* ]]; then DRY_RUN=true; ARGS=$(echo "$ARGS" | sed 's/--dry-run//g'); fi
+if [[ "$ARGS" == *"--force-large"* ]]; then FORCE_LARGE=true; ARGS=$(echo "$ARGS" | sed 's/--force-large//g'); fi
+if [[ "$ARGS" == *"--no-confirm"* ]]; then NO_CONFIRM=true; ARGS=$(echo "$ARGS" | sed 's/--no-confirm//g'); fi
+if [[ "$ARGS" == *"--no-restart"* ]]; then NO_RESTART=true; ARGS=$(echo "$ARGS" | sed 's/--no-restart//g'); fi
+if [[ "$ARGS" == *"--auto-restart"* ]]; then AUTO_RESTART=true; ARGS=$(echo "$ARGS" | sed 's/--auto-restart//g'); fi
+if [[ "$ARGS" == *"--inline"* ]]; then INLINE_MODE=true; ARGS=$(echo "$ARGS" | sed 's/--inline//g'); fi
 if [[ "$ARGS" =~ --limit[[:space:]]+([0-9]+) ]]; then BATCH_LIMIT="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--limit[[:space:]]+[0-9]+//g'); fi
 if [[ "$ARGS" =~ --org[[:space:]]+([^[:space:]]+) ]]; then ORG="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--org[[:space:]]+[^[:space:]]+//g'); fi
+
+# Hard cap on batch size to mitigate rule drift in long batches.
+# Drift becomes empirically visible around items 15-25; default 5 keeps the
+# operator inside the safe zone, and bypassing requires explicit acknowledgment.
+if (( BATCH_LIMIT > MAX_LIMIT )) && [[ "$FORCE_LARGE" != "true" ]]; then
+    echo "Error: --limit ${BATCH_LIMIT} exceeds safe cap of ${MAX_LIMIT}." >&2
+    echo "Long batches risk rule drift around items 15-25." >&2
+    echo "Either split the batch into smaller runs or pass --force-large to override." >&2
+    exit 1
+fi
 
 # Trim remaining args
 ARGS=$(echo "$ARGS" | xargs)
@@ -146,6 +185,12 @@ fi
 ## Batch Mode Instructions
 
 See `reference/batch-mode.md` for the complete batch mode workflow including discovery, priority sorting, plan approval, and sequential execution.
+
+**Batch-only behaviors** (do not apply in single-item mode):
+- **Subagent delegation by default** (B-4): each failing PR is dispatched to a fresh `general-purpose` Agent so CI log fetches and file reads live inside the subagent and never reach the parent. The parent retains only `{pr_number, repo, status, ci_conclusion}` per item. Pass `--inline` to fall back to the legacy single-context loop.
+- **Per-item rule reminder** (B-4.0): a 5-line invariant block is emitted as a fresh tool result before each PR so language/CI/attribution rules stay in the recent attention window. In delegated mode this reminder is embedded in the subagent prompt; in `--inline` mode it is emitted directly in the parent context.
+- **No `@load: reference/...` inside the per-item loop**: keep the inline reminder as the most recent context anchor.
+- **Chunked confirmation gate** (B-4.1): user confirmation prompt every 5 items, bypassable with `--no-confirm`. When `--auto-restart` is set (and `--no-restart` is not), the gate is replaced by a forced session restart that writes `.claude/resume.md` and exits; a fresh `claude` session resumes from the next PR.
 
 ---
 

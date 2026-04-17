@@ -2,6 +2,7 @@
 name: doc-index
 description: "Generate document index files (manifest, bundles, graph, router) for project documentation. Creates docs/.index/ with searchable registry, feature-grouped bundles, cross-reference dependency graph, and query routing. Supports flat mode (generic projects, script-driven) and grouped mode (projects with doc_id frontmatter, Claude-curated)."
 user-invocable: true
+disable-model-invocation: true
 allowed-tools:
   - Bash
   - Read

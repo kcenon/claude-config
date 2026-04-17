@@ -3,6 +3,8 @@ name: coding-guidelines
 description: Provides comprehensive coding standards for quality, naming conventions, error handling, concurrency, and memory management. Use when writing new code, reviewing code, fixing bugs, or refactoring existing code.
 model: sonnet
 argument-hint: "<file-path>"
+paths: "**/*.{cpp,py,ts,go,rs,kt}"
+when_to_use: "reviewing or writing code"
 ---
 
 # Coding Guidelines Skill

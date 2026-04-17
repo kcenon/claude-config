@@ -5,7 +5,9 @@ on:
     branches: [main]
     paths:
       - 'global/hooks/**'
+      - 'hooks/**'
       - 'tests/hooks/**'
+      - 'tests/batch_drift_benchmark/**'
 
 jobs:
   test:
@@ -18,16 +20,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install jq
+      - name: Install jq and bash 4+
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             sudo apt-get update && sudo apt-get install -y jq
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            brew install jq
+            # macOS ships with bash 3.2; install bash 4+ so hooks that need
+            # associative arrays (e.g., markdown-anchor-validator.sh) can
+            # re-exec into it via the PATH checks in the hook itself.
+            brew install jq bash
           fi
 
       - name: Run hook tests
         run: bash tests/hooks/test-runner.sh
+
+      - name: Run drift benchmark extractor tests
+        run: bash tests/batch_drift_benchmark/test-extractors.sh
+
+      - name: Run scratch repo seeding tests
+        run: bash tests/batch_drift_benchmark/test-seed-scratch-repo.sh
+
+      - name: Run aggregator tests
+        run: bash tests/batch_drift_benchmark/test-aggregate-results.sh
+
+      - name: Run benchmark orchestrator tests
+        run: bash tests/batch_drift_benchmark/test-run-benchmark.sh
 
   shellcheck:
     runs-on: ${{ matrix.os }}
@@ -50,7 +67,7 @@ jobs:
       - name: Run shellcheck on hook scripts
         run: |
           failed=0
-          for script in global/hooks/*.sh; do
+          for script in global/hooks/*.sh tests/batch_drift_benchmark/*.sh; do
             echo "Checking $script..."
             if ! shellcheck -S warning -e SC2086 "$script"; then
               failed=1

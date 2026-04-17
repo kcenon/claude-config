@@ -19,9 +19,5 @@
     "workflow",
     "code-quality",
     "best-practices"
-  ],
-  "agents": "./agents/",
-  "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
-  "lspServers": "./.lsp.json"
+  ]
 }

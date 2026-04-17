@@ -1,0 +1,143 @@
+name: Batch Drift Regression
+
+on:
+  schedule:
+    # Nightly at 03:17 UTC (12:17 KST) — off-minute to avoid fleet congestion
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      strategy:
+        description: 'Tier 2 isolation strategy to test'
+        required: false
+        default: 'subagent'
+        type: choice
+        options:
+          - subagent
+          - auto-restart
+          - orchestrator
+      items:
+        description: 'Number of batch items (default 30)'
+        required: false
+        default: '30'
+        type: string
+      skip_seed:
+        description: 'Skip scratch repo seeding (reuse existing state)'
+        required: false
+        default: false
+        type: boolean
+
+# Prevent concurrent regression runs (expensive)
+concurrency:
+  group: batch-drift-regression
+  cancel-in-progress: false
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180  # 3 hours — 30-item batch can take a while
+
+    env:
+      GH_TOKEN: ${{ secrets.SCRATCH_REPO_TOKEN }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq perl
+
+      - name: Verify prerequisites
+        run: |
+          echo "==> checking gh"
+          gh --version
+          gh auth status || { echo "WARNING: gh auth check returned non-zero (may still work with GH_TOKEN)"; }
+
+          echo "==> checking jq"
+          jq --version
+
+          echo "==> checking perl (for language extractor)"
+          perl -v | head -2
+
+      - name: Install Claude CLI
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
+      - name: Run regression test
+        id: regression
+        run: |
+          STRATEGY="${{ github.event.inputs.strategy || 'subagent' }}"
+          ITEMS="${{ github.event.inputs.items || '30' }}"
+          SKIP_SEED="${{ github.event.inputs.skip_seed || 'false' }}"
+
+          ARGS="--strategy $STRATEGY --items $ITEMS"
+          if [ "$SKIP_SEED" = "true" ]; then
+            ARGS="$ARGS --skip-seed"
+          fi
+
+          echo "strategy=$STRATEGY" >> "$GITHUB_OUTPUT"
+          echo "items=$ITEMS" >> "$GITHUB_OUTPUT"
+
+          bash tests/batch_drift_regression/run-regression.sh $ARGS
+        continue-on-error: true
+
+      - name: Upload regression summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-summary
+          path: |
+            tests/batch_drift_regression/last-run-summary.json
+            tests/batch_drift_benchmark/results/*.json
+          retention-days: 30
+
+      - name: Upload benchmark logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-logs
+          path: tests/batch_drift_benchmark/logs/
+          retention-days: 14
+
+      - name: Report results
+        if: always()
+        run: |
+          SUMMARY="tests/batch_drift_regression/last-run-summary.json"
+
+          if [ ! -f "$SUMMARY" ]; then
+            echo "::error::Regression test did not produce a summary file"
+            exit 1
+          fi
+
+          PASSED=$(jq -r '.passed' "$SUMMARY")
+          STRATEGY=$(jq -r '.strategy' "$SUMMARY")
+          ITEMS=$(jq -r '.items' "$SUMMARY")
+
+          echo "## Batch Drift Regression Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Strategy | $STRATEGY |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Items | $ITEMS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Result | $([ "$PASSED" = "true" ] && echo 'PASSED' || echo 'FAILED') |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Signal Thresholds" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Signal | Actual | Threshold | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|--------|-----------|--------|" >> "$GITHUB_STEP_SUMMARY"
+
+          for signal in language_violations attribution_leaks ci_gate_violations missing_closes commit_format_violations; do
+            actual=$(jq -r ".signals.${signal}.actual" "$SUMMARY")
+            threshold=$(jq -r ".signals.${signal}.threshold" "$SUMMARY")
+            sig_passed=$(jq -r ".signals.${signal}.passed" "$SUMMARY")
+            status=$([ "$sig_passed" = "true" ] && echo "Pass" || echo "**FAIL**")
+            echo "| $signal | $actual | <= $threshold | $status |" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Fail job on threshold breach
+        if: steps.regression.outcome == 'failure'
+        run: |
+          echo "::error::Batch drift regression test FAILED — one or more thresholds exceeded"
+          exit 1
