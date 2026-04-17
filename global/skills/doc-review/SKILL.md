@@ -4,6 +4,7 @@ description: Comprehensive markdown document review - anchors, accuracy, SSOT, c
 argument-hint: "[docs-directory] [--scope anchors|accuracy|ssot|all] [--fix] [--solo|--team]"
 user-invocable: true
 disable-model-invocation: true
+allowed-tools: "Bash(git *)"
 ---
 
 # Document Review Command

@@ -2,9 +2,9 @@
 name: git-status
 description: Comprehensive git repository status with actionable insights. Shows working directory, branch info, recent activity, and potential issues.
 user-invocable: true
+disable-model-invocation: true
 model: haiku
-allowed-tools:
-  - Bash
+allowed-tools: "Bash(git *)"
 ---
 
 # Git Status Command
