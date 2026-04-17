@@ -5,6 +5,7 @@ allowed-tools: Bash, Read, Grep, Glob, WebFetch
 model: sonnet
 context: fork
 argument-hint: "<run-id-or-url>"
+paths: ".github/workflows/**, Makefile, CMakeLists.txt"
 ---
 
 # CI/CD Debugging Skill
