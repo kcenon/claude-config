@@ -27,10 +27,13 @@ assert_valid_json() {
     local label="$1"
     local result
     result=$(echo '{}' | bash "$HOOK" 2>/dev/null)
-    if echo "$result" | python -m json.tool >/dev/null 2>&1; then
+    if echo "$result" | jq empty >/dev/null 2>&1; then
         PASS=$((PASS + 1))
         echo "  PASS: $label"
     elif echo "$result" | python3 -m json.tool >/dev/null 2>&1; then
+        PASS=$((PASS + 1))
+        echo "  PASS: $label"
+    elif echo "$result" | python -m json.tool >/dev/null 2>&1; then
         PASS=$((PASS + 1))
         echo "  PASS: $label"
     else
