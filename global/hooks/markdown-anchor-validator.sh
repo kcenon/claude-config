@@ -78,11 +78,15 @@ FNR == 1 { f = FILENAME; c = 0 }
 /^[[:space:]]*(```|~~~)/ { c = !c; next }
 c { next }
 # Headings: CommonMark/GitHub accept 1-6 hashes only; 7+ is regular text.
-/^#{1,6}[[:space:]]/ {
-    h = $0
-    sub(/^#{1,6}[[:space:]]+/, "", h)
-    sub(/[[:space:]#]*$/, "", h)
-    if (h != "") printf "H\t%s\t%s\n", f, h
+# Use match() + RLENGTH for mawk compatibility (mawk does not support {1,6} ERE quantifier).
+match($0, /^#+[[:space:]]/) {
+    h_count = RLENGTH - 1
+    if (h_count >= 1 && h_count <= 6) {
+        h = $0
+        sub(/^#+[[:space:]]+/, "", h)
+        sub(/[[:space:]#]*$/, "", h)
+        if (h != "") printf "H\t%s\t%s\n", f, h
+    }
 }
 {
     # Strip inline-code spans so that example syntax inside backticks
