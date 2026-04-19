@@ -26,6 +26,8 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Re-inject critical policy after instruction load | [Instructions Loaded Reinforcer](#16-instructions-loaded-reinforcer-instructionsloaded) |
 | Restore core principles after context compaction | [Post-Compact Restore](#17-post-compact-restore-postcompact) |
 | Validate task descriptions at creation time | [Task Created Validator](#18-task-created-validator-taskcreated) |
+| Auto-commit working tree after Task/Agent runs | [Post Task/Agent Checkpoint](#19-post-taskagent-checkpoint-posttooluse) |
+| Block Edit/Write on files that weren't Read first | [Pre-edit Read Guard](#20-pre-edit-read-guard-pretoolusepostooluse) |
 | Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
 | Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
 | Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
@@ -602,6 +604,112 @@ TaskCreated rejected: description must be at least 20 characters (got 12). Add s
 ```
 TaskCreated rejected: description must contain at least one '- [ ]' checkbox marker for acceptance criteria.
 ```
+
+### 19. Post Task/Agent Checkpoint (PostToolUse)
+
+*Snapshots the working tree into a WIP commit after every `Task` or `Agent` call — prevents a later sub-agent from silently overwriting a prior agent's output in multi-agent workflows.*
+
+**Purpose**: Close the write-race window in multi-agent skills (issue-work team mode, harness fan-out, fleet-orchestrator) where a second agent can clobber uncommitted output from a first agent. The hook checkpoints after each `Task`/`Agent` completes so the previous agent's changes survive in git history even if the working tree is overwritten.
+
+**Trigger**: `PostToolUse` event, matcher `Task|Agent`. Non-matching tools pass through silently.
+
+**Files**: `global/hooks/post-task-checkpoint.sh`, `global/hooks/post-task-checkpoint.ps1`
+
+**Behavior**:
+1. Read JSON from stdin (tool_name, tool_input). Fail-open on malformed input.
+2. Skip silently if tool_name is not `Task` or `Agent`.
+3. No-op if not inside a git worktree (prevents errors in non-repo directories).
+4. No-op if working tree is clean (keeps history free of empty-commit spam).
+5. Otherwise: `git add -A && git commit -m "wip(agent): $AGENT_NAME checkpoint $TS" --no-verify --allow-empty`.
+
+**Commit message format**: `wip(agent): <sanitized-agent-name> checkpoint YYYY-MM-DD HH:MM:SS`. Agent name is extracted from `tool_input.subagent_type` (preferred) or `tool_input.name` (fallback); only `[A-Za-z0-9_-]` characters survive sanitization, clipped to 64 chars.
+
+**Why `--no-verify`**: `wip(agent):` is not in the Conventional Commits type list that `commit-msg` accepts, so the validator would reject it. Checkpoint commits are throwaway and expected to be squashed at PR merge.
+
+**Why `--allow-empty`**: Defensive — satisfies the acceptance criterion that "hook succeeds on empty tree" even if the no-op check is skipped for some reason (e.g., staged/unstaged boundary edge cases).
+
+**Decision control**: Always exits 0 — the hook never blocks a workflow. Any git, jq, or JSON failure is swallowed silently. The failure mode is "checkpoint didn't happen," not "workflow stopped."
+
+**Configuration**:
+```json
+{
+  "type": "command",
+  "command": "~/.claude/hooks/post-task-checkpoint.sh",
+  "timeout": 15,
+  "async": true
+}
+```
+
+**Limitations**:
+- WIP checkpoints pollute history before squash merge. Acceptable tradeoff for recoverability. Release-time squash cleans them up.
+- Async: the hook does not block the model's next turn. A rapid-fire agent could start before its predecessor's checkpoint lands, though the wall-clock gap in practice is < 100 ms.
+- Does not run in non-git directories (e.g., ad-hoc `/tmp` work) — nothing to checkpoint there.
+
+**Opt-out**: Remove the `PostToolUse` matcher block from `global/settings.json` and re-run `scripts/sync.sh`. Individual sessions can skip by running outside a git worktree.
+
+**Test fixture**: `tests/hooks/test-post-task-checkpoint.sh` exercises dirty/clean/non-repo paths, agent-name sanitization, malformed-JSON fail-open, and the two-agent overwrite scenario.
+
+### 20. Pre-edit Read Guard (PreToolUse/PostToolUse)
+
+*Converts "file was not read" tool-contract violations into an actionable Read-first deny message on the first attempt — no more silent Edit retries.*
+
+**Purpose**: Enforce the Claude Code contract that `Edit` and `Write` on an existing file require a prior `Read` in the same session. Without this guard the tool simply errors out and the model retries in the dark. With it, the hook denies the edit up-front with a reason that tells Claude exactly which file to Read.
+
+**Trigger**: A single script is registered under two hook entries:
+- `PreToolUse` matcher `Edit|Write` — the guard (returns `allow`/`deny` JSON).
+- `PostToolUse` matcher `Read` — the tracker (records the Read path, no JSON).
+
+**Files**: `global/hooks/pre-edit-read-guard.sh`, `global/hooks/pre-edit-read-guard.ps1`
+
+**Tracker**: `$TMPDIR/claude-read-set-<session-id>` on Unix, `%TEMP%\claude-read-set-<session-id>` on Windows. One absolute path per line, deduplicated. Cleared naturally when the temp directory rotates between sessions.
+
+**Behavior**:
+1. Read JSON from stdin (`tool_name`, `tool_input.file_path`, `session_id`).
+2. **If `tool_name == "Read"`**: resolve `file_path` to absolute, append to tracker if absent. Emit no JSON. Best-effort — any failure is swallowed.
+3. **If `tool_name in {"Edit","Write"}`**: resolve `file_path` to absolute, then:
+   - Tracker file missing → `allow` (first-run safety for fresh sessions).
+   - `Write` on a non-existent file → `allow` (new files cannot have been Read).
+   - Tracker contains the path → `allow`.
+   - Otherwise → `deny` with a message naming the exact file to Read first.
+4. **Any other `tool_name`**: `allow` (prevents interference with other matchers).
+
+**Deny reason format**:
+```
+Cannot Edit '/abs/path/to/file' without reading it first in this session. Call Read on '/abs/path/to/file' and retry. (Session <id>, tracker <path>.)
+```
+
+**Decision control**: Always exits 0. Fail-open on empty stdin or missing `jq` — the hook never blocks the workflow when it can't do its job correctly.
+
+**Configuration** (`global/settings.json`):
+```json
+{
+  "PreToolUse": [
+    {
+      "matcher": "Edit|Write",
+      "hooks": [
+        { "type": "command", "command": "~/.claude/hooks/pre-edit-read-guard.sh", "timeout": 5 }
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Read",
+      "hooks": [
+        { "type": "command", "command": "~/.claude/hooks/pre-edit-read-guard.sh", "timeout": 5, "async": true }
+      ]
+    }
+  ]
+}
+```
+
+**Limitations**:
+- Session-scoped. Across restarts the tracker rotates with `$TMPDIR` and Claude must Read again.
+- Case-sensitive file match on case-insensitive filesystems (macOS default HFS+/APFS) can produce rare false negatives if the same path is Read with different casing — normalize via `realpath` where available.
+- `Edit` on a file that the user manually modified outside the session still passes once it is in the tracker. The hook verifies Read, not freshness.
+
+**Opt-out**: Remove the two matcher blocks from `global/settings.json` and `global/settings.windows.json`, then re-run `scripts/sync.sh`.
+
+**Test fixture**: `tests/hooks/test-pre-edit-read-guard.sh` exercises the deny/allow paths, first-run tracker-missing safety, Write on non-existent files, and Read-then-Edit unlocking.
 
 ### Hook Response Format
 

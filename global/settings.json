@@ -6,7 +6,9 @@
     "MAX_MCP_OUTPUT_TOKENS": "50000",
     "ENABLE_TOOL_SEARCH": "auto:10",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "MAX_TEAMS": "5"
+    "MAX_TEAMS": "5",
+    "SSL_CERT_FILE": "/etc/ssl/cert.pem",
+    "SSL_CERT_DIR": "/etc/ssl/certs"
   },
   "attribution": {
     "commit": "",
@@ -107,6 +109,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/pre-edit-read-guard.sh",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -155,6 +167,30 @@
             "type": "command",
             "command": "~/.claude/hooks/session-logger.sh stop",
             "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Task|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/post-task-checkpoint.sh",
+            "timeout": 15,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/pre-edit-read-guard.sh",
+            "timeout": 5,
+            "async": true
           }
         ]
       }

@@ -327,6 +327,12 @@ Based on workflow analysis, fix the identified issues:
 | **Missing header** | Add required #include statements |
 | **Link error** | Fix undefined references, library linking |
 
+**Known-pattern shortcut**: before hand-authoring a fix, check the `ci-fix` skill
+(`global/skills/ci-fix/SKILL.md`). It classifies the failure log against three recurring
+patterns (MSVC C4996, CMake FetchContent shallow clone, `__cpp_lib_format` probe) and applies
+a codified remediation. Invoke with `/ci-fix <pr-number>` — falls through to this manual
+workflow when no pattern matches.
+
 ### 6. Verify Fix Locally
 
 Select inline (< 30s) or background + log polling (30s+) strategy based on build duration. Diagnose before retrying — do NOT re-run the same build without changes.
@@ -355,16 +361,7 @@ git push origin "$HEAD_BRANCH"
 
 #### TLS/Sandbox Error Handling
 
-If `gh` commands fail with TLS certificate errors in sandbox mode:
-
-```
-x509: certificate signed by unknown authority
-tls: failed to verify certificate
-```
-
-Use `dangerouslyDisableSandbox` for the `gh` command, or suggest the user
-run outside sandbox. Never assume authentication has failed without verifying —
-ask the user to confirm if unclear.
+See **Environment Workarounds** in `global/CLAUDE.md` for the canonical rule. `SSL_CERT_FILE` / `SSL_CERT_DIR` are wired in `global/settings.json` so `git` / `curl` succeed inside the sandbox; `gh` on macOS remains the exception and is handled via Bash allowlist. Never flag a TLS error as an authentication failure without verifying.
 
 #### CI Monitoring
 
@@ -424,7 +421,7 @@ See `reference/team-mode.md` for the complete team mode workflow including archi
 
 ## Policies
 
-See [_policy.md](../_policy.md) for common rules.
+See [_policy.md](../_policy.md) for common rules, including the **Atomic Multi-Phase Execution** rule — when the user specifies multiple phases (e.g., "Phase 1/2/3"), complete all phases without pausing between them for confirmation.
 
 ### Command-Specific Rules
 

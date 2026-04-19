@@ -1,5 +1,19 @@
 # Global Command Policies
 
+## Atomic Multi-Phase Execution
+
+When a user specifies multiple phases — "Phase 1/2/3", "up to Phase N", "until all are created", or similar multi-step directives — treat the full plan as a single atomic unit.
+
+- Complete ALL phases before returning control to the user
+- Do NOT pause between phases for mid-plan confirmation
+- Do NOT ask "shall I continue?" between phases — the user already said yes by specifying the plan
+- Only stop early if a real blocker is encountered: missing file, auth error, destructive-action confirmation, or genuinely ambiguous requirement. State the blocker explicitly and wait for resolution
+- Progress updates between phases are fine; confirmation prompts are not
+
+This rule exists because long multi-phase requests otherwise incur repeated "continue" prompts as the model pauses mid-plan for phantom confirmation. The user's original plan specification is the only confirmation needed.
+
+## Common Rules
+
 - Git/GitHub output (commits, PRs, issues, release notes): English
 - No emojis in commits, PR titles, issue titles
 - Commit format: Conventional Commits (`type(scope): description`)

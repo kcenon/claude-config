@@ -448,7 +448,7 @@ See `reference/team-mode.md` for the complete team mode workflow with changelog 
 
 ## Policies
 
-See [_policy.md](../_policy.md) for common rules.
+See [_policy.md](../_policy.md) for common rules, including the **Atomic Multi-Phase Execution** rule — when the user specifies multiple phases (e.g., "Phase 1/2/3"), complete all phases without pausing between them for confirmation.
 
 ### Command-Specific Rules
 

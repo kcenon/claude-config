@@ -13,7 +13,7 @@
 # To bump a version: edit the field here, then run scripts/sync_versions.sh
 # (or /release <field> <new-version>) to propagate to consumers.
 
-suite: 1.9.0
+suite: 1.10.0
 plugin: 2.3.0
 plugin-lite: 1.1.0
 settings-schema: 1.12.0

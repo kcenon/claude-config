@@ -1,5 +1,7 @@
 #!/bin/bash
-# pre-push — git hook to block direct pushes to protected branches
+# pre-push — git hook to block direct pushes to protected branches.
+# Optionally runs the preflight skill when CLAUDE_PREFLIGHT=1 is set.
+#
 # Receives the remote name ($1) and remote URL ($2) from git.
 # Reads lines from stdin: <local ref> <local sha> <remote ref> <remote sha>
 #
@@ -33,5 +35,24 @@ while read -r local_ref local_sha remote_ref remote_sha; do
         fi
     done
 done
+
+# Opt-in preflight check. Set CLAUDE_PREFLIGHT=1 to reproduce CI checks locally
+# before pushing. Skipped silently by default to preserve prior behaviour.
+if [ "${CLAUDE_PREFLIGHT:-0}" = "1" ]; then
+    REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+    PREFLIGHT="$REPO_ROOT/global/skills/preflight/scripts/run-all.sh"
+    if [ -x "$PREFLIGHT" ] || [ -f "$PREFLIGHT" ]; then
+        echo "pre-push: CLAUDE_PREFLIGHT=1 — running preflight checks" >&2
+        if ! bash "$PREFLIGHT"; then
+            echo "" >&2
+            echo "pre-push: preflight failed — see the JSON report above for the failing check." >&2
+            echo "Re-run with CLAUDE_PREFLIGHT_VERBOSE=1 for full logs, or unset CLAUDE_PREFLIGHT" >&2
+            echo "to bypass (the failure will surface on GitHub CI instead)." >&2
+            exit 1
+        fi
+    else
+        echo "pre-push: CLAUDE_PREFLIGHT=1 but $PREFLIGHT is missing — skipping preflight." >&2
+    fi
+fi
 
 exit 0

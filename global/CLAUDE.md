@@ -13,9 +13,16 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 
 > Core principles, environment, and communication rules load automatically via project rule frontmatter (`alwaysApply: true`).
 
+## Environment Workarounds
+
+- Sandbox TLS: `SSL_CERT_FILE` and `SSL_CERT_DIR` are wired in `global/settings.json` so `git`, `curl`, `npm`, `pip`, and similar CA-bundle-aware tools succeed inside the sandbox without `dangerouslyDisableSandbox`. Full coverage matrix and platform fallback ladder: `docs/SANDBOX_TLS.md`. Verify with `scripts/verify-tls.sh`.
+- `gh` on macOS is a Darwin-Go binary that links against `Security.framework` and ignores `SSL_CERT_FILE`; it still fails inside sandbox. Remediate `gh` friction via a Bash allowlist in `permissions.allow` rather than sandbox bypass. See the `gh Caveat` section of `docs/SANDBOX_TLS.md`.
+- Before `Edit` or `Write`, always `Read` the target file first — the tool contract rejects edits on unread files.
+- Only fall back to `dangerouslyDisableSandbox: true` when a failure is not fixable by env-var or allowlist (for example, sandbox filesystem write denial) and document the reason.
+
 ## GitHub / CI
 
-- When `gh` CLI fails with TLS certificate errors in sandbox mode, retry with `dangerouslyDisableSandbox`. Do not assume authentication failure — TLS errors and auth errors are different.
+- If a `gh` call still fails with a TLS `OSStatus -26276` after the `SSL_CERT_FILE` fix, inspect `scripts/verify-tls.sh` output — the CA bundle path may be missing or unreadable. Do not assume authentication failure; TLS and auth errors are distinct.
 - After creating a PR, monitor CI until **all** checks reach `completed` status. Do NOT merge while any check is `queued` or `in_progress`.
 - Poll CI status at 30-second intervals. Max 10 minutes per run. Never use `gh run watch`.
 - If the 10-minute polling limit is reached with CI still running: stop polling, report current status to the user, and **do NOT merge**. The user decides next steps.
