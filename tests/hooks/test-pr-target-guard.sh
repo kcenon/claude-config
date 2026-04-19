@@ -69,6 +69,15 @@ assert_allow '{"tool_input":{"command":"gh pr create --head develop --base main 
 assert_allow '{"tool_input":{"command":"gh pr create --base=main --head=develop --title \"release\""}}' "equals form → allow"
 
 echo ""
+echo "[Release exception: release/* → main allowed]"
+assert_allow '{"tool_input":{"command":"gh pr create --base main --head release/1.10.0 --title \"release: v1.10.0\""}}' "--head release/1.10.0 → allow"
+assert_allow '{"tool_input":{"command":"gh pr create --base main --head release/2.0.0-beta.1 --title \"release: beta\""}}' "--head release/<semver> → allow"
+assert_allow '{"tool_input":{"command":"gh pr create --base=main --head=release/v3 --title \"release\""}}' "--head=release/v3 (equals form) → allow"
+assert_allow '{"tool_input":{"command":"gh pr create --base main --head release/2026-04-18 --title \"release\""}}' "--head release/<date> → allow"
+assert_deny '{"tool_input":{"command":"gh pr create --base main --head release --title \"release\""}}' "--head release (bare, no slash) → deny"
+assert_deny '{"tool_input":{"command":"gh pr create --base main --head release-candidate --title \"release\""}}' "--head release-candidate (no slash) → deny"
+
+echo ""
 echo "[Normal workflow: allow]"
 assert_allow '{"tool_input":{"command":"gh pr create --base develop --title \"feat: new feature\""}}' "--base develop → allow"
 assert_allow '{"tool_input":{"command":"gh pr create --title \"feat: something\""}}' "no --base (defaults to develop) → allow"
