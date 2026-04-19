@@ -355,16 +355,7 @@ git push origin "$HEAD_BRANCH"
 
 #### TLS/Sandbox Error Handling
 
-If `gh` commands fail with TLS certificate errors in sandbox mode:
-
-```
-x509: certificate signed by unknown authority
-tls: failed to verify certificate
-```
-
-Use `dangerouslyDisableSandbox` for the `gh` command, or suggest the user
-run outside sandbox. Never assume authentication has failed without verifying —
-ask the user to confirm if unclear.
+See **Environment Workarounds** in `global/CLAUDE.md` for the canonical rule. `SSL_CERT_FILE` / `SSL_CERT_DIR` are wired in `global/settings.json` so `git` / `curl` succeed inside the sandbox; `gh` on macOS remains the exception and is handled via Bash allowlist. Never flag a TLS error as an authentication failure without verifying.
 
 #### CI Monitoring
 
