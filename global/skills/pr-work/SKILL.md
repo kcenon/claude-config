@@ -327,6 +327,12 @@ Based on workflow analysis, fix the identified issues:
 | **Missing header** | Add required #include statements |
 | **Link error** | Fix undefined references, library linking |
 
+**Known-pattern shortcut**: before hand-authoring a fix, check the `ci-fix` skill
+(`global/skills/ci-fix/SKILL.md`). It classifies the failure log against three recurring
+patterns (MSVC C4996, CMake FetchContent shallow clone, `__cpp_lib_format` probe) and applies
+a codified remediation. Invoke with `/ci-fix <pr-number>` — falls through to this manual
+workflow when no pattern matches.
+
 ### 6. Verify Fix Locally
 
 Select inline (< 30s) or background + log polling (30s+) strategy based on build duration. Diagnose before retrying — do NOT re-run the same build without changes.
