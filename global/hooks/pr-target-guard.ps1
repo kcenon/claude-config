@@ -69,12 +69,17 @@ if ($headMatch.Success) {
     $head = $head -replace '^["\x27]|["\x27]$', ''
 }
 
-# Allow release PRs: develop -> main
+# Allow release PRs: develop -> main or release/* -> main
+# (matches .github/workflows/validate-pr-target.yml server-side policy)
 if ($head -eq 'develop') {
     New-HookAllowResponse
     exit 0
 }
+if ($head -like 'release/*') {
+    New-HookAllowResponse
+    exit 0
+}
 
-# Deny: non-develop branch targeting main
-New-HookDenyResponse -Reason "PR targeting 'main' is blocked by branching policy. Feature/fix branches must target 'develop'. For release PRs (develop -> main), use: /release <version>"
+# Deny: non-develop/non-release branch targeting main
+New-HookDenyResponse -Reason "PR targeting 'main' is blocked by branching policy. Only 'develop' or 'release/*' branches may merge into 'main'. Feature/fix branches must target 'develop'."
 exit 0
