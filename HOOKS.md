@@ -26,6 +26,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Re-inject critical policy after instruction load | [Instructions Loaded Reinforcer](#16-instructions-loaded-reinforcer-instructionsloaded) |
 | Restore core principles after context compaction | [Post-Compact Restore](#17-post-compact-restore-postcompact) |
 | Validate task descriptions at creation time | [Task Created Validator](#18-task-created-validator-taskcreated) |
+| Auto-commit working tree after Task/Agent runs | [Post Task/Agent Checkpoint](#19-post-taskagent-checkpoint-posttooluse) |
 | Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
 | Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
 | Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
@@ -602,6 +603,50 @@ TaskCreated rejected: description must be at least 20 characters (got 12). Add s
 ```
 TaskCreated rejected: description must contain at least one '- [ ]' checkbox marker for acceptance criteria.
 ```
+
+### 19. Post Task/Agent Checkpoint (PostToolUse)
+
+*Snapshots the working tree into a WIP commit after every `Task` or `Agent` call — prevents a later sub-agent from silently overwriting a prior agent's output in multi-agent workflows.*
+
+**Purpose**: Close the write-race window in multi-agent skills (issue-work team mode, harness fan-out, fleet-orchestrator) where a second agent can clobber uncommitted output from a first agent. The hook checkpoints after each `Task`/`Agent` completes so the previous agent's changes survive in git history even if the working tree is overwritten.
+
+**Trigger**: `PostToolUse` event, matcher `Task|Agent`. Non-matching tools pass through silently.
+
+**Files**: `global/hooks/post-task-checkpoint.sh`, `global/hooks/post-task-checkpoint.ps1`
+
+**Behavior**:
+1. Read JSON from stdin (tool_name, tool_input). Fail-open on malformed input.
+2. Skip silently if tool_name is not `Task` or `Agent`.
+3. No-op if not inside a git worktree (prevents errors in non-repo directories).
+4. No-op if working tree is clean (keeps history free of empty-commit spam).
+5. Otherwise: `git add -A && git commit -m "wip(agent): $AGENT_NAME checkpoint $TS" --no-verify --allow-empty`.
+
+**Commit message format**: `wip(agent): <sanitized-agent-name> checkpoint YYYY-MM-DD HH:MM:SS`. Agent name is extracted from `tool_input.subagent_type` (preferred) or `tool_input.name` (fallback); only `[A-Za-z0-9_-]` characters survive sanitization, clipped to 64 chars.
+
+**Why `--no-verify`**: `wip(agent):` is not in the Conventional Commits type list that `commit-msg` accepts, so the validator would reject it. Checkpoint commits are throwaway and expected to be squashed at PR merge.
+
+**Why `--allow-empty`**: Defensive — satisfies the acceptance criterion that "hook succeeds on empty tree" even if the no-op check is skipped for some reason (e.g., staged/unstaged boundary edge cases).
+
+**Decision control**: Always exits 0 — the hook never blocks a workflow. Any git, jq, or JSON failure is swallowed silently. The failure mode is "checkpoint didn't happen," not "workflow stopped."
+
+**Configuration**:
+```json
+{
+  "type": "command",
+  "command": "~/.claude/hooks/post-task-checkpoint.sh",
+  "timeout": 15,
+  "async": true
+}
+```
+
+**Limitations**:
+- WIP checkpoints pollute history before squash merge. Acceptable tradeoff for recoverability. Release-time squash cleans them up.
+- Async: the hook does not block the model's next turn. A rapid-fire agent could start before its predecessor's checkpoint lands, though the wall-clock gap in practice is < 100 ms.
+- Does not run in non-git directories (e.g., ad-hoc `/tmp` work) — nothing to checkpoint there.
+
+**Opt-out**: Remove the `PostToolUse` matcher block from `global/settings.json` and re-run `scripts/sync.sh`. Individual sessions can skip by running outside a git worktree.
+
+**Test fixture**: `tests/hooks/test-post-task-checkpoint.sh` exercises dirty/clean/non-repo paths, agent-name sanitization, malformed-JSON fail-open, and the two-agent overwrite scenario.
 
 ### Hook Response Format
 
