@@ -161,6 +161,19 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "Task|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/post-task-checkpoint.sh",
+            "timeout": 15,
+            "async": true
+          }
+        ]
+      }
+    ],
     "PostToolUseFailure": [
       {
         "matcher": ".*",
