@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kcenon.github.io/claude-config/schemas/fleet-status-1.0.0.json",
+  "title": "Fleet Status Manifest",
+  "description": "Shared state file written by fleet-orchestrator workers and read by the supervisor. All writers MUST hold an exclusive flock on <manifest>.lock. Readers SHOULD hold a shared lock.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "fleet_id",
+    "started_at",
+    "directive",
+    "max_parallel",
+    "max_retries",
+    "workers"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Semantic version of this schema. Bump on any breaking change."
+    },
+    "fleet_id": {
+      "type": "string",
+      "pattern": "^fleet-[0-9]{8}-[0-9]{6}$",
+      "description": "Unique fleet identifier; timestamp-based for human readability."
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp when the supervisor initialized the fleet."
+    },
+    "ended_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp when the last worker terminated. Null while the fleet is active."
+    },
+    "directive": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Verbatim directive text the supervisor fanned out. Workers receive this as their spec."
+    },
+    "max_parallel": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32,
+      "description": "Supervisor's concurrency cap. Workers beyond this wait in queued state."
+    },
+    "max_retries": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Maximum retry attempts for transient CI failures per worker."
+    },
+    "pre_excluded": {
+      "type": "array",
+      "description": "Repos that failed pre-flight checks and were never dispatched.",
+      "items": {
+        "type": "object",
+        "required": ["repo", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "repo": { "type": "string", "pattern": "^[^/]+/[^/]+$" },
+          "reason": {
+            "type": "string",
+            "enum": ["archived", "no-push-permission", "not-found", "malformed", "duplicate"]
+          }
+        }
+      }
+    },
+    "workers": {
+      "type": "array",
+      "description": "One entry per dispatched repo. Order matches the supervisor's dispatch order.",
+      "items": { "$ref": "#/$defs/worker" }
+    },
+    "summary": {
+      "anyOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/summary" }
+      ],
+      "description": "Computed by the supervisor after all workers terminate. Null while the fleet is active."
+    }
+  },
+  "$defs": {
+    "worker": {
+      "type": "object",
+      "required": ["repo", "status", "phase", "retry_count"],
+      "additionalProperties": false,
+      "properties": {
+        "repo": {
+          "type": "string",
+          "pattern": "^[^/]+/[^/]+$",
+          "description": "GitHub nameWithOwner form, e.g. 'kcenon/claude-config'."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["queued", "running", "completed", "failed", "skipped"],
+          "description": "Terminal states: completed, failed, skipped. Non-terminal: queued, running."
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "preflight",
+            "issue-creation",
+            "branching",
+            "implementing",
+            "building",
+            "pr-creation",
+            "ci-monitoring",
+            "ci-retry",
+            "merging",
+            "cleanup",
+            "completed",
+            "failed"
+          ],
+          "description": "Fine-grained state within the worker's lifecycle. Used by the supervisor's status table."
+        },
+        "started_at": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "When the worker moved from queued to running."
+        },
+        "updated_at": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "Last time the worker wrote to the manifest. Stuck-detection uses this."
+        },
+        "ended_at": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "When the worker reached a terminal state."
+        },
+        "task_id": {
+          "type": ["string", "null"],
+          "description": "Supervisor-side Agent task ID for this worker. Supervisor fills this on dispatch."
+        },
+        "issue_number": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "Issue the worker created or consumed for this directive. Null when directive did not require an issue."
+        },
+        "branch": {
+          "type": ["string", "null"],
+          "description": "Feature branch name the worker created off develop."
+        },
+        "pr_url": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "description": "Full GitHub PR URL. Populated once the worker creates a PR."
+        },
+        "ci_conclusion": {
+          "type": ["string", "null"],
+          "enum": [null, "success", "failure", "timeout", "cancelled", "skipped", "neutral"],
+          "description": "Terminal CI outcome for the worker's PR. Null while CI is still running."
+        },
+        "merge_status": {
+          "type": ["string", "null"],
+          "enum": [null, "merged", "draft", "open", "closed"],
+          "description": "Final PR state. 'merged' is the only success; 'draft' signals user review is needed."
+        },
+        "retry_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of CI retries the worker has attempted."
+        },
+        "error": {
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/error" }
+          ],
+          "description": "Populated when status=failed. Null otherwise."
+        },
+        "log_dir": {
+          "type": ["string", "null"],
+          "description": "Absolute path to the per-worker workspace, e.g. '_workspace/fleet/kcenon-repo-a/'. Preserved for audit."
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "required": ["class", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "type": "string",
+          "enum": [
+            "preflight-failed",
+            "code-review-needed",
+            "build-failure",
+            "test-failure",
+            "ci-timeout",
+            "merge-conflict",
+            "permission-denied",
+            "worker-crash",
+            "retry-exhausted",
+            "manifest-corruption",
+            "unknown"
+          ],
+          "description": "Machine-readable failure category. Supervisor uses this to decide escalation vs silent aggregation."
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable error detail. Include file paths or log excerpts when relevant."
+        },
+        "recoverable": {
+          "type": "boolean",
+          "description": "Hint from the worker: true if a fresh fleet run against this repo could succeed, false if user intervention is required."
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total", "merged", "failed", "duration_seconds"],
+      "additionalProperties": false,
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total workers dispatched. Excludes pre_excluded entries."
+        },
+        "merged": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Workers with status=completed AND merge_status=merged."
+        },
+        "draft": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Workers with merge_status=draft (awaiting manual review)."
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Workers with status=failed."
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Workers with status=skipped (e.g., issue was closed by someone else mid-run)."
+        },
+        "duration_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "ended_at - started_at, in seconds."
+        }
+      }
+    }
+  }
+}
