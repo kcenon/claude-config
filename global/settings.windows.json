@@ -120,6 +120,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/pre-edit-read-guard.ps1",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -180,6 +190,17 @@
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/post-task-checkpoint.ps1",
             "timeout": 15,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/pre-edit-read-guard.ps1",
+            "timeout": 5,
             "async": true
           }
         ]
