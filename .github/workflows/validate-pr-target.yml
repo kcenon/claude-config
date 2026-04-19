@@ -21,19 +21,19 @@ jobs:
               return;
             }
 
-            if (headBranch === 'develop') {
-              core.info(`Release PR from develop to main -- allowed.`);
+            if (headBranch === 'develop' || headBranch.startsWith('release/')) {
+              core.info(`Release PR from ${headBranch} to main -- allowed.`);
               return;
             }
 
             const message = [
               `## Branch Policy Violation`,
               ``,
-              `This PR targets \`main\` from \`${headBranch}\`, but only \`develop\` may merge into \`main\`.`,
+              `This PR targets \`main\` from \`${headBranch}\`, but only \`develop\` or \`release/*\` branches may merge into \`main\`.`,
               ``,
               `### Required Workflow`,
               `1. Create a PR from your branch to \`develop\``,
-              `2. After merging to \`develop\`, create a release PR using \`/release <version>\``,
+              `2. After merging to \`develop\`, create a release PR using \`/release <version>\` or a \`release/*\` branch`,
               ``,
               `This PR has been closed automatically.`,
             ].join('\n');
