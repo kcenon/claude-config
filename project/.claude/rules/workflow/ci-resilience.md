@@ -17,20 +17,12 @@ missing toolchains, and first-run build failures.
 
 ## TLS / Sandbox Errors
 
-When `gh` CLI commands fail with TLS certificate errors in sandbox mode:
+See **Environment Workarounds** in `global/CLAUDE.md` for the canonical rule — `SSL_CERT_FILE` and `SSL_CERT_DIR` are wired in `global/settings.json` so `git`, `curl`, `npm`, `pip`, and similar tools succeed inside the sandbox without `dangerouslyDisableSandbox`. The `gh` binary on macOS is a separate case (links `Security.framework`, ignores `SSL_CERT_FILE`) — remediate via a Bash allowlist rather than sandbox bypass.
 
-```
-x509: certificate signed by unknown authority
-tls: failed to verify certificate
-```
+Full coverage matrix and platform fallback ladder: `docs/SANDBOX_TLS.md`.
+Verify the local CA-bundle setup with `scripts/verify-tls.sh`.
 
-**Resolution priority**:
-1. Retry the command with `dangerouslyDisableSandbox: true`
-2. If that fails, verify authentication: `gh auth status`
-3. Never assume authentication has failed without checking — TLS errors are not auth errors
-
-**Common false positive**: Claude may incorrectly flag a TLS error as an authentication
-failure. Always distinguish between network/TLS errors and actual auth failures.
+**Diagnostic note**: TLS errors (`x509: certificate signed by unknown authority`, `tls: failed to verify certificate`) are not authentication errors. Never flag one as the other without running the canonical verifier.
 
 ## Congested Runner Handling
 
