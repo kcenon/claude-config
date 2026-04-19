@@ -6,7 +6,9 @@
     "MAX_MCP_OUTPUT_TOKENS": "50000",
     "ENABLE_TOOL_SEARCH": "auto:10",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "MAX_TEAMS": "5"
+    "MAX_TEAMS": "5",
+    "SSL_CERT_FILE": "/etc/ssl/cert.pem",
+    "SSL_CERT_DIR": "/etc/ssl/certs"
   },
   "attribution": {
     "commit": "",
