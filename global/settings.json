@@ -378,8 +378,9 @@
   "effortLevel": "high",
   "autoUpdatesChannel": "latest",
   "skipDangerousModePermissionPrompt": true,
+  "includeGitInstructions": false,
   "description": "Claude Code Global Settings - Applied to all projects (permissions.deny for security)",
-  "version": "1.12.0",
+  "version": "1.12.1",
   "showTurnDuration": true,
   "teammateMode": "in-process"
 }
