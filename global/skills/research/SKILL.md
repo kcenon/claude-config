@@ -14,6 +14,9 @@ allowed-tools:
   - Glob
   - Bash
   - Agent
+max_iterations: 5
+halt_condition: "Depth target reached (shallow=1 round, standard=3, deep=5), OR user confirms sufficient findings, OR no new sources surface for 2 consecutive rounds"
+on_halt: "Write report with partial findings and explicit coverage-gap section"
 ---
 
 # Research Command

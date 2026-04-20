@@ -5,6 +5,9 @@ argument-hint: "[pr-number] [--pattern msvc-c4996|cmake-fetchcontent|cpp-lib-for
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: "Bash(gh *)"
+max_iterations: 3
+halt_condition: "Workflow run conclusion == success, OR failure maps to an unknown error class not in reference/known-fixes.md"
+on_halt: "Escalate to user with failing log excerpt and classification result"
 ---
 
 # ci-fix Skill
@@ -73,11 +76,15 @@ Follow this deterministic sequence. Stop at the first match.
 
 ## Escalation
 
-| Condition | Action |
-|-----------|--------|
-| Classifier does not match | Print the first 80 lines of the log; ask the user to either add a new pattern to `known-fixes.md` or hand off. |
-| Fix applied but CI still red | Re-classify once. On a second miss, convert the PR to draft and escalate. |
-| 20-minute budget exceeded | Report current check table; do **not** merge. |
+This table operationalizes the skill's frontmatter `halt_condition` and `on_halt` fields. Every condition below is a terminal halt state that consumes one of the `max_iterations: 3` budget slots.
+
+| Condition | Action | Halt |
+|-----------|--------|------|
+| Classifier does not match | Print the first 80 lines of the log; ask the user to either add a new pattern to `known-fixes.md` or hand off. | yes — unknown error class |
+| Fix applied but CI still red | Re-classify once. On a second miss, convert the PR to draft and escalate. | yes — after 2nd miss |
+| 20-minute budget exceeded | Report current check table; do **not** merge. | yes — time budget |
+
+**Example halt trace**: CI reports `cmake-fetchcontent` → fix applied → CI still fails with `msvc-c4996` → re-classify and apply C4996 fix → CI still fails with a fourth pattern not in `known-fixes.md` → `halt_condition` matches (unknown class) → skill exits per `on_halt` (escalate to user with diagnosis).
 
 ## Time Budget
 
