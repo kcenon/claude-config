@@ -46,7 +46,16 @@ jobs:
           set -euo pipefail
 
           main_sha=$(gh api "repos/$REPO/git/ref/heads/main" --jq '.object.sha')
-          develop_sha=$(gh api "repos/$REPO/git/ref/heads/develop" --jq '.object.sha' 2>/dev/null || echo "")
+
+          # Detect develop existence by gh api's exit code. `gh api` prints
+          # the error body to stdout on 404, so the previous `|| echo ""`
+          # pattern captured the error JSON as a non-empty string and tricked
+          # the branch below into attempting to delete a missing ref.
+          if develop_json=$(gh api "repos/$REPO/git/ref/heads/develop" 2>/dev/null); then
+            develop_sha=$(echo "$develop_json" | jq -r '.object.sha')
+          else
+            develop_sha=""
+          fi
 
           echo "main    = $main_sha"
           echo "develop = ${develop_sha:-<missing>}"
