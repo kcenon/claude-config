@@ -99,28 +99,27 @@ main ← develop ← feature/*
    ```bash
    MAIN_SHA=$(gh api repos/$ORG/$PROJECT/git/ref/heads/main --jq .object.sha)
 
-   # 1. Temporarily swap the default branch to main so GitHub allows
-   #    develop to be deleted (GitHub refuses to delete the default branch).
-   gh api -X PATCH repos/$ORG/$PROJECT -f default_branch=main
-
-   # 2. Delete develop on the server.
+   # 1. Delete develop on the server.
    gh api -X DELETE repos/$ORG/$PROJECT/git/refs/heads/develop
 
-   # 3. Recreate develop at main's HEAD via the REST API. Using gh api
+   # 2. Recreate develop at main's HEAD via the REST API. Using gh api
    #    instead of `git push origin develop` avoids the local pre-push hook
    #    that blocks pushes to protected branches — branch protection is
    #    still applied to the new ref by GitHub.
    gh api -X POST repos/$ORG/$PROJECT/git/refs \
      -f ref=refs/heads/develop \
      -f sha="$MAIN_SHA"
-
-   # 4. Restore develop as the default branch.
-   gh api -X PATCH repos/$ORG/$PROJECT -f default_branch=develop
    ```
 
-> **Prerequisite.** The develop branch protection must have
-> `allow_deletions: true` for either path to succeed. `allow_force_pushes` can
-> remain `false` — recreation is done by creating a new ref, not force-pushing.
+> **Prerequisites.** The following repository settings are required for either
+> path to succeed:
+>
+> - `default_branch = main`. GitHub refuses to delete whichever branch is set
+>   as the repository default, so `main` must own that role. `develop` remains
+>   the working/integration branch but is not the repository default.
+> - `develop.allow_deletions = true` on branch protection. `allow_force_pushes`
+>   can remain `false` — recreation creates a fresh ref, it does not rewrite
+>   develop's history.
 >
 > **Why recreate develop?** Squash merging develop → main produces a single commit on
 > `main` with a different SHA than the original commits on `develop`. This causes the
