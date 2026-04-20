@@ -42,6 +42,20 @@ function Ensure-Directory {
     }
 }
 
+function Install-BashScript {
+    # Copy a .sh file with UTF-8 (no BOM) encoding and LF-only line endings.
+    # Windows PowerShell's default Copy-Item preserves CRLF, which makes the
+    # script fail when executed by bash in a Linux container bind-mounted
+    # from a Windows host. See Issue #407.
+    param(
+        [Parameter(Mandatory)][string]$SourcePath,
+        [Parameter(Mandatory)][string]$DestinationPath
+    )
+    $content = [System.IO.File]::ReadAllText($SourcePath) -replace "`r`n", "`n"
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($DestinationPath, $content, $utf8NoBom)
+}
+
 function New-LocalClaude {
     param([string]$ProjectDir)
     $localFile = Join-Path $ProjectDir "CLAUDE.local.md"
@@ -225,22 +239,70 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         Write-Success "Hook settings (settings.json) installed! [Windows version]"
     }
 
-    # Install PowerShell hook scripts
+    # Install hook scripts — dual-variant deployment.
+    #
+    # Why both .ps1 and .sh (Issue #407): When the Windows host's ~/.claude is
+    # bind-mounted into a Linux Claude Code container (claude-docker), the
+    # container entrypoint rewrites every `pwsh ... -File foo.ps1` command to
+    # `foo.sh`. The rewrite only works when the matching .sh file is present.
+    # Shipping .ps1 alone leaves every hook reporting "not found" inside the
+    # container even though the host works correctly.
     $hooksSource = Join-Path $BackupDir "global/hooks"
     if (Test-Path $hooksSource) {
         $hooksDir = Join-Path $claudeDir "hooks"
         Ensure-Directory $hooksDir
+
         Copy-Item -Path "$hooksSource\*.ps1" -Destination $hooksDir -Force -ErrorAction SilentlyContinue
-        Write-Success "PowerShell hook scripts (hooks/*.ps1) installed!"
+        Get-ChildItem -Path $hooksSource -Filter '*.sh' -File -ErrorAction SilentlyContinue | ForEach-Object {
+            Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $hooksDir $_.Name)
+        }
+
+        $hooksLibSource = Join-Path $hooksSource 'lib'
+        if (Test-Path $hooksLibSource) {
+            $hooksLibDir = Join-Path $hooksDir 'lib'
+            Ensure-Directory $hooksLibDir
+            Copy-Item -Path "$hooksLibSource\*.ps1" -Destination $hooksLibDir -Force -ErrorAction SilentlyContinue
+            Copy-Item -Path "$hooksLibSource\*.psm1" -Destination $hooksLibDir -Force -ErrorAction SilentlyContinue
+            Get-ChildItem -Path $hooksLibSource -Filter '*.sh' -File -ErrorAction SilentlyContinue | ForEach-Object {
+                Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $hooksLibDir $_.Name)
+            }
+        }
+
+        Copy-Item -Path "$hooksSource\*.json" -Destination $hooksDir -Force -ErrorAction SilentlyContinue
+
+        Write-Success "Hook scripts installed (hooks/*.ps1 + *.sh + lib/ + *.json)!"
     }
 
-    # Install PowerShell statusline and utility scripts
+    # Install utility scripts — dual-variant, same rationale as hooks.
     $scriptsSource = Join-Path $BackupDir "global/scripts"
     if (Test-Path $scriptsSource) {
         $scriptsDir = Join-Path $claudeDir "scripts"
         Ensure-Directory $scriptsDir
+
         Copy-Item -Path "$scriptsSource\*.ps1" -Destination $scriptsDir -Force -ErrorAction SilentlyContinue
-        Write-Success "Statusline scripts (scripts/*.ps1) installed!"
+        Get-ChildItem -Path $scriptsSource -Filter '*.sh' -File -ErrorAction SilentlyContinue | ForEach-Object {
+            Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $scriptsDir $_.Name)
+        }
+
+        Write-Success "Utility scripts installed (scripts/*.ps1 + *.sh)!"
+    }
+
+    # Hook pairing audit: warn on orphans so Docker-side rewrites don't silently
+    # resolve to missing files.
+    $hooksDirForAudit = Join-Path $claudeDir "hooks"
+    if (Test-Path $hooksDirForAudit) {
+        $ps1Stems = @(Get-ChildItem -Path $hooksDirForAudit -Filter '*.ps1' -File -ErrorAction SilentlyContinue | ForEach-Object { $_.BaseName })
+        $shStems  = @(Get-ChildItem -Path $hooksDirForAudit -Filter '*.sh'  -File -ErrorAction SilentlyContinue | ForEach-Object { $_.BaseName })
+        $missingSh  = @($ps1Stems | Where-Object { $_ -notin $shStems })
+        $missingPs1 = @($shStems  | Where-Object { $_ -notin $ps1Stems })
+        if ($missingSh.Count -gt 0 -or $missingPs1.Count -gt 0) {
+            Write-Warn "Hook pairing audit found orphans:"
+            foreach ($stem in $missingSh)  { Write-Host "    - $stem.ps1 has no matching $stem.sh (Linux container hook will 'not found')" }
+            foreach ($stem in $missingPs1) { Write-Host "    - $stem.sh has no matching $stem.ps1 (Windows host hook will 'not found')" }
+            Write-Host "  Add the missing variant to global/hooks/ and re-run install.ps1 to fix."
+        } else {
+            Write-Success "Hook pairing audit passed (all .ps1/.sh stems matched)."
+        }
     }
 
     # Install ccstatusline settings (~/.config/ccstatusline/ — ccstatusline default settings path)
@@ -404,8 +466,8 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         }
     }
     Write-Host "    - ~/.claude/settings.json (Hook settings - Windows)"
-    Write-Host "    - ~/.claude/hooks/ (PowerShell hook scripts)"
-    Write-Host "    - ~/.claude/scripts/ (Statusline scripts)"
+    Write-Host "    - ~/.claude/hooks/ (PowerShell + bash hook scripts, lib/, data)"
+    Write-Host "    - ~/.claude/scripts/ (PowerShell + bash utility scripts)"
     Write-Host "    - ~/.config/ccstatusline/ (ccstatusline settings)"
 }
 
