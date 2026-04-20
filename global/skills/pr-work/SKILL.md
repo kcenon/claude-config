@@ -8,6 +8,7 @@ allowed-tools: "Bash(gh *)"
 max_iterations: 5
 halt_condition: "All PR checks pass, OR user aborts, OR 3 identical CI failures in a row"
 on_halt: "Report failing checks with gh pr checks output, do not merge"
+loop_safe: false
 ---
 
 # PR Work Command

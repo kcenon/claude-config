@@ -8,6 +8,7 @@ allowed-tools: "Bash(gh *), Bash(flock *), Bash(jq *)"
 max_iterations: 10
 halt_condition: "All repos reach a terminal worker status (done, failed-after-retries, skipped), OR --max-parallel worker pool drains with no pending items"
 on_halt: "Render final fleet-status table with per-repo outcome and exit"
+loop_safe: false
 ---
 
 # Fleet Orchestrator -- Parallel Multi-Repo Directive Executor

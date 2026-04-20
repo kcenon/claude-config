@@ -5,6 +5,7 @@ argument-hint: "<project-name> [--type bug|feature] [--priority high|medium]"
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: "Bash(gh issue *)"
+loop_safe: false
 ---
 
 # Issue Create Command

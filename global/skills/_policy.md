@@ -37,3 +37,16 @@ on_halt: "<action>"            # What to do when halt condition fires (report, e
 Required for skills whose body contains a polling loop, retry loop, or multi-round iteration (`issue-work`, `pr-work`, `ci-fix`, `release`, `research`, `fleet-orchestrator`). Optional otherwise.
 
 Prefer regex or symbolic halt conditions over free-form prose when the signal is deterministic (CI status, exit codes). Reserve natural language for cases where interpretation is intrinsically subjective.
+
+## Loop-Safety Flag
+
+Every skill declares whether repeated invocation is idempotent — i.e., wrapping it in the harness `/loop` skill would not duplicate external artifacts, spam services, or corrupt state.
+
+```yaml
+loop_safe: true | false
+```
+
+- `loop_safe: true` — invocations are idempotent, read-only, or self-deduplicating. Safe to wrap in `/loop`. Examples: `research`, `ci-fix` (retry is the mechanism), `doc-index`, `doc-review`, `preflight`.
+- `loop_safe: false` — invocations create external artifacts (PRs, issues, releases, branch deletions) or mutate shared state. Wrapping in `/loop` would produce duplicates or destructive cascades. Examples: `issue-work`, `pr-work`, `release`, `branch-cleanup`, `issue-create`, `harness`, `implement-all-levels`, `fleet-orchestrator`.
+
+Rules and anti-patterns: `docs/loop-patterns.md`.

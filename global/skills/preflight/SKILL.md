@@ -5,6 +5,7 @@ argument-hint: "[--only <check>] [--skip <check>] [--verbose]"
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: "Bash(act *),Bash(docker *),Bash(cmake *)"
+loop_safe: true
 ---
 
 # preflight Skill
