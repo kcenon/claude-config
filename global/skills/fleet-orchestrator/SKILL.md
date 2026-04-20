@@ -1,7 +1,7 @@
 ---
 name: fleet-orchestrator
 description: "Fan out a single high-level directive (audit, deprecation cleanup, fix, migration, version bump) across an arbitrary list of repositories as parallel Agent workers, with a supervisor that polls a shared manifest, renders a live status table, and aggregates final results. Use when the user says 'apply X across repos', 'audit N repositories', 'sweep every repo', 'run the same fix in all projects', 'parallel multi-repo', 'fleet-wide change', or provides a list of repositories with a single directive. Preferred over running issue-work in each repo sequentially."
-argument-hint: "<repos-spec> <directive-spec> [--max-parallel N] [--retry N] [--poll-interval SEC] [--dry-run]"
+argument-hint: "<repos-spec> <directive-spec> [--max-parallel N] [--retry N] [--poll-interval SEC] [--dry-run] [--reanchor-interval N]"
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: "Bash(gh *), Bash(flock *), Bash(jq *)"
@@ -348,3 +348,9 @@ After a fleet run, confirm:
 - [ ] Final report matches the manifest counts.
 - [ ] Failed repos are called out explicitly for user action.
 - [ ] `_workspace/fleet/` is preserved for audit.
+
+## Reanchoring Loop Invariants
+
+`--reanchor-interval N` (default 5, `0` disables) controls how often the Core invariants block from `global/skills/_shared/invariants.md` is emitted during the supervisor's status-polling loop.
+
+Loop bind point: every N manifest-poll cycles. A fleet run covering 20+ repos produces enough accumulated worker outputs that the supervisor's attention drifts from the canonical rules; re-anchoring keeps the English-only, squash-merge, and CI-gate invariants in the recent context when aggregating results and deciding per-repo terminal state.
