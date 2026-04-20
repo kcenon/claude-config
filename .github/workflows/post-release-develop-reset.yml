@@ -1,0 +1,115 @@
+name: Post-release develop reset
+
+# Automatically aligns the `develop` branch SHA with `main` after each release
+# merge. Squash-merging `develop` → `main` produces a single commit on main with
+# a different SHA than the source commits, so develop drifts ahead in graph
+# distance even though content is identical. This workflow deletes and
+# recreates develop at main's HEAD so the next release cut starts from a clean
+# zero-divergence state.
+#
+# Branch protection prerequisites (enforced in repository settings):
+#   - develop.allow_deletions: true
+#   - main protection unchanged (no push from this workflow to main)
+#   - admin enforcement remains on — this workflow uses REST API with
+#     administration:write permission, which the token grants scoped to this
+#     run only.
+#
+# The workflow temporarily swaps the repository default branch to main while
+# develop is being deleted, because GitHub refuses to delete the default
+# branch. Default is restored to develop once the new ref exists.
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  administration: write
+
+concurrency:
+  group: post-release-develop-reset
+  cancel-in-progress: false
+
+jobs:
+  reset-develop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compare develop and main
+        id: compare
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          main_sha=$(gh api "repos/${{ github.repository }}/git/ref/heads/main" --jq '.object.sha')
+          develop_sha=$(gh api "repos/${{ github.repository }}/git/ref/heads/develop" --jq '.object.sha' 2>/dev/null || echo "")
+          echo "main_sha=$main_sha"     >> "$GITHUB_OUTPUT"
+          echo "develop_sha=$develop_sha" >> "$GITHUB_OUTPUT"
+          if [ "$main_sha" = "$develop_sha" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "develop already at $main_sha — nothing to do."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "develop ($develop_sha) differs from main ($main_sha) — will reset."
+          fi
+
+      - name: Swap default branch to main
+        if: steps.compare.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh api -X PATCH "repos/${{ github.repository }}" \
+            -f default_branch=main \
+            --jq '.default_branch'
+
+      - name: Delete develop
+        if: steps.compare.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/develop"
+          echo "develop deleted."
+
+      - name: Recreate develop at main's SHA
+        if: steps.compare.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAIN_SHA: ${{ steps.compare.outputs.main_sha }}
+        run: |
+          set -euo pipefail
+          gh api -X POST "repos/${{ github.repository }}/git/refs" \
+            -f "ref=refs/heads/develop" \
+            -f "sha=$MAIN_SHA" \
+            --jq '.object.sha'
+
+      - name: Restore develop as default branch
+        if: steps.compare.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh api -X PATCH "repos/${{ github.repository }}" \
+            -f default_branch=develop \
+            --jq '.default_branch'
+
+      - name: Summary
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          main_sha=$(gh api "repos/${{ github.repository }}/git/ref/heads/main" --jq '.object.sha' 2>/dev/null || echo "unknown")
+          develop_sha=$(gh api "repos/${{ github.repository }}/git/ref/heads/develop" --jq '.object.sha' 2>/dev/null || echo "missing")
+          default=$(gh api "repos/${{ github.repository }}" --jq '.default_branch' 2>/dev/null || echo "unknown")
+          {
+            echo "## Post-release develop reset"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| main SHA | \`$main_sha\` |"
+            echo "| develop SHA | \`$develop_sha\` |"
+            echo "| default branch | $default |"
+            echo "| skipped | ${{ steps.compare.outputs.skip }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
