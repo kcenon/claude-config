@@ -123,6 +123,20 @@ notepad $HOME\.claude\git-identity.md
 > **Note**: Requires PowerShell 7+ (`pwsh`). Install via `winget install Microsoft.PowerShell`.
 > If you get an execution policy error, run: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
 
+#### Docker-compatible dual-variant install
+
+`install.ps1` deploys **both** PowerShell (`.ps1`) and bash (`.sh`) variants of
+every hook and utility script into `~/.claude/hooks/` and `~/.claude/scripts/`.
+The `.sh` files are written with LF line endings (UTF-8, no BOM).
+
+This matters when the Windows host's `~/.claude/` is bind-mounted into a Linux
+Claude Code container (e.g. via the companion [claude-docker](https://github.com/kcenon/claude-docker)
+project): the container entrypoint rewrites `pwsh ... -File foo.ps1` hook
+commands to `foo.sh`, which only works if the matching `.sh` file exists on
+the mount. The installer also runs a pairing audit and warns about any `.ps1`
+without a `.sh` sibling (or vice versa) so Docker-side rewrites do not silently
+resolve to missing files.
+
 ### Plugin Installation (Beta)
 
 Install as a Claude Code Plugin for easy distribution and updates:
