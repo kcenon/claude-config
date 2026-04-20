@@ -1,19 +1,26 @@
 name: Post-release develop reset
 
-# Automatically aligns the `develop` branch SHA with `main` after each release
-# merge. Squash-merging `develop` → `main` produces a single commit on main with
-# a different SHA than the source commits, so develop drifts ahead in graph
-# distance even though content is identical. This workflow deletes and
-# recreates develop at main's HEAD so the next release cut starts from a clean
-# zero-divergence state.
+# Aligns the `develop` branch SHA with `main` after each release merge.
+# Squash-merging `develop` → `main` produces a single commit on main with a
+# different SHA than the source commits, so develop drifts in graph distance
+# even when content is identical. In addition, the repository has
+# delete_branch_on_merge=true, so GitHub auto-deletes develop the moment the
+# release PR merges. This workflow re-creates develop at main's HEAD so the
+# next release cut starts from a clean zero-divergence state.
 #
 # Prerequisites (configured in repository settings):
-#   - Default branch is `main` (GitHub refuses to delete the default branch).
-#   - develop.allow_deletions: true (server-side branch protection).
-#   - main protection unchanged — this workflow does not push to main.
+#   - Default branch is `main` — GitHub refuses to delete whichever branch is
+#     set as the repository default.
+#   - develop.allow_deletions: true — server-side branch protection permits
+#     deletions.
 #
 # The workflow uses only contents:write permission, which the default
 # GITHUB_TOKEN grants. No PAT or administration scope is required.
+#
+# Idempotency: the workflow handles three states it can find develop in —
+#   (a) develop matches main — skip.
+#   (b) develop exists but differs from main — delete, then create fresh.
+#   (c) develop does not exist (auto-deleted by the release merge) — create.
 
 on:
   push:
@@ -31,54 +38,53 @@ jobs:
   reset-develop:
     runs-on: ubuntu-latest
     steps:
-      - name: Compare develop and main
-        id: compare
+      - name: Ensure develop matches main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          main_sha=$(gh api "repos/${{ github.repository }}/git/ref/heads/main" --jq '.object.sha')
-          develop_sha=$(gh api "repos/${{ github.repository }}/git/ref/heads/develop" --jq '.object.sha' 2>/dev/null || echo "")
-          echo "main_sha=$main_sha"       >> "$GITHUB_OUTPUT"
-          echo "develop_sha=$develop_sha" >> "$GITHUB_OUTPUT"
+
+          main_sha=$(gh api "repos/$REPO/git/ref/heads/main" --jq '.object.sha')
+          develop_sha=$(gh api "repos/$REPO/git/ref/heads/develop" --jq '.object.sha' 2>/dev/null || echo "")
+
+          echo "main    = $main_sha"
+          echo "develop = ${develop_sha:-<missing>}"
+
           if [ "$main_sha" = "$develop_sha" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "develop already at $main_sha — nothing to do."
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-            echo "develop ($develop_sha) differs from main ($main_sha) — will reset."
+            exit 0
           fi
 
-      - name: Delete develop
-        if: steps.compare.outputs.skip == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/develop"
-          echo "develop deleted."
+          if [ -n "$develop_sha" ]; then
+            echo "develop is at $develop_sha — deleting before recreation."
+            gh api -X DELETE "repos/$REPO/git/refs/heads/develop"
+          else
+            echo "develop is missing (likely auto-deleted by the release merge) — will create fresh."
+          fi
 
-      - name: Recreate develop at main's SHA
-        if: steps.compare.outputs.skip == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAIN_SHA: ${{ steps.compare.outputs.main_sha }}
-        run: |
-          set -euo pipefail
-          gh api -X POST "repos/${{ github.repository }}/git/refs" \
+          echo "Creating develop at $main_sha."
+          new_sha=$(gh api -X POST "repos/$REPO/git/refs" \
             -f "ref=refs/heads/develop" \
-            -f "sha=$MAIN_SHA" \
-            --jq '.object.sha'
+            -f "sha=$main_sha" \
+            --jq '.object.sha')
+
+          if [ "$new_sha" != "$main_sha" ]; then
+            echo "Post-create SHA ($new_sha) does not match main ($main_sha) — aborting." >&2
+            exit 1
+          fi
+          echo "develop now at $new_sha."
 
       - name: Summary
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          main_sha=$(gh api "repos/${{ github.repository }}/git/ref/heads/main" --jq '.object.sha' 2>/dev/null || echo "unknown")
-          develop_sha=$(gh api "repos/${{ github.repository }}/git/ref/heads/develop" --jq '.object.sha' 2>/dev/null || echo "missing")
-          default=$(gh api "repos/${{ github.repository }}" --jq '.default_branch' 2>/dev/null || echo "unknown")
+          main_sha=$(gh api "repos/$REPO/git/ref/heads/main" --jq '.object.sha' 2>/dev/null || echo "unknown")
+          develop_sha=$(gh api "repos/$REPO/git/ref/heads/develop" --jq '.object.sha' 2>/dev/null || echo "missing")
+          default=$(gh api "repos/$REPO" --jq '.default_branch' 2>/dev/null || echo "unknown")
           {
             echo "## Post-release develop reset"
             echo ""
@@ -87,5 +93,5 @@ jobs:
             echo "| main SHA | \`$main_sha\` |"
             echo "| develop SHA | \`$develop_sha\` |"
             echo "| default branch | $default |"
-            echo "| skipped | ${{ steps.compare.outputs.skip }} |"
+            echo "| aligned | $([ "$main_sha" = "$develop_sha" ] && echo yes || echo no) |"
           } >> "$GITHUB_STEP_SUMMARY"
