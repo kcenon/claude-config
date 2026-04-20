@@ -3,8 +3,34 @@
 # Git Hooks Installation Script
 # =============================
 # Git hooks를 설치하는 스크립트
+#
+# Usage:
+#   hooks/install-hooks.sh              # interactive — prompts on conflict
+#   hooks/install-hooks.sh --force      # non-interactive — overwrite all
+#   hooks/install-hooks.sh -y           # alias for --force
+#
+# The non-interactive mode is intended for CI, automation sessions, and
+# scripted provisioning where no TTY is available to answer the prompt.
 
 set -e
+
+FORCE_MODE=0
+for arg in "$@"; do
+    case "$arg" in
+        --force|-y|--yes)
+            FORCE_MODE=1
+            ;;
+        -h|--help)
+            sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+            exit 0
+            ;;
+        *)
+            echo "install-hooks.sh: unknown argument '$arg'" >&2
+            echo "Run with --help for usage." >&2
+            exit 2
+            ;;
+    esac
+done
 
 # 색상 정의
 RED='\033[0;31m'
@@ -56,11 +82,17 @@ install_hook() {
 
     if [ -f "$target_file" ]; then
         warning "기존 $hook_name hook이 존재합니다."
-        echo "  1) 덮어쓰기 (교체)"
-        echo "  2) 병합 (기존 hook 뒤에 추가)"
-        echo "  3) 건너뛰기"
-        read -p "  선택 (1-3) [기본값: 3]: " choice
-        choice=${choice:-3}
+        local choice
+        if [ "$FORCE_MODE" = "1" ]; then
+            choice=1
+            info "  --force: 덮어쓰기 선택 (비대화)"
+        else
+            echo "  1) 덮어쓰기 (교체)"
+            echo "  2) 병합 (기존 hook 뒤에 추가)"
+            echo "  3) 건너뛰기"
+            read -p "  선택 (1-3) [기본값: 3]: " choice
+            choice=${choice:-3}
+        fi
 
         case "$choice" in
             1)
