@@ -7,16 +7,13 @@ name: Post-release develop reset
 # recreates develop at main's HEAD so the next release cut starts from a clean
 # zero-divergence state.
 #
-# Branch protection prerequisites (enforced in repository settings):
-#   - develop.allow_deletions: true
-#   - main protection unchanged (no push from this workflow to main)
-#   - admin enforcement remains on — this workflow uses REST API with
-#     administration:write permission, which the token grants scoped to this
-#     run only.
+# Prerequisites (configured in repository settings):
+#   - Default branch is `main` (GitHub refuses to delete the default branch).
+#   - develop.allow_deletions: true (server-side branch protection).
+#   - main protection unchanged — this workflow does not push to main.
 #
-# The workflow temporarily swaps the repository default branch to main while
-# develop is being deleted, because GitHub refuses to delete the default
-# branch. Default is restored to develop once the new ref exists.
+# The workflow uses only contents:write permission, which the default
+# GITHUB_TOKEN grants. No PAT or administration scope is required.
 
 on:
   push:
@@ -25,7 +22,6 @@ on:
 
 permissions:
   contents: write
-  administration: write
 
 concurrency:
   group: post-release-develop-reset
@@ -43,7 +39,7 @@ jobs:
           set -euo pipefail
           main_sha=$(gh api "repos/${{ github.repository }}/git/ref/heads/main" --jq '.object.sha')
           develop_sha=$(gh api "repos/${{ github.repository }}/git/ref/heads/develop" --jq '.object.sha' 2>/dev/null || echo "")
-          echo "main_sha=$main_sha"     >> "$GITHUB_OUTPUT"
+          echo "main_sha=$main_sha"       >> "$GITHUB_OUTPUT"
           echo "develop_sha=$develop_sha" >> "$GITHUB_OUTPUT"
           if [ "$main_sha" = "$develop_sha" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
@@ -52,16 +48,6 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "develop ($develop_sha) differs from main ($main_sha) — will reset."
           fi
-
-      - name: Swap default branch to main
-        if: steps.compare.outputs.skip == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          gh api -X PATCH "repos/${{ github.repository }}" \
-            -f default_branch=main \
-            --jq '.default_branch'
 
       - name: Delete develop
         if: steps.compare.outputs.skip == 'false'
@@ -83,16 +69,6 @@ jobs:
             -f "ref=refs/heads/develop" \
             -f "sha=$MAIN_SHA" \
             --jq '.object.sha'
-
-      - name: Restore develop as default branch
-        if: steps.compare.outputs.skip == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          gh api -X PATCH "repos/${{ github.repository }}" \
-            -f default_branch=develop \
-            --jq '.default_branch'
 
       - name: Summary
         if: always()
