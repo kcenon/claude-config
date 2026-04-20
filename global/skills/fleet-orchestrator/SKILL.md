@@ -5,6 +5,9 @@ argument-hint: "<repos-spec> <directive-spec> [--max-parallel N] [--retry N] [--
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: "Bash(gh *), Bash(flock *), Bash(jq *)"
+max_iterations: 10
+halt_condition: "All repos reach a terminal worker status (done, failed-after-retries, skipped), OR --max-parallel worker pool drains with no pending items"
+on_halt: "Render final fleet-status table with per-repo outcome and exit"
 ---
 
 # Fleet Orchestrator -- Parallel Multi-Repo Directive Executor
