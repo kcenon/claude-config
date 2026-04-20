@@ -7,6 +7,7 @@ disable-model-invocation: true
 allowed-tools: "Bash(git *)"
 context: fork
 agent: general-purpose
+loop_safe: true
 ---
 
 # Document Review Command

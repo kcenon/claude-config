@@ -9,6 +9,7 @@ allowed-tools:
   - Write
   - Glob
   - Grep
+loop_safe: true
 ---
 
 # Document Index Generator

@@ -1,0 +1,9 @@
+# claude-config repo-root .claudeignore
+#
+# Scope: governs context loading when editing the claude-config repo itself.
+# The in-tree `global/.claudeignore`, `plugin/.claudeignore`, and `project/.claudeignore`
+# files govern the subtrees they live in.
+
+# Reference docs for contributors. Load on demand with `@load: docs/<name>`.
+# Not auto-loaded in normal sessions.
+docs/loop-patterns.md

@@ -8,6 +8,7 @@ allowed-tools: "Bash(gh *)"
 max_iterations: 3
 halt_condition: "Workflow run conclusion == success, OR failure maps to an unknown error class not in reference/known-fixes.md"
 on_halt: "Escalate to user with failing log excerpt and classification result"
+loop_safe: true
 ---
 
 # ci-fix Skill
