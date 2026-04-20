@@ -121,6 +121,14 @@ main ← develop ← feature/*
 >   can remain `false` — recreation creates a fresh ref, it does not rewrite
 >   develop's history.
 >
+> **Interaction with `delete_branch_on_merge`.** The repository setting
+> `delete_branch_on_merge = true` causes GitHub to auto-delete the head branch
+> of every merged PR, including `develop` when a release PR merges into main.
+> The automated workflow is idempotent: when it fires on the release push,
+> develop is typically already gone and the workflow simply creates it fresh
+> at main's SHA. The manual fallback behaves the same — if step 1's delete
+> returns 422 ("Reference does not exist"), proceed to step 2 directly.
+>
 > **Why recreate develop?** Squash merging develop → main produces a single commit on
 > `main` with a different SHA than the original commits on `develop`. This causes the
 > two branches to diverge in git history, making subsequent develop → main PRs show
