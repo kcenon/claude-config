@@ -83,17 +83,23 @@ if [ "$BASE" != "main" ]; then
     allow_response
 fi
 
-# Base is 'main' — check if this is a release PR (--head develop)
+# Base is 'main' — check if this is a release PR (--head develop or release/*)
 HEAD=$(echo "$CMD" | sed -nE "s/.*(--head[= ])[\"']?([a-zA-Z0-9._/-]+).*/\2/p" | head -1)
 if [ -z "$HEAD" ]; then
     HEAD=$(echo "$CMD" | sed -nE "s/.*-H[[:space:]]*[\"']?([a-zA-Z0-9._/-]+).*/\1/p" | head -1)
 fi
 HEAD=$(echo "$HEAD" | sed -E "s/^[\"']//;s/[\"']$//")
 
-# Allow release PRs: develop → main
+# Allow release PRs: develop → main or release/* → main
+# (matches .github/workflows/validate-pr-target.yml server-side policy)
 if [ "$HEAD" = "develop" ]; then
     allow_response
 fi
+case "$HEAD" in
+    release/*)
+        allow_response
+        ;;
+esac
 
-# Deny: non-develop branch targeting main
-deny_response "PR targeting 'main' is blocked by branching policy. Feature/fix branches must target 'develop'. For release PRs (develop -> main), use: /release <version>"
+# Deny: non-develop/non-release branch targeting main
+deny_response "PR targeting 'main' is blocked by branching policy. Only 'develop' or 'release/*' branches may merge into 'main'. Feature/fix branches must target 'develop'."
