@@ -15,10 +15,22 @@ set -euo pipefail
 # Protected branch names
 PROTECTED_BRANCHES="main develop"
 
+# git signals a branch deletion push by sending the zero OID as local_sha.
+# See: https://git-scm.com/docs/githooks#_pre_push
+ZERO_SHA="0000000000000000000000000000000000000000"
+
 # Read push info from stdin
 while read -r local_ref local_sha remote_ref remote_sha; do
     # Extract the branch name from the remote ref
     remote_branch="${remote_ref#refs/heads/}"
+
+    # Branch deletion push — do not block at the local layer. GitHub server-side
+    # branch protection (allow_deletions) remains the authoritative gate, and
+    # conflating delete with push made the documented release protocol
+    # (delete & recreate develop) impossible to execute through this hook.
+    if [ "$local_sha" = "$ZERO_SHA" ]; then
+        continue
+    fi
 
     for protected in $PROTECTED_BRANCHES; do
         if [ "$remote_branch" = "$protected" ]; then
