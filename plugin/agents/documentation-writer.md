@@ -8,6 +8,23 @@ maxTurns: 30
 effort: high
 memory: project
 initialPrompt: "Check your memory for established documentation patterns and style conventions in this project."
+applies_to:
+  - "**/*.md"
+  - "**/*.mdx"
+  - "**/*.rst"
+  - "**/*.adoc"
+  - "**/README*"
+  - "**/CHANGELOG*"
+  - "**/CONTRIBUTING*"
+  - "**/docs/**"
+keywords:
+  - docs
+  - documentation
+  - readme
+  - changelog
+  - api-reference
+  - comments
+  - docstring
 ---
 
 # Documentation Writer Agent

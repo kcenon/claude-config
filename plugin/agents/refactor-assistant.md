@@ -8,6 +8,33 @@ maxTurns: 25
 effort: high
 memory: project
 initialPrompt: "Check your memory for past refactoring decisions and established patterns in this project."
+applies_to:
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "**/*.js"
+  - "**/*.jsx"
+  - "**/*.py"
+  - "**/*.go"
+  - "**/*.rs"
+  - "**/*.java"
+  - "**/*.kt"
+  - "**/*.cpp"
+  - "**/*.cc"
+  - "**/*.c"
+  - "**/*.h"
+  - "**/*.hpp"
+  - "**/*.rb"
+  - "**/*.php"
+  - "**/*.cs"
+  - "**/*.swift"
+keywords:
+  - refactor
+  - rename
+  - extract
+  - inline
+  - cleanup
+  - deduplicate
+  - simplify
 ---
 
 # Refactor Assistant Agent
