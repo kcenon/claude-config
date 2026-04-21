@@ -7,3 +7,4 @@
 # Reference docs for contributors. Load on demand with `@load: docs/<name>`.
 # Not auto-loaded in normal sessions.
 docs/loop-patterns.md
+docs/content-language-policy.md
