@@ -339,6 +339,49 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         cp "$BACKUP_DIR/global/hooks"/*.sh "$HOME/.claude/hooks/" 2>/dev/null || true
         chmod +x "$HOME/.claude/hooks/"*.sh 2>/dev/null || true
         success "Hook 스크립트 (hooks/) 설치 완료!"
+
+        # Full-suite probe (issue #423): advertise which canonical guards the
+        # plugin surface should stand down for. Plugin/hooks.json inspects this
+        # file at runtime so its inline guards only activate in standalone
+        # deployments. Listed hooks reflect the ones that overlap with plugin
+        # inline guards. Atomic write (tmp + mv) so a partial write cannot
+        # produce a half-valid probe.
+        PROBE_DIR="$HOME/.claude"
+        PROBE_FILE="$PROBE_DIR/.full-suite-active"
+        SENS_GUARD=false
+        DANG_GUARD=false
+        [ -f "$HOME/.claude/hooks/sensitive-file-guard.sh" ] && SENS_GUARD=true
+        [ -f "$HOME/.claude/hooks/dangerous-command-guard.sh" ] && DANG_GUARD=true
+        if command -v python3 >/dev/null 2>&1; then
+            TMP_PROBE="$(mktemp "${TMPDIR:-/tmp}/claude-probe.XXXXXX")"
+            if SENS="$SENS_GUARD" DANG="$DANG_GUARD" python3 - "$TMP_PROBE" <<'PY' 2>/dev/null
+import json, os, sys
+path = sys.argv[1]
+def flag(name):
+    return os.environ.get(name, "false").lower() == "true"
+doc = {
+    "schema": 1,
+    "hooks": {
+        "sensitive-file-guard": flag("SENS"),
+        "dangerous-command-guard": flag("DANG"),
+    },
+}
+with open(path, "w") as f:
+    json.dump(doc, f)
+    f.write("\n")
+PY
+            then
+                if mv "$TMP_PROBE" "$PROBE_FILE"; then
+                    chmod 644 "$PROBE_FILE" 2>/dev/null || true
+                    success "Full-suite probe 작성됨 (.full-suite-active)"
+                fi
+            else
+                rm -f "$TMP_PROBE"
+                warning "Full-suite probe 작성 실패 (python3 JSON 직렬화 오류)"
+            fi
+        else
+            warning "python3 부재로 Full-suite probe 건너뜀 (플러그인 가드는 계속 활성화됨)"
+        fi
     fi
 
     # 공유 검증 라이브러리 설치 (commit-message-guard.sh 및 pr-language-guard.sh에서 사용)

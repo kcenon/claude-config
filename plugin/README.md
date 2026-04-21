@@ -45,6 +45,23 @@ The plugin includes security hooks that:
 - Prevent dangerous bash commands (rm -rf /, chmod 777)
 - Auto-format code on save (if formatters are available)
 
+### Standalone-Only Behavior
+
+When the full claude-config suite is installed (via `scripts/install.sh`
+or `scripts/install.ps1`), the plugin's security guards detect this via
+`~/.claude/.full-suite-active` and exit early — the canonical hooks from
+the global suite perform the actual checks. When the plugin is installed
+standalone, its simplified guards are the active defense.
+
+The detection is per-hook: if the probe advertises some canonical hooks
+but not others, the plugin keeps its fallback active only for the hooks
+that are not covered. Any probe state that cannot be parsed (missing,
+malformed, unknown schema) falls back to the plugin guard as a safe
+default.
+
+See [`docs/plugin-vs-global.md`](../docs/plugin-vs-global.md) for the
+probe file format, behavior matrix, and failure modes.
+
 ## Directory Structure
 
 ```

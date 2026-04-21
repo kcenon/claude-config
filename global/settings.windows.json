@@ -59,10 +59,16 @@
     "PreToolUse": [
       {
         "matcher": "Edit|Write|Read",
+        "_note": "Hook order is load-bearing: sensitive-file-guard must run before pre-edit-read-guard so denied files are not tracked. See docs/hooks-ownership.md and issue #424.",
         "hooks": [
           {
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/sensitive-file-guard.ps1",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/pre-edit-read-guard.ps1",
             "timeout": 5
           }
         ]
@@ -88,6 +94,11 @@
           {
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/commit-message-guard.ps1",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/conflict-guard.ps1",
             "timeout": 5
           },
           {
@@ -118,16 +129,6 @@
           {
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/team-limit-guard.ps1",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/pre-edit-read-guard.ps1",
             "timeout": 5
           }
         ]
@@ -254,6 +255,39 @@
             "command": "pwsh -NoProfile -File ~/.claude/hooks/pre-compact-snapshot.ps1",
             "timeout": 10,
             "async": true
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/post-compact-restore.ps1",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "InstructionsLoaded": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/instructions-loaded-reinforcer.ps1",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "TaskCreated": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/task-created-validator.ps1",
+            "timeout": 5
           }
         ]
       }
