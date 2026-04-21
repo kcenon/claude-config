@@ -62,7 +62,7 @@ if [ -z "$SENSITIVE_CMD" ] || [ -z "$BASH_CMD" ]; then
 fi
 
 WORK="$(mktemp -d -t claude-plugin-standalone)"
-trap 'rm -rf "$WORK"' EXIT
+trap 'rm -rf -- "$WORK" 2>/dev/null || true' EXIT
 export HOME="$WORK"
 mkdir -p "$HOME/.claude"
 # No probe file written — this is the standalone deployment scenario.

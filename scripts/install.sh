@@ -371,7 +371,10 @@ with open(path, "w") as f:
     f.write("\n")
 PY
             then
-                mv "$TMP_PROBE" "$PROBE_FILE" && success "Full-suite probe 작성됨 (.full-suite-active)"
+                if mv "$TMP_PROBE" "$PROBE_FILE"; then
+                    chmod 644 "$PROBE_FILE" 2>/dev/null || true
+                    success "Full-suite probe 작성됨 (.full-suite-active)"
+                fi
             else
                 rm -f "$TMP_PROBE"
                 warning "Full-suite probe 작성 실패 (python3 JSON 직렬화 오류)"

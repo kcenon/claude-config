@@ -55,7 +55,7 @@ SENSITIVE_CMD="$(extract_command 0)"
 BASH_CMD="$(extract_command 1)"
 
 WORK="$(mktemp -d -t claude-plugin-fallback)"
-trap 'rm -rf "$WORK"' EXIT
+trap 'rm -rf -- "$WORK" 2>/dev/null || true' EXIT
 export HOME="$WORK"
 mkdir -p "$HOME/.claude"
 PROBE="$HOME/.claude/.full-suite-active"
