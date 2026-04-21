@@ -92,11 +92,28 @@ function Install-GlobalSettings {
         New-Item -ItemType Directory -Path $ClaudeDir -Force | Out-Null
     }
 
-    # Copy files
+    # Load install-manifest helper (SHA-256-based preservation of local edits)
+    $manifestHelper = Join-Path $InstallDir 'scripts' 'install-manifest.ps1'
+    if (Test-Path -LiteralPath $manifestHelper) {
+        . $manifestHelper
+    }
+
+    # Copy files (manifest-guarded: local edits preserved by default)
     $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'conversation-language.md', 'git-identity.md', 'token-management.md')
     foreach ($gf in $globalFiles) {
-        $src = Join-Path $InstallDir 'global' $gf
-        if (Test-Path -LiteralPath $src) {
+        $src  = Join-Path $InstallDir 'global' $gf
+        $dest = Join-Path $ClaudeDir $gf
+        if (-not (Test-Path -LiteralPath $src)) { continue }
+
+        if (Get-Command Invoke-GuardedCopy -ErrorAction SilentlyContinue) {
+            if (Invoke-GuardedCopy -Src $src -Dest $dest -Key $gf) {
+                Write-Ok "$gf 설치됨"
+            }
+            else {
+                Write-Info "$gf 로컬 변경 유지"
+            }
+        }
+        else {
             Copy-Item -LiteralPath $src -Destination $ClaudeDir -Force
             Write-Ok "$gf 설치됨"
         }

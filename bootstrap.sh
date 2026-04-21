@@ -91,9 +91,20 @@ install_global() {
     # ~/.claude 디렉토리 생성
     mkdir -p "$CLAUDE_DIR"
 
-    # 파일 복사
+    # 설치 매니페스트 헬퍼 로드 (SHA-256 해시 기반 로컬 변경 보존)
+    # shellcheck disable=SC1091
+    source "$INSTALL_DIR/scripts/install-manifest.sh"
+
+    # 파일 복사 (매니페스트 가드: 로컬 편집은 기본적으로 유지)
     for gf in CLAUDE.md commit-settings.md conversation-language.md git-identity.md token-management.md; do
-        [ -f "$INSTALL_DIR/global/$gf" ] && cp "$INSTALL_DIR/global/$gf" "$CLAUDE_DIR/" && ok "$gf 설치됨"
+        src="$INSTALL_DIR/global/$gf"
+        dest="$CLAUDE_DIR/$gf"
+        [ -f "$src" ] || continue
+        if guarded_copy "$src" "$dest" "$gf"; then
+            success "$gf 설치됨"
+        else
+            info "$gf 로컬 변경 유지"
+        fi
     done
 
     # tmux 설정 설치
