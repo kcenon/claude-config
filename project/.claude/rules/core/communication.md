@@ -4,18 +4,20 @@ alwaysApply: true
 
 # Code and Documentation Language
 
-All code and technical documentation must use **English**.
+Prose (comments, documentation, PR/issue bodies, commit descriptions) uses **English**.
+Code identifiers (variables, functions, classes, files) always use **English** due to language syntax requirements.
 
 ## Scope
 
-- Variable/function/class names, comments, error messages, log messages → English
+- Variable/function/class/file names → English (language syntax requirement)
+- Comments, error messages, log messages → English
 - README, API docs, architecture docs, PR descriptions, issue templates → English
 - Commit messages → English (see `git-commit-format.md`)
 
 ## Relationship with Conversation Language
 
 Claude responds to users in Korean (via `settings.json` `language: "korean"`).
-Code and documentation remain in English regardless of conversation language.
+Prose content remains in English regardless of conversation language.
 
 ## Special Cases
 

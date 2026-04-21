@@ -7,7 +7,7 @@ Rules use YAML frontmatter for automatic loading. Defer to language-specific con
 
 Loaded every session via `alwaysApply: true`:
 - `core/principles.md` -- Think, Minimize, Surgical Precision, Verify
-- `core/communication.md` -- English for code/docs, Korean for conversation
+- `core/communication.md` -- Code identifiers in English, prose per `CLAUDE_CONTENT_LANGUAGE` policy
 - `core/environment.md` -- KST timezone, Korean locale, platform notes
 - `workflow/git-commit-format.md` -- Conventional Commits format
 - `workflow/session-resume.md` -- Resume interrupted workflows
