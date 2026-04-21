@@ -16,7 +16,8 @@ feat, fix, docs, style, refactor, perf, test, build, ci, chore, security
 ## Rules
 
 - **Scope**: Optional but recommended, lowercase (e.g., `auth`, `network`, `ui`)
-- **Description**: {{CONTENT_LANGUAGE_POLICY}}, imperative mood, lowercase start, no period, ≤50 chars
+- **Description**: {{CONTENT_LANGUAGE_POLICY}}, imperative mood, no period, ≤50 chars
+- **Description first char**: lowercase ASCII by default; Hangul also accepted under `CLAUDE_CONTENT_LANGUAGE=korean_plus_english`
 - **Body**: Optional. Explain what/why, wrap at 72 chars, blank line after description
 - **Footer**: `BREAKING CHANGE: ...` or `Closes #123`
 
