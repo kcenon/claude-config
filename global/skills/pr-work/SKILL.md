@@ -9,6 +9,21 @@ max_iterations: 5
 halt_condition: "All PR checks pass, OR user aborts, OR 3 identical CI failures in a row"
 on_halt: "Report failing checks with gh pr checks output, do not merge"
 loop_safe: false
+tiers:
+  light:
+    ref_docs: []
+    deep_checks: false
+  standard:
+    ref_docs: [core]
+    deep_checks: false
+  deep:
+    ref_docs: [core, advanced]
+    deep_checks: true
+default_tier: standard
+# ref_docs keys:
+#   core     -> reference/error-handling.md
+#   advanced -> reference/batch-mode.md, reference/team-mode.md,
+#               reference/build-verification.md, reference/comment-templates.md
 ---
 
 # PR Work Command
