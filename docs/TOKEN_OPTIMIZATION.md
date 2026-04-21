@@ -423,6 +423,91 @@ Help me with GitHub labels.
 3. Restart Claude Code session
 4. Use `/token-usage` to verify current usage
 
+## Tier Preset Impact
+
+Skills whose `SKILL.md` body exceeds 5 KB declare tier presets in their
+frontmatter. The caller selects a tier at invocation time to dial the context
+budget up or down for the same workflow, trading reference depth and
+verification cost against tokens loaded.
+
+> **Authority**: `global/skills/_policy.md` §Tier Preset Schema defines the
+> canonical field names and semantics. This section reports empirical impact.
+
+### Overview
+
+| Tier | `ref_docs` | `deep_checks` | `max_files` |
+|------|------------|---------------|-------------|
+| `light` | None — SKILL.md body only | `false` | Narrow |
+| `standard` | Baseline reference set | `false` | Default |
+| `deep` | Full reference set | `true` | Expanded |
+
+`ref_docs` keys are skill-defined aliases (`core`, `advanced`, `batch`, etc.)
+resolved against the skill's own `reference/` directory. See `_policy.md` for
+the authoritative schema.
+
+### Baseline Measurements
+
+Measured against `pr-work` at full-body load (issue #401 figures):
+
+| Tier | Tokens | Delta vs. `standard` |
+|------|--------|----------------------|
+| `light` | ~1,500 | **−72%** |
+| `standard` | ~5,350 | baseline |
+| `deep` | ~6,530 | **+22%** |
+
+Frontmatter tier-selection logic adds a one-time **+150–300 tokens** per
+tiered skill, independent of invocation tier.
+
+**Weighted session average**: **−39%** token reduction, using the projected
+invocation mix:
+
+| Tier | Share |
+|------|-------|
+| `light` | 40% |
+| `standard` | 50% |
+| `deep` | 10% |
+
+### Default Tier Rationale
+
+`default_tier: standard` preserves existing behavior byte-for-byte. Current
+workflows need no opt-out — they continue to load the baseline reference set
+as before. Callers explicitly opt into `light` for quick, scoped tasks or
+`deep` when exhaustive checks are warranted.
+
+### Invocation
+
+Pass the tier as a flag when invoking a tiered skill:
+
+```
+/<skill> --tier=light
+/<skill> --tier=standard
+/<skill> --tier=deep
+```
+
+Omitting `--tier` selects the skill's declared `default_tier`. Unknown tier
+values fall back to `default_tier` with a warning.
+
+### Tiered Skills (this PR)
+
+- `pr-work`
+- `issue-work`
+
+Additional skills will adopt the schema as their bodies cross the 5 KB
+threshold or as workflow demand justifies differentiated loading.
+
+### Follow-up
+
+A/B measurement is scheduled post-rollout (tracked in
+[issue #401](https://github.com/kcenon/claude-config/issues/401)):
+
+- 20 test runs before/after to validate the −39% weighted projection
+- Dedicated light-tier PR review test case to verify the target token budget
+- Re-measurement of `pr-work` and `issue-work` under realistic workloads
+
+Results will be appended to this section once collected.
+
+---
+
 ## Best Practices
 
 ### 1. Start Lean

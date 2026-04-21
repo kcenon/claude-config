@@ -50,3 +50,47 @@ loop_safe: true | false
 - `loop_safe: false` — invocations create external artifacts (PRs, issues, releases, branch deletions) or mutate shared state. Wrapping in `/loop` would produce duplicates or destructive cascades. Examples: `issue-work`, `pr-work`, `release`, `branch-cleanup`, `issue-create`, `harness`, `implement-all-levels`, `fleet-orchestrator`.
 
 Rules and anti-patterns: `docs/loop-patterns.md`.
+
+## Tier Preset Schema
+
+Skills whose `SKILL.md` body exceeds 5 KB declare tier presets in their frontmatter so callers can load the skill at a depth that matches the task. The schema exposes three tiers — `light`, `standard`, `deep` — each mapping to a list of reference documents and optional flags that shape runtime behavior.
+
+```yaml
+tiers:
+  light:
+    ref_docs: []              # Minimal context; load only SKILL.md body
+    deep_checks: false        # Skip expensive validation passes
+    max_files: <int>          # Optional cap on files fetched/inspected
+  standard:
+    ref_docs: [core]          # Baseline reference set for typical invocations
+    deep_checks: false
+    max_files: <int>
+  deep:
+    ref_docs: [core, advanced] # Full reference set for thorough workflows
+    deep_checks: true          # Enable exhaustive checks
+    max_files: <int>
+default_tier: standard        # Tier used when caller omits --tier
+```
+
+- `ref_docs` — keys referencing `reference/*.md` files already shipped with the skill. Keys are skill-defined aliases (`core`, `advanced`, `batch`, `team`, etc.) resolved against the skill's own `reference/` directory.
+- `deep_checks` — opt-in flag for deeper verification passes (extra lint, full build, integrity checks). Skills that do not distinguish cheap vs expensive passes may omit this field.
+- `max_files` — advisory cap on the number of files the skill should enumerate or modify in a single invocation. Omit when the skill is naturally scoped.
+- `default_tier` — the tier applied when the caller does not pass `--tier`. Defaults to `standard` unless the skill documents otherwise.
+
+### When to Apply
+
+Required for skills whose `SKILL.md` body exceeds 5 KB (current examples: `issue-work`, `pr-work`). Optional for smaller skills, where a single loading mode suffices.
+
+### Invocation
+
+Callers select a tier with a command-line flag passthrough:
+
+```
+/<skill> --tier=light|standard|deep [other args]
+```
+
+When `--tier` is omitted, the skill runs at its declared `default_tier`. Unknown tier values fall back to `default_tier` with a warning.
+
+### Cross-reference
+
+See `docs/TOKEN_OPTIMIZATION.md` for token-impact figures and empirical guidance on when each tier is appropriate.
