@@ -8,6 +8,34 @@ maxTurns: 30
 effort: high
 memory: project
 initialPrompt: "Check your memory for established project patterns and past review findings before starting."
+applies_to:
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "**/*.js"
+  - "**/*.jsx"
+  - "**/*.py"
+  - "**/*.go"
+  - "**/*.rs"
+  - "**/*.java"
+  - "**/*.kt"
+  - "**/*.cpp"
+  - "**/*.cc"
+  - "**/*.c"
+  - "**/*.h"
+  - "**/*.hpp"
+  - "**/*.rb"
+  - "**/*.php"
+  - "**/*.cs"
+  - "**/*.swift"
+keywords:
+  - review
+  - quality
+  - security
+  - performance
+  - maintainability
+  - refactor
+  - bug
+  - vulnerability
 ---
 
 # Code Reviewer Agent

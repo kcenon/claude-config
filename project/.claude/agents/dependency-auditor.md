@@ -8,6 +8,39 @@ maxTurns: 20
 effort: high
 memory: project
 initialPrompt: "Check your memory for known dependency issues and prior audit results in this project."
+applies_to:
+  - "**/package.json"
+  - "**/package-lock.json"
+  - "**/yarn.lock"
+  - "**/pnpm-lock.yaml"
+  - "**/Gemfile"
+  - "**/Gemfile.lock"
+  - "**/go.mod"
+  - "**/go.sum"
+  - "**/requirements*.txt"
+  - "**/Pipfile"
+  - "**/Pipfile.lock"
+  - "**/pyproject.toml"
+  - "**/poetry.lock"
+  - "**/Cargo.toml"
+  - "**/Cargo.lock"
+  - "**/composer.json"
+  - "**/composer.lock"
+  - "**/pom.xml"
+  - "**/build.gradle"
+  - "**/build.gradle.kts"
+  - "**/*.csproj"
+  - "**/*.fsproj"
+keywords:
+  - security
+  - cve
+  - vulnerability
+  - license
+  - dependency
+  - dependencies
+  - audit
+  - outdated
+  - supply-chain
 ---
 
 # Dependency Auditor Agent

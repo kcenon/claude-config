@@ -8,6 +8,30 @@ maxTurns: 25
 effort: high
 memory: project
 initialPrompt: "Check your memory for known test coverage gaps and established test patterns in this project."
+applies_to:
+  - "**/test_*.py"
+  - "**/*_test.py"
+  - "**/test/**"
+  - "**/tests/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.test.js"
+  - "**/*.test.jsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "**/*.spec.js"
+  - "**/*_test.go"
+  - "**/*Test.java"
+  - "**/src/test/**"
+keywords:
+  - test
+  - testing
+  - coverage
+  - unit
+  - integration
+  - e2e
+  - mock
+  - fixture
 ---
 
 # Test Strategist Agent
