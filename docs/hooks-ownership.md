@@ -44,9 +44,15 @@ the two files is the active surface at runtime, so there is no
 duplicate execution.
 
 The plugin bundle (`plugin/hooks/hooks.json`) also registers simplified
-inline `PreToolUse: Edit|Write|Read` and `PreToolUse: Bash` guards; see
-issue #423 for the plan to make these standalone-only when the full
-global suite is installed.
+inline `PreToolUse: Edit|Write|Read` and `PreToolUse: Bash` guards. These
+activate only when the full global suite is absent — they detect
+`~/.claude/.full-suite-active` (written by `scripts/install.sh` and
+`scripts/install.ps1` on a full install) and exit early when the
+canonical hooks are present. The detection is per-hook, so the plugin
+falls back only for canonical hooks the probe does not advertise. Any
+unrecognised probe state (missing, malformed, unknown schema) falls back
+to the plugin guard as a safe default. See `docs/plugin-vs-global.md`
+for the probe file format, behavior matrix, and failure modes.
 
 ## Adding a new hook
 

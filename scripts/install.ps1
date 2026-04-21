@@ -391,6 +391,28 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         Copy-Item -Path "$hooksSource\*.json" -Destination $hooksDir -Force -ErrorAction SilentlyContinue
 
         Write-Success "Hook scripts installed (hooks/*.ps1 + *.sh + lib/ + *.json)!"
+
+        # Full-suite probe (issue #423): advertise which canonical guards the
+        # plugin surface should stand down for. Written atomically via
+        # Move-Item so a partial write cannot produce a half-valid probe.
+        $probeFile = Join-Path $claudeDir ".full-suite-active"
+        $probeTmp  = Join-Path $claudeDir ".full-suite-active.tmp"
+        $probeDoc  = [ordered]@{
+            schema = 1
+            hooks  = [ordered]@{
+                'sensitive-file-guard'    = (Test-Path (Join-Path $hooksDir 'sensitive-file-guard.sh'))
+                'dangerous-command-guard' = (Test-Path (Join-Path $hooksDir 'dangerous-command-guard.sh'))
+            }
+        }
+        try {
+            ($probeDoc | ConvertTo-Json -Depth 4) | Set-Content -LiteralPath $probeTmp -Encoding UTF8
+            Move-Item -LiteralPath $probeTmp -Destination $probeFile -Force
+            Write-Success "Full-suite probe written (.full-suite-active)"
+        }
+        catch {
+            Write-Warn "Failed to write full-suite probe: $_"
+            if (Test-Path $probeTmp) { Remove-Item -LiteralPath $probeTmp -Force -ErrorAction SilentlyContinue }
+        }
     }
 
     # Install utility scripts — dual-variant, same rationale as hooks.
