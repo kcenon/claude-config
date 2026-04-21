@@ -92,6 +92,11 @@
           },
           {
             "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/conflict-guard.ps1",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/pr-target-guard.ps1",
             "timeout": 5
           },
@@ -254,6 +259,39 @@
             "command": "pwsh -NoProfile -File ~/.claude/hooks/pre-compact-snapshot.ps1",
             "timeout": 10,
             "async": true
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/post-compact-restore.ps1",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "InstructionsLoaded": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/instructions-loaded-reinforcer.ps1",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "TaskCreated": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/task-created-validator.ps1",
+            "timeout": 5
           }
         ]
       }
