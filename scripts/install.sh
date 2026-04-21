@@ -210,6 +210,28 @@ echo ""
 read -p "선택 (1-5) [기본값: 3]: " INSTALL_TYPE
 INSTALL_TYPE=${INSTALL_TYPE:-3}
 
+# 컨텐츠 언어 정책 선택 (CLAUDE_CONTENT_LANGUAGE)
+# Global / Enterprise 설치 경로에서만 settings.json을 갱신합니다.
+# 기본값 english는 settings.json을 건드리지 않습니다 (dispatcher 기본값과 일치).
+echo ""
+info "컨텐츠 언어 정책을 선택하세요 (commit / PR / issue 검증 범위):"
+echo "  1) English (기본, 현재 동작과 완전 동일)"
+echo "  2) Korean + English (Hangul 허용)"
+echo "  3) Any (언어 검증 없음 — 단, AI 귀속 차단은 유지)"
+echo ""
+read -p "선택 (1-3) [기본값: 1]: " LANG_TYPE
+LANG_TYPE=${LANG_TYPE:-1}
+
+case "$LANG_TYPE" in
+    1) CONTENT_LANGUAGE="english" ;;
+    2) CONTENT_LANGUAGE="korean_plus_english" ;;
+    3) CONTENT_LANGUAGE="any" ;;
+    *)
+        warning "알 수 없는 입력: $LANG_TYPE. english로 진행합니다."
+        CONTENT_LANGUAGE="english"
+        ;;
+esac
+
 # Enterprise 설정 설치
 if [ "$INSTALL_TYPE" = "4" ] || [ "$INSTALL_TYPE" = "5" ]; then
     install_enterprise
@@ -235,6 +257,25 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     if [ -f "$BACKUP_DIR/global/settings.json" ]; then
         cp "$BACKUP_DIR/global/settings.json" "$HOME/.claude/"
         success "Hook 설정 (settings.json) 설치 완료!"
+
+        # CLAUDE_CONTENT_LANGUAGE env 주입
+        # english(기본)은 dispatcher 기본값과 일치하므로 파일을 건드리지 않습니다.
+        if [ "$CONTENT_LANGUAGE" != "english" ]; then
+            if command -v jq >/dev/null 2>&1; then
+                tmpfile=$(mktemp)
+                jq --arg v "$CONTENT_LANGUAGE" \
+                   '.env = (.env // {}) | .env.CLAUDE_CONTENT_LANGUAGE = $v' \
+                   "$HOME/.claude/settings.json" > "$tmpfile" \
+                   && mv "$tmpfile" "$HOME/.claude/settings.json" \
+                   && success "CLAUDE_CONTENT_LANGUAGE=$CONTENT_LANGUAGE 을 settings.json에 기록했습니다."
+            else
+                warning "jq가 설치되어 있지 않아 CLAUDE_CONTENT_LANGUAGE를 자동 설정할 수 없습니다."
+                echo "  수동으로 ~/.claude/settings.json 의 env 섹션에 다음을 추가하세요:"
+                echo "    \"CLAUDE_CONTENT_LANGUAGE\": \"$CONTENT_LANGUAGE\""
+            fi
+        else
+            info "CLAUDE_CONTENT_LANGUAGE=english (기본값, settings.json 무변경)"
+        fi
     fi
 
     # hooks 디렉토리 설치 (외부 스크립트)
@@ -245,11 +286,15 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         success "Hook 스크립트 (hooks/) 설치 완료!"
     fi
 
-    # 공유 검증 라이브러리 설치 (commit-message-guard.sh에서 사용)
-    if [ -f "$BACKUP_DIR/hooks/lib/validate-commit-message.sh" ]; then
+    # 공유 검증 라이브러리 설치 (commit-message-guard.sh 및 pr-language-guard.sh에서 사용)
+    if [ -d "$BACKUP_DIR/hooks/lib" ]; then
         ensure_dir "$HOME/.claude/hooks/lib"
-        cp "$BACKUP_DIR/hooks/lib/validate-commit-message.sh" "$HOME/.claude/hooks/lib/"
-        chmod +x "$HOME/.claude/hooks/lib/validate-commit-message.sh"
+        for lib in validate-commit-message.sh validate-language.sh; do
+            if [ -f "$BACKUP_DIR/hooks/lib/$lib" ]; then
+                cp "$BACKUP_DIR/hooks/lib/$lib" "$HOME/.claude/hooks/lib/"
+                chmod +x "$HOME/.claude/hooks/lib/$lib"
+            fi
+        done
         success "공유 검증 라이브러리 설치 완료!"
     fi
 
