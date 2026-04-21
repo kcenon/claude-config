@@ -1,46 +1,22 @@
 #Requires -Version 7.0
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'lib' 'LanguageValidator.psm1') -Force
 
 # pr-language-guard.ps1
 # Blocks gh pr/issue create|edit|comment commands whose --title or --body
-# contains non-ASCII characters.
+# violates the resolved CLAUDE_CONTENT_LANGUAGE policy.
 # Hook Type: PreToolUse (Bash)
 # Exit codes: 0 (always - decision is in JSON)
 # Response format: hookSpecificOutput with hookEventName
 #
-# Enforces the "All GitHub Issues and Pull Requests must be written in
-# English" rule from commit-settings.md. Mirrors the commit-message-guard
-# enforcement model that proved effective for commit messages.
-#
-# Allowed bytes: ASCII printable (0x20-0x7E) and ASCII whitespace
-# (0x09-0x0D = tab, LF, VT, FF, CR). Anything else is rejected.
+# Enforces the content-language rule from commit-settings.md. Default
+# policy ("english", when CLAUDE_CONTENT_LANGUAGE is unset) matches the
+# pre-dispatcher behavior byte-for-byte. See issue #410 for the dispatcher
+# design.
 #
 # NOTE: --body using $(...) substitution, heredocs, or --body-file is
 # not parseable at this layer and the hook returns "allow" for those.
-
-# Returns the first non-ASCII text element, or $null if all elements are ASCII.
-# Uses StringInfo to walk grapheme clusters so surrogate pairs (emoji,
-# CJK extensions in supplementary planes) are reported as a single unit.
-function Get-FirstNonAscii {
-    param([string]$Text)
-
-    if ([string]::IsNullOrEmpty($Text)) {
-        return $null
-    }
-
-    $info = [System.Globalization.StringInfo]::new($Text)
-    for ($i = 0; $i -lt $info.LengthInTextElements; $i++) {
-        $elem = $info.SubstringByTextElements($i, 1)
-        $cp = [Char]::ConvertToUtf32($elem, 0)
-        # ASCII printable (0x20-0x7E) or whitespace (0x09-0x0D)
-        if (($cp -ge 0x20 -and $cp -le 0x7E) -or ($cp -ge 0x09 -and $cp -le 0x0D)) {
-            continue
-        }
-        return $elem
-    }
-    return $null
-}
 
 # Extracts the value for a given long/short flag from a shell command string.
 # Tries double-quoted then single-quoted forms; supports --flag value,
@@ -115,18 +91,18 @@ $body  = Get-FlagValue -Command $CMD -LongFlag '--body'  -ShortFlag '-b'
 
 # Validate title
 if ($title) {
-    $bad = Get-FirstNonAscii -Text $title
-    if ($null -ne $bad) {
-        New-HookDenyResponse -Reason "PR/issue --title rejected: Text contains non-ASCII characters (first: '$bad'). GitHub Issues and Pull Requests must be written in English only — see commit-settings.md."
+    $result = Test-ContentLanguage -Text $title
+    if (-not $result.Valid) {
+        New-HookDenyResponse -Reason "PR/issue --title rejected: $($result.Reason)"
         exit 0
     }
 }
 
 # Validate body
 if ($body) {
-    $bad = Get-FirstNonAscii -Text $body
-    if ($null -ne $bad) {
-        New-HookDenyResponse -Reason "PR/issue --body rejected: Text contains non-ASCII characters (first: '$bad'). GitHub Issues and Pull Requests must be written in English only — see commit-settings.md."
+    $result = Test-ContentLanguage -Text $body
+    if (-not $result.Valid) {
+        New-HookDenyResponse -Reason "PR/issue --body rejected: $($result.Reason)"
         exit 0
     }
 }

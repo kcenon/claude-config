@@ -68,20 +68,41 @@ if [ -n "$VALIDATOR" ]; then
 fi
 
 # Inline fallback so the hook still works when the shared library is missing.
-# Keep rules in sync with hooks/lib/validate-language.sh.
-if ! command -v validate_english_only >/dev/null 2>&1; then
-    validate_english_only() {
+# Keep rules in sync with hooks/lib/validate-language.sh. Default policy is
+# "english" when CLAUDE_CONTENT_LANGUAGE is unset — byte-identical to the
+# pre-dispatcher behavior.
+if ! command -v validate_content_language >/dev/null 2>&1; then
+    validate_content_language() {
         local text="$1"
+        local policy="${CLAUDE_CONTENT_LANGUAGE:-english}"
+
         if [ -z "$text" ]; then
             return 0
         fi
-        if printf '%s' "$text" | LC_ALL=C grep -q '[^[:print:][:space:]]'; then
-            local sample
-            sample=$(printf '%s' "$text" | LC_ALL=C grep -oE '[^[:print:][:space:]]+' | head -n1)
-            echo "Text contains non-ASCII characters (first run: '$sample'). GitHub Issues and Pull Requests must be written in English only — see commit-settings.md." >&2
-            return 1
-        fi
-        return 0
+
+        case "$policy" in
+            any)
+                return 0
+                ;;
+            korean_plus_english)
+                if ! printf '%s' "$text" | perl -CSDA -ne '
+                    exit 1 if /[^\x{09}-\x{0D}\x{20}-\x{7E}\x{AC00}-\x{D7A3}\x{1100}-\x{11FF}\x{3130}-\x{318F}]/
+                ' 2>/dev/null; then
+                    echo "Text contains characters outside the English+Korean policy. CLAUDE_CONTENT_LANGUAGE=korean_plus_english allows ASCII and Hangul only." >&2
+                    return 1
+                fi
+                return 0
+                ;;
+            *)
+                if printf '%s' "$text" | LC_ALL=C grep -q '[^[:print:][:space:]]'; then
+                    local sample
+                    sample=$(printf '%s' "$text" | LC_ALL=C grep -oE '[^[:print:][:space:]]+' | head -n1)
+                    echo "Text contains non-ASCII characters (first run: '$sample'). GitHub Issues and Pull Requests must be written in English only — see commit-settings.md." >&2
+                    return 1
+                fi
+                return 0
+                ;;
+        esac
     }
 fi
 
@@ -153,14 +174,14 @@ extract_quoted_value() {
 TITLE=$(extract_quoted_value "$CMD" "--title" "-t")
 BODY=$(extract_quoted_value "$CMD" "--body"  "-b")
 
-# --- Validate ---
+# --- Validate (dispatches on CLAUDE_CONTENT_LANGUAGE, default english) ---
 if [ -n "$TITLE" ]; then
-    REASON=$(validate_english_only "$TITLE" 2>&1) || \
+    REASON=$(validate_content_language "$TITLE" 2>&1) || \
         deny_response "PR/issue --title rejected: $REASON"
 fi
 
 if [ -n "$BODY" ]; then
-    REASON=$(validate_english_only "$BODY" 2>&1) || \
+    REASON=$(validate_content_language "$BODY" 2>&1) || \
         deny_response "PR/issue --body rejected: $REASON"
 fi
 

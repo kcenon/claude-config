@@ -1,6 +1,7 @@
 #Requires -Version 7.0
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'lib' 'LanguageValidator.psm1') -Force
 
 # commit-message-guard.ps1
 # Deterministic git commit message validator
@@ -70,9 +71,11 @@ if ($msg -notmatch $ccRegex) {
 # Extract description (everything after the first ': ')
 $desc = $msg -replace '^[^:]*:\s*', ''
 
-# Rule 2: Description starts with a lowercase letter
-if ($desc.Length -eq 0 -or $desc[0] -cnotmatch '[a-z]') {
-    New-HookDenyResponse -Reason 'Commit message description must start with a lowercase letter.'
+# Rule 2: Description first-char check (dispatched via CLAUDE_CONTENT_LANGUAGE).
+# Default policy ("english") preserves the pre-dispatcher behavior exactly.
+$descCheck = Test-CommitDescriptionFirstChar -Description $desc
+if (-not $descCheck.Valid) {
+    New-HookDenyResponse -Reason $descCheck.Reason
     exit 0
 }
 

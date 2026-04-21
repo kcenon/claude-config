@@ -203,6 +203,29 @@ Write-Host ""
 $installType = Read-Host "Selection (1-5) [default: 3]"
 if ([string]::IsNullOrEmpty($installType)) { $installType = '3' }
 
+# ── Content language policy (CLAUDE_CONTENT_LANGUAGE) ─────────
+# Default "english" preserves current behavior byte-for-byte. The
+# dispatcher falls back to english when the env var is unset, so we skip
+# writing settings.json at all for option 1.
+Write-Host ""
+Write-Info "Select content-language policy (commit / PR / issue validation scope):"
+Write-Host "  1) English (default, identical to current behavior)"
+Write-Host "  2) Korean + English (accept Hangul)"
+Write-Host "  3) Any (skip language validation; AI attribution block stays on)"
+Write-Host ""
+
+$langType = Read-Host "Selection (1-3) [default: 1]"
+if ([string]::IsNullOrEmpty($langType)) { $langType = '1' }
+switch ($langType) {
+    '1'     { $contentLanguage = 'english' }
+    '2'     { $contentLanguage = 'korean_plus_english' }
+    '3'     { $contentLanguage = 'any' }
+    default {
+        Write-Warn "Unknown selection: $langType. Using english."
+        $contentLanguage = 'english'
+    }
+}
+
 # ── Enterprise installation ──────────────────────────────────
 
 if ($installType -eq '4' -or $installType -eq '5') {
@@ -235,8 +258,38 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
     # Install settings.windows.json as settings.json
     $settingsSource = Join-Path $BackupDir "global/settings.windows.json"
     if (Test-Path $settingsSource) {
-        Copy-Item -Path $settingsSource -Destination (Join-Path $claudeDir "settings.json") -Force
+        $destSettings = Join-Path $claudeDir "settings.json"
+        Copy-Item -Path $settingsSource -Destination $destSettings -Force
         Write-Success "Hook settings (settings.json) installed! [Windows version]"
+
+        # Write CLAUDE_CONTENT_LANGUAGE under env only when the user chose
+        # a non-default policy. "english" matches the dispatcher default so
+        # touching the file would add churn for no behavior change.
+        if ($contentLanguage -ne 'english') {
+            try {
+                $settingsObj = Get-Content -Raw -LiteralPath $destSettings | ConvertFrom-Json
+                if (-not $settingsObj.PSObject.Properties.Name -contains 'env') {
+                    $settingsObj | Add-Member -NotePropertyName 'env' -NotePropertyValue ([PSCustomObject]@{})
+                }
+                if (-not $settingsObj.env) {
+                    $settingsObj.env = [PSCustomObject]@{}
+                }
+                if ($settingsObj.env.PSObject.Properties.Name -contains 'CLAUDE_CONTENT_LANGUAGE') {
+                    $settingsObj.env.CLAUDE_CONTENT_LANGUAGE = $contentLanguage
+                } else {
+                    $settingsObj.env | Add-Member -NotePropertyName 'CLAUDE_CONTENT_LANGUAGE' -NotePropertyValue $contentLanguage -Force
+                }
+                ($settingsObj | ConvertTo-Json -Depth 32) | Set-Content -LiteralPath $destSettings -Encoding UTF8
+                Write-Success "CLAUDE_CONTENT_LANGUAGE=$contentLanguage written to settings.json"
+            }
+            catch {
+                Write-Warn "Failed to write CLAUDE_CONTENT_LANGUAGE automatically: $_"
+                Write-Host "  Add this manually to ~/.claude/settings.json under env:"
+                Write-Host "    `"CLAUDE_CONTENT_LANGUAGE`": `"$contentLanguage`""
+            }
+        } else {
+            Write-Info "CLAUDE_CONTENT_LANGUAGE=english (default; settings.json unchanged)"
+        }
     }
 
     # Install hook scripts — dual-variant deployment.
