@@ -3,7 +3,7 @@ name: research
 description: "Conduct structured research on any topic: web search, codebase analysis, and document synthesis into organized reports. Use when investigating technologies, analyzing alternatives, gathering reference materials, fact-checking claims, or producing technical documentation from research. Use this skill whenever the user asks to research, investigate, compare, or survey a topic."
 user-invocable: true
 disable-model-invocation: true
-argument-hint: "<topic> [--depth shallow|standard|deep] [--output file.md] [--sources web|code|both] [--lang en|ko|ja|...] [--template auto|plain] [--integrate]"
+argument-hint: "<topic> [--depth shallow|standard|deep] [--output file.md] [--sources web|code|both] [--lang en|ko|ja|...] [--template auto|plain] [--integrate] [--reanchor-interval N]"
 allowed-tools:
   - WebSearch
   - WebFetch
@@ -14,6 +14,10 @@ allowed-tools:
   - Glob
   - Bash
   - Agent
+max_iterations: 5
+halt_condition: "Depth target reached (shallow=1 round, standard=3, deep=5), OR user confirms sufficient findings, OR no new sources surface for 2 consecutive rounds"
+on_halt: "Write report with partial findings and explicit coverage-gap section"
+loop_safe: true
 ---
 
 # Research Command
@@ -341,3 +345,9 @@ Before finalizing the report, verify:
 - [ ] Comparison matrix complete (if applicable)
 - [ ] Cross-references to existing project docs included (if `--sources code`)
 - [ ] Output language consistent throughout
+
+## Reanchoring Loop Invariants
+
+`--reanchor-interval N` (default 5, `0` disables) controls how often the Core invariants block from `global/skills/_shared/invariants.md` is emitted between research rounds.
+
+Loop bind point: between `shallow`/`standard`/`deep` round iterations. For deep-depth runs (5+ rounds with many WebFetch outputs), this keeps the English-only and citation-required rules adjacent to the latest round's findings instead of buried behind accumulated source content.

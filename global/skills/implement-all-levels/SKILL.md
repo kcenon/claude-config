@@ -4,6 +4,7 @@ description: Enforce complete implementation of all tiers/difficulty levels for 
 argument-hint: "<feature-description> [--solo|--team]"
 user-invocable: true
 disable-model-invocation: true
+loop_safe: false
 ---
 
 # Implement All Levels Command

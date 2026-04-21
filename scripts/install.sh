@@ -83,6 +83,40 @@ create_local_claude() {
     fi
 }
 
+# 함수: 정책 phrase 반환 (install-time substitution용, issue #411)
+# CLAUDE_CONTENT_LANGUAGE 값에 매핑되는 짧은 phrase를 반환합니다.
+get_policy_phrase() {
+    case "${CONTENT_LANGUAGE:-english}" in
+        english)             echo "English" ;;
+        korean_plus_english) echo "English or Korean" ;;
+        any)                 echo "any language" ;;
+        *)                   echo "English" ;;
+    esac
+}
+
+# 함수: .tmpl 파일을 읽어 {{CONTENT_LANGUAGE_POLICY}}를 phrase로 치환한 뒤 대상에 기록
+# 사용법: render_policy_tmpl <src.tmpl> <dest.md>
+render_policy_tmpl() {
+    local src="$1"
+    local dest="$2"
+    local phrase
+    phrase="$(get_policy_phrase)"
+    # sed 구분자를 |로 사용해 경로/phrase 충돌 회피
+    sed "s|{{CONTENT_LANGUAGE_POLICY}}|${phrase}|g" "$src" > "$dest"
+}
+
+# 함수: 지정 디렉토리 내의 .md.tmpl 파일을 모두 찾아 .md로 렌더링 (원본 .tmpl 삭제)
+# 사용법: render_policy_tmpls_in_dir <dir>
+render_policy_tmpls_in_dir() {
+    local dir="$1"
+    local tmpl md
+    while IFS= read -r tmpl; do
+        md="${tmpl%.tmpl}"
+        render_policy_tmpl "$tmpl" "$md"
+        rm -f "$tmpl"
+    done < <(find "$dir" -type f -name '*.md.tmpl' 2>/dev/null)
+}
+
 # 함수: Enterprise 경로 감지
 get_enterprise_dir() {
     case "$(uname -s)" in
@@ -210,6 +244,49 @@ echo ""
 read -p "선택 (1-5) [기본값: 3]: " INSTALL_TYPE
 INSTALL_TYPE=${INSTALL_TYPE:-3}
 
+# 컨텐츠 언어 정책 선택 (CLAUDE_CONTENT_LANGUAGE)
+# Global / Enterprise 설치 경로에서만 settings.json을 갱신합니다.
+# 기본값 english는 settings.json을 건드리지 않습니다 (dispatcher 기본값과 일치).
+echo ""
+info "컨텐츠 언어 정책을 선택하세요 (commit / PR / issue 검증 범위):"
+echo "  1) English (기본, 현재 동작과 완전 동일)"
+echo "  2) Korean + English (Hangul 허용)"
+echo "  3) Any (언어 검증 없음 — 단, AI 귀속 차단은 유지)"
+echo ""
+read -p "선택 (1-3) [기본값: 1]: " LANG_TYPE
+LANG_TYPE=${LANG_TYPE:-1}
+
+case "$LANG_TYPE" in
+    1) CONTENT_LANGUAGE="english" ;;
+    2) CONTENT_LANGUAGE="korean_plus_english" ;;
+    3) CONTENT_LANGUAGE="any" ;;
+    *)
+        warning "알 수 없는 입력: $LANG_TYPE. english로 진행합니다."
+        CONTENT_LANGUAGE="english"
+        ;;
+esac
+
+# Enterprise CLAUDE.md 충돌 감지 (issue #411)
+# Enterprise 정책 경로는 Claude Code에서 최상위 우선순위를 가집니다 (install.sh:122-124 참조).
+# 배포된 enterprise CLAUDE.md가 영어 강제인데 사용자가 더 허용적인 값을 골랐다면 경고합니다.
+if [ "$CONTENT_LANGUAGE" != "english" ]; then
+    ENTERPRISE_CLAUDE="$(get_enterprise_dir)/CLAUDE.md"
+    if [ -f "$ENTERPRISE_CLAUDE" ] && grep -qi "written in english" "$ENTERPRISE_CLAUDE" 2>/dev/null; then
+        echo ""
+        warning "Enterprise 정책 충돌 감지"
+        warning "  경로: $ENTERPRISE_CLAUDE"
+        warning "  Enterprise CLAUDE.md가 영어 강제를 명시하지만, 선택한 정책은 '$CONTENT_LANGUAGE' 입니다."
+        warning "  Enterprise 경로는 최상위 우선순위로 로드되므로 이 선택은 enterprise 정책 위반이 될 수 있습니다."
+        echo ""
+        read -p "그래도 '$CONTENT_LANGUAGE' 로 계속하시겠습니까? (y/n) [기본값: n]: " OVERRIDE_ENTERPRISE
+        OVERRIDE_ENTERPRISE=${OVERRIDE_ENTERPRISE:-n}
+        if [ "$OVERRIDE_ENTERPRISE" != "y" ]; then
+            info "english로 재설정합니다."
+            CONTENT_LANGUAGE="english"
+        fi
+    fi
+fi
+
 # Enterprise 설정 설치
 if [ "$INSTALL_TYPE" = "4" ] || [ "$INSTALL_TYPE" = "5" ]; then
     install_enterprise
@@ -235,6 +312,25 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     if [ -f "$BACKUP_DIR/global/settings.json" ]; then
         cp "$BACKUP_DIR/global/settings.json" "$HOME/.claude/"
         success "Hook 설정 (settings.json) 설치 완료!"
+
+        # CLAUDE_CONTENT_LANGUAGE env 주입
+        # english(기본)은 dispatcher 기본값과 일치하므로 파일을 건드리지 않습니다.
+        if [ "$CONTENT_LANGUAGE" != "english" ]; then
+            if command -v jq >/dev/null 2>&1; then
+                tmpfile=$(mktemp)
+                jq --arg v "$CONTENT_LANGUAGE" \
+                   '.env = (.env // {}) | .env.CLAUDE_CONTENT_LANGUAGE = $v' \
+                   "$HOME/.claude/settings.json" > "$tmpfile" \
+                   && mv "$tmpfile" "$HOME/.claude/settings.json" \
+                   && success "CLAUDE_CONTENT_LANGUAGE=$CONTENT_LANGUAGE 을 settings.json에 기록했습니다."
+            else
+                warning "jq가 설치되어 있지 않아 CLAUDE_CONTENT_LANGUAGE를 자동 설정할 수 없습니다."
+                echo "  수동으로 ~/.claude/settings.json 의 env 섹션에 다음을 추가하세요:"
+                echo "    \"CLAUDE_CONTENT_LANGUAGE\": \"$CONTENT_LANGUAGE\""
+            fi
+        else
+            info "CLAUDE_CONTENT_LANGUAGE=english (기본값, settings.json 무변경)"
+        fi
     fi
 
     # hooks 디렉토리 설치 (외부 스크립트)
@@ -245,11 +341,15 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         success "Hook 스크립트 (hooks/) 설치 완료!"
     fi
 
-    # 공유 검증 라이브러리 설치 (commit-message-guard.sh에서 사용)
-    if [ -f "$BACKUP_DIR/hooks/lib/validate-commit-message.sh" ]; then
+    # 공유 검증 라이브러리 설치 (commit-message-guard.sh 및 pr-language-guard.sh에서 사용)
+    if [ -d "$BACKUP_DIR/hooks/lib" ]; then
         ensure_dir "$HOME/.claude/hooks/lib"
-        cp "$BACKUP_DIR/hooks/lib/validate-commit-message.sh" "$HOME/.claude/hooks/lib/"
-        chmod +x "$HOME/.claude/hooks/lib/validate-commit-message.sh"
+        for lib in validate-commit-message.sh validate-language.sh; do
+            if [ -f "$BACKUP_DIR/hooks/lib/$lib" ]; then
+                cp "$BACKUP_DIR/hooks/lib/$lib" "$HOME/.claude/hooks/lib/"
+                chmod +x "$HOME/.claude/hooks/lib/$lib"
+            fi
+        done
         success "공유 검증 라이브러리 설치 완료!"
     fi
 
@@ -262,7 +362,11 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     fi
 
     # commit-settings.md 설치 (CLAUDE.md에서 @./commit-settings.md로 참조)
-    if [ -f "$BACKUP_DIR/global/commit-settings.md" ]; then
+    # issue #411: .tmpl이 있으면 정책 phrase를 치환해서 생성. 없으면 원본 복사.
+    if [ -f "$BACKUP_DIR/global/commit-settings.md.tmpl" ]; then
+        render_policy_tmpl "$BACKUP_DIR/global/commit-settings.md.tmpl" "$HOME/.claude/commit-settings.md"
+        success "commit-settings.md 설치 완료 (policy phrase: $(get_policy_phrase))"
+    elif [ -f "$BACKUP_DIR/global/commit-settings.md" ]; then
         cp "$BACKUP_DIR/global/commit-settings.md" "$HOME/.claude/"
         success "commit-settings.md 설치 완료!"
     fi
@@ -370,7 +474,9 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     # rules 디렉토리 설치
     if [ -d "$BACKUP_DIR/project/.claude/rules" ]; then
         cp -r "$BACKUP_DIR/project/.claude/rules" "$PROJECT_DIR/.claude/"
-        success "Rules 디렉토리 설치 완료!"
+        # issue #411: rules/ 안의 .md.tmpl을 정책 phrase로 치환
+        render_policy_tmpls_in_dir "$PROJECT_DIR/.claude/rules"
+        success "Rules 디렉토리 설치 완료! (policy phrase: $(get_policy_phrase))"
     fi
 
     # Skills 디렉토리 설치

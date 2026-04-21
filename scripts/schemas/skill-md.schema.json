@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kcenon/claude-config/scripts/schemas/skill-md.schema.json",
   "title": "Claude Code SKILL.md Frontmatter",
-  "description": "Canonical schema for Claude Code 2026 SKILL.md YAML frontmatter. 14 official fields.",
+  "description": "Canonical schema for Claude Code 2026 SKILL.md YAML frontmatter. 14 official fields plus claude-config iteration-control extension fields (max_iterations, halt_condition, on_halt, loop_safe).",
   "type": "object",
   "required": ["name", "description"],
   "additionalProperties": false,
@@ -85,6 +85,25 @@
       "type": "string",
       "enum": ["bash", "powershell"],
       "description": "Preferred shell when the skill runs commands."
+    },
+    "max_iterations": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Iteration-control extension (claude-config): maximum number of self-loops before the skill is forced to halt."
+    },
+    "halt_condition": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Iteration-control extension (claude-config): plain-language condition that stops the iteration loop early."
+    },
+    "on_halt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Iteration-control extension (claude-config): action to take when halt_condition fires or max_iterations is reached."
+    },
+    "loop_safe": {
+      "type": "boolean",
+      "description": "Iteration-control extension (claude-config): true when the skill is safe to run inside an autonomous /loop, false when it must exit the loop before acting."
     }
   }
 }

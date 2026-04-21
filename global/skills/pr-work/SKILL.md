@@ -1,10 +1,14 @@
 ---
 name: pr-work
 description: "Analyze and fix failed CI/CD workflows for a pull request. Use when CI checks fail, GitHub Actions show red, build/test/lint errors block a PR, or the user says 'fix CI', 'fix the build', 'PR is failing', or 'check failed'. Supports solo, team, and batch modes with automated retry and escalation."
-argument-hint: "[project-name] [pr-number] [--solo|--team] [--limit N] [--dry-run] [--inline]"
+argument-hint: "[project-name] [pr-number] [--solo|--team] [--limit N] [--dry-run] [--inline] [--reanchor-interval N]"
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: "Bash(gh *)"
+max_iterations: 5
+halt_condition: "All PR checks pass, OR user aborts, OR 3 identical CI failures in a row"
+on_halt: "Report failing checks with gh pr checks output, do not merge"
+loop_safe: false
 ---
 
 # PR Work Command
@@ -484,6 +488,14 @@ If CI failed or max retries exceeded, use this format instead:
 ### Action Required
 - User must resolve CI failures before merge
 ```
+
+## Reanchoring Loop Invariants
+
+`--reanchor-interval N` (default 5, `0` disables) controls how often the Core invariants block from `global/skills/_shared/invariants.md` is emitted inside long loops.
+
+Loop bind points for pr-work:
+- **Batch mode**: between items, same semantics as `issue-work` batch-mode (every N items).
+- **Single-PR CI polling**: every N poll cycles of the 30-second monitor loop, keeping the CI gate rules adjacent to the latest `gh pr checks` output.
 
 ## Error Handling
 

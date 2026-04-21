@@ -23,3 +23,30 @@ This rule exists because long multi-phase requests otherwise incur repeated "con
 - Batch processing: 2-second pause between items, 0.3-second pause between API calls during discovery
 - Batch mode: max 200 repos for cross-repo discovery, max 100 items per repo
 - Batch failure: continue to next item on failure, present summary at end
+
+## Iteration Control Schema
+
+Skills that perform iterative work (retry loops, polling loops, multi-round refinement) declare halting semantics in their frontmatter. This elevates the prose rule "if the same approach fails 3 times, stop and propose alternatives" (`global/CLAUDE.md`) to machine-readable, per-skill metadata.
+
+```yaml
+max_iterations: <int>          # Hard upper bound on loop iterations
+halt_condition: "<expression>" # Natural language or regex describing success/abort signal
+on_halt: "<action>"            # What to do when halt condition fires (report, escalate, exit)
+```
+
+Required for skills whose body contains a polling loop, retry loop, or multi-round iteration (`issue-work`, `pr-work`, `ci-fix`, `release`, `research`, `fleet-orchestrator`). Optional otherwise.
+
+Prefer regex or symbolic halt conditions over free-form prose when the signal is deterministic (CI status, exit codes). Reserve natural language for cases where interpretation is intrinsically subjective.
+
+## Loop-Safety Flag
+
+Every skill declares whether repeated invocation is idempotent — i.e., wrapping it in the harness `/loop` skill would not duplicate external artifacts, spam services, or corrupt state.
+
+```yaml
+loop_safe: true | false
+```
+
+- `loop_safe: true` — invocations are idempotent, read-only, or self-deduplicating. Safe to wrap in `/loop`. Examples: `research`, `ci-fix` (retry is the mechanism), `doc-index`, `doc-review`, `preflight`.
+- `loop_safe: false` — invocations create external artifacts (PRs, issues, releases, branch deletions) or mutate shared state. Wrapping in `/loop` would produce duplicates or destructive cascades. Examples: `issue-work`, `pr-work`, `release`, `branch-cleanup`, `issue-create`, `harness`, `implement-all-levels`, `fleet-orchestrator`.
+
+Rules and anti-patterns: `docs/loop-patterns.md`.

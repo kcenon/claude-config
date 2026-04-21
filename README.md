@@ -68,6 +68,8 @@ Install claude-config and Claude Code immediately gains these capabilities:
 
 **Commit quality** — Broken markdown links, AI attribution, and non-conventional commit messages are caught before they reach your repository.
 
+**Configurable content language** — Pick at install time whether commit messages, PR bodies, and documentation are restricted to English, English + Korean (Hangul), or unrestricted (`CLAUDE_CONTENT_LANGUAGE=english|korean_plus_english|any`). Default preserves the previous English-only behavior.
+
 **Code quality on demand** — `/security-audit`, `/performance-review`, `/code-quality`, and `/pr-review` provide specialized analysis when you need it.
 
 **Agent team design** — `/harness` designs multi-agent architectures tailored to your project, with 6 architecture patterns and orchestrator templates.
@@ -122,6 +124,20 @@ notepad $HOME\.claude\git-identity.md
 
 > **Note**: Requires PowerShell 7+ (`pwsh`). Install via `winget install Microsoft.PowerShell`.
 > If you get an execution policy error, run: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+
+#### Docker-compatible dual-variant install
+
+`install.ps1` deploys **both** PowerShell (`.ps1`) and bash (`.sh`) variants of
+every hook and utility script into `~/.claude/hooks/` and `~/.claude/scripts/`.
+The `.sh` files are written with LF line endings (UTF-8, no BOM).
+
+This matters when the Windows host's `~/.claude/` is bind-mounted into a Linux
+Claude Code container (e.g. via the companion [claude-docker](https://github.com/kcenon/claude-docker)
+project): the container entrypoint rewrites `pwsh ... -File foo.ps1` hook
+commands to `foo.sh`, which only works if the matching `.sh` file exists on
+the mount. The installer also runs a pairing audit and warns about any `.ps1`
+without a `.sh` sibling (or vice versa) so Docker-side rewrites do not silently
+resolve to missing files.
 
 ### Plugin Installation (Beta)
 
@@ -397,6 +413,7 @@ These behaviors activate immediately after installation — no configuration nee
 - Markdown cross-reference anchors are validated — broken links block the commit
 - Commit message format is checked (Conventional Commits)
 - AI/Claude attribution is stripped automatically
+- Commit / PR / issue content is validated against the selected `CLAUDE_CONTENT_LANGUAGE` policy (see [Content Language Policy](#content-language-policy))
 
 ### When Claude accesses files
 - `.env`, `.pem`, `.key`, and `secrets/` directories are blocked
@@ -420,6 +437,24 @@ These behaviors activate immediately after installation — no configuration nee
 - Worktree creation and cleanup is managed automatically
 
 > For full hook configuration details and customization, see [HOOKS.md](HOOKS.md).
+
+### Content Language Policy
+
+Both installers (`install.sh` and `install.ps1`) prompt for a content-language policy after the installation-type selection. The choice is written to `~/.claude/settings.json` under `env.CLAUDE_CONTENT_LANGUAGE` and controls what the language validators accept at runtime.
+
+| Value | Validator accepts | Rule-document phrase |
+|-------|-------------------|----------------------|
+| `english` (default) | ASCII printable + whitespace only | `English` |
+| `korean_plus_english` | ASCII + Hangul Syllables / Jamo / Compat Jamo | `English or Korean` |
+| `any` | Skip language validation | `any language` |
+
+The installer substitutes the chosen phrase into three rule-document templates (`global/commit-settings.md.tmpl`, `project/.claude/rules/core/communication.md.tmpl`, `project/.claude/rules/workflow/git-commit-format.md.tmpl`) so the documented rule matches the validator behavior.
+
+**Scope boundary**: AI/Claude attribution enforcement is **not** governed by this env var — `attribution-guard` and the attribution checks in `commit-message-guard` remain active for every policy.
+
+**Enterprise conflict detection**: When the deployed enterprise `CLAUDE.md` requires English and the operator selects a more permissive policy, the installer prints a warning and asks for confirmation before proceeding.
+
+For the full design rationale, phrase tables, and drift-test invariants, see [`docs/content-language-policy.md`](docs/content-language-policy.md).
 
 ---
 

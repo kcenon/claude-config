@@ -105,9 +105,9 @@ If `--dry-run` is set, display the plan and exit without prompting.
 
 ### B-4.0. Per-Item Rule Reminder
 
-Before starting work on each item, emit a 5-line reminder block as a fresh tool result so the rules sit in the recent attention window instead of being buried by accumulating context. The reminder must be **exactly 5 lines or fewer** to keep the per-iteration token cost bounded.
+Before starting work on each item, emit the Core invariants block from `global/skills/_shared/invariants.md` as a fresh tool result so the rules sit in the recent attention window instead of being buried by accumulating context.
 
-Use this exact template (substitute `${PROCESSED+1}` and `${TOTAL}`):
+Use this exact template (substitute `${PROCESSED+1}` and `${TOTAL}`). The five bullet lines are the canonical Core block — when they change, update `global/skills/_shared/invariants.md` first, then this template:
 
 ```
 [Item ${PROCESSED+1}/${TOTAL}] Required rules:
@@ -115,9 +115,10 @@ Use this exact template (substitute `${PROCESSED+1}` and `${TOTAL}`):
 - Commit format: type(scope): description (no Claude/AI attribution, no emojis)
 - ABSOLUTE CI GATE: gh pr checks must show every check passing before merge
 - Branch: feature off develop, squash merge back via PR
+- 3-fail rule: stop and propose alternatives after 3 identical failures
 ```
 
-**Why inline instead of @load**: A `@load: reference/...` call at batch start surfaces the doc once, after which the model's attention drifts as tool results accumulate. Inlining the same invariants per iteration makes them part of the most recent tool output every time, which is where attention is strongest. The 5-line cap keeps the cumulative cost linear in batch size but still tiny (≈25 tokens per item).
+**Why inline instead of @load**: A `@load: reference/...` call at batch start surfaces the doc once, after which the model's attention drifts as tool results accumulate. Inlining the same invariants per iteration makes them part of the most recent tool output every time, which is where attention is strongest. The short bullet list keeps the cumulative cost linear in batch size but still tiny (≈25 tokens per item).
 
 **No reference loads inside the loop**: Do not call `@load: reference/error-handling.md`, `@load: reference/comment-templates.md`, or any other reference file from inside the per-item loop. If the single-item workflow needs a reference doc, the Solo/Team workflow loads it on its own — keep the loop free of additional loads so the inline reminder remains the most recent context anchor.
 
@@ -142,11 +143,12 @@ for each item in approved batch plan:
            prompt: """
                Execute /issue-work $REPO $ISSUE_NUMBER --$MODE with full CLAUDE.md compliance.
 
-               Required rules (do not skip):
+               Required rules (do not skip — canonical source: global/skills/_shared/invariants.md Core block):
                - PR title/body, commit messages, issue comments: English only
                - Commit format: type(scope): description (no Claude/AI attribution, no emojis)
                - ABSOLUTE CI GATE: gh pr checks must show every check passing before merge
                - Branch: feature off develop, squash merge back via PR
+               - 3-fail rule: stop and propose alternatives after 3 identical failures
 
                Run Solo Mode Steps 1-12 (or Team Mode T-1 through T-6 for team mode). If team
                mode, you MUST call TeamDelete() after completing the item.

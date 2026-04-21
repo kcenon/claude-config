@@ -1,11 +1,15 @@
 ---
 name: release
 description: Create a release with automated changelog generation from commits since last release using semantic versioning.
-argument-hint: "<version> [--target <field>] [--draft] [--prerelease] [--solo|--team]"
+argument-hint: "<version> [--target <field>] [--draft] [--prerelease] [--solo|--team] [--reanchor-interval N]"
 user-invocable: true
 disable-model-invocation: true
 context: fork
 allowed-tools: "Bash(git *) Bash(gh *)"
+max_iterations: 5
+halt_condition: "Release PR merged and tag published, OR CI failure persists after 3 retries, OR integrity check fails"
+on_halt: "Report incomplete release state, leave tag/PR in whatever state they are in, do not force-publish"
+loop_safe: false
 ---
 
 # Release Command
@@ -486,6 +490,12 @@ After completion, provide summary:
 ### Commits Included
 - Total: N commits since PREVIOUS_TAG
 ```
+
+## Reanchoring Loop Invariants
+
+`--reanchor-interval N` (default 5, `0` disables) controls how often the Core invariants block from `global/skills/_shared/invariants.md` is emitted during the release workflow.
+
+Loop bind point: between each CI retry and each merge-gate verification. For a typical release flow this fires once or twice — the interval primarily protects prolonged retry storms where attention would otherwise drift from the English-only / squash-merge / CI-gate rules.
 
 ## Error Handling
 

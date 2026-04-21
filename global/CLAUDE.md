@@ -37,7 +37,7 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 - When a required toolchain (Go, Rust, CMake, npm) is not installed locally, skip local build verification and rely on CI. Do not attempt to install toolchains without asking the user first.
 - Validate incrementally: build and test after each logical change, not after all changes are complete. This catches errors early and reduces first-CI-run failures.
 - After large refactoring or migration, run a full build, collect ALL errors, and fix them in one batch before rebuilding. Do not fix one error at a time.
-- If the same approach fails 3 consecutive times, stop and propose alternative strategies to the user.
+- If the same approach fails 3 consecutive times, stop and propose alternative strategies to the user. Iterative skills encode this as `max_iterations` and `halt_condition` fields in their frontmatter — see `global/skills/_policy.md` §Iteration Control Schema.
 
 ## Standard Workflows
 

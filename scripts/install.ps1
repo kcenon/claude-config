@@ -42,6 +42,20 @@ function Ensure-Directory {
     }
 }
 
+function Install-BashScript {
+    # Copy a .sh file with UTF-8 (no BOM) encoding and LF-only line endings.
+    # Windows PowerShell's default Copy-Item preserves CRLF, which makes the
+    # script fail when executed by bash in a Linux container bind-mounted
+    # from a Windows host. See Issue #407.
+    param(
+        [Parameter(Mandatory)][string]$SourcePath,
+        [Parameter(Mandatory)][string]$DestinationPath
+    )
+    $content = [System.IO.File]::ReadAllText($SourcePath) -replace "`r`n", "`n"
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($DestinationPath, $content, $utf8NoBom)
+}
+
 function New-LocalClaude {
     param([string]$ProjectDir)
     $localFile = Join-Path $ProjectDir "CLAUDE.local.md"
@@ -65,6 +79,43 @@ function New-LocalClaude {
             Add-Content -Path $gitignore -Value "`n# Claude Code local settings (personal, do not commit)`nCLAUDE.local.md"
             Write-Success "Added CLAUDE.local.md to .gitignore"
         }
+    }
+}
+
+function Get-PolicyPhrase {
+    # Issue #411: map CLAUDE_CONTENT_LANGUAGE value to a short phrase.
+    # Reads the script-scope $contentLanguage set after the install-type prompt.
+    switch ($script:contentLanguage) {
+        'english'             { return 'English' }
+        'korean_plus_english' { return 'English or Korean' }
+        'any'                 { return 'any language' }
+        default               { return 'English' }
+    }
+}
+
+function Invoke-PolicyTemplate {
+    # Renders a .md.tmpl file by replacing {{CONTENT_LANGUAGE_POLICY}}
+    # with the resolved phrase and writes the result to $Destination as UTF-8.
+    param(
+        [Parameter(Mandatory)][string]$Source,
+        [Parameter(Mandatory)][string]$Destination
+    )
+    $phrase = Get-PolicyPhrase
+    $content = [System.IO.File]::ReadAllText($Source)
+    $rendered = $content -replace '\{\{CONTENT_LANGUAGE_POLICY\}\}', $phrase
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($Destination, $rendered, $utf8NoBom)
+}
+
+function Invoke-PolicyTemplatesInDir {
+    # Walks a directory, renders every *.md.tmpl to its *.md sibling,
+    # then deletes the .tmpl source. Used after bulk copy of rules/.
+    param([Parameter(Mandatory)][string]$Path)
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    Get-ChildItem -Path $Path -Filter '*.md.tmpl' -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+        $dest = $_.FullName.Substring(0, $_.FullName.Length - '.tmpl'.Length)
+        Invoke-PolicyTemplate -Source $_.FullName -Destination $dest
+        Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -189,6 +240,53 @@ Write-Host ""
 $installType = Read-Host "Selection (1-5) [default: 3]"
 if ([string]::IsNullOrEmpty($installType)) { $installType = '3' }
 
+# ── Content language policy (CLAUDE_CONTENT_LANGUAGE) ─────────
+# Default "english" preserves current behavior byte-for-byte. The
+# dispatcher falls back to english when the env var is unset, so we skip
+# writing settings.json at all for option 1.
+Write-Host ""
+Write-Info "Select content-language policy (commit / PR / issue validation scope):"
+Write-Host "  1) English (default, identical to current behavior)"
+Write-Host "  2) Korean + English (accept Hangul)"
+Write-Host "  3) Any (skip language validation; AI attribution block stays on)"
+Write-Host ""
+
+$langType = Read-Host "Selection (1-3) [default: 1]"
+if ([string]::IsNullOrEmpty($langType)) { $langType = '1' }
+switch ($langType) {
+    '1'     { $contentLanguage = 'english' }
+    '2'     { $contentLanguage = 'korean_plus_english' }
+    '3'     { $contentLanguage = 'any' }
+    default {
+        Write-Warn "Unknown selection: $langType. Using english."
+        $contentLanguage = 'english'
+    }
+}
+
+# ── Enterprise CLAUDE.md conflict detection (issue #411) ───────
+# Enterprise policy takes the highest precedence; warn when the chosen
+# language policy contradicts an existing English-only enterprise doc.
+if ($contentLanguage -ne 'english') {
+    $enterpriseClaude = Join-Path (Get-EnterpriseDir) 'CLAUDE.md'
+    if (Test-Path -LiteralPath $enterpriseClaude) {
+        $enterpriseContent = Get-Content -Raw -LiteralPath $enterpriseClaude -ErrorAction SilentlyContinue
+        if ($enterpriseContent -and $enterpriseContent -imatch 'written in english') {
+            Write-Host ""
+            Write-Warn "Enterprise policy conflict detected"
+            Write-Warn "  Path: $enterpriseClaude"
+            Write-Warn "  The enterprise CLAUDE.md requires English, but you selected '$contentLanguage'."
+            Write-Warn "  The enterprise path loads at the highest precedence; your choice may violate enterprise policy."
+            Write-Host ""
+            $override = Read-Host "Continue with '$contentLanguage' anyway? (y/n) [default: n]"
+            if ([string]::IsNullOrEmpty($override)) { $override = 'n' }
+            if ($override -ne 'y') {
+                Write-Info "Resetting to english."
+                $contentLanguage = 'english'
+            }
+        }
+    }
+}
+
 # ── Enterprise installation ──────────────────────────────────
 
 if ($installType -eq '4' -or $installType -eq '5') {
@@ -212,7 +310,13 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'conversation-language.md', 'git-identity.md', 'token-management.md')
         foreach ($gf in $globalFiles) {
             $src = Join-Path $BackupDir "global/$gf"
-            if (Test-Path $src) {
+            # Issue #411: prefer .tmpl + substitution when present so the
+            # installed file matches the selected content-language policy.
+            $srcTmpl = "$src.tmpl"
+            if (Test-Path $srcTmpl) {
+                Invoke-PolicyTemplate -Source $srcTmpl -Destination (Join-Path $claudeDir $gf)
+                Write-Success "$gf installed (policy phrase: $(Get-PolicyPhrase))"
+            } elseif (Test-Path $src) {
                 Copy-Item -Path $src -Destination $claudeDir -Force
                 Write-Success "$gf installed"
             }
@@ -221,26 +325,104 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
     # Install settings.windows.json as settings.json
     $settingsSource = Join-Path $BackupDir "global/settings.windows.json"
     if (Test-Path $settingsSource) {
-        Copy-Item -Path $settingsSource -Destination (Join-Path $claudeDir "settings.json") -Force
+        $destSettings = Join-Path $claudeDir "settings.json"
+        Copy-Item -Path $settingsSource -Destination $destSettings -Force
         Write-Success "Hook settings (settings.json) installed! [Windows version]"
+
+        # Write CLAUDE_CONTENT_LANGUAGE under env only when the user chose
+        # a non-default policy. "english" matches the dispatcher default so
+        # touching the file would add churn for no behavior change.
+        if ($contentLanguage -ne 'english') {
+            try {
+                $settingsObj = Get-Content -Raw -LiteralPath $destSettings | ConvertFrom-Json
+                if (-not $settingsObj.PSObject.Properties.Name -contains 'env') {
+                    $settingsObj | Add-Member -NotePropertyName 'env' -NotePropertyValue ([PSCustomObject]@{})
+                }
+                if (-not $settingsObj.env) {
+                    $settingsObj.env = [PSCustomObject]@{}
+                }
+                if ($settingsObj.env.PSObject.Properties.Name -contains 'CLAUDE_CONTENT_LANGUAGE') {
+                    $settingsObj.env.CLAUDE_CONTENT_LANGUAGE = $contentLanguage
+                } else {
+                    $settingsObj.env | Add-Member -NotePropertyName 'CLAUDE_CONTENT_LANGUAGE' -NotePropertyValue $contentLanguage -Force
+                }
+                ($settingsObj | ConvertTo-Json -Depth 32) | Set-Content -LiteralPath $destSettings -Encoding UTF8
+                Write-Success "CLAUDE_CONTENT_LANGUAGE=$contentLanguage written to settings.json"
+            }
+            catch {
+                Write-Warn "Failed to write CLAUDE_CONTENT_LANGUAGE automatically: $_"
+                Write-Host "  Add this manually to ~/.claude/settings.json under env:"
+                Write-Host "    `"CLAUDE_CONTENT_LANGUAGE`": `"$contentLanguage`""
+            }
+        } else {
+            Write-Info "CLAUDE_CONTENT_LANGUAGE=english (default; settings.json unchanged)"
+        }
     }
 
-    # Install PowerShell hook scripts
+    # Install hook scripts — dual-variant deployment.
+    #
+    # Why both .ps1 and .sh (Issue #407): When the Windows host's ~/.claude is
+    # bind-mounted into a Linux Claude Code container (claude-docker), the
+    # container entrypoint rewrites every `pwsh ... -File foo.ps1` command to
+    # `foo.sh`. The rewrite only works when the matching .sh file is present.
+    # Shipping .ps1 alone leaves every hook reporting "not found" inside the
+    # container even though the host works correctly.
     $hooksSource = Join-Path $BackupDir "global/hooks"
     if (Test-Path $hooksSource) {
         $hooksDir = Join-Path $claudeDir "hooks"
         Ensure-Directory $hooksDir
+
         Copy-Item -Path "$hooksSource\*.ps1" -Destination $hooksDir -Force -ErrorAction SilentlyContinue
-        Write-Success "PowerShell hook scripts (hooks/*.ps1) installed!"
+        Get-ChildItem -Path $hooksSource -Filter '*.sh' -File -ErrorAction SilentlyContinue | ForEach-Object {
+            Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $hooksDir $_.Name)
+        }
+
+        $hooksLibSource = Join-Path $hooksSource 'lib'
+        if (Test-Path $hooksLibSource) {
+            $hooksLibDir = Join-Path $hooksDir 'lib'
+            Ensure-Directory $hooksLibDir
+            Copy-Item -Path "$hooksLibSource\*.ps1" -Destination $hooksLibDir -Force -ErrorAction SilentlyContinue
+            Copy-Item -Path "$hooksLibSource\*.psm1" -Destination $hooksLibDir -Force -ErrorAction SilentlyContinue
+            Get-ChildItem -Path $hooksLibSource -Filter '*.sh' -File -ErrorAction SilentlyContinue | ForEach-Object {
+                Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $hooksLibDir $_.Name)
+            }
+        }
+
+        Copy-Item -Path "$hooksSource\*.json" -Destination $hooksDir -Force -ErrorAction SilentlyContinue
+
+        Write-Success "Hook scripts installed (hooks/*.ps1 + *.sh + lib/ + *.json)!"
     }
 
-    # Install PowerShell statusline and utility scripts
+    # Install utility scripts — dual-variant, same rationale as hooks.
     $scriptsSource = Join-Path $BackupDir "global/scripts"
     if (Test-Path $scriptsSource) {
         $scriptsDir = Join-Path $claudeDir "scripts"
         Ensure-Directory $scriptsDir
+
         Copy-Item -Path "$scriptsSource\*.ps1" -Destination $scriptsDir -Force -ErrorAction SilentlyContinue
-        Write-Success "Statusline scripts (scripts/*.ps1) installed!"
+        Get-ChildItem -Path $scriptsSource -Filter '*.sh' -File -ErrorAction SilentlyContinue | ForEach-Object {
+            Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $scriptsDir $_.Name)
+        }
+
+        Write-Success "Utility scripts installed (scripts/*.ps1 + *.sh)!"
+    }
+
+    # Hook pairing audit: warn on orphans so Docker-side rewrites don't silently
+    # resolve to missing files.
+    $hooksDirForAudit = Join-Path $claudeDir "hooks"
+    if (Test-Path $hooksDirForAudit) {
+        $ps1Stems = @(Get-ChildItem -Path $hooksDirForAudit -Filter '*.ps1' -File -ErrorAction SilentlyContinue | ForEach-Object { $_.BaseName })
+        $shStems  = @(Get-ChildItem -Path $hooksDirForAudit -Filter '*.sh'  -File -ErrorAction SilentlyContinue | ForEach-Object { $_.BaseName })
+        $missingSh  = @($ps1Stems | Where-Object { $_ -notin $shStems })
+        $missingPs1 = @($shStems  | Where-Object { $_ -notin $ps1Stems })
+        if ($missingSh.Count -gt 0 -or $missingPs1.Count -gt 0) {
+            Write-Warn "Hook pairing audit found orphans:"
+            foreach ($stem in $missingSh)  { Write-Host "    - $stem.ps1 has no matching $stem.sh (Linux container hook will 'not found')" }
+            foreach ($stem in $missingPs1) { Write-Host "    - $stem.sh has no matching $stem.ps1 (Windows host hook will 'not found')" }
+            Write-Host "  Add the missing variant to global/hooks/ and re-run install.ps1 to fix."
+        } else {
+            Write-Success "Hook pairing audit passed (all .ps1/.sh stems matched)."
+        }
     }
 
     # Install ccstatusline settings (~/.config/ccstatusline/ — ccstatusline default settings path)
@@ -328,7 +510,9 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
     $sourceRules = Join-Path $BackupDir "project/.claude/rules"
     if (Test-Path $sourceRules) {
         Copy-Item -Path $sourceRules -Destination $projectClaudeDir -Recurse -Force
-        Write-Success "Rules directory installed!"
+        # Issue #411: render any .md.tmpl found under rules/ with the chosen policy phrase.
+        Invoke-PolicyTemplatesInDir -Path (Join-Path $projectClaudeDir 'rules')
+        Write-Success "Rules directory installed! (policy phrase: $(Get-PolicyPhrase))"
     }
 
     # Skills directory
@@ -404,8 +588,8 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         }
     }
     Write-Host "    - ~/.claude/settings.json (Hook settings - Windows)"
-    Write-Host "    - ~/.claude/hooks/ (PowerShell hook scripts)"
-    Write-Host "    - ~/.claude/scripts/ (Statusline scripts)"
+    Write-Host "    - ~/.claude/hooks/ (PowerShell + bash hook scripts, lib/, data)"
+    Write-Host "    - ~/.claude/scripts/ (PowerShell + bash utility scripts)"
     Write-Host "    - ~/.config/ccstatusline/ (ccstatusline settings)"
 }
 

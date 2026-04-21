@@ -4,6 +4,7 @@ description: "Design and build domain-specific agent team harnesses. Analyzes pr
 argument-hint: "[domain-or-project-description]"
 user-invocable: true
 disable-model-invocation: true
+loop_safe: false
 ---
 
 # Harness -- Agent Team & Skill Architect

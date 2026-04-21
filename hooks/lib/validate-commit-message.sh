@@ -60,13 +60,34 @@ validate_commit_message() {
     desc=$(printf '%s' "$msg" | sed -E 's/^[^:]*:[[:space:]]*//')
 
     # Rule 2: Description starts with a lowercase ASCII letter
-    local first_char
-    first_char=$(printf '%s' "$desc" | head -c1)
-    case "$first_char" in
-        a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z) ;;
+    # Gated by CLAUDE_CONTENT_LANGUAGE (see issue #410):
+    #   - english (default) / unset → enforce lowercase ASCII
+    #   - korean_plus_english → allow Hangul first char as well
+    #   - any → skip first-char check (Conv. Commits type is still enforced)
+    # The Conventional Commits type/scope portion (feat, fix, etc.) stays
+    # ASCII-only under every policy — only the description is relaxed.
+    local policy="${CLAUDE_CONTENT_LANGUAGE:-english}"
+    case "$policy" in
+        any)
+            : ;;
+        korean_plus_english)
+            if ! printf '%s' "$desc" | perl -CSDA -ne '
+                exit 1 unless /^[a-z\x{AC00}-\x{D7A3}\x{1100}-\x{11FF}\x{3130}-\x{318F}]/
+            ' 2>/dev/null; then
+                echo "Commit message description must start with a lowercase letter or a Hangul character (CLAUDE_CONTENT_LANGUAGE=korean_plus_english)." >&2
+                return 1
+            fi
+            ;;
         *)
-            echo "Commit message description must start with a lowercase letter." >&2
-            return 1
+            local first_char
+            first_char=$(printf '%s' "$desc" | head -c1)
+            case "$first_char" in
+                a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z) ;;
+                *)
+                    echo "Commit message description must start with a lowercase letter." >&2
+                    return 1
+                    ;;
+            esac
             ;;
     esac
 

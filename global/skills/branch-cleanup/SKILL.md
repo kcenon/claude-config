@@ -6,6 +6,7 @@ user-invocable: true
 disable-model-invocation: true
 context: fork
 allowed-tools: "Bash(git *)"
+loop_safe: false
 ---
 
 # Branch Cleanup Command
