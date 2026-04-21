@@ -73,10 +73,16 @@
     "PreToolUse": [
       {
         "matcher": "Edit|Write|Read",
+        "_note": "Hook order is load-bearing: sensitive-file-guard must run before pre-edit-read-guard so denied files are not tracked. See docs/hooks-ownership.md and issue #424.",
         "hooks": [
           {
             "type": "command",
             "command": "~/.claude/hooks/sensitive-file-guard.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/pre-edit-read-guard.sh",
             "timeout": 5
           }
         ]
@@ -137,16 +143,6 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/team-limit-guard.sh",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/pre-edit-read-guard.sh",
             "timeout": 5
           }
         ]
