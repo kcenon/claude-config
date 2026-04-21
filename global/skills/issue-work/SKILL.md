@@ -15,7 +15,7 @@ tiers:
     deep_checks: false
   standard:
     ref_docs: [core]
-    deep_checks: false
+    deep_checks: true
   deep:
     ref_docs: [core, advanced]
     deep_checks: true
