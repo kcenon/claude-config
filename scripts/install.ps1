@@ -82,6 +82,43 @@ function New-LocalClaude {
     }
 }
 
+function Get-PolicyPhrase {
+    # Issue #411: map CLAUDE_CONTENT_LANGUAGE value to a short phrase.
+    # Reads the script-scope $contentLanguage set after the install-type prompt.
+    switch ($script:contentLanguage) {
+        'english'             { return 'English' }
+        'korean_plus_english' { return 'English or Korean' }
+        'any'                 { return 'any language' }
+        default               { return 'English' }
+    }
+}
+
+function Invoke-PolicyTemplate {
+    # Renders a .md.tmpl file by replacing {{CONTENT_LANGUAGE_POLICY}}
+    # with the resolved phrase and writes the result to $Destination as UTF-8.
+    param(
+        [Parameter(Mandatory)][string]$Source,
+        [Parameter(Mandatory)][string]$Destination
+    )
+    $phrase = Get-PolicyPhrase
+    $content = [System.IO.File]::ReadAllText($Source)
+    $rendered = $content -replace '\{\{CONTENT_LANGUAGE_POLICY\}\}', $phrase
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($Destination, $rendered, $utf8NoBom)
+}
+
+function Invoke-PolicyTemplatesInDir {
+    # Walks a directory, renders every *.md.tmpl to its *.md sibling,
+    # then deletes the .tmpl source. Used after bulk copy of rules/.
+    param([Parameter(Mandatory)][string]$Path)
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    Get-ChildItem -Path $Path -Filter '*.md.tmpl' -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+        $dest = $_.FullName.Substring(0, $_.FullName.Length - '.tmpl'.Length)
+        Invoke-PolicyTemplate -Source $_.FullName -Destination $dest
+        Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Get-EnterpriseDir {
     if ($IsWindows -or ($env:OS -eq 'Windows_NT')) {
         return "C:\Program Files\ClaudeCode"
@@ -226,6 +263,30 @@ switch ($langType) {
     }
 }
 
+# ── Enterprise CLAUDE.md conflict detection (issue #411) ───────
+# Enterprise policy takes the highest precedence; warn when the chosen
+# language policy contradicts an existing English-only enterprise doc.
+if ($contentLanguage -ne 'english') {
+    $enterpriseClaude = Join-Path (Get-EnterpriseDir) 'CLAUDE.md'
+    if (Test-Path -LiteralPath $enterpriseClaude) {
+        $enterpriseContent = Get-Content -Raw -LiteralPath $enterpriseClaude -ErrorAction SilentlyContinue
+        if ($enterpriseContent -and $enterpriseContent -imatch 'written in english') {
+            Write-Host ""
+            Write-Warn "Enterprise policy conflict detected"
+            Write-Warn "  Path: $enterpriseClaude"
+            Write-Warn "  The enterprise CLAUDE.md requires English, but you selected '$contentLanguage'."
+            Write-Warn "  The enterprise path loads at the highest precedence; your choice may violate enterprise policy."
+            Write-Host ""
+            $override = Read-Host "Continue with '$contentLanguage' anyway? (y/n) [default: n]"
+            if ([string]::IsNullOrEmpty($override)) { $override = 'n' }
+            if ($override -ne 'y') {
+                Write-Info "Resetting to english."
+                $contentLanguage = 'english'
+            }
+        }
+    }
+}
+
 # ── Enterprise installation ──────────────────────────────────
 
 if ($installType -eq '4' -or $installType -eq '5') {
@@ -249,7 +310,13 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'conversation-language.md', 'git-identity.md', 'token-management.md')
         foreach ($gf in $globalFiles) {
             $src = Join-Path $BackupDir "global/$gf"
-            if (Test-Path $src) {
+            # Issue #411: prefer .tmpl + substitution when present so the
+            # installed file matches the selected content-language policy.
+            $srcTmpl = "$src.tmpl"
+            if (Test-Path $srcTmpl) {
+                Invoke-PolicyTemplate -Source $srcTmpl -Destination (Join-Path $claudeDir $gf)
+                Write-Success "$gf installed (policy phrase: $(Get-PolicyPhrase))"
+            } elseif (Test-Path $src) {
                 Copy-Item -Path $src -Destination $claudeDir -Force
                 Write-Success "$gf installed"
             }
@@ -443,7 +510,9 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
     $sourceRules = Join-Path $BackupDir "project/.claude/rules"
     if (Test-Path $sourceRules) {
         Copy-Item -Path $sourceRules -Destination $projectClaudeDir -Recurse -Force
-        Write-Success "Rules directory installed!"
+        # Issue #411: render any .md.tmpl found under rules/ with the chosen policy phrase.
+        Invoke-PolicyTemplatesInDir -Path (Join-Path $projectClaudeDir 'rules')
+        Write-Success "Rules directory installed! (policy phrase: $(Get-PolicyPhrase))"
     }
 
     # Skills directory
