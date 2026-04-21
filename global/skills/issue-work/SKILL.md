@@ -9,6 +9,20 @@ max_iterations: 10
 halt_condition: "CI all-green and PR merged, OR 3 identical build/CI failures in a row"
 on_halt: "Convert PR to draft, report failing checks, exit without merging"
 loop_safe: false
+tiers:
+  light:
+    ref_docs: []
+    deep_checks: false
+  standard:
+    ref_docs: [core]
+    deep_checks: false
+  deep:
+    ref_docs: [core, advanced]
+    deep_checks: true
+default_tier: standard
+# ref_docs keys:
+#   core     -> reference/error-handling.md
+#   advanced -> reference/batch-mode.md, reference/team-mode.md
 ---
 
 # Issue Work Command
