@@ -16,13 +16,21 @@ Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files
 ## Environment Workarounds
 
 - Sandbox TLS: `SSL_CERT_FILE` and `SSL_CERT_DIR` are wired in `global/settings.json` so `git`, `curl`, `npm`, `pip`, and similar CA-bundle-aware tools succeed inside the sandbox without `dangerouslyDisableSandbox`. Full coverage matrix and platform fallback ladder: `docs/SANDBOX_TLS.md`. Verify with `scripts/verify-tls.sh`.
-- `gh` on macOS is a Darwin-Go binary that links against `Security.framework` and ignores `SSL_CERT_FILE`; it still fails inside sandbox. Remediate `gh` friction via a Bash allowlist in `permissions.allow` rather than sandbox bypass. See the `gh Caveat` section of `docs/SANDBOX_TLS.md`.
+- `gh` on macOS is a Darwin-Go binary that links against `Security.framework` and ignores `SSL_CERT_FILE`. It cannot be remediated by allowlist alone — see the `gh CLI Sandbox Policy` section below.
 - Before `Edit` or `Write`, always `Read` the target file first — the tool contract rejects edits on unread files.
 - Only fall back to `dangerouslyDisableSandbox: true` when a failure is not fixable by env-var or allowlist (for example, sandbox filesystem write denial) and document the reason.
 
+## gh CLI Sandbox Policy
+
+All `gh` invocations MUST set `dangerouslyDisableSandbox: true` at the Bash tool level. Running `gh` inside the sandbox fails with `tls: failed to verify certificate: x509: OSStatus -26276` because gh uses macOS Security.framework / Keychain, which the sandbox blocks. The failure is surfaced as "The token in keyring is invalid" — this is a **false positive**; do NOT instruct the user to re-authenticate.
+
+- Permission allowlist (`Bash(gh ...)`) suppresses prompts but does NOT fix TLS.
+- For interactive one-offs, suggest the user run `! gh <cmd>` in the prompt.
+- See `docs/SANDBOX_TLS.md` §"gh Caveat" for the underlying cause.
+
 ## GitHub / CI
 
-- If a `gh` call still fails with a TLS `OSStatus -26276` after the `SSL_CERT_FILE` fix, inspect `scripts/verify-tls.sh` output — the CA bundle path may be missing or unreadable. Do not assume authentication failure; TLS and auth errors are distinct.
+- TLS and auth errors are distinct — a `gh` TLS failure (`OSStatus -26276`) does not mean the token is expired. See `gh CLI Sandbox Policy` section above.
 - After creating a PR, monitor CI until **all** checks reach `completed` status. Do NOT merge while any check is `queued` or `in_progress`.
 - Poll CI status at 30-second intervals. Max 10 minutes per run. Never use `gh run watch`.
 - If the 10-minute polling limit is reached with CI still running: stop polling, report current status to the user, and **do NOT merge**. The user decides next steps.
