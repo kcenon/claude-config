@@ -244,7 +244,131 @@ function Test-SkillFile {
         }
     }
 
+    # 6. 프론트매터 대 본문 일관성 (drift)
+    $fileContent = Get-Content -LiteralPath $SkillFile -Raw -ErrorAction SilentlyContinue
+    if ($null -eq $fileContent) { $fileContent = '' }
+
+    if ($frontmatter -match '(?m)^(max_iterations|halt_condition):') {
+        if ($fileContent -notmatch '(?i)(loop|retry|iteration|poll)') {
+            Write-WarningMessage "max_iterations/halt_condition 선언되었으나 본문에 loop/retry/iteration/poll 참조 없음"
+            Record-Warning
+        }
+        else {
+            Write-SuccessMessage "loop 메타데이터 본문 일관성 확인"
+            Record-Pass
+        }
+    }
+
+    if ($frontmatter -match '(?m)^loop_safe:\s*false') {
+        if ($fileContent -notmatch '(?m)^#+\s+.*([Ss]ide.[Ee]ffect|[Ii]dempoten|[Ll]oop.?[Ss]afety|[Nn]on-idempoten)') {
+            Write-WarningMessage "loop_safe: false 선언되었으나 side-effect/idempoten 섹션 없음"
+            Record-Warning
+        }
+        else {
+            Write-SuccessMessage "loop_safe: false 본문 일관성 확인"
+            Record-Pass
+        }
+    }
+
     return $skillErrors
+}
+
+# ── CLAUDE.md routing audit ──────────────────────────────────
+# Classify non-blank, non-heading lines outside the footer as routing or prose.
+# Fail if prose / (routing + prose) exceeds AUDIT_PROSE_RATIO (default 0.30).
+function Test-ClaudeMd {
+    param([string]$FilePath)
+
+    $relativePath = $FilePath
+    if ($FilePath.StartsWith($BackupDir)) {
+        $relativePath = $FilePath.Substring($BackupDir.Length + 1)
+    }
+
+    Write-Host ""
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    Write-InfoMessage "라우팅 감사: $relativePath"
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    if (-not (Test-Path -LiteralPath $FilePath -PathType Leaf)) {
+        Write-WarningMessage "파일 없음 -- 건너뜀: $relativePath"
+        Record-Warning
+        return 0
+    }
+
+    $routing = 0
+    $prose = 0
+    $inInvariants = $false
+
+    $lines = Get-Content -LiteralPath $FilePath -ErrorAction SilentlyContinue
+    foreach ($rawLine in $lines) {
+        $line = $rawLine -replace "`r$", ""
+
+        # First '---' treated as footer separator -- stop scanning body
+        # (harness CLAUDE.md files do not use YAML frontmatter)
+        if ($line -eq '---') { break }
+
+        # Skip blank lines
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+
+        # Headings: track invariants zone, do not count
+        if ($line -match '^#+\s') {
+            if ($line -match '[Ii]nvariant') {
+                $inInvariants = $true
+            }
+            elseif ($line -match '^##\s') {
+                $inInvariants = $false
+            }
+            continue
+        }
+
+        # Inside invariants block: all lines count as routing-equivalent
+        if ($inInvariants) {
+            $routing++
+            continue
+        }
+
+        # Classify body lines
+        if (($line -match '^\s*[-*+]\s') -or
+            ($line -match '^\|') -or
+            ($line -match '^\s*@\./') -or
+            ($line -match '^>')) {
+            $routing++
+        }
+        else {
+            $prose++
+        }
+    }
+
+    $total = $routing + $prose
+    if ($total -eq 0) {
+        Write-WarningMessage "검사 가능한 콘텐츠 없음: $relativePath"
+        Record-Warning
+        return 0
+    }
+
+    $threshold = 0.30
+    if ($env:AUDIT_PROSE_RATIO) {
+        $parsed = 0.0
+        if ([double]::TryParse($env:AUDIT_PROSE_RATIO, [ref]$parsed) -and $parsed -gt 0) {
+            $threshold = $parsed
+        }
+    }
+
+    $ratio = $prose / $total
+    $ratioPct = [math]::Round($ratio * 100, 1)
+    $thresholdPct = [math]::Round($threshold * 100, 0)
+
+    if ($ratio -gt $threshold) {
+        Write-ErrorMessage ("산문 비율 초과: {0}% > {1}% (prose={2}, routing/invariant={3})" -f $ratioPct, $thresholdPct, $prose, $routing)
+        Write-InfoMessage "힌트: 절차 규칙은 docs/, global/skills/, 또는 프로젝트 rule 파일로 이동"
+        Record-Fail
+        return 1
+    }
+    else {
+        Write-SuccessMessage ("라우팅 규율 유효: prose={0}, routing/invariant={1}, ratio={2}% (임계 {3}%)" -f $prose, $routing, $ratioPct, $thresholdPct)
+        Record-Pass
+        return 0
+    }
 }
 
 # ── Main logic ───────────────────────────────────────────────
@@ -288,6 +412,24 @@ $totalSkillErrors = 0
 foreach ($skillFile in $skillFiles) {
     $errors = Test-SkillFile $skillFile
     $totalSkillErrors += $errors
+}
+
+# ── CLAUDE.md routing audit ──────────────────────────────────
+
+Write-Host ""
+Write-Host "======================================================"
+Write-InfoMessage "CLAUDE.md 라우팅 감사"
+Write-Host "======================================================"
+
+$claudeMdFiles = @(
+    (Join-Path $BackupDir 'global' 'CLAUDE.md')
+    (Join-Path $BackupDir 'project' 'CLAUDE.md')
+    (Join-Path $BackupDir 'enterprise' 'CLAUDE.md')
+)
+
+foreach ($claudeMd in $claudeMdFiles) {
+    $err = Test-ClaudeMd -FilePath $claudeMd
+    $totalSkillErrors += $err
 }
 
 # ── YAML syntax validation ───────────────────────────────────
