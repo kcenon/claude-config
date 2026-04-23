@@ -7,6 +7,28 @@ temperature: 0.1
 maxTurns: 15
 effort: medium
 memory: local
+applies_to:
+  - "**/Makefile"
+  - "**/CMakeLists.txt"
+  - "**/*.mk"
+  - "**/Dockerfile*"
+  - "**/.github/workflows/*.yml"
+  - "**/.github/workflows/*.yaml"
+  - "**/.gitlab-ci.yml"
+  - "**/package.json"
+  - "**/Cargo.toml"
+  - "**/go.mod"
+  - "**/pyproject.toml"
+  - "**/setup.py"
+keywords:
+  - structure
+  - exploration
+  - directory
+  - entry-point
+  - build
+  - ci
+  - workflow
+  - onboarding
 ---
 
 # Structure Explorer Agent

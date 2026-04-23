@@ -1,7 +1,7 @@
 ---
 name: fleet-orchestrator
 description: "Fan out a single high-level directive (audit, deprecation cleanup, fix, migration, version bump) across an arbitrary list of repositories as parallel Agent workers, with a supervisor that polls a shared manifest, renders a live status table, and aggregates final results. Use when the user says 'apply X across repos', 'audit N repositories', 'sweep every repo', 'run the same fix in all projects', 'parallel multi-repo', 'fleet-wide change', or provides a list of repositories with a single directive. Preferred over running issue-work in each repo sequentially."
-argument-hint: "<repos-spec> <directive-spec> [--max-parallel N] [--retry N] [--poll-interval SEC] [--dry-run] [--reanchor-interval N]"
+argument-hint: "<repos-spec> <directive-spec> [--max-parallel N] [--retry N] [--poll-interval SEC] [--dry-run] [--reanchor-interval N] [--top-k N] [--agents-dir PATH]"
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: "Bash(gh *), Bash(flock *), Bash(jq *)"
@@ -135,6 +135,111 @@ jq -n \
 > Changes to the manifest shape must bump `schema_version` in both the seed
 > above and the schema file.
 
+### Phase 2.5: Top-K Agent Routing (per worker)
+
+Motivation: the `agents/` directory contains 8 specialized agents. Spawning every
+applicable agent per work item costs roughly 64 K tokens of parallel context and
+frequently invokes agents that are irrelevant to the change (for example
+`test-strategist` on a documentation-only PR). This phase selects only the K
+highest-scoring agents per work item, inspired by Top-K expert routing in
+Mixture-of-Experts transformers.
+
+Controlled by the `--top-k N` flag (default `2`, `0` disables routing and
+preserves the prior "all-applicable" behavior).
+
+#### Agent Metadata Contract
+
+Each agent definition under the repository's agents directory carries two
+frontmatter fields used for scoring:
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `applies_to` | list of glob patterns | File patterns this agent is relevant for (for example `**/*.ts`, `**/test_*.py`, `**/*.md`) |
+| `keywords` | list of strings | Task-type triggers (for example `security`, `performance`, `refactor`) |
+
+Canonical source of agent definitions: `plugin/agents/*.md` (the distributable
+copy) with a mirror at `project/.claude/agents/*.md`. The orchestrator reads
+from `--agents-dir` (default `plugin/agents`). Both directories are kept in
+sync by the agent-sync policy; the scorer only needs one of them.
+
+#### Scoring Function
+
+For each work item (issue + PR draft for a repo) and each agent:
+
+```
+score(agent, work_item) =
+    2 * count(glob in agent.applies_to where any changed_file matches glob)
+  + 1 * count(keyword in agent.keywords where keyword appears in work_item.title or work_item.body)
+```
+
+Rules:
+
+1. Glob matches use case-sensitive gitignore-style matching (the same semantics
+   `git ls-files` uses). `**/*.ts` matches `src/a.ts` and `a.ts`.
+2. Keyword matches are case-insensitive substring matches against the
+   concatenation of the issue title and body. Word-boundary matching is NOT
+   required — `security` matches `security-audit` intentionally.
+3. `changed_file` is sourced from `git diff --name-only <base>..<head>` when a
+   draft PR exists, otherwise from the issue body's "Where" section file list.
+4. Ties are broken by alphabetical agent name (stable ordering).
+5. Agents scoring `0` are never selected regardless of K.
+
+#### Selection
+
+```
+positive = [a for a in agents if score(a) > 0]
+selected = sort_by_score_desc(positive).take(K)
+if len(selected) == 0:
+    # Nothing scored > 0; fall back to a single documentation-writer or the
+    # caller-specified default agent. Record "no-match" in the worker log.
+    selected = [DEFAULT_FALLBACK_AGENT]
+```
+
+Zero-score agents are never selected, even when `K >= len(agents)`. To
+restore the pre-Top-K "all-applicable" behavior, set `--top-k 0`, which
+disables routing entirely.
+
+The worker records its scoring decision to `{{LOG_DIR}}/agent-routing.json`:
+
+```json
+{
+  "work_item": {"repo": "owner/repo", "issue": 123, "pr": null},
+  "k": 2,
+  "all_scores": [
+    {"agent": "code-reviewer", "score": 5, "matched_globs": ["**/*.ts"], "matched_keywords": ["security"]},
+    {"agent": "documentation-writer", "score": 0, "matched_globs": [], "matched_keywords": []}
+  ],
+  "selected": ["code-reviewer", "qa-reviewer"]
+}
+```
+
+This per-worker artifact is the telemetry surface required by the issue's
+acceptance criteria.
+
+#### Unit Test Points
+
+The scoring function is pure (no I/O beyond reading agent frontmatter and a
+file list), so it is unit-tested in isolation. Required cases:
+
+1. Docs-only PR (only `*.md` changed, no keyword overlap) — selects
+   `documentation-writer` over `test-strategist` at K=2.
+2. Mixed TypeScript + security keyword — `code-reviewer` and
+   `dependency-auditor` outrank `structure-explorer`.
+3. Empty `applies_to` + empty `keywords` — agent scores 0 and is excluded.
+4. `K >= agent_count` — all agents selected, order preserved by score.
+5. Tie on score — stable alphabetical ordering.
+
+Tests live under `tests/fleet-orchestrator/test_topk_scoring.*` and run as part
+of the skill's CI lane.
+
+#### Fallback and Compatibility
+
+- `--top-k 0` disables routing entirely; the worker spawns whatever it would
+  have spawned before this phase existed.
+- If no agent directory is found at `--agents-dir`, the worker logs a
+  `routing: disabled` notice and proceeds without Top-K selection.
+- Missing `applies_to` or `keywords` frontmatter is treated as an empty list
+  (score contribution 0); it does not fail the worker.
 ### Phase 3: Fan-out Worker Dispatch
 
 Launch workers up to `--max-parallel` at a time. The `Agent` tool with
@@ -162,6 +267,8 @@ replace these tokens before passing as `prompt`):
 | `{{MANIFEST_PATH}}` | Absolute path to `fleet-status.json` |
 | `{{MAX_RETRIES}}` | Retry cap for transient CI failures |
 | `{{FLEET_ID}}` | For log correlation |
+| `{{TOP_K}}` | `--top-k` value for per-worker agent routing |
+| `{{AGENTS_DIR}}` | `--agents-dir` value for agent frontmatter lookup |
 
 Record each dispatched worker's task ID in a local map so the supervisor can
 call `TaskOutput(block=false)` on it when polling.

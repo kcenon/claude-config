@@ -1,62 +1,31 @@
 # Claude Code Global Configuration
 
-Global settings for all Claude Code sessions. Project-specific `CLAUDE.md` files override these.
+Global settings applied every session. Routing index only — procedural detail lives in the linked files. Project `CLAUDE.md` overrides this file; project rules auto-load via YAML frontmatter (`alwaysApply`, `paths`).
 
 ## Core Settings
 
 @./commit-settings.md
 
-## Priority Rules
+## Always-on Invariants
 
-1. **Project overrides global** — Project `CLAUDE.md` takes precedence
-2. **YAML frontmatter** — Rules load based on `alwaysApply` and `paths`
+- 3-fail rule: stop and propose alternatives after 3 identical failures
+- CI gate: task is NOT complete while any `gh pr checks` entry is failing, pending, or incomplete
+- Protected branches: never direct-push to `main` or `develop`; PR + squash merge only
+- Read-before-Edit: Read any file before Edit/Write
+- Conflicts: never auto-resolve source code; `git merge --abort` if intractable
 
-> Core principles, environment, and communication rules load automatically via project rule frontmatter (`alwaysApply: true`).
+## Routing
 
-## Environment Workarounds
+- **Sandbox, TLS, `gh` caveat**: `docs/SANDBOX_TLS.md`
+- **Branching strategy**: `docs/branching-strategy.md`
+- **Lifecycle skills**: `global/skills/issue-work`, `pr-work`, `release`, `branch-cleanup`
+- **Build verification**: `global/skills/pr-work/reference/build-verification.md`
+- **Skill authoring**: `global/skills/_policy.md`, `global/skills/_shared/invariants.md`
 
-- Sandbox TLS: `SSL_CERT_FILE` and `SSL_CERT_DIR` are wired in `global/settings.json` so `git`, `curl`, `npm`, `pip`, and similar CA-bundle-aware tools succeed inside the sandbox without `dangerouslyDisableSandbox`. Full coverage matrix and platform fallback ladder: `docs/SANDBOX_TLS.md`. Verify with `scripts/verify-tls.sh`.
-- `gh` on macOS is a Darwin-Go binary that links against `Security.framework` and ignores `SSL_CERT_FILE`; it still fails inside sandbox. Remediate `gh` friction via a Bash allowlist in `permissions.allow` rather than sandbox bypass. See the `gh Caveat` section of `docs/SANDBOX_TLS.md`.
-- Before `Edit` or `Write`, always `Read` the target file first — the tool contract rejects edits on unread files.
-- Only fall back to `dangerouslyDisableSandbox: true` when a failure is not fixable by env-var or allowlist (for example, sandbox filesystem write denial) and document the reason.
+## Updating
 
-## GitHub / CI
-
-- If a `gh` call still fails with a TLS `OSStatus -26276` after the `SSL_CERT_FILE` fix, inspect `scripts/verify-tls.sh` output — the CA bundle path may be missing or unreadable. Do not assume authentication failure; TLS and auth errors are distinct.
-- After creating a PR, monitor CI until **all** checks reach `completed` status. Do NOT merge while any check is `queued` or `in_progress`.
-- Poll CI status at 30-second intervals. Max 10 minutes per run. Never use `gh run watch`.
-- If the 10-minute polling limit is reached with CI still running: stop polling, report current status to the user, and **do NOT merge**. The user decides next steps.
-- **Before merge, always use `gh pr checks <PR_NUMBER>` to verify ALL individual check statuses.** Do NOT rely on `gh run list` alone — it shows workflow-level status which can report "success" while individual sub-checks (e.g., platform-specific test jobs) are still failing.
-- **Any CI failure — including test timeouts — must be investigated and fixed before merging.** Never treat a failing check as "flaky" or ignorable. Never rationalize a failure as "unrelated", "pre-existing", or "infrastructure-only". If a test times out, adjust the test workload, increase the timeout, or fix the underlying performance issue before proceeding with merge.
-- **A task is NOT complete if CI has any failure.** Do not produce a completion summary, do not mark a task as done, and do not report success while any CI check is failing, pending, or incomplete. Report the task as INCOMPLETE with the failing checks listed.
-- When creating GitHub issues, verify labels exist on the target repository before using them. Run `gh label list -R <repo>` first to avoid creation failures from invalid labels.
-- After completing issue work or PR creation, always verify CI status with `gh pr checks` before considering the task done. If CI is still pending or failing, note it explicitly in the task summary as INCOMPLETE rather than marking the task as completed.
-
-## Build & Test
-
-- When a required toolchain (Go, Rust, CMake, npm) is not installed locally, skip local build verification and rely on CI. Do not attempt to install toolchains without asking the user first.
-- Validate incrementally: build and test after each logical change, not after all changes are complete. This catches errors early and reduces first-CI-run failures.
-- After large refactoring or migration, run a full build, collect ALL errors, and fix them in one batch before rebuilding. Do not fix one error at a time.
-- If the same approach fails 3 consecutive times, stop and propose alternative strategies to the user. Iterative skills encode this as `max_iterations` and `halt_condition` fields in their frontmatter — see `global/skills/_policy.md` §Iteration Control Schema.
-
-## Standard Workflows
-
-- **Issue-to-PR lifecycle**: implement → local build/test → create PR → monitor CI → squash merge → close issue → close epic if all sub-issues done.
-- **Branching strategy**: `main` is the repository default branch and holds releases. `develop` is the integration branch — create feature branches from `develop`, squash merge back via PR, delete the feature branch. Release by creating a PR from `develop` to `main` — CI runs only on main-targeting PRs. After release merge, `develop` is reset to `main`'s HEAD automatically by the `post-release-develop-reset` workflow (manual fallback: `docs/branching-strategy.md` §6).
-- **Protected branches**: Never push directly to `main` or `develop`. Always use PRs with squash merge.
-- Skip lengthy planning phases. Start implementation immediately, analyzing code as you go.
-- After merging, check if parent epic should be closed.
-- When using multi-agent teams, always commit work-in-progress before switching contexts or spawning new agents that modify the working directory. This prevents data loss from agent overwrites.
-- When working on multi-repo tasks, use parallel agents (one per repo) rather than processing sequentially. Each agent should independently implement, test, and create PRs.
-- For long unattended batch runs (`issue-work` or `pr-work` without an item number), prefer `--auto-restart` paired with a wrapper that re-invokes `claude` on exit. The flag triggers a forced session restart every `CONFIRM_INTERVAL` items: the batch writes `.claude/resume.md` in the Batch Workflow Resume Format and cleanly exits, so a fresh session starts each chunk with the full CLAUDE.md and skill files at position zero. Opt out per run with `--no-restart`. Interactive operators should leave `--auto-restart` off — the default chunked gate already provides attention refresh without exiting.
-- When `git merge` or `git rebase` produces conflicts, never auto-resolve source code files. Present conflicting hunks to the user. Auto-generated files (lockfiles, build manifests) may be resolved by re-running generators (`npm install`, `go mod tidy`).
-- After resolving conflicts, verify no conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`) remain before committing.
-- If a merge conflict appears intractable, prefer `git merge --abort` and ask the user for direction rather than producing a broken merge.
-
-## Configuration Updates
-
-Edit module files, then restart session to apply changes.
+Edit the linked files and restart the session.
 
 ---
 
-*Version: 3.1.0 | Last updated: 2026-04-13*
+*Version: 3.2.0 | Last updated: 2026-04-23*

@@ -18,6 +18,8 @@ Before dispatch, the supervisor replaces these tokens in the text below:
 | `{{MAX_RETRIES}}` | Retry cap for transient CI failures | `3` |
 | `{{FLEET_ID}}` | Fleet identifier for log correlation | `fleet-20260420-071500` |
 | `{{LOG_DIR}}` | Per-worker workspace directory | `_workspace/fleet/kcenon-claude-config/` |
+| `{{TOP_K}}` | Top-K agent routing cap (0 disables routing) | `2` |
+| `{{AGENTS_DIR}}` | Directory of agent definitions used for scoring | `plugin/agents` |
 
 The template body below begins at the `===` fence; everything before it is
 documentation and must NOT be sent to the worker.
@@ -120,6 +122,36 @@ doesn't warrant one, skip this phase and leave `issue_number` null.
 - Compute a descriptive branch name: `<type>/fleet-{{FLEET_ID}}-<slug>` where `<type>` is one of `feat|fix|refactor|docs|chore` based on the directive intent.
 - `git checkout -b <branch>`.
 - Update manifest: `{branch: "<branch>"}`.
+
+### Phase: agent-routing (Top-K)
+
+Before invoking helper sub-agents, score each agent defined under
+`--agents-dir` (default `plugin/agents/`) against the current work item and
+select the top K (default 2). The supervisor supplies `--top-k` via the
+worker's environment; if unset, use 2.
+
+Algorithm summary (authoritative spec: `../SKILL.md` Phase 2.5):
+
+```
+score(agent) = 2 * matched_applies_to_globs + 1 * matched_keywords
+```
+
+- `matched_applies_to_globs`: each glob in the agent's `applies_to` frontmatter
+  list that matches at least one changed file.
+- `matched_keywords`: each keyword in the agent's `keywords` frontmatter list
+  that appears (case-insensitive) in the issue title or body.
+
+Select `topK = sort_by_score_desc(agents).take(K)`. If `K` equals or exceeds
+the number of defined agents, fall back to the pre-Top-K behavior (all
+applicable). If no agent scores above zero, fall back to a single
+`documentation-writer` invocation and record `no-match` in the routing log.
+
+Write the decision to `{{LOG_DIR}}/agent-routing.json` with the schema shown
+in the main SKILL.md. This file is the telemetry artifact the supervisor and
+downstream auditors consume to verify that, for example, a docs-only PR did
+not spawn `test-strategist`.
+
+Update manifest: `{top_k: N, agents_selected: ["code-reviewer", "qa-reviewer"]}`.
 
 ### Phase: implementing
 

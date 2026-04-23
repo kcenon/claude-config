@@ -40,3 +40,5 @@ tests/batch_drift_regression/last-run-summary.json
 
 # Local scratch repos used by Tier 2 benchmark seeding
 batch-drift-scratch/
+__pycache__/
+*.pyc

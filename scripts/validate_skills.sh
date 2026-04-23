@@ -199,7 +199,115 @@ validate_skill() {
         fi
     fi
 
+    # 6. 프론트매터 대 본문 일관성 (drift)
+    if echo "$frontmatter" | grep -qE "^(max_iterations|halt_condition):"; then
+        if ! grep -qiE "(loop|retry|iteration|poll)" "$skill_file"; then
+            warning "max_iterations/halt_condition 선언되었으나 본문에 loop/retry/iteration/poll 참조 없음"
+            record_warning
+        else
+            success "loop 메타데이터 본문 일관성 확인"
+            record_pass
+        fi
+    fi
+
+    if echo "$frontmatter" | grep -qE "^loop_safe:[[:space:]]*false"; then
+        if ! grep -qiE "^#+[[:space:]]+.*([Ss]ide.[Ee]ffect|[Ii]dempoten|[Ll]oop.?[Ss]afety|[Nn]on-idempoten)" "$skill_file"; then
+            warning "loop_safe: false 선언되었으나 side-effect/idempoten 섹션 없음"
+            record_warning
+        else
+            success "loop_safe: false 본문 일관성 확인"
+            record_pass
+        fi
+    fi
+
     return $skill_errors
+}
+
+# CLAUDE.md 라우팅 원칙 검증
+# 비헤딩, 비블랭크 라인을 routing 또는 prose로 분류하고
+# prose/(routing+prose) 비율이 임계값(AUDIT_PROSE_RATIO, 기본 0.30)을 초과하면 실패
+validate_claude_md() {
+    local file="$1"
+    local relative_path="${file#$BACKUP_DIR/}"
+
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    info "라우팅 감사: $relative_path"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    if [ ! -f "$file" ]; then
+        warning "파일 없음 — 건너뜀: $relative_path"
+        record_warning
+        return 0
+    fi
+
+    local routing=0 prose=0 in_invariants=0
+
+    while IFS= read -r line || [ -n "$line" ]; do
+        # CRLF 정리
+        line="${line%$'\r'}"
+
+        # 첫 --- 를 푸터 구분자로 간주하고 이후 라인은 무시
+        # (harness CLAUDE.md 파일은 YAML frontmatter를 사용하지 않는다는 전제)
+        if [[ "$line" == "---" ]]; then
+            break
+        fi
+
+        # 공백 전용 라인 스킵
+        [ -z "${line//[[:space:]]/}" ] && continue
+
+        # 헤딩 처리 + invariants zone 플래그 토글
+        if [[ "$line" =~ ^#+[[:space:]] ]]; then
+            if [[ "$line" =~ [Ii]nvariant ]]; then
+                in_invariants=1
+            elif [[ "$line" =~ ^##[[:space:]] ]]; then
+                in_invariants=0
+            fi
+            continue
+        fi
+
+        # invariants 블록 내부: 모든 라인은 routing-equivalent로 간주
+        if [ $in_invariants -eq 1 ]; then
+            routing=$((routing + 1))
+            continue
+        fi
+
+        # 본문 라인 분류
+        if [[ "$line" =~ ^[[:space:]]*[-*+][[:space:]] ]] || \
+           [[ "$line" =~ ^\| ]] || \
+           [[ "$line" =~ ^[[:space:]]*@\./ ]] || \
+           [[ "$line" =~ ^\> ]]; then
+            routing=$((routing + 1))
+        else
+            prose=$((prose + 1))
+        fi
+    done < "$file"
+
+    local total=$((routing + prose))
+    if [ $total -eq 0 ]; then
+        warning "검사 가능한 콘텐츠 없음: $relative_path"
+        record_warning
+        return 0
+    fi
+
+    local threshold="${AUDIT_PROSE_RATIO:-0.30}"
+    local ratio
+    ratio=$(awk -v p="$prose" -v t="$total" 'BEGIN { printf "%.3f", p/t }')
+    local ratio_pct
+    ratio_pct=$(awk -v r="$ratio" 'BEGIN { printf "%.1f", r*100 }')
+    local threshold_pct
+    threshold_pct=$(awk -v t="$threshold" 'BEGIN { printf "%.0f", t*100 }')
+
+    if awk -v r="$ratio" -v t="$threshold" 'BEGIN { exit !(r > t) }'; then
+        error "산문 비율 초과: ${ratio_pct}% > ${threshold_pct}% (prose=${prose}, routing/invariant=${routing})"
+        info "힌트: 절차 규칙은 docs/, global/skills/, 또는 프로젝트 rule 파일로 이동"
+        record_fail
+        return 1
+    else
+        success "라우팅 규율 유효: prose=${prose}, routing/invariant=${routing}, ratio=${ratio_pct}% (임계 ${threshold_pct}%)"
+        record_pass
+        return 0
+    fi
 }
 
 # 메인 로직
@@ -239,6 +347,22 @@ TOTAL_SKILL_ERRORS=0
 for skill_file in "${SKILL_FILES[@]}"; do
     validate_skill "$skill_file"
     TOTAL_SKILL_ERRORS=$((TOTAL_SKILL_ERRORS + $?))
+done
+
+# CLAUDE.md 라우팅 감사
+echo ""
+echo "======================================================"
+info "CLAUDE.md 라우팅 감사"
+echo "======================================================"
+
+CLAUDE_MD_FILES=(
+    "$BACKUP_DIR/global/CLAUDE.md"
+    "$BACKUP_DIR/project/CLAUDE.md"
+    "$BACKUP_DIR/enterprise/CLAUDE.md"
+)
+
+for claude_md in "${CLAUDE_MD_FILES[@]}"; do
+    validate_claude_md "$claude_md" || TOTAL_SKILL_ERRORS=$((TOTAL_SKILL_ERRORS + 1))
 done
 
 # YAML 구문 검증 (Python + PyYAML 사용 가능한 경우)

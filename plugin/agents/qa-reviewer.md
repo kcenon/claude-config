@@ -8,6 +8,32 @@ maxTurns: 30
 effort: high
 memory: project
 initialPrompt: "Check your memory for known boundary mismatches and integration patterns in this project."
+applies_to:
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "**/*.js"
+  - "**/*.jsx"
+  - "**/*.py"
+  - "**/*.go"
+  - "**/routes/**"
+  - "**/api/**"
+  - "**/*.graphql"
+  - "**/*.openapi.yaml"
+  - "**/*.openapi.yml"
+  - "**/*.openapi.json"
+  - "**/openapi.yaml"
+  - "**/openapi.yml"
+  - "**/schema.json"
+keywords:
+  - integration
+  - contract
+  - api
+  - endpoint
+  - route
+  - boundary
+  - qa
+  - coherence
+  - shape
 ---
 
 # QA Reviewer Agent

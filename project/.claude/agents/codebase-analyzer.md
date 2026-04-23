@@ -8,6 +8,34 @@ maxTurns: 25
 effort: high
 memory: project
 initialPrompt: "Check your memory for previously identified architecture patterns and conventions in this project."
+applies_to:
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "**/*.js"
+  - "**/*.jsx"
+  - "**/*.py"
+  - "**/*.go"
+  - "**/*.rs"
+  - "**/*.java"
+  - "**/*.kt"
+  - "**/*.cpp"
+  - "**/*.cc"
+  - "**/*.c"
+  - "**/*.h"
+  - "**/*.hpp"
+  - "**/*.rb"
+  - "**/*.php"
+  - "**/*.cs"
+  - "**/*.swift"
+keywords:
+  - architecture
+  - analysis
+  - patterns
+  - conventions
+  - dependencies
+  - exploration
+  - module
+  - structure
 ---
 
 # Codebase Analyzer Agent

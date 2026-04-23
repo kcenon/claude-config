@@ -2,10 +2,32 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kcenon/claude-config/scripts/schemas/skill-md.schema.json",
   "title": "Claude Code SKILL.md Frontmatter",
-  "description": "Canonical schema for Claude Code 2026 SKILL.md YAML frontmatter. 14 official fields plus claude-config iteration-control extension fields (max_iterations, halt_condition, on_halt, loop_safe).",
+  "description": "Canonical schema for Claude Code 2026 SKILL.md YAML frontmatter. 14 official fields plus claude-config iteration-control extension fields (max_iterations, halt_condition, on_halt, loop_safe) and tier-preset extension fields (tiers, default_tier).",
   "type": "object",
   "required": ["name", "description"],
   "additionalProperties": false,
+  "$defs": {
+    "tierEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ref_docs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Skill-defined alias keys resolving to reference/*.md files inside the skill's directory."
+        },
+        "deep_checks": {
+          "type": "boolean",
+          "description": "Opt-in flag for deeper verification passes (extra lint, full build, integrity checks)."
+        },
+        "max_files": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Advisory cap on the number of files the skill should enumerate or modify in a single invocation."
+        }
+      }
+    }
+  },
   "properties": {
     "name": {
       "type": "string",
@@ -104,6 +126,21 @@
     "loop_safe": {
       "type": "boolean",
       "description": "Iteration-control extension (claude-config): true when the skill is safe to run inside an autonomous /loop, false when it must exit the loop before acting."
+    },
+    "tiers": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "light":    { "$ref": "#/$defs/tierEntry" },
+        "standard": { "$ref": "#/$defs/tierEntry" },
+        "deep":     { "$ref": "#/$defs/tierEntry" }
+      },
+      "description": "Tier-preset extension (claude-config): per-tier loading hints for skills whose SKILL.md body exceeds 5 KB. See global/skills/_policy.md."
+    },
+    "default_tier": {
+      "type": "string",
+      "enum": ["light", "standard", "deep"],
+      "description": "Tier-preset extension (claude-config): tier applied when the caller omits --tier. Defaults to 'standard' when this field is absent."
     }
   }
 }

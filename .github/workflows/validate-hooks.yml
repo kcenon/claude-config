@@ -8,6 +8,10 @@ on:
       - 'hooks/**'
       - 'tests/hooks/**'
       - 'tests/batch_drift_benchmark/**'
+      - 'plugin/hooks/**'
+      - 'scripts/install.sh'
+      - 'scripts/install.ps1'
+      - 'tests/scripts/test-plugin-*.sh'
 
 jobs:
   test:
@@ -45,6 +49,18 @@ jobs:
 
       - name: Run benchmark orchestrator tests
         run: bash tests/batch_drift_benchmark/test-run-benchmark.sh
+
+      - name: Run plugin standalone regression tests
+        # Validates plugin/hooks/hooks.json inline guards when no probe
+        # file exists (standalone deployment fallback). The test script
+        # extracts the live command string from hooks.json via python3,
+        # which is pre-installed on ubuntu-latest and macos-latest runners.
+        run: bash tests/scripts/test-plugin-standalone.sh
+
+      - name: Run plugin fallback regression tests
+        # Validates probe-driven per-hook stand-down plus failure modes
+        # (unknown schema, malformed JSON, missing key).
+        run: bash tests/scripts/test-plugin-fallback.sh
 
   shellcheck:
     runs-on: ${{ matrix.os }}
