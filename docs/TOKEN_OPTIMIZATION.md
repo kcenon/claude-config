@@ -508,6 +508,63 @@ Results will be appended to this section once collected.
 
 ---
 
+## Harness Routing Audit
+
+Harness-layer CLAUDE.md files are loaded on every session regardless of task, so procedural content paid for once lives forever in that always-on budget. `scripts/validate_skills.sh` enforces a routing-only discipline on the three harness files.
+
+### Audited files
+
+- `global/CLAUDE.md`
+- `project/CLAUDE.md`
+- `enterprise/CLAUDE.md`
+
+### Classification
+
+For each non-blank, non-heading line outside the footer (first `---`):
+
+| Line shape | Counted as |
+|------------|-----------|
+| `- ...`, `* ...`, `+ ...` (bullet) | routing |
+| `\| ...` (table row) | routing |
+| `@./...` (import directive) | routing |
+| `> ...` (blockquote) | routing |
+| Any line inside a heading whose text matches `[Ii]nvariant` | routing/invariant |
+| Anything else (free-form sentences) | prose |
+
+### Threshold
+
+Fail the build if `prose / (routing + prose) > AUDIT_PROSE_RATIO` (default `0.30`).
+
+```bash
+# Override for experimentation
+AUDIT_PROSE_RATIO=0.40 ./scripts/validate_skills.sh
+```
+
+Current measurements (post-harness-diet):
+
+| File | Prose | Routing/Invariant | Ratio |
+|------|-------|-------------------|-------|
+| `global/CLAUDE.md` | 2 | 11 | 15.4% |
+| `project/CLAUDE.md` | 9 | 26 | 25.7% |
+| `enterprise/CLAUDE.md` | 0 | 3 | 0.0% |
+
+### Intent
+
+- **Keep** short always-on invariants inside an `## Always-on Invariants` heading — they count as routing regardless of shape, because the block's purpose is guardrails.
+- **Move** procedural prose (how-to, workflow detail) into `docs/**`, `global/skills/**/SKILL.md`, or project-level `rules/**/*.md`.
+- **Prefer** a routing bullet that points to the existing file over a prose paragraph that duplicates it.
+
+### Related frontmatter drift checks
+
+The same validator flags inconsistency between skill frontmatter contracts and body:
+
+- `max_iterations` or `halt_condition` declared → body must mention `loop|retry|iteration|poll`
+- `loop_safe: false` declared → body must document side effects / non-idempotent behavior
+
+Failures here are warnings (non-fatal) to avoid blocking incremental skill authoring, but CI surfaces the count.
+
+---
+
 ## Best Practices
 
 ### 1. Start Lean
