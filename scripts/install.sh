@@ -89,6 +89,7 @@ get_policy_phrase() {
     case "${CONTENT_LANGUAGE:-english}" in
         english)             echo "English" ;;
         korean_plus_english) echo "English or Korean" ;;
+        exclusive_bilingual) echo "English or Korean (document-exclusive)" ;;
         any)                 echo "any language" ;;
         *)                   echo "English" ;;
     esac
@@ -250,16 +251,18 @@ INSTALL_TYPE=${INSTALL_TYPE:-3}
 echo ""
 info "컨텐츠 언어 정책을 선택하세요 (commit / PR / issue 검증 범위):"
 echo "  1) English (기본, 현재 동작과 완전 동일)"
-echo "  2) Korean + English (Hangul 허용)"
-echo "  3) Any (언어 검증 없음 — 단, AI 귀속 차단은 유지)"
+echo "  2) Korean + English (Hangul 허용, 인라인 혼용 가능)"
+echo "  3) Exclusive bilingual (문서 단위 영어 또는 한국어, 인라인 혼용 금지)"
+echo "  4) Any (언어 검증 없음 — 단, AI 귀속 차단은 유지)"
 echo ""
-read -p "선택 (1-3) [기본값: 1]: " LANG_TYPE
+read -p "선택 (1-4) [기본값: 1]: " LANG_TYPE
 LANG_TYPE=${LANG_TYPE:-1}
 
 case "$LANG_TYPE" in
     1) CONTENT_LANGUAGE="english" ;;
     2) CONTENT_LANGUAGE="korean_plus_english" ;;
-    3) CONTENT_LANGUAGE="any" ;;
+    3) CONTENT_LANGUAGE="exclusive_bilingual" ;;
+    4) CONTENT_LANGUAGE="any" ;;
     *)
         warning "알 수 없는 입력: $LANG_TYPE. english로 진행합니다."
         CONTENT_LANGUAGE="english"

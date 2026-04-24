@@ -88,6 +88,7 @@ function Get-PolicyPhrase {
     switch ($script:contentLanguage) {
         'english'             { return 'English' }
         'korean_plus_english' { return 'English or Korean' }
+        'exclusive_bilingual' { return 'English or Korean (document-exclusive)' }
         'any'                 { return 'any language' }
         default               { return 'English' }
     }
@@ -247,16 +248,18 @@ if ([string]::IsNullOrEmpty($installType)) { $installType = '3' }
 Write-Host ""
 Write-Info "Select content-language policy (commit / PR / issue validation scope):"
 Write-Host "  1) English (default, identical to current behavior)"
-Write-Host "  2) Korean + English (accept Hangul)"
-Write-Host "  3) Any (skip language validation; AI attribution block stays on)"
+Write-Host "  2) Korean + English (accept Hangul; inline mixing allowed)"
+Write-Host "  3) Exclusive bilingual (document-level English or Korean; no inline mixing)"
+Write-Host "  4) Any (skip language validation; AI attribution block stays on)"
 Write-Host ""
 
-$langType = Read-Host "Selection (1-3) [default: 1]"
+$langType = Read-Host "Selection (1-4) [default: 1]"
 if ([string]::IsNullOrEmpty($langType)) { $langType = '1' }
 switch ($langType) {
     '1'     { $contentLanguage = 'english' }
     '2'     { $contentLanguage = 'korean_plus_english' }
-    '3'     { $contentLanguage = 'any' }
+    '3'     { $contentLanguage = 'exclusive_bilingual' }
+    '4'     { $contentLanguage = 'any' }
     default {
         Write-Warn "Unknown selection: $langType. Using english."
         $contentLanguage = 'english'
