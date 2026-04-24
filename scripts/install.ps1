@@ -388,6 +388,23 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
             }
         }
 
+        # Shared bash validator library (issue #447 Phase 1). Mirrors the
+        # install.sh block that copies repo-root hooks/lib/*.sh into
+        # ~/.claude/hooks/lib/. pr-language-guard.sh and commit-message-guard.sh
+        # source this library at runtime; without it the hooks fall back to the
+        # inline english-only dispatcher regardless of CLAUDE_CONTENT_LANGUAGE.
+        $sharedLibSource = Join-Path $BackupDir 'hooks/lib'
+        if (Test-Path $sharedLibSource) {
+            $hooksLibDir = Join-Path $hooksDir 'lib'
+            Ensure-Directory $hooksLibDir
+            foreach ($lib in @('validate-commit-message.sh', 'validate-language.sh')) {
+                $libSrc = Join-Path $sharedLibSource $lib
+                if (Test-Path $libSrc) {
+                    Install-BashScript -SourcePath $libSrc -DestinationPath (Join-Path $hooksLibDir $lib)
+                }
+            }
+        }
+
         Copy-Item -Path "$hooksSource\*.json" -Destination $hooksDir -Force -ErrorAction SilentlyContinue
 
         Write-Success "Hook scripts installed (hooks/*.ps1 + *.sh + lib/ + *.json)!"
