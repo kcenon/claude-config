@@ -16,11 +16,82 @@ the three rule documents that describe the rule to humans and to Claude.
 |-------|--------------------|----------------------|
 | `english` (default, unset, empty) | ASCII printable + whitespace only | `English` |
 | `korean_plus_english` | ASCII + Hangul Syllables / Jamo / Compat Jamo | `English or Korean` |
+| `exclusive_bilingual` | Per-document mode: English-only (if no Hangul) or Korean-only with ASCII permitted inside four allowed containers (if any Hangul syllable present) | `English or Korean (document-exclusive)` |
 | `any` | Skip language validation entirely | `any language` |
 
 Attribution enforcement is **not** governed by this env var.
 `attribution-guard.{sh,ps1}` and the attribution checks inside
 `commit-message-guard` remain active for every policy value.
+
+## The `exclusive_bilingual` Policy (issue #447)
+
+`exclusive_bilingual` enforces **document-level language exclusivity**:
+each title, body, or commit description is validated as either an
+English-only document or a Korean-only document, never a mix of bare
+Korean prose with inline English tokens.
+
+### Mode selection
+
+Mode is chosen per document, automatically:
+
+- **English mode** — the text contains zero Hangul syllable characters
+  (U+AC00 to U+D7A3). Validation is identical to the `english` policy:
+  ASCII printable (0x20 to 0x7E) and whitespace only. Any accented
+  Latin, CJK, or emoji is rejected.
+- **Korean mode** — the text contains at least one Hangul syllable.
+  After stripping the four allowed ASCII containers below, the residual
+  text must contain zero `[A-Za-z]` characters.
+
+### Allowed ASCII containers in Korean mode
+
+The validator strips these in the order listed and then scans what
+remains for bare English letters. Strip order matters: fenced blocks
+are handled first so backticks inside a fence are not mis-stripped as
+inline code, and the translation form is stripped last so nested
+parentheses inside a code block are preserved inside the code.
+
+1. **Fenced code blocks** — triple backticks, multi-line.
+2. **Inline code** — single backticks, single-line.
+3. **URLs** — `https?://` followed by non-whitespace.
+4. **`한국어(English)` translation form** — a Hangul run followed by
+   optional whitespace and a parenthesized ASCII expression on one
+   line. Use this for unavoidable proper nouns that have an established
+   Korean translation.
+
+### Accept / reject matrix
+
+Drawn from the original `#447` design. Reviewers can use this table to
+reason about edge cases in PR descriptions and issue bodies.
+
+| Input | Verdict | Remediation |
+|-------|---------|-------------|
+| `PR을 만든다` | reject | `` `PR`을 만든다 `` wrapped, or `풀 리퀘스트(PR)를 만든다` |
+| `/pr-work 를 실행` | reject | `` `/pr-work` `` wrapped in backticks |
+| `GitHub Actions에서` | reject | `깃허브 액션(GitHub Actions)에서` |
+| `버전 v1.10.0 배포` | reject | `버전 1.10.0 배포` or `` `v1.10.0` `` wrapped |
+| `훅(hook)을 설치` | accept | --- |
+| `https://example.com 참조` | accept | --- |
+| ``이슈 `#247` 참조`` | accept | `#` plus digits is ASCII-non-letter, no wrap required |
+
+Pure-English documents under `exclusive_bilingual` behave identically
+to `english` — there is no regression for existing English-only PRs.
+
+### When to choose this policy
+
+Pick `exclusive_bilingual` when:
+
+- You author documentation, PRs, and issues in Korean but want to avoid
+  drift into the loose mixed-language style that `korean_plus_english`
+  permits.
+- You want the translation form (`한국어(English)`) to be the single
+  canonical remediation for unavoidable English terms, producing a
+  consistent voice across the repository.
+
+Pick `korean_plus_english` instead if:
+
+- Your workflow routinely mixes Korean prose with bare English tokens
+  (product names, CLI commands) and wrapping them all in backticks or
+  translation forms would be disruptive.
 
 ## Install-time Substitution
 
@@ -56,7 +127,7 @@ reconcile the conflict before the installation completes.
 document:
 
 1. Canonical `.md` equals `.tmpl` rendered with the `english` phrase.
-2. Each of the three policies produces output containing the expected
+2. Each of the four policies produces output containing the expected
    phrase.
 
 The test is wired into `tests/hooks/test-runner.sh` via the standard

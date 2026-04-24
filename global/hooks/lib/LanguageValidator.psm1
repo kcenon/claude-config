@@ -8,6 +8,11 @@
 # The CLAUDE_CONTENT_LANGUAGE environment variable selects the policy:
 #   - english (default, unset, or empty) → ASCII printable + whitespace only
 #   - korean_plus_english → ASCII + Hangul syllables/Jamo/Compat Jamo
+#   - exclusive_bilingual → per-document: english_only when text has no
+#                           Hangul syllables, otherwise korean_with_tech_terms
+#                           (bare English tokens rejected; only ASCII inside
+#                           fenced/inline code, URLs, or 한국어(English)
+#                           translation forms is allowed in Korean mode)
 #   - any → validation skipped (always valid)
 #
 # NOTE: These validators do NOT gate AI/Claude attribution. attribution-guard.ps1
@@ -26,9 +31,10 @@ function Get-ContentLanguagePolicy {
     switch ($policy) {
         'english'              { return 'english' }
         'korean_plus_english'  { return 'korean_plus_english' }
+        'exclusive_bilingual'  { return 'exclusive_bilingual' }
         'any'                  { return 'any' }
         default {
-            [Console]::Error.WriteLine("CLAUDE_CONTENT_LANGUAGE has unknown value '$policy'. Valid values: english, korean_plus_english, any.")
+            [Console]::Error.WriteLine("CLAUDE_CONTENT_LANGUAGE has unknown value '$policy'. Valid values: english, korean_plus_english, exclusive_bilingual, any.")
             return 'english'
         }
     }
@@ -83,6 +89,53 @@ function Find-FirstDisallowedElement {
     return $null
 }
 
+# Test-KoreanWithTechTerms
+# Korean-mode branch of the exclusive_bilingual policy (issue #447).
+# Strips the four allowed ASCII containers (fenced code, inline code,
+# URLs, 한국어(English) translation form) and then rejects any residual
+# [A-Za-z] character as a bare English token.
+#
+# Strip ordering matches the bash sibling in
+# hooks/lib/validate-language.sh::validate_korean_with_tech_terms:
+#   1. Fenced code blocks.
+#   2. Inline code.
+#   3. URLs.
+#   4. 한글(English) translation form.
+#
+# Returns a PSCustomObject mirroring Test-ContentLanguage.
+function Test-KoreanWithTechTerms {
+    param(
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Text
+    )
+
+    if ([string]::IsNullOrEmpty($Text)) {
+        return [PSCustomObject]@{ Valid = $true; Policy = 'exclusive_bilingual'; Reason = '' }
+    }
+
+    $stripped = $Text
+    # 1. Fenced code blocks — (?s) makes . match newlines; non-greedy.
+    $stripped = [regex]::Replace($stripped, '(?s)```.*?```', '')
+    # 2. Inline code — single backtick, no newlines crossed.
+    $stripped = [regex]::Replace($stripped, '`[^`\n]*`', '')
+    # 3. URLs — https?:// runs of non-whitespace.
+    $stripped = [regex]::Replace($stripped, 'https?://\S+', '')
+    # 4. 한글(English) translation form — Hangul run followed by optional
+    #    whitespace and a parenthesized ASCII expression on one line.
+    $stripped = [regex]::Replace($stripped, '[가-힣]+\s*\([^)\n]*\)', '')
+
+    $m = [regex]::Match($stripped, '[A-Za-z]+')
+    if ($m.Success) {
+        $sample = $m.Value
+        return [PSCustomObject]@{
+            Valid  = $false
+            Policy = 'exclusive_bilingual'
+            Reason = "Korean-mode policy violation: bare English token '$sample' detected. Wrap in backticks or use the '한국어(English)' form. CLAUDE_CONTENT_LANGUAGE=exclusive_bilingual requires document-level language exclusivity."
+        }
+    }
+
+    return [PSCustomObject]@{ Valid = $true; Policy = 'exclusive_bilingual'; Reason = '' }
+}
+
 # Test-ContentLanguage
 # Returns a PSCustomObject with:
 #   Valid  [bool]   - $true when the text satisfies the resolved policy
@@ -102,6 +155,18 @@ function Test-ContentLanguage {
             Policy = $policy
             Reason = ''
         }
+    }
+
+    # exclusive_bilingual routes per-document based on Hangul presence
+    # (see issue #447). Delegate to the helpers before the generic
+    # character whitelist path below.
+    if ($policy -eq 'exclusive_bilingual') {
+        if ($Text -match '[가-힣]') {
+            return Test-KoreanWithTechTerms -Text $Text
+        }
+        # No Hangul — validate as english. Reuse the whitelist path
+        # below by dropping through with a forced english policy.
+        $policy = 'english'
     }
 
     $bad = Find-FirstDisallowedElement -Text $Text -Policy $policy
@@ -184,6 +249,7 @@ Export-ModuleMember -Function @(
     'Get-ContentLanguagePolicy'
     'Test-CodePointAllowed'
     'Find-FirstDisallowedElement'
+    'Test-KoreanWithTechTerms'
     'Test-ContentLanguage'
     'Test-CommitDescriptionFirstChar'
 )

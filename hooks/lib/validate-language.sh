@@ -89,10 +89,52 @@ validate_english_or_korean() {
     return 0
 }
 
+# validate_korean_with_tech_terms <text>
+# Returns 0 on valid, 1 on invalid. On failure, prints reason to stderr.
+#
+# Korean-mode branch of the exclusive_bilingual policy (issue #447). The
+# rule: after stripping the four allowed ASCII containers below, the
+# residual text must contain zero [A-Za-z] characters. Bare English
+# tokens inline with Korean prose are rejected with a remediation hint.
+#
+# Allowed ASCII containers (strip in this order — see issue #447):
+#   1. Fenced code blocks — triple backticks.
+#   2. Inline code — single backticks.
+#   3. URLs — https?://... runs of non-whitespace.
+#   4. Parenthesized ASCII immediately preceded by a Hangul run —
+#      the 한국어(English) translation form.
+#
+# Strip ordering matters: fenced first so nested backticks inside fences
+# are not mis-stripped; then inline code so parenthesized content inside
+# backticks is preserved inside the code; then URLs; finally the
+# translation form.
+validate_korean_with_tech_terms() {
+    local text="$1"
+    [ -z "$text" ] && return 0
+
+    local stripped
+    stripped=$(printf '%s' "$text" | perl -CSDA -0777 -pe '
+        s/```[\s\S]*?```//g;
+        s/`[^`\n]*`//g;
+        s{https?://\S+}{}g;
+        s/[\x{AC00}-\x{D7A3}]+\s*\([^)\n]*\)//g;
+    ' 2>/dev/null)
+
+    if printf '%s' "$stripped" | LC_ALL=C grep -qE '[A-Za-z]'; then
+        local sample
+        sample=$(printf '%s' "$stripped" | LC_ALL=C grep -oE '[A-Za-z]+' | head -n1)
+        echo "Korean-mode policy violation: bare English token '$sample' detected. Wrap in backticks or use the '한국어(English)' form. CLAUDE_CONTENT_LANGUAGE=exclusive_bilingual requires document-level language exclusivity." >&2
+        return 1
+    fi
+    return 0
+}
+
 # validate_content_language <text>
 # Dispatcher — selects the validator based on CLAUDE_CONTENT_LANGUAGE:
 #   - english (default, unset, or empty) → validate_english_only
 #   - korean_plus_english → validate_english_or_korean
+#   - exclusive_bilingual → english_only when text has no Hangul syllables,
+#                           otherwise validate_korean_with_tech_terms
 #   - any → skip validation (always returns 0)
 #
 # NOTE: This dispatcher does NOT control AI/Claude attribution enforcement.
@@ -110,11 +152,21 @@ validate_content_language() {
         korean_plus_english)
             validate_english_or_korean "$text"
             ;;
+        exclusive_bilingual)
+            # Hangul syllable detection routes the document to the
+            # appropriate mode. No Hangul = English mode = strict ASCII
+            # whitelist. Any Hangul = Korean mode = strip-then-scan.
+            if printf '%s' "$text" | perl -CSDA -ne 'exit 1 if /[\x{AC00}-\x{D7A3}]/' 2>/dev/null; then
+                validate_english_only "$text"
+            else
+                validate_korean_with_tech_terms "$text"
+            fi
+            ;;
         any)
             return 0
             ;;
         *)
-            echo "CLAUDE_CONTENT_LANGUAGE has unknown value '$policy'. Valid values: english, korean_plus_english, any." >&2
+            echo "CLAUDE_CONTENT_LANGUAGE has unknown value '$policy'. Valid values: english, korean_plus_english, exclusive_bilingual, any." >&2
             validate_english_only "$text"
             ;;
     esac

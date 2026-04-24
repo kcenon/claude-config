@@ -70,7 +70,35 @@ echo ""
 echo "[empty input always valid]"
 run_case "english + empty"                       0 "english" validate_content_language ""
 run_case "korean_plus_english + empty"           0 "korean_plus_english" validate_content_language ""
+run_case "exclusive_bilingual + empty"           0 "exclusive_bilingual" validate_content_language ""
 run_case "any + empty"                           0 "any"     validate_content_language ""
+
+echo ""
+echo "[exclusive_bilingual policy — issue #447 accept/reject matrix]"
+# English-mode branch (no Hangul syllable → validate_english_only applies).
+run_case "excl: pure ASCII accepted (english mode)" 0 "exclusive_bilingual" validate_content_language "Add a new feature via gh pr create"
+run_case "excl: pure ASCII rejects accented Latin"  1 "exclusive_bilingual" validate_content_language "naive cafe that is naïve"
+
+# Korean-mode branch (Hangul present → validate_korean_with_tech_terms).
+# Reject rows from issue #447 matrix.
+run_case "excl: 'PR을 만든다' rejected"              1 "exclusive_bilingual" validate_content_language "PR을 만든다"
+run_case "excl: '/pr-work 를 실행' rejected"         1 "exclusive_bilingual" validate_content_language "/pr-work 를 실행"
+run_case "excl: 'GitHub Actions에서' rejected"       1 "exclusive_bilingual" validate_content_language "GitHub Actions에서"
+run_case "excl: '버전 v1.10.0 배포' rejected"       1 "exclusive_bilingual" validate_content_language "버전 v1.10.0 배포"
+
+# Accept rows from issue #447 matrix.
+run_case "excl: '훅(hook)을 설치' accepted"          0 "exclusive_bilingual" validate_content_language "훅(hook)을 설치"
+run_case "excl: URL reference accepted"              0 "exclusive_bilingual" validate_content_language "https://example.com 참조"
+run_case "excl: backtick-wrapped token accepted"     0 "exclusive_bilingual" validate_content_language "이슈 \`#247\` 참조"
+
+# Fenced-code block strip.
+run_case "excl: fenced-code block accepted"          0 "exclusive_bilingual" validate_content_language "한국어 설명
+
+\`\`\`bash
+echo hello
+\`\`\`
+
+끝"
 
 echo ""
 echo "[unknown policy falls back to english]"

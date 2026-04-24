@@ -32,6 +32,7 @@ TEMPLATE_PAIRS=(
 declare -A PHRASE
 PHRASE[english]="English"
 PHRASE[korean_plus_english]="English or Korean"
+PHRASE[exclusive_bilingual]="English or Korean (document-exclusive)"
 PHRASE[any]="any language"
 
 PASS=0
