@@ -11,7 +11,13 @@ on:
       - 'plugin/hooks/**'
       - 'scripts/install.sh'
       - 'scripts/install.ps1'
+      - 'scripts/install-manifest.sh'
+      - 'scripts/install-manifest.ps1'
+      - 'bootstrap.sh'
+      - 'bootstrap.ps1'
       - 'tests/scripts/test-plugin-*.sh'
+      - 'tests/scripts/test-install-manifest-helpers.*'
+      - 'tests/scripts/test-install-permissions-policy.sh'
 
 jobs:
   test:
@@ -61,6 +67,16 @@ jobs:
         # Validates probe-driven per-hook stand-down plus failure modes
         # (unknown schema, malformed JSON, missing key).
         run: bash tests/scripts/test-plugin-fallback.sh
+
+      - name: Run install manifest helper tests
+        run: bash tests/scripts/test-install-manifest-helpers.sh
+
+      - name: Run install manifest helper tests (PowerShell)
+        run: pwsh tests/scripts/test-install-manifest-helpers.ps1
+
+      - name: Run install permissions policy lint
+        # Lint test: install.sh must enforce 700 / 600 / 644 on tracked files.
+        run: bash tests/scripts/test-install-permissions-policy.sh
 
   shellcheck:
     runs-on: ${{ matrix.os }}
