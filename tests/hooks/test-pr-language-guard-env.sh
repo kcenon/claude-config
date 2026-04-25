@@ -170,9 +170,66 @@ assert_decision \
     "$(run_hook "english" "echo 한국어")"
 
 assert_decision \
-    "gh commands outside pr|issue scope allowed" \
+    "gh commands outside the artifact scope allowed" \
     "allow" \
     "$(run_hook "english" "gh repo view")"
+
+# ---------------------------------------------------------------------------
+# Extended scope: gh pr review (review-thread comment body)
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== gh pr review --body coverage ==="
+
+assert_decision \
+    "english: gh pr review ASCII body allowed" \
+    "allow" \
+    "$(run_hook "english" "gh pr review 42 --comment --body \"LGTM, looks good\"")"
+
+assert_decision \
+    "english: gh pr review Hangul body denied" \
+    "deny" \
+    "$(run_hook "english" "gh pr review 42 --comment --body \"리뷰 의견\"")"
+
+assert_decision \
+    "korean_plus_english: gh pr review Hangul body allowed" \
+    "allow" \
+    "$(run_hook "korean_plus_english" "gh pr review 42 --request-changes --body \"수정 필요\"")"
+
+# ---------------------------------------------------------------------------
+# Extended scope: gh release create / edit (release notes + title)
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== gh release coverage ==="
+
+assert_decision \
+    "english: gh release create ASCII notes allowed" \
+    "allow" \
+    "$(run_hook "english" "gh release create v1.0.0 --notes \"Initial release\"")"
+
+assert_decision \
+    "english: gh release create Hangul notes denied" \
+    "deny" \
+    "$(run_hook "english" "gh release create v1.0.0 --notes \"초기 릴리스\"")"
+
+assert_decision \
+    "english: gh release create Hangul title denied" \
+    "deny" \
+    "$(run_hook "english" "gh release create v1.0.0 --title \"릴리스\" --notes \"ASCII notes\"")"
+
+assert_decision \
+    "english: gh release edit Hangul notes denied" \
+    "deny" \
+    "$(run_hook "english" "gh release edit v1.0.0 --notes \"수정된 노트\"")"
+
+assert_decision \
+    "any --notes-file is skipped (cannot validate file content here)" \
+    "allow" \
+    "$(run_hook "english" "gh release create v1.0.0 --notes-file CHANGELOG.md")"
+
+assert_decision \
+    "korean_plus_english: gh release create Hangul notes allowed" \
+    "allow" \
+    "$(run_hook "korean_plus_english" "gh release create v1.0.0 --notes \"한국어 릴리스 노트\"")"
 
 # ---------------------------------------------------------------------------
 # Summary

@@ -97,17 +97,11 @@ create_local_claude() {
     fi
 }
 
-# 함수: 정책 phrase 반환 (install-time substitution용, issue #411)
-# CLAUDE_CONTENT_LANGUAGE 값에 매핑되는 짧은 phrase를 반환합니다.
-get_policy_phrase() {
-    case "${CONTENT_LANGUAGE:-english}" in
-        english)             echo "English" ;;
-        korean_plus_english) echo "English or Korean" ;;
-        exclusive_bilingual) echo "English or Korean (document-exclusive)" ;;
-        any)                 echo "any language" ;;
-        *)                   echo "English" ;;
-    esac
-}
+# Note: get_policy_phrase is provided by scripts/lib/install-prompts.sh,
+# which is sourced before any callers (the prompt section sources it
+# explicitly; render_policy_tmpl below depends on it). Kept centralized
+# in the lib so the bash, PowerShell, and drift-test definitions stay
+# in lockstep.
 
 # 함수: .tmpl 파일을 읽어 {{CONTENT_LANGUAGE_POLICY}}를 phrase로 치환한 뒤 대상에 기록
 # 사용법: render_policy_tmpl <src.tmpl> <dest.md>
@@ -264,47 +258,22 @@ echo ""
 read -p "선택 (1-5) [기본값: 3]: " INSTALL_TYPE
 INSTALL_TYPE=${INSTALL_TYPE:-3}
 
-# Content language policy selection (CLAUDE_CONTENT_LANGUAGE)
-# Only the Global / Enterprise install paths touch settings.json.
-# Default "english" matches the dispatcher default and leaves settings.json untouched.
-echo ""
-info "Select content-language policy (commit / PR / issue validation scope):"
-echo "  1) English (Default, identical to current behavior)"
-echo "  2) Korean + English (Allows Hangul, inline mixing permitted)"
-echo "  3) Exclusive bilingual (English or Korean per document, no inline mixing)"
-echo "  4) Any (No language validation — AI attribution block maintained)"
-echo ""
-read -p "Selection (1-4) [default: 1]: " LANG_TYPE
-LANG_TYPE=${LANG_TYPE:-1}
+# Language selection prompts. Single source of truth in scripts/lib/install-prompts.sh
+# (mirrored by scripts/lib/InstallPrompts.psm1 for PowerShell). The simplified UI
+# offers English/Korean only; advanced policies (korean_plus_english, any) remain
+# accepted by the validator but must be set via direct settings.json edit.
+# Only the Global / Enterprise install paths touch settings.json; "english" leaves
+# the dispatcher at its default and skips writing settings.json.
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/install-prompts.sh"
+prompt_content_language
+prompt_agent_language
 
-case "$LANG_TYPE" in
-    1) CONTENT_LANGUAGE="english" ;;
-    2) CONTENT_LANGUAGE="korean_plus_english" ;;
-    3) CONTENT_LANGUAGE="exclusive_bilingual" ;;
-    4) CONTENT_LANGUAGE="any" ;;
-    *)
-        warning "Unknown selection: $LANG_TYPE. Falling back to english."
-        CONTENT_LANGUAGE="english"
-        ;;
-esac
-
-# Agent Conversation Language selection
-echo ""
-info "Select Agent Conversation Language:"
-echo "  1) English"
-echo "  2) Korean"
-echo ""
-read -p "Selection (1-2) [default: 2]: " AGENT_LANG_TYPE
-AGENT_LANG_TYPE=${AGENT_LANG_TYPE:-2}
-
-case "$AGENT_LANG_TYPE" in
-    1) AGENT_LANGUAGE="english" ;;
-    2) AGENT_LANGUAGE="korean" ;;
-    *)
-        warning "Unknown selection: $AGENT_LANG_TYPE. Falling back to korean."
-        AGENT_LANGUAGE="korean"
-        ;;
-esac
+# Legacy settings.json migration warning (informational only).
+# If the existing settings.json holds a CLAUDE_CONTENT_LANGUAGE value the
+# simplified UI no longer surfaces (korean_plus_english, any), warn the
+# operator before the new selection overwrites it.
+warn_legacy_settings_value "$HOME/.claude/settings.json" || true
 
 # Enterprise CLAUDE.md 충돌 감지 (issue #411)
 # Enterprise 정책 경로는 Claude Code에서 최상위 우선순위를 가집니다 (install.sh:122-124 참조).
@@ -365,16 +334,21 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     done
 
     # conversation-language.md 템플릿 렌더링
+    # AGENT_DISPLAY_LANG is populated by prompt_agent_language() in
+    # scripts/lib/install-prompts.sh; fall back if the prompt was skipped
+    # (e.g. project-only install path).
     if [ -f "$BACKUP_DIR/global/conversation-language.md.tmpl" ]; then
-        if [ "$AGENT_LANGUAGE" = "english" ]; then
-            DISPLAY_LANG="English"
-        else
-            DISPLAY_LANG="Korean"
+        if [ -z "${AGENT_DISPLAY_LANG:-}" ]; then
+            if [ "${AGENT_LANGUAGE:-korean}" = "english" ]; then
+                AGENT_DISPLAY_LANG="English"
+            else
+                AGENT_DISPLAY_LANG="Korean"
+            fi
         fi
-        
-        if guarded_template_copy "$BACKUP_DIR/global/conversation-language.md.tmpl" "$HOME/.claude/conversation-language.md" "conversation-language.md" "$DISPLAY_LANG"; then
+
+        if guarded_template_copy "$BACKUP_DIR/global/conversation-language.md.tmpl" "$HOME/.claude/conversation-language.md" "conversation-language.md" "$AGENT_DISPLAY_LANG"; then
             chmod 644 "$HOME/.claude/conversation-language.md"
-            success "conversation-language.md 설치됨 (언어: $DISPLAY_LANG)"
+            success "conversation-language.md 설치됨 (언어: $AGENT_DISPLAY_LANG)"
         else
             info "conversation-language.md 로컬 변경 유지"
         fi

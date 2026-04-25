@@ -4,19 +4,26 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'lib' 'LanguageValidator.psm1') -Force
 
 # pr-language-guard.ps1
-# Blocks gh pr/issue create|edit|comment commands whose --title or --body
-# violates the resolved CLAUDE_CONTENT_LANGUAGE policy.
+# Blocks gh commands that publish artifacts (PRs, issues, comments,
+# reviews, releases) when their text content violates the resolved
+# CLAUDE_CONTENT_LANGUAGE policy.
 # Hook Type: PreToolUse (Bash)
 # Exit codes: 0 (always - decision is in JSON)
 # Response format: hookSpecificOutput with hookEventName
+#
+# Coverage:
+#   gh pr      create | edit | comment | review     (--title, --body)
+#   gh issue   create | edit | comment              (--title, --body)
+#   gh release create | edit                        (--title, --notes)
 #
 # Enforces the content-language rule from commit-settings.md. Default
 # policy ("english", when CLAUDE_CONTENT_LANGUAGE is unset) matches the
 # pre-dispatcher behavior byte-for-byte. See issue #410 for the dispatcher
 # design.
 #
-# NOTE: --body using $(...) substitution, heredocs, or --body-file is
-# not parseable at this layer and the hook returns "allow" for those.
+# NOTE: text using $(...) substitution, heredocs, or *-file references
+# (--body-file, --notes-file) is not parseable at this layer and the
+# hook returns "allow" for those cases.
 
 # Extracts the value for a given long/short flag from a shell command string.
 # Tries double-quoted then single-quoted forms; supports --flag value,
@@ -67,33 +74,38 @@ if (-not $CMD) {
     exit 0
 }
 
-# Scope gate: only check 'gh (pr|issue) (create|edit|comment)' commands
-if ($CMD -notmatch 'gh\s+(pr|issue)\s+(create|edit|comment)') {
+# Scope gate: gh commands that publish artifact text. Three families:
+#   gh (pr|issue) (create|edit|comment)
+#   gh pr review            (review-thread comment body)
+#   gh release (create|edit) (release notes + title)
+$scopePattern = 'gh\s+(pr|issue)\s+(create|edit|comment)|gh\s+pr\s+review|gh\s+release\s+(create|edit)'
+if ($CMD -notmatch $scopePattern) {
     New-HookAllowResponse
     exit 0
 }
 
 # Skip command-substitution / heredoc bodies — cannot parse reliably
-if ($CMD -match '(?:--body|-b|--title|-t)[\s=]+"\$\(') {
+if ($CMD -match '(?:--body|-b|--title|-t|--notes|-n)[\s=]+"\$\(') {
     New-HookAllowResponse
     exit 0
 }
 
-# Skip --body-file references — content lives in a separate file
-if ($CMD -match '--body-file[\s=]+') {
+# Skip *-file references — content lives in a separate file
+if ($CMD -match '(?:--body-file|--notes-file|-F)[\s=]+') {
     New-HookAllowResponse
     exit 0
 }
 
-# Extract title and body
+# Extract title, body, and notes (release notes for gh release create/edit)
 $title = Get-FlagValue -Command $CMD -LongFlag '--title' -ShortFlag '-t'
 $body  = Get-FlagValue -Command $CMD -LongFlag '--body'  -ShortFlag '-b'
+$notes = Get-FlagValue -Command $CMD -LongFlag '--notes' -ShortFlag '-n'
 
 # Validate title
 if ($title) {
     $result = Test-ContentLanguage -Text $title
     if (-not $result.Valid) {
-        New-HookDenyResponse -Reason "PR/issue --title rejected: $($result.Reason)"
+        New-HookDenyResponse -Reason "gh artifact --title rejected: $($result.Reason)"
         exit 0
     }
 }
@@ -102,7 +114,16 @@ if ($title) {
 if ($body) {
     $result = Test-ContentLanguage -Text $body
     if (-not $result.Valid) {
-        New-HookDenyResponse -Reason "PR/issue --body rejected: $($result.Reason)"
+        New-HookDenyResponse -Reason "gh artifact --body rejected: $($result.Reason)"
+        exit 0
+    }
+}
+
+# Validate notes (release notes)
+if ($notes) {
+    $result = Test-ContentLanguage -Text $notes
+    if (-not $result.Valid) {
+        New-HookDenyResponse -Reason "gh release --notes rejected: $($result.Reason)"
         exit 0
     }
 }

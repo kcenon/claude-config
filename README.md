@@ -68,7 +68,7 @@ Install claude-config and Claude Code immediately gains these capabilities:
 
 **Commit quality** — Broken markdown links, AI attribution, and non-conventional commit messages are caught before they reach your repository.
 
-**Configurable content language** — Pick at install time whether commit messages, PR bodies, and documentation are restricted to English, English + Korean (Hangul), or unrestricted (`CLAUDE_CONTENT_LANGUAGE=english|korean_plus_english|any`). Default preserves the previous English-only behavior.
+**Configurable content language** — Pick at install time whether commit messages, PR bodies, and documentation are written in English (ASCII only) or Korean (per-artifact strict, no inline mixing). The two-option installer prompt maps to `CLAUDE_CONTENT_LANGUAGE=english|exclusive_bilingual`; advanced legacy values (`korean_plus_english`, `any`) remain available via direct `settings.json` edit.
 
 **Code quality on demand** — `/security-audit`, `/performance-review`, `/code-quality`, and `/pr-review` provide specialized analysis when you need it.
 
@@ -440,13 +440,19 @@ These behaviors activate immediately after installation — no configuration nee
 
 ### Content Language Policy
 
-Both installers (`install.sh` and `install.ps1`) prompt for a content-language policy after the installation-type selection. The choice is written to `~/.claude/settings.json` under `env.CLAUDE_CONTENT_LANGUAGE` and controls what the language validators accept at runtime.
+Both installers (`install.sh` and `install.ps1`) prompt for a content-language policy after the installation-type selection. The simplified UI offers two choices that map to fixed-language guarantees for artifacts:
 
-| Value | Validator accepts | Rule-document phrase |
-|-------|-------------------|----------------------|
-| `english` (default) | ASCII printable + whitespace only | `English` |
-| `korean_plus_english` | ASCII + Hangul Syllables / Jamo / Compat Jamo | `English or Korean` |
-| `any` | Skip language validation | `any language` |
+| UI choice | `CLAUDE_CONTENT_LANGUAGE` value | Validator accepts | Rule-document phrase |
+|-----------|----------------------------------|-------------------|----------------------|
+| English (default) | `english` | ASCII printable + whitespace only | `English` |
+| Korean | `exclusive_bilingual` | Per-artifact: English-only OR Korean-only with limited ASCII containers, no inline mixing | `English or Korean (document-exclusive)` |
+
+The validator additionally accepts two legacy values that are **not surfaced in the UI** — set them via direct `settings.json` edit if needed:
+
+| Legacy value | When to use | Validator accepts |
+|--------------|-------------|-------------------|
+| `korean_plus_english` | Pre-issue-#447 installs that rely on inline mixing | ASCII + Hangul Syllables / Jamo / Compat Jamo |
+| `any` | OSS repositories accepting any language | Skip language validation entirely |
 
 The installer substitutes the chosen phrase into three rule-document templates (`global/commit-settings.md.tmpl`, `project/.claude/rules/core/communication.md.tmpl`, `project/.claude/rules/workflow/git-commit-format.md.tmpl`) so the documented rule matches the validator behavior.
 

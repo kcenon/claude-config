@@ -5,19 +5,120 @@
 > for human readers but does not consume Claude's context budget.
 
 This repository's content-language enforcement is configurable per install.
-The `CLAUDE_CONTENT_LANGUAGE` environment variable selects one of three
-policies; the installer writes the chosen value into
+The `CLAUDE_CONTENT_LANGUAGE` environment variable selects the active
+policy; the installer writes the chosen value into
 `~/.claude/settings.json` and renders the corresponding policy phrase into
 the three rule documents that describe the rule to humans and to Claude.
 
-## Policies
+## Installer UI (simplified)
 
-| Value | Validator behavior | Rule document phrase |
-|-------|--------------------|----------------------|
-| `english` (default, unset, empty) | ASCII printable + whitespace only | `English` |
-| `korean_plus_english` | ASCII + Hangul Syllables / Jamo / Compat Jamo | `English or Korean` |
-| `exclusive_bilingual` | Per-document mode: English-only (if no Hangul) or Korean-only with ASCII permitted inside four allowed containers (if any Hangul syllable present) | `English or Korean (document-exclusive)` |
-| `any` | Skip language validation entirely | `any language` |
+Both `bootstrap.{sh,ps1}` and `scripts/install.{sh,ps1}` present a
+two-option prompt that maps directly to a fixed-language guarantee for
+artifacts (commits, PRs, issues, comments, generated documents):
+
+| UI choice | `CLAUDE_CONTENT_LANGUAGE` value | Guarantee |
+|-----------|----------------------------------|-----------|
+| English | `english` | All artifacts in English (ASCII only, Hangul rejected) |
+| Korean  | `exclusive_bilingual` | Each artifact is either English-only or Korean-only — no inline mixing |
+
+The simplified UI lives in a single source of truth at
+`scripts/lib/install-prompts.sh` (bash) and
+`scripts/lib/InstallPrompts.psm1` (PowerShell). Both files mirror each
+other byte-for-byte for prompt strings and value mappings; both bash
+installers and both PowerShell installers `source` / `Import-Module`
+this single library, so prompt edits cannot drift between the four
+entry points.
+
+### Asymmetric defaults
+
+The Content Language prompt defaults to **English** (option 1), while the
+Agent Conversation Language prompt defaults to **Korean** (option 2).
+This asymmetry is intentional: the most common configuration for Korean
+operators in this codebase is "Claude responds in Korean, but artifacts
+ship in English." With these defaults, pressing Enter twice during a
+fresh install lands directly on that combination, requiring no extra
+keystrokes for the common case while still letting English-only
+operators take the same path with two `1` keystrokes.
+
+### Drift guards
+
+Two regression tests enforce that the installer prompts and the policy
+phrase table never drift:
+
+- `tests/scripts/test-installer-prompt-drift.sh` — compares the bash lib
+  and the PowerShell module on canonical policy values, the
+  policy → phrase mapping, the legacy classification, and the prompt
+  defaults. Wired into `.github/workflows/validate-hooks.yml`.
+- `tests/scripts/test-language-policy-drift.sh` — verifies that each
+  rule document `.md` matches its `.tmpl` rendered with the english
+  phrase, and that every CLAUDE_CONTENT_LANGUAGE value renders
+  deterministically. Sources `install-prompts.sh` so it cannot drift
+  from the installer phrase table.
+
+### Legacy migration warning
+
+When the installer detects an existing `~/.claude/settings.json` whose
+`CLAUDE_CONTENT_LANGUAGE` is one of the legacy values
+(`korean_plus_english`, `any`), it prints an informational warning
+explaining that the simplified UI no longer surfaces that value and
+that the new selection will replace it. Operators who want to keep the
+legacy value cancel the installer and edit `settings.json` directly.
+
+## Hook coverage (gh artifact gate)
+
+The `pr-language-guard.{sh,ps1}` PreToolUse hook intercepts every
+`gh` invocation that would publish artifact text to GitHub, validating
+the `--title`, `--body`, and `--notes` arguments against the resolved
+policy before the command reaches the API.
+
+| `gh` command surface | Validated argument(s) | Notes |
+|-----------------------|------------------------|-------|
+| `gh pr      create \| edit`           | `--title`, `--body`         | |
+| `gh pr      comment`                  | `--body`                    | |
+| `gh pr      review`                   | `--body`                    | review-thread comment |
+| `gh issue   create \| edit`           | `--title`, `--body`         | |
+| `gh issue   comment`                  | `--body`                    | |
+| `gh release create \| edit`           | `--title`, `--notes`        | release notes |
+
+Out-of-scope `gh` commands (no artifact text — `view`, `list`, `merge`,
+`checkout`, `release delete`, `release upload`, etc.) bypass the hook.
+
+### Parsing limits
+
+The hook returns `allow` for arguments it cannot reliably parse at the
+shell layer. These cases defer to other safeguards (server-side review,
+the `commit-msg` hook for committed content):
+
+- `$(...)` command substitution inside `--body`/`--title`/`--notes`
+- Heredoc bodies
+- File references: `--body-file`, `--notes-file`, `-F` (release notes file)
+
+### Direct API bypass
+
+`gh api` is not in the default `settings.json` allowlist. Calls to
+`gh api` therefore require explicit per-invocation user permission,
+which provides a stronger gate than the hook would. The hook does not
+attempt to parse `gh api` arguments.
+
+## Policies (full validator surface)
+
+The validator continues to accept four values for backward compatibility
+with existing installs and for advanced users. Two of them
+(`korean_plus_english`, `any`) are **not surfaced in the installer UI**
+and must be set by editing `~/.claude/settings.json` directly.
+
+| Value | Surfaced in UI | Validator behavior | Rule document phrase |
+|-------|----------------|--------------------|----------------------|
+| `english` (default, unset, empty) | yes | ASCII printable + whitespace only | `English` |
+| `exclusive_bilingual` | yes (Korean) | Per-document mode: English-only (if no Hangul) or Korean-only with ASCII permitted inside four allowed containers (if any Hangul syllable present) | `English or Korean (document-exclusive)` |
+| `korean_plus_english` | no (advanced) | ASCII + Hangul Syllables / Jamo / Compat Jamo, inline mixing permitted | `English or Korean` |
+| `any` | no (advanced) | Skip language validation entirely | `any language` |
+
+The two advanced policies are retained because (a) `korean_plus_english`
+preserves backward compatibility with installs that pre-date the
+`exclusive_bilingual` rollout (issue #447), and (b) `any` is the
+documented escape hatch for OSS repositories that accept contributions
+in any language. Attribution enforcement is unaffected by both.
 
 Attribution enforcement is **not** governed by this env var.
 `attribution-guard.{sh,ps1}` and the attribution checks inside

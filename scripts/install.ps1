@@ -82,17 +82,10 @@ function New-LocalClaude {
     }
 }
 
-function Get-PolicyPhrase {
-    # Issue #411: map CLAUDE_CONTENT_LANGUAGE value to a short phrase.
-    # Reads the script-scope $contentLanguage set after the install-type prompt.
-    switch ($script:contentLanguage) {
-        'english'             { return 'English' }
-        'korean_plus_english' { return 'English or Korean' }
-        'exclusive_bilingual' { return 'English or Korean (document-exclusive)' }
-        'any'                 { return 'any language' }
-        default               { return 'English' }
-    }
-}
+# Note: Get-PolicyPhrase is provided by scripts/lib/InstallPrompts.psm1
+# which is imported in the language-prompt section below. The local
+# definition was removed to keep the bash, PowerShell, and drift-test
+# tables in lockstep.
 
 function Invoke-PolicyTemplate {
     # Renders a .md.tmpl file by replacing {{CONTENT_LANGUAGE_POLICY}}
@@ -101,8 +94,8 @@ function Invoke-PolicyTemplate {
         [Parameter(Mandatory)][string]$Source,
         [Parameter(Mandatory)][string]$Destination
     )
-    $phrase = Get-PolicyPhrase
-    
+    $phrase = Get-PolicyPhrase -Policy $script:contentLanguage
+
     # Note: Agent language substitution is handled by Invoke-GuardedTemplateCopy.
 
     $content = [System.IO.File]::ReadAllText($Source)
@@ -251,48 +244,23 @@ Write-Host ""
 $installType = Read-Host "Selection (1-5) [default: 3]"
 if ([string]::IsNullOrEmpty($installType)) { $installType = '3' }
 
-# ── Content language policy (CLAUDE_CONTENT_LANGUAGE) ─────────
-# Default "english" preserves current behavior byte-for-byte. The
-# dispatcher falls back to english when the env var is unset, so we skip
-# writing settings.json at all for option 1.
-Write-Host ""
-Write-Info "Select content-language policy (commit / PR / issue validation scope):"
-Write-Host "  1) English (Default, identical to current behavior)"
-Write-Host "  2) Korean + English (Allows Hangul, inline mixing permitted)"
-Write-Host "  3) Exclusive bilingual (English or Korean per document, no inline mixing)"
-Write-Host "  4) Any (No language validation — AI attribution block maintained)"
-Write-Host ""
+# ── Language selection prompts ────────────────────────────────
+# Single source of truth in scripts/lib/InstallPrompts.psm1 (mirrored by
+# scripts/lib/install-prompts.sh for bash). The simplified UI offers
+# English/Korean only; advanced policies (korean_plus_english, any) remain
+# accepted by the validator but must be set via direct settings.json edit.
+# Only the Global / Enterprise install paths touch settings.json; "english"
+# leaves the dispatcher at its default and skips writing settings.json.
+$promptsModule = Join-Path $ScriptDir 'lib' 'InstallPrompts.psm1'
+Import-Module $promptsModule -Force -DisableNameChecking
 
-$langType = Read-Host "Selection (1-4) [default: 1]"
-if ([string]::IsNullOrEmpty($langType)) { $langType = '1' }
-switch ($langType) {
-    '1'     { $contentLanguage = 'english' }
-    '2'     { $contentLanguage = 'korean_plus_english' }
-    '3'     { $contentLanguage = 'exclusive_bilingual' }
-    '4'     { $contentLanguage = 'any' }
-    default {
-        Write-Warn "Unknown selection: $langType. Using english."
-        $contentLanguage = 'english'
-    }
-}
+$contentLanguage = Show-ContentLanguagePrompt
+$agentChoice = Show-AgentLanguagePrompt
+$agentLanguage = $agentChoice.Language
+$agentDisplayLang = $agentChoice.Display
 
-# ── Agent Conversation Language ──────────────────────────────────
-Write-Host ""
-Write-Info "Select Agent Conversation Language:"
-Write-Host "  1) English"
-Write-Host "  2) Korean"
-Write-Host ""
-
-$agentLangType = Read-Host "Selection (1-2) [default: 2]"
-if ([string]::IsNullOrEmpty($agentLangType)) { $agentLangType = '2' }
-switch ($agentLangType) {
-    '1'     { $agentLanguage = 'english' }
-    '2'     { $agentLanguage = 'korean' }
-    default {
-        Write-Warn "Unknown selection: $agentLangType. Using korean."
-        $agentLanguage = 'korean'
-    }
-}
+# Legacy settings.json migration warning (informational only).
+$null = Show-LegacySettingsWarning -SettingsPath (Join-Path $HOME '.claude/settings.json') -NewSelection $contentLanguage
 
 # ── Enterprise CLAUDE.md conflict detection (issue #411) ───────
 # Enterprise policy takes the highest precedence; warn when the chosen
@@ -355,7 +323,7 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
             $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "policy_$([guid]::NewGuid()).md"
             Invoke-PolicyTemplate -Source $srcTmpl -Destination $tmpFile
             if (Invoke-GuardedCopy -Src $tmpFile -Dest (Join-Path $claudeDir $gf) -Key $gf) {
-                Write-Success "$gf installed (policy phrase: $(Get-PolicyPhrase))"
+                Write-Success "$gf installed (policy phrase: $(Get-PolicyPhrase -Policy $script:contentLanguage))"
             } else {
                 Write-Info "$gf local changes preserved"
             }
@@ -369,17 +337,18 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         }
     }
 
-    # conversation-language.md template rendering
+    # conversation-language.md template rendering.
+    # $agentDisplayLang is populated by Show-AgentLanguagePrompt; fall
+    # back to deriving from $agentLanguage if the prompt was skipped
+    # (e.g. project-only install path).
     $tmplPath = Join-Path $BackupDir "global/conversation-language.md.tmpl"
     if (Test-Path $tmplPath) {
-        if ($agentLanguage -eq 'english') {
-            $displayLang = "English"
-        } else {
-            $displayLang = "Korean"
+        if (-not $agentDisplayLang) {
+            $agentDisplayLang = if ($agentLanguage -eq 'english') { 'English' } else { 'Korean' }
         }
-        
-        if (Invoke-GuardedTemplateCopy -SrcTmpl $tmplPath -Dest (Join-Path $claudeDir "conversation-language.md") -Key "conversation-language.md" -DisplayLang $displayLang) {
-            Write-Success "conversation-language.md installed (Language: $displayLang)"
+
+        if (Invoke-GuardedTemplateCopy -SrcTmpl $tmplPath -Dest (Join-Path $claudeDir "conversation-language.md") -Key "conversation-language.md" -DisplayLang $agentDisplayLang) {
+            Write-Success "conversation-language.md installed (Language: $agentDisplayLang)"
         } else {
             Write-Info "conversation-language.md local changes preserved"
         }
@@ -628,7 +597,7 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
         Copy-Item -Path $sourceRules -Destination $projectClaudeDir -Recurse -Force
         # Issue #411: render any .md.tmpl found under rules/ with the chosen policy phrase.
         Invoke-PolicyTemplatesInDir -Path (Join-Path $projectClaudeDir 'rules')
-        Write-Success "Rules directory installed! (policy phrase: $(Get-PolicyPhrase))"
+        Write-Success "Rules directory installed! (policy phrase: $(Get-PolicyPhrase -Policy $script:contentLanguage))"
     }
 
     # Skills directory

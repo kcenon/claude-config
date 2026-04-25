@@ -1,24 +1,31 @@
 #!/bin/bash
 # pr-language-guard.sh
-# Blocks gh pr/issue create|edit|comment commands whose --title or --body
-# contains non-ASCII characters.
+# Blocks gh commands that publish artifacts (PRs, issues, comments,
+# reviews, releases) when their text content violates the resolved
+# CLAUDE_CONTENT_LANGUAGE policy.
 # Hook Type: PreToolUse (Bash)
 # Exit codes: 0 (always — decision is in JSON)
 # Response format: hookSpecificOutput with hookEventName
 #
-# Enforces the "All GitHub Issues and Pull Requests must be written in
-# English" rule from commit-settings.md. Mirrors the commit-message-guard
-# enforcement model that proved effective for commit messages: a hard hook
-# gate at the Bash tool boundary catches drift in long-running batch
-# workflows where the model occasionally lapses into non-English content.
+# Coverage:
+#   gh pr      create | edit | comment | review     (--title, --body)
+#   gh issue   create | edit | comment              (--title, --body)
+#   gh release create | edit                        (--title, --notes)
+#
+# Enforces the content-language rule from commit-settings.md. Mirrors
+# the commit-message-guard enforcement model that proved effective for
+# commit messages: a hard hook gate at the Bash tool boundary catches
+# drift in long-running batch workflows where the model occasionally
+# lapses into non-policy content.
 #
 # Sources shared validation rules from hooks/lib/validate-language.sh
 # (single source of truth — see #291).
 #
-# NOTE on parsing limits: --body arguments using $(...) command substitution,
-# heredocs, or --body-file references are not parseable at this layer.
-# In such cases the hook returns "allow" and defers to other safeguards
-# (server-side review, commit hooks for committed content).
+# NOTE on parsing limits: text arguments using $(...) command substitution,
+# heredocs, or *-file references (--body-file, --notes-file) are not
+# parseable at this layer. In such cases the hook returns "allow" and
+# defers to other safeguards (server-side review, commit hooks for
+# committed content).
 
 set -uo pipefail
 
@@ -119,17 +126,21 @@ if [ -z "$CMD" ]; then
     CMD="${CLAUDE_TOOL_INPUT:-}"
 fi
 
-# --- Scope: only validate gh pr|issue create|edit|comment commands ---
-if ! echo "$CMD" | grep -qE 'gh[[:space:]]+(pr|issue)[[:space:]]+(create|edit|comment)'; then
+# --- Scope: only validate gh commands that publish artifact text ---
+# Three command families share the gate:
+#   gh (pr|issue) (create|edit|comment)
+#   gh pr review            (review-thread comment body)
+#   gh release (create|edit) (release notes + title)
+if ! echo "$CMD" | grep -qE 'gh[[:space:]]+(pr|issue)[[:space:]]+(create|edit|comment)|gh[[:space:]]+pr[[:space:]]+review|gh[[:space:]]+release[[:space:]]+(create|edit)'; then
     allow_response
 fi
 
 # --- Skip command-substitution / heredoc / file-based bodies ---
 # These cannot be parsed reliably at the shell layer.
-if echo "$CMD" | grep -qE -- '(--body|-b|--title|-t)[[:space:]=]+"\$\('; then
+if echo "$CMD" | grep -qE -- '(--body|-b|--title|-t|--notes|-n)[[:space:]=]+"\$\('; then
     allow_response
 fi
-if echo "$CMD" | grep -qE -- '--body-file[[:space:]=]+'; then
+if echo "$CMD" | grep -qE -- '(--body-file|--notes-file|-F)[[:space:]=]+'; then
     allow_response
 fi
 
@@ -173,16 +184,22 @@ extract_quoted_value() {
 
 TITLE=$(extract_quoted_value "$CMD" "--title" "-t")
 BODY=$(extract_quoted_value "$CMD" "--body"  "-b")
+NOTES=$(extract_quoted_value "$CMD" "--notes" "-n")
 
 # --- Validate (dispatches on CLAUDE_CONTENT_LANGUAGE, default english) ---
 if [ -n "$TITLE" ]; then
     REASON=$(validate_content_language "$TITLE" 2>&1) || \
-        deny_response "PR/issue --title rejected: $REASON"
+        deny_response "gh artifact --title rejected: $REASON"
 fi
 
 if [ -n "$BODY" ]; then
     REASON=$(validate_content_language "$BODY" 2>&1) || \
-        deny_response "PR/issue --body rejected: $REASON"
+        deny_response "gh artifact --body rejected: $REASON"
+fi
+
+if [ -n "$NOTES" ]; then
+    REASON=$(validate_content_language "$NOTES" 2>&1) || \
+        deny_response "gh release --notes rejected: $REASON"
 fi
 
 allow_response

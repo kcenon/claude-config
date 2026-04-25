@@ -94,6 +94,8 @@ install_global() {
     # 설치 매니페스트 헬퍼 로드 (SHA-256 해시 기반 로컬 변경 보존)
     # shellcheck disable=SC1091
     source "$INSTALL_DIR/scripts/install-manifest.sh"
+    # shellcheck disable=SC1091
+    source "$INSTALL_DIR/scripts/lib/install-prompts.sh"
 
     # 파일 복사 (매니페스트 가드: 로컬 편집은 기본적으로 유지)
     for gf in CLAUDE.md commit-settings.md git-identity.md token-management.md; do
@@ -109,23 +111,10 @@ install_global() {
 
     # conversation-language.md 템플릿 처리
     if [ -f "$INSTALL_DIR/global/conversation-language.md.tmpl" ]; then
-        echo ""
-        info "Select Agent Conversation Language:"
-        echo "  1) English"
-        echo "  2) Korean"
-        read -p "Selection (1-2) [default: 2]: " AGENT_LANG_TYPE
-        AGENT_LANG_TYPE=${AGENT_LANG_TYPE:-2}
-        
-        if [ "$AGENT_LANG_TYPE" = "1" ]; then
-            DISPLAY_LANG="English"
-            AGENT_LANGUAGE="english"
-        else
-            DISPLAY_LANG="Korean"
-            AGENT_LANGUAGE="korean"
-        fi
+        prompt_agent_language
 
-        if guarded_template_copy "$INSTALL_DIR/global/conversation-language.md.tmpl" "$CLAUDE_DIR/conversation-language.md" "conversation-language.md" "$DISPLAY_LANG"; then
-            success "conversation-language.md 설치됨 (언어: $DISPLAY_LANG)"
+        if guarded_template_copy "$INSTALL_DIR/global/conversation-language.md.tmpl" "$CLAUDE_DIR/conversation-language.md" "conversation-language.md" "$AGENT_DISPLAY_LANG"; then
+            success "conversation-language.md 설치됨 (언어: $AGENT_DISPLAY_LANG)"
         else
             info "conversation-language.md 로컬 변경 유지"
         fi
@@ -145,22 +134,10 @@ install_global() {
     fi
 
     # Content language policy selection (CLAUDE_CONTENT_LANGUAGE)
-    echo ""
-    info "Select content-language policy (commit / PR / issue validation scope):"
-    echo "  1) English (Default, identical to current behavior)"
-    echo "  2) Korean + English (Allows Hangul, inline mixing permitted)"
-    echo "  3) Exclusive bilingual (English or Korean per document, no inline mixing)"
-    echo "  4) Any (No language validation — AI attribution block maintained)"
-    read -p "Selection (1-4) [default: 1]: " LANG_TYPE
-    LANG_TYPE=${LANG_TYPE:-1}
+    prompt_content_language
 
-    case "$LANG_TYPE" in
-        1) CONTENT_LANGUAGE="english" ;;
-        2) CONTENT_LANGUAGE="korean_plus_english" ;;
-        3) CONTENT_LANGUAGE="exclusive_bilingual" ;;
-        4) CONTENT_LANGUAGE="any" ;;
-        *) CONTENT_LANGUAGE="english" ;;
-    esac
+    # Legacy settings.json migration warning (informational only).
+    warn_legacy_settings_value "$HOME/.claude/settings.json" || true
 
     # settings.json install (Claude Code settings)
     # Intentionally bypasses guarded_copy: policy attributes (.language,
