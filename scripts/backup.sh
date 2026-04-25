@@ -88,8 +88,8 @@ if [ "$BACKUP_TYPE" = "4" ] || [ "$BACKUP_TYPE" = "5" ]; then
             warning "CLAUDE.md 없음"
         fi
 
-        if [ -d "$ENTERPRISE_DIR/rules" ]; then
-            cp -r "$ENTERPRISE_DIR/rules"/* "$TEMP_BACKUP/enterprise/rules/" 2>/dev/null || true
+        if [ -d "$ENTERPRISE_DIR/rules" ] && [ -n "$(ls -A "$ENTERPRISE_DIR/rules" 2>/dev/null)" ]; then
+            cp -r "$ENTERPRISE_DIR/rules"/* "$TEMP_BACKUP/enterprise/rules/" || error "rules 디렉토리 백업 실패"
             success "rules 디렉토리 백업됨"
         fi
     else
@@ -132,9 +132,9 @@ if [ "$BACKUP_TYPE" = "1" ] || [ "$BACKUP_TYPE" = "3" ] || [ "$BACKUP_TYPE" = "5
     fi
 
     # hooks 디렉토리 백업
-    if [ -d "$HOME/.claude/hooks" ]; then
+    if [ -d "$HOME/.claude/hooks" ] && [ -n "$(ls -A "$HOME/.claude/hooks"/*.sh 2>/dev/null)" ]; then
         mkdir -p "$TEMP_BACKUP/global/hooks"
-        cp "$HOME/.claude/hooks"/*.sh "$TEMP_BACKUP/global/hooks/" 2>/dev/null || true
+        cp "$HOME/.claude/hooks"/*.sh "$TEMP_BACKUP/global/hooks/" || error "hooks 디렉토리 백업 실패"
         success "hooks 디렉토리 백업됨"
     fi
 fi
@@ -207,25 +207,25 @@ REPLACE=${REPLACE:-y}
 
 if [ "$REPLACE" = "y" ]; then
     # enterprise 디렉토리 업데이트
-    if [ -d "$TEMP_BACKUP/enterprise" ] && [ "$(ls -A $TEMP_BACKUP/enterprise 2>/dev/null)" ]; then
+    if [ -d "$TEMP_BACKUP/enterprise" ] && [ -n "$(ls -A "$TEMP_BACKUP/enterprise" 2>/dev/null)" ]; then
         mkdir -p "$BACKUP_DIR/enterprise/rules"
         rm -rf "$BACKUP_DIR/enterprise"/*
         mkdir -p "$BACKUP_DIR/enterprise/rules"
-        cp -r "$TEMP_BACKUP/enterprise"/* "$BACKUP_DIR/enterprise/" 2>/dev/null || true
+        cp -r "$TEMP_BACKUP/enterprise"/* "$BACKUP_DIR/enterprise/" || error "Enterprise 백업 업데이트 실패"
         success "Enterprise 백업 업데이트됨"
     fi
 
     # global 디렉토리 업데이트
-    if [ -d "$TEMP_BACKUP/global" ] && [ "$(ls -A $TEMP_BACKUP/global)" ]; then
+    if [ -d "$TEMP_BACKUP/global" ] && [ -n "$(ls -A "$TEMP_BACKUP/global" 2>/dev/null)" ]; then
         rm -rf "$BACKUP_DIR/global"/*
-        cp -r "$TEMP_BACKUP/global"/* "$BACKUP_DIR/global/" 2>/dev/null || true
+        cp -r "$TEMP_BACKUP/global"/* "$BACKUP_DIR/global/" || error "글로벌 백업 업데이트 실패"
         success "글로벌 백업 업데이트됨"
     fi
 
     # project 디렉토리 업데이트
-    if [ -d "$TEMP_BACKUP/project" ] && [ "$(ls -A $TEMP_BACKUP/project)" ]; then
+    if [ -d "$TEMP_BACKUP/project" ] && [ -n "$(ls -A "$TEMP_BACKUP/project" 2>/dev/null)" ]; then
         rm -rf "$BACKUP_DIR/project"/*
-        cp -r "$TEMP_BACKUP/project"/* "$BACKUP_DIR/project/" 2>/dev/null || true
+        cp -r "$TEMP_BACKUP/project"/* "$BACKUP_DIR/project/" || error "프로젝트 백업 업데이트 실패"
         success "프로젝트 백업 업데이트됨"
     fi
 
