@@ -64,8 +64,15 @@ if ($backupType -eq '4' -or $backupType -eq '5') {
 
         $entRules = Join-Path $enterpriseDir 'rules'
         if (Test-Path -LiteralPath $entRules -PathType Container) {
-            Copy-Item -Path (Join-Path $entRules '*') -Destination (Join-Path $tempBackup 'enterprise' 'rules') -Recurse -Force -ErrorAction SilentlyContinue
-            Write-SuccessMessage "rules 디렉토리 백업됨"
+            $items = Get-ChildItem -Path $entRules
+            if ($items.Count -gt 0) {
+                try {
+                    Copy-Item -Path (Join-Path $entRules '*') -Destination (Join-Path $tempBackup 'enterprise' 'rules') -Recurse -Force -ErrorAction Stop
+                    Write-SuccessMessage "rules 디렉토리 백업됨"
+                } catch {
+                    Write-ErrorMessage "rules 디렉토리 백업 실패: $_"
+                }
+            }
         }
     }
     else {
@@ -106,8 +113,15 @@ if ($backupType -eq '1' -or $backupType -eq '3' -or $backupType -eq '5') {
     if (Test-Path -LiteralPath $hooksDir -PathType Container) {
         $hooksBackup = Join-Path $tempBackup 'global' 'hooks'
         Ensure-Directory $hooksBackup | Out-Null
-        Copy-Item -Path (Join-Path $hooksDir '*.sh') -Destination $hooksBackup -Force -ErrorAction SilentlyContinue
-        Write-SuccessMessage "hooks 디렉토리 백업됨"
+        $items = Get-ChildItem -Path $hooksDir -Filter '*.sh'
+        if ($items.Count -gt 0) {
+            try {
+                Copy-Item -Path (Join-Path $hooksDir '*.sh') -Destination $hooksBackup -Force -ErrorAction Stop
+                Write-SuccessMessage "hooks 디렉토리 백업됨"
+            } catch {
+                Write-ErrorMessage "hooks 디렉토리 백업 실패: $_"
+            }
+        }
     }
 }
 
@@ -199,8 +213,12 @@ if ($replace -eq 'y') {
         }
         Ensure-Directory $entDest | Out-Null
         Ensure-Directory (Join-Path $entDest 'rules') | Out-Null
-        Copy-Item -Path (Join-Path $entTemp '*') -Destination $entDest -Recurse -Force -ErrorAction SilentlyContinue
-        Write-SuccessMessage "Enterprise 백업 업데이트됨"
+        try {
+            Copy-Item -Path (Join-Path $entTemp '*') -Destination $entDest -Recurse -Force -ErrorAction Stop
+            Write-SuccessMessage "Enterprise 백업 업데이트됨"
+        } catch {
+            Write-ErrorMessage "Enterprise 백업 업데이트 실패: $_"
+        }
     }
 
     # Update global directory
@@ -212,8 +230,12 @@ if ($replace -eq 'y') {
             Remove-Item -LiteralPath $globalDest -Recurse -Force
         }
         Ensure-Directory $globalDest | Out-Null
-        Copy-Item -Path (Join-Path $globalTemp '*') -Destination $globalDest -Recurse -Force -ErrorAction SilentlyContinue
-        Write-SuccessMessage "글로벌 백업 업데이트됨"
+        try {
+            Copy-Item -Path (Join-Path $globalTemp '*') -Destination $globalDest -Recurse -Force -ErrorAction Stop
+            Write-SuccessMessage "글로벌 백업 업데이트됨"
+        } catch {
+            Write-ErrorMessage "글로벌 백업 업데이트 실패: $_"
+        }
     }
 
     # Update project directory
@@ -225,8 +247,12 @@ if ($replace -eq 'y') {
             Remove-Item -LiteralPath $projDest -Recurse -Force
         }
         Ensure-Directory $projDest | Out-Null
-        Copy-Item -Path (Join-Path $projTemp '*') -Destination $projDest -Recurse -Force -ErrorAction SilentlyContinue
-        Write-SuccessMessage "프로젝트 백업 업데이트됨"
+        try {
+            Copy-Item -Path (Join-Path $projTemp '*') -Destination $projDest -Recurse -Force -ErrorAction Stop
+            Write-SuccessMessage "프로젝트 백업 업데이트됨"
+        } catch {
+            Write-ErrorMessage "프로젝트 백업 업데이트 실패: $_"
+        }
     }
 
     # Remove temporary backup

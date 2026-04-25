@@ -73,6 +73,20 @@ warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
 error() { echo -e "${RED}❌ $1${NC}"; }
 highlight() { echo -e "${CYAN}🔸 $1${NC}"; }
 
+# 함수: 의존성 확인
+check_dependencies() {
+    local missing_deps=0
+    for cmd in cp mkdir rm diff; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            error "필수 명령어 '$cmd'가 설치되어 있지 않습니다."
+            missing_deps=1
+        fi
+    done
+    if [ $missing_deps -ne 0 ]; then
+        exit 1
+    fi
+}
+
 # 함수: Enterprise 경로 감지
 get_enterprise_dir() {
     case "$(uname -s)" in
@@ -116,6 +130,9 @@ compare_files() {
         fi
     fi
 }
+
+# 의존성 확인
+check_dependencies
 
 # 동기화 방향 선택
 echo ""
@@ -362,16 +379,22 @@ if [ "$SYNC_DIRECTION" = "1" ]; then
                 if [ ! -w "$(dirname "$ENTERPRISE_DIR")" ]; then
                     sudo mkdir -p "$ENTERPRISE_DIR/rules"
                     sudo cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$ENTERPRISE_DIR/"
-                    [ -d "$BACKUP_DIR/enterprise/rules" ] && sudo cp -r "$BACKUP_DIR/enterprise/rules"/* "$ENTERPRISE_DIR/rules/" 2>/dev/null || true
+                    if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
+                        sudo cp -r "$BACKUP_DIR/enterprise/rules"/* "$ENTERPRISE_DIR/rules/" || error "Enterprise rules 동기화 실패"
+                    fi
                 else
                     mkdir -p "$ENTERPRISE_DIR/rules"
                     cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$ENTERPRISE_DIR/"
-                    [ -d "$BACKUP_DIR/enterprise/rules" ] && cp -r "$BACKUP_DIR/enterprise/rules"/* "$ENTERPRISE_DIR/rules/" 2>/dev/null || true
+                    if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
+                        cp -r "$BACKUP_DIR/enterprise/rules"/* "$ENTERPRISE_DIR/rules/" || error "Enterprise rules 동기화 실패"
+                    fi
                 fi
             else
                 mkdir -p "$ENTERPRISE_DIR/rules"
                 cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$ENTERPRISE_DIR/"
-                [ -d "$BACKUP_DIR/enterprise/rules" ] && cp -r "$BACKUP_DIR/enterprise/rules"/* "$ENTERPRISE_DIR/rules/" 2>/dev/null || true
+                if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
+                    cp -r "$BACKUP_DIR/enterprise/rules"/* "$ENTERPRISE_DIR/rules/" || error "Enterprise rules 동기화 실패"
+                fi
             fi
             success "Enterprise CLAUDE.md → 시스템"
         fi
@@ -444,7 +467,9 @@ else
         if [ -f "$ENTERPRISE_DIR/CLAUDE.md" ]; then
             mkdir -p "$BACKUP_DIR/enterprise/rules"
             cp "$ENTERPRISE_DIR/CLAUDE.md" "$BACKUP_DIR/enterprise/"
-            [ -d "$ENTERPRISE_DIR/rules" ] && cp -r "$ENTERPRISE_DIR/rules"/* "$BACKUP_DIR/enterprise/rules/" 2>/dev/null || true
+            if [ -d "$ENTERPRISE_DIR/rules" ] && [ -n "$(ls -A "$ENTERPRISE_DIR/rules" 2>/dev/null)" ]; then
+                cp -r "$ENTERPRISE_DIR/rules"/* "$BACKUP_DIR/enterprise/rules/" || error "Enterprise rules 동기화 실패"
+            fi
             success "Enterprise CLAUDE.md → 백업"
         fi
     fi

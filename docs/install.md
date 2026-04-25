@@ -31,7 +31,7 @@ across re-runs.
 
 On each run, the installer compares three hashes per tracked file:
 
-- `src_hash` — the hash of the incoming template under `$INSTALL_DIR/global/<file>`
+- `src_hash` — the hash of the incoming file under `$INSTALL_DIR/global/<file>` (if a `.tmpl` exists, this is the hash of the dynamically rendered output, e.g. for `conversation-language.md`)
 - `dest_hash` — the hash of the current `~/.claude/<file>`
 - `stored_hash` — the hash recorded in `.install-manifest.json`
 
@@ -81,6 +81,38 @@ PowerShell uses the built-in `Get-FileHash` and `ConvertTo-Json` /
 `ConvertFrom-Json` cmdlets, so no additional dependencies are required
 on Windows.
 
+## Template Files
+
+Some tracked files are rendered dynamically before the manifest copy
+logic runs. Currently:
+
+| Template | Output | Placeholders |
+|----------|--------|--------------|
+| `conversation-language.md.tmpl` | `conversation-language.md` | `{{AGENT_LANGUAGE_POLICY}}` → `English` / `Korean` |
+
+Render pipeline (`guarded_template_copy` in
+`scripts/install-manifest.sh` and `Invoke-GuardedTemplateCopy` in
+`scripts/install-manifest.ps1`):
+
+1. Detect `.tmpl` source.
+2. Substitute placeholders into a temp file (sed for POSIX,
+   `-replace` for PowerShell).
+3. Pass the temp file through the standard manifest copy decision
+   (see "Copy Decision" above).
+4. `src_hash` is computed from the **rendered output**, not the raw
+   template, so the manifest reflects the user's policy choice.
+
+Selecting a different policy on re-install produces a different
+`src_hash`, which triggers a silent upgrade if the user has not
+locally edited the file, or a "diverges from both" prompt otherwise.
+
+`settings.json` follows a different rule: it bypasses the manifest
+entirely so policy attributes (`.language`,
+`.env.CLAUDE_CONTENT_LANGUAGE`) are enforced on every install.
+`update_claude_settings_json` / `Update-ClaudeSettingsJson` injects
+the values and removes them when the policy returns to the default
+("english"), keeping the file idempotent.
+
 ## Tracked Files
 
 The manifest currently tracks these entries (see `bootstrap.sh`
@@ -88,7 +120,7 @@ The manifest currently tracks these entries (see `bootstrap.sh`
 
 - `CLAUDE.md`
 - `commit-settings.md`
-- `conversation-language.md`
+- `conversation-language.md` *(rendered from `.tmpl` — see Template Files above)*
 - `git-identity.md`
 - `token-management.md`
 

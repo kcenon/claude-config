@@ -349,7 +349,14 @@ if ($syncDirection -eq '1') {
                 Copy-Item -LiteralPath $enterpriseMd -Destination $enterpriseDir -Force
                 $backupEntRules = Join-Path $BackupDir 'enterprise' 'rules'
                 if (Test-Path $backupEntRules) {
-                    Copy-Item -Path (Join-Path $backupEntRules '*') -Destination (Join-Path $enterpriseDir 'rules') -Recurse -Force -ErrorAction SilentlyContinue
+                    $items = Get-ChildItem -Path $backupEntRules
+                    if ($items.Count -gt 0) {
+                        try {
+                            Copy-Item -Path (Join-Path $backupEntRules '*') -Destination (Join-Path $enterpriseDir 'rules') -Recurse -Force -ErrorAction Stop
+                        } catch {
+                            Write-ErrorMessage "Enterprise rules 동기화 실패: $_"
+                        }
+                    }
                 }
                 Write-SuccessMessage "Enterprise CLAUDE.md -> 시스템"
             }
@@ -410,7 +417,14 @@ else {
             Copy-Item -LiteralPath $sysEntMd -Destination $entBackup -Force
             $sysEntRules = Join-Path $enterpriseDir 'rules'
             if (Test-Path $sysEntRules) {
-                Copy-Item -Path (Join-Path $sysEntRules '*') -Destination (Join-Path $entBackup 'rules') -Recurse -Force -ErrorAction SilentlyContinue
+                $items = Get-ChildItem -Path $sysEntRules
+                if ($items.Count -gt 0) {
+                    try {
+                        Copy-Item -Path (Join-Path $sysEntRules '*') -Destination (Join-Path $entBackup 'rules') -Recurse -Force -ErrorAction Stop
+                    } catch {
+                        Write-ErrorMessage "Enterprise rules 백업 실패: $_"
+                    }
+                }
             }
             Write-SuccessMessage "Enterprise CLAUDE.md -> 백업"
         }
