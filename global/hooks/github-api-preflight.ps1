@@ -34,15 +34,22 @@ try {
     $warnings += 'GitHub API may be unreachable (sandbox/TLS issue detected). Suggestions: Use local git operations if possible, check network/certificate settings, consider /sandbox to manage restrictions.'
 }
 
-# Check GitHub CLI auth status for gh commands
+# Check GitHub CLI auth status for gh commands.
+# When GH_TOKEN or GITHUB_TOKEN is set, gh CLI uses that token directly and
+# `gh auth status` may still report failure (e.g. empty keyring in containers,
+# CI runners, or sandboxed envs). Token-based auth works regardless, so skip
+# the keyring check in that case to avoid false-positive warnings.
 if ($CMD -match '^gh ') {
-    try {
-        $null = & gh auth status 2>&1
-        if ($LASTEXITCODE -ne 0) {
+    $hasTokenEnv = -not [string]::IsNullOrEmpty($env:GH_TOKEN) -or -not [string]::IsNullOrEmpty($env:GITHUB_TOKEN)
+    if (-not $hasTokenEnv) {
+        try {
+            $null = & gh auth status 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                $warnings += "GitHub CLI not authenticated. Run 'gh auth login' or 'gh auth status' to check."
+            }
+        } catch {
             $warnings += "GitHub CLI not authenticated. Run 'gh auth login' or 'gh auth status' to check."
         }
-    } catch {
-        $warnings += "GitHub CLI not authenticated. Run 'gh auth login' or 'gh auth status' to check."
     }
 }
 

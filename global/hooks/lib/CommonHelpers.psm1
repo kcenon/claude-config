@@ -330,18 +330,24 @@ function Test-Prerequisites {
         }
     }
 
-    # Special check: gh auth status
+    # Special check: gh auth status.
+    # Skip when GH_TOKEN or GITHUB_TOKEN is set — gh CLI authenticates via the
+    # env token even when the keyring-based status check fails (containers, CI,
+    # sandboxed environments).
     if ($Commands -contains 'gh' -and $allFound) {
-        try {
-            $null = & gh auth status 2>&1
-            if ($LASTEXITCODE -ne 0) {
-                Write-ErrorMessage "gh CLI is not authenticated. Run 'gh auth login' first."
+        $hasTokenEnv = -not [string]::IsNullOrEmpty($env:GH_TOKEN) -or -not [string]::IsNullOrEmpty($env:GITHUB_TOKEN)
+        if (-not $hasTokenEnv) {
+            try {
+                $null = & gh auth status 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    Write-ErrorMessage "gh CLI is not authenticated. Run 'gh auth login' first."
+                    $allFound = $false
+                }
+            }
+            catch {
+                Write-ErrorMessage "gh CLI authentication check failed."
                 $allFound = $false
             }
-        }
-        catch {
-            Write-ErrorMessage "gh CLI authentication check failed."
-            $allFound = $false
         }
     }
     return $allFound

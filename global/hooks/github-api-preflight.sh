@@ -52,10 +52,16 @@ if [ "$CURL_EXIT" -ne 0 ] || [ "$HTTP_CODE" = "000" ]; then
     allow_response "GitHub API may be unreachable (sandbox/TLS issue detected). Suggestions: Use local git operations if possible, check network/certificate settings, consider /sandbox to manage restrictions."
 fi
 
-# Check GitHub CLI auth status for gh commands
+# Check GitHub CLI auth status for gh commands.
+# When GH_TOKEN or GITHUB_TOKEN is set, gh CLI uses that token directly and
+# `gh auth status` may still report failure (e.g. empty keyring in containers,
+# CI runners, or sandboxed envs). Token-based auth works regardless, so skip
+# the keyring check in that case to avoid false-positive warnings.
 if echo "$CMD" | grep -qE '^gh '; then
-    if ! gh auth status >/dev/null 2>&1; then
-        allow_response "GitHub CLI not authenticated. Run 'gh auth login' or 'gh auth status' to check."
+    if [ -z "$GH_TOKEN" ] && [ -z "$GITHUB_TOKEN" ]; then
+        if ! gh auth status >/dev/null 2>&1; then
+            allow_response "GitHub CLI not authenticated. Run 'gh auth login' or 'gh auth status' to check."
+        fi
     fi
 fi
 
