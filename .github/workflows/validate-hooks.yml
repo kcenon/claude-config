@@ -18,6 +18,9 @@ on:
       - 'tests/scripts/test-plugin-*.sh'
       - 'tests/scripts/test-install-manifest-helpers.*'
       - 'tests/scripts/test-install-permissions-policy.sh'
+      - 'tests/scripts/test-language-policy-drift.sh'
+      - 'tests/scripts/test-installer-prompt-drift.sh'
+      - 'scripts/lib/**'
 
 jobs:
   test:
@@ -77,6 +80,17 @@ jobs:
       - name: Run install permissions policy lint
         # Lint test: install.sh must enforce 700 / 600 / 644 on tracked files.
         run: bash tests/scripts/test-install-permissions-policy.sh
+
+      - name: Run content-language policy drift test
+        # Verifies (a) canonical .md == .tmpl rendered with english phrase,
+        # (b) every CLAUDE_CONTENT_LANGUAGE value renders deterministically.
+        run: bash tests/scripts/test-language-policy-drift.sh
+
+      - name: Run installer prompt drift test
+        # Guards drift between scripts/lib/install-prompts.sh (bash) and
+        # scripts/lib/InstallPrompts.psm1 (PowerShell) - the single source
+        # of truth for installer prompts and the policy phrase table.
+        run: bash tests/scripts/test-installer-prompt-drift.sh
 
   shellcheck:
     runs-on: ${{ matrix.os }}

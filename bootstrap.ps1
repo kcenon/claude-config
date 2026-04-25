@@ -98,6 +98,13 @@ function Install-GlobalSettings {
         . $manifestHelper
     }
 
+    # Load shared installer prompts (single source of truth, mirrored at
+    # scripts/lib/install-prompts.sh for bash).
+    $promptsModule = Join-Path $InstallDir 'scripts' 'lib' 'InstallPrompts.psm1'
+    if (Test-Path -LiteralPath $promptsModule) {
+        Import-Module $promptsModule -Force -DisableNameChecking
+    }
+
     # Copy files (manifest-guarded: local edits preserved by default)
     $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'git-identity.md', 'token-management.md')
     foreach ($gf in $globalFiles) {
@@ -121,20 +128,9 @@ function Install-GlobalSettings {
     # conversation-language.md 템플릿 처리
     $tmplPath = Join-Path $InstallDir 'global' 'conversation-language.md.tmpl'
     if (Test-Path -LiteralPath $tmplPath) {
-        Write-Host ""
-        Write-Info "Select Agent Conversation Language:"
-        Write-Host "  1) English"
-        Write-Host "  2) Korean"
-        $agentLangType = Read-Host "Selection (1-2) [default: 2]"
-        if ([string]::IsNullOrEmpty($agentLangType)) { $agentLangType = '2' }
-        
-        if ($agentLangType -eq '1') {
-            $displayLang = "English"
-            $script:agentLanguage = "english"
-        } else {
-            $displayLang = "Korean"
-            $script:agentLanguage = "korean"
-        }
+        $agentChoice = Show-AgentLanguagePrompt
+        $script:agentLanguage = $agentChoice.Language
+        $displayLang = $agentChoice.Display
 
         $dest = Join-Path $ClaudeDir "conversation-language.md"
         if (Invoke-GuardedTemplateCopy -SrcTmpl $tmplPath -Dest $dest -Key "conversation-language.md" -DisplayLang $displayLang) {
@@ -160,22 +156,10 @@ function Install-GlobalSettings {
     }
 
     # Content language policy selection (CLAUDE_CONTENT_LANGUAGE)
-    Write-Host ""
-    Write-Info "Select content-language policy (commit / PR / issue validation scope):"
-    Write-Host "  1) English (Default, identical to current behavior)"
-    Write-Host "  2) Korean + English (Allows Hangul, inline mixing permitted)"
-    Write-Host "  3) Exclusive bilingual (English or Korean per document, no inline mixing)"
-    Write-Host "  4) Any (No language validation — AI attribution block maintained)"
-    $langType = Read-Host "Selection (1-4) [default: 1]"
-    if ([string]::IsNullOrEmpty($langType)) { $langType = '1' }
-    
-    switch ($langType) {
-        '1'     { $contentLanguage = 'english' }
-        '2'     { $contentLanguage = 'korean_plus_english' }
-        '3'     { $contentLanguage = 'exclusive_bilingual' }
-        '4'     { $contentLanguage = 'any' }
-        default { $contentLanguage = 'english' }
-    }
+    $contentLanguage = Show-ContentLanguagePrompt
+
+    # Legacy settings.json migration warning (informational only).
+    $null = Show-LegacySettingsWarning -SettingsPath (Join-Path $HOME '.claude/settings.json') -NewSelection $contentLanguage
 
     # tmux config installation
     $tmuxConf = Join-Path $InstallDir 'global' 'tmux.conf'

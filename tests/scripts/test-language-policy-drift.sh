@@ -9,9 +9,10 @@
 #      the .tmpl (or vice versa), the installer would overwrite the doc
 #      with a stale phrase on any non-english policy - this catches that.
 #
-#   2. For all three policies (english, korean_plus_english, any), the
-#      rendered output contains the expected phrase. Policy values that
-#      cannot be rendered deterministically fail the test.
+#   2. For every policy returned by all_policy_values (english,
+#      korean_plus_english, exclusive_bilingual, any), the rendered output
+#      contains the expected phrase. Policy values that cannot be rendered
+#      deterministically fail the test.
 #
 # Run: bash tests/scripts/test-language-policy-drift.sh
 # Exit: 0 on all-pass, 1 on any drift or rendering failure.
@@ -21,6 +22,12 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# Source the canonical phrase table from scripts/lib/install-prompts.sh.
+# Keeping this test in lockstep with the installers prevents the kind of
+# silent drift this test was created to catch (issue #411).
+# shellcheck disable=SC1091
+source "$REPO_ROOT/scripts/lib/install-prompts.sh"
+
 # Files under coverage — (canonical .md, .tmpl) pairs
 TEMPLATE_PAIRS=(
     "$REPO_ROOT/global/commit-settings.md|$REPO_ROOT/global/commit-settings.md.tmpl"
@@ -28,12 +35,12 @@ TEMPLATE_PAIRS=(
     "$REPO_ROOT/project/.claude/rules/workflow/git-commit-format.md|$REPO_ROOT/project/.claude/rules/workflow/git-commit-format.md.tmpl"
 )
 
-# policy → phrase table (must match installer tables)
+# policy → phrase table built from the lib (no hard-coded duplication).
 declare -A PHRASE
-PHRASE[english]="English"
-PHRASE[korean_plus_english]="English or Korean"
-PHRASE[exclusive_bilingual]="English or Korean (document-exclusive)"
-PHRASE[any]="any language"
+while IFS= read -r policy; do
+    [ -n "$policy" ] || continue
+    PHRASE[$policy]="$(get_policy_phrase "$policy")"
+done < <(all_policy_values)
 
 PASS=0
 FAIL=0
@@ -78,8 +85,11 @@ for pair in "${TEMPLATE_PAIRS[@]}"; do
         echo "  ---------------------------------------------------"
     fi
 
-    # Check 2: each policy produces output containing its phrase
-    for policy in english korean_plus_english any; do
+    # Check 2: each policy produces output containing its phrase.
+    # Iterate the full canonical list from the lib so a newly added policy
+    # value automatically gets covered.
+    while IFS= read -r policy; do
+        [ -n "$policy" ] || continue
         phrase="${PHRASE[$policy]}"
         if render "$tmpl" "$phrase" | grep -qF "$phrase"; then
             PASS=$((PASS + 1))
@@ -88,7 +98,7 @@ for pair in "${TEMPLATE_PAIRS[@]}"; do
             FAIL=$((FAIL + 1))
             echo "  FAIL: ${policy} render missing phrase '${phrase}'"
         fi
-    done
+    done < <(all_policy_values)
 
     echo ""
 done
