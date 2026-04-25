@@ -135,3 +135,79 @@ function Invoke-GuardedCopy {
 
     return $false
 }
+
+function Invoke-GuardedTemplateCopy {
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][string]$SrcTmpl,
+        [Parameter(Mandatory)][string]$Dest,
+        [Parameter(Mandatory)][string]$Key,
+        [Parameter(Mandatory)][string]$DisplayLang
+    )
+
+    if (-not (Test-Path -LiteralPath $SrcTmpl)) { return $true }
+
+    $tmpLang = Join-Path ([System.IO.Path]::GetTempPath()) "conversation-language_$([guid]::NewGuid()).md"
+    $tmplContent = [System.IO.File]::ReadAllText($SrcTmpl)
+    $rendered = $tmplContent -replace '\{\{AGENT_LANGUAGE_POLICY\}\}', $DisplayLang
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($tmpLang, $rendered, $utf8NoBom)
+    
+    $result = Invoke-GuardedCopy -Src $tmpLang -Dest $Dest -Key $Key
+    
+    Remove-Item -LiteralPath $tmpLang -Force -ErrorAction SilentlyContinue
+    return $result
+}
+
+function Update-ClaudeSettingsJson {
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][string]$SettingsPath,
+        [Parameter(Mandatory)][string]$AgentLang,
+        [Parameter(Mandatory)][string]$ContentLang
+    )
+
+    if (-not (Test-Path -LiteralPath $SettingsPath)) { return $true }
+
+    try {
+        $settingsObj = Get-Content -Raw -LiteralPath $SettingsPath | ConvertFrom-Json
+        
+        # Update agent language
+        if ($settingsObj.PSObject.Properties.Name -contains 'language') {
+            $settingsObj.language = $AgentLang
+        } else {
+            $settingsObj | Add-Member -NotePropertyName 'language' -NotePropertyValue $AgentLang -Force
+        }
+
+        if ($ContentLang -ne 'english') {
+            if (-not ($settingsObj.PSObject.Properties.Name -contains 'env')) {
+                $settingsObj | Add-Member -NotePropertyName 'env' -NotePropertyValue ([PSCustomObject]@{})
+            }
+            if (-not $settingsObj.env) {
+                $settingsObj.env = [PSCustomObject]@{}
+            }
+            if ($settingsObj.env.PSObject.Properties.Name -contains 'CLAUDE_CONTENT_LANGUAGE') {
+                $settingsObj.env.CLAUDE_CONTENT_LANGUAGE = $ContentLang
+            } else {
+                $settingsObj.env | Add-Member -NotePropertyName 'CLAUDE_CONTENT_LANGUAGE' -NotePropertyValue $ContentLang -Force
+            }
+        } else {
+            # Idempotent reset for english policy
+            if (($settingsObj.PSObject.Properties.Name -contains 'env') -and ($settingsObj.env)) {
+                if ($settingsObj.env.PSObject.Properties.Name -contains 'CLAUDE_CONTENT_LANGUAGE') {
+                    $settingsObj.env.PSObject.Properties.Remove('CLAUDE_CONTENT_LANGUAGE')
+                    
+                    # If env is now empty, remove it entirely to keep settings.json clean
+                    if ($settingsObj.env.PSObject.Properties.Count -eq 0) {
+                        $settingsObj.PSObject.Properties.Remove('env')
+                    }
+                }
+            }
+        }
+
+        ($settingsObj | ConvertTo-Json -Depth 32) | Set-Content -LiteralPath $SettingsPath -Encoding UTF8
+        return $true
+    } catch {
+        return $false
+    }
+}

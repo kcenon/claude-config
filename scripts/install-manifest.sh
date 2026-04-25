@@ -147,3 +147,47 @@ guarded_copy() {
             ;;
     esac
 }
+
+# guarded_template_copy <src_tmpl> <dest> <key> <display_lang>
+guarded_template_copy() {
+    local src_tmpl="$1" dest="$2" key="$3" display_lang="$4"
+    [ -f "$src_tmpl" ] || return 0
+
+    local tmp_lang
+    tmp_lang=$(mktemp)
+    sed "s/{{AGENT_LANGUAGE_POLICY}}/$display_lang/g" "$src_tmpl" > "$tmp_lang"
+    
+    local result
+    if guarded_copy "$tmp_lang" "$dest" "$key"; then
+        result=0
+    else
+        result=1
+    fi
+    rm -f "$tmp_lang"
+    return "$result"
+}
+
+# update_claude_settings_json <settings_json_path> <agent_language> <content_language>
+update_claude_settings_json() {
+    local settings_path="$1" agent_lang="$2" content_lang="$3"
+    [ -f "$settings_path" ] || return 0
+
+    if command -v jq >/dev/null 2>&1; then
+        local tmpfile
+        tmpfile=$(mktemp)
+        if [ "$content_lang" != "english" ]; then
+            jq --arg v "$content_lang" --arg lang "$agent_lang" \
+               '.env = (.env // {}) | .env.CLAUDE_CONTENT_LANGUAGE = $v | .language = $lang' \
+               "$settings_path" > "$tmpfile"
+        else
+            # Idempotent reset for english policy
+            jq --arg lang "$agent_lang" \
+               'del(.env.CLAUDE_CONTENT_LANGUAGE) | if .env == {} then del(.env) else . end | .language = $lang' \
+               "$settings_path" > "$tmpfile"
+        fi
+        mv "$tmpfile" "$settings_path"
+        return 0
+    else
+        return 1
+    fi
+}

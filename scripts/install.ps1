@@ -102,6 +102,9 @@ function Invoke-PolicyTemplate {
         [Parameter(Mandatory)][string]$Destination
     )
     $phrase = Get-PolicyPhrase
+    
+    # Note: Agent language substitution is handled by Invoke-GuardedTemplateCopy.
+
     $content = [System.IO.File]::ReadAllText($Source)
     $rendered = $content -replace '\{\{CONTENT_LANGUAGE_POLICY\}\}', $phrase
     $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
@@ -208,8 +211,15 @@ function Install-Enterprise {
     # Copy rules directory
     $sourceRules = Join-Path $BackupDir "enterprise/rules"
     if (Test-Path $sourceRules) {
-        Copy-Item -Path "$sourceRules\*" -Destination $rulesDir -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Success "rules directory installed"
+        $items = Get-ChildItem -Path $sourceRules
+        if ($items.Count -gt 0) {
+            try {
+                Copy-Item -Path "$sourceRules\*" -Destination $rulesDir -Recurse -Force -ErrorAction Stop
+                Write-Success "rules directory installed"
+            } catch {
+                Write-Err "Failed to copy rules: $_"
+            }
+        }
     }
 
     Write-Success "Enterprise settings installation complete!"
@@ -247,10 +257,10 @@ if ([string]::IsNullOrEmpty($installType)) { $installType = '3' }
 # writing settings.json at all for option 1.
 Write-Host ""
 Write-Info "Select content-language policy (commit / PR / issue validation scope):"
-Write-Host "  1) English (default, identical to current behavior)"
-Write-Host "  2) Korean + English (accept Hangul; inline mixing allowed)"
-Write-Host "  3) Exclusive bilingual (document-level English or Korean; no inline mixing)"
-Write-Host "  4) Any (skip language validation; AI attribution block stays on)"
+Write-Host "  1) English (Default, identical to current behavior)"
+Write-Host "  2) Korean + English (Allows Hangul, inline mixing permitted)"
+Write-Host "  3) Exclusive bilingual (English or Korean per document, no inline mixing)"
+Write-Host "  4) Any (No language validation — AI attribution block maintained)"
 Write-Host ""
 
 $langType = Read-Host "Selection (1-4) [default: 1]"
@@ -263,6 +273,24 @@ switch ($langType) {
     default {
         Write-Warn "Unknown selection: $langType. Using english."
         $contentLanguage = 'english'
+    }
+}
+
+# ── Agent Conversation Language ──────────────────────────────────
+Write-Host ""
+Write-Info "Select Agent Conversation Language:"
+Write-Host "  1) English"
+Write-Host "  2) Korean"
+Write-Host ""
+
+$agentLangType = Read-Host "Selection (1-2) [default: 2]"
+if ([string]::IsNullOrEmpty($agentLangType)) { $agentLangType = '2' }
+switch ($agentLangType) {
+    '1'     { $agentLanguage = 'english' }
+    '2'     { $agentLanguage = 'korean' }
+    default {
+        Write-Warn "Unknown selection: $agentLangType. Using korean."
+        $agentLanguage = 'korean'
     }
 }
 
@@ -309,56 +337,71 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
     $claudeDir = Join-Path $HOME ".claude"
     Ensure-Directory $claudeDir
 
-    # Copy configuration files
-        $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'conversation-language.md', 'git-identity.md', 'token-management.md')
-        foreach ($gf in $globalFiles) {
-            $src = Join-Path $BackupDir "global/$gf"
-            # Issue #411: prefer .tmpl + substitution when present so the
-            # installed file matches the selected content-language policy.
-            $srcTmpl = "$src.tmpl"
-            if (Test-Path $srcTmpl) {
-                Invoke-PolicyTemplate -Source $srcTmpl -Destination (Join-Path $claudeDir $gf)
+    # Load install-manifest helper (fail-fast — fallback paths assume this loaded)
+    $manifestHelper = Join-Path $BackupDir 'scripts\install-manifest.ps1'
+    if (-not (Test-Path -LiteralPath $manifestHelper)) {
+        throw "install-manifest.ps1 helper not found at: $manifestHelper"
+    }
+    . $manifestHelper
+
+    # Copy configuration files (manifest-guarded)
+    $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'git-identity.md', 'token-management.md')
+    foreach ($gf in $globalFiles) {
+        $src = Join-Path $BackupDir "global/$gf"
+        # Issue #411: prefer .tmpl + substitution when present
+        $srcTmpl = "$src.tmpl"
+        if (Test-Path $srcTmpl) {
+            # Render to a temporary file using the existing policy substitution
+            $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "policy_$([guid]::NewGuid()).md"
+            Invoke-PolicyTemplate -Source $srcTmpl -Destination $tmpFile
+            if (Invoke-GuardedCopy -Src $tmpFile -Dest (Join-Path $claudeDir $gf) -Key $gf) {
                 Write-Success "$gf installed (policy phrase: $(Get-PolicyPhrase))"
-            } elseif (Test-Path $src) {
-                Copy-Item -Path $src -Destination $claudeDir -Force
+            } else {
+                Write-Info "$gf local changes preserved"
+            }
+            Remove-Item -LiteralPath $tmpFile -Force -ErrorAction SilentlyContinue
+        } elseif (Test-Path $src) {
+            if (Invoke-GuardedCopy -Src $src -Dest (Join-Path $claudeDir $gf) -Key $gf) {
                 Write-Success "$gf installed"
+            } else {
+                Write-Info "$gf local changes preserved"
             }
         }
+    }
+
+    # conversation-language.md template rendering
+    $tmplPath = Join-Path $BackupDir "global/conversation-language.md.tmpl"
+    if (Test-Path $tmplPath) {
+        if ($agentLanguage -eq 'english') {
+            $displayLang = "English"
+        } else {
+            $displayLang = "Korean"
+        }
+        
+        if (Invoke-GuardedTemplateCopy -SrcTmpl $tmplPath -Dest (Join-Path $claudeDir "conversation-language.md") -Key "conversation-language.md" -DisplayLang $displayLang) {
+            Write-Success "conversation-language.md installed (Language: $displayLang)"
+        } else {
+            Write-Info "conversation-language.md local changes preserved"
+        }
+    }
 
     # Install settings.windows.json as settings.json
+    # Intentionally bypasses Invoke-GuardedCopy: policy attributes (.language,
+    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
+    # Update-ClaudeSettingsJson (below) injects them and is responsible
+    # for idempotent reset when the policy returns to default ("english").
     $settingsSource = Join-Path $BackupDir "global/settings.windows.json"
     if (Test-Path $settingsSource) {
         $destSettings = Join-Path $claudeDir "settings.json"
         Copy-Item -Path $settingsSource -Destination $destSettings -Force
         Write-Success "Hook settings (settings.json) installed! [Windows version]"
 
-        # Write CLAUDE_CONTENT_LANGUAGE under env only when the user chose
-        # a non-default policy. "english" matches the dispatcher default so
-        # touching the file would add churn for no behavior change.
-        if ($contentLanguage -ne 'english') {
-            try {
-                $settingsObj = Get-Content -Raw -LiteralPath $destSettings | ConvertFrom-Json
-                if (-not $settingsObj.PSObject.Properties.Name -contains 'env') {
-                    $settingsObj | Add-Member -NotePropertyName 'env' -NotePropertyValue ([PSCustomObject]@{})
-                }
-                if (-not $settingsObj.env) {
-                    $settingsObj.env = [PSCustomObject]@{}
-                }
-                if ($settingsObj.env.PSObject.Properties.Name -contains 'CLAUDE_CONTENT_LANGUAGE') {
-                    $settingsObj.env.CLAUDE_CONTENT_LANGUAGE = $contentLanguage
-                } else {
-                    $settingsObj.env | Add-Member -NotePropertyName 'CLAUDE_CONTENT_LANGUAGE' -NotePropertyValue $contentLanguage -Force
-                }
-                ($settingsObj | ConvertTo-Json -Depth 32) | Set-Content -LiteralPath $destSettings -Encoding UTF8
-                Write-Success "CLAUDE_CONTENT_LANGUAGE=$contentLanguage written to settings.json"
-            }
-            catch {
-                Write-Warn "Failed to write CLAUDE_CONTENT_LANGUAGE automatically: $_"
-                Write-Host "  Add this manually to ~/.claude/settings.json under env:"
-                Write-Host "    `"CLAUDE_CONTENT_LANGUAGE`": `"$contentLanguage`""
-            }
+        # Write CLAUDE_CONTENT_LANGUAGE under env, and update agent language
+        if (Update-ClaudeSettingsJson -SettingsPath $destSettings -AgentLang $agentLanguage -ContentLang $contentLanguage) {
+            Write-Success "settings.json updated with language=$agentLanguage and CLAUDE_CONTENT_LANGUAGE=$contentLanguage"
         } else {
-            Write-Info "CLAUDE_CONTENT_LANGUAGE=english (default; settings.json unchanged)"
+            Write-Warn "Failed to automatically update settings.json"
+            Write-Host "  Please update ~/.claude/settings.json manually with language settings."
         }
     }
 
@@ -375,7 +418,14 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         $hooksDir = Join-Path $claudeDir "hooks"
         Ensure-Directory $hooksDir
 
-        Copy-Item -Path "$hooksSource\*.ps1" -Destination $hooksDir -Force -ErrorAction SilentlyContinue
+        try {
+            $ps1Items = Get-ChildItem -Path $hooksSource -Filter '*.ps1' -File
+            if ($ps1Items.Count -gt 0) {
+                Copy-Item -Path "$hooksSource\*.ps1" -Destination $hooksDir -Force -ErrorAction Stop
+            }
+        } catch {
+            Write-Err "Failed to copy hook scripts: $_"
+        }
         Get-ChildItem -Path $hooksSource -Filter '*.sh' -File -ErrorAction SilentlyContinue | ForEach-Object {
             Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $hooksDir $_.Name)
         }
@@ -384,8 +434,18 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         if (Test-Path $hooksLibSource) {
             $hooksLibDir = Join-Path $hooksDir 'lib'
             Ensure-Directory $hooksLibDir
-            Copy-Item -Path "$hooksLibSource\*.ps1" -Destination $hooksLibDir -Force -ErrorAction SilentlyContinue
-            Copy-Item -Path "$hooksLibSource\*.psm1" -Destination $hooksLibDir -Force -ErrorAction SilentlyContinue
+            try {
+                $ps1Items = Get-ChildItem -Path $hooksLibSource -Filter '*.ps1' -File
+                if ($ps1Items.Count -gt 0) {
+                    Copy-Item -Path "$hooksLibSource\*.ps1" -Destination $hooksLibDir -Force -ErrorAction Stop
+                }
+                $psm1Items = Get-ChildItem -Path $hooksLibSource -Filter '*.psm1' -File
+                if ($psm1Items.Count -gt 0) {
+                    Copy-Item -Path "$hooksLibSource\*.psm1" -Destination $hooksLibDir -Force -ErrorAction Stop
+                }
+            } catch {
+                Write-Err "Failed to copy hook lib scripts: $_"
+            }
             Get-ChildItem -Path $hooksLibSource -Filter '*.sh' -File -ErrorAction SilentlyContinue | ForEach-Object {
                 Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $hooksLibDir $_.Name)
             }
@@ -408,7 +468,14 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
             }
         }
 
-        Copy-Item -Path "$hooksSource\*.json" -Destination $hooksDir -Force -ErrorAction SilentlyContinue
+        try {
+            $jsonItems = Get-ChildItem -Path $hooksSource -Filter '*.json' -File
+            if ($jsonItems.Count -gt 0) {
+                Copy-Item -Path "$hooksSource\*.json" -Destination $hooksDir -Force -ErrorAction Stop
+            }
+        } catch {
+            Write-Err "Failed to copy json configurations: $_"
+        }
 
         Write-Success "Hook scripts installed (hooks/*.ps1 + *.sh + lib/ + *.json)!"
 
@@ -441,7 +508,14 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         $scriptsDir = Join-Path $claudeDir "scripts"
         Ensure-Directory $scriptsDir
 
-        Copy-Item -Path "$scriptsSource\*.ps1" -Destination $scriptsDir -Force -ErrorAction SilentlyContinue
+        try {
+            $ps1Items = Get-ChildItem -Path $scriptsSource -Filter '*.ps1' -File
+            if ($ps1Items.Count -gt 0) {
+                Copy-Item -Path "$scriptsSource\*.ps1" -Destination $scriptsDir -Force -ErrorAction Stop
+            }
+        } catch {
+            Write-Err "Failed to copy utility scripts: $_"
+        }
         Get-ChildItem -Path $scriptsSource -Filter '*.sh' -File -ErrorAction SilentlyContinue | ForEach-Object {
             Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $scriptsDir $_.Name)
         }

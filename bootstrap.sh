@@ -96,7 +96,7 @@ install_global() {
     source "$INSTALL_DIR/scripts/install-manifest.sh"
 
     # 파일 복사 (매니페스트 가드: 로컬 편집은 기본적으로 유지)
-    for gf in CLAUDE.md commit-settings.md conversation-language.md git-identity.md token-management.md; do
+    for gf in CLAUDE.md commit-settings.md git-identity.md token-management.md; do
         src="$INSTALL_DIR/global/$gf"
         dest="$CLAUDE_DIR/$gf"
         [ -f "$src" ] || continue
@@ -106,6 +106,76 @@ install_global() {
             info "$gf 로컬 변경 유지"
         fi
     done
+
+    # conversation-language.md 템플릿 처리
+    if [ -f "$INSTALL_DIR/global/conversation-language.md.tmpl" ]; then
+        echo ""
+        info "Select Agent Conversation Language:"
+        echo "  1) English"
+        echo "  2) Korean"
+        read -p "Selection (1-2) [default: 2]: " AGENT_LANG_TYPE
+        AGENT_LANG_TYPE=${AGENT_LANG_TYPE:-2}
+        
+        if [ "$AGENT_LANG_TYPE" = "1" ]; then
+            DISPLAY_LANG="English"
+            AGENT_LANGUAGE="english"
+        else
+            DISPLAY_LANG="Korean"
+            AGENT_LANGUAGE="korean"
+        fi
+
+        if guarded_template_copy "$INSTALL_DIR/global/conversation-language.md.tmpl" "$CLAUDE_DIR/conversation-language.md" "conversation-language.md" "$DISPLAY_LANG"; then
+            success "conversation-language.md 설치됨 (언어: $DISPLAY_LANG)"
+        else
+            info "conversation-language.md 로컬 변경 유지"
+        fi
+    else
+        AGENT_LANGUAGE="korean"
+        # Static-file fallback. The default repo ships only the .tmpl, so this
+        # branch is unreachable in normal use. It exists to support fork users
+        # who replace the .tmpl with a hand-edited static .md — preserving
+        # their file via guarded_copy instead of silently dropping it.
+        if [ -f "$INSTALL_DIR/global/conversation-language.md" ]; then
+            if guarded_copy "$INSTALL_DIR/global/conversation-language.md" "$CLAUDE_DIR/conversation-language.md" "conversation-language.md"; then
+                success "conversation-language.md 설치됨"
+            else
+                info "conversation-language.md 로컬 변경 유지"
+            fi
+        fi
+    fi
+
+    # Content language policy selection (CLAUDE_CONTENT_LANGUAGE)
+    echo ""
+    info "Select content-language policy (commit / PR / issue validation scope):"
+    echo "  1) English (Default, identical to current behavior)"
+    echo "  2) Korean + English (Allows Hangul, inline mixing permitted)"
+    echo "  3) Exclusive bilingual (English or Korean per document, no inline mixing)"
+    echo "  4) Any (No language validation — AI attribution block maintained)"
+    read -p "Selection (1-4) [default: 1]: " LANG_TYPE
+    LANG_TYPE=${LANG_TYPE:-1}
+
+    case "$LANG_TYPE" in
+        1) CONTENT_LANGUAGE="english" ;;
+        2) CONTENT_LANGUAGE="korean_plus_english" ;;
+        3) CONTENT_LANGUAGE="exclusive_bilingual" ;;
+        4) CONTENT_LANGUAGE="any" ;;
+        *) CONTENT_LANGUAGE="english" ;;
+    esac
+
+    # settings.json install (Claude Code settings)
+    # Intentionally bypasses guarded_copy: policy attributes (.language,
+    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
+    # update_claude_settings_json (below) injects them and is responsible
+    # for idempotent reset when the policy returns to default ("english").
+    if [ -f "$INSTALL_DIR/global/settings.json" ]; then
+        cp "$INSTALL_DIR/global/settings.json" "$HOME/.claude/settings.json"
+
+        if update_claude_settings_json "$HOME/.claude/settings.json" "${AGENT_LANGUAGE:-korean}" "$CONTENT_LANGUAGE"; then
+            success "settings.json (에이전트: ${AGENT_LANGUAGE:-korean}, 컨텐츠: $CONTENT_LANGUAGE) 설치 완료"
+        else
+            success "settings.json 설치 완료 (기본값)"
+        fi
+    fi
 
     # tmux 설정 설치
     if [ -f "$INSTALL_DIR/global/tmux.conf" ]; then

@@ -5,6 +5,7 @@ Global settings applied every session. Routing index only — procedural detail 
 ## Core Settings
 
 @./commit-settings.md
+@./conversation-language.md
 
 ## Always-on Invariants
 

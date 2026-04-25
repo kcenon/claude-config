@@ -51,8 +51,22 @@ error() {
 ensure_dir() {
     local dir="$1"
     if [ ! -d "$dir" ]; then
-        mkdir -p "$dir"
+        mkdir -p "$dir" || error "디렉토리 생성 실패: $dir"
         success "디렉토리 생성: $dir"
+    fi
+}
+
+# 함수: 의존성 확인
+check_dependencies() {
+    local missing_deps=0
+    for cmd in cp mkdir chmod grep sed; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            error "필수 명령어 '$cmd'가 설치되어 있지 않습니다."
+            missing_deps=1
+        fi
+    done
+    if [ $missing_deps -ne 0 ]; then
+        exit 1
     fi
 }
 
@@ -189,12 +203,12 @@ install_enterprise() {
             sudo mkdir -p "$enterprise_dir/rules"
 
             # 파일 복사
-            sudo cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/"
+            sudo cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/" || error "CLAUDE.md 복사 실패"
             success "CLAUDE.md 설치됨"
 
             # rules 디렉토리 복사
-            if [ -d "$BACKUP_DIR/enterprise/rules" ]; then
-                sudo cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" 2>/dev/null || true
+            if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
+                sudo cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" || error "rules 복사 실패"
                 success "rules 디렉토리 설치됨"
             fi
 
@@ -202,16 +216,18 @@ install_enterprise() {
             sudo chmod 755 "$enterprise_dir"
             sudo chmod 644 "$enterprise_dir/CLAUDE.md"
             sudo chmod 755 "$enterprise_dir/rules"
-            sudo chmod 644 "$enterprise_dir/rules"/* 2>/dev/null || true
+            if [ -n "$(ls -A "$enterprise_dir/rules" 2>/dev/null)" ]; then
+                sudo chmod 644 "$enterprise_dir/rules"/* || error "rules 권한 설정 실패"
+            fi
         else
             # sudo 불필요
             mkdir -p "$enterprise_dir"
             mkdir -p "$enterprise_dir/rules"
-            cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/"
+            cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/" || error "CLAUDE.md 복사 실패"
             success "CLAUDE.md 설치됨"
 
-            if [ -d "$BACKUP_DIR/enterprise/rules" ]; then
-                cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" 2>/dev/null || true
+            if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
+                cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" || error "rules 복사 실패"
                 success "rules 디렉토리 설치됨"
             fi
         fi
@@ -219,11 +235,11 @@ install_enterprise() {
         # Windows
         mkdir -p "$enterprise_dir"
         mkdir -p "$enterprise_dir/rules"
-        cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/"
+        cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/" || error "CLAUDE.md 복사 실패"
         success "CLAUDE.md 설치됨"
 
-        if [ -d "$BACKUP_DIR/enterprise/rules" ]; then
-            cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" 2>/dev/null || true
+        if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
+            cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" || error "rules 복사 실패"
             success "rules 디렉토리 설치됨"
         fi
     fi
@@ -232,6 +248,9 @@ install_enterprise() {
     echo ""
     warning "중요: enterprise/CLAUDE.md를 조직 정책에 맞게 수정하세요!"
 }
+
+# 의존성 확인
+check_dependencies
 
 # 설치 타입 선택
 echo ""
@@ -245,17 +264,17 @@ echo ""
 read -p "선택 (1-5) [기본값: 3]: " INSTALL_TYPE
 INSTALL_TYPE=${INSTALL_TYPE:-3}
 
-# 컨텐츠 언어 정책 선택 (CLAUDE_CONTENT_LANGUAGE)
-# Global / Enterprise 설치 경로에서만 settings.json을 갱신합니다.
-# 기본값 english는 settings.json을 건드리지 않습니다 (dispatcher 기본값과 일치).
+# Content language policy selection (CLAUDE_CONTENT_LANGUAGE)
+# Only the Global / Enterprise install paths touch settings.json.
+# Default "english" matches the dispatcher default and leaves settings.json untouched.
 echo ""
-info "컨텐츠 언어 정책을 선택하세요 (commit / PR / issue 검증 범위):"
-echo "  1) English (기본, 현재 동작과 완전 동일)"
-echo "  2) Korean + English (Hangul 허용, 인라인 혼용 가능)"
-echo "  3) Exclusive bilingual (문서 단위 영어 또는 한국어, 인라인 혼용 금지)"
-echo "  4) Any (언어 검증 없음 — 단, AI 귀속 차단은 유지)"
+info "Select content-language policy (commit / PR / issue validation scope):"
+echo "  1) English (Default, identical to current behavior)"
+echo "  2) Korean + English (Allows Hangul, inline mixing permitted)"
+echo "  3) Exclusive bilingual (English or Korean per document, no inline mixing)"
+echo "  4) Any (No language validation — AI attribution block maintained)"
 echo ""
-read -p "선택 (1-4) [기본값: 1]: " LANG_TYPE
+read -p "Selection (1-4) [default: 1]: " LANG_TYPE
 LANG_TYPE=${LANG_TYPE:-1}
 
 case "$LANG_TYPE" in
@@ -264,8 +283,26 @@ case "$LANG_TYPE" in
     3) CONTENT_LANGUAGE="exclusive_bilingual" ;;
     4) CONTENT_LANGUAGE="any" ;;
     *)
-        warning "알 수 없는 입력: $LANG_TYPE. english로 진행합니다."
+        warning "Unknown selection: $LANG_TYPE. Falling back to english."
         CONTENT_LANGUAGE="english"
+        ;;
+esac
+
+# Agent Conversation Language selection
+echo ""
+info "Select Agent Conversation Language:"
+echo "  1) English"
+echo "  2) Korean"
+echo ""
+read -p "Selection (1-2) [default: 2]: " AGENT_LANG_TYPE
+AGENT_LANG_TYPE=${AGENT_LANG_TYPE:-2}
+
+case "$AGENT_LANG_TYPE" in
+    1) AGENT_LANGUAGE="english" ;;
+    2) AGENT_LANGUAGE="korean" ;;
+    *)
+        warning "Unknown selection: $AGENT_LANG_TYPE. Falling back to korean."
+        AGENT_LANGUAGE="korean"
         ;;
 esac
 
@@ -305,34 +342,64 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
 
     # ~/.claude 디렉토리 생성
     ensure_dir "$HOME/.claude"
+    chmod 700 "$HOME/.claude"
 
-    # 파일 설치
-    for gf in CLAUDE.md commit-settings.md conversation-language.md git-identity.md token-management.md; do
-        [ -f "$BACKUP_DIR/global/$gf" ] && cp "$BACKUP_DIR/global/$gf" "$HOME/.claude/" && success "$gf 설치됨"
+    # 설치 매니페스트 헬퍼 로드
+    # shellcheck disable=SC1091
+    source "$BACKUP_DIR/scripts/install-manifest.sh"
+
+    # 파일 설치 (매니페스트 가드 사용)
+    for gf in CLAUDE.md commit-settings.md git-identity.md token-management.md; do
+        if [ -f "$BACKUP_DIR/global/$gf" ]; then
+            if guarded_copy "$BACKUP_DIR/global/$gf" "$HOME/.claude/$gf" "$gf"; then
+                if [ "$gf" = "git-identity.md" ] || [ "$gf" = "token-management.md" ]; then
+                    chmod 600 "$HOME/.claude/$gf"
+                else
+                    chmod 644 "$HOME/.claude/$gf"
+                fi
+                success "$gf 설치됨"
+            else
+                info "$gf 로컬 변경 유지"
+            fi
+        fi
     done
 
-    # settings.json 설치 (Hook 설정)
+    # conversation-language.md 템플릿 렌더링
+    if [ -f "$BACKUP_DIR/global/conversation-language.md.tmpl" ]; then
+        if [ "$AGENT_LANGUAGE" = "english" ]; then
+            DISPLAY_LANG="English"
+        else
+            DISPLAY_LANG="Korean"
+        fi
+        
+        if guarded_template_copy "$BACKUP_DIR/global/conversation-language.md.tmpl" "$HOME/.claude/conversation-language.md" "conversation-language.md" "$DISPLAY_LANG"; then
+            chmod 644 "$HOME/.claude/conversation-language.md"
+            success "conversation-language.md 설치됨 (언어: $DISPLAY_LANG)"
+        else
+            info "conversation-language.md 로컬 변경 유지"
+        fi
+    fi
+
+    # settings.json install (Hook configuration)
+    # Intentionally bypasses guarded_copy: policy attributes (.language,
+    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
+    # update_claude_settings_json (below) injects them and is responsible
+    # for idempotent reset when the policy returns to default ("english").
     if [ -f "$BACKUP_DIR/global/settings.json" ]; then
         cp "$BACKUP_DIR/global/settings.json" "$HOME/.claude/"
         success "Hook 설정 (settings.json) 설치 완료!"
 
-        # CLAUDE_CONTENT_LANGUAGE env 주입
-        # english(기본)은 dispatcher 기본값과 일치하므로 파일을 건드리지 않습니다.
-        if [ "$CONTENT_LANGUAGE" != "english" ]; then
-            if command -v jq >/dev/null 2>&1; then
-                tmpfile=$(mktemp)
-                jq --arg v "$CONTENT_LANGUAGE" \
-                   '.env = (.env // {}) | .env.CLAUDE_CONTENT_LANGUAGE = $v' \
-                   "$HOME/.claude/settings.json" > "$tmpfile" \
-                   && mv "$tmpfile" "$HOME/.claude/settings.json" \
-                   && success "CLAUDE_CONTENT_LANGUAGE=$CONTENT_LANGUAGE 을 settings.json에 기록했습니다."
-            else
-                warning "jq가 설치되어 있지 않아 CLAUDE_CONTENT_LANGUAGE를 자동 설정할 수 없습니다."
+        # CLAUDE_CONTENT_LANGUAGE env 주입 및 Agent Language 속성 업데이트
+        if update_claude_settings_json "$HOME/.claude/settings.json" "$AGENT_LANGUAGE" "$CONTENT_LANGUAGE"; then
+            success "settings.json: language=$AGENT_LANGUAGE, CLAUDE_CONTENT_LANGUAGE=$CONTENT_LANGUAGE 업데이트 완료."
+        else
+            warning "jq가 설치되어 있지 않아 settings.json을 자동 업데이트할 수 없습니다."
+            if [ "$CONTENT_LANGUAGE" != "english" ]; then
                 echo "  수동으로 ~/.claude/settings.json 의 env 섹션에 다음을 추가하세요:"
                 echo "    \"CLAUDE_CONTENT_LANGUAGE\": \"$CONTENT_LANGUAGE\""
             fi
-        else
-            info "CLAUDE_CONTENT_LANGUAGE=english (기본값, settings.json 무변경)"
+            echo "  그리고 루트 레벨에 다음을 추가/수정하세요:"
+            echo "    \"language\": \"$AGENT_LANGUAGE\""
         fi
     fi
 

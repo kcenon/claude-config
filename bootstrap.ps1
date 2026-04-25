@@ -99,7 +99,7 @@ function Install-GlobalSettings {
     }
 
     # Copy files (manifest-guarded: local edits preserved by default)
-    $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'conversation-language.md', 'git-identity.md', 'token-management.md')
+    $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'git-identity.md', 'token-management.md')
     foreach ($gf in $globalFiles) {
         $src  = Join-Path $InstallDir 'global' $gf
         $dest = Join-Path $ClaudeDir $gf
@@ -112,11 +112,69 @@ function Install-GlobalSettings {
             else {
                 Write-Info "$gf 로컬 변경 유지"
             }
-        }
-        else {
+        } else {
             Copy-Item -LiteralPath $src -Destination $ClaudeDir -Force
             Write-Ok "$gf 설치됨"
         }
+    }
+
+    # conversation-language.md 템플릿 처리
+    $tmplPath = Join-Path $InstallDir 'global' 'conversation-language.md.tmpl'
+    if (Test-Path -LiteralPath $tmplPath) {
+        Write-Host ""
+        Write-Info "Select Agent Conversation Language:"
+        Write-Host "  1) English"
+        Write-Host "  2) Korean"
+        $agentLangType = Read-Host "Selection (1-2) [default: 2]"
+        if ([string]::IsNullOrEmpty($agentLangType)) { $agentLangType = '2' }
+        
+        if ($agentLangType -eq '1') {
+            $displayLang = "English"
+            $script:agentLanguage = "english"
+        } else {
+            $displayLang = "Korean"
+            $script:agentLanguage = "korean"
+        }
+
+        $dest = Join-Path $ClaudeDir "conversation-language.md"
+        if (Invoke-GuardedTemplateCopy -SrcTmpl $tmplPath -Dest $dest -Key "conversation-language.md" -DisplayLang $displayLang) {
+            Write-Ok "conversation-language.md 설치됨 (언어: $displayLang)"
+        } else {
+            Write-Info "conversation-language.md 로컬 변경 유지"
+        }
+    } else {
+        $script:agentLanguage = "korean"
+        # Static-file fallback. The default repo ships only the .tmpl, so this
+        # branch is unreachable in normal use. It exists to support fork users
+        # who replace the .tmpl with a hand-edited static .md — preserving
+        # their file via Invoke-GuardedCopy instead of silently dropping it.
+        $staticMd = Join-Path $InstallDir 'global' 'conversation-language.md'
+        if (Test-Path -LiteralPath $staticMd) {
+            $dest = Join-Path $ClaudeDir 'conversation-language.md'
+            if (Invoke-GuardedCopy -Src $staticMd -Dest $dest -Key "conversation-language.md") {
+                Write-Ok "conversation-language.md 설치됨"
+            } else {
+                Write-Info "conversation-language.md 로컬 변경 유지"
+            }
+        }
+    }
+
+    # Content language policy selection (CLAUDE_CONTENT_LANGUAGE)
+    Write-Host ""
+    Write-Info "Select content-language policy (commit / PR / issue validation scope):"
+    Write-Host "  1) English (Default, identical to current behavior)"
+    Write-Host "  2) Korean + English (Allows Hangul, inline mixing permitted)"
+    Write-Host "  3) Exclusive bilingual (English or Korean per document, no inline mixing)"
+    Write-Host "  4) Any (No language validation — AI attribution block maintained)"
+    $langType = Read-Host "Selection (1-4) [default: 1]"
+    if ([string]::IsNullOrEmpty($langType)) { $langType = '1' }
+    
+    switch ($langType) {
+        '1'     { $contentLanguage = 'english' }
+        '2'     { $contentLanguage = 'korean_plus_english' }
+        '3'     { $contentLanguage = 'exclusive_bilingual' }
+        '4'     { $contentLanguage = 'any' }
+        default { $contentLanguage = 'english' }
     }
 
     # tmux config installation
@@ -131,7 +189,7 @@ function Install-GlobalSettings {
         Write-Ok "tmux 설정 설치 완료"
     }
 
-    # ccstatusline settings
+    # settings.json (ccstatusline)
     $ccstatuslineSrc = Join-Path $InstallDir 'global' 'ccstatusline'
     if (Test-Path -LiteralPath $ccstatuslineSrc -PathType Container) {
         $ccstatuslineDst = Join-Path $HOME '.config' 'ccstatusline'
@@ -140,6 +198,23 @@ function Install-GlobalSettings {
         }
         Copy-Item -Path (Join-Path $ccstatuslineSrc 'settings.json') -Destination $ccstatuslineDst -Force
         Write-Ok "ccstatusline 설정 설치 완료"
+    }
+
+    # settings.json (Claude Code)
+    # Intentionally bypasses Invoke-GuardedCopy: policy attributes (.language,
+    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
+    # Update-ClaudeSettingsJson (below) injects them and is responsible
+    # for idempotent reset when the policy returns to default ("english").
+    $settingsSrc = Join-Path $InstallDir 'global' 'settings.json'
+    if (Test-Path -LiteralPath $settingsSrc) {
+        $settingsDst = Join-Path $ClaudeDir 'settings.json'
+        Copy-Item -Path $settingsSrc -Destination $settingsDst -Force
+
+        if (Update-ClaudeSettingsJson -SettingsPath $settingsDst -AgentLang $script:agentLanguage -ContentLang $contentLanguage) {
+            Write-Ok "settings.json (에이전트: $($script:agentLanguage), 컨텐츠: $contentLanguage) 설치 완료"
+        } else {
+            Write-Ok "settings.json 설치 완료 (기본값)"
+        }
     }
 
     # npm package installation (statusline dependencies)
