@@ -436,6 +436,29 @@ else
     record_warning
 fi
 
+# Workspace prefix convention (P3) — warn-only during rollout
+echo ""
+echo "======================================================"
+info "Workspace 접두사 검증 (NN_<phase>.<ext>)"
+echo "======================================================"
+echo ""
+
+if [ -x "$SCRIPT_DIR/check_workspace_prefix.sh" ]; then
+    ws_out="$("$SCRIPT_DIR/check_workspace_prefix.sh" "$BACKUP_DIR" 2>&1)" || true
+    ws_warn="$(echo "$ws_out" | sed -n 's/.*warnings=\([0-9]*\).*/\1/p' | tail -n1)"
+    if [ "${ws_warn:-0}" = "0" ]; then
+        success "check_workspace_prefix: 위반 사항 없음"
+        record_pass
+    else
+        echo "$ws_out"
+        warning "check_workspace_prefix: ${ws_warn}개 파일이 NN_<phase>.<ext> 컨벤션을 따르지 않음 (warn-only)"
+        record_warning
+    fi
+else
+    warning "check_workspace_prefix.sh 누락 — workspace 접두사 검증 건너뜀"
+    record_warning
+fi
+
 # 검증 결과 요약
 echo ""
 echo "======================================================"
