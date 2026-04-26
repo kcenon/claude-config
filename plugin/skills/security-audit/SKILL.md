@@ -6,6 +6,7 @@ model: sonnet
 context: fork
 agent: Explore
 argument-hint: "<file-or-directory>"
+finding_levels: [S1, S2, S3]
 ---
 
 # Security Audit Skill
@@ -65,22 +66,23 @@ Return a structured report at the end of analysis:
 ```markdown
 ## Security Audit Report
 
-| Category | Findings |
+| Severity | Findings |
 |----------|----------|
-| Critical | N items |
-| High | N items |
-| Medium | N items |
-| Low | N items |
+| S1 (block-merge) | N items |
+| S2 (review-required) | N items |
+| S3 (advisory) | N items |
 
-### Critical Findings
-1. `file.ext:line` — finding + recommended fix
+### S1 Findings
+1. `file.ext:line` — severity: S1 — finding + recommended fix
 2. ...
 
-### High Findings
-1. ...
+### S2 Findings
+1. `file.ext:line` — severity: S2 — finding + recommended fix
 
 ### Coverage
 - Files inspected: N
 - OWASP categories evaluated: 1, 2, 3, ...
 - Categories not applicable: ...
 ```
+
+Each finding MUST include a `severity:` field (`S1`, `S2`, or `S3`). When a finding's severity is ambiguous, default to `S3` (advisory) per the false-positive playbook.

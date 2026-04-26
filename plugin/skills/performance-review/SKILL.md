@@ -6,6 +6,7 @@ model: sonnet
 context: fork
 agent: Explore
 argument-hint: "<file-or-directory>"
+finding_levels: [S1, S2, S3]
 ---
 
 # Performance Review Skill
@@ -71,15 +72,14 @@ Return a structured report at the end of analysis:
 ```markdown
 ## Performance Review Report
 
-| Category | Findings |
+| Severity | Findings |
 |----------|----------|
-| Critical (clear regression) | N items |
-| High (measured hotspot) | N items |
-| Medium (suspected hotspot) | N items |
-| Low (style/maintainability) | N items |
+| S1 (block-merge: clear regression) | N items |
+| S2 (review-required: measured/suspected hotspot) | N items |
+| S3 (advisory: style/maintainability) | N items |
 
-### Critical Findings
-1. `file.ext:line` — finding + recommended optimization + expected gain
+### S1 Findings
+1. `file.ext:line` — severity: S1 — finding + recommended optimization + expected gain
 2. ...
 
 ### Hotspot Map
@@ -93,3 +93,5 @@ Return a structured report at the end of analysis:
 - Profiling data referenced: yes/no
 - Categories not evaluated (need runtime data): ...
 ```
+
+Each finding MUST include a `severity:` field (`S1`, `S2`, or `S3`). When a finding's severity is ambiguous, default to `S3` (advisory) per the false-positive playbook.
