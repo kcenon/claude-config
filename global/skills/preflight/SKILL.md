@@ -6,6 +6,10 @@ user-invocable: true
 disable-model-invocation: false
 allowed-tools: "Bash(act *),Bash(docker *),Bash(cmake *)"
 loop_safe: true
+halt_conditions:
+  - { type: success, expr: "all selected preflight checks complete with non-zero failures = 0" }
+  - { type: failure, expr: "any selected check reports failure or its runner errors out" }
+on_halt: "Print per-check summary table and exit non-zero if any check failed"
 ---
 
 # preflight Skill

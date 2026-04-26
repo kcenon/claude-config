@@ -8,6 +8,10 @@ allowed-tools: "Bash(git *)"
 context: fork
 agent: general-purpose
 loop_safe: true
+halt_conditions:
+  - { type: success, expr: "review report emitted with all in-scope findings" }
+  - { type: failure, expr: "fatal error reading the docs directory or scope cannot be resolved" }
+on_halt: "Emit partial report listing what was reviewed and what was skipped"
 ---
 
 # Document Review Command
