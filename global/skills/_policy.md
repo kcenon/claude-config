@@ -56,6 +56,33 @@ loop_safe: true | false
 
 Rules and anti-patterns: `docs/loop-patterns.md`.
 
+## Workspace Layout
+
+Skills that produce per-invocation artifacts write them to a workspace directory using a numeric phase prefix so the filesystem reflects pipeline order:
+
+```
+_workspace/{date}-{n}/NN_<phase>.<ext>
+```
+
+- `{date}` — invocation date in `YYYY-MM-DD` form.
+- `{n}` — 1-based ordinal for invocations in the same day.
+- `NN_` — 2-digit zero-padded phase index (`00_`, `01_`, …, `99_`). The leading zero keeps lexical order aligned with execution order.
+- `<phase>` — lowercase snake_case phase name (e.g. `discovery`, `plan`, `implement`, `review`).
+- `<ext>` — artifact extension (`md`, `json`, `txt`, `log`, …).
+
+Examples:
+
+```
+_workspace/2026-04-26-1/00_discovery.md
+_workspace/2026-04-26-1/01_plan.md
+_workspace/2026-04-26-1/02_implement.log
+_workspace/2026-04-26-1/03_review.md
+```
+
+The last `NN_*.ext` file in a workspace is the immediate halt-trace anchor: combined with `halt_conditions` (P1), it pinpoints where iteration stopped and why. Existing artifacts are point-forward only — no migration is required for prior workspaces.
+
+`scripts/check_workspace_prefix.sh` enforces the convention: non-conforming files emit warnings (not failures) during the rollout.
+
 ## Tier Preset Schema
 
 Skills whose `SKILL.md` body exceeds 5 KB declare tier presets in their frontmatter so callers can load the skill at a depth that matches the task. The schema exposes three tiers — `light`, `standard`, `deep` — each mapping to a list of reference documents and optional flags that shape runtime behavior.
