@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import difflib
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Iterable
@@ -45,6 +46,30 @@ SCHEMA_FILES = {
     "plugin":   SCHEMA_DIR / "plugin-json.schema.json",
     "settings": SCHEMA_DIR / "settings-json.schema.json",
 }
+
+SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
+
+
+def read_p4_strict_schema_toggle() -> bool:
+    """Resolve the P4 strict-schema Kill Switch.
+
+    Precedence: STRICT_SCHEMA env var > harness_policies.p4_strict_schema in
+    ~/.claude/settings.json > default False. Returned but currently unused —
+    D1 (#461) will dispatch on this value once strict/lenient schemas land.
+    """
+    env = os.environ.get("STRICT_SCHEMA")
+    if env is not None:
+        return env.strip().lower() in ("1", "true", "yes", "on")
+    if not SETTINGS_PATH.is_file():
+        return False
+    try:
+        data = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    policies = data.get("harness_policies")
+    if isinstance(policies, dict) and "p4_strict_schema" in policies:
+        return bool(policies["p4_strict_schema"])
+    return False
 
 
 def load_schema(mode: str) -> dict:
