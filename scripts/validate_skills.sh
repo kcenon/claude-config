@@ -200,14 +200,20 @@ validate_skill() {
     fi
 
     # 6. 프론트매터 대 본문 일관성 (drift)
-    if echo "$frontmatter" | grep -qE "^(max_iterations|halt_condition):"; then
+    if echo "$frontmatter" | grep -qE "^(max_iterations|halt_condition|halt_conditions):"; then
         if ! grep -qiE "(loop|retry|iteration|poll)" "$skill_file"; then
-            warning "max_iterations/halt_condition 선언되었으나 본문에 loop/retry/iteration/poll 참조 없음"
+            warning "max_iterations/halt_condition(s) 선언되었으나 본문에 loop/retry/iteration/poll 참조 없음"
             record_warning
         else
             success "loop 메타데이터 본문 일관성 확인"
             record_pass
         fi
+    fi
+
+    # 6a. P1-c (issue #458): legacy halt_condition 단일 키 deprecation
+    if echo "$frontmatter" | grep -qE "^halt_condition:[[:space:]]"; then
+        warning "halt_condition (legacy) 키가 사용됨 — halt_conditions array form으로 마이그레이션 필요 (P1 grace period; 다음 릴리즈에서 제거 예정)"
+        record_warning
     fi
 
     if echo "$frontmatter" | grep -qE "^loop_safe:[[:space:]]*false"; then

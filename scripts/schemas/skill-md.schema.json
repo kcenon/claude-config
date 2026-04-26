@@ -6,6 +6,20 @@
   "type": "object",
   "required": ["name", "description"],
   "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "anyOf": [
+          { "required": ["max_iterations"] },
+          { "properties": { "loop_safe": { "const": true } }, "required": ["loop_safe"] }
+        ]
+      },
+      "then": {
+        "required": ["halt_conditions"],
+        "$comment": "P1-c (issue #458): iterative skills (max_iterations declared, or loop_safe == true) MUST declare halt_conditions so a self-loop is forced to terminate explicitly."
+      }
+    }
+  ],
   "$defs": {
     "tierEntry": {
       "type": "object",

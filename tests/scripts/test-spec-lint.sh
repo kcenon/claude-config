@@ -308,6 +308,56 @@ echo "[case 10d: halt_conditions unknown entry type rejected]"
 out=$(run_lint skill "$HALT_BAD_TYPE_SKILL" 2>&1); rc=$?
 assert_exit 1 "$rc" "halt_conditions unknown type -> exit 1"
 
+# ── Fixture: max_iterations without halt_conditions (P1-c, #458) ─
+ITER_NO_HALT_SKILL="$WORK/iter-no-halt-skill.md"
+write_file "$ITER_NO_HALT_SKILL" '---
+name: iter-no-halt-skill
+description: SKILL.md declaring max_iterations but missing halt_conditions. Must be rejected by the P1-c conditional-required rule.
+max_iterations: 5
+---
+
+content
+'
+
+echo ""
+echo "[case 10e: P1-c — max_iterations without halt_conditions rejected]"
+out=$(run_lint skill "$ITER_NO_HALT_SKILL" 2>&1); rc=$?
+assert_exit 1 "$rc" "max_iterations without halt_conditions -> exit 1"
+assert_output_contains "'halt_conditions' is a required property" "$out" "missing halt_conditions error"
+
+# ── Fixture: loop_safe true without halt_conditions (P1-c, #458) ─
+LOOP_NO_HALT_SKILL="$WORK/loop-no-halt-skill.md"
+write_file "$LOOP_NO_HALT_SKILL" '---
+name: loop-no-halt-skill
+description: SKILL.md declaring loop_safe true but missing halt_conditions. Must be rejected by the P1-c conditional-required rule.
+loop_safe: true
+---
+
+content
+'
+
+echo ""
+echo "[case 10f: P1-c — loop_safe: true without halt_conditions rejected]"
+out=$(run_lint skill "$LOOP_NO_HALT_SKILL" 2>&1); rc=$?
+assert_exit 1 "$rc" "loop_safe: true without halt_conditions -> exit 1"
+assert_output_contains "'halt_conditions' is a required property" "$out" "missing halt_conditions error"
+
+# ── Fixture: loop_safe false without halt_conditions (allowed) ───
+LOOP_FALSE_SKILL="$WORK/loop-false-skill.md"
+write_file "$LOOP_FALSE_SKILL" '---
+name: loop-false-skill
+description: SKILL.md with loop_safe false and no halt_conditions. P1-c rule does not apply when loop_safe is false.
+loop_safe: false
+---
+
+content
+'
+
+echo ""
+echo "[case 10g: P1-c — loop_safe: false without halt_conditions accepted]"
+out=$(run_lint skill "$LOOP_FALSE_SKILL" 2>&1); rc=$?
+assert_exit 0 "$rc" "loop_safe: false without halt_conditions -> exit 0"
+
 # ── Wrapper invocation ───────────────────────────────────────
 echo ""
 echo "[case 11: spec_lint.sh wrapper works in --mode form]"
