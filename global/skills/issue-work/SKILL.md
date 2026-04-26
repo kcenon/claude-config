@@ -6,7 +6,9 @@ user-invocable: true
 disable-model-invocation: true
 allowed-tools: "Bash(gh *)"
 max_iterations: 10
-halt_condition: "CI all-green and PR merged, OR 3 identical build/CI failures in a row"
+halt_conditions:
+  - { type: success, expr: "CI all-green and PR merged" }
+  - { type: limit,   expr: "3 identical build/CI failures in a row" }
 on_halt: "Convert PR to draft, report failing checks, exit without merging"
 loop_safe: false
 tiers:
