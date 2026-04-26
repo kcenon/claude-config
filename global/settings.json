@@ -438,7 +438,10 @@
   "skipDangerousModePermissionPrompt": true,
   "includeGitInstructions": false,
   "description": "Claude Code Global Settings - Applied to all projects (permissions.deny for security)",
-  "version": "1.12.2",
+  "version": "1.13.0",
   "showTurnDuration": true,
-  "teammateMode": "in-process"
+  "teammateMode": "in-process",
+  "harness_policies": {
+    "p4_strict_schema": false
+  }
 }

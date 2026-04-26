@@ -118,6 +118,7 @@ reference: [`code.claude.com/docs/en/settings`](https://code.claude.com/docs/en/
 | `skipDangerousModePermissionPrompt` | Stable | 2.0.0+ | Ignored in project settings (security). |
 | `showTurnDuration` | **Misplaced** | 2.1.0+ | Officially belongs in `~/.claude.json`, not `settings.json`. May trigger schema validation warning in future CC versions. Consider moving. |
 | `teammateMode` | **Misplaced** | 2.1.0+ | Same as above — belongs in `~/.claude.json`. Valid values: `auto`, `in-process`, `tmux`. |
+| `harness_policies.p4_strict_schema` | Undocumented | — | claude-config Kill Switch for P4 strict-schema dispatch (EPIC #454). Default `false`. **Bypass:** set `STRICT_SCHEMA=0` env var (env wins over settings) to force lenient schema validation across all skills. Until D1 (#461) merges, the toggle is read but unused. |
 
 ### env fields in settings.json
 

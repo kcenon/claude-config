@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "description": "Claude Code Global Settings (Windows) - Applied to all projects (permissions.deny for security)",
-  "version": "1.12.2",
+  "version": "1.13.0",
 
   "respectGitignore": true,
   "cleanupPeriodDays": 30,
@@ -49,6 +49,9 @@
   },
   "alwaysThinkingEnabled": true,
   "teammateMode": "in-process",
+  "harness_policies": {
+    "p4_strict_schema": false
+  },
 
   "autoUpdatesChannel": "latest",
   "skipDangerousModePermissionPrompt": true,
