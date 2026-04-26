@@ -6,7 +6,9 @@ user-invocable: true
 disable-model-invocation: false
 allowed-tools: "Bash(gh *)"
 max_iterations: 3
-halt_condition: "Workflow run conclusion == success, OR failure maps to an unknown error class not in reference/known-fixes.md"
+halt_conditions:
+  - { type: success,  expr: "Workflow run conclusion == success" }
+  - { type: fallback, expr: "failure maps to an unknown error class not in reference/known-fixes.md" }
 on_halt: "Escalate to user with failing log excerpt and classification result"
 loop_safe: true
 ---

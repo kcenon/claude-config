@@ -6,7 +6,10 @@ user-invocable: true
 disable-model-invocation: true
 allowed-tools: "Bash(gh *)"
 max_iterations: 5
-halt_condition: "All PR checks pass, OR user aborts, OR 3 identical CI failures in a row"
+halt_conditions:
+  - { type: success, expr: "All PR checks pass" }
+  - { type: user,    expr: "user aborts" }
+  - { type: limit,   expr: "3 identical CI failures in a row" }
 on_halt: "Report failing checks with gh pr checks output, do not merge"
 loop_safe: false
 tiers:

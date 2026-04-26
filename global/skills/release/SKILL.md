@@ -7,7 +7,10 @@ disable-model-invocation: true
 context: fork
 allowed-tools: "Bash(git *) Bash(gh *)"
 max_iterations: 5
-halt_condition: "Release PR merged and tag published, OR CI failure persists after 3 retries, OR integrity check fails"
+halt_conditions:
+  - { type: success, expr: "Release PR merged and tag published" }
+  - { type: limit,   expr: "CI failure persists after 3 retries" }
+  - { type: failure, expr: "integrity check fails" }
 on_halt: "Report incomplete release state, leave tag/PR in whatever state they are in, do not force-publish"
 loop_safe: false
 ---
