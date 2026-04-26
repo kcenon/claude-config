@@ -106,6 +106,16 @@
     "description":                       { "type": "string" },
     "version":                           { "type": "string" },
     "showTurnDuration":                  { "type": "boolean" },
-    "teammateMode":                      { "type": "string", "enum": ["in-process", "subprocess"] }
+    "teammateMode":                      { "type": "string", "enum": ["in-process", "subprocess"] },
+    "harness_policies": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "p4_strict_schema": {
+          "type": "boolean",
+          "description": "Kill Switch for P4 strict-schema dispatch. When false, even _internal/ skills validate against the lenient schema. Settings precedence: STRICT_SCHEMA env var > this field > default false."
+        }
+      }
+    }
   }
 }
