@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kcenon/claude-config/scripts/schemas/skill-md.schema.json",
   "title": "Claude Code SKILL.md Frontmatter",
-  "description": "Canonical schema for Claude Code 2026 SKILL.md YAML frontmatter. 14 official fields plus claude-config iteration-control extension fields (max_iterations, halt_condition, halt_conditions, on_halt, loop_safe) and tier-preset extension fields (tiers, default_tier).",
+  "description": "Canonical schema for Claude Code 2026 SKILL.md YAML frontmatter. 14 official fields plus claude-config iteration-control extension fields (max_iterations, halt_condition, halt_conditions, on_halt, loop_safe), tier-preset extension fields (tiers, default_tier), and severity extension fields (severity, finding_levels).",
   "type": "object",
   "required": ["name", "description"],
   "additionalProperties": false,
@@ -165,6 +165,18 @@
       "type": "string",
       "enum": ["light", "standard", "deep"],
       "description": "Tier-preset extension (claude-config): tier applied when the caller omits --tier. Defaults to 'standard' when this field is absent."
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["S1", "S2", "S3"],
+      "description": "Severity extension (claude-config): primary severity tier this skill triages at. S1 = block-merge, S2 = review-required, S3 = advisory. Code-review domain only."
+    },
+    "finding_levels": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["S1", "S2", "S3"] },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Severity extension (claude-config): set of severity levels this skill emits findings at. Subset of {S1, S2, S3}; non-empty and unique."
     }
   }
 }

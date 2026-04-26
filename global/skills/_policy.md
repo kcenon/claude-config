@@ -83,6 +83,25 @@ The last `NN_*.ext` file in a workspace is the immediate halt-trace anchor: comb
 
 `scripts/check_workspace_prefix.sh` enforces the convention: non-conforming files emit warnings (not failures) during the rollout.
 
+## Severity
+
+Code-review domain skills declare severity in their frontmatter so triage can be automated. Free-form prose previously produced inconsistent merge-block thresholds; the enum collapses that ambiguity.
+
+```yaml
+severity: S1 | S2 | S3              # Primary tier this skill triages at
+finding_levels: [S1, S2, S3]        # Subset of levels this skill emits findings at
+```
+
+| Tier | Meaning | Effect on PR |
+|------|---------|--------------|
+| `S1` | Block-merge | Reviewer must resolve before merge — no exceptions |
+| `S2` | Review-required | Reviewer attention requested; can be acknowledged-and-deferred |
+| `S3` | Advisory | Informational only; no action required |
+
+Both fields are optional and apply to code-review domain skills only (e.g. `code-quality`, `security-audit`, `pr-review`). `doc-review` and `release` are explicitly out of scope — they describe gates, not findings, and would create category errors.
+
+`finding_levels` lists every level the skill may surface. A skill with `severity: S2` and `finding_levels: [S1, S2]` triages at S2 by default but can escalate individual findings to S1.
+
 ## Tier Preset Schema
 
 Skills whose `SKILL.md` body exceeds 5 KB declare tier presets in their frontmatter so callers can load the skill at a depth that matches the task. The schema exposes three tiers — `light`, `standard`, `deep` — each mapping to a list of reference documents and optional flags that shape runtime behavior.
