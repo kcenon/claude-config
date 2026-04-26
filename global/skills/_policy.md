@@ -30,13 +30,18 @@ Skills that perform iterative work (retry loops, polling loops, multi-round refi
 
 ```yaml
 max_iterations: <int>          # Hard upper bound on loop iterations
-halt_condition: "<expression>" # Natural language or regex describing success/abort signal
-on_halt: "<action>"            # What to do when halt condition fires (report, escalate, exit)
+halt_condition: "<expression>" # Legacy: natural language or regex describing success/abort signal
+halt_conditions:               # Preferred: structured form (array of {type, expr}); string form also accepted in P1 grace period
+  - { type: success, expr: "<expression>" }
+  - { type: limit,   expr: "<expression>" }
+on_halt: "<action>"            # What to do when a halt condition fires (report, escalate, exit)
 ```
 
 Required for skills whose body contains a polling loop, retry loop, or multi-round iteration (`issue-work`, `pr-work`, `ci-fix`, `release`, `research`, `fleet-orchestrator`). Optional otherwise.
 
 Prefer regex or symbolic halt conditions over free-form prose when the signal is deterministic (CI status, exit codes). Reserve natural language for cases where interpretation is intrinsically subjective.
+
+`halt_condition` (singular, string) is the legacy key. `halt_conditions` (plural) is the structured replacement: array entries are `{type, expr}` where `type ∈ [success, failure, limit, user, fallback]`. Both keys validate during the P1 grace period; A2/A3 will migrate skills and tighten enforcement.
 
 ## Loop-Safety Flag
 
