@@ -89,10 +89,12 @@ out=$(run_lint skill "$GOOD_SKILL" 2>&1); rc=$?
 assert_exit 0 "$rc" "valid SKILL.md -> exit 0"
 
 # ── Fixture: underscore typo (did-you-mean) ──────────────────
+# additionalProperties: false is strict-only after D1. Lenient accepts
+# unknown fields silently; strict + _internal/ rejects with did-you-mean.
 TYPO_SKILL="$WORK/typo-skill.md"
 write_file "$TYPO_SKILL" '---
 name: typo-skill
-description: SKILL with underscore typo on disable_model_invocation field for did-you-mean coverage.
+description: SKILL with underscore typo on disable_model_invocation field. Lenient accepts; strict + _internal/ catches with did-you-mean.
 disable_model_invocation: true
 ---
 
@@ -100,16 +102,32 @@ content
 '
 
 echo ""
-echo "[case 2: underscore typo caught with did-you-mean]"
+echo "[case 2: lenient accepts underscore typo silently]"
 out=$(run_lint skill "$TYPO_SKILL" 2>&1); rc=$?
-assert_exit 1 "$rc" "underscore typo -> exit 1"
+assert_exit 0 "$rc" "lenient accepts unknown field -> exit 0"
+
+# Strict variant of the same fixture under simulated _internal/ path
+mkdir -p "$WORK/repo/global/skills/_internal/typo"
+INTERNAL_TYPO="$WORK/repo/global/skills/_internal/typo/SKILL.md"
+write_file "$INTERNAL_TYPO" '---
+name: typo-strict
+description: Strict-mode underscore-typo fixture under _internal/ path. additionalProperties:false must reject.
+disable_model_invocation: true
+---
+
+content
+'
+echo ""
+echo "[case 2-strict: strict + _internal/ catches underscore typo with did-you-mean]"
+out=$(STRICT_SCHEMA=1 run_lint skill "$INTERNAL_TYPO" 2>&1); rc=$?
+assert_exit 1 "$rc" "strict + _internal/ on typo -> exit 1"
 assert_output_contains "did you mean 'disable-model-invocation'" "$out" "did-you-mean suggestion present"
 
-# ── Fixture: unknown field rejected ──────────────────────────
+# ── Fixture: unknown field accepted by lenient, rejected by strict ──
 UNK_SKILL="$WORK/unknown-field-skill.md"
 write_file "$UNK_SKILL" '---
 name: unknown-field
-description: SKILL with a totally unknown field that must be rejected by the additionalProperties rule.
+description: SKILL with a totally unknown field. Lenient accepts (additionalProperties:true); strict + _internal/ rejects.
 memory: persistent
 ---
 
@@ -117,9 +135,24 @@ content
 '
 
 echo ""
-echo "[case 3: unknown field rejected]"
+echo "[case 3: lenient accepts unknown 'memory' field]"
 out=$(run_lint skill "$UNK_SKILL" 2>&1); rc=$?
-assert_exit 1 "$rc" "unknown 'memory' field -> exit 1"
+assert_exit 0 "$rc" "lenient accepts unknown -> exit 0"
+
+mkdir -p "$WORK/repo/global/skills/_internal/unk"
+INTERNAL_UNK="$WORK/repo/global/skills/_internal/unk/SKILL.md"
+write_file "$INTERNAL_UNK" '---
+name: unk-strict
+description: Strict-mode unknown-field fixture under _internal/. additionalProperties:false must reject.
+memory: persistent
+---
+
+content
+'
+echo ""
+echo "[case 3-strict: strict + _internal/ rejects unknown 'memory' field]"
+out=$(STRICT_SCHEMA=1 run_lint skill "$INTERNAL_UNK" 2>&1); rc=$?
+assert_exit 1 "$rc" "strict + _internal/ on unknown field -> exit 1"
 assert_output_contains "unknown field(s)" "$out" "unknown field message"
 
 # ── Fixture: invalid enum values ─────────────────────────────
@@ -291,11 +324,13 @@ echo "[case 10c: halt_conditions empty array rejected]"
 out=$(run_lint skill "$HALT_EMPTY_SKILL" 2>&1); rc=$?
 assert_exit 1 "$rc" "halt_conditions [] -> exit 1"
 
-# ── Fixture: halt_conditions unknown type (rejected) ─────────
+# ── Fixture: halt_conditions unknown type ────────────────────
+# Lenient halt_conditions array does not enforce the type-enum constraint.
+# Strict + _internal/ rejects via the enum check.
 HALT_BAD_TYPE_SKILL="$WORK/halt-bad-type-skill.md"
 write_file "$HALT_BAD_TYPE_SKILL" '---
 name: halt-bad-type-skill
-description: SKILL.md verifying that an unknown halt_conditions entry type is rejected by the enum.
+description: SKILL.md with an unknown halt_conditions entry type. Lenient accepts; strict + _internal/ rejects via enum.
 halt_conditions:
   - { type: telepathy, expr: "psychic signal" }
 ---
@@ -304,15 +339,34 @@ content
 '
 
 echo ""
-echo "[case 10d: halt_conditions unknown entry type rejected]"
+echo "[case 10d: lenient accepts halt_conditions with unknown entry type]"
 out=$(run_lint skill "$HALT_BAD_TYPE_SKILL" 2>&1); rc=$?
-assert_exit 1 "$rc" "halt_conditions unknown type -> exit 1"
+assert_exit 0 "$rc" "lenient -> exit 0"
 
-# ── Fixture: max_iterations without halt_conditions (P1-c, #458) ─
+mkdir -p "$WORK/repo/global/skills/_internal/halt-bad"
+INTERNAL_HALT_BAD="$WORK/repo/global/skills/_internal/halt-bad/SKILL.md"
+write_file "$INTERNAL_HALT_BAD" '---
+name: halt-bad-strict
+description: Strict-mode fixture for halt_conditions enum violation under _internal/ path.
+halt_conditions:
+  - { type: telepathy, expr: "psychic signal" }
+---
+
+content
+'
+echo ""
+echo "[case 10d-strict: strict + _internal/ rejects unknown halt_conditions type]"
+out=$(STRICT_SCHEMA=1 run_lint skill "$INTERNAL_HALT_BAD" 2>&1); rc=$?
+assert_exit 1 "$rc" "strict + _internal/ on bad halt type -> exit 1"
+
+# ── Fixture: max_iterations without halt_conditions ─────────────
+# P1-c rule is enforced only by the strict variant. With the D1 (#461)
+# strict/lenient split and Kill Switch defaulting to OFF, the lenient
+# variant accepts the same input. Strict-mode coverage lives below.
 ITER_NO_HALT_SKILL="$WORK/iter-no-halt-skill.md"
 write_file "$ITER_NO_HALT_SKILL" '---
 name: iter-no-halt-skill
-description: SKILL.md declaring max_iterations but missing halt_conditions. Must be rejected by the P1-c conditional-required rule.
+description: SKILL.md declaring max_iterations but missing halt_conditions. Lenient accepts; strict + _internal/ path rejects.
 max_iterations: 5
 ---
 
@@ -320,16 +374,15 @@ content
 '
 
 echo ""
-echo "[case 10e: P1-c — max_iterations without halt_conditions rejected]"
+echo "[case 10e: lenient (default) accepts max_iterations without halt_conditions]"
 out=$(run_lint skill "$ITER_NO_HALT_SKILL" 2>&1); rc=$?
-assert_exit 1 "$rc" "max_iterations without halt_conditions -> exit 1"
-assert_output_contains "'halt_conditions' is a required property" "$out" "missing halt_conditions error"
+assert_exit 0 "$rc" "lenient mode -> exit 0"
 
-# ── Fixture: loop_safe true without halt_conditions (P1-c, #458) ─
+# ── Fixture: loop_safe true without halt_conditions ──────────────
 LOOP_NO_HALT_SKILL="$WORK/loop-no-halt-skill.md"
 write_file "$LOOP_NO_HALT_SKILL" '---
 name: loop-no-halt-skill
-description: SKILL.md declaring loop_safe true but missing halt_conditions. Must be rejected by the P1-c conditional-required rule.
+description: SKILL.md declaring loop_safe true but missing halt_conditions. Lenient accepts; strict + _internal/ path rejects.
 loop_safe: true
 ---
 
@@ -337,16 +390,15 @@ content
 '
 
 echo ""
-echo "[case 10f: P1-c — loop_safe: true without halt_conditions rejected]"
+echo "[case 10f: lenient (default) accepts loop_safe: true without halt_conditions]"
 out=$(run_lint skill "$LOOP_NO_HALT_SKILL" 2>&1); rc=$?
-assert_exit 1 "$rc" "loop_safe: true without halt_conditions -> exit 1"
-assert_output_contains "'halt_conditions' is a required property" "$out" "missing halt_conditions error"
+assert_exit 0 "$rc" "lenient mode -> exit 0"
 
 # ── Fixture: loop_safe false without halt_conditions (allowed) ───
 LOOP_FALSE_SKILL="$WORK/loop-false-skill.md"
 write_file "$LOOP_FALSE_SKILL" '---
 name: loop-false-skill
-description: SKILL.md with loop_safe false and no halt_conditions. P1-c rule does not apply when loop_safe is false.
+description: SKILL.md with loop_safe false and no halt_conditions. Always accepted (rule never applies).
 loop_safe: false
 ---
 
@@ -354,9 +406,51 @@ content
 '
 
 echo ""
-echo "[case 10g: P1-c — loop_safe: false without halt_conditions accepted]"
+echo "[case 10g: loop_safe: false without halt_conditions accepted (lenient and strict)]"
 out=$(run_lint skill "$LOOP_FALSE_SKILL" 2>&1); rc=$?
-assert_exit 0 "$rc" "loop_safe: false without halt_conditions -> exit 0"
+assert_exit 0 "$rc" "lenient mode -> exit 0"
+
+# ── P1-c strict-mode coverage (D1, #461) ────────────────────────
+# Place fixtures under a temporary global/skills/_internal/ tree so the
+# path-based dispatch resolves to the strict schema. STRICT_SCHEMA=1
+# overrides the Kill Switch default.
+INTERNAL_ROOT="$WORK/repo/global/skills/_internal"
+mkdir -p "$INTERNAL_ROOT/iter-strict" "$INTERNAL_ROOT/loop-strict"
+INTERNAL_ITER="$INTERNAL_ROOT/iter-strict/SKILL.md"
+INTERNAL_LOOP="$INTERNAL_ROOT/loop-strict/SKILL.md"
+write_file "$INTERNAL_ITER" '---
+name: iter-strict
+description: Strict-mode fixture (max_iterations declared, halt_conditions missing) under a simulated _internal/ path. P1-c must reject under STRICT_SCHEMA=1.
+max_iterations: 5
+---
+
+content
+'
+write_file "$INTERNAL_LOOP" '---
+name: loop-strict
+description: Strict-mode fixture (loop_safe true, halt_conditions missing) under a simulated _internal/ path. P1-c must reject under STRICT_SCHEMA=1.
+loop_safe: true
+---
+
+content
+'
+
+echo ""
+echo "[case 10h: strict + _internal/ rejects max_iterations without halt_conditions]"
+out=$(STRICT_SCHEMA=1 run_lint skill "$INTERNAL_ITER" 2>&1); rc=$?
+assert_exit 1 "$rc" "strict + _internal/ on iter -> exit 1"
+assert_output_contains "'halt_conditions' is a required property" "$out" "P1-c rejection message"
+
+echo ""
+echo "[case 10i: strict + _internal/ rejects loop_safe true without halt_conditions]"
+out=$(STRICT_SCHEMA=1 run_lint skill "$INTERNAL_LOOP" 2>&1); rc=$?
+assert_exit 1 "$rc" "strict + _internal/ on loop_safe -> exit 1"
+assert_output_contains "'halt_conditions' is a required property" "$out" "P1-c rejection message"
+
+echo ""
+echo "[case 10j: strict ON but path NOT in _internal/ -> dispatches to lenient]"
+out=$(STRICT_SCHEMA=1 run_lint skill "$ITER_NO_HALT_SKILL" 2>&1); rc=$?
+assert_exit 0 "$rc" "strict ON outside _internal/ -> still lenient -> exit 0"
 
 # ── Wrapper invocation ───────────────────────────────────────
 echo ""
