@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kcenon/claude-config/scripts/schemas/skill-md.schema.json",
   "title": "Claude Code SKILL.md Frontmatter",
-  "description": "Canonical schema for Claude Code 2026 SKILL.md YAML frontmatter. 14 official fields plus claude-config iteration-control extension fields (max_iterations, halt_condition, on_halt, loop_safe) and tier-preset extension fields (tiers, default_tier).",
+  "description": "Canonical schema for Claude Code 2026 SKILL.md YAML frontmatter. 14 official fields plus claude-config iteration-control extension fields (max_iterations, halt_condition, halt_conditions, on_halt, loop_safe) and tier-preset extension fields (tiers, default_tier).",
   "type": "object",
   "required": ["name", "description"],
   "additionalProperties": false,
@@ -24,6 +24,23 @@
           "type": "integer",
           "minimum": 1,
           "description": "Advisory cap on the number of files the skill should enumerate or modify in a single invocation."
+        }
+      }
+    },
+    "haltConditionEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "expr"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["success", "failure", "limit", "user", "fallback"],
+          "description": "Halt category. success=terminal success, failure=stop-on-error, limit=iteration/resource cap, user=human signal, fallback=escalation."
+        },
+        "expr": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Condition expression. Prefer regex or symbolic form for deterministic signals; natural language otherwise."
         }
       }
     }
@@ -116,7 +133,14 @@
     "halt_condition": {
       "type": "string",
       "minLength": 1,
-      "description": "Iteration-control extension (claude-config): plain-language condition that stops the iteration loop early."
+      "description": "Iteration-control extension (claude-config, legacy): plain-language condition that stops the iteration loop early. Superseded by halt_conditions; both accepted during P1 grace period."
+    },
+    "halt_conditions": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "array", "items": { "$ref": "#/$defs/haltConditionEntry" }, "minItems": 1 }
+      ],
+      "description": "Iteration-control extension (claude-config): structured halt conditions. Either a single-string form (legacy compatibility for one-shot rename from halt_condition) or an array of {type, expr} entries. Replaces halt_condition; both keys accepted during the P1 grace period."
     },
     "on_halt": {
       "type": "string",

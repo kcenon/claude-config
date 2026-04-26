@@ -239,6 +239,75 @@ echo "[case 10: --strict exits 2 on violations]"
 "$PYTHON" "$LINTER" --mode skill --strict --quiet "$ENUM_SKILL" >/dev/null 2>&1; rc=$?
 assert_exit 2 "$rc" "--strict on violations -> exit 2"
 
+# ── Fixture: halt_conditions array form (A1, P1-a) ───────────
+HALT_ARRAY_SKILL="$WORK/halt-array-skill.md"
+write_file "$HALT_ARRAY_SKILL" '---
+name: halt-array-skill
+description: SKILL.md verifying that the new halt_conditions array form is accepted by the schema.
+max_iterations: 5
+halt_conditions:
+  - { type: success, expr: "All checks pass" }
+  - { type: limit, expr: "max_iterations reached" }
+loop_safe: true
+---
+
+content
+'
+
+echo ""
+echo "[case 10a: halt_conditions array form accepted]"
+out=$(run_lint skill "$HALT_ARRAY_SKILL" 2>&1); rc=$?
+assert_exit 0 "$rc" "halt_conditions array -> exit 0"
+
+# ── Fixture: halt_conditions legacy string form (grace period) ─
+HALT_STRING_SKILL="$WORK/halt-string-skill.md"
+write_file "$HALT_STRING_SKILL" '---
+name: halt-string-skill
+description: SKILL.md verifying that the legacy halt_conditions single-string form is still accepted during the P1 grace period.
+halt_conditions: "All checks pass OR user aborts"
+---
+
+content
+'
+
+echo ""
+echo "[case 10b: halt_conditions legacy string form accepted]"
+out=$(run_lint skill "$HALT_STRING_SKILL" 2>&1); rc=$?
+assert_exit 0 "$rc" "halt_conditions string -> exit 0"
+
+# ── Fixture: halt_conditions empty array (rejected) ──────────
+HALT_EMPTY_SKILL="$WORK/halt-empty-skill.md"
+write_file "$HALT_EMPTY_SKILL" '---
+name: halt-empty-skill
+description: SKILL.md verifying that an empty halt_conditions array is rejected by the schema.
+halt_conditions: []
+---
+
+content
+'
+
+echo ""
+echo "[case 10c: halt_conditions empty array rejected]"
+out=$(run_lint skill "$HALT_EMPTY_SKILL" 2>&1); rc=$?
+assert_exit 1 "$rc" "halt_conditions [] -> exit 1"
+
+# ── Fixture: halt_conditions unknown type (rejected) ─────────
+HALT_BAD_TYPE_SKILL="$WORK/halt-bad-type-skill.md"
+write_file "$HALT_BAD_TYPE_SKILL" '---
+name: halt-bad-type-skill
+description: SKILL.md verifying that an unknown halt_conditions entry type is rejected by the enum.
+halt_conditions:
+  - { type: telepathy, expr: "psychic signal" }
+---
+
+content
+'
+
+echo ""
+echo "[case 10d: halt_conditions unknown entry type rejected]"
+out=$(run_lint skill "$HALT_BAD_TYPE_SKILL" 2>&1); rc=$?
+assert_exit 1 "$rc" "halt_conditions unknown type -> exit 1"
+
 # ── Wrapper invocation ───────────────────────────────────────
 echo ""
 echo "[case 11: spec_lint.sh wrapper works in --mode form]"
