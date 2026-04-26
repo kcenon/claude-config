@@ -115,6 +115,11 @@
             "type": "command",
             "command": "~/.claude/hooks/pre-edit-read-guard.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/p4-timeline-guard.sh",
+            "timeout": 5
           }
         ]
       },
@@ -165,6 +170,11 @@
             "type": "command",
             "command": "~/.claude/hooks/attribution-guard.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/p4-timeline-guard.sh",
+            "timeout": 10
           }
         ]
       },
@@ -192,6 +202,11 @@
             "command": "~/.claude/hooks/version-check.sh",
             "timeout": 10,
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/p4-timeline-reminder.sh",
+            "timeout": 5
           }
         ]
       }
@@ -438,10 +453,14 @@
   "skipDangerousModePermissionPrompt": true,
   "includeGitInstructions": false,
   "description": "Claude Code Global Settings - Applied to all projects (permissions.deny for security)",
-  "version": "1.13.0",
+  "version": "1.13.1",
   "showTurnDuration": true,
   "teammateMode": "in-process",
   "harness_policies": {
-    "p4_strict_schema": false
+    "p4_strict_schema": false,
+    "p4_d1_merged_at": "2026-04-26T22:15:57Z",
+    "p4_grace_until": "2026-05-03T22:15:57Z",
+    "p4_observation_until": "2026-05-17T22:15:57Z",
+    "p4_freeze_until": "2026-05-20T22:15:57Z"
   }
 }
