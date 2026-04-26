@@ -114,6 +114,26 @@
         "p4_strict_schema": {
           "type": "boolean",
           "description": "Kill Switch for P4 strict-schema dispatch. When false, even _internal/ skills validate against the lenient schema. Settings precedence: STRICT_SCHEMA env var > this field > default false."
+        },
+        "p4_d1_merged_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO-8601 timestamp of the D1 (#461) merge commit. Anchor for grace/observation/freeze window calculations. Set by claude-config maintainers; do not edit ad-hoc."
+        },
+        "p4_grace_until": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO-8601 deadline for the lenient-only grace window. D2 (#462) and any change to global/skills/_internal/ must wait until now() >= this timestamp."
+        },
+        "p4_observation_until": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO-8601 deadline for the observation window. p4_strict_schema must not be flipped to true until now() >= this timestamp."
+        },
+        "p4_freeze_until": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO-8601 deadline for the post-D2 72h freeze. Default behavior changes (e.g., flipping p4_strict_schema true by default) must wait until now() >= this timestamp."
         }
       }
     }
