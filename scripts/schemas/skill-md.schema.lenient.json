@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/kcenon/claude-config/scripts/schemas/skill-md.schema.json",
-  "title": "Claude Code SKILL.md Frontmatter (Deprecated Alias)",
-  "description": "DEPRECATED ALIAS: this URL is preserved for backward compatibility with external plugin authors who already reference it. Its content matches skill-md.schema.lenient.json. New consumers should pick the variant explicitly: .strict.json for global/skills/_internal/ skills, .lenient.json otherwise. The Kill Switch (harness_policies.p4_strict_schema / STRICT_SCHEMA env) can force lenient across all paths.",
+  "$id": "https://github.com/kcenon/claude-config/scripts/schemas/skill-md.schema.lenient.json",
+  "title": "Claude Code SKILL.md Frontmatter (Lenient)",
+  "description": "Lenient variant for plugin/, plugin-lite/, and external author skills. Validates only core required fields (name, description). additionalProperties is true so unknown fields do NOT fail; P1-c halt_conditions enforcement is omitted. External plugin authors who want stricter validation may opt in by placing skills under global/skills/_internal/ which dispatches to the strict variant. The strict-mode Kill Switch (harness_policies.p4_strict_schema or STRICT_SCHEMA env var) can also force lenient validation across all paths.",
   "type": "object",
   "required": ["name", "description"],
   "additionalProperties": true,

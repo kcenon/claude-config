@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kcenon/claude-config/scripts/schemas/skill-md.schema.strict.json",
+  "title": "Claude Code SKILL.md Frontmatter (Strict)",
+  "description": "Strict variant for global/skills/_internal/* skills (claude-config-owned). Same fields as the canonical schema but all rules including P1-c halt_conditions enforcement are required. External plugin/plugin-lite skills validate against the lenient variant.",
+  "type": "object",
+  "required": ["name", "description"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "anyOf": [
+          { "required": ["max_iterations"] },
+          { "properties": { "loop_safe": { "const": true } }, "required": ["loop_safe"] }
+        ]
+      },
+      "then": {
+        "required": ["halt_conditions"],
+        "$comment": "P1-c (issue #458): iterative skills (max_iterations declared, or loop_safe == true) MUST declare halt_conditions so a self-loop is forced to terminate explicitly."
+      }
+    }
+  ],
+  "$defs": {
+    "tierEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ref_docs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Skill-defined alias keys resolving to reference/*.md files inside the skill's directory."
+        },
+        "deep_checks": {
+          "type": "boolean",
+          "description": "Opt-in flag for deeper verification passes (extra lint, full build, integrity checks)."
+        },
+        "max_files": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Advisory cap on the number of files the skill should enumerate or modify in a single invocation."
+        }
+      }
+    },
+    "haltConditionEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "expr"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["success", "failure", "limit", "user", "fallback"],
+          "description": "Halt category. success=terminal success, failure=stop-on-error, limit=iteration/resource cap, user=human signal, fallback=escalation."
+        },
+        "expr": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Condition expression. Prefer regex or symbolic form for deterministic signals; natural language otherwise."
+        }
+      }
+    }
+  },
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Skill identifier. Lowercase letters, digits, and hyphens only. Max 64 chars."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "description": "Skill trigger description. Max 1024 chars. >=100 chars recommended for trigger quality."
+    },
+    "when_to_use": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Plain-language hint of when this skill applies."
+    },
+    "argument-hint": {
+      "type": "string",
+      "description": "Usage hint shown to the user, e.g., \"<file-or-directory> [--verbose]\"."
+    },
+    "disable-model-invocation": {
+      "type": "boolean",
+      "description": "When true, the model cannot auto-invoke this skill (user-only)."
+    },
+    "user-invocable": {
+      "type": "boolean",
+      "description": "When true, the user can invoke this skill via slash command."
+    },
+    "allowed-tools": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ],
+      "description": "Tools the skill is allowed to call. Scalar (\"Bash(git *)\") or array form."
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Preferred model identifier (e.g., haiku, sonnet, opus)."
+    },
+    "effort": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "xhigh", "max"],
+      "description": "Effort level for model invocation."
+    },
+    "context": {
+      "type": "string",
+      "enum": ["fork"],
+      "description": "Context strategy. \"fork\" runs the skill in a forked context window."
+    },
+    "agent": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ],
+      "description": "Agent name(s) this skill prefers to delegate to."
+    },
+    "hooks": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        { "type": "object" }
+      ],
+      "description": "Hook bindings scoped to this skill."
+    },
+    "paths": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ],
+      "description": "Glob path patterns this skill applies to (comma-separated string or array)."
+    },
+    "shell": {
+      "type": "string",
+      "enum": ["bash", "powershell"],
+      "description": "Preferred shell when the skill runs commands."
+    },
+    "max_iterations": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Iteration-control extension (claude-config): maximum number of self-loops before the skill is forced to halt."
+    },
+    "halt_condition": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Iteration-control extension (claude-config, legacy): plain-language condition that stops the iteration loop early. Superseded by halt_conditions; both accepted during P1 grace period."
+    },
+    "halt_conditions": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "array", "items": { "$ref": "#/$defs/haltConditionEntry" }, "minItems": 1 }
+      ],
+      "description": "Iteration-control extension (claude-config): structured halt conditions. Either a single-string form (legacy compatibility for one-shot rename from halt_condition) or an array of {type, expr} entries. Replaces halt_condition; both keys accepted during the P1 grace period."
+    },
+    "on_halt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Iteration-control extension (claude-config): action to take when halt_condition fires or max_iterations is reached."
+    },
+    "loop_safe": {
+      "type": "boolean",
+      "description": "Iteration-control extension (claude-config): true when the skill is safe to run inside an autonomous /loop, false when it must exit the loop before acting."
+    },
+    "tiers": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "light":    { "$ref": "#/$defs/tierEntry" },
+        "standard": { "$ref": "#/$defs/tierEntry" },
+        "deep":     { "$ref": "#/$defs/tierEntry" }
+      },
+      "description": "Tier-preset extension (claude-config): per-tier loading hints for skills whose SKILL.md body exceeds 5 KB. See global/skills/_policy.md."
+    },
+    "default_tier": {
+      "type": "string",
+      "enum": ["light", "standard", "deep"],
+      "description": "Tier-preset extension (claude-config): tier applied when the caller omits --tier. Defaults to 'standard' when this field is absent."
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["S1", "S2", "S3"],
+      "description": "Severity extension (claude-config): primary severity tier this skill triages at. S1 = block-merge, S2 = review-required, S3 = advisory. Code-review domain only."
+    },
+    "finding_levels": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["S1", "S2", "S3"] },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Severity extension (claude-config): set of severity levels this skill emits findings at. Subset of {S1, S2, S3}; non-empty and unique."
+    }
+  }
+}

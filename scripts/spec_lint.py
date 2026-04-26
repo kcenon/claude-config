@@ -42,20 +42,25 @@ except ImportError:
 
 SCHEMA_DIR = Path(__file__).resolve().parent / "schemas"
 SCHEMA_FILES = {
-    "skill":    SCHEMA_DIR / "skill-md.schema.json",
-    "plugin":   SCHEMA_DIR / "plugin-json.schema.json",
-    "settings": SCHEMA_DIR / "settings-json.schema.json",
+    "skill":         SCHEMA_DIR / "skill-md.schema.json",
+    "skill-strict":  SCHEMA_DIR / "skill-md.schema.strict.json",
+    "skill-lenient": SCHEMA_DIR / "skill-md.schema.lenient.json",
+    "plugin":        SCHEMA_DIR / "plugin-json.schema.json",
+    "settings":      SCHEMA_DIR / "settings-json.schema.json",
 }
 
 SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
+
+INTERNAL_SKILL_MARKER = "global/skills/_internal/"
 
 
 def read_p4_strict_schema_toggle() -> bool:
     """Resolve the P4 strict-schema Kill Switch.
 
     Precedence: STRICT_SCHEMA env var > harness_policies.p4_strict_schema in
-    ~/.claude/settings.json > default False. Returned but currently unused —
-    D1 (#461) will dispatch on this value once strict/lenient schemas land.
+    ~/.claude/settings.json > default False. When False, every skill validates
+    against the lenient schema regardless of path; when True, paths matching
+    INTERNAL_SKILL_MARKER use the strict variant.
     """
     env = os.environ.get("STRICT_SCHEMA")
     if env is not None:
@@ -172,7 +177,19 @@ def validate_instance(instance: dict, schema: dict, file_path: Path,
     return messages
 
 
-def lint_skill(file_path: Path) -> list[str]:
+def select_skill_schema_mode(file_path: Path, strict_enabled: bool) -> str:
+    """Pick strict or lenient skill schema for a given file path.
+
+    Strict applies only when (a) the Kill Switch toggle is enabled AND
+    (b) the path lies inside INTERNAL_SKILL_MARKER. Otherwise lenient.
+    """
+    if not strict_enabled:
+        return "skill-lenient"
+    posix = file_path.resolve().as_posix()
+    return "skill-strict" if INTERNAL_SKILL_MARKER in posix else "skill-lenient"
+
+
+def lint_skill(file_path: Path, strict_enabled: bool) -> list[str]:
     try:
         text = file_path.read_text(encoding="utf-8")
     except OSError as exc:
@@ -181,7 +198,8 @@ def lint_skill(file_path: Path) -> list[str]:
         data, base_line = extract_frontmatter(text, file_path)
     except ValueError as exc:
         return [str(exc)]
-    schema = load_schema("skill")
+    mode = select_skill_schema_mode(file_path, strict_enabled)
+    schema = load_schema(mode)
     return validate_instance(data, schema, file_path, base_line)
 
 
@@ -204,10 +222,11 @@ def lint_files(files: Iterable[Path], mode: str) -> tuple[int, int, list[str]]:
     total_files = 0
     total_violations = 0
     all_messages: list[str] = []
+    strict_enabled = read_p4_strict_schema_toggle() if mode == "skill" else False
     for f in files:
         total_files += 1
         if mode == "skill":
-            msgs = lint_skill(f)
+            msgs = lint_skill(f, strict_enabled)
         else:
             msgs = lint_json(f, mode)
         if msgs:
