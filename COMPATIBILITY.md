@@ -200,6 +200,18 @@ When upgrading Claude Code itself:
 - Use `install.ps1` on Windows instead of `install.sh`
 - PowerShell 7+ (`pwsh`) is required for Windows support
 
+#### Cross-platform `timeout` fallback (`global/hooks/lib/timeout-wrapper.sh`)
+
+`merge-gate-guard.sh` bounds its `gh pr checks` call via `_run_with_timeout`. The
+wrapper resolves to the first available implementation, in this order:
+
+1. **GNU `timeout`** — present on Linux (coreutils) and BSD distros that ship coreutils.
+2. **`gtimeout`** — installed by `brew install coreutils` on macOS.
+3. **`perl alarm`** — universal fallback. macOS ships `/usr/bin/perl` by default, so vanilla machines without Homebrew coreutils still get a bounded call.
+4. **Pure-bash `wait`/`kill`** — last-resort fallback for minimal images (e.g. busybox) that lack perl.
+
+All branches normalize to GNU-timeout exit semantics (exit 124 on budget exceeded). The PowerShell guard uses `Start-Job` + `Wait-Job -Timeout` for the same contract. Override the budget with `GH_CHECKS_TIMEOUT_SEC` (default `10`).
+
 ---
 
 *Last updated: 2026-04-17 | claude-config v1.6.0*

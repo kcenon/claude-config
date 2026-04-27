@@ -23,6 +23,17 @@
 
 set -uo pipefail
 
+# --- Resolve script dir + load shared helpers ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/timeout-wrapper.sh
+. "$SCRIPT_DIR/lib/timeout-wrapper.sh"
+
+# Wall-clock budget for any single `gh pr checks` invocation. Slow networks
+# and GitHub degradation can otherwise pin the entire PreToolUse chain on
+# the gh internal default (~30 s). 10 s is short enough to keep merge UX
+# snappy and long enough to ride out typical jitter.
+GH_CHECKS_TIMEOUT_SEC="${GH_CHECKS_TIMEOUT_SEC:-10}"
+
 # --- Response helpers ---
 deny_response() {
     local reason="$1"
@@ -122,13 +133,22 @@ if ! command -v gh >/dev/null 2>&1; then
     allow_response
 fi
 
-# --- Call gh pr checks ---
+# --- Call gh pr checks (bounded by cross-platform timeout wrapper) ---
 if [ -n "$REPO" ]; then
-    CHECKS_JSON=$(gh pr checks "$PR_NUM" -R "$REPO" --json bucket,name,state 2>&1)
+    CHECKS_JSON=$(_run_with_timeout "$GH_CHECKS_TIMEOUT_SEC" gh pr checks "$PR_NUM" -R "$REPO" --json bucket,name,state 2>&1)
 else
-    CHECKS_JSON=$(gh pr checks "$PR_NUM" --json bucket,name,state 2>&1)
+    CHECKS_JSON=$(_run_with_timeout "$GH_CHECKS_TIMEOUT_SEC" gh pr checks "$PR_NUM" --json bucket,name,state 2>&1)
 fi
 GH_RC=$?
+
+# 124 is the GNU-timeout sentinel; the wrapper normalizes perl/bash fallbacks
+# to the same code so a single branch covers all platforms. Fail-open per
+# the guard's stated policy — server-side branch protection remains the
+# authoritative gate.
+if [ $GH_RC -eq 124 ]; then
+    log_diag "gh pr checks timed out after ${GH_CHECKS_TIMEOUT_SEC}s, allowing merge (fail-open)"
+    allow_response
+fi
 
 if [ $GH_RC -ne 0 ]; then
     log_diag "gh pr checks failed (exit $GH_RC), allowing merge (fail-open): ${CHECKS_JSON}"

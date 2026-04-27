@@ -92,15 +92,44 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
     exit 0
 }
 
-# --- Call gh pr checks ---
+# --- Call gh pr checks (bounded by Start-Job/Wait-Job timeout) ---
+# Wall-clock budget for a single `gh pr checks` invocation. Mirrors the
+# Bash GH_CHECKS_TIMEOUT_SEC contract.
+$timeoutSec = if ($env:GH_CHECKS_TIMEOUT_SEC) { [int]$env:GH_CHECKS_TIMEOUT_SEC } else { 10 }
+
 $ghArgs = @('pr', 'checks', $prNum, '--json', 'bucket,name,state')
 if ($repo) { $ghArgs += @('-R', $repo) }
 
+$checksRaw = $null
+$ghExit = 0
+$timedOut = $false
+
 try {
-    $checksRaw = & gh @ghArgs 2>&1
-    $ghExit = $LASTEXITCODE
+    $job = Start-Job -ScriptBlock {
+        param($ghArgs)
+        $out = & gh @ghArgs 2>&1
+        [pscustomobject]@{ Output = $out; ExitCode = $LASTEXITCODE }
+    } -ArgumentList (,$ghArgs)
+
+    if (Wait-Job $job -Timeout $timeoutSec) {
+        $result = Receive-Job $job
+        if ($result) {
+            $checksRaw = $result.Output
+            $ghExit = $result.ExitCode
+        }
+    } else {
+        Stop-Job $job | Out-Null
+        $timedOut = $true
+    }
+    Remove-Job $job -Force | Out-Null
 } catch {
     Write-Diag "gh invocation threw: $_"
+    New-HookAllowResponse
+    exit 0
+}
+
+if ($timedOut) {
+    Write-Diag "gh pr checks timed out after ${timeoutSec}s, allowing merge (fail-open)"
     New-HookAllowResponse
     exit 0
 }
