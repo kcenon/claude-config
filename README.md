@@ -565,9 +565,16 @@ When you work on files matching these patterns, the rule is automatically loaded
 
 ## Skills — What You Can Do
 
-Invoke any skill by typing its command in Claude Code.
+Skills come in two invocation modes:
+
+1. **Slash-catalog skills** (`/code-quality`, `/security-audit`, `/performance-review`, `/pr-review`, `/git-status` and the `plugin/` skills below) live as one-level folders in `~/.claude/skills/` and appear in Claude Code's `/`-autocomplete. Type the command and the harness dispatches it.
+2. **Keyword-aliased skills** (`/issue-work`, `/pr-work`, `/release`, `/issue-create`, `/branch-cleanup`, `/harness`, `/doc-index`, `/doc-review`, `/implement-all-levels`) are intentionally hidden under `~/.claude/skills/_internal/` with `disable-model-invocation: true`. They are **not** in Claude Code's `/`-autocomplete. The model resolves them via the **Skill Aliases** table in `global/CLAUDE.md` when you start your message with the keyword (the leading `/` is optional). Both `issue-work` and `/issue-work` work; tab-completion will not suggest them.
+
+The tables below mark each command's mode.
 
 ### Workflow Automation
+
+All commands in this group are **keyword-aliased** (no slash-autocomplete; resolved by the alias table).
 
 | Command | What it does |
 |---------|-------------|
@@ -588,13 +595,15 @@ Invoke any skill by typing its command in Claude Code.
 
 ### Design and Documentation
 
-| Command | What it does |
-|---------|-------------|
-| `/harness` | Design agent teams and generate skills for any domain |
-| `/doc-index` | Generate documentation index files (manifest, bundles, graph, router) |
-| `/doc-review` | Review markdown documents for accuracy, anchors, cross-references |
-| `/git-status` | Repository status with actionable insights |
-| `/implement-all-levels` | Enforce complete implementation of all tiers for tiered features |
+`/git-status` is a slash-catalog skill; the rest in this table are keyword-aliased.
+
+| Command | Mode | What it does |
+|---------|------|-------------|
+| `/harness` | keyword | Design agent teams and generate skills for any domain |
+| `/doc-index` | keyword | Generate documentation index files (manifest, bundles, graph, router) |
+| `/doc-review` | keyword | Review markdown documents for accuracy, anchors, cross-references |
+| `/git-status` | slash | Repository status with actionable insights |
+| `/implement-all-levels` | keyword | Enforce complete implementation of all tiers for tiered features |
 
 ---
 
