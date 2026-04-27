@@ -1,0 +1,1 @@
+Dangerous string inside an echoed quoted argument. The current regex-based guard cannot tell quoted text from a real rm invocation and denies; locked in here so P0.1 can deliberately decide whether to relax this case.

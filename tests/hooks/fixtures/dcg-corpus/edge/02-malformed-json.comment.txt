@@ -1,0 +1,1 @@
+Malformed JSON input — locks in current fail-closed behavior as a regression test (the guard denies on parse failure for safety).

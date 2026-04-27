@@ -1,0 +1,1 @@
+Empty .tool_input.command — must not crash and must allow.
