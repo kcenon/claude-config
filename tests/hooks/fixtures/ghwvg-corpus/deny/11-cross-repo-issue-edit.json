@@ -1,0 +1,6 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "gh issue edit 1 --repo other-org/other-repo --title hijacked"
+  }
+}

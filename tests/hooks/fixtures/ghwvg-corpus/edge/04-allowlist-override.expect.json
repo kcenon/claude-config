@@ -1,0 +1,6 @@
+{
+  "expect_decision": "allow",
+  "env": {
+    "GH_API_WRITE_ALLOW": "repos/*/issues/*/comments"
+  }
+}

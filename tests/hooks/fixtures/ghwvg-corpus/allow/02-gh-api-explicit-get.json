@@ -1,0 +1,6 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "gh api -X GET repos/owner/repo/pulls"
+  }
+}

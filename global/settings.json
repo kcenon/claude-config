@@ -30,7 +30,8 @@
       "Bash(git describe:*)",
       "Bash(git for-each-ref:*)",
       "Bash(git worktree list:*)",
-      "Bash(git fetch:*)",
+      "Bash(git fetch origin:*)",
+      "Bash(git fetch upstream:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr list:*)",
       "Bash(gh pr diff:*)",
@@ -77,7 +78,14 @@
       "Bash(gh release delete:*)",
       "Bash(gh release upload:*)",
       "Bash(gh auth status:*)",
-      "Bash(gh api:*)"
+      "Bash(gh api -X GET:*)",
+      "Bash(gh api -H *:*)",
+      "Bash(gh api repos/*:*)",
+      "Bash(gh api orgs/*:*)",
+      "Bash(gh api users/*:*)",
+      "Bash(gh api user:*)",
+      "Bash(gh api rate_limit:*)",
+      "Bash(gh api graphql:*)"
     ],
     "deny": [
       "Read(.env)",
@@ -139,6 +147,11 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/bash-write-guard.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/gh-write-verb-guard.sh",
             "timeout": 5
           },
           {
