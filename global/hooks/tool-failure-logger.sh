@@ -1,6 +1,9 @@
 #!/bin/bash
-# Tool Failure Logger Hook
-# Logs tool execution failures for debugging and analysis
+# tool-failure-logger.sh
+# Logs tool execution failures for debugging and analysis.
+# Hook Type: ToolFailure
+# Exit codes: 0 (always — lifecycle event)
+# Response format: none (lifecycle event, no JSON output needed)
 #
 # Environment variables available:
 # - CLAUDE_TOOL_NAME: Name of the tool that failed

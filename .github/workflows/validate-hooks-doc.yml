@@ -1,0 +1,41 @@
+name: Validate HOOKS.md Drift
+
+# Re-runs scripts/gen-hooks-md.sh and fails the PR if HOOKS.md and the
+# filesystem (global/hooks/*.sh comment headers) have drifted. The
+# generator is idempotent: a second run after the first must produce no
+# diff.
+#
+# Branch policy: the repo's default CI policy is "main-targeting PRs only",
+# but this validator is cheap and catches drift early, so it also runs on
+# PRs targeting `develop` per acceptance criteria of issue #481.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'global/hooks/**'
+      - 'HOOKS.md'
+      - 'scripts/gen-hooks-md.sh'
+      - '.github/workflows/validate-hooks-doc.yml'
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run generator in --check mode
+        run: bash scripts/gen-hooks-md.sh --check
+
+      - name: Verify generator idempotency
+        # Run the generator twice in --stdout mode; the two outputs must
+        # be byte-identical or the generator is non-deterministic.
+        run: |
+          first=$(bash scripts/gen-hooks-md.sh --stdout)
+          second=$(bash scripts/gen-hooks-md.sh --stdout)
+          if [ "$first" != "$second" ]; then
+            echo "Generator output changed between runs (non-idempotent)" >&2
+            diff <(printf '%s\n' "$first") <(printf '%s\n' "$second") >&2 || true
+            exit 1
+          fi
