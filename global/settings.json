@@ -133,6 +133,16 @@
           },
           {
             "type": "command",
+            "command": "~/.claude/hooks/bash-sensitive-read-guard.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/bash-write-guard.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "~/.claude/hooks/github-api-preflight.sh",
             "timeout": 10
           },
