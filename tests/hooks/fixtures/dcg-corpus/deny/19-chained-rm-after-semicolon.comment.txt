@@ -1,0 +1,1 @@
+Red Team variant B: a whitelisted `gh` prefix followed by `;` and a dangerous tail. Verifies that `;` is treated as a sub-command separator, not part of the first command.

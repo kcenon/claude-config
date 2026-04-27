@@ -1,1 +1,1 @@
-Dangerous string inside an echoed quoted argument. The current regex-based guard cannot tell quoted text from a real rm invocation and denies; locked in here so P0.1 can deliberately decide whether to relax this case.
+Dangerous string inside an echoed quoted argument. With sub-command tokenization (Issue #476), the parser correctly identifies that `rm -rf /` here is argv[1] of `echo` (a string literal), not an actual `rm` invocation. Flipped from deny to allow as part of the P0.1 rewrite — string-literal arguments must not trigger argv-level dangerous-command checks.

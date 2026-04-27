@@ -1,0 +1,1 @@
+Red Team variant H: `eval` re-introduces the regex-on-string bypass class because its argument is not statically inspectable. Even when the visible payload is benign (here `git status`), the policy denies all `eval` invocations to prevent runtime command construction.

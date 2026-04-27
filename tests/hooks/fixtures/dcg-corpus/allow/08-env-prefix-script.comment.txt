@@ -1,0 +1,1 @@
+`env VAR=value <cmd>` is a common way to set environment for a single command. Tokenizer drops `env` and any leading `VAR=value` assignments, then inspects the real argv[0] (`./run-tests.sh`).

@@ -1,0 +1,1 @@
+Red Team variant K: setuid bit set via 4-digit numeric mode (4755). Original guard only matched 0?777/a+rwx; the rewrite extends the chmod check to any mode whose leading digit is 4 (setuid), 6 (setuid+setgid), or 2 (setgid).

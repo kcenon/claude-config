@@ -1,0 +1,1 @@
+Red Team variant A: a whitelisted prefix (`git status`) followed by `&&` and a dangerous tail. The original regex-on-string guard short-circuited on the leading `git status` and allowed the entire compound command. Sub-command tokenization (Issue #476) splits on `&&` and inspects every segment.
