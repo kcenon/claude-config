@@ -1,0 +1,1 @@
+Privilege-elevated rm -rf / via sudo.

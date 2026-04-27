@@ -1,0 +1,1 @@
+Embedded newline between separated commands.

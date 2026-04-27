@@ -1,0 +1,6 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "git status 2>&1 | head -20"
+  }
+}

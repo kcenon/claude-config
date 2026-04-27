@@ -1,0 +1,6 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "gh issue view 459 --json title,body | head -100"
+  }
+}
