@@ -1014,8 +1014,8 @@ this catalog for the canonical hook inventory.
 | [`instructions-loaded-reinforcer.sh`](#instructions-loaded-reinforcer) | InstructionsLoaded (sync) | yes |
 | [`markdown-anchor-validator.sh`](#markdown-anchor-validator) | PreToolUse (Bash) | yes |
 | [`merge-gate-guard.sh`](#merge-gate-guard) | PreToolUse (Bash) | yes |
-| [`p4-timeline-guard.sh`](#p4-timeline-guard) | PreToolUse (Bash | Edit | Write) | no |
-| [`p4-timeline-reminder.sh`](#p4-timeline-reminder) | SessionStart | no |
+| [`p4-timeline-guard.sh`](#p4-timeline-guard) | PreToolUse (Bash | Edit | Write) | yes |
+| [`p4-timeline-reminder.sh`](#p4-timeline-reminder) | SessionStart | yes |
 | [`post-compact-restore.sh`](#post-compact-restore) | PostCompact (sync) | yes |
 | [`post-task-checkpoint.sh`](#post-task-checkpoint) | PostToolUse | yes |
 | [`pr-language-guard.sh`](#pr-language-guard) | PreToolUse (Bash) | yes |
@@ -1034,7 +1034,7 @@ this catalog for the canonical hook inventory.
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
 | [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 32 bash hooks, 30 with PowerShell counterparts._
+_Total: 32 bash hooks, 32 with PowerShell counterparts._
 
 ### Hook Details
 
@@ -1246,7 +1246,7 @@ Blocks Claude-initiated actions that violate the EPIC #454 P4 rollout timeline.
 | Trigger / Matcher | Bash | Edit | Write |
 | Exit codes | 0 (always - decision is in JSON) |
 | Response format | hookSpecificOutput with hookEventName + permissionDecision |
-| PowerShell counterpart | absent |
+| PowerShell counterpart | present (`p4-timeline-guard.ps1`) |
 | Source | `global/hooks/p4-timeline-guard.sh` |
 
 ### p4-timeline-reminder.sh
@@ -1261,7 +1261,7 @@ SessionStart banner that surfaces the active P4 rollout window.
 | Trigger / Matcher | — |
 | Exit codes | 0 (always - lifecycle event) |
 | Response format | none (writes to stderr; visible in terminal) |
-| PowerShell counterpart | absent |
+| PowerShell counterpart | present (`p4-timeline-reminder.ps1`) |
 | Source | `global/hooks/p4-timeline-reminder.sh` |
 
 ### post-compact-restore.sh
