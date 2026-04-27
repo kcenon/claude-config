@@ -523,9 +523,16 @@ paths:
 
 ## 스킬 — 무엇을 할 수 있나요
 
-Claude Code에서 명령어를 입력하여 스킬을 실행할 수 있습니다.
+스킬 호출 방식은 두 가지입니다.
+
+1. **슬래시 카탈로그 스킬** (`/code-quality`, `/security-audit`, `/performance-review`, `/pr-review`, `/git-status` 및 아래의 `plugin/` 스킬들) — `~/.claude/skills/<name>/SKILL.md` 1단계 폴더로 위치하며 Claude Code의 `/` 자동완성 카탈로그에 노출됩니다. 명령어를 입력하면 하네스가 디스패치합니다.
+2. **키워드 별칭(alias) 스킬** (`/issue-work`, `/pr-work`, `/release`, `/issue-create`, `/branch-cleanup`, `/harness`, `/doc-index`, `/doc-review`, `/implement-all-levels`) — 의도적으로 `~/.claude/skills/_internal/` 하위에 격리되고 frontmatter에 `disable-model-invocation: true`가 적용되어 **`/` 자동완성 카탈로그에 노출되지 않습니다**. 메시지를 키워드로 시작하면 `global/CLAUDE.md`의 **Skill Aliases** 표가 매핑하여 실행합니다 (앞의 `/`는 선택사항). `issue-work`, `/issue-work` 둘 다 동작하지만 탭 자동완성은 제안되지 않습니다.
+
+아래 표에 각 명령의 호출 모드를 표시합니다.
 
 ### 워크플로우 자동화
+
+이 그룹의 모든 명령은 **키워드 별칭** 호출입니다 (슬래시 자동완성 없음, alias 표가 처리).
 
 | 명령어 | 기능 |
 |--------|------|
@@ -546,13 +553,15 @@ Claude Code에서 명령어를 입력하여 스킬을 실행할 수 있습니다
 
 ### 설계 및 문서화
 
-| 명령어 | 기능 |
-|--------|------|
-| `/harness` | Agent team 설계 및 모든 도메인에 대한 스킬 생성 |
-| `/doc-index` | 문서 인덱스 파일 생성 (manifest, bundles, graph, router) |
-| `/doc-review` | 정확성, 앵커, 상호 참조에 대한 마크다운 문서 리뷰 |
-| `/git-status` | 실행 가능한 인사이트가 포함된 저장소 상태 |
-| `/implement-all-levels` | 계층형 기능의 모든 티어에 대한 완전한 구현 강제 |
+`/git-status`는 슬래시 카탈로그 스킬, 나머지는 키워드 별칭입니다.
+
+| 명령어 | 모드 | 기능 |
+|--------|------|------|
+| `/harness` | keyword | Agent team 설계 및 모든 도메인에 대한 스킬 생성 |
+| `/doc-index` | keyword | 문서 인덱스 파일 생성 (manifest, bundles, graph, router) |
+| `/doc-review` | keyword | 정확성, 앵커, 상호 참조에 대한 마크다운 문서 리뷰 |
+| `/git-status` | slash | 실행 가능한 인사이트가 포함된 저장소 상태 |
+| `/implement-all-levels` | keyword | 계층형 기능의 모든 티어에 대한 완전한 구현 강제 |
 
 ---
 

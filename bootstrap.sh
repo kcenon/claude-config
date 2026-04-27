@@ -165,6 +165,22 @@ install_global() {
         fi
     fi
 
+    # 글로벌 skills 및 commands 설치
+    # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
+    # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의
+    # "Skill Aliases" 표에 따라 leading keyword 호출로만 실행된다.
+    if [ -d "$INSTALL_DIR/global/skills" ]; then
+        mkdir -p "$CLAUDE_DIR/skills"
+        cp -r "$INSTALL_DIR/global/skills"/. "$CLAUDE_DIR/skills/"
+        skill_count=$(find "$CLAUDE_DIR/skills" -name "SKILL.md" | wc -l | tr -d ' ')
+        success "글로벌 skills 설치 완료 (${skill_count}개)"
+    fi
+    if [ -d "$INSTALL_DIR/global/commands" ]; then
+        mkdir -p "$CLAUDE_DIR/commands"
+        cp -r "$INSTALL_DIR/global/commands"/. "$CLAUDE_DIR/commands/"
+        success "글로벌 commands 설치 완료"
+    fi
+
     # tmux 설정 설치
     if [ -f "$INSTALL_DIR/global/tmux.conf" ]; then
         cp "$INSTALL_DIR/global/tmux.conf" "$HOME/.tmux.conf"

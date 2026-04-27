@@ -510,6 +510,37 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         }
     }
 
+    # Install global skills (mirrors install.sh:473-484).
+    # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
+    # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의
+    # "Skill Aliases" 표에 따라 leading keyword 호출로만 실행된다.
+    # `Copy-Item -Path "$src\*"` 패턴으로 _policy.md 같은 루트 레벨 파일까지 복사한다.
+    $skillsSource = Join-Path $BackupDir "global/skills"
+    if (Test-Path $skillsSource) {
+        $skillsDir = Join-Path $claudeDir "skills"
+        Ensure-Directory $skillsDir
+        try {
+            Copy-Item -Path "$skillsSource\*" -Destination $skillsDir -Recurse -Force -ErrorAction Stop
+            $skillCount = (Get-ChildItem -Path $skillsDir -Filter SKILL.md -Recurse -ErrorAction SilentlyContinue).Count
+            Write-Success "Global Skills ($skillCount) installed!"
+        } catch {
+            Write-Err "Failed to copy global skills: $_"
+        }
+    }
+
+    # Install global commands (mirrors install.sh:485-489).
+    $commandsSource = Join-Path $BackupDir "global/commands"
+    if (Test-Path $commandsSource) {
+        $commandsDir = Join-Path $claudeDir "commands"
+        Ensure-Directory $commandsDir
+        try {
+            Copy-Item -Path "$commandsSource\*" -Destination $commandsDir -Recurse -Force -ErrorAction Stop
+            Write-Success "Global Commands installed!"
+        } catch {
+            Write-Err "Failed to copy global commands: $_"
+        }
+    }
+
     # Install ccstatusline settings (~/.config/ccstatusline/ — ccstatusline default settings path)
     $ccstatuslineSource = Join-Path $BackupDir "global/ccstatusline"
     if (Test-Path $ccstatuslineSource) {
@@ -675,6 +706,12 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
     Write-Host "    - ~/.claude/settings.json (Hook settings - Windows)"
     Write-Host "    - ~/.claude/hooks/ (PowerShell + bash hook scripts, lib/, data)"
     Write-Host "    - ~/.claude/scripts/ (PowerShell + bash utility scripts)"
+    if (Test-Path (Join-Path $HOME ".claude/skills")) {
+        Write-Host "    - ~/.claude/skills/ (Global skills — keyword-invoked via CLAUDE.md alias table)"
+    }
+    if (Test-Path (Join-Path $HOME ".claude/commands")) {
+        Write-Host "    - ~/.claude/commands/ (Global commands)"
+    }
     Write-Host "    - ~/.config/ccstatusline/ (ccstatusline settings)"
 }
 
