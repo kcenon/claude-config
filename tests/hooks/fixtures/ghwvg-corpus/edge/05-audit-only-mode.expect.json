@@ -1,0 +1,6 @@
+{
+  "expect_decision": "allow",
+  "env": {
+    "GH_WRITE_VERB_GUARD_AUDIT_ONLY": "1"
+  }
+}

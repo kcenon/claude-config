@@ -76,6 +76,14 @@ if ! echo "$CMD" | grep -qE 'gh[[:space:]]+pr[[:space:]]+merge'; then
     allow_response
 fi
 
+# --- Squash-only enforcement (Issue #478) ---
+# The branching strategy mandates squash merges to develop/main. Reject
+# `--merge` and `--rebase` flags so the gh CLI cannot bypass that policy
+# even when the model is convinced "this one time" is fine.
+if echo "$CMD" | grep -qE -- '(^|[[:space:]])--(merge|rebase)([[:space:]]|=|$)'; then
+    deny_response "gh pr merge --merge/--rebase blocked: branching strategy requires squash merges (use --squash). See workflow/branching-strategy.md."
+fi
+
 # --- Extract PR number ---
 # Supports: gh pr merge 123, gh pr merge 123 --squash, gh pr merge --squash 123,
 #           gh pr merge https://github.com/owner/repo/pull/123

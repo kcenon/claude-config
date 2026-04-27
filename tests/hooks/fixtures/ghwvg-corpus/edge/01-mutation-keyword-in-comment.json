@@ -1,0 +1,6 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "gh api graphql -f query='# this is not a mutation\nquery { viewer { login } }'"
+  }
+}
