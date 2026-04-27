@@ -52,6 +52,80 @@ function Test-Dependencies {
     Write-Ok "의존성 확인 완료"
 }
 
+# ── Ensure Claude Code CLI is installed ──────────────────────
+# version-check.ps1, batch-issue-work.ps1 등이 `claude --version` / `claude`
+# 명령을 호출하므로 미설치 시 silent failure가 발생한다. 본 함수는 부트스트랩
+# 시점에 사용자 동의 하에 npm 경로로 Claude Code CLI를 설치한다.
+function Confirm-ClaudeCli {
+    Write-Info "Claude Code CLI 확인 중..."
+
+    if (Get-Command claude -ErrorAction SilentlyContinue) {
+        try {
+            $ccVersion = (& claude --version 2>$null | Select-Object -First 1)
+        }
+        catch {
+            $ccVersion = $null
+        }
+        if ([string]::IsNullOrWhiteSpace($ccVersion)) { $ccVersion = 'version unknown' }
+        Write-Ok "Claude Code CLI 이미 설치됨: $ccVersion"
+        return
+    }
+
+    Write-Warn "Claude Code CLI가 설치되어 있지 않습니다."
+    Write-Host "  Claude Code CLI는 hooks(version-check), batch scripts(issue-work, pr-work) 등이"
+    Write-Host "  의존하는 핵심 도구입니다. 미설치 상태에서는 일부 기능이 동작하지 않습니다."
+    Write-Host ""
+
+    $installClaude = Read-Host "Claude Code CLI를 지금 설치하시겠습니까? (y/n) [기본값: y]"
+    if ([string]::IsNullOrEmpty($installClaude)) { $installClaude = 'y' }
+
+    if ($installClaude -ne 'y') {
+        Write-Warn "Claude Code CLI 설치 건너뜀. 추후 수동 설치: npm install -g @anthropic-ai/claude-code"
+        return
+    }
+
+    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+        Write-Warn "npm이 설치되어 있지 않아 자동 설치를 진행할 수 없습니다."
+        Write-Host "  Node.js/npm 설치 후 다음 명령을 실행하세요:"
+        Write-Host "    npm install -g @anthropic-ai/claude-code"
+        Write-Host ""
+        Write-Host "  Node.js 설치 안내 (Windows):"
+        Write-Host "    winget install OpenJS.NodeJS.LTS"
+        Write-Host "    또는: choco install nodejs-lts"
+        return
+    }
+
+    Write-Info "npm install -g @anthropic-ai/claude-code 실행 중..."
+    try {
+        & npm install -g '@anthropic-ai/claude-code'
+        if ($LASTEXITCODE -eq 0) {
+            if (Get-Command claude -ErrorAction SilentlyContinue) {
+                try {
+                    $ccVersion = (& claude --version 2>$null | Select-Object -First 1)
+                }
+                catch {
+                    $ccVersion = $null
+                }
+                if ([string]::IsNullOrWhiteSpace($ccVersion)) { $ccVersion = 'version unknown' }
+                Write-Ok "Claude Code CLI 설치 완료: $ccVersion"
+            }
+            else {
+                Write-Warn "npm 설치는 성공했으나 'claude' 명령을 찾을 수 없습니다."
+                Write-Host "  npm 글로벌 bin이 PATH에 있는지 확인하세요: npm config get prefix"
+            }
+        }
+        else {
+            Write-Warn "Claude Code CLI 자동 설치 실패. (exit code: $LASTEXITCODE)"
+            Write-Host "  수동 설치를 시도하거나 권한 문제일 수 있습니다:"
+            Write-Host "    npm install -g @anthropic-ai/claude-code"
+        }
+    }
+    catch {
+        Write-Warn "Claude Code CLI 자동 설치 중 예외 발생: $($_.Exception.Message)"
+        Write-Host "  수동 설치: npm install -g @anthropic-ai/claude-code"
+    }
+}
+
 # ── Clone repository ─────────────────────────────────────────
 
 function Invoke-CloneRepository {
@@ -365,6 +439,7 @@ function Install-ProjectSettings {
 
 function Invoke-Main {
     Test-Dependencies
+    Confirm-ClaudeCli
     Invoke-CloneRepository
 
     $installType = Select-InstallType
