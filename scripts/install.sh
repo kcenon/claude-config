@@ -70,6 +70,58 @@ check_dependencies() {
     fi
 }
 
+# 함수: Claude Code CLI 설치 확인 및 자동 설치
+# version-check.sh 등 hook 스크립트와 batch-issue-work.sh / batch-pr-work.sh가
+# `claude --version` / `claude` 명령을 직접 호출한다. 미설치 상태에서 설정만
+# 배포되면 silent failure가 발생하므로 설치 시점에 동의 기반 자동 설치를 제공한다.
+ensure_claude_cli() {
+    info "Claude Code CLI 확인 중..."
+
+    if command -v claude >/dev/null 2>&1; then
+        local cc_version
+        cc_version="$(claude --version 2>/dev/null | head -n1)"
+        success "Claude Code CLI 이미 설치됨: ${cc_version:-version unknown}"
+        return 0
+    fi
+
+    warning "Claude Code CLI가 설치되어 있지 않습니다."
+    echo "  설치된 hook(version-check) 및 batch 스크립트가 'claude' 명령을 호출하므로,"
+    echo "  미설치 상태에서는 일부 기능이 정상 동작하지 않습니다."
+    echo ""
+
+    read -p "Claude Code CLI를 지금 설치하시겠습니까? (y/n) [기본값: y]: " INSTALL_CLAUDE
+    INSTALL_CLAUDE=${INSTALL_CLAUDE:-y}
+
+    if [ "$INSTALL_CLAUDE" != "y" ]; then
+        warning "Claude Code CLI 설치 건너뜀. 추후 수동 설치: npm install -g @anthropic-ai/claude-code"
+        return 0
+    fi
+
+    if ! command -v npm >/dev/null 2>&1; then
+        warning "npm이 설치되어 있지 않아 자동 설치를 진행할 수 없습니다."
+        echo "  Node.js/npm 설치 후 다음 명령을 실행하세요:"
+        echo "    npm install -g @anthropic-ai/claude-code"
+        return 0
+    fi
+
+    info "npm install -g @anthropic-ai/claude-code 실행 중..."
+    if npm install -g @anthropic-ai/claude-code; then
+        if command -v claude >/dev/null 2>&1; then
+            local cc_version
+            cc_version="$(claude --version 2>/dev/null | head -n1)"
+            success "Claude Code CLI 설치 완료: ${cc_version:-version unknown}"
+        else
+            warning "npm 설치는 성공했으나 'claude' 명령을 찾을 수 없습니다."
+            echo "  npm 글로벌 bin이 PATH에 있는지 확인하세요: npm config get prefix"
+        fi
+    else
+        warning "Claude Code CLI 자동 설치 실패."
+        echo "  수동 설치를 시도하거나 권한(sudo) 문제일 수 있습니다:"
+        echo "    npm install -g @anthropic-ai/claude-code"
+        echo "    또는: sudo npm install -g @anthropic-ai/claude-code"
+    fi
+}
+
 # 함수: CLAUDE.local.md 생성
 create_local_claude() {
     local project_dir="$1"
@@ -245,6 +297,7 @@ install_enterprise() {
 
 # 의존성 확인
 check_dependencies
+ensure_claude_cli
 
 # 설치 타입 선택
 echo ""

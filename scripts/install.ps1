@@ -136,6 +136,79 @@ function Test-Administrator {
     }
 }
 
+# Verify Claude Code CLI presence and offer interactive installation.
+# version-check.ps1 hook and batch-* scripts call `claude --version` / `claude`
+# directly; deploying configuration without the CLI causes silent failures.
+function Confirm-ClaudeCli {
+    Write-Info "Checking Claude Code CLI..."
+
+    if (Get-Command claude -ErrorAction SilentlyContinue) {
+        try {
+            $ccVersion = (& claude --version 2>$null | Select-Object -First 1)
+        }
+        catch {
+            $ccVersion = $null
+        }
+        if ([string]::IsNullOrWhiteSpace($ccVersion)) { $ccVersion = 'version unknown' }
+        Write-Success "Claude Code CLI already installed: $ccVersion"
+        return
+    }
+
+    Write-Warn "Claude Code CLI is not installed."
+    Write-Host "  Hooks (version-check) and batch scripts (issue-work, pr-work) call the"
+    Write-Host "  'claude' command directly. Some features will not work without it."
+    Write-Host ""
+
+    $installClaude = Read-Host "Install Claude Code CLI now? (y/n) [default: y]"
+    if ([string]::IsNullOrEmpty($installClaude)) { $installClaude = 'y' }
+
+    if ($installClaude -ne 'y') {
+        Write-Warn "Skipping Claude Code CLI install. Manual install: npm install -g @anthropic-ai/claude-code"
+        return
+    }
+
+    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+        Write-Warn "npm is not installed; cannot auto-install."
+        Write-Host "  Install Node.js/npm first, then run:"
+        Write-Host "    npm install -g @anthropic-ai/claude-code"
+        Write-Host ""
+        Write-Host "  Node.js install hint (Windows):"
+        Write-Host "    winget install OpenJS.NodeJS.LTS"
+        Write-Host "    or:    choco install nodejs-lts"
+        return
+    }
+
+    Write-Info "Running: npm install -g @anthropic-ai/claude-code"
+    try {
+        & npm install -g '@anthropic-ai/claude-code'
+        if ($LASTEXITCODE -eq 0) {
+            if (Get-Command claude -ErrorAction SilentlyContinue) {
+                try {
+                    $ccVersion = (& claude --version 2>$null | Select-Object -First 1)
+                }
+                catch {
+                    $ccVersion = $null
+                }
+                if ([string]::IsNullOrWhiteSpace($ccVersion)) { $ccVersion = 'version unknown' }
+                Write-Success "Claude Code CLI installed: $ccVersion"
+            }
+            else {
+                Write-Warn "npm install succeeded but 'claude' is not on PATH."
+                Write-Host "  Verify npm global bin is on PATH: npm config get prefix"
+            }
+        }
+        else {
+            Write-Warn "Claude Code CLI auto-install failed (exit code: $LASTEXITCODE)."
+            Write-Host "  Try manual install or check permissions:"
+            Write-Host "    npm install -g @anthropic-ai/claude-code"
+        }
+    }
+    catch {
+        Write-Warn "Exception during Claude Code CLI install: $($_.Exception.Message)"
+        Write-Host "  Manual install: npm install -g @anthropic-ai/claude-code"
+    }
+}
+
 # ── Enterprise installation ──────────────────────────────────
 
 function Install-Enterprise {
@@ -230,6 +303,10 @@ Write-Host "    (PowerShell Edition)                            " -ForegroundCol
 Write-Host "                                                    " -ForegroundColor Blue
 Write-Host "==================================================" -ForegroundColor Blue
 Write-Host ""
+
+# ── Claude Code CLI presence check ────────────────────────────
+
+Confirm-ClaudeCli
 
 # ── Installation type selection ───────────────────────────────
 
