@@ -145,6 +145,20 @@ reference: [`code.claude.com/docs/en/settings`](https://code.claude.com/docs/en/
 
 ---
 
+## Skill Directory Layout (P4)
+
+EPIC #454 P4 introduced a strict/lenient schema split. claude-config-owned skills are nested under `global/skills/_internal/` so `scripts/spec_lint.py` dispatches them through the strict schema; plugin-distributed skills stay at `plugin/skills/` and `plugin-lite/skills/` and validate against the lenient schema.
+
+| Layer | Path | Schema mode |
+|---|---|---|
+| Internal | `global/skills/_internal/` | strict (when `harness_policies.p4_strict_schema=true`) |
+| Plugin | `plugin/skills/` | lenient |
+| Plugin-lite | `plugin-lite/skills/` | lenient |
+
+Strict mode is OFF by default during the post-D2 grace window; see `harness_policies.p4_strict_schema` and the timeline toggles (`p4_grace_until`, `p4_observation_until`, `p4_freeze_until`) in the Settings Field Inventory above. External plugin/plugin-lite installs are unaffected by the relocation; their skill paths are unchanged.
+
+---
+
 ## Known Problematic Versions
 
 The following Claude Code versions have confirmed bugs. The `version-check.sh` SessionStart hook warns users on these versions.

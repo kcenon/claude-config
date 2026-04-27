@@ -254,15 +254,21 @@ claude_config_backup/
 │   │   ├── team-report.sh/.ps1
 │   │   └── weekly-usage.sh/.ps1
 │   └── skills/                 # Global skills (user-invocable)
-│       ├── branch-cleanup/     # Clean merged/stale branches
-│       ├── doc-index/          # Generate documentation index files
-│       ├── doc-review/         # Markdown document review
-│       ├── implement-all-levels/ # Enforce complete implementation
-│       ├── issue-create/       # Create GitHub issues (5W1H)
-│       ├── issue-work/         # GitHub issue workflow automation
-│       ├── pr-work/            # Fix failed CI/CD for PRs
-│       ├── release/            # Automated release with changelog
-│       └── harness/            # Agent team & skill architecture design
+│       └── _internal/          # claude-config-owned skills (strict schema, P4)
+│           ├── _shared/        # Cross-skill helpers (invariants.md)
+│           ├── branch-cleanup/ # Clean merged/stale branches
+│           ├── ci-fix/         # CI failure remediation workflow
+│           ├── doc-index/      # Generate documentation index files
+│           ├── doc-review/     # Markdown document review
+│           ├── fleet-orchestrator/ # Fleet orchestration patterns
+│           ├── harness/        # Agent team & skill architecture design
+│           ├── implement-all-levels/ # Enforce complete implementation
+│           ├── issue-create/   # Create GitHub issues (5W1H)
+│           ├── issue-work/     # GitHub issue workflow automation
+│           ├── pr-work/        # Fix failed CI/CD for PRs
+│           ├── preflight/      # Pre-push CI preflight checks
+│           ├── release/        # Automated release with changelog
+│           └── research/       # Research/literature review
 │
 ├── project/                     # Project settings backup
 │   ├── CLAUDE.md               # Project main configuration

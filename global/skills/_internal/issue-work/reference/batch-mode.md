@@ -105,9 +105,9 @@ If `--dry-run` is set, display the plan and exit without prompting.
 
 ### B-4.0. Per-Item Rule Reminder
 
-Before starting work on each item, emit the Core invariants block from `global/skills/_shared/invariants.md` as a fresh tool result so the rules sit in the recent attention window instead of being buried by accumulating context.
+Before starting work on each item, emit the Core invariants block from `global/skills/_internal/_shared/invariants.md` as a fresh tool result so the rules sit in the recent attention window instead of being buried by accumulating context.
 
-Use this exact template (substitute `${PROCESSED+1}` and `${TOTAL}`). The five bullet lines are the canonical Core block — when they change, update `global/skills/_shared/invariants.md` first, then this template:
+Use this exact template (substitute `${PROCESSED+1}` and `${TOTAL}`). The five bullet lines are the canonical Core block — when they change, update `global/skills/_internal/_shared/invariants.md` first, then this template:
 
 ```
 [Item ${PROCESSED+1}/${TOTAL}] Required rules:
@@ -143,7 +143,7 @@ for each item in approved batch plan:
            prompt: """
                Execute /issue-work $REPO $ISSUE_NUMBER --$MODE with full CLAUDE.md compliance.
 
-               Required rules (do not skip — canonical source: global/skills/_shared/invariants.md Core block):
+               Required rules (do not skip — canonical source: global/skills/_internal/_shared/invariants.md Core block):
                - PR title/body, commit messages, issue comments: English only
                - Commit format: type(scope): description (no Claude/AI attribution, no emojis)
                - ABSOLUTE CI GATE: gh pr checks must show every check passing before merge

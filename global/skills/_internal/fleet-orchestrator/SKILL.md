@@ -461,6 +461,6 @@ After a fleet run, confirm:
 
 ## Reanchoring Loop Invariants
 
-`--reanchor-interval N` (default 5, `0` disables) controls how often the Core invariants block from `global/skills/_shared/invariants.md` is emitted during the supervisor's status-polling loop.
+`--reanchor-interval N` (default 5, `0` disables) controls how often the Core invariants block from `global/skills/_internal/_shared/invariants.md` is emitted during the supervisor's status-polling loop.
 
 Loop bind point: every N manifest-poll cycles. A fleet run covering 20+ repos produces enough accumulated worker outputs that the supervisor's attention drifts from the canonical rules; re-anchoring keeps the English-only, squash-merge, and CI-gate invariants in the recent context when aggregating results and deciding per-repo terminal state.

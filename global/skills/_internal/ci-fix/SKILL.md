@@ -105,4 +105,4 @@ If total elapsed exceeds 20 minutes, stop, report status, and hand off.
 - Pattern catalogue and diffs: `reference/known-fixes.md`
 - CMake FetchContent macro expansion: `reference/cmake-fetchcontent.md`
 - MSVC C4996 migration guidance: `reference/msvc-c4996.md`
-- Invoked from: `global/skills/pr-work/SKILL.md` on failing-CI escalation
+- Invoked from: `global/skills/_internal/pr-work/SKILL.md` on failing-CI escalation

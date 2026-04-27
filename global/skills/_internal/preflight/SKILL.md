@@ -63,7 +63,7 @@ CLAUDE_PREFLIGHT=1 git push origin my-branch
 ```
 
 Absent the env var, the hook preserves its current protected-branch behaviour. When set, the
-hook calls `bash global/skills/preflight/scripts/run-all.sh`; any non-zero exit aborts the push
+hook calls `bash global/skills/_internal/preflight/scripts/run-all.sh`; any non-zero exit aborts the push
 with a summary of the failing check.
 
 To opt in persistently for a shell session:
@@ -87,7 +87,7 @@ the check fails.
 
 ## Shared Pattern Library
 
-Deprecated-API patterns live in `global/skills/ci-fix/reference/known-fixes.md` (the ci-fix
+Deprecated-API patterns live in `global/skills/_internal/ci-fix/reference/known-fixes.md` (the ci-fix
 skill's catalogue). `scripts/run-deprecated-api.sh` reads a generated pattern file at
 `/tmp/preflight-patterns.txt` that is derived from the ci-fix catalogue on first invocation.
 This keeps ci-fix as the single source of truth and avoids drift between the two skills.
@@ -102,7 +102,7 @@ This keeps ci-fix as the single source of truth and avoids drift between the two
 
 ## References
 
-- Pattern catalogue and diagnostic diffs: `global/skills/ci-fix/reference/known-fixes.md`
-- MSVC C4996 migration: `global/skills/ci-fix/reference/msvc-c4996.md`
-- CMake FetchContent deep-dive: `global/skills/ci-fix/reference/cmake-fetchcontent.md`
+- Pattern catalogue and diagnostic diffs: `global/skills/_internal/ci-fix/reference/known-fixes.md`
+- MSVC C4996 migration: `global/skills/_internal/ci-fix/reference/msvc-c4996.md`
+- CMake FetchContent deep-dive: `global/skills/_internal/ci-fix/reference/cmake-fetchcontent.md`
 - `act` (nektos/act): <https://github.com/nektos/act>

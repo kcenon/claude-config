@@ -88,9 +88,9 @@ touch "$WORK/repo/docs/global/skills/_internal-fake/notes.md"
 run_select "skill-lenient" "look-alike _internal-fake path with strict ON -> lenient" \
     "$WORK/repo/docs/global/skills/_internal-fake/notes.md" "True"
 
-# Real repo file (should always be lenient until D2 creates _internal/ entries)
-run_select "skill-lenient" "real claude-config skill (no _internal/ yet) with strict ON" \
-    "$ROOT_DIR/global/skills/preflight/SKILL.md" "True"
+# Real repo file (after D2: claude-config skills live under _internal/, dispatched as strict)
+run_select "skill-strict" "real claude-config skill under _internal/ with strict ON" \
+    "$ROOT_DIR/global/skills/_internal/preflight/SKILL.md" "True"
 
 # Final report
 echo ""
