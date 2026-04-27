@@ -9,6 +9,9 @@
 #   plugin          -> plugin/.claude-plugin/plugin.json (version)
 #   plugin-lite     -> plugin-lite/.claude-plugin/plugin.json (version)
 #   settings-schema -> global/settings.json, global/settings.windows.json (version)
+#   hooks           -> global/hooks/* shipping bundle; bumped per rollout
+#                      (e.g. P4 timeline, attribution-guard scope changes).
+#                      Surfaced to operators via HOOKS.md and ENFORCEMENT.md.
 #
 # To bump a version: edit the field here, then run scripts/sync_versions.sh
 # (or /release <field> <new-version>) to propagate to consumers.
@@ -17,3 +20,4 @@ suite: 1.10.0
 plugin: 2.3.0
 plugin-lite: 1.1.0
 settings-schema: 1.13.1
+hooks: 1.0.0

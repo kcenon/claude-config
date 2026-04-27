@@ -1,6 +1,9 @@
 #!/bin/bash
 # pre-edit-read-guard.sh
 # Enforces the "Read before Edit/Write" tool contract.
+# Hook Type: PreToolUse (Edit|Write) + PostToolUse (Read)
+# Exit codes: 0 (always — decision is in JSON for PreToolUse, no JSON for PostToolUse)
+# Response format: hookSpecificOutput with hookEventName (PreToolUse only)
 #
 # Registered under TWO hook entries in global/settings.json:
 #   1. PreToolUse  matcher "Edit|Write" → guard mode (deny when tracker lacks file_path)

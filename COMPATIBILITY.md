@@ -200,6 +200,23 @@ When upgrading Claude Code itself:
 - Use `install.ps1` on Windows instead of `install.sh`
 - PowerShell 7+ (`pwsh`) is required for Windows support
 
+### PowerShell parity status
+
+The README v1.7.0 changelog originally claimed "All 42 bash scripts now have PowerShell counterparts". That wording was inaccurate and has been retracted. The current authoritative coverage for `global/hooks/`:
+
+| Surface | Bash count | PowerShell count | Coverage |
+|---|---:|---:|---:|
+| `global/hooks/*.sh` | 32 | 30 | 30/32 (94%) |
+
+Bash hooks **without** a `.ps1` counterpart (tracked for restoration in a follow-up issue):
+
+- `global/hooks/p4-timeline-guard.sh` — P4 rollout timeline enforcement (EPIC #454).
+- `global/hooks/p4-timeline-reminder.sh` — SessionStart banner for the active P4 window.
+
+Both are tied to a transient EPIC-#454 rollout window and are scheduled to be ported (or sunset together with the rollout) before the next minor release. Windows users in the rollout window currently get the same enforcement via the bash hooks under WSL or Git Bash; native PowerShell users are reminded by `bootstrap.ps1` if the EPIC is active.
+
+The script that produces the live count: `bash -c 'b=$(ls global/hooks/*.sh | wc -l); p=$(ls global/hooks/*.ps1 | wc -l); echo "$p/$b"'`. CI can extend `validate-hooks-doc.yml` to fail when this row drifts from the filesystem; tracked in the PowerShell-parity follow-up issue.
+
 #### Cross-platform `timeout` fallback (`global/hooks/lib/timeout-wrapper.sh`)
 
 `merge-gate-guard.sh` bounds its `gh pr checks` call via `_run_with_timeout`. The
