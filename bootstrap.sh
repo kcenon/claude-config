@@ -49,12 +49,23 @@ error() { echo -e "${RED}❌ $1${NC}"; exit 1; }
 check_dependencies() {
     info "의존성 확인 중..."
 
-    if ! command -v git &> /dev/null; then
-        error "git이 설치되어 있지 않습니다. 먼저 git을 설치하세요."
-    fi
+    # Required tools enforced by claude-config hooks (see PREREQUISITES.md).
+    # `gh` and `perl` are checked in addition to git/curl because several
+    # PreToolUse guards (merge-gate-guard, attribution-guard, markdown-anchor-
+    # validator) and the `lib/timeout-wrapper.sh` fallback rely on them.
+    local missing=()
+    for cmd in jq gh git perl; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            missing+=("$cmd")
+        fi
+    done
 
     if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then
-        error "curl 또는 wget이 필요합니다."
+        missing+=("curl-or-wget")
+    fi
+
+    if [ ${#missing[@]} -gt 0 ]; then
+        error "필수 도구가 설치되어 있지 않습니다: ${missing[*]}. 설치 안내는 PREREQUISITES.md를 참고하세요."
     fi
 
     success "의존성 확인 완료"

@@ -953,7 +953,7 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## Version
 
-**Current**: 1.9.0 (2026-04-13)
+**Current**: tracked in [`VERSION_MAP.yml`](VERSION_MAP.yml) (single source of truth — `suite` field). The shields.io badge at the top of this README is generated from the same field by `scripts/sync_versions.sh`. Do not hardcode version numbers in this document; bump them with `/release <field> <new-version>` instead.
 
 <details>
 <summary>Changelog</summary>
@@ -973,9 +973,9 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 - **Branching documentation**: comprehensive branch model, CI policy, and release workflow guide
 
 #### v1.7.0 (2026-04-06)
-- **Full Windows PowerShell parity**: All 42 bash scripts now have PowerShell (.ps1) counterparts
-  - All utility scripts: `install`, `verify`, `sync`, `backup`, `validate_skills`, `bootstrap`
-  - All 16 hook scripts with identical security behavior (fail-closed model preserved)
+- **Windows PowerShell coverage**: substantial PowerShell (`.ps1`) parity for utility, hook, and helper scripts. The earlier "All 42 bash scripts now have PowerShell counterparts" wording was inaccurate — see [COMPATIBILITY.md › PowerShell parity status](COMPATIBILITY.md#powershell-parity-status) for the live count and the list of bash hooks without `.ps1` counterparts. Tracked for restoration in a follow-up issue.
+  - Most utility scripts: `install`, `verify`, `sync`, `backup`, `validate_skills`, `bootstrap`
+  - Most hook scripts with identical security behavior (fail-closed model preserved)
   - All 8 GitHub CLI helper scripts (`scripts/gh/`)
   - All 3 global scripts (`statusline-command`, `team-report`, `weekly-usage`)
   - All 7 test scripts for hook validation
