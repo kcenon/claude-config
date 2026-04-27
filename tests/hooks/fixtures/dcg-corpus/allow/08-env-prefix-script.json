@@ -1,0 +1,6 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "env DEBUG=1 ./run-tests.sh"
+  }
+}

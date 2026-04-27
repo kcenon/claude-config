@@ -1,0 +1,1 @@
+Red Team variant D: legacy backtick command substitution wrapping a curl-to-bash pipe. Tokenizer recursively splits the backtick body and re-applies the fetch-pipe-shell detection.

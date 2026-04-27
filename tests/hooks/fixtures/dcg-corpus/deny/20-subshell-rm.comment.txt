@@ -1,0 +1,1 @@
+Red Team variant C: a dangerous command hidden inside `$(...)` command substitution. Tokenizer treats the substitution body as its own sub-command and inspects argv[0].

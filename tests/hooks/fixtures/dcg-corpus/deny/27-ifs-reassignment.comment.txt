@@ -1,0 +1,1 @@
+Red Team variant J: prefixing a command with `IFS=...` rebinds the field separator and is a known parser-evasion trick. Denied at the argv-prefix layer regardless of the rest of the line.

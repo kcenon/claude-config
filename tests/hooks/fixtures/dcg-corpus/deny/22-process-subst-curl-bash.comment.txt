@@ -1,0 +1,1 @@
+Red Team variant E: process substitution `<(...)` wrapping a curl-to-bash pipe. Same flow as the backtick case but uses bash-only `<(...)` syntax.
