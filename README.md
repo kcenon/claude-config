@@ -139,6 +139,11 @@ the mount. The installer also runs a pairing audit and warns about any `.ps1`
 without a `.sh` sibling (or vice versa) so Docker-side rewrites do not silently
 resolve to missing files.
 
+> **See also**: [`docs/CLAUDE_DOCKER_CONTRACT.md`](docs/CLAUDE_DOCKER_CONTRACT.md) —
+> formal contract between claude-config and claude-docker covering directory
+> layout, hook command grammar, dual-variant pairing, the `.full-suite-active`
+> probe, and CRLF normalization guarantees.
+
 ### Plugin Installation (Beta)
 
 Install as a Claude Code Plugin for easy distribution and updates:
