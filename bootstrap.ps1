@@ -161,6 +161,30 @@ function Install-GlobalSettings {
     # Legacy settings.json migration warning (informational only).
     $null = Show-LegacySettingsWarning -SettingsPath (Join-Path $HOME '.claude/settings.json') -NewSelection $contentLanguage
 
+    # Install global skills and commands.
+    # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
+    # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의
+    # "Skill Aliases" 표에 따라 leading keyword 호출로만 실행된다.
+    $globalSkillsSrc = Join-Path $InstallDir 'global' 'skills'
+    if (Test-Path -LiteralPath $globalSkillsSrc -PathType Container) {
+        $globalSkillsDst = Join-Path $ClaudeDir 'skills'
+        if (-not (Test-Path $globalSkillsDst)) {
+            New-Item -ItemType Directory -Path $globalSkillsDst -Force | Out-Null
+        }
+        Copy-Item -Path "$globalSkillsSrc\*" -Destination $globalSkillsDst -Recurse -Force
+        $skillCount = (Get-ChildItem -Path $globalSkillsDst -Filter SKILL.md -Recurse -ErrorAction SilentlyContinue).Count
+        Write-Ok "글로벌 skills 설치 완료 ($skillCount 개)"
+    }
+    $globalCommandsSrc = Join-Path $InstallDir 'global' 'commands'
+    if (Test-Path -LiteralPath $globalCommandsSrc -PathType Container) {
+        $globalCommandsDst = Join-Path $ClaudeDir 'commands'
+        if (-not (Test-Path $globalCommandsDst)) {
+            New-Item -ItemType Directory -Path $globalCommandsDst -Force | Out-Null
+        }
+        Copy-Item -Path "$globalCommandsSrc\*" -Destination $globalCommandsDst -Recurse -Force
+        Write-Ok "글로벌 commands 설치 완료"
+    }
+
     # tmux config installation
     $tmuxConf = Join-Path $InstallDir 'global' 'tmux.conf'
     if (Test-Path -LiteralPath $tmuxConf) {
