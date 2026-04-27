@@ -19,9 +19,9 @@ Global settings applied every session. Routing index only — procedural detail 
 
 - **Sandbox, TLS, `gh` caveat**: `docs/SANDBOX_TLS.md`
 - **Branching strategy**: `docs/branching-strategy.md`
-- **Lifecycle skills**: `global/skills/issue-work`, `pr-work`, `release`, `branch-cleanup`
-- **Build verification**: `global/skills/pr-work/reference/build-verification.md`
-- **Skill authoring**: `global/skills/_policy.md`, `global/skills/_shared/invariants.md`
+- **Lifecycle skills**: `global/skills/_internal/issue-work`, `pr-work`, `release`, `branch-cleanup`
+- **Build verification**: `global/skills/_internal/pr-work/reference/build-verification.md`
+- **Skill authoring**: `global/skills/_policy.md`, `global/skills/_internal/_shared/invariants.md`
 
 ## Updating
 

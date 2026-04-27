@@ -496,7 +496,7 @@ After completion, provide summary:
 
 ## Reanchoring Loop Invariants
 
-`--reanchor-interval N` (default 5, `0` disables) controls how often the Core invariants block from `global/skills/_shared/invariants.md` is emitted during the release workflow.
+`--reanchor-interval N` (default 5, `0` disables) controls how often the Core invariants block from `global/skills/_internal/_shared/invariants.md` is emitted during the release workflow.
 
 Loop bind point: between each CI retry and each merge-gate verification. For a typical release flow this fires once or twice — the interval primarily protects prolonged retry storms where attention would otherwise drift from the English-only / squash-merge / CI-gate rules.
 

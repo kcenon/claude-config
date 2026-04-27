@@ -4,7 +4,7 @@
 # and a final summary on stderr. Exit code is non-zero iff any check reports fail.
 #
 # Usage:
-#   bash global/skills/preflight/scripts/run-all.sh [--only <check>] [--skip <check>] [--verbose]
+#   bash global/skills/_internal/preflight/scripts/run-all.sh [--only <check>] [--skip <check>] [--verbose]
 #
 # Invoked by hooks/pre-push when CLAUDE_PREFLIGHT=1.
 

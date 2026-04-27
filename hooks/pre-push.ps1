@@ -44,7 +44,7 @@ if ($env:CLAUDE_PREFLIGHT -eq '1') {
     $repoRoot = (& git rev-parse --show-toplevel 2>$null) | Out-String
     $repoRoot = $repoRoot.Trim()
     if (-not $repoRoot) { $repoRoot = (Get-Location).Path }
-    $preflight = Join-Path $repoRoot 'global/skills/preflight/scripts/run-all.sh'
+    $preflight = Join-Path $repoRoot 'global/skills/_internal/preflight/scripts/run-all.sh'
 
     if (Test-Path $preflight) {
         [Console]::Error.WriteLine("pre-push: CLAUDE_PREFLIGHT=1 — running preflight checks")

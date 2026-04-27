@@ -80,4 +80,4 @@ Current `global/skills/` state:
 
 - Schema: `global/skills/_policy.md` § Loop-Safety Flag
 - Iteration control: `global/skills/_policy.md` § Iteration Control Schema
-- Shared invariants for long loops: `global/skills/_shared/invariants.md`
+- Shared invariants for long loops: `global/skills/_internal/_shared/invariants.md`

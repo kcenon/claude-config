@@ -350,7 +350,7 @@ Based on workflow analysis, fix the identified issues:
 | **Link error** | Fix undefined references, library linking |
 
 **Known-pattern shortcut**: before hand-authoring a fix, check the `ci-fix` skill
-(`global/skills/ci-fix/SKILL.md`). It classifies the failure log against three recurring
+(`global/skills/_internal/ci-fix/SKILL.md`). It classifies the failure log against three recurring
 patterns (MSVC C4996, CMake FetchContent shallow clone, `__cpp_lib_format` probe) and applies
 a codified remediation. Invoke with `/ci-fix <pr-number>` — falls through to this manual
 workflow when no pattern matches.
@@ -509,7 +509,7 @@ If CI failed or max retries exceeded, use this format instead:
 
 ## Reanchoring Loop Invariants
 
-`--reanchor-interval N` (default 5, `0` disables) controls how often the Core invariants block from `global/skills/_shared/invariants.md` is emitted inside long loops.
+`--reanchor-interval N` (default 5, `0` disables) controls how often the Core invariants block from `global/skills/_internal/_shared/invariants.md` is emitted inside long loops.
 
 Loop bind points for pr-work:
 - **Batch mode**: between items, same semantics as `issue-work` batch-mode (every N items).

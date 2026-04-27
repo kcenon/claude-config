@@ -4,7 +4,7 @@
 # Emits a single JSON line to stdout and exits non-zero on failure.
 #
 # Usage:
-#   bash global/skills/preflight/scripts/run-msvc-docker.sh [--image <tag>] [--verbose]
+#   bash global/skills/_internal/preflight/scripts/run-msvc-docker.sh [--image <tag>] [--verbose]
 #
 # Env:
 #   CLAUDE_PREFLIGHT_MSVC_IMAGE   Docker image (default: mcr.microsoft.com/windows/servercore)

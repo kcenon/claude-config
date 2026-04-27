@@ -4,7 +4,7 @@
 # Emits a single JSON line to stdout and exits non-zero on failure.
 #
 # Usage:
-#   bash global/skills/preflight/scripts/run-act.sh [--workflow <file>] [--verbose]
+#   bash global/skills/_internal/preflight/scripts/run-act.sh [--workflow <file>] [--verbose]
 #
 # Env:
 #   CLAUDE_PREFLIGHT_ACT_WORKFLOW  Path to workflow file (default: auto-detect)

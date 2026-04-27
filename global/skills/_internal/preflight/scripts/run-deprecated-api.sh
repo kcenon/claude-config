@@ -4,9 +4,9 @@
 # Emits a single JSON line to stdout and exits non-zero on findings.
 #
 # Usage:
-#   bash global/skills/preflight/scripts/run-deprecated-api.sh [--include <glob>] [--verbose]
+#   bash global/skills/_internal/preflight/scripts/run-deprecated-api.sh [--include <glob>] [--verbose]
 #
-# Shares its pattern list with global/skills/ci-fix/reference/known-fixes.md via a
+# Shares its pattern list with global/skills/_internal/ci-fix/reference/known-fixes.md via a
 # generated file. Extending the catalogue there is automatically picked up here.
 
 set -uo pipefail

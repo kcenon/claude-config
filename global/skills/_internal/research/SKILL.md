@@ -351,6 +351,6 @@ Before finalizing the report, verify:
 
 ## Reanchoring Loop Invariants
 
-`--reanchor-interval N` (default 5, `0` disables) controls how often the Core invariants block from `global/skills/_shared/invariants.md` is emitted between research rounds.
+`--reanchor-interval N` (default 5, `0` disables) controls how often the Core invariants block from `global/skills/_internal/_shared/invariants.md` is emitted between research rounds.
 
 Loop bind point: between `shallow`/`standard`/`deep` round iterations. For deep-depth runs (5+ rounds with many WebFetch outputs), this keeps the English-only and citation-required rules adjacent to the latest round's findings instead of buried behind accumulated source content.
