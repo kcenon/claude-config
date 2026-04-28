@@ -14,12 +14,15 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
 # much time remains. Silent when the rollout is fully complete (now() >=
 # p4_freeze_until) or when the relevant fields are absent.
 
-# Resolve settings path: P4_SETTINGS_PATH overrides, else ~/.claude/settings.json
+# Resolve settings path: P4_SETTINGS_PATH overrides, else ~/.claude/settings.json.
+# NOTE: do NOT use $home — it is a read-only PowerShell automatic variable, and
+# under $ErrorActionPreference='Stop' (set above) any attempt to assign it
+# raises a terminating WriteError that kills the whole hook.
 $SettingsPath = $env:P4_SETTINGS_PATH
 if (-not $SettingsPath) {
-    $home = [Environment]::GetFolderPath('UserProfile')
-    if (-not $home) { $home = $env:HOME }
-    $SettingsPath = Join-Path $home '.claude' 'settings.json'
+    $userProfile = [Environment]::GetFolderPath('UserProfile')
+    if (-not $userProfile) { $userProfile = $env:HOME }
+    $SettingsPath = Join-Path $userProfile '.claude' 'settings.json'
 }
 
 # Settings file may not exist on fresh installs - silent
