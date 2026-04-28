@@ -19,12 +19,15 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
 # Override: set CLAUDE_P4_OVERRIDE=1 in the environment with the reason
 # documented in COMPATIBILITY.md (incident response, RCA-required).
 
-# Resolve settings path: P4_SETTINGS_PATH overrides, else ~/.claude/settings.json
+# Resolve settings path: P4_SETTINGS_PATH overrides, else ~/.claude/settings.json.
+# NOTE: do NOT use $home — it is a read-only PowerShell automatic variable, and
+# under $ErrorActionPreference='Stop' (set above) any attempt to assign it
+# raises a terminating WriteError that kills the whole hook.
 $SettingsPath = $env:P4_SETTINGS_PATH
 if (-not $SettingsPath) {
-    $home = [Environment]::GetFolderPath('UserProfile')
-    if (-not $home) { $home = $env:HOME }
-    $SettingsPath = Join-Path $home '.claude' 'settings.json'
+    $userProfile = [Environment]::GetFolderPath('UserProfile')
+    if (-not $userProfile) { $userProfile = $env:HOME }
+    $SettingsPath = Join-Path $userProfile '.claude' 'settings.json'
 }
 
 # Override gate
