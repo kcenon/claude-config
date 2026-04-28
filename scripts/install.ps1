@@ -139,6 +139,8 @@ function Test-Administrator {
 # Verify Claude Code CLI presence and offer interactive installation.
 # version-check.ps1 hook and batch-* scripts call `claude --version` / `claude`
 # directly; deploying configuration without the CLI causes silent failures.
+# Uses Anthropic's official native installer (recommended method).
+# Reference: https://code.claude.com/docs/en/setup
 function Confirm-ClaudeCli {
     Write-Info "Checking Claude Code CLI..."
 
@@ -163,49 +165,49 @@ function Confirm-ClaudeCli {
     if ([string]::IsNullOrEmpty($installClaude)) { $installClaude = 'y' }
 
     if ($installClaude -ne 'y') {
-        Write-Warn "Skipping Claude Code CLI install. Manual install: npm install -g @anthropic-ai/claude-code"
+        Write-Warn "Skipping Claude Code CLI install. Manual install:"
+        Write-Host "    irm https://claude.ai/install.ps1 | iex"
         return
     }
 
-    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
-        Write-Warn "npm is not installed; cannot auto-install."
-        Write-Host "  Install Node.js/npm first, then run:"
-        Write-Host "    npm install -g @anthropic-ai/claude-code"
-        Write-Host ""
-        Write-Host "  Node.js install hint (Windows):"
-        Write-Host "    winget install OpenJS.NodeJS.LTS"
-        Write-Host "    or:    choco install nodejs-lts"
-        return
-    }
-
-    Write-Info "Running: npm install -g @anthropic-ai/claude-code"
+    # Native installer is the official recommended method and supports background auto-update.
+    # Install path: $env:USERPROFILE\.local\bin\claude.exe (Windows) /
+    #               ~/.local/bin/claude (macOS, Linux, WSL)
+    $installerUrl = 'https://claude.ai/install.ps1'
+    Write-Info "Running native installer: $installerUrl"
     try {
-        & npm install -g '@anthropic-ai/claude-code'
-        if ($LASTEXITCODE -eq 0) {
-            if (Get-Command claude -ErrorAction SilentlyContinue) {
-                try {
-                    $ccVersion = (& claude --version 2>$null | Select-Object -First 1)
-                }
-                catch {
-                    $ccVersion = $null
-                }
-                if ([string]::IsNullOrWhiteSpace($ccVersion)) { $ccVersion = 'version unknown' }
-                Write-Success "Claude Code CLI installed: $ccVersion"
-            }
-            else {
-                Write-Warn "npm install succeeded but 'claude' is not on PATH."
-                Write-Host "  Verify npm global bin is on PATH: npm config get prefix"
+        $installerScript = Invoke-RestMethod -Uri $installerUrl -ErrorAction Stop
+        Invoke-Expression $installerScript
+
+        # The newly created ~/.local/bin may not yet be on PATH for this session.
+        $localBin = Join-Path $HOME '.local' 'bin'
+        if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+            if (Test-Path $localBin) {
+                $env:PATH = "$localBin$([System.IO.Path]::PathSeparator)$env:PATH"
             }
         }
+
+        if (Get-Command claude -ErrorAction SilentlyContinue) {
+            try {
+                $ccVersion = (& claude --version 2>$null | Select-Object -First 1)
+            }
+            catch {
+                $ccVersion = $null
+            }
+            if ([string]::IsNullOrWhiteSpace($ccVersion)) { $ccVersion = 'version unknown' }
+            Write-Success "Claude Code CLI installed: $ccVersion"
+            $claudePath = (Get-Command claude -ErrorAction SilentlyContinue).Source
+            if ($claudePath) { Write-Host "  Install location: $claudePath" }
+        }
         else {
-            Write-Warn "Claude Code CLI auto-install failed (exit code: $LASTEXITCODE)."
-            Write-Host "  Try manual install or check permissions:"
-            Write-Host "    npm install -g @anthropic-ai/claude-code"
+            Write-Warn "Native installer finished but 'claude' is not on PATH."
+            Write-Host "  Open a new PowerShell session or refresh your PATH."
         }
     }
     catch {
-        Write-Warn "Exception during Claude Code CLI install: $($_.Exception.Message)"
-        Write-Host "  Manual install: npm install -g @anthropic-ai/claude-code"
+        Write-Warn "Claude Code CLI auto-install failed: $($_.Exception.Message)"
+        Write-Host "  Manual install: irm https://claude.ai/install.ps1 | iex"
+        Write-Host "  Or follow the official guide: https://code.claude.com/docs/en/setup"
     }
 }
 
