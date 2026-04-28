@@ -29,7 +29,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Restore core principles after context compaction | [Post-Compact Restore](#17-post-compact-restore-postcompact) |
 | Validate task descriptions at creation time | [Task Created Validator](#18-task-created-validator-taskcreated) |
 | Auto-commit working tree after Task/Agent runs | [Post Task/Agent Checkpoint](#19-post-taskagent-checkpoint-posttooluse) |
-| Block Edit/Write on files that weren't Read first | [Pre-edit Read Guard](#20-pre-edit-read-guard-pretoolusepostooluse) |
+| Block Edit/Write on files that weren't Read first | [Pre-edit Read Guard](#20-pre-edit-read-guard-pretooluseposttooluse) |
 | Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
 | Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
 | Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
@@ -1038,7 +1038,9 @@ _Total: 32 bash hooks, 32 with PowerShell counterparts._
 
 ### Hook Details
 
-### attribution-guard.sh
+### attribution-guard
+
+_File:_ `attribution-guard.sh`
 
 _Anchor:_ `#attribution-guard`
 
@@ -1053,7 +1055,9 @@ Blocks gh pr/issue/release commands whose user-facing text fields contain AI/Cla
 | PowerShell counterpart | present (`attribution-guard.ps1`) |
 | Source | `global/hooks/attribution-guard.sh` |
 
-### bash-sensitive-read-guard.sh
+### bash-sensitive-read-guard
+
+_File:_ `bash-sensitive-read-guard.sh`
 
 _Anchor:_ `#bash-sensitive-read-guard`
 
@@ -1068,7 +1072,9 @@ Blocks reading sensitive files via the Bash tool channel.
 | PowerShell counterpart | present (`bash-sensitive-read-guard.ps1`) |
 | Source | `global/hooks/bash-sensitive-read-guard.sh` |
 
-### bash-write-guard.sh
+### bash-write-guard
+
+_File:_ `bash-write-guard.sh`
 
 _Anchor:_ `#bash-write-guard`
 
@@ -1083,7 +1089,9 @@ Enforces the "Read before Edit/Write" invariant on the Bash tool channel.
 | PowerShell counterpart | present (`bash-write-guard.ps1`) |
 | Source | `global/hooks/bash-write-guard.sh` |
 
-### cleanup.sh
+### cleanup
+
+_File:_ `cleanup.sh`
 
 _Anchor:_ `#cleanup`
 
@@ -1098,7 +1106,9 @@ Cleans up temporary files created during session
 | PowerShell counterpart | present (`cleanup.ps1`) |
 | Source | `global/hooks/cleanup.sh` |
 
-### commit-message-guard.sh
+### commit-message-guard
+
+_File:_ `commit-message-guard.sh`
 
 _Anchor:_ `#commit-message-guard`
 
@@ -1113,7 +1123,9 @@ Deterministic git commit message validator
 | PowerShell counterpart | present (`commit-message-guard.ps1`) |
 | Source | `global/hooks/commit-message-guard.sh` |
 
-### config-change-logger.sh
+### config-change-logger
+
+_File:_ `config-change-logger.sh`
 
 _Anchor:_ `#config-change-logger`
 
@@ -1128,7 +1140,9 @@ Logs configuration file changes during session
 | PowerShell counterpart | present (`config-change-logger.ps1`) |
 | Source | `global/hooks/config-change-logger.sh` |
 
-### conflict-guard.sh
+### conflict-guard
+
+_File:_ `conflict-guard.sh`
 
 _Anchor:_ `#conflict-guard`
 
@@ -1143,7 +1157,9 @@ Guards against git operations that could cause conflicts
 | PowerShell counterpart | present (`conflict-guard.ps1`) |
 | Source | `global/hooks/conflict-guard.sh` |
 
-### dangerous-command-guard.sh
+### dangerous-command-guard
+
+_File:_ `dangerous-command-guard.sh`
 
 _Anchor:_ `#dangerous-command-guard`
 
@@ -1158,7 +1174,9 @@ Blocks dangerous bash commands and records every decision.
 | PowerShell counterpart | present (`dangerous-command-guard.ps1`) |
 | Source | `global/hooks/dangerous-command-guard.sh` |
 
-### gh-write-verb-guard.sh
+### gh-write-verb-guard
+
+_File:_ `gh-write-verb-guard.sh`
 
 _Anchor:_ `#gh-write-verb-guard`
 
@@ -1173,7 +1191,9 @@ Narrows the `gh` CLI surface on the Bash channel:
 | PowerShell counterpart | present (`gh-write-verb-guard.ps1`) |
 | Source | `global/hooks/gh-write-verb-guard.sh` |
 
-### github-api-preflight.sh
+### github-api-preflight
+
+_File:_ `github-api-preflight.sh`
 
 _Anchor:_ `#github-api-preflight`
 
@@ -1188,7 +1208,9 @@ Checks GitHub API connectivity before executing GitHub-related commands
 | PowerShell counterpart | present (`github-api-preflight.ps1`) |
 | Source | `global/hooks/github-api-preflight.sh` |
 
-### instructions-loaded-reinforcer.sh
+### instructions-loaded-reinforcer
+
+_File:_ `instructions-loaded-reinforcer.sh`
 
 _Anchor:_ `#instructions-loaded-reinforcer`
 
@@ -1203,7 +1225,9 @@ Re-asserts critical policy after CLAUDE.md / .claude/rules/*.md loads.
 | PowerShell counterpart | present (`instructions-loaded-reinforcer.ps1`) |
 | Source | `global/hooks/instructions-loaded-reinforcer.sh` |
 
-### markdown-anchor-validator.sh
+### markdown-anchor-validator
+
+_File:_ `markdown-anchor-validator.sh`
 
 _Anchor:_ `#markdown-anchor-validator`
 
@@ -1218,7 +1242,9 @@ Validates markdown anchor references before git commit
 | PowerShell counterpart | present (`markdown-anchor-validator.ps1`) |
 | Source | `global/hooks/markdown-anchor-validator.sh` |
 
-### merge-gate-guard.sh
+### merge-gate-guard
+
+_File:_ `merge-gate-guard.sh`
 
 _Anchor:_ `#merge-gate-guard`
 
@@ -1234,7 +1260,9 @@ Blocks gh pr merge commands when any PR check is not passing.
 | PowerShell counterpart | present (`merge-gate-guard.ps1`) |
 | Source | `global/hooks/merge-gate-guard.sh` |
 
-### p4-timeline-guard.sh
+### p4-timeline-guard
+
+_File:_ `p4-timeline-guard.sh`
 
 _Anchor:_ `#p4-timeline-guard`
 
@@ -1249,7 +1277,9 @@ Blocks Claude-initiated actions that violate the EPIC #454 P4 rollout timeline.
 | PowerShell counterpart | present (`p4-timeline-guard.ps1`) |
 | Source | `global/hooks/p4-timeline-guard.sh` |
 
-### p4-timeline-reminder.sh
+### p4-timeline-reminder
+
+_File:_ `p4-timeline-reminder.sh`
 
 _Anchor:_ `#p4-timeline-reminder`
 
@@ -1264,7 +1294,9 @@ SessionStart banner that surfaces the active P4 rollout window.
 | PowerShell counterpart | present (`p4-timeline-reminder.ps1`) |
 | Source | `global/hooks/p4-timeline-reminder.sh` |
 
-### post-compact-restore.sh
+### post-compact-restore
+
+_File:_ `post-compact-restore.sh`
 
 _Anchor:_ `#post-compact-restore`
 
@@ -1279,7 +1311,9 @@ Re-injects core/principles.md after automatic context compaction. Pairs with pre
 | PowerShell counterpart | present (`post-compact-restore.ps1`) |
 | Source | `global/hooks/post-compact-restore.sh` |
 
-### post-task-checkpoint.sh
+### post-task-checkpoint
+
+_File:_ `post-task-checkpoint.sh`
 
 _Anchor:_ `#post-task-checkpoint`
 
@@ -1294,7 +1328,9 @@ Auto-commits working-tree changes after a Task or Agent tool call completes, pre
 | PowerShell counterpart | present (`post-task-checkpoint.ps1`) |
 | Source | `global/hooks/post-task-checkpoint.sh` |
 
-### pr-language-guard.sh
+### pr-language-guard
+
+_File:_ `pr-language-guard.sh`
 
 _Anchor:_ `#pr-language-guard`
 
@@ -1309,7 +1345,9 @@ Blocks gh commands that publish artifacts (PRs, issues, comments, reviews, relea
 | PowerShell counterpart | present (`pr-language-guard.ps1`) |
 | Source | `global/hooks/pr-language-guard.sh` |
 
-### pr-target-guard.sh
+### pr-target-guard
+
+_File:_ `pr-target-guard.sh`
 
 _Anchor:_ `#pr-target-guard`
 
@@ -1324,7 +1362,9 @@ Blocks PRs targeting 'main' from non-develop branches
 | PowerShell counterpart | present (`pr-target-guard.ps1`) |
 | Source | `global/hooks/pr-target-guard.sh` |
 
-### pre-compact-snapshot.sh
+### pre-compact-snapshot
+
+_File:_ `pre-compact-snapshot.sh`
 
 _Anchor:_ `#pre-compact-snapshot`
 
@@ -1339,7 +1379,9 @@ Captures working state before automatic context compaction
 | PowerShell counterpart | present (`pre-compact-snapshot.ps1`) |
 | Source | `global/hooks/pre-compact-snapshot.sh` |
 
-### pre-edit-read-guard.sh
+### pre-edit-read-guard
+
+_File:_ `pre-edit-read-guard.sh`
 
 _Anchor:_ `#pre-edit-read-guard`
 
@@ -1354,7 +1396,9 @@ Enforces the "Read before Edit/Write" tool contract.
 | PowerShell counterpart | present (`pre-edit-read-guard.ps1`) |
 | Source | `global/hooks/pre-edit-read-guard.sh` |
 
-### prompt-validator.sh
+### prompt-validator
+
+_File:_ `prompt-validator.sh`
 
 _Anchor:_ `#prompt-validator`
 
@@ -1369,7 +1413,9 @@ Validates user prompts for dangerous operations
 | PowerShell counterpart | present (`prompt-validator.ps1`) |
 | Source | `global/hooks/prompt-validator.sh` |
 
-### sensitive-file-guard.sh
+### sensitive-file-guard
+
+_File:_ `sensitive-file-guard.sh`
 
 _Anchor:_ `#sensitive-file-guard`
 
@@ -1384,7 +1430,9 @@ Blocks access to sensitive files
 | PowerShell counterpart | present (`sensitive-file-guard.ps1`) |
 | Source | `global/hooks/sensitive-file-guard.sh` |
 
-### session-logger.sh
+### session-logger
+
+_File:_ `session-logger.sh`
 
 _Anchor:_ `#session-logger`
 
@@ -1399,7 +1447,9 @@ Logs session start/end events
 | PowerShell counterpart | present (`session-logger.ps1`) |
 | Source | `global/hooks/session-logger.sh` |
 
-### subagent-logger.sh
+### subagent-logger
+
+_File:_ `subagent-logger.sh`
 
 _Anchor:_ `#subagent-logger`
 
@@ -1414,7 +1464,9 @@ Logs subagent start/stop events for monitoring.
 | PowerShell counterpart | present (`subagent-logger.ps1`) |
 | Source | `global/hooks/subagent-logger.sh` |
 
-### task-completed-logger.sh
+### task-completed-logger
+
+_File:_ `task-completed-logger.sh`
 
 _Anchor:_ `#task-completed-logger`
 
@@ -1429,7 +1481,9 @@ Logs task completion events for audit trail
 | PowerShell counterpart | present (`task-completed-logger.ps1`) |
 | Source | `global/hooks/task-completed-logger.sh` |
 
-### task-created-validator.sh
+### task-created-validator
+
+_File:_ `task-created-validator.sh`
 
 _Anchor:_ `#task-created-validator`
 
@@ -1444,7 +1498,9 @@ Validates task quality at creation time.
 | PowerShell counterpart | present (`task-created-validator.ps1`) |
 | Source | `global/hooks/task-created-validator.sh` |
 
-### team-limit-guard.sh
+### team-limit-guard
+
+_File:_ `team-limit-guard.sh`
 
 _Anchor:_ `#team-limit-guard`
 
@@ -1459,7 +1515,9 @@ Limits the maximum number of concurrent Agent Teams
 | PowerShell counterpart | present (`team-limit-guard.ps1`) |
 | Source | `global/hooks/team-limit-guard.sh` |
 
-### tool-failure-logger.sh
+### tool-failure-logger
+
+_File:_ `tool-failure-logger.sh`
 
 _Anchor:_ `#tool-failure-logger`
 
@@ -1474,7 +1532,9 @@ Logs tool execution failures for debugging and analysis.
 | PowerShell counterpart | present (`tool-failure-logger.ps1`) |
 | Source | `global/hooks/tool-failure-logger.sh` |
 
-### version-check.sh
+### version-check
+
+_File:_ `version-check.sh`
 
 _Anchor:_ `#version-check`
 
@@ -1489,7 +1549,9 @@ Checks Claude Code version against known problematic versions
 | PowerShell counterpart | present (`version-check.ps1`) |
 | Source | `global/hooks/version-check.sh` |
 
-### worktree-create.sh
+### worktree-create
+
+_File:_ `worktree-create.sh`
 
 _Anchor:_ `#worktree-create`
 
@@ -1504,7 +1566,9 @@ Creates an isolated worktree directory for non-git environments
 | PowerShell counterpart | present (`worktree-create.ps1`) |
 | Source | `global/hooks/worktree-create.sh` |
 
-### worktree-remove.sh
+### worktree-remove
+
+_File:_ `worktree-remove.sh`
 
 _Anchor:_ `#worktree-remove`
 

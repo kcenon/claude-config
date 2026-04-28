@@ -131,8 +131,12 @@ render_hook() {
     local slug
     slug="$(slugify "$base")"
 
+    # Heading text uses the slug (no .sh) so the GitHub-generated anchor
+    # matches `#$slug`, keeping the Index table links live. The original
+    # filename is preserved in the body and Source field below.
     {
-        printf '\n### %s\n\n' "$base"
+        printf '\n### %s\n\n' "$slug"
+        printf '_File:_ `%s`\n\n' "$base"
         printf '_Anchor:_ `#%s`\n\n' "$slug"
         printf '%s\n\n' "$summary"
         printf '| Field | Value |\n|---|---|\n'
