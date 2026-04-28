@@ -55,7 +55,9 @@ function Test-Dependencies {
 # ── Ensure Claude Code CLI is installed ──────────────────────
 # version-check.ps1, batch-issue-work.ps1 등이 `claude --version` / `claude`
 # 명령을 호출하므로 미설치 시 silent failure가 발생한다. 본 함수는 부트스트랩
-# 시점에 사용자 동의 하에 npm 경로로 Claude Code CLI를 설치한다.
+# 시점에 사용자 동의 하에 Anthropic 공식 native installer로 Claude Code CLI를
+# 설치한다.
+# 참고: https://code.claude.com/docs/en/setup
 function Confirm-ClaudeCli {
     Write-Info "Claude Code CLI 확인 중..."
 
@@ -80,49 +82,49 @@ function Confirm-ClaudeCli {
     if ([string]::IsNullOrEmpty($installClaude)) { $installClaude = 'y' }
 
     if ($installClaude -ne 'y') {
-        Write-Warn "Claude Code CLI 설치 건너뜀. 추후 수동 설치: npm install -g @anthropic-ai/claude-code"
+        Write-Warn "Claude Code CLI 설치 건너뜀. 추후 수동 설치:"
+        Write-Host "    irm https://claude.ai/install.ps1 | iex"
         return
     }
 
-    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
-        Write-Warn "npm이 설치되어 있지 않아 자동 설치를 진행할 수 없습니다."
-        Write-Host "  Node.js/npm 설치 후 다음 명령을 실행하세요:"
-        Write-Host "    npm install -g @anthropic-ai/claude-code"
-        Write-Host ""
-        Write-Host "  Node.js 설치 안내 (Windows):"
-        Write-Host "    winget install OpenJS.NodeJS.LTS"
-        Write-Host "    또는: choco install nodejs-lts"
-        return
-    }
-
-    Write-Info "npm install -g @anthropic-ai/claude-code 실행 중..."
+    # Native installer는 Anthropic 공식 권장 방식이며 백그라운드 자동 업데이트를 지원한다.
+    # 설치 경로: $env:USERPROFILE\.local\bin\claude.exe (Windows) /
+    #           ~/.local/bin/claude (macOS, Linux, WSL)
+    $installerUrl = 'https://claude.ai/install.ps1'
+    Write-Info "Native installer 실행 중: $installerUrl"
     try {
-        & npm install -g '@anthropic-ai/claude-code'
-        if ($LASTEXITCODE -eq 0) {
-            if (Get-Command claude -ErrorAction SilentlyContinue) {
-                try {
-                    $ccVersion = (& claude --version 2>$null | Select-Object -First 1)
-                }
-                catch {
-                    $ccVersion = $null
-                }
-                if ([string]::IsNullOrWhiteSpace($ccVersion)) { $ccVersion = 'version unknown' }
-                Write-Ok "Claude Code CLI 설치 완료: $ccVersion"
-            }
-            else {
-                Write-Warn "npm 설치는 성공했으나 'claude' 명령을 찾을 수 없습니다."
-                Write-Host "  npm 글로벌 bin이 PATH에 있는지 확인하세요: npm config get prefix"
+        $installerScript = Invoke-RestMethod -Uri $installerUrl -ErrorAction Stop
+        Invoke-Expression $installerScript
+
+        # PATH에 새로 추가된 ~/.local/bin이 아직 반영되지 않았을 수 있다.
+        $localBin = Join-Path $HOME '.local' 'bin'
+        if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+            if (Test-Path $localBin) {
+                $env:PATH = "$localBin$([System.IO.Path]::PathSeparator)$env:PATH"
             }
         }
+
+        if (Get-Command claude -ErrorAction SilentlyContinue) {
+            try {
+                $ccVersion = (& claude --version 2>$null | Select-Object -First 1)
+            }
+            catch {
+                $ccVersion = $null
+            }
+            if ([string]::IsNullOrWhiteSpace($ccVersion)) { $ccVersion = 'version unknown' }
+            Write-Ok "Claude Code CLI 설치 완료: $ccVersion"
+            $claudePath = (Get-Command claude -ErrorAction SilentlyContinue).Source
+            if ($claudePath) { Write-Host "  설치 위치: $claudePath" }
+        }
         else {
-            Write-Warn "Claude Code CLI 자동 설치 실패. (exit code: $LASTEXITCODE)"
-            Write-Host "  수동 설치를 시도하거나 권한 문제일 수 있습니다:"
-            Write-Host "    npm install -g @anthropic-ai/claude-code"
+            Write-Warn "Native installer는 종료되었으나 'claude'를 PATH에서 찾을 수 없습니다."
+            Write-Host "  새 PowerShell 세션을 시작하거나 PATH를 갱신하세요."
         }
     }
     catch {
-        Write-Warn "Claude Code CLI 자동 설치 중 예외 발생: $($_.Exception.Message)"
-        Write-Host "  수동 설치: npm install -g @anthropic-ai/claude-code"
+        Write-Warn "Claude Code CLI 자동 설치 실패: $($_.Exception.Message)"
+        Write-Host "  수동 설치: irm https://claude.ai/install.ps1 | iex"
+        Write-Host "  또는 Anthropic 공식 가이드: https://code.claude.com/docs/en/setup"
     }
 }
 

@@ -73,7 +73,9 @@ check_dependencies() {
 # 함수: Claude Code CLI 설치 확인 및 자동 설치
 # version-check.sh 등 hook 스크립트와 batch-issue-work.sh / batch-pr-work.sh가
 # `claude --version` / `claude` 명령을 직접 호출한다. 미설치 상태에서 설정만
-# 배포되면 silent failure가 발생하므로 설치 시점에 동의 기반 자동 설치를 제공한다.
+# 배포되면 silent failure가 발생하므로 설치 시점에 Anthropic 공식 native
+# installer를 통한 동의 기반 자동 설치를 제공한다.
+# 참고: https://code.claude.com/docs/en/setup
 ensure_claude_cli() {
     info "Claude Code CLI 확인 중..."
 
@@ -93,32 +95,50 @@ ensure_claude_cli() {
     INSTALL_CLAUDE=${INSTALL_CLAUDE:-y}
 
     if [ "$INSTALL_CLAUDE" != "y" ]; then
-        warning "Claude Code CLI 설치 건너뜀. 추후 수동 설치: npm install -g @anthropic-ai/claude-code"
+        warning "Claude Code CLI 설치 건너뜀. 추후 수동 설치:"
+        echo "    curl -fsSL https://claude.ai/install.sh | bash"
         return 0
     fi
 
-    if ! command -v npm >/dev/null 2>&1; then
-        warning "npm이 설치되어 있지 않아 자동 설치를 진행할 수 없습니다."
-        echo "  Node.js/npm 설치 후 다음 명령을 실행하세요:"
-        echo "    npm install -g @anthropic-ai/claude-code"
+    # Native installer는 Anthropic 공식 권장 방식이며 백그라운드 자동 업데이트를 지원한다.
+    # 설치 경로: ~/.local/bin/claude → ~/.local/share/claude/versions/<ver>
+    local installer_url="https://claude.ai/install.sh"
+    local install_status=1
+    info "Native installer 실행 중: $installer_url"
+    if command -v curl >/dev/null 2>&1; then
+        if curl -fsSL "$installer_url" | bash; then
+            install_status=0
+        fi
+    elif command -v wget >/dev/null 2>&1; then
+        if wget -qO- "$installer_url" | bash; then
+            install_status=0
+        fi
+    else
+        warning "curl/wget이 모두 없어 자동 설치를 진행할 수 없습니다."
+        echo "  curl 설치 후 재시도하거나 수동으로 다음을 실행하세요:"
+        echo "    curl -fsSL https://claude.ai/install.sh | bash"
         return 0
     fi
 
-    info "npm install -g @anthropic-ai/claude-code 실행 중..."
-    if npm install -g @anthropic-ai/claude-code; then
+    if [ $install_status -eq 0 ]; then
+        if ! command -v claude >/dev/null 2>&1 && [ -x "$HOME/.local/bin/claude" ]; then
+            export PATH="$HOME/.local/bin:$PATH"
+        fi
         if command -v claude >/dev/null 2>&1; then
             local cc_version
             cc_version="$(claude --version 2>/dev/null | head -n1)"
             success "Claude Code CLI 설치 완료: ${cc_version:-version unknown}"
+            echo "  설치 위치: $(command -v claude)"
         else
-            warning "npm 설치는 성공했으나 'claude' 명령을 찾을 수 없습니다."
-            echo "  npm 글로벌 bin이 PATH에 있는지 확인하세요: npm config get prefix"
+            warning "Native installer는 종료되었으나 'claude'를 PATH에서 찾을 수 없습니다."
+            echo "  새 셸을 열거나 ~/.local/bin을 PATH에 추가하세요:"
+            echo "    export PATH=\"\$HOME/.local/bin:\$PATH\""
         fi
     else
         warning "Claude Code CLI 자동 설치 실패."
-        echo "  수동 설치를 시도하거나 권한(sudo) 문제일 수 있습니다:"
-        echo "    npm install -g @anthropic-ai/claude-code"
-        echo "    또는: sudo npm install -g @anthropic-ai/claude-code"
+        echo "  수동 설치:"
+        echo "    curl -fsSL https://claude.ai/install.sh | bash"
+        echo "  또는 Anthropic 공식 가이드: https://code.claude.com/docs/en/setup"
     fi
 }
 
