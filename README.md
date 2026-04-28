@@ -86,6 +86,8 @@ Install claude-config and Claude Code immediately gains these capabilities:
 curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash
 ```
 
+> **What bootstrap does for you.** It checks for the Claude Code CLI and, on consent, runs Anthropic's native installer (`https://claude.ai/install.sh`) so the `claude` binary lands in `~/.local/bin/` and supports background auto-update. The npm package `@anthropic-ai/claude-code` is no longer used. PowerShell uses the parallel `claude.ai/install.ps1`. See [PREREQUISITES.md → Auto-installed by bootstrap](PREREQUISITES.md#auto-installed-by-bootstrap).
+
 ### Private Repository
 
 ```bash
@@ -378,10 +380,15 @@ claude_config_backup/
 │
 ├── docs/                        # Design docs and guides
 │   ├── branching-strategy.md   # Branch model, CI policy, release workflow
+│   ├── CLAUDE_DOCKER_CONTRACT.md  # Integration contract with claude-docker (SSOT)
+│   ├── install.md              # Installer flow, manifests, post-install verification
+│   ├── SANDBOX_TLS.md          # Sandbox-aware TLS troubleshooting (gh, curl)
 │   ├── TOKEN_OPTIMIZATION.md
 │   ├── SKILL_TOKEN_REPORT.md
 │   ├── CUSTOM_EXTENSIONS.md
 │   ├── ad-sdlc-integration.md
+│   ├── plugin-vs-global.md
+│   ├── hooks-ownership.md
 │   └── design/                 # Architecture design docs
 │       ├── optimization-discoveries.md
 │       ├── optimization-phases.md
@@ -401,14 +408,36 @@ claude_config_backup/
 │       └── behavioral-guardrails/
 │           └── SKILL.md        # Single behavioral guardrails skill
 │
-├── bootstrap.sh/.ps1            # One-line install script
+├── tests/                       # Hook + skill golden corpus, regression runners
+├── bootstrap.sh/.ps1            # One-line install script (also auto-installs Claude Code CLI)
+├── VERSION_MAP.yml              # Single Source of Truth for component SemVers (see "Versioning" below)
+├── COMPATIBILITY.md             # settings.json field stability matrix vs Claude Code releases
+├── ENFORCEMENT.md               # Three-layer attribution / commit guard enforcement model
+├── PREREQUISITES.md             # Tool list and per-platform install commands
+├── THIRD_PARTY_NOTICES.md       # Upstream attribution for vendored snippets
 ├── README.md                    # Detailed guide (English)
 ├── README.ko.md                 # Detailed guide (Korean)
-├── QUICKSTART.md               # Quick start guide
-└── HOOKS.md                    # Hook configuration guide
+├── QUICKSTART.md                # Quick start guide
+└── HOOKS.md                     # Hook configuration guide
 ```
 
 </details>
+
+---
+
+## Versioning
+
+claude-config does **not** carry a single repo-wide version. Each shipped artifact has its own SemVer line that bumps independently, recorded in `VERSION_MAP.yml`:
+
+| Field | Tracked artifact | Consumer files |
+|-------|------------------|----------------|
+| `suite` | The end-user "release" identifier surfaced by the README badge | `README.md`, `README.ko.md` shields URL |
+| `plugin` | Marketplace plugin version | `plugin/.claude-plugin/plugin.json` |
+| `plugin-lite` | Lite plugin (behavioral guardrails) | `plugin-lite/.claude-plugin/plugin.json` |
+| `settings-schema` | Hook-emitting `settings.json` schema | `global/settings.json`, `global/settings.windows.json` |
+| `hooks` | Shipping hook bundle (bumped per rollout) | Surfaced via `HOOKS.md` and `ENFORCEMENT.md` |
+
+`scripts/check_versions.sh` verifies each consumer file matches the field declared in `VERSION_MAP.yml`. Use `/release <field> <new-version>` (or `scripts/sync_versions.sh`) to bump exactly one field at a time — synchronizing all five fields would defeat the design and produce noisy "compatible-with-X.Y" badges that change for unrelated reasons. See [`docs/CLAUDE_DOCKER_CONTRACT.md`](docs/CLAUDE_DOCKER_CONTRACT.md) for how `suite` couples to claude-docker's tag line.
 
 ---
 
