@@ -33,6 +33,14 @@ done
 | `shellcheck` | 0.7+ | Optional lint for `global/hooks/*.sh`; required only if running `validate-hooks.yml` locally |
 | `coreutils` (`gtimeout`) | — | Faster `merge-gate-guard` timeout; the perl-alarm fallback in `lib/timeout-wrapper.sh` works without it |
 
+## Auto-installed by bootstrap
+
+`bootstrap.sh` and `bootstrap.ps1` detect a missing Claude Code CLI and offer to run the official Anthropic native installer (`https://claude.ai/install.sh` or `claude.ai/install.ps1`) on user consent. This places `claude` under `~/.local/bin/` (POSIX) or the equivalent user path (Windows) and supports background auto-update. If you decline at the prompt, install manually before running hook-dependent skills.
+
+| Tool | How it is installed | Why claude-config needs it |
+|------|---------------------|----------------------------|
+| `claude` (Claude Code CLI) | Native installer via `bootstrap.{sh,ps1}` (consent prompt) or manual `curl -fsSL https://claude.ai/install.sh \| bash` | Hooks like `version-check`, batch scripts (`/issue-work`, `/pr-work`, `/release`), and the `claude --version` probe rely on the binary being on `PATH` |
+
 ## Install Commands by Platform
 
 ### macOS (Homebrew)

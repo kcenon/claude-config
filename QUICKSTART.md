@@ -53,6 +53,8 @@ cd ~\claude_config_backup
 .\scripts\install.ps1
 ```
 
+> **Note**: If the `claude` CLI is missing, the installer offers (with consent) to run Anthropic's native installer (`https://claude.ai/install.{sh,ps1}`). Decline to install manually later. See [PREREQUISITES.md → Auto-installed by bootstrap](PREREQUISITES.md#auto-installed-by-bootstrap).
+
 **Selection:**
 ```
 Select installation type:
