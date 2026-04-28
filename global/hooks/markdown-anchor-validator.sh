@@ -52,14 +52,19 @@ if ! echo "$CMD" | grep -qE 'git\s+commit'; then
     exit 0
 fi
 
-# Collect markdown files: docs/*.md (core) + docs/reference/*.md
-# Excludes docs/ui/, docs/placeholders/ to avoid anchor registry pollution
+# Collect staged markdown files (deletions excluded via --diff-filter=d).
+# Mirrors markdown-anchor-validator.ps1 so the same staged tree produces
+# an identical allow/deny decision on every supported platform. The
+# working-tree presence check ([ -f ]) drops paths git lists but the
+# checkout no longer contains (e.g., type-change edge cases), matching
+# the PowerShell hook's Test-Path -PathType Leaf filter.
 MD_FILES=()
-if [ -d "docs" ]; then
-    while IFS= read -r f; do [[ -n "$f" ]] && MD_FILES+=("$f"); done < <(find docs -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort)
-    [ -d "docs/reference" ] && while IFS= read -r f; do [[ -n "$f" ]] && MD_FILES+=("$f"); done < <(find docs/reference -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort)
-else
-    while IFS= read -r f; do [[ -n "$f" ]] && MD_FILES+=("$f"); done < <(find . -maxdepth 2 -name '*.md' -type f 2>/dev/null | sort)
+if command -v git >/dev/null 2>&1; then
+    while IFS= read -r f; do
+        [[ -n "$f" ]] || continue
+        [[ -f "$f" ]] || continue
+        MD_FILES+=("$f")
+    done < <(git diff --cached --name-only --diff-filter=d -- '*.md' 2>/dev/null | sort)
 fi
 
 if [ ${#MD_FILES[@]} -eq 0 ]; then

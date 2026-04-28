@@ -16,38 +16,38 @@ if ! command -v jq >/dev/null 2>&1; then
     exit 0
 fi
 
-# Each fixture case runs the hook in a temp dir with a single markdown file
-# under docs/ so the validator picks it up (it searches docs/*.md).
-run_hook_against_fixture() {
-    local fixture="$1"
-    local tmpdir
-    tmpdir=$(mktemp -d)
-    mkdir -p "$tmpdir/docs"
-    cp "tests/markdown-anchor-validator/fixtures/$fixture" "$tmpdir/docs/$fixture"
-    local hook_abs
-    hook_abs="$(pwd)/$HOOK"
-    (cd "$tmpdir" && echo '{"tool_input":{"command":"git commit -m test"}}' | bash "$hook_abs" 2>/dev/null)
-    local rc=$?
-    rm -rf "$tmpdir"
-    return $rc
-}
-
+# Each fixture case runs the hook against a real (tiny) git repo with the
+# fixture staged. The hook now collects files via `git diff --cached`, so
+# the fixture must be staged for the validator to see it.
+#
+# $1: fixture filename under tests/markdown-anchor-validator/fixtures/
+# $2: optional staged path inside the temp repo (default: docs/<fixture>)
 run_hook_capture() {
     local fixture="$1"
-    local tmpdir
+    local fixture_dest="${2:-docs/$fixture}"
+    local root_abs hook_abs tmpdir
+    root_abs="$(pwd)"
+    hook_abs="${root_abs}/${HOOK}"
     tmpdir=$(mktemp -d)
-    mkdir -p "$tmpdir/docs"
-    cp "tests/markdown-anchor-validator/fixtures/$fixture" "$tmpdir/docs/$fixture"
-    local hook_abs
-    hook_abs="$(pwd)/$HOOK"
-    (cd "$tmpdir" && echo '{"tool_input":{"command":"git commit -m test"}}' | bash "$hook_abs" 2>/dev/null)
+    (
+        cd "$tmpdir" && \
+        git init -q && \
+        git config user.email "ci@example.com" && \
+        git config user.name "CI" && \
+        mkdir -p "$(dirname "$fixture_dest")" && \
+        cp "${root_abs}/tests/markdown-anchor-validator/fixtures/${fixture}" "${fixture_dest}" && \
+        git add -A && \
+        echo '{"tool_input":{"command":"git commit -m test"}}' | bash "$hook_abs" 2>/dev/null
+    )
     rm -rf "$tmpdir"
 }
 
+# $3 (optional): staged path inside the temp repo. Forwarded to
+# run_hook_capture; defaults to docs/<fixture>.
 assert_deny_fixture() {
-    local fixture="$1" label="$2"
+    local fixture="$1" label="$2" dest="${3:-}"
     local out
-    out=$(run_hook_capture "$fixture")
+    out=$(run_hook_capture "$fixture" "$dest")
     if echo "$out" | grep -q '"deny"'; then
         PASS=$((PASS + 1))
         echo "  PASS: $label"
@@ -59,9 +59,9 @@ assert_deny_fixture() {
 }
 
 assert_allow_fixture() {
-    local fixture="$1" label="$2"
+    local fixture="$1" label="$2" dest="${3:-}"
     local out
-    out=$(run_hook_capture "$fixture")
+    out=$(run_hook_capture "$fixture" "$dest")
     if echo "$out" | grep -q '"allow"'; then
         PASS=$((PASS + 1))
         echo "  PASS: $label"
@@ -73,9 +73,9 @@ assert_allow_fixture() {
 }
 
 assert_valid_json() {
-    local fixture="$1" label="$2"
+    local fixture="$1" label="$2" dest="${3:-}"
     local out
-    out=$(run_hook_capture "$fixture")
+    out=$(run_hook_capture "$fixture" "$dest")
     if echo "$out" | jq empty 2>/dev/null; then
         PASS=$((PASS + 1))
         echo "  PASS: $label"
@@ -103,6 +103,17 @@ assert_valid_json "bug-c-backslash.md" "anchor with backslash → valid JSON"
 echo ""
 echo "[Baseline: no false positives on well-formed markdown]"
 assert_allow_fixture "baseline-valid.md" "valid intra-file refs → allow"
+
+echo ""
+echo "[Parity: staged .md outside docs/ is also checked]"
+# The bash hook previously scanned only docs/*.md and silently skipped
+# top-level files (HOOKS.md, README.md, etc.), while the PowerShell
+# variant already used `git diff --cached` and caught them. Stage a
+# fixture with a known-broken anchor at the repo root; the bash hook
+# must now reach it and deny.
+assert_deny_fixture "bug-a-excessive-hashes.md" \
+    "root-level .md with broken anchor → deny" \
+    "top-level.md"
 
 echo ""
 echo "[Non-commit commands pass through]"
