@@ -571,6 +571,22 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         Write-Success "Utility scripts installed (scripts/*.ps1 + *.sh)!"
     }
 
+    # Install policy files (Phase 1 dual-read; p4-timeline-* hooks read from here first).
+    $policiesSource = Join-Path $BackupDir "global/policies"
+    if (Test-Path $policiesSource) {
+        $policiesDir = Join-Path $claudeDir "policies"
+        Ensure-Directory $policiesDir
+        try {
+            $jsonItems = Get-ChildItem -Path $policiesSource -Filter '*.json' -File
+            if ($jsonItems.Count -gt 0) {
+                Copy-Item -Path "$policiesSource\*.json" -Destination $policiesDir -Force -ErrorAction Stop
+            }
+            Write-Success "Policy files (policies/*.json) installed!"
+        } catch {
+            Write-Err "Failed to copy policy files: $_"
+        }
+    }
+
     # Hook pairing audit: warn on orphans so Docker-side rewrites don't silently
     # resolve to missing files.
     $hooksDirForAudit = Join-Path $claudeDir "hooks"
