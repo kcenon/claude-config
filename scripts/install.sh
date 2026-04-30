@@ -543,6 +543,13 @@ PY
         success "tmux.conf 설치 완료!"
     fi
 
+    # policies 디렉토리 설치 (Phase 1 dual-read; p4-timeline-* hooks read from here first)
+    if [ -d "$BACKUP_DIR/global/policies" ]; then
+        ensure_dir "$HOME/.claude/policies"
+        cp "$BACKUP_DIR/global/policies"/*.json "$HOME/.claude/policies/" 2>/dev/null || true
+        success "정책 파일 (policies/) 설치 완료!"
+    fi
+
     # skills 디렉토리 설치 (global skills: harness, pr-work, issue-work, etc.)
     # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
     # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의

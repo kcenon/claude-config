@@ -19,15 +19,19 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
 # Override: set CLAUDE_P4_OVERRIDE=1 in the environment with the reason
 # documented in COMPATIBILITY.md (incident response, RCA-required).
 
-# Resolve settings path: P4_SETTINGS_PATH overrides, else ~/.claude/settings.json.
+# Resolve settings + policy paths. Phase 1 dual-read: prefer policy file, fall back to settings.json.
 # NOTE: do NOT use $home — it is a read-only PowerShell automatic variable, and
 # under $ErrorActionPreference='Stop' (set above) any attempt to assign it
 # raises a terminating WriteError that kills the whole hook.
+$userProfile = [Environment]::GetFolderPath('UserProfile')
+if (-not $userProfile) { $userProfile = $env:HOME }
 $SettingsPath = $env:P4_SETTINGS_PATH
 if (-not $SettingsPath) {
-    $userProfile = [Environment]::GetFolderPath('UserProfile')
-    if (-not $userProfile) { $userProfile = $env:HOME }
     $SettingsPath = Join-Path $userProfile '.claude' 'settings.json'
+}
+$PolicyPath = $env:P4_POLICY_PATH
+if (-not $PolicyPath) {
+    $PolicyPath = Join-Path $userProfile '.claude' 'policies' 'p4-timeline.json'
 }
 
 # Override gate
@@ -43,31 +47,67 @@ if (-not $json) {
     exit 0
 }
 
-# Settings file may not exist on fresh installs - allow (fail-open)
-if (-not (Test-Path -LiteralPath $SettingsPath -PathType Leaf)) {
+# Neither policy file nor settings.json present on fresh installs - allow (fail-open)
+if (-not (Test-Path -LiteralPath $PolicyPath -PathType Leaf) -and
+    -not (Test-Path -LiteralPath $SettingsPath -PathType Leaf)) {
     New-HookAllowResponse
     exit 0
 }
 
-# Parse settings.json once
+# Parse policy file when present (Phase 1 primary source).
+$policy = $null
+if (Test-Path -LiteralPath $PolicyPath -PathType Leaf) {
+    try {
+        $policy = Get-Content -LiteralPath $PolicyPath -Raw | ConvertFrom-Json
+    } catch {
+        $policy = $null
+    }
+}
+
+# Parse settings.json when present (Phase 1 fallback source).
 $settings = $null
-try {
-    $settings = Get-Content -LiteralPath $SettingsPath -Raw | ConvertFrom-Json
+if (Test-Path -LiteralPath $SettingsPath -PathType Leaf) {
+    try {
+        $settings = Get-Content -LiteralPath $SettingsPath -Raw | ConvertFrom-Json
+    } catch {
+        $settings = $null
+    }
 }
-catch {
-    # Malformed settings -> allow (other guards already enforce policy)
+
+# When both parses failed -> allow (other guards already enforce policy)
+if ($null -eq $policy -and $null -eq $settings) {
     New-HookAllowResponse
     exit 0
 }
 
-# Helper: read ISO-8601 timestamp field from harness_policies and return epoch seconds.
+# Helper: resolve a policy value. Reads $policy.<field> first, falls back to
+# $settings.harness_policies.<field>. Returns $null when neither has the field.
+function Get-PolicyValue {
+    param([Parameter(Mandatory)][string]$Field)
+    if ($null -ne $policy) {
+        try {
+            $v = $policy.$Field
+            if ($null -ne $v -and -not ($v -is [string] -and [string]::IsNullOrEmpty($v))) {
+                return $v
+            }
+        } catch {}
+    }
+    if ($null -ne $settings) {
+        try {
+            $v = $settings.harness_policies.$Field
+            if ($null -ne $v -and -not ($v -is [string] -and [string]::IsNullOrEmpty($v))) {
+                return $v
+            }
+        } catch {}
+    }
+    return $null
+}
+
+# Helper: read ISO-8601 timestamp field and return epoch seconds.
 # Returns $null when the field is missing or unparseable.
 function Get-IsoEpoch {
     param([Parameter(Mandatory)][string]$Field)
-    $iso = $null
-    try {
-        $iso = $settings.harness_policies.$Field
-    } catch { return $null }
+    $iso = Get-PolicyValue -Field $Field
     if (-not $iso) { return $null }
     try {
         $dto = [System.DateTimeOffset]::Parse(
@@ -154,8 +194,7 @@ if ($Tool -eq 'Edit' -or $Tool -eq 'Write') {
             exit 0
         }
         # If current toggle is already true, nothing to flip -> allow
-        $current = $null
-        try { $current = $settings.harness_policies.p4_strict_schema } catch {}
+        $current = Get-PolicyValue -Field 'p4_strict_schema'
         if ($current -eq $true) {
             New-HookAllowResponse
             exit 0

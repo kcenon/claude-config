@@ -16,6 +16,7 @@
 # documented in COMPATIBILITY.md (incident response, RCA-required).
 
 SETTINGS_PATH="${P4_SETTINGS_PATH:-${HOME}/.claude/settings.json}"
+POLICY_PATH="${P4_POLICY_PATH:-${HOME}/.claude/policies/p4-timeline.json}"
 
 deny_response() {
     local reason="$1"
@@ -59,16 +60,31 @@ if ! command -v jq >/dev/null 2>&1; then
     allow_response
 fi
 
-# Settings file may not exist on fresh installs - allow
-if [ ! -f "$SETTINGS_PATH" ]; then
+# Neither policy file nor settings.json present on fresh installs - allow
+if [ ! -f "$POLICY_PATH" ] && [ ! -f "$SETTINGS_PATH" ]; then
     allow_response
 fi
 
-# Helper: read ISO timestamp field from settings.json, output epoch seconds (or empty)
+# Helper: read a value from the policy file (dot-prefixed jq filter, e.g. ".p4_strict_schema").
+# Falls back to .harness_policies.<key> in settings.json when the policy file is absent or
+# returns empty/null. Phase 1 dual-read; Phase 2 will drop the settings.json fallback.
+read_policy_value() {
+    local jq_filter="$1"
+    local val=""
+    if [ -f "$POLICY_PATH" ]; then
+        val=$(jq -r "${jq_filter} // empty" "$POLICY_PATH" 2>/dev/null)
+    fi
+    if [ -z "$val" ] && [ -f "$SETTINGS_PATH" ]; then
+        val=$(jq -r ".harness_policies${jq_filter} // empty" "$SETTINGS_PATH" 2>/dev/null)
+    fi
+    printf '%s' "$val"
+}
+
+# Helper: read ISO timestamp field, output epoch seconds (or empty)
 read_iso_epoch() {
     local field="$1"
     local iso
-    iso=$(jq -r ".harness_policies.${field} // empty" "$SETTINGS_PATH" 2>/dev/null)
+    iso=$(read_policy_value ".${field}")
     [ -z "$iso" ] && return 0
     if date -j -u -f "%Y-%m-%dT%H:%M:%SZ" "$iso" +%s 2>/dev/null; then
         return 0
@@ -126,8 +142,8 @@ if [ "$TOOL" = "Edit" ] || [ "$TOOL" = "Write" ]; then
                 allow_response
             fi
             # Detect a flip: new content sets p4_strict_schema true while
-            # current settings have it false.
-            CURRENT=$(jq -r '.harness_policies.p4_strict_schema // empty' "$SETTINGS_PATH" 2>/dev/null)
+            # current value is false.
+            CURRENT=$(read_policy_value '.p4_strict_schema')
             [ "$CURRENT" = "true" ] && allow_response
             NEW_BLOB=""
             if [ "$TOOL" = "Write" ]; then

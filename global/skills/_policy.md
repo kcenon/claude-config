@@ -37,6 +37,8 @@ halt_conditions:               # Preferred: structured form (array of {type, exp
 on_halt: "<action>"            # What to do when a halt condition fires (report, escalate, exit)
 ```
 
+Note: these fields (`max_iterations`, `halt_condition`, `halt_conditions`, `on_halt`, and the `loop_safe` flag below) are LLM-advisory metadata only — Claude Code does not enforce them at runtime. The harness surfaces the `SKILL.md` frontmatter into the model's context, and the model self-regulates against the declared limits as a prompt-level discipline. For deterministic enforcement (hard counters, kill switches, budget caps), use a `PreToolUse` hook with persistent counter state or environment-variable limits read by the skill body.
+
 Required for skills whose body contains a polling loop, retry loop, or multi-round iteration (`issue-work`, `pr-work`, `ci-fix`, `release`, `research`, `fleet-orchestrator`). Optional otherwise.
 
 Prefer regex or symbolic halt conditions over free-form prose when the signal is deterministic (CI status, exit codes). Reserve natural language for cases where interpretation is intrinsically subjective.

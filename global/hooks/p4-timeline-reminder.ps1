@@ -14,37 +14,78 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
 # much time remains. Silent when the rollout is fully complete (now() >=
 # p4_freeze_until) or when the relevant fields are absent.
 
-# Resolve settings path: P4_SETTINGS_PATH overrides, else ~/.claude/settings.json.
+# Resolve settings + policy paths. Phase 1 dual-read: prefer policy file, fall back to settings.json.
 # NOTE: do NOT use $home — it is a read-only PowerShell automatic variable, and
 # under $ErrorActionPreference='Stop' (set above) any attempt to assign it
 # raises a terminating WriteError that kills the whole hook.
+$userProfile = [Environment]::GetFolderPath('UserProfile')
+if (-not $userProfile) { $userProfile = $env:HOME }
 $SettingsPath = $env:P4_SETTINGS_PATH
 if (-not $SettingsPath) {
-    $userProfile = [Environment]::GetFolderPath('UserProfile')
-    if (-not $userProfile) { $userProfile = $env:HOME }
     $SettingsPath = Join-Path $userProfile '.claude' 'settings.json'
 }
+$PolicyPath = $env:P4_POLICY_PATH
+if (-not $PolicyPath) {
+    $PolicyPath = Join-Path $userProfile '.claude' 'policies' 'p4-timeline.json'
+}
 
-# Settings file may not exist on fresh installs - silent
-if (-not (Test-Path -LiteralPath $SettingsPath -PathType Leaf)) {
+# Neither policy file nor settings.json present on fresh installs - silent
+if (-not (Test-Path -LiteralPath $PolicyPath -PathType Leaf) -and
+    -not (Test-Path -LiteralPath $SettingsPath -PathType Leaf)) {
     exit 0
 }
 
-# Parse settings.json
+# Parse policy file when present (Phase 1 primary source).
+$policy = $null
+if (Test-Path -LiteralPath $PolicyPath -PathType Leaf) {
+    try {
+        $policy = Get-Content -LiteralPath $PolicyPath -Raw | ConvertFrom-Json
+    } catch {
+        $policy = $null
+    }
+}
+
+# Parse settings.json when present (Phase 1 fallback source).
 $settings = $null
-try {
-    $settings = Get-Content -LiteralPath $SettingsPath -Raw | ConvertFrom-Json
+if (Test-Path -LiteralPath $SettingsPath -PathType Leaf) {
+    try {
+        $settings = Get-Content -LiteralPath $SettingsPath -Raw | ConvertFrom-Json
+    } catch {
+        $settings = $null
+    }
 }
-catch {
+
+# When both parses failed -> silent
+if ($null -eq $policy -and $null -eq $settings) {
     exit 0
+}
+
+# Helper: resolve a policy value. Reads $policy.<field> first, falls back to
+# $settings.harness_policies.<field>. Returns $null when neither has the field.
+function Get-PolicyValue {
+    param([Parameter(Mandatory)][string]$Field)
+    if ($null -ne $policy) {
+        try {
+            $v = $policy.$Field
+            if ($null -ne $v -and -not ($v -is [string] -and [string]::IsNullOrEmpty($v))) {
+                return $v
+            }
+        } catch {}
+    }
+    if ($null -ne $settings) {
+        try {
+            $v = $settings.harness_policies.$Field
+            if ($null -ne $v -and -not ($v -is [string] -and [string]::IsNullOrEmpty($v))) {
+                return $v
+            }
+        } catch {}
+    }
+    return $null
 }
 
 function Get-IsoEpoch {
     param([Parameter(Mandatory)][string]$Field)
-    $iso = $null
-    try {
-        $iso = $settings.harness_policies.$Field
-    } catch { return $null }
+    $iso = Get-PolicyValue -Field $Field
     if (-not $iso) { return $null }
     try {
         $dto = [System.DateTimeOffset]::Parse(

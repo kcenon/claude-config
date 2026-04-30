@@ -11,14 +11,28 @@
 # p4_freeze_until) or when the relevant fields are absent.
 
 SETTINGS_PATH="${P4_SETTINGS_PATH:-${HOME}/.claude/settings.json}"
+POLICY_PATH="${P4_POLICY_PATH:-${HOME}/.claude/policies/p4-timeline.json}"
 
-[ -f "$SETTINGS_PATH" ] || exit 0
+[ -f "$POLICY_PATH" ] || [ -f "$SETTINGS_PATH" ] || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
+
+# Phase 1 dual-read: prefer the new policy file, fall back to harness_policies in settings.json.
+read_policy_value() {
+    local jq_filter="$1"
+    local val=""
+    if [ -f "$POLICY_PATH" ]; then
+        val=$(jq -r "${jq_filter} // empty" "$POLICY_PATH" 2>/dev/null)
+    fi
+    if [ -z "$val" ] && [ -f "$SETTINGS_PATH" ]; then
+        val=$(jq -r ".harness_policies${jq_filter} // empty" "$SETTINGS_PATH" 2>/dev/null)
+    fi
+    printf '%s' "$val"
+}
 
 read_iso_epoch() {
     local field="$1"
     local iso
-    iso=$(jq -r ".harness_policies.${field} // empty" "$SETTINGS_PATH" 2>/dev/null)
+    iso=$(read_policy_value ".${field}")
     [ -z "$iso" ] && return 0
     if date -j -u -f "%Y-%m-%dT%H:%M:%SZ" "$iso" +%s 2>/dev/null; then
         return 0

@@ -104,6 +104,30 @@ when the full suite is installed but one of its hook scripts is absent
   probe write; the plugin's guards stay active. The user has the same
   coverage as a standalone plugin install.
 
+## Spec Compliance
+
+Verified 2026-04-30 against the official plugin structure documented at
+https://code.claude.com/docs/en/plugins.
+
+| Plugin | Layout | Verdict |
+|--------|--------|---------|
+| `plugin/` | `.claude-plugin/`, `agents/`, `hooks/`, `skills/`, `.lsp.json`, `.claudeignore`, `README.md` at plugin root | Compliant |
+| `plugin-lite/` | `.claude-plugin/`, `skills/`, `README.md` at plugin root | Compliant |
+
+Both plugins place required directories (`agents/`, `hooks/`, `skills/`) at
+the plugin root, not nested inside `.claude-plugin/`. The official docs
+explicitly warn against the nested layout — only the plugin manifest
+(`plugin.json`) and related metadata belong inside `.claude-plugin/`.
+
+`plugin/` ships an `.lsp.json` for LSP server registration. This is an
+official optional component listed in the structure table, not an ad-hoc
+extension.
+
+Neither plugin currently uses `monitors/`, `bin/`, or a plugin-level
+`settings.json`. These are valid optional extension points per the spec —
+their absence reflects a scope decision, not a gap. Adding them later
+requires no migration of the existing layout.
+
 ## Related
 
 - `docs/hooks-ownership.md` — single-owner-per-hook rule, including the
