@@ -570,6 +570,12 @@ stale-sync warning described in
 The handoff is intentional: this runbook validates the data layer; #527
 adds the scheduling layer on top.
 
+After completing this runbook, follow the
+[seven-day stabilization checklist](./MEMORY_STABILIZATION_CHECKLIST.md)
+([#526](https://github.com/kcenon/claude-config/issues/526)) before treating
+the system as production-stable or onboarding a second machine
+([#532](https://github.com/kcenon/claude-config/issues/532)).
+
 ---
 
 ## 13. Rollback Procedure
