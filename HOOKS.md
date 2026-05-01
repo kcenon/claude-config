@@ -1014,6 +1014,7 @@ this catalog for the canonical hook inventory.
 | [`instructions-loaded-reinforcer.sh`](#instructions-loaded-reinforcer) | InstructionsLoaded (sync) | yes |
 | [`markdown-anchor-validator.sh`](#markdown-anchor-validator) | PreToolUse (Bash) | yes |
 | [`memory-integrity-check.sh`](#memory-integrity-check) | SessionStart (sync) | yes |
+| [`memory-write-guard.sh`](#memory-write-guard) | PreToolUse (Edit|Write) | yes |
 | [`merge-gate-guard.sh`](#merge-gate-guard) | PreToolUse (Bash) | yes |
 | [`p4-timeline-guard.sh`](#p4-timeline-guard) | PreToolUse (Bash | Edit | Write) | yes |
 | [`p4-timeline-reminder.sh`](#p4-timeline-reminder) | SessionStart | yes |
@@ -1035,7 +1036,7 @@ this catalog for the canonical hook inventory.
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
 | [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 33 bash hooks, 33 with PowerShell counterparts._
+_Total: 34 bash hooks, 34 with PowerShell counterparts._
 
 ### Hook Details
 
@@ -1259,6 +1260,23 @@ Prints a brief memory health summary at SessionStart. Reads ~/.claude/memory-sha
 | Response format | — |
 | PowerShell counterpart | present (`memory-integrity-check.ps1`) |
 | Source | `global/hooks/memory-integrity-check.sh` |
+
+### memory-write-guard
+
+_File:_ `memory-write-guard.sh`
+
+_Anchor:_ `#memory-write-guard`
+
+Validates Claude Code Edit/Write tool calls targeting memory files BEFORE disk write.
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Edit|Write) |
+| Trigger / Matcher | Edit|Write |
+| Exit codes | 0 (always — decision is encoded in JSON response) |
+| Response format | hookSpecificOutput with hookEventName "PreToolUse" |
+| PowerShell counterpart | present (`memory-write-guard.ps1`) |
+| Source | `global/hooks/memory-write-guard.sh` |
 
 ### merge-gate-guard
 

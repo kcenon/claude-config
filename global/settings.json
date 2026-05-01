@@ -111,7 +111,7 @@
     "PreToolUse": [
       {
         "matcher": "Edit|Write|Read",
-        "_note": "Hook order is load-bearing: sensitive-file-guard must run before pre-edit-read-guard so denied files are not tracked. See docs/hooks-ownership.md and issue #424.",
+        "_note": "Hook order is load-bearing: sensitive-file-guard must run before pre-edit-read-guard so denied files are not tracked. memory-write-guard runs after pre-edit-read-guard so it only validates writes the harness has cleared. See docs/hooks-ownership.md and issues #424, #521.",
         "hooks": [
           {
             "type": "command",
@@ -121,6 +121,11 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/pre-edit-read-guard.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/memory-write-guard.sh",
             "timeout": 5
           },
           {
