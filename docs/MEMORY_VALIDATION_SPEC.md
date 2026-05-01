@@ -1,6 +1,6 @@
 # Memory Validation Specification
 
-**Version**: 1.0.0
+**Version**: 1.0.1
 **Last updated**: 2026-05-01
 **Status**: Active
 
@@ -215,9 +215,15 @@ Lead with the rule. **Why:** prior incident where merged broken CI caused prod o
   - `inferred` — written by the agent based on conversation context; not yet
     confirmed by the user
   - `quarantined` — flagged for review; must not be loaded into active context
-- **Default on backfill**: `verified` for `user` and `feedback` types (direct user
-  input); `verified` for `project` types with clear factual content; `inferred` for
-  entries that appear to be agent-inferred.
+- **Default on backfill**:
+  - `user`, `feedback` types → `verified` (direct user input)
+  - `project`, `reference` types → `inferred` by default; promoted to `verified`
+    only when an explicit user-approval signal exists (e.g., the user added the
+    memory via direct dictation, or a reviewer manually approves during backfill)
+  - The default is intentionally conservative: `inferred` is the safe choice when
+    the origin is ambiguous, since the trust model gates auto-application on
+    `verified`. A reviewer can promote later; the reverse direction (silently
+    auto-applied wrong content) is harder to recover from.
 
 ### `last-verified`
 
@@ -320,7 +326,9 @@ Paths under `/Users/<other-user>/` or `/home/<other-user>/` are flagged.
 Regardless of context, the following patterns always produce a finding:
 
 - `ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_` (GitHub tokens)
-- `sk-` followed by 20+ alphanumeric characters (OpenAI-style keys)
+- `sk-` followed by 20+ alphanumeric characters (OpenAI-style keys). The 20-character
+  minimum is **load-bearing**: implementations must enforce length, not merely match
+  the `sk-` prefix, otherwise package names like `sk-learn` would over-match.
 - `AKIA` followed by 16 uppercase alphanumeric characters (AWS access key IDs)
 - `-----BEGIN <TYPE> KEY-----` (PEM-encoded private keys)
 - SSH key fingerprints matching `SHA256:` followed by 43 base64 characters
@@ -333,8 +341,9 @@ Section 5.
 ## 7. Validator Exit-Code Contract
 
 All three validators share a consistent exit-code semantics. Exit codes are designed
-to be composable: a CI step can use `exit_code <= 1` to gate on hard failures while
-treating code 3 as advisory.
+to be composable: a CI step can use `exit_code <= 2` to gate on hard failures
+(structural OR format errors) while treating code 3 as advisory. Use `exit_code != 0`
+to gate on any non-clean state including warnings.
 
 ### Full exit-code table
 
@@ -481,13 +490,18 @@ when the validators are run against them.
 
 | Metric | Expected value |
 |---|---|
-| PASS | 1 (MEMORY.md is skipped; counted as implicit pass) |
+| PASS | 0 |
 | WARN-SEMANTIC | 17 |
 | FAIL | 0 |
+| Skipped | 1 (`MEMORY.md`) |
 
-All 17 WARN-SEMANTIC results are caused by a single reason: absence of the three
-Phase 2 recommended fields (`source-machine`, `created-at`, `trust-level`). No file
-has a structural or format error. This is the expected state before migration backfill.
+`MEMORY.md` is skipped per Section 2 (it is not a memory file). Skipped files are
+**not** included in any of the PASS / WARN / FAIL counts; the summary line therefore
+reads `Summary: 0 pass, 17 warn, 0 fail` against the 18-file directory.
+
+All 17 WARN-SEMANTIC results are caused by absence of the four Phase 2 recommended
+fields (`source-machine`, `created-at`, `trust-level`, `last-verified`). No file has
+a structural or format error. This is the expected state before migration backfill.
 
 ### secret-check.sh --all
 
@@ -553,6 +567,24 @@ Validator implementations must declare which spec version they target. A validat
 targeting v1.0.0 must satisfy every rule in this document.
 
 ### Change log
+
+#### v1.0.1 — 2026-05-01
+
+PATCH release applying review feedback from PR #536:
+
+1. **§7 exit-code composability example corrected** — gate expression `exit_code <= 1`
+   would let format errors (exit 2) through. Updated to `exit_code <= 2` for hard
+   failures, with `exit_code != 0` documented for any non-clean state.
+2. **§9 baseline summary clarified** — PASS count is 0 (not 1). `MEMORY.md` is
+   skipped per §2 and not counted in any of PASS/WARN/FAIL.
+3. **§9 WARN-SEMANTIC explanation now includes `last-verified`** (was missing) as
+   the fourth Phase 2 recommended field.
+4. **§4 `trust-level` default for `project`/`reference` types** is now explicitly
+   `inferred` by default (conservative), with promotion to `verified` requiring
+   explicit user-approval signal. Removes prior "with clear factual content"
+   subjectivity.
+5. **§6 `sk-` pattern note** — clarified that the 20-character minimum is
+   load-bearing and must be enforced (prevents `sk-learn`-style false positives).
 
 #### v1.0.0 — 2026-05-01
 
