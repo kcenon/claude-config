@@ -229,6 +229,11 @@
             "type": "command",
             "command": "~/.claude/hooks/p4-timeline-reminder.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/memory-integrity-check.sh",
+            "timeout": 5
           }
         ]
       }
