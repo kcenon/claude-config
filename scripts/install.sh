@@ -315,6 +315,164 @@ install_enterprise() {
     warning "중요: enterprise/CLAUDE.md를 조직 정책에 맞게 수정하세요!"
 }
 
+# ----- Memory Sync Scheduler (issue #527) -----
+#
+# Installs the platform-native scheduler that invokes memory-sync.sh hourly.
+# macOS: launchd LaunchAgent at ~/Library/LaunchAgents/com.kcenon.claude-memory-sync.plist
+# Linux: systemd user units at ~/.config/systemd/user/memory-sync.{service,timer}
+#
+# Skipped silently when CLAUDE_MEMORY_REPO_URL is unset. Installs are idempotent:
+# re-running unloads/disables the prior unit cleanly, then re-loads/enables.
+#
+# Test/dry-run overrides (no destructive launchctl/systemctl side effects):
+#   LAUNCHD_TARGET_DIR=/tmp/foo     redirect plist destination away from
+#                                   ~/Library/LaunchAgents (also skips launchctl)
+#   SYSTEMD_USER_DIR=/tmp/bar       redirect unit destination away from
+#                                   ~/.config/systemd/user (also skips systemctl)
+# These overrides also disable the launchctl bootstrap / systemctl enable steps
+# so the install function can be exercised on CI runners and dev sandboxes
+# without modifying real launchd / systemd state.
+
+install_launchd_agent() {
+    local src_plist="$BACKUP_DIR/scripts/launchd/com.kcenon.claude-memory-sync.plist"
+    if [ ! -f "$src_plist" ]; then
+        warning "launchd plist source not found: $src_plist"
+        return 1
+    fi
+
+    local target_dir="${LAUNCHD_TARGET_DIR:-$HOME/Library/LaunchAgents}"
+    local target_plist="$target_dir/com.kcenon.claude-memory-sync.plist"
+
+    ensure_dir "$target_dir"
+    cp "$src_plist" "$target_plist"
+    chmod 644 "$target_plist"
+
+    # Skip launchctl when redirected to a test directory.
+    if [ -n "${LAUNCHD_TARGET_DIR:-}" ]; then
+        info "[install] LAUNCHD_TARGET_DIR set; skipping launchctl bootstrap"
+        success "launchd plist staged at $target_plist (test mode)"
+        return 0
+    fi
+
+    # Idempotent activation: bootout (ignore failure if not loaded) then bootstrap.
+    local domain="gui/$(id -u)"
+    launchctl bootout "$domain" "$target_plist" 2>/dev/null || true
+    if launchctl bootstrap "$domain" "$target_plist" 2>/dev/null; then
+        success "launchd agent loaded ($domain com.kcenon.claude-memory-sync)"
+    else
+        warning "launchctl bootstrap failed; falling back to load/unload"
+        launchctl unload "$target_plist" 2>/dev/null || true
+        launchctl load "$target_plist" || warning "launchctl load failed"
+    fi
+}
+
+install_systemd_timer() {
+    local src_dir="$BACKUP_DIR/scripts/systemd"
+    if [ ! -f "$src_dir/memory-sync.service" ] || [ ! -f "$src_dir/memory-sync.timer" ]; then
+        warning "systemd unit sources not found in $src_dir"
+        return 1
+    fi
+
+    local target_dir="${SYSTEMD_USER_DIR:-$HOME/.config/systemd/user}"
+    ensure_dir "$target_dir"
+    cp "$src_dir/memory-sync.service" "$target_dir/"
+    cp "$src_dir/memory-sync.timer" "$target_dir/"
+    chmod 644 "$target_dir/memory-sync.service" "$target_dir/memory-sync.timer"
+
+    # Skip systemctl when redirected to a test directory.
+    if [ -n "${SYSTEMD_USER_DIR:-}" ]; then
+        info "[install] SYSTEMD_USER_DIR set; skipping systemctl enable"
+        success "systemd units staged at $target_dir (test mode)"
+        return 0
+    fi
+
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl --user daemon-reload 2>/dev/null || warning "systemctl daemon-reload failed"
+        if systemctl --user enable --now memory-sync.timer 2>/dev/null; then
+            success "systemd user timer enabled (memory-sync.timer)"
+        else
+            warning "systemctl --user enable failed; check 'loginctl enable-linger' and DBUS_SESSION_BUS_ADDRESS"
+        fi
+    else
+        warning "systemctl not found; units copied but timer not enabled"
+    fi
+}
+
+install_memory_sync() {
+    if [ -z "${CLAUDE_MEMORY_REPO_URL:-}" ]; then
+        info "[install] CLAUDE_MEMORY_REPO_URL not set; skipping memory sync setup"
+        return 0
+    fi
+
+    if [ ! -d "$HOME/.claude/memory-shared/.git" ]; then
+        info "[install] cloning memory repo from $CLAUDE_MEMORY_REPO_URL"
+        if ! git clone "$CLAUDE_MEMORY_REPO_URL" "$HOME/.claude/memory-shared"; then
+            warning "[install] memory repo clone failed; aborting scheduler install"
+            return 1
+        fi
+        if [ -x "$HOME/.claude/memory-shared/scripts/install-hooks.sh" ]; then
+            (cd "$HOME/.claude/memory-shared" && ./scripts/install-hooks.sh) || \
+                warning "[install] memory repo install-hooks.sh failed"
+        fi
+    else
+        info "[install] memory repo already cloned at $HOME/.claude/memory-shared"
+    fi
+
+    case "$(uname -s)" in
+        Darwin)
+            install_launchd_agent
+            ;;
+        Linux)
+            install_systemd_timer
+            ;;
+        *)
+            warning "[install] platform $(uname -s) not supported for memory sync; scheduler skipped"
+            ;;
+    esac
+}
+
+uninstall_memory_sync() {
+    case "$(uname -s)" in
+        Darwin)
+            local target_dir="${LAUNCHD_TARGET_DIR:-$HOME/Library/LaunchAgents}"
+            local target_plist="$target_dir/com.kcenon.claude-memory-sync.plist"
+            if [ -f "$target_plist" ]; then
+                if [ -z "${LAUNCHD_TARGET_DIR:-}" ]; then
+                    launchctl bootout "gui/$(id -u)" "$target_plist" 2>/dev/null || \
+                        launchctl unload "$target_plist" 2>/dev/null || true
+                fi
+                rm -f "$target_plist"
+                success "launchd agent removed ($target_plist)"
+            else
+                info "launchd agent not present at $target_plist"
+            fi
+            ;;
+        Linux)
+            local target_dir="${SYSTEMD_USER_DIR:-$HOME/.config/systemd/user}"
+            if [ -z "${SYSTEMD_USER_DIR:-}" ] && command -v systemctl >/dev/null 2>&1; then
+                systemctl --user disable --now memory-sync.timer 2>/dev/null || true
+            fi
+            rm -f "$target_dir/memory-sync.service" "$target_dir/memory-sync.timer"
+            if [ -z "${SYSTEMD_USER_DIR:-}" ] && command -v systemctl >/dev/null 2>&1; then
+                systemctl --user daemon-reload 2>/dev/null || true
+            fi
+            success "systemd units removed from $target_dir"
+            ;;
+        *)
+            info "platform $(uname -s) has no memory sync scheduler to remove"
+            ;;
+    esac
+    success "[uninstall] memory sync scheduler removed"
+}
+
+# Early exit path for --uninstall-memory-sync (issue #527).
+# Honored before the interactive install prompts so users can clean up
+# the scheduler without re-running the full installer.
+if [ "${1:-}" = "--uninstall-memory-sync" ]; then
+    uninstall_memory_sync
+    exit 0
+fi
+
 # 의존성 확인
 check_dependencies
 ensure_claude_cli
@@ -599,6 +757,14 @@ PY
     fi
 
     success "글로벌 설정 설치 완료!"
+
+    # Memory sync scheduler (issue #527).
+    # Opt-in via CLAUDE_MEMORY_REPO_URL env var; no-op when unset.
+    # Installed only on global-touching profiles (1, 3, 5) since the scheduler
+    # invokes ~/.claude/scripts/memory-sync.sh which lives under the global tree.
+    echo ""
+    info "메모리 동기화 스케줄러 설치 중..."
+    install_memory_sync
 
     # Git identity 개인화 안내
     echo ""
