@@ -109,30 +109,38 @@ scan_file() {
   done < <(grep -n -E '(ghp_|gho_|ghu_|ghs_|ghr_|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]+-----)' "$f" 2>/dev/null || true)
 
   # 3. Private IPv4 ranges (10/8, 192.168/16, 172.16/12).
+  #    Use 'grep -o' so each match on the same line emits its own row.
+  #    Re-run grep to attach the line number; iterate per-line, then per-match.
   while IFS=: read -r ln content; do
     [[ -z "$ln" ]] && continue
-    if [[ "$content" =~ (10\.[0-9]+\.[0-9]+\.[0-9]+|192\.168\.[0-9]+\.[0-9]+|172\.(1[6-9]|2[0-9]|3[0-1])\.[0-9]+\.[0-9]+) ]]; then
-      local ip="${BASH_REMATCH[1]}"
+    # Extract every private-IP match on this line (one per output line).
+    while IFS= read -r ip; do
+      [[ -z "$ip" ]] && continue
       hits+=("private IP at line $ln: $ip")
-    fi
-  done < <(grep -n -E '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' "$f" 2>/dev/null || true)
+    done < <(printf '%s\n' "$content" | grep -o -E '(10\.[0-9]+\.[0-9]+\.[0-9]+|192\.168\.[0-9]+\.[0-9]+|172\.(1[6-9]|2[0-9]|3[0-1])\.[0-9]+\.[0-9]+)' 2>/dev/null || true)
+  done < <(grep -n -E '(10\.[0-9]+\.[0-9]+\.[0-9]+|192\.168\.[0-9]+\.[0-9]+|172\.(1[6-9]|2[0-9]|3[0-1])\.[0-9]+\.[0-9]+)' "$f" 2>/dev/null || true)
 
   # 4. Foreign home directory paths.
+  #    'grep -o' emits one path per occurrence so multiple paths on a single line
+  #    are all reported. Spec Section 6 names only OWNER_HOME_USER as the owner
+  #    exemption; OWNER_GITHUB_HANDLE is intentionally NOT exempted (Finding #2).
   while IFS=: read -r ln content; do
     [[ -z "$ln" ]] && continue
-    if [[ "$content" =~ /Users/([A-Za-z0-9_-]+)/ ]]; then
-      local user_u="${BASH_REMATCH[1]}"
-      if [[ "$user_u" != "$OWNER_HOME_USER" ]]; then
-        hits+=("foreign /Users/ path at line $ln: /Users/${user_u}/")
+    while IFS= read -r path; do
+      [[ -z "$path" ]] && continue
+      if [[ "$path" =~ /Users/([A-Za-z0-9_-]+)/ ]]; then
+        local user_u="${BASH_REMATCH[1]}"
+        if [[ "$user_u" != "$OWNER_HOME_USER" ]]; then
+          hits+=("foreign /Users/ path at line $ln: $path")
+        fi
+      elif [[ "$path" =~ /home/([A-Za-z0-9_-]+)/ ]]; then
+        local user_h="${BASH_REMATCH[1]}"
+        if [[ "$user_h" != "$OWNER_HOME_USER" ]]; then
+          hits+=("foreign /home/ path at line $ln: $path")
+        fi
       fi
-    fi
-    if [[ "$content" =~ /home/([A-Za-z0-9_-]+)/ ]]; then
-      local user_h="${BASH_REMATCH[1]}"
-      if [[ "$user_h" != "$OWNER_HOME_USER" ]] && [[ "$user_h" != "$OWNER_GITHUB_HANDLE" ]]; then
-        hits+=("foreign /home/ path at line $ln: /home/${user_h}/")
-      fi
-    fi
-  done < <(grep -n -E '(/Users/|/home/)' "$f" 2>/dev/null || true)
+    done < <(printf '%s\n' "$content" | grep -o -E '/(Users|home)/[A-Za-z0-9_-]+/' 2>/dev/null || true)
+  done < <(grep -n -E '/(Users|home)/' "$f" 2>/dev/null || true)
 
   # 5. SSH key fingerprints (SHA256:<43 base64 chars>).
   while IFS=: read -r ln content; do
