@@ -1,0 +1,5 @@
+# Baseline files are owner-machine-specific and must never be committed.
+# Allow only this README.
+*
+!.gitignore
+!README.md
