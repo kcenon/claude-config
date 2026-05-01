@@ -145,10 +145,71 @@ install path without modifying real launchd / systemd state.
 - **No network at scheduled time**: `memory-sync.sh` exits 6; the next
   interval retries naturally.
 
+## Monthly semantic review (#530)
+
+`scripts/semantic-review.sh` is an **optional**, monthly job that asks the
+`claude` CLI to scan all active memories for the subtle category that
+heuristic checks miss: self-reinforcing instructions, compositional
+injection, contradictions, and ambiguous wording. It complements the
+heuristic `injection-check.sh` (#509) and feeds findings to `/memory-review`
+(#529) for human review.
+
+The spawned `claude` invocation runs with `--allowed-tools Read` and
+`--permission-mode plan`, so it cannot Edit, Write, or run Bash even if the
+analyzed memories try to inject the reviewer.
+
+Output lands at `~/.claude/memory-shared/audit/semantic-YYYY-MM.md` and is
+committed via `memory-sync.sh` as part of the same delivery loop the weekly
+audit uses (#528).
+
+### Schedule
+
+| Platform | Unit                                                                    | Cadence                       |
+|----------|-------------------------------------------------------------------------|-------------------------------|
+| macOS    | `~/Library/LaunchAgents/com.kcenon.claude-semantic-review.plist`        | First Monday of each month    |
+| Linux    | `~/.config/systemd/user/semantic-review.{service,timer}`                | First Monday of each month    |
+
+The schedulers are **opt-in** -- they are not staged automatically by
+`install.sh`. Operators who want the monthly job copy the unit files into
+the locations above and activate them by hand:
+
+```bash
+# macOS
+cp scripts/launchd/com.kcenon.claude-semantic-review.plist \
+   ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.kcenon.claude-semantic-review.plist
+
+# Linux
+cp scripts/systemd/semantic-review.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now semantic-review.timer
+```
+
+Manual runs are supported any time:
+
+```bash
+~/.claude/scripts/semantic-review.sh           # generate
+~/.claude/scripts/semantic-review.sh --dry-run # preview the prompt
+```
+
+### Cost and opt-in note
+
+Each run sends every active memory body to the Claude API via the `claude`
+CLI. The script prints the prompt size before invocation so operators can
+budget. A typical 17-memory tree fits comfortably under 50 KB; the script
+warns when the prompt exceeds 100 KB and recommends batching.
+
+Idempotency: the script exits 2 if a report for the current `YYYY-MM`
+already exists and is younger than 25 days, so a misfired scheduler never
+double-bills.
+
 ## Related
 
 - #505 — Cross-machine memory epic
+- #509 — Heuristic injection-check (semantic predecessor)
 - #520 — `memory-sync.sh` engine
 - #524 — `memory-notify.sh` alerting
 - #526 — End-to-end manual validation
 - #528 — Weekly audit (uses the same scheduler integration pattern)
+- #529 — `/memory-review` interactive triage skill (consumes findings)
+- #530 — Monthly AI semantic review (this section)
