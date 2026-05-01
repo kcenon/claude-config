@@ -1013,6 +1013,7 @@ this catalog for the canonical hook inventory.
 | [`github-api-preflight.sh`](#github-api-preflight) | PreToolUse (Bash) | yes |
 | [`instructions-loaded-reinforcer.sh`](#instructions-loaded-reinforcer) | InstructionsLoaded (sync) | yes |
 | [`markdown-anchor-validator.sh`](#markdown-anchor-validator) | PreToolUse (Bash) | yes |
+| [`memory-integrity-check.sh`](#memory-integrity-check) | SessionStart (sync) | yes |
 | [`merge-gate-guard.sh`](#merge-gate-guard) | PreToolUse (Bash) | yes |
 | [`p4-timeline-guard.sh`](#p4-timeline-guard) | PreToolUse (Bash | Edit | Write) | yes |
 | [`p4-timeline-reminder.sh`](#p4-timeline-reminder) | SessionStart | yes |
@@ -1034,7 +1035,7 @@ this catalog for the canonical hook inventory.
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
 | [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 32 bash hooks, 32 with PowerShell counterparts._
+_Total: 33 bash hooks, 33 with PowerShell counterparts._
 
 ### Hook Details
 
@@ -1241,6 +1242,23 @@ Validates markdown anchor references before git commit
 | Response format | hookSpecificOutput with hookEventName |
 | PowerShell counterpart | present (`markdown-anchor-validator.ps1`) |
 | Source | `global/hooks/markdown-anchor-validator.sh` |
+
+### memory-integrity-check
+
+_File:_ `memory-integrity-check.sh`
+
+_Anchor:_ `#memory-integrity-check`
+
+Prints a brief memory health summary at SessionStart. Reads ~/.claude/memory-shared/ metadata only -- no network, no validators.
+
+| Field | Value |
+|---|---|
+| Hook Type | SessionStart (sync) |
+| Trigger / Matcher | sync |
+| Exit codes | 0 always (SessionStart must never block the session) |
+| Response format | — |
+| PowerShell counterpart | present (`memory-integrity-check.ps1`) |
+| Source | `global/hooks/memory-integrity-check.sh` |
 
 ### merge-gate-guard
 
