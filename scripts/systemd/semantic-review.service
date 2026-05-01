@@ -1,0 +1,10 @@
+[Unit]
+Description=Monthly Claude memory semantic review
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -lc '%h/.claude/scripts/semantic-review.sh'
+StandardOutput=append:/tmp/claude-semantic-review.out
+StandardError=append:/tmp/claude-semantic-review.err
