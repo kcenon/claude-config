@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # memory-integrity-check.sh
-# SessionStart hook: prints a brief memory health summary at session start.
+# Prints a brief memory health summary at SessionStart.
 # Reads ~/.claude/memory-shared/ metadata only -- no network, no validators.
 #
 # Hook Type: SessionStart (sync)

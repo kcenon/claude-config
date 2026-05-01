@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 # memory-integrity-check.ps1
-# SessionStart hook: prints a brief memory health summary at session start.
+# Prints a brief memory health summary at SessionStart.
 # Reads ~/.claude/memory-shared/ metadata only -- no network, no validators.
 #
 # Hook Type: SessionStart (sync)
