@@ -504,6 +504,38 @@ cat ~/.claude/claude-memory/quarantine/<filename>.md
 The `quarantine/` directory is plain markdown; no opaque encoding. This makes
 forensic review and manual repair tractable.
 
+### Implementation
+
+The `demote` and `restore` operator actions (Section 6) are implemented by two
+shell utilities. They are the single source of truth for the directory move
+plus frontmatter rewrite that this section requires. Other tools (write-guard
+hook #521, audit job #528, `/memory-review` #529) call into these CLIs rather
+than re-implementing the move.
+
+| Script | Action | Tier transition |
+|---|---|---|
+| `scripts/quarantine-move.sh` | Demote | `verified \| inferred` -> `quarantined` |
+| `scripts/quarantine-restore.sh` | Restore | `quarantined` -> `verified` |
+
+`quarantine-move.sh` is idempotent: invoking it on a file that already lives in
+`quarantine/` is a no-op (exit 0). `quarantine-restore.sh` re-runs the three
+validators (`validate.sh`, `secret-check.sh`, `injection-check.sh`) and refuses
+the restore (exit 2) if any blocking check fails. `injection-check.sh` is
+warn-only and never blocks restore, consistent with `MEMORY_VALIDATION_SPEC.md`
+Section 7.
+
+Both scripts modify only frontmatter; body content is preserved verbatim. They
+prefer `git mv` when run inside a git working tree so the move is recorded as a
+rename rather than a delete-plus-create.
+
+### Quarantine retention markers
+
+The quarantine retention thresholds (Section 4: 0-30 day passive, 31-90 day
+audit, 91+ day archive candidate) are computed from the `quarantined-at`
+timestamp written by `quarantine-move.sh`. The audit consumer (#528) reads
+this field to classify each quarantined entry into one of the three retention
+windows.
+
 ---
 
 ## 9. Migration of Existing Memories
