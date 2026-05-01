@@ -208,6 +208,11 @@ Lead with the rule. **Why:** prior incident where merged broken CI caused prod o
 
 ### `trust-level`
 
+> See [`MEMORY_TRUST_MODEL.md`](./MEMORY_TRUST_MODEL.md) for the full trust-tier
+> taxonomy, state transitions, lifecycle rules, and operator actions. This section
+> defines the **field format and validation behavior** only; the trust model
+> document defines the **semantics** of each tier.
+
 - **Purpose**: Indicates how confident the system is that this memory is accurate
   and was written intentionally by the owner.
 - **Allowed values**:
