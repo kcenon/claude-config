@@ -145,6 +145,53 @@ install path without modifying real launchd / systemd state.
 - **No network at scheduled time**: `memory-sync.sh` exits 6; the next
   interval retries naturally.
 
+## Weekly audit (#528)
+
+`scripts/audit.sh` (in claude-memory) is a weekly job that re-runs the three
+heuristic validators across the full memory tree, surfaces stale memories
+(`last-verified > 90d`), flags duplicate-suspect description pairs, checks
+referenced GitHub issues/PRs for "broken-by-closure", and lists memories not
+matched by any session-start memory load over the last 4 weeks. Output is
+committed to `audit/YYYY-MM-DD.md`.
+
+```
+audit.sh                                # generate today's report
+audit.sh --dry-run                      # print to stdout, no commit / push
+audit.sh --since N                      # access-log window in weeks
+audit.sh --stale-days N                 # tune stale threshold (default 90)
+audit.sh --similarity-threshold N       # tune duplicate-suspect threshold
+audit.sh --output PATH                  # write to alternate path
+audit.sh --no-push                      # commit but skip the push step
+audit.sh --no-notify                    # skip memory-notify.sh
+```
+
+### Exit codes
+
+- `0` -- success (report generated; non-zero findings is still success)
+- `1` -- fatal error (unreadable tree, write failure, etc.)
+- `2` -- recent report exists (< 6 days old); skipped
+- `64` -- usage error
+
+### Idempotency
+
+A run on the same day overwrites the day's report. A run within 6 days of
+the previous report exits 2 (skipped) so flapping schedulers do not produce
+duplicates. Pass `--dry-run` or `--output` to bypass the skip rule.
+
+### Network and dependency tolerance
+
+- `gh` unavailable or unauthenticated -> broken-references section is marked
+  `(skipped)`; other checks proceed.
+- Access log (#531) absent -> unused section is marked `(skipped)`.
+- `memory-sync.sh` not on PATH -> falls back to plain `git push`.
+
+### Schedule
+
+The intended cadence is Mondays at 09:00 local. Unit files for launchd and
+systemd are tracked under `claude-config/scripts/launchd/` and
+`claude-config/scripts/systemd/` parallel to the hourly sync (#527); they
+are added in a follow-up issue once the script stabilises in manual use.
+
 ## Monthly semantic review (#530)
 
 `scripts/semantic-review.sh` is an **optional**, monthly job that asks the
@@ -210,6 +257,6 @@ double-bills.
 - #520 — `memory-sync.sh` engine
 - #524 — `memory-notify.sh` alerting
 - #526 — End-to-end manual validation
-- #528 — Weekly audit (uses the same scheduler integration pattern)
+- #528 — Weekly `audit.sh` report generator (this section)
 - #529 — `/memory-review` interactive triage skill (consumes findings)
 - #530 — Monthly AI semantic review (this section)
