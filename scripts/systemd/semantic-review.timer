@@ -1,0 +1,11 @@
+[Unit]
+Description=Monthly Claude memory semantic review (first Monday)
+
+[Timer]
+# First Monday of every month at 11:00 local time.
+OnCalendar=Mon *-*-1..7 11:00:00
+Persistent=true
+Unit=semantic-review.service
+
+[Install]
+WantedBy=timers.target
