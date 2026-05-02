@@ -988,6 +988,17 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ---
 
+## Memory sync (multi-machine)
+
+Memory sync keeps Claude Code's auto-memory consistent across all your machines via a private git store. See:
+
+- [Operations guide](docs/MEMORY_SYNC.md) - Daily ops, troubleshooting, rollback, conflict resolution
+- [Threat model](docs/THREAT_MODEL.md) - Security analysis, 7 threat categories, 5-layer defense
+- [Validation spec](docs/MEMORY_VALIDATION_SPEC.md) - Validator contract and frontmatter schema
+- [Trust model](docs/MEMORY_TRUST_MODEL.md) - Trust tiers and lifecycle
+
+---
+
 ## Additional Resources
 
 - **Configuration Examples**: See `global/` and `project/` directories

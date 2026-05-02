@@ -20,6 +20,8 @@ Global settings applied every session. Routing index only — procedural detail 
 - **Sandbox, TLS, `gh` caveat**: `docs/SANDBOX_TLS.md`
 - **Branching strategy**: `docs/branching-strategy.md`
 - **SSH commit signing (claude-memory)**: `docs/SSH_COMMIT_SIGNING.md`
+- **Memory sync — operations guide**: `docs/MEMORY_SYNC.md`
+- **Memory sync — threat model**: `docs/THREAT_MODEL.md`
 - **Memory sync — single-machine migration runbook**: `docs/MEMORY_MIGRATION.md`
 - **Lifecycle skills**: `global/skills/_internal/issue-work`, `pr-work`, `release`, `branch-cleanup`
 - **Build verification**: `global/skills/_internal/pr-work/reference/build-verification.md`
