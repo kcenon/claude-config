@@ -276,6 +276,36 @@ registered with `async: true` in `global/settings.json` so it never blocks
 the user's Read flow; any internal failure (jq missing, log unwritable, etc.)
 is silently swallowed and exit 0 is returned.
 
+## Operations
+
+### Reviewing the audit report
+
+The hourly sync engine and the weekly audit (#528) surface drift, but neither
+mutates memory state on its own. Action happens through the `/memory-review`
+interactive skill (`global/skills/_internal/memory-review/SKILL.md`, #529).
+
+```
+/memory-review                                    # Walk all categories
+/memory-review --category stale --limit 10        # Stale entries only
+```
+
+For each finding the skill prompts:
+
+| Choice | Effect |
+|--------|--------|
+| `y` | Update `last-verified` to today and re-validate |
+| `n` | Move the file to `quarantine/` via `quarantine-move.sh` |
+| `e` | Open `$EDITOR`; on save, re-validate and update `last-verified` |
+| `s` | Leave unchanged |
+| `q` | Stop the loop and emit the summary |
+
+After the loop the skill offers to run `memory-sync.sh` so the local
+mutations propagate to the other machines.
+
+The skill is `disable-model-invocation: true` — Claude does not trigger it
+unprompted. Run it after the weekly audit lands a fresh report or whenever
+`memory-notify.sh` flags drift.
+
 ## Related
 
 - #505 — Cross-machine memory epic
