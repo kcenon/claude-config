@@ -502,15 +502,34 @@ double-bills.
 The `/memory-review` skill
 ([#529](https://github.com/kcenon/claude-config/issues/529)) is the
 operator-facing entry point that paginates audit findings, semantic-review
-findings, and quarantined items. Within a Claude Code session:
+findings, and quarantined items. The hourly sync engine and the weekly
+audit ([#528](https://github.com/kcenon/claude-config/issues/528)) surface
+drift, but neither mutates memory state on its own. Action happens through
+this skill (`global/skills/_internal/memory-review/SKILL.md`).
+
+Within a Claude Code session:
 
 ```
-/memory-review
+/memory-review                                    # Walk all categories
+/memory-review --category stale --limit 10        # Stale entries only
 ```
 
-The skill walks through flagged items in batches, exposes promote /
-demote / quarantine / restore actions, and writes the result back to the
-shared store via the same write-guard chain.
+For each finding the skill prompts:
+
+| Choice | Effect |
+|--------|--------|
+| `y` | Update `last-verified` to today and re-validate |
+| `n` | Move the file to `quarantine/` via `quarantine-move.sh` |
+| `e` | Open `$EDITOR`; on save, re-validate and update `last-verified` |
+| `s` | Leave unchanged |
+| `q` | Stop the loop and emit the summary |
+
+After the loop the skill offers to run `memory-sync.sh` so the local
+mutations propagate to the other machines.
+
+The skill is `disable-model-invocation: true` — Claude does not trigger it
+unprompted. Run it after the weekly audit lands a fresh report or whenever
+`memory-notify.sh` flags drift.
 
 ---
 
