@@ -210,32 +210,366 @@ After migration, the seven-day stabilization observation lives in
 
 ## 5. Adding a New Machine
 
-Onboarding a second (or Nth) machine after the primary is stable follows a
-shorter procedure than the initial migration: the canonical store already
-exists; the new machine just clones it.
+This procedure onboards an additional machine to the synced memory system
+after the primary has been stable for 7+ days
+([#526](https://github.com/kcenon/claude-config/issues/526) checklist
+passed). The canonical store already exists on
+[`kcenon/claude-memory`](https://github.com/kcenon/claude-memory); the new
+machine's job is to **receive** the existing history, not to seed it.
 
-The high-level sequence is:
+This section is the multi-machine sibling of the single-machine runbook in
+[`MEMORY_MIGRATION.md`](./MEMORY_MIGRATION.md)
+([#525](https://github.com/kcenon/claude-config/issues/525)). Where the two
+overlap — installation, validators, daily operations, troubleshooting —
+follow this guide for the new machine and the linked sections for
+operational depth. Do not run `MEMORY_MIGRATION.md` on a non-primary
+machine: that runbook seeds an empty remote and is destructive when the
+remote already has content.
 
-1. **Pre-flight**: confirm `git`, `gh`, and SSH access to
-   `kcenon/claude-memory` work on the new machine.
-2. **SSH signing**: run `scripts/memory/setup-ssh-signing.sh` to generate a
-   per-machine signing key and register it with GitHub. See
-   [Section 13](#13-ssh-commit-signing) for details.
-3. **Install**: run `scripts/install.sh` with `CLAUDE_MEMORY_REPO_URL`
-   set. This clones the shared store and stages the scheduler.
-4. **First sync**: invoke `memory-sync.sh` manually to confirm pull-rebase
-   succeeds and the local clone matches the remote.
-5. **Verify hooks**: confirm `memory-write-guard.sh` is registered in
-   `settings.json` (the install script handles this) and that
-   `memory-integrity-check.sh` runs at SessionStart with no warnings.
-6. **Stabilization window**: run the
-   [`MEMORY_STABILIZATION_CHECKLIST.md`](./MEMORY_STABILIZATION_CHECKLIST.md)
-   procedure for seven consecutive days before relying on the new machine
-   for primary work.
+### 5.1 Pre-flight checklist
 
-The detailed runbook for second-machine onboarding lives in
-[#532](https://github.com/kcenon/claude-config/issues/532) (in progress at
-the time of v1.0.0 publication of this guide).
+Confirm every box before starting on the new machine:
+
+- [ ] Primary machine fully migrated and stable (`MEMORY_MIGRATION.md`
+      complete and the
+      [`MEMORY_STABILIZATION_CHECKLIST.md`](./MEMORY_STABILIZATION_CHECKLIST.md)
+      seven-day window has finished without unresolved alerts).
+- [ ] `claude-config` repo cloned on the new machine, e.g.
+      `~/Sources/claude-config/` (the canonical example path used below).
+- [ ] `gh` CLI authenticated: `gh auth status` shows a logged-in account
+      with read access to `kcenon/claude-memory`.
+- [ ] `git --version` reports 2.34 or newer (required for SSH signing).
+- [ ] No existing `~/.claude/memory-shared/` directory on the new machine
+      (this is fresh onboarding, not migration; if present, stop and
+      consult [Section 12](#12-rollback-procedures)).
+- [ ] Hostname is unique across the mesh: `hostname` returns a value not
+      already listed by `~/.claude/scripts/memory-status.sh --detail` on
+      the primary. Duplicate hostnames merge in the audit table and
+      misattribute writes.
+
+### 5.2 Phase 1 — Set up SSH signing on the new machine
+
+Each machine has its own signing key; never reuse the primary's key.
+Detailed background lives in
+[`SSH_COMMIT_SIGNING.md`](./SSH_COMMIT_SIGNING.md)
+([#518](https://github.com/kcenon/claude-config/issues/518)) and
+[Section 13](#13-ssh-commit-signing) of this guide. The summary procedure:
+
+```bash
+~/Sources/claude-config/scripts/memory/setup-ssh-signing.sh
+```
+
+Then visit <https://github.com/settings/ssh/new> and add the printed
+public key as a **Signing key** (not Authentication key).
+
+Verify locally before continuing:
+
+```bash
+git -C ~/Sources/claude-config commit -S --allow-empty -m "ssh-signing-test"
+git -C ~/Sources/claude-config log --show-signature -1
+git -C ~/Sources/claude-config reset --hard HEAD~1     # discard the test commit
+```
+
+The `--show-signature` output must include `Good "git" signature` (or
+equivalent for your `gpg.ssh.allowedSignersFile`). If it does not, fix
+signing before Phase 2 — unsigned commits are rejected at sync time.
+
+### 5.3 Phase 2 — Install the global tracker config and the memory sync
+
+The new machine needs the tracker-side configuration (settings, hooks)
+plus a fresh clone of the shared store. Use the same procedure
+`MEMORY_MIGRATION.md` uses on the primary, with the
+`CLAUDE_MEMORY_REPO_URL` environment variable set so the scheduler is
+also installed.
+
+```bash
+cd ~/Sources/claude-config
+CLAUDE_MEMORY_REPO_URL=git@github.com:kcenon/claude-memory.git \
+  ./scripts/install.sh
+# When prompted, choose option 1 (글로벌 설정만 설치 / global-only).
+```
+
+`CLAUDE_MEMORY_REPO_URL` activates the memory-sync section of the
+installer (see [Section 3](#3-installation)). The installer clones the
+shared store into `~/.claude/memory-shared/`, registers
+`memory-write-guard.sh` and `memory-integrity-check.sh` in
+`settings.json`, and stages the platform scheduler
+(`com.kcenon.claude-memory-sync.plist` on macOS or
+`memory-sync.{service,timer}` on Linux).
+
+Then install the data-side `pre-commit` hook in the shared clone, the
+same way `MEMORY_MIGRATION.md`
+[Phase 4](./MEMORY_MIGRATION.md#6-phase-4--clone-claude-memory-and-install-hooks)
+does on the primary:
+
+```bash
+cd ~/.claude/memory-shared
+./scripts/install-hooks.sh
+```
+
+Verify the install before continuing:
+
+```bash
+ls -la ~/.claude/memory-shared/.git           # clone present
+ls ~/.claude/memory-shared/memories/ | wc -l  # should match primary's count
+ls -la ~/.claude/memory-shared/.git/hooks/pre-commit  # executable
+
+# macOS
+launchctl list | grep claude-memory-sync
+# Linux
+systemctl --user list-timers | grep memory-sync
+```
+
+The memory count on the new machine must match the primary's exactly. A
+mismatch indicates a partial clone — delete `~/.claude/memory-shared/`
+and re-run the install command.
+
+### 5.4 Phase 3 — First incoming sync (pull-only, observed)
+
+On a fresh machine, the first sync is **pull-only by construction**:
+nothing local has been written yet, so there is nothing to push. Run a
+dry run first to see the planned actions, then the real sync:
+
+```bash
+~/.claude/scripts/memory-sync.sh --dry-run    # preview
+~/.claude/scripts/memory-sync.sh              # actual sync
+```
+
+Expected output: zero pending pushes, zero pulls (the clone in Phase 2 is
+already at the remote tip), no validator failures, completion in seconds.
+
+Verify post-sync state:
+
+```bash
+~/.claude/scripts/memory-status.sh
+# Expected: last sync recent, 0 pending, hostname recognized, no alerts
+```
+
+If the status CLI exits non-zero, do **not** proceed to Phase 4 — investigate
+using the exit-code table in [Section 6](#6-daily-operations) before
+attempting any local memory write.
+
+> **Why pull-only first**: writing memory on the new machine before the
+> first sync risks creating divergent files based on stale primary state.
+> The pre-flight clone is the source of truth; let the validator pipeline
+> confirm it is clean before contributing.
+
+### 5.5 Phase 4 — Verify the SessionStart integrity hook
+
+Start a fresh Claude Code session on the new machine and confirm the
+`memory-integrity-check.sh` hook produces no warnings:
+
+```bash
+# Expected output in the SessionStart banner: no [memory] lines.
+# If [memory] warnings appear, follow Section 6 ("Acting on
+# memory-integrity-check warnings at SessionStart").
+```
+
+The hook never blocks the session, so its silence — not its success —
+is the signal. If `~/.claude/scripts/memory-status.sh --detail` agrees
+that everything is healthy, proceed.
+
+### 5.6 Phase 5 — Test the write path
+
+In a Claude Code session on the **new** machine, ask Claude to add a
+memory describing the new machine (for example: "Remember that this
+machine's hostname is `<hostname>` and is the second machine in the
+mesh.").
+
+Expected sequence:
+
+1. `memory-write-guard.sh` validates the file and allows the write.
+2. The file appears under `~/.claude/memory-shared/memories/`.
+3. Run a manual sync to push:
+
+   ```bash
+   ~/.claude/scripts/memory-sync.sh
+   ```
+
+4. Within one hour (or sooner on the next manual run), the primary
+   machine's `memory-status.sh --detail` lists the new machine in the
+   active-machines table with a recent last-push timestamp.
+
+If the write-guard rejects the file, consult
+[Section 7](#7-validators) for validator output and
+[`MEMORY_VALIDATION_SPEC.md`](./MEMORY_VALIDATION_SPEC.md) for the
+authoritative contract.
+
+### 5.7 Phase 6 — Symlink the project memory directory
+
+Claude Code stores per-project memory under a cwd-encoded path such as
+`~/.claude/projects/-Users-<user>-Sources/memory/`. Replace it with a
+symlink to the shared store so memories written in this project flow
+through the sync engine. This mirrors `MEMORY_MIGRATION.md` Phase 5 but
+the new machine may not have an existing project memory directory yet.
+
+If the directory already exists (e.g., Claude Code has been used on this
+machine before):
+
+```bash
+cd ~/.claude/projects/-Users-<user>-Sources/
+mv memory memory.deprecated
+ln -s ~/.claude/memory-shared/memories memory
+```
+
+If the directory does not exist (fresh Claude Code install on the new
+machine):
+
+```bash
+mkdir -p ~/.claude/projects/-Users-<user>-Sources/
+ln -s ~/.claude/memory-shared/memories \
+  ~/.claude/projects/-Users-<user>-Sources/memory
+```
+
+Substitute `<user>` and the project path as the cwd-encoding requires;
+each machine has its own encoded path. The symlink **target** is always
+`~/.claude/memory-shared/memories`.
+
+### 5.8 Phase 7 — Verify primary picked up the change
+
+On the **primary** machine, after the new machine's push has had time to
+land (up to one scheduler tick, or run sync manually):
+
+```bash
+~/.claude/scripts/memory-sync.sh
+~/.claude/scripts/memory-status.sh --detail
+```
+
+The active-machines table now lists both machines with recent
+timestamps. The memory file written on the new machine is present:
+
+```bash
+ls ~/.claude/memory-shared/memories/ | grep <new-memory-name>
+```
+
+If the new machine does not appear, see the pitfalls in
+[Section 5.10](#510-common-pitfalls).
+
+### 5.9 Phase 8 — Schedule and stabilize
+
+The platform scheduler (launchd on macOS, systemd user timer on Linux)
+was staged by Phase 2. Confirm it is loaded and will fire hourly:
+
+```bash
+# macOS
+launchctl list com.kcenon.claude-memory-sync
+# Linux
+systemctl --user status memory-sync.timer
+```
+
+After the scheduler is verified, begin the **per-machine seven-day
+stabilization observation** using the same checklist as the primary:
+
+> **See: [`MEMORY_STABILIZATION_CHECKLIST.md`](./MEMORY_STABILIZATION_CHECKLIST.md)
+> ([#526](https://github.com/kcenon/claude-config/issues/526))**
+
+Apply the checklist starting on the new machine's first full day of
+operation. The new machine is **not** considered fully onboarded until
+its own stabilization window finishes without unresolved alerts.
+
+### 5.10 Common pitfalls
+
+The high-frequency failure modes during second-machine onboarding:
+
+- **Phase 2 clone fails with permission denied**: SSH key registered as
+  Signing only, not Auth. Either also register the key as an Authentication
+  key, or change `CLAUDE_MEMORY_REPO_URL` to the HTTPS URL with a
+  short-lived token.
+- **Phase 5 write-guard fails to fire**: hook not registered. Verify
+  `~/.claude/settings.json` includes the `memory-write-guard.sh` matcher
+  under `PreToolUse` for `Edit | Write`. The installer writes this; if it
+  is missing, re-run `scripts/install.sh` with `CLAUDE_MEMORY_REPO_URL`
+  set.
+- **Phase 7 does not see the new commit on primary**: the primary's
+  scheduler may not have triggered yet. Run `memory-sync.sh` manually on
+  the primary to fast-forward.
+- **Phase 6 cwd-encoded path differs between machines**: each machine has
+  its own encoded path because home directories differ; the symlink
+  target (`~/.claude/memory-shared/memories`) is identical on every
+  machine, only the source path changes.
+- **First sync reports "fatal: refusing to merge unrelated histories"**:
+  must not happen with a fresh clone. If it does, the clone in Phase 2
+  was corrupted or the remote was re-initialized at some point — abort
+  and investigate. Do **not** pass `--allow-unrelated-histories`; that
+  would silently accept divergent state.
+- **SSH signing key registered as Auth-only, not Signing**: commits from
+  the new machine fail signature verification at sync time. Re-add the
+  key on <https://github.com/settings/ssh/new> with the Signing key
+  option explicitly selected.
+- **Hostname matches the primary's**: the audit table merges entries
+  attributed to the same hostname, so writes from the new machine appear
+  to come from the primary. Rename one of them (`scutil --set
+  ComputerName ...` on macOS, `hostnamectl set-hostname ...` on Linux)
+  before writing memory on the new machine.
+- **Slow network on the first clone**: large histories may exceed git's
+  default timeouts. Set `git config --global http.lowSpeedTime 600` and
+  retry; this is also a useful baseline for subsequent operations.
+- **Sync fails immediately on the new machine**: the simplest recovery is
+  to leave the mesh entirely (delete `~/.claude/memory-shared/`, unload
+  the scheduler) and retry from Phase 2; nothing was contributed yet, so
+  the primary is unaffected. See
+  [`MEMORY_MIGRATION.md` rollback](./MEMORY_MIGRATION.md#13-rollback-procedure)
+  for the analogous primary-side procedure.
+
+### 5.11 End-to-end verification
+
+After every phase has passed, run this final confirmation grid on the
+new machine:
+
+| Check                | Command                                                | Expected                         |
+|----------------------|--------------------------------------------------------|----------------------------------|
+| Clone HEAD matches   | `git -C ~/.claude/memory-shared rev-parse HEAD`        | identical to primary's HEAD      |
+| Scheduler loaded     | `launchctl list \| grep claude-memory-sync` (macOS)    | non-empty entry                  |
+|                      | `systemctl --user list-timers \| grep memory-sync`     | active timer (Linux)             |
+| Recent sync log      | `tail ~/.claude/logs/memory-sync.log`                  | recent successful entry          |
+| Status               | `~/.claude/scripts/memory-status.sh`                   | exit 0, no alerts                |
+| Bidirectional        | write on new machine → visible on primary within 1h    | confirmed                        |
+| Bidirectional        | write on primary → visible on new machine within 1h    | confirmed                        |
+| Stabilization plan   | per-machine checklist started for the new machine      | tracked                          |
+
+When every row passes and the seven-day per-machine stabilization window
+finishes cleanly, the new machine is fully onboarded.
+
+### 5.12 Edge cases
+
+- **New machine on a different OS than the primary** (e.g., macOS primary,
+  Linux secondary): both schedulers are documented in
+  [Section 2](#2-architecture); pick the one for the new machine's
+  platform. The shared store is OS-agnostic.
+- **GitHub MFA challenge at first push**: handled outside this runbook.
+  Authenticate with `gh auth refresh` if push prompts and continue.
+- **Multiple users on the same machine**: out of scope; the memory sync
+  system assumes a single OS user owns `~/.claude/memory-shared/`.
+- **Adding a third (or Nth) machine later**: re-run this section
+  verbatim. The procedure is identical for every additional machine; the
+  primary is whichever existing machine you choose to verify against in
+  Phase 7.
+
+### 5.13 Rollback
+
+The rollback for second-machine onboarding is much simpler than the
+primary's: the new machine has not contributed anything that the rest of
+the mesh depends on, so it can leave silently.
+
+```bash
+# macOS
+launchctl unload ~/Library/LaunchAgents/com.kcenon.claude-memory-sync.plist
+rm ~/Library/LaunchAgents/com.kcenon.claude-memory-sync.plist
+# Linux
+systemctl --user disable --now memory-sync.timer
+rm ~/.config/systemd/user/memory-sync.{service,timer}
+
+# Either platform
+rm -rf ~/.claude/memory-shared/
+# Restore the original project memory directory if Phase 6 created a
+# symlink:
+cd ~/.claude/projects/-Users-<user>-Sources/
+rm memory
+mv memory.deprecated memory   # only if Phase 6 moved an existing dir
+```
+
+The primary machine is unaffected. To rejoin later, restart from
+[Section 5.1](#51-pre-flight-checklist).
 
 ---
 
