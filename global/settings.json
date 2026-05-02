@@ -296,6 +296,12 @@
             "command": "~/.claude/hooks/pre-edit-read-guard.sh",
             "timeout": 5,
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/memory-access-logger.sh",
+            "timeout": 5,
+            "async": true
           }
         ]
       }
