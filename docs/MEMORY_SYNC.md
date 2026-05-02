@@ -250,6 +250,32 @@ Idempotency: the script exits 2 if a report for the current `YYYY-MM`
 already exists and is younger than 25 days, so a misfired scheduler never
 double-bills.
 
+## Privacy: memory-access logging (#531)
+
+The `memory-access-logger.sh` PostToolUse Read hook records each memory file
+that Claude Code reads during a session. The log lives at
+`~/.claude/logs/memory-access.log` and feeds the unused-memory check in the
+weekly `audit.sh` (#528).
+
+Each entry records **path only**, never the file contents:
+
+```
+2026-05-08T10:23:11Z abc123 read memories/feedback_ci_merge_policy.md
+```
+
+Fields are `<ISO8601 UTC timestamp> <session_id> read <relative-path>`. Paths
+are stored relative to `~/.claude/memory-shared/` and only paths under
+`memory-shared/memories/` are logged (the top-level `MEMORY.md` index is
+excluded). The log is local to each machine and never transmitted; the
+memory sync engine does not include `~/.claude/logs/`.
+
+The log rotates lazily on each hook invocation: when its size exceeds 1 MiB
+OR its calendar month differs from the current one, the active file is moved
+to `memory-access.log.YYYY-MM` and a fresh log is started. The hook is
+registered with `async: true` in `global/settings.json` so it never blocks
+the user's Read flow; any internal failure (jq missing, log unwritable, etc.)
+is silently swallowed and exit 0 is returned.
+
 ## Related
 
 - #505 — Cross-machine memory epic

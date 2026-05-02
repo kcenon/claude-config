@@ -1013,6 +1013,7 @@ this catalog for the canonical hook inventory.
 | [`github-api-preflight.sh`](#github-api-preflight) | PreToolUse (Bash) | yes |
 | [`instructions-loaded-reinforcer.sh`](#instructions-loaded-reinforcer) | InstructionsLoaded (sync) | yes |
 | [`markdown-anchor-validator.sh`](#markdown-anchor-validator) | PreToolUse (Bash) | yes |
+| [`memory-access-logger.sh`](#memory-access-logger) | PostToolUse (Read) | yes |
 | [`memory-integrity-check.sh`](#memory-integrity-check) | SessionStart (sync) | yes |
 | [`memory-write-guard.sh`](#memory-write-guard) | PreToolUse (Edit|Write) | yes |
 | [`merge-gate-guard.sh`](#merge-gate-guard) | PreToolUse (Bash) | yes |
@@ -1036,7 +1037,7 @@ this catalog for the canonical hook inventory.
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
 | [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 34 bash hooks, 34 with PowerShell counterparts._
+_Total: 35 bash hooks, 35 with PowerShell counterparts._
 
 ### Hook Details
 
@@ -1243,6 +1244,23 @@ Validates markdown anchor references before git commit
 | Response format | hookSpecificOutput with hookEventName |
 | PowerShell counterpart | present (`markdown-anchor-validator.ps1`) |
 | Source | `global/hooks/markdown-anchor-validator.sh` |
+
+### memory-access-logger
+
+_File:_ `memory-access-logger.sh`
+
+_Anchor:_ `#memory-access-logger`
+
+Logs Claude Code Read tool calls targeting memory files (path only).
+
+| Field | Value |
+|---|---|
+| Hook Type | PostToolUse (Read) |
+| Trigger / Matcher | Read |
+| Exit codes | 0 (always — this is a passive logger; failure must NOT affect tool flow) |
+| Response format | empty stdout (PostToolUse cannot influence the past tool call) |
+| PowerShell counterpart | present (`memory-access-logger.ps1`) |
+| Source | `global/hooks/memory-access-logger.sh` |
 
 ### memory-integrity-check
 
