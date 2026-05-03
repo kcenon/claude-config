@@ -93,34 +93,38 @@ render_hook() {
         | sed -E 's/[[:space:]]+/ /g; s/^[[:space:]]//; s/[[:space:]]$//')"
     [[ -z "$summary" ]] && summary="(no summary)"
 
+    # `grep` returns non-zero on no match. Under errexit + pipefail this
+    # would abort the script for hooks that legitimately omit a field, so
+    # every grep | sed pipeline that probes an optional field is guarded
+    # with `|| true` and the empty result is normalized below.
     hook_type="$(printf '%s\n' "$header" \
         | grep -m1 '^Hook Type:' \
-        | sed 's/^Hook Type:[[:space:]]*//')"
+        | sed 's/^Hook Type:[[:space:]]*//' || true)"
     [[ -z "$hook_type" ]] && hook_type="(unspecified)"
 
     trigger="$(printf '%s\n' "$header" \
         | grep -m1 -E '^(Trigger|Matcher):' \
-        | sed -E 's/^(Trigger|Matcher):[[:space:]]*//')"
+        | sed -E 's/^(Trigger|Matcher):[[:space:]]*//' || true)"
     if [[ -z "$trigger" ]]; then
         # Fall back to anything in parentheses on the Hook Type line.
         trigger="$(printf '%s\n' "$hook_type" \
-            | sed -nE 's/.*\(([^)]+)\).*/\1/p')"
+            | sed -nE 's/.*\(([^)]+)\).*/\1/p' || true)"
     fi
     [[ -z "$trigger" ]] && trigger="—"
 
     exit_codes="$(printf '%s\n' "$header" \
         | grep -m1 '^Exit codes:' \
-        | sed 's/^Exit codes:[[:space:]]*//')"
+        | sed 's/^Exit codes:[[:space:]]*//' || true)"
     [[ -z "$exit_codes" ]] && exit_codes="—"
 
     response="$(printf '%s\n' "$header" \
         | grep -m1 '^Response format:' \
-        | sed 's/^Response format:[[:space:]]*//')"
+        | sed 's/^Response format:[[:space:]]*//' || true)"
     [[ -z "$response" ]] && response="—"
 
     fail_policy="$(printf '%s\n' "$header" \
         | grep -m1 -iE '^Fail policy:' \
-        | sed -E 's/^[Ff]ail [Pp]olicy:[[:space:]]*//')"
+        | sed -E 's/^[Ff]ail [Pp]olicy:[[:space:]]*//' || true)"
 
     local ps1="${file%.sh}.ps1"
     local ps1_status="absent"
@@ -182,7 +186,7 @@ build_generated_section() {
             header="$(extract_header "$f")"
             hook_type="$(printf '%s\n' "$header" \
                 | grep -m1 '^Hook Type:' \
-                | sed 's/^Hook Type:[[:space:]]*//')"
+                | sed 's/^Hook Type:[[:space:]]*//' || true)"
             [[ -z "$hook_type" ]] && hook_type="(unspecified)"
             ps1="${f%.sh}.ps1"
             local pcell="no"
