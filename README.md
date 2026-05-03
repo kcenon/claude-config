@@ -86,7 +86,7 @@ Install claude-config and Claude Code immediately gains these capabilities:
 curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash
 ```
 
-> **What bootstrap does for you.** It checks for the Claude Code CLI and, on consent, runs Anthropic's native installer (`https://claude.ai/install.sh`) so the `claude` binary lands in `~/.local/bin/` and supports background auto-update. The npm package `@anthropic-ai/claude-code` is no longer used. PowerShell uses the parallel `claude.ai/install.ps1`. See [PREREQUISITES.md → Auto-installed by bootstrap](PREREQUISITES.md#auto-installed-by-bootstrap).
+> **What bootstrap does for you.** It checks for the Claude Code CLI and, on consent, runs Anthropic's native installer (`https://claude.ai/install.sh`) so the `claude` binary lands in `~/.local/bin/` and supports background auto-update. The npm package `@anthropic-ai/claude-code` is no longer used. PowerShell uses the parallel `claude.ai/install.ps1`. See [PREREQUISITES.md → Auto-installed by bootstrap](https://github.com/kcenon/claude-config/blob/develop/PREREQUISITES.md#auto-installed-by-bootstrap).
 
 ### Private Repository
 
@@ -911,9 +911,19 @@ cp -r ~/project/.claude ~/claude_config_backup/project/
 # When using bootstrap.sh
 GITHUB_USER=your-username \
 GITHUB_REPO=your-repo \
+GITHUB_REF=v1.10.0 \
 INSTALL_DIR=~/my-claude-config \
 bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh)"
 ```
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `GITHUB_USER` | `kcenon` | GitHub user/org owning the repo |
+| `GITHUB_REPO` | `claude-config` | Repository name |
+| `GITHUB_REF` | latest release tag (e.g. `v1.10.0`) | Tag, branch, or commit to clone. Pinning to a tag is SLSA-aligned supply-chain hardening — the install is reproducible and resistant to a transient compromise of `main`. Override with `develop` only for development testing. |
+| `INSTALL_DIR` | `~/claude_config_backup` | Where to clone the repo |
+
+> **Deprecated**: `GITHUB_BRANCH` is preserved as a one-release alias for `GITHUB_REF` and emits a stderr deprecation warning when set. Migrate to `GITHUB_REF` before the next major release.
 
 </details>
 
@@ -1033,7 +1043,7 @@ Memory sync keeps Claude Code's auto-memory consistent across all your machines 
 - **Branching documentation**: comprehensive branch model, CI policy, and release workflow guide
 
 #### v1.7.0 (2026-04-06)
-- **Windows PowerShell coverage**: substantial PowerShell (`.ps1`) parity for utility, hook, and helper scripts. The earlier "All 42 bash scripts now have PowerShell counterparts" wording was inaccurate — see [COMPATIBILITY.md › PowerShell parity status](COMPATIBILITY.md#powershell-parity-status) for the live count and the list of bash hooks without `.ps1` counterparts. Tracked for restoration in a follow-up issue.
+- **Windows PowerShell coverage**: substantial PowerShell (`.ps1`) parity for utility, hook, and helper scripts. The earlier "All 42 bash scripts now have PowerShell counterparts" wording was inaccurate — see [COMPATIBILITY.md › PowerShell parity status](https://github.com/kcenon/claude-config/blob/develop/COMPATIBILITY.md#powershell-parity-status) for the live count and the list of bash hooks without `.ps1` counterparts. Tracked for restoration in a follow-up issue.
   - Most utility scripts: `install`, `verify`, `sync`, `backup`, `validate_skills`, `bootstrap`
   - Most hook scripts with identical security behavior (fail-closed model preserved)
   - All 8 GitHub CLI helper scripts (`scripts/gh/`)
