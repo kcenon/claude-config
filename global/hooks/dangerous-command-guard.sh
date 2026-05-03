@@ -53,32 +53,22 @@ log_decision() {
 deny_response() {
     local reason="$1"
     log_decision "deny" "$reason" "${CMD:-}"
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "$reason"
-  }
-}
-EOF
+    # Use jq so the JSON library handles all escaping (quotes, backslashes,
+    # newlines, tabs, carriage returns, etc.). This closes the historical
+    # injection class where a crafted reason string concatenated into the
+    # heredoc could flip the decision (issue #567).
+    jq -nc \
+        --arg reason "$reason" \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $reason}}'
     exit 0
 }
 
 allow_response() {
     local reason="${1:-dangerous-command-guard: no dangerous pattern matched}"
     log_decision "allow" "$reason" "${CMD:-}"
-    # Escape double quotes for JSON safety.
-    local esc_reason=${reason//\"/\\\"}
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "allow",
-    "permissionDecisionReason": "$esc_reason"
-  }
-}
-EOF
+    jq -nc \
+        --arg reason "$reason" \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow", permissionDecisionReason: $reason}}'
     exit 0
 }
 
