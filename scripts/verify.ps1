@@ -209,6 +209,17 @@ if (Test-Path -LiteralPath $settingsJson -PathType Leaf) {
     }
 }
 
+# Hook shared library verification (issue #586 regression guard).
+# Catches a backup that ships without the canonical .sh libraries the two
+# installers (install.sh / install.ps1) deploy to ~/.claude/hooks/lib/.
+# dangerous-command-guard, gh-write-verb-guard, bash-write-guard and
+# bash-sensitive-read-guard source tokenize-shell.sh; missing files weaken
+# the Bash-channel guards.
+$hookLibDir = Join-Path $BackupDir 'global' 'hooks' 'lib'
+foreach ($lib in @('tokenize-shell.sh', 'path-utils.sh', 'timeout-wrapper.sh', 'rotate.sh')) {
+    Test-FileExists (Join-Path $hookLibDir $lib) "global/hooks/lib/$lib" | Out-Null
+}
+
 # ── Project settings file verification ───────────────────────
 
 Write-Host ""

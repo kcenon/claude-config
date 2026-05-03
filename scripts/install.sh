@@ -613,7 +613,28 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         ensure_dir "$HOME/.claude/hooks"
         cp "$BACKUP_DIR/global/hooks"/*.sh "$HOME/.claude/hooks/" 2>/dev/null || true
         chmod +x "$HOME/.claude/hooks/"*.sh 2>/dev/null || true
-        success "Hook 스크립트 (hooks/) 설치 완료!"
+
+        # Deploy global/hooks/lib/*.sh (issue #586). Mirrors install.ps1:481-500.
+        # The *.sh glob above is non-recursive, so without this block the four
+        # shared libraries (tokenize-shell.sh, path-utils.sh, timeout-wrapper.sh,
+        # rotate.sh) are silently dropped. dangerous-command-guard.sh,
+        # gh-write-verb-guard.sh, bash-write-guard.sh, and
+        # bash-sensitive-read-guard.sh source tokenize-shell.sh at runtime.
+        if [ -d "$BACKUP_DIR/global/hooks/lib" ]; then
+            ensure_dir "$HOME/.claude/hooks/lib"
+            cp "$BACKUP_DIR/global/hooks/lib"/*.sh "$HOME/.claude/hooks/lib/" 2>/dev/null || true
+            chmod +x "$HOME/.claude/hooks/lib/"*.sh 2>/dev/null || true
+
+            # Post-copy regression guard for #586. tokenize-shell.sh is the
+            # canonical sub-command splitter (see #476); its absence weakens
+            # four Bash-channel guards. Surface a loud warning at install time
+            # so the regression cannot reach a user session silently.
+            if [ ! -f "$HOME/.claude/hooks/lib/tokenize-shell.sh" ]; then
+                warning "hooks/lib/tokenize-shell.sh 미설치 - Bash 가드가 약화됩니다 (issue #586)"
+            fi
+        fi
+
+        success "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
 
         # Full-suite probe (issue #423): advertise which canonical guards the
         # plugin surface should stand down for. Plugin/hooks.json inspects this
