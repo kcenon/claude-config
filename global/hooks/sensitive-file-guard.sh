@@ -12,31 +12,21 @@ set -euo pipefail
 # shellcheck source=lib/path-utils.sh
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/path-utils.sh"
 
-# Helper function for deny response
+# Use jq -nc --arg reason ... so the JSON library handles all escaping
+# (quotes, backslashes, newlines, tabs, carriage returns, etc.). This closes
+# the historical injection class where a crafted reason string concatenated
+# into the heredoc could flip the decision (issue #567 / sub-issue #579).
 deny_response() {
     local reason="$1"
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "$reason"
-  }
-}
-EOF
+    jq -nc \
+        --arg reason "$reason" \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $reason}}'
     exit 0
 }
 
-# Helper function for allow response
 allow_response() {
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "allow"
-  }
-}
-EOF
+    jq -nc \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow"}}'
     exit 0
 }
 
