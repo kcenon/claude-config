@@ -232,6 +232,62 @@ assert_decision \
     "$(run_hook "korean_plus_english" "gh release create v1.0.0 --notes \"한국어 릴리스 노트\"")"
 
 # ---------------------------------------------------------------------------
+# English typographic punctuation allowlist (issue #583)
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== English typographic punctuation (issue #583) ==="
+
+assert_decision \
+    "english: em-dash allowed in body" \
+    "allow" \
+    "$(run_hook "english" "gh issue comment 1 --body \"Resolved by PR #2 — see notes\"")"
+
+assert_decision \
+    "english: en-dash allowed in body" \
+    "allow" \
+    "$(run_hook "english" "gh issue comment 1 --body \"Range 1–10 inclusive\"")"
+
+assert_decision \
+    "english: curly double quotes allowed in body" \
+    "allow" \
+    "$(run_hook "english" "gh issue comment 1 --body \"He said “hello” to her\"")"
+
+assert_decision \
+    "english: curly single quotes allowed in body" \
+    "allow" \
+    "$(run_hook "english" "gh issue comment 1 --body \"It’s a test of the user’s input\"")"
+
+assert_decision \
+    "english: horizontal ellipsis allowed in body" \
+    "allow" \
+    "$(run_hook "english" "gh issue comment 1 --body \"Loading…\"")"
+
+assert_decision \
+    "english: em-dash allowed in title" \
+    "allow" \
+    "$(run_hook "english" "gh issue create --title \"fix bug — handle edge case\" --body \"ascii body\"")"
+
+assert_decision \
+    "english: Korean still blocked despite typography allowlist" \
+    "deny" \
+    "$(run_hook "english" "gh issue create --title \"fix\" --body \"한글 본문 — em-dash present\"")"
+
+assert_decision \
+    "english: Japanese Hiragana still blocked" \
+    "deny" \
+    "$(run_hook "english" "gh issue create --title \"fix\" --body \"こんにちは — typography here\"")"
+
+assert_decision \
+    "english: Japanese Kanji still blocked" \
+    "deny" \
+    "$(run_hook "english" "gh issue create --title \"fix\" --body \"日本語 — text\"")"
+
+assert_decision \
+    "english: Cyrillic still blocked" \
+    "deny" \
+    "$(run_hook "english" "gh issue create --title \"fix\" --body \"Привет — hello\"")"
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 echo ""
