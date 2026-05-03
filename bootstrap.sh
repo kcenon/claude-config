@@ -33,6 +33,14 @@ if [ -n "${GITHUB_BRANCH:-}" ]; then
 fi
 GITHUB_REF="${GITHUB_REF:-v1.10.0}"
 
+# Anthropic Claude Code installer pin (M1.2b — supply-chain hardening, see #565).
+# The Anthropic-hosted install script is pinned by sha256 to prevent MITM
+# substitution. Rotation policy: docs/SUPPLY_CHAIN.md. The weekly drift check
+# workflow `.github/workflows/check-anthropic-installer.yml` fails when the
+# upstream sha256 deviates from this value.
+ANTHROPIC_INSTALLER_URL="${ANTHROPIC_INSTALLER_URL:-https://claude.ai/install.sh}"
+ANTHROPIC_INSTALLER_SHA256="${ANTHROPIC_INSTALLER_SHA256:-b315b46925a9bfb9422f2503dd5aa649f680832f4c076b22d87c39d578c3d830}"  # pinned 2026-05-03
+
 # 설치 디렉토리
 INSTALL_DIR="${INSTALL_DIR:-$HOME/claude_config_backup}"
 CLAUDE_DIR="$HOME/.claude"
@@ -103,25 +111,70 @@ ensure_claude_cli() {
     INSTALL_CLAUDE=${INSTALL_CLAUDE:-y}
 
     if [ "$INSTALL_CLAUDE" != "y" ]; then
-        warning "Claude Code CLI 설치 건너뜀. 추후 수동 설치:"
-        echo "    curl -fsSL https://claude.ai/install.sh | bash"
+        warning "Claude Code CLI 설치 건너뜀. 추후 수동 설치 가이드:"
+        echo "    https://code.claude.com/docs/en/setup"
+        echo "  또는 본 스크립트를 다시 실행해 sha256 검증된 자동 설치를 진행하세요."
         return 0
     fi
 
     # Native installer는 Anthropic 공식 권장 방식이며 백그라운드 자동 업데이트를 지원한다.
     # 설치 경로: ~/.local/bin/claude → ~/.local/share/claude/versions/<ver>
     # check_dependencies()에서 curl-or-wget 존재를 이미 보장하므로 둘 중 하나는 반드시 사용 가능.
-    local installer_url="https://claude.ai/install.sh"
+    #
+    # Supply-chain hardening (M1.2b, see #565):
+    # The chained `curl ... | bash` pattern is replaced with download → verify
+    # sha256 → execute. The pinned hash lives in $ANTHROPIC_INSTALLER_SHA256.
+    # On mismatch we abort and instruct the user to wait for a maintainer
+    # re-pin instead of executing potentially tampered content.
+    local installer_url="$ANTHROPIC_INSTALLER_URL"
     local install_status=1
-    info "Native installer 실행 중: $installer_url"
+    local tmp_installer
+    tmp_installer="$(mktemp -t claude-installer.XXXXXX)"
+    # Ensure the temp file is removed even if the function returns early or
+    # the integrity check fails.
+    # shellcheck disable=SC2064
+    trap "rm -f '$tmp_installer'" RETURN
+
+    info "Native installer 다운로드 중: $installer_url"
+    local download_ok=1
     if command -v curl >/dev/null 2>&1; then
-        if curl -fsSL "$installer_url" | bash; then
-            install_status=0
+        if curl -fsSL "$installer_url" -o "$tmp_installer"; then
+            download_ok=0
         fi
     elif command -v wget >/dev/null 2>&1; then
-        if wget -qO- "$installer_url" | bash; then
-            install_status=0
+        if wget -qO "$tmp_installer" "$installer_url"; then
+            download_ok=0
         fi
+    fi
+
+    if [ $download_ok -ne 0 ]; then
+        warning "Native installer 다운로드 실패: $installer_url"
+        echo "  네트워크 또는 Anthropic 측 일시 장애일 수 있습니다."
+        echo "  수동 설치 가이드: https://code.claude.com/docs/en/setup"
+        return 0
+    fi
+
+    info "sha256 무결성 확인 중 (pin: ${ANTHROPIC_INSTALLER_SHA256:0:12}...)"
+    if ! command -v sha256sum >/dev/null 2>&1; then
+        warning "sha256sum 미설치 — 무결성 검증을 건너뛸 수 없습니다."
+        echo "  coreutils (Linux) 또는 'brew install coreutils' (macOS)로 설치하세요."
+        return 0
+    fi
+    if ! echo "${ANTHROPIC_INSTALLER_SHA256}  ${tmp_installer}" | sha256sum -c - >/dev/null 2>&1; then
+        local actual_hash
+        actual_hash="$(sha256sum "$tmp_installer" | awk '{print $1}')"
+        warning "Anthropic installer sha256 불일치 — 설치 중단."
+        echo "  expected: $ANTHROPIC_INSTALLER_SHA256"
+        echo "  actual:   $actual_hash"
+        echo "  Anthropic가 정상적으로 installer를 갱신했다면 maintainer가 docs/SUPPLY_CHAIN.md 절차에 따라 재핀합니다."
+        echo "  MITM 또는 캐시 변조 가능성이 있으므로 수동 진행 전에 보안 팀에 알리세요."
+        return 1
+    fi
+    success "sha256 검증 통과"
+
+    info "Native installer 실행 중"
+    if bash "$tmp_installer"; then
+        install_status=0
     fi
 
     if [ $install_status -eq 0 ]; then
@@ -141,9 +194,8 @@ ensure_claude_cli() {
         fi
     else
         warning "Claude Code CLI 자동 설치 실패."
-        echo "  수동 설치:"
-        echo "    curl -fsSL https://claude.ai/install.sh | bash"
-        echo "  또는 Anthropic 공식 가이드: https://code.claude.com/docs/en/setup"
+        echo "  Anthropic 공식 설치 가이드를 참고하세요: https://code.claude.com/docs/en/setup"
+        echo "  또는 본 스크립트를 다시 실행해 sha256 검증된 자동 설치를 재시도하세요."
     fi
 }
 
