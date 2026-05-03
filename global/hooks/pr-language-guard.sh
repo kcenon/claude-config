@@ -27,7 +27,7 @@
 # defers to other safeguards (server-side review, commit hooks for
 # committed content).
 
-set -uo pipefail
+set -euo pipefail
 
 # --- Response helpers ---
 deny_response() {

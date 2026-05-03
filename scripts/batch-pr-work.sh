@@ -24,7 +24,7 @@
 # On any item failure, the batch pauses and exits non-zero so the operator
 # can inspect the log before deciding to continue.
 
-set -u
+set -euo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -75,7 +75,7 @@ echo
 
 # Collect open PRs that have at least one failing check. jq selects PRs
 # where any statusCheckRollup entry has a terminal failure conclusion.
-FAILING_PRS=$(gh pr list --repo "$ORG_PROJECT" --state open --limit 100 \
+FAILING_PRS_RAW=$(gh pr list --repo "$ORG_PROJECT" --state open --limit 100 \
     --json number,title,statusCheckRollup \
     -q '.[] | select(
             [.statusCheckRollup[]?.conclusion] |
@@ -83,7 +83,21 @@ FAILING_PRS=$(gh pr list --repo "$ORG_PROJECT" --state open --limit 100 \
                 . == "FAILURE" or . == "TIMED_OUT" or . == "CANCELLED" or
                 . == "ACTION_REQUIRED" or . == "STARTUP_FAILURE"
             )
-        ) | "\(.number)\t\(.title)"' | head -n "$LIMIT")
+        ) | "\(.number)\t\(.title)"')
+# head can SIGPIPE the upstream producer under pipefail; apply the limit
+# in-process by reading line-by-line into a buffer.
+FAILING_PRS=""
+LINES_READ=0
+while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    LINES_READ=$((LINES_READ + 1))
+    if [[ -z "$FAILING_PRS" ]]; then
+        FAILING_PRS="$line"
+    else
+        FAILING_PRS="${FAILING_PRS}"$'\n'"$line"
+    fi
+    [[ "$LINES_READ" -ge "$LIMIT" ]] && break
+done <<< "$FAILING_PRS_RAW"
 
 if [[ -z "$FAILING_PRS" ]]; then
     warning "No open PRs with failing checks found in $ORG_PROJECT"

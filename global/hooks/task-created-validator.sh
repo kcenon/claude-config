@@ -8,7 +8,7 @@
 #   1. description must be >= 20 characters (after trim)
 #   2. description must contain at least one "- [ ]" markdown checkbox
 
-set -uo pipefail
+set -euo pipefail
 
 INPUT=$(cat)
 

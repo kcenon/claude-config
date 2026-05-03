@@ -21,7 +21,7 @@
 #
 # Exit code: 0 on success; 1 if any input file lacks halt_condition.
 
-set -u
+set -euo pipefail
 
 QUIET=0
 FILES=()

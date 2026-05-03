@@ -30,10 +30,12 @@
 #    2  recent review exists (< 25 days old); skip
 #   64  usage error
 #
-# Bash 3.2 compatible (macOS default): no associative arrays, no mapfile,
-# no `set -e` (explicit return-code checks for clarity).
+# Bash 3.2 compatible (macOS default): no associative arrays, no mapfile.
+# Strict mode adopted in #563: errexit + nounset + pipefail. Stage exit
+# codes are captured via `cmd || rc=$?` so the script's explicit return-code
+# branches still execute under errexit.
 
-set -u
+set -euo pipefail
 
 # ----- defaults -----
 
@@ -362,15 +364,15 @@ invoke_claude() {
   fi
 
   # Read prompt from stdin to avoid argv length limits.
+  local rc=0
   if [[ -n "$timeout_bin" ]]; then
     # shellcheck disable=SC2086
     $timeout_bin claude --print --allowed-tools Read --permission-mode plan \
-      < "$prompt_file" > "$out_file" 2>"${out_file}.err"
+      < "$prompt_file" > "$out_file" 2>"${out_file}.err" || rc=$?
   else
     claude --print --allowed-tools Read --permission-mode plan \
-      < "$prompt_file" > "$out_file" 2>"${out_file}.err"
+      < "$prompt_file" > "$out_file" 2>"${out_file}.err" || rc=$?
   fi
-  local rc=$?
 
   if (( rc != 0 )); then
     log_err "claude invocation failed (exit $rc); see ${out_file}.err"

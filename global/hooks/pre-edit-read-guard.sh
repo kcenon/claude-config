@@ -19,7 +19,7 @@
 # Exit codes: always 0. Decision is encoded in the JSON response for PreToolUse
 # events; PostToolUse emits no JSON and is best-effort.
 
-set -uo pipefail
+set -euo pipefail
 
 # --- helpers ----------------------------------------------------------------
 

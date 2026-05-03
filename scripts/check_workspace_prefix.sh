@@ -16,7 +16,7 @@
 #
 # Exit code: 0 always (warn-only by design during P3 rollout).
 
-set -u
+set -euo pipefail
 
 QUIET=0
 ROOT=""

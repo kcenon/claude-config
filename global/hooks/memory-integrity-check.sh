@@ -16,7 +16,7 @@
 #
 # Issue: kcenon/claude-config#522 (Phase D engine).
 
-set -u
+set -euo pipefail
 
 # --- Constants ---------------------------------------------------------------
 

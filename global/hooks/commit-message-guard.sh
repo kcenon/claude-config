@@ -16,7 +16,7 @@
 # In such cases the hook returns "allow" and defers to the git commit-msg
 # hook (see #242) as the terminal enforcement layer.
 
-set -uo pipefail
+set -euo pipefail
 
 # --- Response helpers (match dangerous-command-guard.sh pattern) ---
 deny_response() {

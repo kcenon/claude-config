@@ -15,6 +15,8 @@
 # Re-verify the matcher semantics on every Claude Code version bump and
 # update the settings.json registration if the contract changes.
 
+set -euo pipefail
+
 # Read input from stdin (Claude Code passes JSON via stdin)
 # This hook doesn't need the input data — just consume stdin to avoid SIGPIPE
 cat > /dev/null
@@ -57,7 +59,8 @@ if [ ! -d "$TEAMS_DIR" ]; then
 fi
 
 # Count existing team directories
-CURRENT_TEAMS=$(find "$TEAMS_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+CURRENT_TEAMS=$(find "$TEAMS_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ' || true)
+CURRENT_TEAMS=${CURRENT_TEAMS:-0}
 
 # Block if limit reached
 if [ "$CURRENT_TEAMS" -ge "$MAX_TEAMS" ]; then

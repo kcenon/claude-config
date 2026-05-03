@@ -15,6 +15,8 @@
 # Override: set CLAUDE_P4_OVERRIDE=1 in the environment with the reason
 # documented in COMPATIBILITY.md (incident response, RCA-required).
 
+set -euo pipefail
+
 SETTINGS_PATH="${P4_SETTINGS_PATH:-${HOME}/.claude/settings.json}"
 POLICY_PATH="${P4_POLICY_PATH:-${HOME}/.claude/policies/p4-timeline.json}"
 
@@ -72,10 +74,10 @@ read_policy_value() {
     local jq_filter="$1"
     local val=""
     if [ -f "$POLICY_PATH" ]; then
-        val=$(jq -r "${jq_filter} // empty" "$POLICY_PATH" 2>/dev/null)
+        val=$(jq -r "${jq_filter} // empty" "$POLICY_PATH" 2>/dev/null || true)
     fi
     if [ -z "$val" ] && [ -f "$SETTINGS_PATH" ]; then
-        val=$(jq -r ".harness_policies${jq_filter} // empty" "$SETTINGS_PATH" 2>/dev/null)
+        val=$(jq -r ".harness_policies${jq_filter} // empty" "$SETTINGS_PATH" 2>/dev/null || true)
     fi
     printf '%s' "$val"
 }
@@ -94,11 +96,11 @@ read_iso_epoch() {
 
 NOW_EPOCH=$(date -u +%s)
 
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null)
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || true)
 
 # ── Branch 1: Bash matcher ──────────────────────────────────────
 if [ "$TOOL" = "Bash" ]; then
-    CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+    CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || true)
     case "$CMD" in
         *"gh pr merge"*)
             GRACE_EPOCH=$(read_iso_epoch p4_grace_until)
@@ -108,12 +110,13 @@ if [ "$TOOL" = "Bash" ]; then
             if [ "$NOW_EPOCH" -ge "$GRACE_EPOCH" ]; then
                 allow_response
             fi
-            # Extract PR number; if missing, allow (cannot evaluate)
-            PR_NUM=$(echo "$CMD" | grep -oE 'gh pr merge[[:space:]]+([0-9]+)' | grep -oE '[0-9]+' | head -1)
+            # Extract PR number; if missing, allow (cannot evaluate).
+            # grep no-match returns 1 (pipefail-fatal) — guard with `|| true`.
+            PR_NUM=$(echo "$CMD" | grep -oE 'gh pr merge[[:space:]]+([0-9]+)' | grep -oE '[0-9]+' | head -1 || true)
             if [ -z "$PR_NUM" ]; then
                 allow_response
             fi
-            REPO_FLAG=$(echo "$CMD" | grep -oE -- '--repo[[:space:]]+[^[:space:]]+' | awk '{print $2}')
+            REPO_FLAG=$(echo "$CMD" | grep -oE -- '--repo[[:space:]]+[^[:space:]]+' | awk '{print $2}' || true)
             REPO_ARG=""
             [ -n "$REPO_FLAG" ] && REPO_ARG="--repo $REPO_FLAG"
             # If gh unavailable or call fails, allow (cannot evaluate diff)
@@ -134,7 +137,7 @@ fi
 
 # ── Branch 2: Edit/Write matcher (settings.json toggle flip) ────
 if [ "$TOOL" = "Edit" ] || [ "$TOOL" = "Write" ]; then
-    FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
+    FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || true)
     case "$FILE_PATH" in
         *settings.json|*settings.windows.json)
             OBS_EPOCH=$(read_iso_epoch p4_observation_until)
@@ -147,9 +150,9 @@ if [ "$TOOL" = "Edit" ] || [ "$TOOL" = "Write" ]; then
             [ "$CURRENT" = "true" ] && allow_response
             NEW_BLOB=""
             if [ "$TOOL" = "Write" ]; then
-                NEW_BLOB=$(echo "$INPUT" | jq -r '.tool_input.content // empty' 2>/dev/null)
+                NEW_BLOB=$(echo "$INPUT" | jq -r '.tool_input.content // empty' 2>/dev/null || true)
             else
-                NEW_BLOB=$(echo "$INPUT" | jq -r '.tool_input.new_string // empty' 2>/dev/null)
+                NEW_BLOB=$(echo "$INPUT" | jq -r '.tool_input.new_string // empty' 2>/dev/null || true)
             fi
             # Match the JSON form `"p4_strict_schema": true` (whitespace-tolerant)
             if echo "$NEW_BLOB" | grep -qE '"p4_strict_schema"[[:space:]]*:[[:space:]]*true'; then

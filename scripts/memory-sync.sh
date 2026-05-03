@@ -29,11 +29,13 @@
 #    6  git operation failed (other than the above)
 #   64  usage error
 #
-# Bash 3.2 compatible (macOS default): no associative arrays, no mapfile,
-# no `set -e` (issue #520 implementation notes prefer explicit return-code
-# checks for clarity in this complex flow).
+# Bash 3.2 compatible (macOS default): no associative arrays, no mapfile.
+# Strict mode adopted in #563: errexit + nounset + pipefail. The original
+# design preferred explicit return-code checks for clarity; main() now
+# captures stage exit codes via `func || rc=$?` so log_summary still runs
+# on stage failure under errexit.
 
-set -u
+set -euo pipefail
 
 # ----- defaults -----
 
@@ -300,14 +302,13 @@ pre_push_validate() {
       # Deleted file: nothing to validate.
       continue
     fi
-    "$validate" "$abs_path" >/dev/null
-    rc_v=$?
-    "$secret" "$abs_path" >/dev/null
-    rc_s=$?
+    rc_v=0
+    "$validate" "$abs_path" >/dev/null || rc_v=$?
+    rc_s=0
+    "$secret" "$abs_path" >/dev/null || rc_s=$?
     rc_i=0
     if [[ -n "$injection" ]]; then
-      "$injection" "$abs_path" >/dev/null
-      rc_i=$?
+      "$injection" "$abs_path" >/dev/null || rc_i=$?
     fi
 
     local v_label="PASS" s_label="CLEAN"
@@ -537,18 +538,16 @@ push_with_retry() {
   if ! fetch_remote; then
     return 6
   fi
-  local rb_rc
-  rebase_local_onto_remote
-  rb_rc=$?
+  local rb_rc=0
+  rebase_local_onto_remote || rb_rc=$?
   if (( rb_rc == 3 )); then
     return 3
   fi
   if (( rb_rc != 0 )); then
     return 6
   fi
-  local pp_rc
-  post_pull_validate
-  pp_rc=$?
+  local pp_rc=0
+  post_pull_validate || pp_rc=$?
   if (( pp_rc == 2 )); then
     return 2
   fi
@@ -680,12 +679,13 @@ main() {
 
   capture_local_diff
 
-  local rc
+  local rc=0
 
   # Pre-push validation (skip in pull-only mode).
+  # Each stage uses `|| rc=$?` so errexit does not skip log_summary on failure.
   if (( PULL_ONLY == 0 )); then
-    pre_push_validate "$DIFF_FILES"
-    rc=$?
+    rc=0
+    pre_push_validate "$DIFF_FILES" || rc=$?
     if (( rc != 0 )); then
       log_summary
       exit "$rc"
@@ -694,27 +694,27 @@ main() {
 
   # Pull half (skip in push-only mode).
   if (( PUSH_ONLY == 0 )); then
-    fetch_remote
-    rc=$?
+    rc=0
+    fetch_remote || rc=$?
     if (( rc != 0 )); then log_summary; exit "$rc"; fi
 
-    rebase_local_onto_remote
-    rc=$?
+    rc=0
+    rebase_local_onto_remote || rc=$?
     if (( rc != 0 )); then log_summary; exit "$rc"; fi
 
-    post_pull_validate
-    rc=$?
+    rc=0
+    post_pull_validate || rc=$?
     if (( rc != 0 )); then log_summary; exit "$rc"; fi
 
-    regen_index
-    rc=$?
+    rc=0
+    regen_index || rc=$?
     if (( rc != 0 )); then log_summary; exit "$rc"; fi
   fi
 
   # Push half (skip in pull-only mode).
   if (( PULL_ONLY == 0 )); then
-    push_with_retry
-    rc=$?
+    rc=0
+    push_with_retry || rc=$?
     if (( rc != 0 )); then log_summary; exit "$rc"; fi
   fi
 

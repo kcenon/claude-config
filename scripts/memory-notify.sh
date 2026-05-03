@@ -33,7 +33,7 @@
 # Bash 3.2 compatible (macOS default): no associative arrays, no mapfile,
 # explicit ${var:-default} guards.
 
-set -u
+set -euo pipefail
 
 # ----- defaults -----
 

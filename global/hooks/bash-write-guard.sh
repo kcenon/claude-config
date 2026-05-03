@@ -23,7 +23,7 @@
 # Hook Type: PreToolUse (Bash)
 # Exit codes: 0 (always — decision is in JSON)
 
-set -uo pipefail
+set -euo pipefail
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
 # shellcheck source=lib/tokenize-shell.sh

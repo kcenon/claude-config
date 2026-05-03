@@ -10,6 +10,8 @@
 # how much time remains. Silent when the rollout is fully complete (now() >=
 # p4_freeze_until) or when the relevant fields are absent.
 
+set -euo pipefail
+
 SETTINGS_PATH="${P4_SETTINGS_PATH:-${HOME}/.claude/settings.json}"
 POLICY_PATH="${P4_POLICY_PATH:-${HOME}/.claude/policies/p4-timeline.json}"
 
@@ -21,10 +23,10 @@ read_policy_value() {
     local jq_filter="$1"
     local val=""
     if [ -f "$POLICY_PATH" ]; then
-        val=$(jq -r "${jq_filter} // empty" "$POLICY_PATH" 2>/dev/null)
+        val=$(jq -r "${jq_filter} // empty" "$POLICY_PATH" 2>/dev/null || true)
     fi
     if [ -z "$val" ] && [ -f "$SETTINGS_PATH" ]; then
-        val=$(jq -r ".harness_policies${jq_filter} // empty" "$SETTINGS_PATH" 2>/dev/null)
+        val=$(jq -r ".harness_policies${jq_filter} // empty" "$SETTINGS_PATH" 2>/dev/null || true)
     fi
     printf '%s' "$val"
 }
@@ -84,7 +86,8 @@ format_remaining() {
 format_iso() {
     local epoch="$1"
     date -u -r "$epoch" "+%Y-%m-%d %H:%M UTC" 2>/dev/null || \
-        date -u -d "@$epoch" "+%Y-%m-%d %H:%M UTC" 2>/dev/null
+        date -u -d "@$epoch" "+%Y-%m-%d %H:%M UTC" 2>/dev/null || \
+        echo "epoch:$epoch"
 }
 
 WINDOW=""

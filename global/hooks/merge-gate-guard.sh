@@ -21,7 +21,7 @@
 # "hard-fail on tool unavailability". Server-side branch protection rules
 # remain as the authoritative gate.
 
-set -uo pipefail
+set -euo pipefail
 
 # --- Resolve script dir + load shared helpers ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -134,12 +134,12 @@ if ! command -v gh >/dev/null 2>&1; then
 fi
 
 # --- Call gh pr checks (bounded by cross-platform timeout wrapper) ---
+GH_RC=0
 if [ -n "$REPO" ]; then
-    CHECKS_JSON=$(_run_with_timeout "$GH_CHECKS_TIMEOUT_SEC" gh pr checks "$PR_NUM" -R "$REPO" --json bucket,name,state 2>&1)
+    CHECKS_JSON=$(_run_with_timeout "$GH_CHECKS_TIMEOUT_SEC" gh pr checks "$PR_NUM" -R "$REPO" --json bucket,name,state 2>&1) || GH_RC=$?
 else
-    CHECKS_JSON=$(_run_with_timeout "$GH_CHECKS_TIMEOUT_SEC" gh pr checks "$PR_NUM" --json bucket,name,state 2>&1)
+    CHECKS_JSON=$(_run_with_timeout "$GH_CHECKS_TIMEOUT_SEC" gh pr checks "$PR_NUM" --json bucket,name,state 2>&1) || GH_RC=$?
 fi
-GH_RC=$?
 
 # 124 is the GNU-timeout sentinel; the wrapper normalizes perl/bash fallbacks
 # to the same code so a single branch covers all platforms. Fail-open per
@@ -163,12 +163,12 @@ fi
 
 # --- Parse non-passing checks ---
 # Allowed buckets: pass, skipping. Anything else blocks the merge.
+JQ_RC=0
 NON_PASSING=$(printf '%s' "$CHECKS_JSON" | jq -r '
     [.[] | select(.bucket != "pass" and .bucket != "skipping")
          | "\(.name) [\(.bucket)/\(.state)]"]
     | join(", ")
-' 2>/dev/null)
-JQ_RC=$?
+' 2>/dev/null) || JQ_RC=$?
 
 if [ $JQ_RC -ne 0 ]; then
     log_diag "jq parse failed, allowing merge (fail-open): ${CHECKS_JSON}"
