@@ -5,6 +5,8 @@
 # Exit codes: 0=allow (with optional warning)
 # Response format: hookSpecificOutput with additionalContext (UserPromptSubmit)
 
+set -euo pipefail
+
 PROMPT="${CLAUDE_USER_PROMPT:-}"
 
 # Helper function for allow response with warning

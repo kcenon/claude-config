@@ -9,6 +9,8 @@
 # Feature/fix branches must target 'develop'.
 # Release PRs (develop → main) are created via /release skill.
 
+set -euo pipefail
+
 # Helper function for deny response
 deny_response() {
     local reason="$1"
@@ -45,10 +47,12 @@ if [ -z "$INPUT" ]; then
     deny_response "Failed to parse hook input — denying for safety (fail-closed)"
 fi
 
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+# Capture jq's exit status without tripping set -e.
+JQ_RC=0
+CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || JQ_RC=$?
 
 # Fail-closed: deny if jq parsing failed
-if [ $? -ne 0 ]; then
+if [ "$JQ_RC" -ne 0 ]; then
     deny_response "Failed to parse hook input JSON — denying for safety (fail-closed)"
 fi
 

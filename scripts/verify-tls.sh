@@ -15,7 +15,7 @@
 #   ./scripts/verify-tls.sh --quiet    # only print final summary
 #   ./scripts/verify-tls.sh --include-gh   # also probe gh (non-fatal on macOS)
 
-set -u
+set -euo pipefail
 
 QUIET=false
 INCLUDE_GH=false

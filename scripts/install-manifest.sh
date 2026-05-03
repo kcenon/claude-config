@@ -11,6 +11,8 @@
 #   MANIFEST_PATH    override manifest location
 #   BOOTSTRAP_FORCE  "1" bypasses the divergence prompt and overwrites
 
+set -euo pipefail
+
 MANIFEST_PATH="${MANIFEST_PATH:-$HOME/.claude/.install-manifest.json}"
 MANIFEST_SCHEMA=1
 

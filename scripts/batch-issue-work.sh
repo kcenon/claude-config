@@ -20,7 +20,7 @@
 # can inspect the log before deciding to continue. Successful items are NOT
 # rolled back — reruns should skip already-merged issues by inspecting state.
 
-set -u
+set -euo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'

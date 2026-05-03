@@ -12,7 +12,7 @@
 # The non-interactive mode is intended for CI, automation sessions, and
 # scripted provisioning where no TTY is available to answer the prompt.
 
-set -e
+set -euo pipefail
 
 FORCE_MODE=0
 for arg in "$@"; do

@@ -5,6 +5,8 @@
 # Exit codes: 0 (always — decision is in JSON)
 # Response format: hookSpecificOutput with hookEventName
 
+set -euo pipefail
+
 # Helper function for deny response
 deny_response() {
     local reason="$1"
@@ -41,8 +43,9 @@ if [ -z "$INPUT" ]; then
     deny_response "Failed to parse hook input — denying for safety (fail-closed)"
 fi
 
-FILE=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
-if [ $? -ne 0 ]; then
+JQ_RC=0
+FILE=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || JQ_RC=$?
+if [ "$JQ_RC" -ne 0 ]; then
     deny_response "Failed to parse hook input — denying for safety (fail-closed)"
 fi
 

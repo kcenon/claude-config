@@ -24,7 +24,7 @@
 # and --body-file references cannot be parsed at the shell layer; the hook
 # returns "allow" and defers to other safeguards in those cases.
 
-set -uo pipefail
+set -euo pipefail
 
 # --- Response helpers ---
 deny_response() {

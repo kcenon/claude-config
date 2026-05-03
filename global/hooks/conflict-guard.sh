@@ -8,6 +8,8 @@
 # Fail-open: if parsing fails or git is not available, allow the command.
 # This hook is advisory (conflict prevention), not security-critical.
 
+set -euo pipefail
+
 # --- Response helpers (match dangerous-command-guard.sh pattern) ---
 deny_response() {
     local reason="$1"
@@ -79,7 +81,8 @@ fi
 
 # --- Check 2: Uncommitted changes ---
 # Extract the specific git subcommand for the error message
-SUBCMD=$(echo "$CMD" | grep -oE 'git[[:space:]]+(merge|rebase|cherry-pick|pull)' | awk '{print $2}')
+# Best-effort subcommand extraction; pipefail-safe (grep no-match returns 1).
+SUBCMD=$(echo "$CMD" | grep -oE 'git[[:space:]]+(merge|rebase|cherry-pick|pull)' | awk '{print $2}' || true)
 
 DIRTY=$(git status --porcelain 2>/dev/null) || allow_response
 if [ -n "$DIRTY" ]; then

@@ -26,7 +26,7 @@
 # the two is flagged by the validate-hooks-doc.yml CI workflow which
 # runs this script in --check mode.
 
-set -uo pipefail
+set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 HOOKS_DIR="${REPO_ROOT}/global/hooks"

@@ -33,7 +33,7 @@
 #
 # Bash 3.2 compatible (macOS default).
 
-set -u
+set -euo pipefail
 
 # ----- response helpers ------------------------------------------------------
 
@@ -253,9 +253,12 @@ esac
 
 # ----- run validators --------------------------------------------------------
 
-VALIDATE_OUT="$("$VALIDATE_BIN" "$TMP_FILE" 2>&1)"; VALIDATE_RC=$?
-SECRET_OUT="$("$SECRET_BIN" "$TMP_FILE" 2>&1)"; SECRET_RC=$?
-INJECTION_OUT="$("$INJECTION_BIN" "$TMP_FILE" 2>&1)"; INJECTION_RC=$?
+VALIDATE_RC=0
+VALIDATE_OUT="$("$VALIDATE_BIN" "$TMP_FILE" 2>&1)" || VALIDATE_RC=$?
+SECRET_RC=0
+SECRET_OUT="$("$SECRET_BIN" "$TMP_FILE" 2>&1)" || SECRET_RC=$?
+INJECTION_RC=0
+INJECTION_OUT="$("$INJECTION_BIN" "$TMP_FILE" 2>&1)" || INJECTION_RC=$?
 
 # ----- decision --------------------------------------------------------------
 

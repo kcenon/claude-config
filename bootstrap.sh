@@ -11,7 +11,7 @@
 #   curl -sSL -H "Authorization: token YOUR_GITHUB_TOKEN" \
 #     https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash
 
-set -e
+set -euo pipefail
 
 # 색상 정의
 RED='\033[0;31m'

@@ -15,6 +15,8 @@
 #   cause is upstream of this hook (e.g. unsandboxed path, multi-hook
 #   merge, permission mode), not the guard.
 
+set -euo pipefail
+
 LOG_DIR="${CLAUDE_LOG_DIR:-$HOME/.claude/logs}"
 LOG_FILE="$LOG_DIR/dangerous-command-guard.log"
 
@@ -87,9 +89,11 @@ if [ -z "$INPUT" ]; then
     deny_response "Failed to parse hook input — denying for safety (fail-closed)"
 fi
 
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+# Capture jq's exit status without tripping set -e.
+JQ_RC=0
+CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || JQ_RC=$?
 
-if [ $? -ne 0 ]; then
+if [ "$JQ_RC" -ne 0 ]; then
     deny_response "Failed to parse hook input JSON — denying for safety (fail-closed)"
 fi
 

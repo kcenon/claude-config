@@ -22,7 +22,7 @@
 # Bash 3.2 compatible (macOS default): no associative arrays, no mapfile,
 # explicit return-code checks.
 
-set -u
+set -euo pipefail
 
 # ----- defaults (mirror memory-sync.sh #520 conventions) -----
 

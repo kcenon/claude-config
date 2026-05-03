@@ -31,7 +31,7 @@
 #
 # Bash 3.2 compatible (macOS default).
 
-set -u
+set -euo pipefail
 
 LOG_FILE="${HOME}/.claude/logs/memory-access.log"
 MEMORY_ROOT="${HOME}/.claude/memory-shared/memories"
