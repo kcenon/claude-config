@@ -23,7 +23,15 @@ NC='\033[0m'
 # GitHub 저장소 설정
 GITHUB_USER="${GITHUB_USER:-kcenon}"
 GITHUB_REPO="${GITHUB_REPO:-claude-config}"
-GITHUB_BRANCH="${GITHUB_BRANCH:-main}"
+
+# Pin install source to a release tag for SLSA-aligned supply-chain hardening.
+# Floating refs (e.g. `main`) ship whatever HEAD is at install time, leaving no
+# integrity baseline if `main` is briefly compromised. Override with GITHUB_REF.
+if [ -n "${GITHUB_BRANCH:-}" ]; then
+    echo "warning: GITHUB_BRANCH is deprecated, use GITHUB_REF" >&2
+    GITHUB_REF="${GITHUB_REF:-$GITHUB_BRANCH}"
+fi
+GITHUB_REF="${GITHUB_REF:-v1.10.0}"
 
 # 설치 디렉토리
 INSTALL_DIR="${INSTALL_DIR:-$HOME/claude_config_backup}"
@@ -153,14 +161,14 @@ clone_repository() {
         else
             info "기존 디렉토리를 사용합니다. git pull 실행..."
             cd "$INSTALL_DIR"
-            git pull origin "$GITHUB_BRANCH"
+            git pull origin "$GITHUB_REF"
             return
         fi
     fi
 
-    # GitHub에서 클론
-    git clone "https://github.com/$GITHUB_USER/$GITHUB_REPO.git" "$INSTALL_DIR"
-    success "저장소 클론 완료: $INSTALL_DIR"
+    # GitHub에서 클론 (pinned to GITHUB_REF, --depth 1 for bandwidth efficiency)
+    git clone --branch "$GITHUB_REF" --depth 1 "https://github.com/$GITHUB_USER/$GITHUB_REPO.git" "$INSTALL_DIR"
+    success "저장소 클론 완료: $INSTALL_DIR (ref: $GITHUB_REF)"
 }
 
 # 글로벌 설정 설치
