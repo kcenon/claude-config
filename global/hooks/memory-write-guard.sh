@@ -37,49 +37,32 @@ set -euo pipefail
 
 # ----- response helpers ------------------------------------------------------
 
+# Use jq -nc --arg ... so the JSON library handles all escaping (quotes,
+# backslashes, newlines, tabs, carriage returns, etc.). This closes the
+# historical injection class where a crafted reason / feedback string
+# concatenated into the heredoc could flip the decision (issue #567 /
+# sub-issue #578). Replaces the prior manual `${var//\\/\\\\}` escapes.
+# When jq is missing the up-stream guard above already emits an allow with
+# diagnostic, so these helpers can rely on jq being present.
 emit_allow() {
     # Optional feedback string in $1 -> rendered as additionalContext.
     local feedback="${1:-}"
     if [ -n "$feedback" ]; then
-        feedback="${feedback//\\/\\\\}"
-        feedback="${feedback//\"/\\\"}"
-        feedback="${feedback//$'\n'/\\n}"
-        cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "allow",
-    "additionalContext": "$feedback"
-  }
-}
-EOF
+        jq -nc \
+            --arg ctx "$feedback" \
+            '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow", additionalContext: $ctx}}'
     else
-        cat <<'EOF'
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "allow"
-  }
-}
-EOF
+        jq -nc \
+            '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow"}}'
     fi
     exit 0
 }
 
 emit_deny() {
     local reason="$1"
-    reason="${reason//\\/\\\\}"
-    reason="${reason//\"/\\\"}"
-    reason="${reason//$'\n'/\\n}"
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "$reason"
-  }
-}
-EOF
+    jq -nc \
+        --arg reason "$reason" \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $reason}}'
     exit 0
 }
 
