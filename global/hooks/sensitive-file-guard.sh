@@ -7,6 +7,11 @@
 
 set -euo pipefail
 
+# Source the shared path-utils helper (resolve_path).
+# Issue #569 — consolidate canonicalization with bash-write-guard.sh.
+# shellcheck source=lib/path-utils.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/path-utils.sh"
+
 # Helper function for deny response
 deny_response() {
     local reason="$1"
@@ -59,12 +64,43 @@ if [ -z "$FILE" ]; then
     allow_response
 fi
 
-# Check sensitive file extensions
-if echo "$FILE" | grep -qE '(^|/)\.env($|\.)|\.(pem|key|p12|pfx)$'; then
-    deny_response "Access to sensitive file blocked: $FILE (protected extension)"
-fi
+# Resolve the path so symlinks, ~, $HOME, and macOS /var → /private/var
+# all canonicalize. resolve_path is purely string-transforming for
+# non-existent targets, so newly-created files still flow through.
+TARGET=$(resolve_path "$FILE")
 
-# Check sensitive directories
+# Lowercased basename with surrounding whitespace stripped. The strip
+# defends against ".env " (trailing space) and similar whitespace-padded
+# bypasses; case folding defends against ".ENV" / ".Env" variants.
+BASENAME_RAW=$(basename -- "$TARGET")
+BASENAME_TRIMMED="${BASENAME_RAW#"${BASENAME_RAW%%[![:space:]]*}"}"
+BASENAME_TRIMMED="${BASENAME_TRIMMED%"${BASENAME_TRIMMED##*[![:space:]]}"}"
+BASENAME_LOWER=$(printf '%s' "$BASENAME_TRIMMED" | tr '[:upper:]' '[:lower:]')
+
+# Pattern set covers env files, credential containers, SSH private keys,
+# and AWS credential files. NUL-byte truncation is handled implicitly
+# because bash variables cannot carry NUL bytes — the path is truncated
+# at the first NUL before reaching this check.
+case "$BASENAME_LOWER" in
+    .env|.env.*|.envrc)
+        deny_response "Access to sensitive file blocked: $FILE (env file)"
+        ;;
+    *.pem|*.key|*.p12|*.pfx)
+        deny_response "Access to sensitive file blocked: $FILE (credential file)"
+        ;;
+    id_rsa|id_rsa.*|id_ed25519|id_ed25519.*|id_ecdsa|id_ecdsa.*|id_dsa|id_dsa.*)
+        deny_response "Access to sensitive file blocked: $FILE (SSH private key)"
+        ;;
+    credentials|config)
+        case "$TARGET" in
+            */.aws/*)
+                deny_response "Access to sensitive file blocked: $FILE (AWS credentials)"
+                ;;
+        esac
+        ;;
+esac
+
+# Check sensitive directories (case-insensitive)
 if echo "$FILE" | grep -qiE '(secrets|credentials|passwords)[/\\]'; then
     deny_response "Access to sensitive directory blocked: $FILE (protected path)"
 fi
