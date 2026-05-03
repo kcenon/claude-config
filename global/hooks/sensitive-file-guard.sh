@@ -72,6 +72,10 @@ BASENAME_LOWER=$(printf '%s' "$BASENAME_TRIMMED" | tr '[:upper:]' '[:lower:]')
 # because bash variables cannot carry NUL bytes — the path is truncated
 # at the first NUL before reaching this check.
 case "$BASENAME_LOWER" in
+    .env.example|.env.example.*|.env.sample|.env.template)
+        # Template files — never contain real secrets, allow.
+        # Listed BEFORE the broad .env.* block so they are not denied.
+        ;;
     .env|.env.*|.envrc)
         deny_response "Access to sensitive file blocked: $FILE (env file)"
         ;;
