@@ -55,35 +55,25 @@ log_decision() {
     fi
 }
 
+# Use jq -nc --arg ... so the JSON library handles all escaping (quotes,
+# backslashes, newlines, tabs, carriage returns, etc.). This closes the
+# historical injection class where a crafted reason / context string
+# concatenated into the heredoc could flip the decision (issue #567 /
+# sub-issue #578). Replaces the prior manual `${var//\\/\\\\}` escapes.
 allow_response() {
     local reason="${1:-}"
     log_decision "allow" "${reason:-no-write-pattern}" "${CMD:-}"
-    cat <<'EOF'
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "allow"
-  }
-}
-EOF
+    jq -nc \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow"}}'
     exit 0
 }
 
 allow_with_context() {
     local context="$1"
     log_decision "allow_with_context" "$context" "${CMD:-}"
-    local esc
-    esc="${context//\\/\\\\}"
-    esc="${esc//\"/\\\"}"
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "allow",
-    "additionalContext": "gh-write-verb-guard: $esc"
-  }
-}
-EOF
+    jq -nc \
+        --arg ctx "gh-write-verb-guard: $context" \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow", additionalContext: $ctx}}'
     exit 0
 }
 
@@ -92,29 +82,14 @@ deny_response() {
     if [ "${GH_WRITE_VERB_GUARD_AUDIT_ONLY:-0}" = "1" ]; then
         echo "gh-write-verb-guard (audit-only) would deny: $reason" >&2
         log_decision "audit_allow" "$reason" "${CMD:-}"
-        cat <<'EOF'
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "allow"
-  }
-}
-EOF
+        jq -nc \
+            '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow"}}'
         exit 0
     fi
     log_decision "deny" "$reason" "${CMD:-}"
-    local esc
-    esc="${reason//\\/\\\\}"
-    esc="${esc//\"/\\\"}"
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "$esc"
-  }
-}
-EOF
+    jq -nc \
+        --arg reason "$reason" \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $reason}}'
     exit 0
 }
 
