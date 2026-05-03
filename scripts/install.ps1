@@ -478,6 +478,12 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
             Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $hooksDir $_.Name)
         }
 
+        # Deploy global/hooks/lib/ shared libraries (.sh, .ps1, .psm1).
+        # PARITY: install.sh:617-627 must mirror this block. Both installers
+        # share the same destination ~/.claude/hooks/lib/. See issue #586 —
+        # install.sh previously skipped this directory because its top-level
+        # *.sh glob is non-recursive. Do not remove either side without a
+        # cross-platform regression check (see scripts/verify.{sh,ps1}).
         $hooksLibSource = Join-Path $hooksSource 'lib'
         if (Test-Path $hooksLibSource) {
             $hooksLibDir = Join-Path $hooksDir 'lib'
