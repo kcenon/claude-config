@@ -35,8 +35,15 @@
 #     ASCII whitespace (space, tab, newline, carriage return, form feed,
 #     vertical tab). LC_ALL=C forces grep to interpret character classes
 #     as 7-bit ASCII regardless of the user's locale.
-#   - Any byte outside that set — accented Latin, CJK, emoji, symbols —
-#     fails validation.
+#   - Common English typographic punctuation is allowlisted before the
+#     ASCII check (see issue #583): em-dash (U+2014), en-dash (U+2013),
+#     curly double/single quotes (U+201C/D, U+2018/9), horizontal
+#     ellipsis (U+2026), and non-breaking space (U+00A0). These are
+#     unambiguously English typography and must not be rejected.
+#   - Any other byte outside the ASCII set -- accented Latin, CJK,
+#     Cyrillic, Greek, emoji, other symbols -- fails validation. The
+#     error message identifies the offending script category when it
+#     can be determined.
 validate_english_only() {
     local text="$1"
 
@@ -44,10 +51,48 @@ validate_english_only() {
         return 0
     fi
 
-    if printf '%s' "$text" | LC_ALL=C grep -q '[^[:print:][:space:]]'; then
+    # Strip allowlisted English typographic punctuation before the
+    # ASCII check. perl -CSDA decodes input as UTF-8 regardless of locale.
+    local cleaned
+    cleaned=$(printf '%s' "$text" | perl -CSDA -pe '
+        s/[\x{2014}\x{2013}\x{201C}\x{201D}\x{2018}\x{2019}\x{2026}\x{00A0}]//g;
+    ' 2>/dev/null)
+
+    if printf '%s' "$cleaned" | LC_ALL=C grep -q '[^[:print:][:space:]]'; then
+        # Identify the offending script category for a more useful error
+        # message. Falls back to "non-Latin script" when no specific
+        # category matches.
+        local category="non-Latin script"
+        if printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{AC00}-\x{D7A3}\x{1100}-\x{11FF}\x{3130}-\x{318F}]/' 2>/dev/null; then
+            :
+        else
+            category="Korean (Hangul)"
+        fi
+        if [ "$category" = "non-Latin script" ]; then
+            if printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{3040}-\x{309F}\x{30A0}-\x{30FF}\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}]/' 2>/dev/null; then
+                :
+            else
+                category="CJK (Chinese/Japanese)"
+            fi
+        fi
+        if [ "$category" = "non-Latin script" ]; then
+            if printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{0400}-\x{04FF}]/' 2>/dev/null; then
+                :
+            else
+                category="Cyrillic"
+            fi
+        fi
+        if [ "$category" = "non-Latin script" ]; then
+            if printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{0370}-\x{03FF}]/' 2>/dev/null; then
+                :
+            else
+                category="Greek"
+            fi
+        fi
+
         local sample
-        sample=$(printf '%s' "$text" | LC_ALL=C grep -oE '[^[:print:][:space:]]+' | head -n1)
-        echo "Text contains non-ASCII characters (first run: '$sample'). GitHub Issues and Pull Requests must be written in English only — see commit-settings.md." >&2
+        sample=$(printf '%s' "$cleaned" | LC_ALL=C grep -oE '[^[:print:][:space:]]+' | head -n1)
+        echo "Text contains $category characters (first run: '$sample'). GitHub Issues and Pull Requests must be written in English only -- see commit-settings.md. (English typographic punctuation such as em-dash, curly quotes, and ellipsis is allowed.)" >&2
         return 1
     fi
 

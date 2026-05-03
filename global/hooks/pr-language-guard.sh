@@ -93,10 +93,28 @@ if ! command -v validate_content_language >/dev/null 2>&1; then
                 return 0
                 ;;
             *)
-                if printf '%s' "$text" | LC_ALL=C grep -q '[^[:print:][:space:]]'; then
+                # Strip allowlisted English typographic punctuation
+                # (em-dash, en-dash, curly quotes, ellipsis, NBSP) before
+                # the ASCII check so unambiguously English typography is
+                # not rejected. See issue #583.
+                local cleaned
+                cleaned=$(printf '%s' "$text" | perl -CSDA -pe '
+                    s/[\x{2014}\x{2013}\x{201C}\x{201D}\x{2018}\x{2019}\x{2026}\x{00A0}]//g;
+                ' 2>/dev/null)
+                if printf '%s' "$cleaned" | LC_ALL=C grep -q '[^[:print:][:space:]]'; then
+                    local category="non-Latin script"
+                    if ! printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{AC00}-\x{D7A3}\x{1100}-\x{11FF}\x{3130}-\x{318F}]/' 2>/dev/null; then
+                        category="Korean (Hangul)"
+                    elif ! printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{3040}-\x{309F}\x{30A0}-\x{30FF}\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}]/' 2>/dev/null; then
+                        category="CJK (Chinese/Japanese)"
+                    elif ! printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{0400}-\x{04FF}]/' 2>/dev/null; then
+                        category="Cyrillic"
+                    elif ! printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{0370}-\x{03FF}]/' 2>/dev/null; then
+                        category="Greek"
+                    fi
                     local sample
-                    sample=$(printf '%s' "$text" | LC_ALL=C grep -oE '[^[:print:][:space:]]+' | head -n1)
-                    echo "Text contains non-ASCII characters (first run: '$sample'). GitHub Issues and Pull Requests must be written in English only — see commit-settings.md." >&2
+                    sample=$(printf '%s' "$cleaned" | LC_ALL=C grep -oE '[^[:print:][:space:]]+' | head -n1)
+                    echo "Text contains $category characters (first run: '$sample'). GitHub Issues and Pull Requests must be written in English only -- see commit-settings.md. (English typographic punctuation such as em-dash, curly quotes, and ellipsis is allowed.)" >&2
                     return 1
                 fi
                 return 0
