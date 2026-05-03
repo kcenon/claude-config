@@ -17,6 +17,12 @@ NC='\033[0m'
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BACKUP_DIR="$(dirname "$SCRIPT_DIR")"
 
+# Path-guarded rm helper (M1.3, see #566). Replaces direct `rm -rf` on
+# variable-derived targets with an allow-list check on the resolved
+# canonical path.
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/safe-rm.sh"
+
 echo -e "${BLUE}"
 cat << 'EOF'
 ╔═══════════════════════════════════════════════════════════════╗
@@ -209,7 +215,7 @@ if [ "$REPLACE" = "y" ]; then
     # enterprise 디렉토리 업데이트
     if [ -d "$TEMP_BACKUP/enterprise" ] && [ -n "$(ls -A "$TEMP_BACKUP/enterprise" 2>/dev/null)" ]; then
         mkdir -p "$BACKUP_DIR/enterprise/rules"
-        rm -rf "$BACKUP_DIR/enterprise"/*
+        safe_rm_rf "$BACKUP_DIR/enterprise"
         mkdir -p "$BACKUP_DIR/enterprise/rules"
         cp -r "$TEMP_BACKUP/enterprise"/* "$BACKUP_DIR/enterprise/" || error "Enterprise 백업 업데이트 실패"
         success "Enterprise 백업 업데이트됨"
@@ -217,20 +223,22 @@ if [ "$REPLACE" = "y" ]; then
 
     # global 디렉토리 업데이트
     if [ -d "$TEMP_BACKUP/global" ] && [ -n "$(ls -A "$TEMP_BACKUP/global" 2>/dev/null)" ]; then
-        rm -rf "$BACKUP_DIR/global"/*
+        safe_rm_rf "$BACKUP_DIR/global"
+        mkdir -p "$BACKUP_DIR/global"
         cp -r "$TEMP_BACKUP/global"/* "$BACKUP_DIR/global/" || error "글로벌 백업 업데이트 실패"
         success "글로벌 백업 업데이트됨"
     fi
 
     # project 디렉토리 업데이트
     if [ -d "$TEMP_BACKUP/project" ] && [ -n "$(ls -A "$TEMP_BACKUP/project" 2>/dev/null)" ]; then
-        rm -rf "$BACKUP_DIR/project"/*
+        safe_rm_rf "$BACKUP_DIR/project"
+        mkdir -p "$BACKUP_DIR/project"
         cp -r "$TEMP_BACKUP/project"/* "$BACKUP_DIR/project/" || error "프로젝트 백업 업데이트 실패"
         success "프로젝트 백업 업데이트됨"
     fi
 
     # 임시 백업 제거
-    rm -rf "$TEMP_BACKUP"
+    safe_rm_rf "$TEMP_BACKUP"
     info "임시 백업 제거됨"
 else
     success "타임스탬프 백업 유지: $TEMP_BACKUP"
