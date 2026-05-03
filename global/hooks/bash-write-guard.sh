@@ -28,6 +28,8 @@ set -euo pipefail
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
 # shellcheck source=lib/tokenize-shell.sh
 . "$LIB_DIR/tokenize-shell.sh"
+# shellcheck source=lib/path-utils.sh
+. "$LIB_DIR/path-utils.sh"
 
 # --- helpers ----------------------------------------------------------------
 
@@ -59,43 +61,9 @@ EOF
     exit 0
 }
 
-# resolve_path <raw_path>
-#   Expands ~/ and $HOME at the head, then resolves the path through
-#   realpath so symlinks collapse and macOS `/var/...` is canonicalized
-#   to `/private/var/...`. Falls back to a manual cleanup when realpath
-#   cannot resolve the path (BSD realpath rejects missing files).
-resolve_path() {
-    local p="$1"
-    [ -z "$p" ] && return 0
-    case "$p" in
-        '~')         p="${HOME:-$p}" ;;
-        '~/'*)       p="${HOME}/${p#'~/'}" ;;
-        '$HOME')     p="${HOME:-$p}" ;;
-        '$HOME/'*)   p="${HOME}/${p#'$HOME/'}" ;;
-    esac
-    local resolved
-    if command -v realpath >/dev/null 2>&1; then
-        resolved=$(realpath "$p" 2>/dev/null) || resolved=""
-    fi
-    if [ -z "$resolved" ]; then
-        # Fallback: resolve the parent directory (which usually exists)
-        # and reattach the basename. This collapses `//` and trailing
-        # `/` while keeping behavior consistent for write targets that
-        # don't exist yet.
-        local parent base
-        parent=$(dirname "$p")
-        base=$(basename "$p")
-        if [ -d "$parent" ] && command -v realpath >/dev/null 2>&1; then
-            local rp
-            rp=$(realpath "$parent" 2>/dev/null) || rp="$parent"
-            resolved="${rp%/}/$base"
-        else
-            # Last-resort manual cleanup.
-            resolved=$(printf '%s' "$p" | sed -e 's://*:/:g' -e 's:/$::')
-        fi
-    fi
-    printf '%s' "$resolved"
-}
+# resolve_path is provided by lib/path-utils.sh (sourced above).
+# This consolidation ensures sensitive-file-guard.sh and bash-write-guard.sh
+# share identical canonicalization semantics — see Issue #569.
 
 # is_sensitive_target <path>
 #   Path patterns that must NEVER be written by the Bash channel without an
