@@ -34,6 +34,19 @@ if ([string]::IsNullOrEmpty($FILE)) {
     exit 0
 }
 
+# Extract basename for template-file allow check (mirrors the bash variant).
+# Template files like .env.example never contain real secrets; allow them
+# BEFORE the broad .env.* block fires.
+$basename = Split-Path -Leaf $FILE
+$basenameLower = $basename.ToLowerInvariant().Trim()
+if ($basenameLower -eq '.env.example' -or
+    $basenameLower -like '.env.example.*' -or
+    $basenameLower -eq '.env.sample' -or
+    $basenameLower -eq '.env.template') {
+    New-HookAllowResponse
+    exit 0
+}
+
 # Check sensitive file extensions
 if ($FILE -match '(^|[/\\])\.env($|\.)') {
     New-HookDenyResponse -Reason "Access to sensitive file blocked: $FILE (protected extension)"
