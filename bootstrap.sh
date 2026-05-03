@@ -61,6 +61,43 @@ success() { echo -e "${GREEN}✅ $1${NC}"; }
 warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
 error() { echo -e "${RED}❌ $1${NC}"; exit 1; }
 
+# Path-guarded rm helper (M1.3, see #566).
+# This file is consumed via `curl | bash`, so the canonical helper at
+# scripts/lib/safe-rm.sh is unavailable when clone_repository() removes
+# a stale $INSTALL_DIR. The function is intentionally inlined here and
+# kept byte-equivalent in semantics with scripts/lib/safe-rm.sh.
+# Resolves the canonical path via `realpath -e`, then asserts it lies
+# under an allow-listed prefix before deleting. See safe-rm.sh for the
+# full threat model and allow-list rationale.
+safe_rm_rf() {
+    local raw="${1:-}"
+    if [ -z "$raw" ]; then
+        echo "safe_rm_rf: target required" >&2
+        return 1
+    fi
+    # Idempotent: missing target is not an error.
+    if [ ! -e "$raw" ] && [ ! -L "$raw" ]; then
+        return 0
+    fi
+    local target
+    target=$(realpath -e "$raw") || {
+        echo "safe_rm_rf: cannot resolve $raw" >&2
+        return 1
+    }
+    case "$target" in
+        "$HOME"/.claude/*) ;;
+        "$HOME"/.claude-backup/*) ;;
+        "$HOME"/claude_config_backup/*) ;;
+        /tmp/claude-*) ;;
+        /tmp/claude-config-*) ;;
+        *)
+            echo "safe_rm_rf: refused — $target is outside allow-listed prefix" >&2
+            return 1
+            ;;
+    esac
+    rm -rf -- "$target"
+}
+
 # 의존성 확인
 check_dependencies() {
     info "의존성 확인 중..."
@@ -209,7 +246,7 @@ clone_repository() {
         OVERWRITE=${OVERWRITE:-n}
 
         if [ "$OVERWRITE" = "y" ]; then
-            rm -rf "$INSTALL_DIR"
+            safe_rm_rf "$INSTALL_DIR"
         else
             info "기존 디렉토리를 사용합니다. git pull 실행..."
             cd "$INSTALL_DIR"
