@@ -10,6 +10,7 @@ on:
       - 'tests/hooks/fixtures/**'
       - 'tests/batch_drift_benchmark/**'
       - 'plugin/hooks/**'
+      - 'plugin-lite/hooks/**'
       - 'scripts/install.sh'
       - 'scripts/install.ps1'
       - 'scripts/install-manifest.sh'
@@ -44,6 +45,14 @@ jobs:
             # re-exec into it via the PATH checks in the hook itself.
             brew install jq bash
           fi
+
+      - name: Verify plugin lib drift (canonical SSOT, #568)
+        # The bundled validate-commit-message.sh in plugin/hooks/lib/ and
+        # plugin-lite/hooks/lib/ must match hooks/lib/ verbatim. Drift would
+        # ship strictly weaker enforcement to plugin marketplace users.
+        run: |
+          diff -q hooks/lib/validate-commit-message.sh plugin/hooks/lib/validate-commit-message.sh
+          diff -q hooks/lib/validate-commit-message.sh plugin-lite/hooks/lib/validate-commit-message.sh
 
       - name: Run hook tests
         run: bash tests/hooks/test-runner.sh

@@ -45,7 +45,12 @@ EOF
     exit 0
 }
 
-# --- Source shared validation library ---
+# --- Source shared validation library (fail-closed) ---
+# All install paths (development checkout, terminal install, plugin marketplace,
+# plugin-lite) MUST bundle the canonical validator. If it cannot be sourced the
+# hook refuses rather than silently falling back to a drifted inline copy
+# (#568). The previous inline fallback drifted from the canonical and shipped
+# strictly weaker enforcement for plugin marketplace users.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VALIDATOR=""
 
@@ -53,15 +58,18 @@ VALIDATOR=""
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." 2>/dev/null && pwd)"
 if [ -f "$REPO_ROOT/hooks/lib/validate-commit-message.sh" ]; then
     VALIDATOR="$REPO_ROOT/hooks/lib/validate-commit-message.sh"
-# Try 2: sibling lib/ directory (deployed to ~/.claude/hooks/)
+# Try 2: sibling lib/ directory (deployed to ~/.claude/hooks/ and plugin trees)
 elif [ -f "$SCRIPT_DIR/lib/validate-commit-message.sh" ]; then
     VALIDATOR="$SCRIPT_DIR/lib/validate-commit-message.sh"
 fi
 
-if [ -n "$VALIDATOR" ]; then
-    # shellcheck source=../../hooks/lib/validate-commit-message.sh
-    . "$VALIDATOR"
+if [ -z "$VALIDATOR" ]; then
+    echo "commit-message-guard: canonical validator not found at \$REPO_ROOT/hooks/lib/validate-commit-message.sh nor \$SCRIPT_DIR/lib/validate-commit-message.sh. Reinstall claude-config so hooks/lib/ is bundled alongside global/hooks/." >&2
+    exit 1
 fi
+
+# shellcheck source=../../hooks/lib/validate-commit-message.sh
+. "$VALIDATOR"
 
 # --- Read input from stdin ---
 INPUT=$(cat)
@@ -105,35 +113,8 @@ if [ -z "$MSG" ]; then
     allow_response
 fi
 
-# --- Validate using shared library (if available) or inline fallback ---
-if [ -n "$VALIDATOR" ]; then
-    REASON=$(validate_commit_message "$MSG" 2>&1) || deny_response "$REASON"
-else
-    # Inline fallback when the shared library is not available.
-    # Keep rules in sync with hooks/lib/validate-commit-message.sh.
-    if ! printf '%s' "$MSG" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|security)(\([a-z0-9._-]+\))?: .+'; then
-        deny_response "Commit message must follow Conventional Commits: 'type(scope): description' or 'type: description'. Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, security."
-    fi
-
-    DESC=$(printf '%s' "$MSG" | sed -E 's/^[^:]*:[[:space:]]*//')
-    FIRST_CHAR=$(printf '%s' "$DESC" | head -c1)
-    case "$FIRST_CHAR" in
-        a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z) ;;
-        *) deny_response "Commit message description must start with a lowercase letter." ;;
-    esac
-
-    case "$DESC" in
-        *.) deny_response "Commit message description must not end with a period." ;;
-    esac
-
-    if printf '%s' "$MSG" | grep -iqE '(claude|anthropic|ai-assisted|co-authored-by:[[:space:]]*claude|generated[[:space:]]+with)'; then
-        deny_response "Commit message must not contain AI/Claude attribution (claude, anthropic, ai-assisted, generated with, co-authored-by: claude)."
-    fi
-
-    if ! printf '%s' "$MSG" | perl -CSD -ne 'exit 1 if /[\x{1F300}-\x{1F9FF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}\x{1F1E0}-\x{1F1FF}]/' 2>/dev/null; then
-        deny_response "Commit message must not contain emojis."
-    fi
-fi
+# --- Validate using shared library (canonical SSOT, see #568) ---
+REASON=$(validate_commit_message "$MSG" 2>&1) || deny_response "$REASON"
 
 # All rules passed
 allow_response
