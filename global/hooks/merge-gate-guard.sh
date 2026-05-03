@@ -35,29 +35,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GH_CHECKS_TIMEOUT_SEC="${GH_CHECKS_TIMEOUT_SEC:-10}"
 
 # --- Response helpers ---
+# Use jq -nc --arg reason ... so the JSON library handles all escaping
+# (quotes, backslashes, newlines, tabs, carriage returns, etc.). This closes
+# the historical injection class where a crafted reason string concatenated
+# into the heredoc could flip the decision (issue #567 / sub-issue #579).
 deny_response() {
     local reason="$1"
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "$reason"
-  }
-}
-EOF
+    jq -nc \
+        --arg reason "$reason" \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $reason}}'
     exit 0
 }
 
 allow_response() {
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "allow"
-  }
-}
-EOF
+    jq -nc \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow"}}'
     exit 0
 }
 
