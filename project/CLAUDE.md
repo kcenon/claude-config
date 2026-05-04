@@ -17,6 +17,7 @@ Loaded every session via `alwaysApply: true`:
 
 Loaded when matching files are open:
 - `coding/` -- standards, error-handling, performance, safety, cpp-specifics, implementation-standards
+- `compliance/` -- per-standard rules (IEC 62304, ISO 13485, ISO 14971) for safety-regulated projects
 - `api/` -- api-design, architecture, observability, rest-api
 - `security.md` -- auth, input validation, secrets management
 - `project-management/` -- build, documentation, testing
