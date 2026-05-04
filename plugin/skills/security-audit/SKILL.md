@@ -7,6 +7,7 @@ context: fork
 agent: Explore
 argument-hint: "<file-or-directory>"
 finding_levels: [S1, S2, S3]
+iso_class: none
 ---
 
 # Security Audit Skill

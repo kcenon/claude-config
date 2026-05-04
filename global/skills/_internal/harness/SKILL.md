@@ -5,6 +5,7 @@ argument-hint: "[domain-or-project-description]"
 user-invocable: true
 disable-model-invocation: true
 loop_safe: false
+iso_class: none
 ---
 
 # Harness -- Agent Team & Skill Architect

@@ -4,6 +4,7 @@ description: "Provides documentation standards for README files, API references,
 model: haiku
 argument-hint: "<file-or-topic>"
 paths: "**/*.md, **/README*"
+iso_class: none
 ---
 
 # Documentation Skill

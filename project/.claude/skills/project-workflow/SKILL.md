@@ -9,6 +9,7 @@ allowed-tools:
   - Grep
   - Bash
 model: sonnet
+iso_class: none
 ---
 
 # Project Workflow Skill

@@ -6,6 +6,7 @@ user-invocable: true
 disable-model-invocation: true
 allowed-tools: "Read Edit Grep Glob Bash"
 loop_safe: false
+iso_class: none
 ---
 
 # /memory-review — Interactive Memory Triage

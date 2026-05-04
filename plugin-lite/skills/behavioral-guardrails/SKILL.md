@@ -1,6 +1,7 @@
 ---
 name: behavioral-guardrails
 description: Core behavioral corrections for LLM coding. Reduces over-engineering, surfaces assumptions, enforces surgical changes, and defines verifiable success criteria. Use when writing code, reviewing code, fixing bugs, or implementing features.
+iso_class: none
 ---
 
 # Behavioral Guardrails

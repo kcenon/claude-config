@@ -21,6 +21,7 @@ halt_conditions:
   - { type: limit, expr: "no new sources surface for 2 consecutive rounds" }
 on_halt: "Write report with partial findings and explicit coverage-gap section"
 loop_safe: true
+iso_class: none
 ---
 
 # Research Command
