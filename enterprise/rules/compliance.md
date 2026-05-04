@@ -1,5 +1,7 @@
 # Compliance Rules
 
+> **Scope note**: This file is the authority for organization-wide controls (SOC 2, GDPR, ISO 27001). For product-safety standards used by regulated-industry projects (medical devices, automotive, functional safety) — IEC 62304, ISO 13485, ISO 14971, ISO 26262, IEC 61508, DO-178C — see `project/.claude/rules/compliance/`. The two layers are complementary: this file applies to every project; the per-standard files load on demand via `paths:` triggers.
+
 Organization-wide compliance rules that apply to all projects.
 
 ## Data Protection
