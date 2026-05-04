@@ -147,3 +147,56 @@ When `--tier` is omitted, the skill runs at its declared `default_tier`. Unknown
 ### Cross-reference
 
 See `docs/TOKEN_OPTIMIZATION.md` for token-impact figures and empirical guidance on when each tier is appropriate.
+
+## Safety-Class Metadata
+
+Skills declare their applicability to safety-classified projects via frontmatter so consumers on the regulated-industry track can filter activities by the SW Safety Class of the calling project. The fields are metadata-only -- declaring a class does not change skill behavior; it exposes the contract that future filtering layers (e.g. `evidence-pack`'s manifest) can read.
+
+```yaml
+iso_class: A | B | C | none
+safety_class:                        # Optional, multi-domain map
+  iec_62304: A | B | C
+  iso_26262: QM | ASIL-A | ASIL-B | ASIL-C | ASIL-D
+  iec_61508: SIL-1 | SIL-2 | SIL-3 | SIL-4
+  do_178c:   A | B | C | D | E
+applies_at_or_above: A | B | C       # Optional, minimum class for participation
+```
+
+### `iso_class` (required)
+
+Every `SKILL.md` must declare `iso_class`. The value is the IEC 62304 §5.3 SW Safety Classification the skill applies to.
+
+| Value | Meaning |
+|-------|---------|
+| `A`   | Skill applies at every safety class (Class A and above). Safety-relevant skills (`traceability`, `evidence-pack`, `risk-control`) and any skill whose body explicitly references compliance, traceability, or evidence collection use this value. |
+| `B`   | Skill applies at Class B and above. Reserved for skills that introduce rigor only meaningful when the project handles non-serious-injury risk. |
+| `C`   | Skill applies at Class C only. Reserved for skills tied to life-supporting / life-sustaining device development. |
+| `none`| Default. Skill is not safety-relevant; it neither requires nor produces evidence the regulated-industry track depends on. Use this for general workflow skills (`git-status`, `documentation`, `pr-review`, etc.). |
+
+### `safety_class` (optional, multi-domain)
+
+When a skill needs to express applicability across more than the IEC 62304 axis, it adds a `safety_class:` map. The map's keys are domain identifiers; the values are domain-native enums. The keys are mutually independent -- a skill may set any subset.
+
+| Key | Domain | Values |
+|-----|--------|--------|
+| `iec_62304` | Medical-device software (IEC 62304:2006 + Amd 1:2015) | `A`, `B`, `C` |
+| `iso_26262` | Automotive functional safety (ISO 26262) | `QM`, `ASIL-A`, `ASIL-B`, `ASIL-C`, `ASIL-D` |
+| `iec_61508` | General functional safety (IEC 61508) | `SIL-1`, `SIL-2`, `SIL-3`, `SIL-4` |
+| `do_178c`   | Airborne software (RTCA DO-178C) | `A`, `B`, `C`, `D`, `E` |
+
+`safety_class.iec_62304` is informational; the canonical IEC 62304 declaration is `iso_class`. The two are kept consistent by convention -- if `iso_class: A` then `safety_class.iec_62304: A` (when present).
+
+### `applies_at_or_above` (optional)
+
+Names the minimum class at or above which the skill participates in regulated workflows. Consumers filter the active skill set by comparing the calling project's declared class against this field. Example: `applies_at_or_above: A` means the skill participates whenever the project is Class A, B, or C.
+
+### When to Apply
+
+Required for every `SKILL.md` (default `iso_class: none`). The validator (`scripts/validate_skills.sh`) emits a warning when the field is missing during the one-release grace period; subsequent releases convert the warning to a hard failure.
+
+### Cross-reference
+
+- IEC 62304 §5.3 source: `project/.claude/rules/compliance/iec-62304.md`
+- ISO 14971 risk-management context: `project/.claude/rules/compliance/iso-14971.md`
+- Validator: `scripts/validate_skills.sh`
+- Invariant: `global/skills/_internal/_shared/invariants.md`

@@ -31,3 +31,13 @@ Skills with iterative work (batch loops, CI polling, multi-round research, per-r
 Skills prepend a context label when emitting inline (e.g., `[Item 5/30] Required rules:`) and then copy the Core block verbatim. Optional block is added only when the skill's current phase touches those dimensions (direct pushes, batch pacing, epic closure, toolchain checks).
 
 Changes to canonical rules happen here. Skills that copy the block inline must stay in sync with this file.
+
+## Frontmatter Invariants
+
+Every `SKILL.md` must declare the following frontmatter fields:
+
+- `name` -- skill identifier (lowercase, digits, hyphens; max 64 chars)
+- `description` -- non-empty trigger text (max 1024 chars)
+- `iso_class` -- IEC 62304 SW Safety Class applicability: `A | B | C | none`. Default `none` for skills that are not safety-relevant. See `global/skills/_policy.md` "Safety-Class Metadata" for the field contract and the optional `safety_class` and `applies_at_or_above` companion fields.
+
+`scripts/validate_skills.sh` enforces these. The `iso_class` check is warn-only during the one-release grace period; subsequent releases convert the warning to a hard failure.
