@@ -23,7 +23,8 @@ tiers:
     ref_docs: [core, advanced]
     deep_checks: true
 default_tier: standard
-iso_class: none
+iso_class: A
+applies_at_or_above: A
 # ref_docs keys:
 #   core     -> reference/error-handling.md
 #   advanced -> reference/batch-mode.md, reference/team-mode.md,
@@ -195,6 +196,42 @@ else
     fi
 fi
 ```
+
+## Phase 0a -- Regulated-track detection
+
+After argument parsing, before any mode routing or PR work, detect whether the
+consumer project is on the regulated-industry track. Set `$REGULATED_TRACK=true`
+when the project root contains a `compliance/` directory (typically
+`compliance/iec-62304.md`, `iso-13485.md`, `iso-14971.md`); set
+`$REGULATED_TRACK=false` otherwise.
+
+```bash
+# Resolve the consumer-project root from the parsed PROJECT name (or current
+# cwd when invoked via the skill alias from inside a project).
+PROJECT_ROOT="${PROJECT_ROOT:-$(pwd)}"
+if [ -n "$PROJECT" ] && [ -d "$PROJECT_ROOT/$PROJECT" ]; then
+    PROJECT_ROOT="$PROJECT_ROOT/$PROJECT"
+fi
+
+if [ -d "$PROJECT_ROOT/compliance" ]; then
+    REGULATED_TRACK=true
+else
+    REGULATED_TRACK=false
+fi
+```
+
+**Behavior matrix:**
+
+| `$REGULATED_TRACK` | Effect on the rest of the skill |
+|--------------------|---------------------------------|
+| `false` (default)  | Skill proceeds exactly as documented in the existing phases below. Phase 5b and Phase 9b are skipped entirely. No behavior change relative to pre-#603 invocations. |
+| `true`             | After the existing Phase 5 (push and `gh pr create`) the skill runs Phase 5b (traceability impact injection). Before the existing Phase 10 (`gh pr merge`) the skill runs Phase 9b (evidence-attachment gate). All other phases are unchanged. |
+
+The detection is a single test on directory presence -- no parsing, no glob.
+When `compliance/` is absent the skill is functionally identical to its
+pre-#603 form; this is the most important functional invariant of this
+extension. The two regulated phases (5b and 9b) gate on `$REGULATED_TRACK=true`
+at every entry point and are no-ops otherwise.
 
 ## Instructions
 
@@ -392,12 +429,211 @@ After push, monitor CI with non-blocking polling (30s intervals, 10min max). Do 
 
 > See `reference/build-verification.md` for the full CI monitoring protocol, status interpretation table, and polling limits.
 
+### 5b. Traceability impact injection (regulated track only)
+
+**Gate:** runs only when `$REGULATED_TRACK=true` (see Phase 0a). Skipped
+entirely when the consumer project has no `compliance/` directory; non-regulated
+projects see no behavior change from this extension.
+
+After the push in Step 8 (and on every subsequent iteration that pushes new
+commits), compute the traceability cascade impacted by the diff and inject a
+`## Traceability Impact` section into the PR body. This surfaces, in narrative
+form, the same information the `traceability-guard` PreToolUse hook (#590,
+PR #593) checks silently. Reviewers see which downstream tests, risks, and
+clauses are touched without leaving the PR conversation.
+
+**Reuse rule (mandatory):** the cascade walk MUST source the shared library at
+`hooks/lib/validate-traceability.sh`. Do NOT re-derive cascade-walk logic in
+this skill body. The library is the single source of truth for cascade rules
+and is already used by `traceability-guard` (PreToolUse) and `pre-push` (git
+hook).
+
+```bash
+# Skip when the regulated track is off.
+if [ "$REGULATED_TRACK" != "true" ]; then
+    echo "pr-work: regulated track off -- Phase 5b skipped"
+    return 0
+fi
+
+# Source the shared cascade library. The library exposes
+# validate_traceability_range <base_ref> <head_ref> <repo_root>, but Phase 5b
+# needs the per-edge listing rather than a pass/fail return code, so it
+# additionally invokes the underlying graph_cascade_targets and
+# extract_doc_ids_from_path helpers the library exports.
+. "$PROJECT_ROOT/hooks/lib/validate-traceability.sh"
+
+BASE_REF=$(gh pr view "$PR_NUMBER" --repo "$ORG/$PROJECT" --json baseRefName -q .baseRefName)
+HEAD_REF="$HEAD_BRANCH"
+
+# Build the impact rows: one matrix row per touched doc_id whose cascade
+# graph carries downstream targets. Format is documented in
+# reference/traceability-impact-template.md.
+IMPACT_TABLE=$(cd "$PROJECT_ROOT" && \
+    git diff --name-only --diff-filter=ACMR "origin/$BASE_REF" "$HEAD_REF" \
+    | while IFS= read -r p; do
+        [ -n "$p" ] && extract_doc_ids_from_path "$PROJECT_ROOT" "$p"
+    done | sort -u | while IFS= read -r doc_id; do
+        [ -z "$doc_id" ] && continue
+        targets=$(graph_cascade_targets "$PROJECT_ROOT/docs/.index/graph.yaml" "$doc_id")
+        [ -n "$targets" ] && printf '%s\t%s\n' "$doc_id" "$(printf '%s' "$targets" | paste -sd, -)"
+    done)
+```
+
+**Injection rules** (full template:
+`reference/traceability-impact-template.md`):
+
+1. The injected section is bracketed by sentinel HTML comments
+   `<!-- traceability-impact:start -->` and `<!-- traceability-impact:end -->`.
+   On every re-run the skill replaces the existing block between those
+   sentinels rather than appending. This is the idempotency contract -- a
+   reviewer who refreshes the PR page does not see duplicated sections.
+2. The block is inserted at the very top of the PR body, before any
+   user-supplied content, so reviewers see the cascade at a glance.
+3. When `$IMPACT_TABLE` is empty (the diff touches no doc_id with cascade
+   targets), the injected block still appears -- with the literal line "No
+   traceability cascade impact detected for this diff." Empty-with-rationale
+   is auditable; silent omission is not.
+4. The PR body update goes through `gh pr edit "$PR_NUMBER" --body-file <tmp>`
+   so the rest of the body is preserved verbatim. The skill writes the new
+   body to a sibling `*.tmp` file and renames on success; a failed update
+   leaves the existing body intact.
+5. The sentinels are matched literally; the skill does not parse the markdown
+   in between. Manual edits to the impact table by a reviewer are overwritten
+   on the next push, which is the correct behavior -- the cascade is computed
+   from the diff, not asserted by hand.
+
+When the impact computation itself fails (e.g. the shared library exits
+non-zero), Phase 5b prints a one-line warning and continues; it does not block
+the PR. The next push retries.
+
+> See `reference/traceability-impact-template.md` for the exact markdown
+> template, the per-row format, sentinel comment placement, and the
+> failure-mode message. The template is the single source of truth for the
+> injected section's wording.
+
 ### 9. Iterate if Needed
 
 If workflows still fail, repeat steps 2-8. Max 3 retry attempts with 30s CI polling intervals. Each fix is a separate commit. Post a follow-up failure analysis comment at the start of each iteration.
 
 > See `reference/build-verification.md` for iteration limits, CI polling loop, and iteration rules.
 > See `reference/comment-templates.md` for the per-attempt follow-up comment template.
+
+### 9b. Evidence-attachment gate (regulated track only)
+
+**Gate:** runs only when `$REGULATED_TRACK=true` (see Phase 0a). Skipped
+entirely when the consumer project has no `compliance/` directory; non-regulated
+projects see no behavior change from this extension.
+
+After CI is green (Step 9 confirms every check passes) and immediately before
+the merge in Step 10, verify that the PR has the regulated metadata an
+auditor will need to reconstruct the change. The gate has two checks; both
+must pass for the merge to proceed.
+
+**Check (a) -- Linked-issue regulated YAML block.** The PR must reference at
+least one issue (via `Closes #N`, `Fixes #N`, or `Resolves #N` in the body),
+and the linked issue body must open with the regulated YAML block per the
+six format invariants documented in
+`global/skills/_internal/issue-create/reference/regulated-fields.md`
+"Embedded YAML block format":
+
+1. Block is the very first non-blank content of the issue body, fenced by
+   ` ```yaml ` and three backticks.
+2. Top-level key is `regulated:` (no alternative key).
+3. Field order is fixed: `requirement_id` -> `risk_level` -> `clause_refs`.
+4. Omitted optional fields are written as the literal `null`.
+5. `clause_refs:` is always block-style YAML list with `- ` markers.
+6. Exactly one blank line between the closing fence and the first 5W1H
+   heading.
+
+A linked issue without the block, or a block with only `null` fields where
+the per-issue-type matrix in `regulated-fields.md` requires a value, fails
+the gate. The skill prints the missing field name and the matrix row that
+demanded it.
+
+**Check (b) -- Fresh evidence pack manifest.** The PR body or one of the
+repository files added in the diff must reference an `evidence/<version>/`
+directory whose `manifest.yaml` was generated within the last 24 hours
+(`_meta.generated` timestamp inside the manifest). The 24-hour window
+matches a typical merge-window cadence; older manifests must be regenerated
+via `/evidence-pack <version> --force` before the merge proceeds. The
+manifest's required content per `kind` and `iso_class` follows the matrix
+in `reference/evidence-attachment-policy.md`.
+
+```bash
+# Skip when the regulated track is off.
+if [ "$REGULATED_TRACK" != "true" ]; then
+    echo "pr-work: regulated track off -- Phase 9b skipped"
+    return 0
+fi
+
+# Honor the documented override flag.
+if [ "$SKIP_EVIDENCE_GATE" = "true" ]; then
+    echo "pr-work: Phase 9b skipped via --skip-evidence-gate flag"
+    gh pr comment "$PR_NUMBER" --repo "$ORG/$PROJECT" \
+        --body "Evidence-attachment gate bypassed via --skip-evidence-gate. Reason: $SKIP_EVIDENCE_GATE_REASON"
+    return 0
+fi
+
+# Check (a) -- linked-issue regulated YAML block.
+PR_BODY=$(gh pr view "$PR_NUMBER" --repo "$ORG/$PROJECT" --json body -q .body)
+LINKED_ISSUES=$(printf '%s\n' "$PR_BODY" \
+    | grep -ioE '(closes|fixes|resolves)[[:space:]]*#[0-9]+' \
+    | grep -oE '[0-9]+' | sort -u)
+
+if [ -z "$LINKED_ISSUES" ]; then
+    echo "pr-work: Phase 9b -- PR has no linked issue (Closes / Fixes / Resolves)"
+    echo "         see reference/evidence-attachment-policy.md 'Failure messages'"
+    return 1
+fi
+
+for issue in $LINKED_ISSUES; do
+    ISSUE_BODY=$(gh issue view "$issue" --repo "$ORG/$PROJECT" --json body -q .body)
+    if ! printf '%s\n' "$ISSUE_BODY" | head -1 | grep -qF '```yaml'; then
+        echo "pr-work: Phase 9b -- linked issue #$issue lacks the regulated YAML block (rule 1 violated)"
+        return 1
+    fi
+    # Per-field validation against the per-issue-type matrix is delegated to
+    # reference/evidence-attachment-policy.md "Required fields by issue type".
+done
+
+# Check (b) -- fresh evidence pack manifest.
+EV_DIR=$(printf '%s\n' "$PR_BODY" | grep -oE 'evidence/[A-Za-z0-9._-]+' | head -1)
+if [ -z "$EV_DIR" ]; then
+    EV_DIR=$(cd "$PROJECT_ROOT" && \
+        git diff --name-only --diff-filter=ACMR "origin/$BASE_REF" "$HEAD_BRANCH" \
+        | grep -oE '^evidence/[A-Za-z0-9._-]+' | sort -u | head -1)
+fi
+if [ -z "$EV_DIR" ] || [ ! -f "$PROJECT_ROOT/$EV_DIR/manifest.yaml" ]; then
+    echo "pr-work: Phase 9b -- no evidence/<version>/manifest.yaml referenced or present"
+    return 1
+fi
+
+# Manifest freshness: _meta.generated must be within the last 24 hours.
+MANIFEST_TS=$(grep -E '^[[:space:]]*generated:' \
+    "$PROJECT_ROOT/$EV_DIR/manifest.yaml" \
+    | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+NOW_EPOCH=$(date -u +%s)
+MANIFEST_EPOCH=$(date -u -d "$MANIFEST_TS" +%s 2>/dev/null || echo 0)
+AGE_SECONDS=$(( NOW_EPOCH - MANIFEST_EPOCH ))
+if [ "$AGE_SECONDS" -lt 0 ] || [ "$AGE_SECONDS" -gt 86400 ]; then
+    echo "pr-work: Phase 9b -- $EV_DIR/manifest.yaml is older than 24h (generated=$MANIFEST_TS)"
+    echo "         regenerate via '/evidence-pack <version> --force' before merging"
+    return 1
+fi
+```
+
+**Override path.** When the regulated metadata is genuinely not yet ready
+but the merge cannot wait (e.g. an emergency hotfix cleared a blocking CI
+issue and the audit trail will be backfilled in a follow-up), the operator
+may pass `--skip-evidence-gate "<reason>"`. The skill posts the reason as a
+PR comment so the bypass is permanently recorded and exits Phase 9b with
+status 0. The flag is NOT a routine bypass; default-mode runs without it
+and the gate enforces the checks above.
+
+> See `reference/evidence-attachment-policy.md` for the per-issue-type and
+> per-iso-class evidence requirement matrix, the formal "within the last
+> 24h" definition, the full failure-message format, and the override-flag
+> contract.
 
 ### 10. Auto-Merge on Success
 
