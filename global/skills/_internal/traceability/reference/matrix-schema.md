@@ -46,6 +46,7 @@ Every row is one requirement and the evidence chain that satisfies it.
   clause_refs:                          # MANDATORY (may be empty list) — standard-clause references
     - IEC-62304-5.1.1
     - ISO-13485-7.3.3
+  soup_ids: []                          # OPTIONAL (may be empty list) — SOUP record IDs this requirement depends on; populated from docs/.index/soup.yaml when present
   status: complete                      # MANDATORY — see "Status Field" below
   notes: ""                             # OPTIONAL — free-form notes (kept for human review)
 ```
@@ -60,6 +61,7 @@ Every row is one requirement and the evidence chain that satisfies it.
 | `test_ids` | list[string] | Yes (may be empty) | Format `TC-{CAT}-{NNN}`. Empty list signals a `requirement_without_test` finding. |
 | `risk_ids` | list[string] | Yes (may be empty) | Format `H-{NN}`. Empty list is allowed and does not flag a finding by default. |
 | `clause_refs` | list[string] | Yes (may be empty) | Format `<STANDARD>-<NUMBER>`, e.g. `IEC-62304-5.1.1`. Validated against `compliance/` when that directory exists. |
+| `soup_ids` | list[string] | No (may be empty) | Format `SOUP-{NNN}`. SOUP records this requirement depends on; populated from `docs/.index/soup.yaml` when present (produced by the `soup-inventory` skill). Empty list and omission are both permitted. |
 | `status` | enum | Yes | One of `complete`, `incomplete`, `deferred`, `needs_review`. See table below. |
 | `notes` | string | No | Free-form, single line. Auditors read this; keep it factual. |
 
