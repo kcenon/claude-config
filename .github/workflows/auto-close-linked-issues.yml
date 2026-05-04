@@ -1,0 +1,117 @@
+name: Auto-close linked issues on develop merge
+
+# Closes issues referenced via "Closes #N" / "Fixes #N" / "Resolves #N" in a PR
+# body when the PR is merged into a non-default branch.
+#
+# Background: GitHub's built-in auto-close mechanism only fires when a PR is
+# merged into the repository's default branch. In this repo the default branch
+# is `main`, but the integration branch is `develop`; nine epic PRs (#592-#606)
+# all required a manual `gh issue close` post-merge because the closing
+# keywords were ignored on develop merges. See issue #607.
+#
+# This workflow runs only when:
+#   1. The PR was merged (not closed-without-merge).
+#   2. The base branch is NOT the default branch (i.e. develop, release/*,
+#      etc.). For PRs to the default branch, GitHub already handles the close.
+#
+# Permissions: needs `issues: write` to close issues, `pull-requests: read`
+# to read the PR body.
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  issues: write
+  pull-requests: read
+  contents: read
+
+jobs:
+  close-linked-issues:
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref != github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close issues referenced via closing keywords
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr.body || '';
+            const baseBranch = pr.base.ref;
+            const defaultBranch = context.payload.repository.default_branch;
+
+            core.info(`PR #${pr.number} merged into ${baseBranch} (default: ${defaultBranch}).`);
+
+            // Closing keywords supported by GitHub:
+            // close, closes, closed, fix, fixes, fixed, resolve, resolves, resolved
+            // Case-insensitive. Optional colon. Optional whitespace.
+            const keywordPattern = /\b(close[ds]?|fix(?:e[ds])?|resolve[ds]?)\b\s*:?\s*#(\d+)/gi;
+
+            const issueNumbers = new Set();
+            let match;
+            while ((match = keywordPattern.exec(body)) !== null) {
+              issueNumbers.add(parseInt(match[2], 10));
+            }
+
+            if (issueNumbers.size === 0) {
+              core.info('No closing-keyword references found in PR body. Nothing to close.');
+              return;
+            }
+
+            core.info(`Found ${issueNumbers.size} issue reference(s): ${[...issueNumbers].join(', ')}`);
+
+            const results = [];
+            for (const issueNumber of issueNumbers) {
+              try {
+                const { data: issue } = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                });
+
+                if (issue.pull_request) {
+                  core.info(`#${issueNumber} is a PR, not an issue. Skipping.`);
+                  results.push({ number: issueNumber, action: 'skipped (is PR)' });
+                  continue;
+                }
+
+                if (issue.state === 'closed') {
+                  core.info(`Issue #${issueNumber} is already closed. Skipping.`);
+                  results.push({ number: issueNumber, action: 'skipped (already closed)' });
+                  continue;
+                }
+
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  body: `Closed by #${pr.number} (merged into \`${baseBranch}\`).`,
+                });
+
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  state: 'closed',
+                  state_reason: 'completed',
+                });
+
+                core.info(`Closed issue #${issueNumber}.`);
+                results.push({ number: issueNumber, action: 'closed' });
+              } catch (error) {
+                core.warning(`Failed to close issue #${issueNumber}: ${error.message}`);
+                results.push({ number: issueNumber, action: `error: ${error.message}` });
+              }
+            }
+
+            const summary = [
+              '## Auto-close linked issues',
+              '',
+              `PR #${pr.number} merged into \`${baseBranch}\` (non-default).`,
+              '',
+              '| Issue | Action |',
+              '|-------|--------|',
+              ...results.map(r => `| #${r.number} | ${r.action} |`),
+            ].join('\n');
+
+            await core.summary.addRaw(summary).write();
