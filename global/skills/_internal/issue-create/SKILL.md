@@ -6,7 +6,8 @@ user-invocable: true
 disable-model-invocation: true
 allowed-tools: "Bash(gh issue *)"
 loop_safe: false
-iso_class: none
+iso_class: A
+applies_at_or_above: A
 ---
 
 # Issue Create Command
@@ -61,6 +62,77 @@ else
     fi
 fi
 ```
+
+## Phase 0a -- Regulated-track detection
+
+After organization detection, before any prompts, detect whether the consumer project
+is on the regulated-industry track. Set `$REGULATED_TRACK=true` when the project root
+contains a `compliance/` directory (typically `compliance/iec-62304.md`, `iso-13485.md`,
+`iso-14971.md`); set `$REGULATED_TRACK=false` otherwise.
+
+```bash
+# Resolve the consumer-project root from the parsed PROJECT name (or current cwd
+# when invoked via the skill alias from inside a project).
+PROJECT_ROOT="${PROJECT_ROOT:-$(pwd)}"
+if [ -d "$PROJECT_ROOT/$PROJECT" ]; then
+    PROJECT_ROOT="$PROJECT_ROOT/$PROJECT"
+fi
+
+if [ -d "$PROJECT_ROOT/compliance" ]; then
+    REGULATED_TRACK=true
+else
+    REGULATED_TRACK=false
+fi
+```
+
+**Behavior matrix:**
+
+| `$REGULATED_TRACK` | Effect on the rest of the skill |
+|--------------------|---------------------------------|
+| `false` (default) | Skill proceeds exactly as documented in sections 1-5 below. No regulated-field prompts. No template change. No behavior change relative to pre-#602 invocations. |
+| `true` | After the standard prompts in section 1, the skill enters Phase 0b (regulated-fields prompts) before proceeding to section 2. The created issue body is built from the regulated-issue templates under `reference/templates/`, with the regulated metadata embedded in a YAML code block at the top so the `traceability` skill's next run picks it up. |
+
+The detection is a single test on directory presence -- no parsing, no glob. When
+`compliance/` is absent the skill is functionally identical to its pre-#602 form;
+this is the most important functional invariant of this extension.
+
+## Phase 0b -- Regulated-fields prompts (only when `$REGULATED_TRACK=true`)
+
+Skipped entirely when `$REGULATED_TRACK=false`.
+
+When the regulated track is active, after gathering the standard fields in section 1
+the skill prompts for the additional metadata defined by the per-issue-type matrix in
+`reference/regulated-fields.md`:
+
+| Field | Prompt (asked when required by the type matrix) |
+|-------|--------------------------------------------------|
+| `requirement_id` | "Which requirement does this issue trace to (e.g. SRS-CALC-001)?" |
+| `risk_level` | "What is the ISO 14971 risk level after controls (acceptable / ALARP / unacceptable)?" |
+| `clause_refs` | "Which standard clauses justify this change? Comma-separated, e.g. IEC-62304-5.3.3, ISO-14971-7.3" |
+
+**Field requirement enforcement:** see the matrix in `reference/regulated-fields.md`.
+The skill MUST halt with a clear message when a required field is missing -- it MUST
+NOT silently create a bare issue. Optional fields may be left blank.
+
+**Field validation rules** (also in `reference/regulated-fields.md`):
+
+1. `requirement_id` matches `^SRS-[A-Z0-9]+-[0-9]+$`. When `docs/.index/manifest.yaml`
+   is present in the project, the value must resolve via the manifest's
+   `id_routes.SRS` entry; unknown IDs are rejected with a list of close matches.
+2. `risk_level` is one of the three ISO 14971 acceptability levels: `acceptable`,
+   `ALARP`, `unacceptable`. Case-sensitive (matches the `risk-control` skill's
+   record schema).
+3. `clause_refs[]` entries match the format `<STANDARD>-<NUMBER>` per
+   `traceability/reference/matrix-schema.md` (e.g. `IEC-62304-5.3.3`,
+   `ISO-13485-7.3.3`, `ISO-14971-7.3`). When the matching `compliance/<standard>.md`
+   file is present, each ID must resolve to an `> **Clause**: <id>` anchor in that
+   file; unknown IDs are rejected.
+
+The exact embedded YAML block format is documented in
+`reference/regulated-fields.md` "Embedded YAML block format". Both regulated
+templates under `reference/templates/` open with that block so the traceability
+skill (and the future `pr-work` regulated extension landing in #603) can parse the
+regulated metadata from the issue body without rerunning this skill.
 
 ## Options
 
