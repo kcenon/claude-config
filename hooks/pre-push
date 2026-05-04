@@ -67,4 +67,43 @@ if [ "${CLAUDE_PREFLIGHT:-0}" = "1" ]; then
     fi
 fi
 
+# Traceability cascade enforcement (issue #590).
+# Opt-in: silently skipped when docs/.index/graph.yaml is absent.
+# Sources the same library used by the PreToolUse traceability-guard, so
+# both layers fail or pass identically for the same diff.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+TRACE_VALIDATOR=""
+if [ -f "$SCRIPT_DIR/lib/validate-traceability.sh" ]; then
+    TRACE_VALIDATOR="$SCRIPT_DIR/lib/validate-traceability.sh"
+fi
+if [ -n "$TRACE_VALIDATOR" ]; then
+    REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+    if [ -f "$REPO_ROOT/docs/.index/graph.yaml" ]; then
+        # shellcheck disable=SC1090
+        . "$TRACE_VALIDATOR"
+        # Re-read stdin lines from the in-memory snapshot. git fed us the
+        # push refs above; re-derive the same ranges and validate each.
+        # If the diff is empty we skip silently.
+        # Note: we cannot re-read stdin (already consumed by the loop above)
+        # so we validate the symbolic range "${remote_ref:-origin/develop}..HEAD"
+        # which matches what gh pr create would compare against.
+        BASE_REF=""
+        if git -C "$REPO_ROOT" show-ref --verify --quiet refs/remotes/origin/develop; then
+            BASE_REF="origin/develop"
+        elif git -C "$REPO_ROOT" show-ref --verify --quiet refs/heads/develop; then
+            BASE_REF="develop"
+        fi
+        if [ -n "$BASE_REF" ]; then
+            if ! validate_traceability_range "$BASE_REF" "HEAD" "$REPO_ROOT"; then
+                echo "" >&2
+                echo "pre-push hook rejected the push: traceability cascade incomplete." >&2
+                echo "Update the cascade targets declared in docs/.index/graph.yaml," >&2
+                echo "then re-run the push. See the BROKEN lines above for the" >&2
+                echo "specific edges that need a sibling commit." >&2
+                exit 1
+            fi
+        fi
+    fi
+fi
+
 exit 0

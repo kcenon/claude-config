@@ -139,6 +139,12 @@ info "검증 라이브러리 설치 중..."
 mkdir -p "$GIT_HOOKS_DIR/lib"
 cp "$SCRIPT_DIR/lib/validate-commit-message.sh" "$GIT_HOOKS_DIR/lib/"
 chmod +x "$GIT_HOOKS_DIR/lib/validate-commit-message.sh"
+# Traceability cascade validator (issue #590). Sourced by the pre-push hook
+# above; opt-in (no-op when docs/.index/graph.yaml is absent).
+if [ -f "$SCRIPT_DIR/lib/validate-traceability.sh" ]; then
+    cp "$SCRIPT_DIR/lib/validate-traceability.sh" "$GIT_HOOKS_DIR/lib/"
+    chmod +x "$GIT_HOOKS_DIR/lib/validate-traceability.sh"
+fi
 success "검증 라이브러리 설치 완료!"
 
 echo ""

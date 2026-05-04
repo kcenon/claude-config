@@ -1033,11 +1033,12 @@ this catalog for the canonical hook inventory.
 | [`task-created-validator.sh`](#task-created-validator) | TaskCreated (sync, blocking) | yes |
 | [`team-limit-guard.sh`](#team-limit-guard) | PreToolUse (TeamCreate) | yes |
 | [`tool-failure-logger.sh`](#tool-failure-logger) | ToolFailure | yes |
+| [`traceability-guard.sh`](#traceability-guard) | PreToolUse (Bash) | yes |
 | [`version-check.sh`](#version-check) | SessionStart | yes |
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
 | [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 35 bash hooks, 35 with PowerShell counterparts._
+_Total: 36 bash hooks, 36 with PowerShell counterparts._
 
 ### Hook Details
 
@@ -1585,6 +1586,23 @@ Logs tool execution failures for debugging and analysis.
 | Response format | none (lifecycle event, no JSON output needed) |
 | PowerShell counterpart | present (`tool-failure-logger.ps1`) |
 | Source | `global/hooks/tool-failure-logger.sh` |
+
+### traceability-guard
+
+_File:_ `traceability-guard.sh`
+
+_Anchor:_ `#traceability-guard`
+
+Deterministic traceability cascade validator.
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | hookSpecificOutput with hookEventName |
+| PowerShell counterpart | present (`traceability-guard.ps1`) |
+| Source | `global/hooks/traceability-guard.sh` |
 
 ### version-check
 

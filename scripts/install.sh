@@ -680,10 +680,11 @@ PY
         fi
     fi
 
-    # 공유 검증 라이브러리 설치 (commit-message-guard.sh 및 pr-language-guard.sh에서 사용)
+    # 공유 검증 라이브러리 설치 (commit-message-guard.sh, pr-language-guard.sh,
+    # traceability-guard.sh가 사용)
     if [ -d "$BACKUP_DIR/hooks/lib" ]; then
         ensure_dir "$HOME/.claude/hooks/lib"
-        for lib in validate-commit-message.sh validate-language.sh; do
+        for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
             if [ -f "$BACKUP_DIR/hooks/lib/$lib" ]; then
                 cp "$BACKUP_DIR/hooks/lib/$lib" "$HOME/.claude/hooks/lib/"
                 chmod +x "$HOME/.claude/hooks/lib/$lib"
