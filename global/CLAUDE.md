@@ -48,6 +48,7 @@ When the user types one of the keywords below as a leading command (with or with
 | `implement-all-levels` | `~/.claude/skills/_internal/implement-all-levels/SKILL.md`  |
 | `fleet-orchestrator`   | `~/.claude/skills/_internal/fleet-orchestrator/SKILL.md`    |
 | `traceability`         | `~/.claude/skills/_internal/traceability/SKILL.md`          |
+| `evidence-pack`        | `~/.claude/skills/_internal/evidence-pack/SKILL.md`         |
 
 Ambiguity rule: if a keyword appears mid-sentence (not as a leading command) or inside quotes, ask whether the user meant the skill or a literal mention before invoking.
 
