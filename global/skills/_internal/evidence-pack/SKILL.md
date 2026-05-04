@@ -31,6 +31,8 @@ tiers:
     ref_docs: [manifest, sources]
     deep_checks: true
 default_tier: standard
+iso_class: A
+applies_at_or_above: A
 # ref_docs keys:
 #   manifest -> reference/manifest-schema.md
 #   sources  -> reference/source-mapping.md

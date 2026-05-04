@@ -29,6 +29,8 @@ tiers:
     ref_docs: [schema, validation]
     deep_checks: true
 default_tier: standard
+iso_class: A
+applies_at_or_above: A
 # ref_docs keys:
 #   schema     -> reference/matrix-schema.md
 #   validation -> reference/validation-rules.md
