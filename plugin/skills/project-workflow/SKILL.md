@@ -1,6 +1,7 @@
 ---
 name: project-workflow
 description: Provides workflow guidelines for problem-solving, git commits, GitHub issues, PRs, build management, and testing. Use when planning tasks, creating issues, submitting PRs, managing builds, or writing tests.
+iso_class: none
 ---
 
 # Project Workflow Skill

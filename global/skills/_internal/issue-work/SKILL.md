@@ -22,6 +22,7 @@ tiers:
     ref_docs: [core, advanced]
     deep_checks: true
 default_tier: standard
+iso_class: none
 # ref_docs keys:
 #   core     -> reference/error-handling.md
 #   advanced -> reference/batch-mode.md, reference/team-mode.md

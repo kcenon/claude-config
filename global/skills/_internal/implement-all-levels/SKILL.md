@@ -5,6 +5,7 @@ argument-hint: "<feature-description> [--solo|--team]"
 user-invocable: true
 disable-model-invocation: true
 loop_safe: false
+iso_class: none
 ---
 
 # Implement All Levels Command

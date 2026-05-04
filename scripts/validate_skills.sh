@@ -163,7 +163,25 @@ validate_skill() {
         fi
     fi
 
-    # 4. 파일 라인 수 검증 (권장: 500줄 이하)
+    # 4. iso_class 필드 검증 (issue #597)
+    # P1 grace period: 누락 시 WARNING. 다음 릴리즈에서 hard FAIL로 전환 예정 (TODO)
+    local iso_class
+    iso_class=$(get_field "$frontmatter" "iso_class")
+    if [ -z "$iso_class" ]; then
+        warning "iso_class 필드 없음 (P1 grace period: 다음 릴리즈에서 hard FAIL로 전환 예정)"
+        record_warning
+    else
+        # iso_class 값 검증: A | B | C | none
+        if ! echo "$iso_class" | grep -qE "^(A|B|C|none)$"; then
+            warning "iso_class 값 형식 오류: '$iso_class' (허용: A | B | C | none) (P1 grace period)"
+            record_warning
+        else
+            success "iso_class 유효: '$iso_class'"
+            record_pass
+        fi
+    fi
+
+    # 5. 파일 라인 수 검증 (권장: 500줄 이하)
     local line_count
     line_count=$(wc -l < "$skill_file" | tr -d ' ')
     if [ "$line_count" -gt 500 ]; then
@@ -174,7 +192,7 @@ validate_skill() {
         record_pass
     fi
 
-    # 5. reference 디렉토리 확인
+    # 6. reference 디렉토리 확인
     local skill_dir
     skill_dir=$(dirname "$skill_file")
     if [ -d "${skill_dir}/reference" ]; then
@@ -199,7 +217,7 @@ validate_skill() {
         fi
     fi
 
-    # 6. 프론트매터 대 본문 일관성 (drift)
+    # 7. 프론트매터 대 본문 일관성 (drift)
     if echo "$frontmatter" | grep -qE "^(max_iterations|halt_condition|halt_conditions):"; then
         if ! grep -qiE "(loop|retry|iteration|poll)" "$skill_file"; then
             warning "max_iterations/halt_condition(s) 선언되었으나 본문에 loop/retry/iteration/poll 참조 없음"
@@ -210,7 +228,7 @@ validate_skill() {
         fi
     fi
 
-    # 6a. P1-c (issue #458): legacy halt_condition 단일 키 deprecation
+    # 7a. P1-c (issue #458): legacy halt_condition 단일 키 deprecation
     if echo "$frontmatter" | grep -qE "^halt_condition:[[:space:]]"; then
         warning "halt_condition (legacy) 키가 사용됨 — halt_conditions array form으로 마이그레이션 필요 (P1 grace period; 다음 릴리즈에서 제거 예정)"
         record_warning

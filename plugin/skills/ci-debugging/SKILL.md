@@ -8,6 +8,7 @@ argument-hint: "<run-id-or-url>"
 paths: ".github/workflows/**, Makefile, CMakeLists.txt"
 when_to_use: "CI failure, build error, test timeout"
 finding_levels: [S1, S2, S3]
+iso_class: none
 ---
 
 # CI/CD Debugging Skill

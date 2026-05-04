@@ -14,6 +14,7 @@ halt_conditions:
   - { type: success, expr: "all index files generated under docs/.index/" }
   - { type: failure, expr: "manifest generation or write step errors out" }
 on_halt: "Report which index files were produced before failure and stop"
+iso_class: none
 ---
 
 # Document Index Generator

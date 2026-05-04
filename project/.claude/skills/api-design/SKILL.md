@@ -12,6 +12,7 @@ model: sonnet
 argument-hint: "<endpoint-or-file>"
 paths: "**/api/**, **/routes/**, **/handlers/**"
 when_to_use: "designing or reviewing API endpoints"
+iso_class: none
 ---
 
 # API Design Skill

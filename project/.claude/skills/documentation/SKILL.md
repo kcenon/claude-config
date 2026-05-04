@@ -9,6 +9,7 @@ allowed-tools:
 model: haiku
 argument-hint: "<file-or-topic>"
 paths: "**/*.md, **/README*"
+iso_class: none
 ---
 
 # Documentation Skill

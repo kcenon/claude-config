@@ -13,6 +13,7 @@ halt_conditions:
   - { type: failure, expr: "integrity check fails" }
 on_halt: "Report incomplete release state, leave tag/PR in whatever state they are in, do not force-publish"
 loop_safe: false
+iso_class: none
 ---
 
 # Release Command

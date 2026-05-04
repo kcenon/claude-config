@@ -6,6 +6,7 @@ user-invocable: true
 disable-model-invocation: true
 allowed-tools: "Bash(gh issue *)"
 loop_safe: false
+iso_class: none
 ---
 
 # Issue Create Command

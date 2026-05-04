@@ -11,6 +11,7 @@ halt_conditions:
   - { type: fallback, expr: "failure maps to an unknown error class not in reference/known-fixes.md" }
 on_halt: "Escalate to user with failing log excerpt and classification result"
 loop_safe: true
+iso_class: none
 ---
 
 # ci-fix Skill

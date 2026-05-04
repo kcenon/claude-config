@@ -11,6 +11,7 @@ halt_conditions:
   - { type: limit,   expr: "--max-parallel worker pool drains with no pending items" }
 on_halt: "Render final fleet-status table with per-repo outcome and exit"
 loop_safe: false
+iso_class: none
 ---
 
 # Fleet Orchestrator -- Parallel Multi-Repo Directive Executor
