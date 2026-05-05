@@ -119,21 +119,24 @@ rather than referencing avoids the "the cited URL is dead at audit time" failure
 
 ## kind: risk_file
 
-Snapshot of the project's risk-management file.
+Snapshot of the project's risk-management file produced by the sibling `risk-control` skill.
 
 | Field | Value |
 |-------|-------|
-| **Source presence check** | `[[ -d risk-file ]]` |
-| **Required tools** | None. |
-| **Collection command(s)** | `mkdir -p evidence/<version>/risk_file`<br>`cp -R risk-file/. evidence/<version>/risk_file/` |
-| **Output layout** | Mirror of `risk-file/` under `evidence/<version>/risk_file/`. Subdirectory structure preserved. |
-| **sha256 strategy** | Directory listing. |
+| **Source presence check** | `[[ -f docs/.index/risk-file.yaml ]]` |
+| **Required tools** | None (plain file copy). |
+| **Collection command(s)** | `mkdir -p evidence/<version>/risk_file`<br>`cp docs/.index/risk-file.yaml evidence/<version>/risk_file/risk-file.yaml` |
+| **Output layout** | Single file: `evidence/<version>/risk_file/risk-file.yaml`. The `risk_file/` subdirectory is retained for symmetry with other kinds (one directory per kind), but contains exactly one file. |
+| **sha256 strategy** | Single file: `sha256sum evidence/<version>/risk_file/risk-file.yaml`. |
 | **Related clauses** | `IEC-62304-7.1.1`, `IEC-62304-7.2.1`, `IEC-62304-7.3.3`, `ISO-13485-7.3.3` |
 
-The risk file is owned by the upcoming sibling `risk-control` skill (P1-2, issue #596).
-Until that skill is shipped, this collector simply mirrors whatever a project hand-curates
-under `risk-file/`. Once `risk-control` lands, the pack will include its generated artifacts
-without changes here -- the directory mirror covers both cases.
+The risk file is owned by the sibling `risk-control` skill (issue #596, PR #599) and is
+emitted as a single normalized YAML file at `docs/.index/risk-file.yaml`. The collection
+contract is **single file**: this collector copies that one file verbatim and does not
+attempt to mirror a `risk-file/` directory. Future evidence-pack consumers must treat
+`risk_file` as a single-file kind -- if a project ever needs additional risk artifacts,
+those should be introduced under a new `kind` rather than by promoting `risk_file` to a
+directory mirror (which would be a backward-incompatible schema change).
 
 ## Atomic Write Pattern
 
