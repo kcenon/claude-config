@@ -104,6 +104,26 @@ assert_accept "fix: anthropic API fallback" "casual 'anthropic API'"
 assert_accept "docs: clarify Claude API behavior" "casual 'Claude API behavior'"
 
 echo ""
+echo "[AI attribution — config-filename references allowed (issue #608)]"
+# Project root config filenames are legitimate file references, not author
+# attribution. The validator must allow them in subjects so commit messages
+# that genuinely modify these files can name them precisely.
+assert_accept "docs: update CLAUDE.md routing index" "filename ref: CLAUDE.md in subject"
+assert_accept "fix: correct CLAUDE.local.md gitignore path" "filename ref: CLAUDE.local.md in subject"
+assert_accept "refactor: move CLAUDE config loader" "narrative ref: 'CLAUDE config' inline"
+assert_accept "chore: bump CLAUDE.md version field" "filename ref: CLAUDE.md mid-subject"
+assert_accept "docs(claude): clarify routing in CLAUDE.md" "scope + filename in subject"
+
+echo ""
+echo "[AI attribution — known reject forms still blocked (issue #608)]"
+# Regression guard: tightening the false-positive surface above must not
+# loosen the deliberate reject surface. Each of these is a representative
+# from the three attribution patterns (trailer / emoji / prose).
+assert_reject "feat: generated with Claude" "prose: 'generated with Claude'"
+assert_reject "fix: created by Anthropic team" "prose: 'created by Anthropic'"
+assert_reject "docs: written using Claude assistance" "prose: 'written using Claude'"
+
+echo ""
 echo "[emoji detection]"
 EMOJI_PARTY=$(printf '\xf0\x9f\x8e\x89')
 assert_reject "feat: ${EMOJI_PARTY} party hat" "emoji party face"

@@ -89,6 +89,23 @@ assert_allow '{"tool_input":{"command":"git commit -m \"fix: anthropic API fallb
 assert_allow '{"tool_input":{"command":"git commit -m \"docs: clarify Claude API behavior\""}}' "casual 'Claude API behavior' → allow"
 
 echo ""
+echo "[AI attribution — config-filename references allowed (issue #608)]"
+# Both enforcement layers (PreToolUse guard and git commit-msg hook) source
+# the same library, so the filename-allow surface must be covered here too.
+# These cases exercise the -m extraction path of the PreToolUse guard.
+assert_allow '{"tool_input":{"command":"git commit -m \"docs: update CLAUDE.md routing index\""}}' "filename ref: CLAUDE.md → allow"
+assert_allow '{"tool_input":{"command":"git commit -m \"fix: correct CLAUDE.local.md gitignore path\""}}' "filename ref: CLAUDE.local.md → allow"
+assert_allow '{"tool_input":{"command":"git commit -m \"refactor: move CLAUDE config loader\""}}' "narrative ref: 'CLAUDE config' → allow"
+
+echo ""
+echo "[AI attribution — known reject forms still blocked (issue #608)]"
+# Regression guard: the false-positive surface above must not loosen the
+# reject surface. One representative per attribution prose pattern.
+assert_deny '{"tool_input":{"command":"git commit -m \"feat: generated with Claude\""}}' "prose: 'generated with Claude' → deny"
+assert_deny '{"tool_input":{"command":"git commit -m \"fix: created by Anthropic team\""}}' "prose: 'created by Anthropic' → deny"
+assert_deny '{"tool_input":{"command":"git commit -m \"docs: written using Claude assistance\""}}' "prose: 'written using Claude' → deny"
+
+echo ""
 echo "[emoji detection]"
 EMOJI_PARTY=$(printf '\xf0\x9f\x8e\x89')
 assert_deny "{\"tool_input\":{\"command\":\"git commit -m \\\"feat: ${EMOJI_PARTY} party hat\\\"\"}}" "emoji party face → deny"
