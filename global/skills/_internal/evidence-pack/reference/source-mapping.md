@@ -138,6 +138,33 @@ attempt to mirror a `risk-file/` directory. Future evidence-pack consumers must 
 those should be introduced under a new `kind` rather than by promoting `risk_file` to a
 directory mirror (which would be a backward-incompatible schema change).
 
+## kind: soup_register
+
+Snapshot of the project's SOUP (Software Of Unknown Provenance) register produced by the
+sibling `soup-inventory` skill.
+
+| Field | Value |
+|-------|-------|
+| **Source presence check** | `[[ -f docs/.index/soup.yaml ]]` |
+| **Required tools** | None (plain file copy). |
+| **Collection command(s)** | `mkdir -p evidence/<version>/soup_register`<br>`cp docs/.index/soup.yaml evidence/<version>/soup_register/soup.yaml`<br>`[[ -f docs/.index/soup.md ]] && cp docs/.index/soup.md evidence/<version>/soup_register/soup.md \|\| true` |
+| **Output layout** | Primary file: `evidence/<version>/soup_register/soup.yaml`. Optional companion: `evidence/<version>/soup_register/soup.md` when the source `docs/.index/soup.md` exists. |
+| **sha256 strategy** | Single file: `sha256sum evidence/<version>/soup_register/soup.yaml`. The optional `soup.md` companion is documentation only and is not factored into the kind's checksum. |
+| **Related clauses** | `IEC-62304-5.3.3`, `IEC-62304-8.1.1` |
+
+The SOUP register is owned by the sibling `soup-inventory` skill (issue #601, PR #604) and
+is emitted as a single normalized YAML file at `docs/.index/soup.yaml`, with an optional
+human-readable per-supplier report at `docs/.index/soup.md` (produced by
+`/soup-inventory report`). The collection contract is **single file**: the canonical
+artifact is `soup.yaml` and the kind's `sha256` is computed over that file alone. The
+`soup.md` companion is collected when present so the audit pack carries the same
+human-readable view the project ships, but its absence does not affect the kind's status
+(`collected` when `soup.yaml` was copied successfully) and it is not part of the checksum.
+Future evidence-pack consumers must treat `soup_register` as a single-file kind -- if a
+project ever needs additional SOUP artifacts beyond the YAML and its Markdown render,
+those should be introduced under a new `kind` rather than by promoting `soup_register` to
+a directory mirror (which would be a backward-incompatible schema change).
+
 ## Atomic Write Pattern
 
 Every collector writes through a temp path, then renames on success:

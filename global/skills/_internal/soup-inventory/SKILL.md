@@ -44,7 +44,8 @@ the regulated-industry track. The skill is the third-party-software counterpart 
 `risk-control` (which owns the hazard records) and `traceability` (which owns the
 requirements-to-evidence matrix): it produces and maintains the per-project SOUP file that
 the traceability matrix references via a new `soup_ids[]` field on each requirement row, and
-that the `evidence-pack` skill collects under a future `soup_register` kind.
+that the `evidence-pack` skill collects under the `soup_register` kind (see
+`global/skills/_internal/evidence-pack/reference/source-mapping.md`).
 
 The skill does not invent regulatory content; it provides a structured, validatable home
 for the records that IEC 62304 sections 5.3.3 (specify functional and performance
@@ -92,7 +93,7 @@ The skill never reads source code, never runs builds, and never calls out to ext
 
 | Path | Format | Audience |
 |------|--------|----------|
-| `docs/.index/soup.yaml` | YAML | Single normalized SOUP register. Consumed by `traceability` (via `soup_ids[]`) and `evidence-pack` (via the future `soup_register` kind). Schema: `reference/soup-record-schema.md`. |
+| `docs/.index/soup.yaml` | YAML | Single normalized SOUP register. Consumed by `traceability` (via `soup_ids[]`) and `evidence-pack` (via the `soup_register` kind). Schema: `reference/soup-record-schema.md`. |
 | `docs/.index/soup.md` | Markdown | Human-readable per-supplier report produced by `report`. Suitable for inclusion in audit-time exports. |
 
 Both files are written atomically: the skill writes to a sibling `*.tmp` file and renames on
@@ -322,7 +323,7 @@ verbatim rather than inventing new mappings.
 | Consumer | Use |
 |----------|-----|
 | `traceability` skill (P0-1) | Reads `soup.yaml` to populate `soup_ids[]` on requirement matrix rows. Bidirectional linking comes for free. |
-| `evidence-pack` skill (P1-1) | Will mirror `soup.yaml` (and the per-supplier `soup.md` report when present) under a future `soup_register` kind in the per-release evidence pack. The current `evidence-pack` source-mapping does not yet enumerate this kind; a follow-up issue will add it. |
+| `evidence-pack` skill (P1-1) | Mirrors `soup.yaml` (and the per-supplier `soup.md` report when present) under the `soup_register` kind in the per-release evidence pack. See `global/skills/_internal/evidence-pack/reference/source-mapping.md` (kind: `soup_register`) and `manifest-schema.md` (allowed kinds, schema `1.1.0`). |
 | `risk-control` skill (P1-2) | Cross-references SOUP records when a hazard's failure mode involves third-party software; the link is recorded as a `verification_refs[]` entry pointing to the relevant `H-NN` id. |
 | `traceability-guard` PreToolUse hook (P0-2) | Could be extended to detect when a PR adds or bumps a lockfile entry without updating the SOUP register. |
 | External auditor | Reads `soup.yaml` and `soup.md` directly from the repo at any tagged release; consumes them alongside the matrix as the operational SOUP-management record. |
