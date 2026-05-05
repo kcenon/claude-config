@@ -81,11 +81,28 @@ The kind value is a closed enum. Adding a new kind requires updating both this f
 | `pr_review` | `evidence/<version>/pr_review/` | JSON output of `gh pr list` plus per-PR `gh pr view --json reviews` for PRs merged into the release branch within the release window. |
 | `signed_commits` | `evidence/<version>/signed_commits/` | Plain text from `git log --format='%H %G? %s' <prev-tag>..<version>` showing the signature status (`G`/`B`/`U`/`N`/`X`/`Y`/`R`/`E`) of every commit in the release. |
 | `research_artifact` | `evidence/<version>/research_artifact/` | Mirror of files under `docs/research/` that document external citations (per the `research` skill output). |
-| `risk_file` | `evidence/<version>/risk_file/` | Mirror of `risk-file/` directory contents at the time of release. |
+| `risk_file` | `evidence/<version>/risk_file/risk-file.yaml` | Verbatim copy of the single normalized risk file at `docs/.index/risk-file.yaml` produced by the sibling `risk-control` skill. **Single file** contract -- the `risk_file/` subdirectory contains exactly one file, retained for per-kind directory symmetry. |
 
-A kind whose source is genuinely absent in a project (e.g. no `risk-file/` directory yet)
-should appear in the manifest with `status: skipped` and `reason: source_absent` rather than
-being omitted -- explicit absence is auditable; silent omission is not.
+A kind whose source is genuinely absent in a project (e.g. no `docs/.index/risk-file.yaml`
+yet) should appear in the manifest with `status: skipped` and `reason: source_absent` rather
+than being omitted -- explicit absence is auditable; silent omission is not.
+
+#### Single-file vs. directory-shaped kinds
+
+Each `kind` is one of two collection shapes; the distinction is fixed by `source-mapping.md`
+and must not be inferred from the `output_path`:
+
+| Shape | Kinds | sha256 over |
+|-------|-------|-------------|
+| Single file | `matrix`, `signed_commits`, `risk_file` | The bytes of the one collected file. |
+| Directory listing | `ci_run_log`, `pr_review`, `research_artifact` | `find <kind>/ -type f \| sort \| xargs sha256sum` (deterministic listing). |
+
+**The `risk_file` kind is single-file**: the collector copies the single normalized
+`docs/.index/risk-file.yaml` produced by the sibling `risk-control` skill. The
+`risk_file/` subdirectory under `evidence/<version>/` is retained only for per-kind
+directory symmetry and contains exactly one file. Future evidence-pack consumers must
+treat `risk_file` as single-file; promoting it to a directory mirror would be a
+backward-incompatible schema change requiring a major `_meta.schema` bump.
 
 ### Status Field
 
@@ -205,7 +222,7 @@ artifacts:
     notes: ""
 
   - kind: risk_file
-    source: "risk-file/"
+    source: "docs/.index/risk-file.yaml"
     collected_at: "2026-05-04T12:34:53Z"
     sha256: null
     status: skipped
