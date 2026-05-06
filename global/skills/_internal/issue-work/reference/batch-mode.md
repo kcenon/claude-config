@@ -111,7 +111,7 @@ Use this exact template (substitute `${PROCESSED+1}` and `${TOTAL}`). The five b
 
 ```
 [Item ${PROCESSED+1}/${TOTAL}] Required rules:
-- PR title/body, commit messages, issue comments: English only
+- PR title/body, commit messages, issue comments: per CLAUDE_CONTENT_LANGUAGE (default english; see commit-settings.md)
 - Commit format: type(scope): description (no Claude/AI attribution, no emojis)
 - ABSOLUTE CI GATE: gh pr checks must show every check passing before merge
 - Branch: feature off develop, squash merge back via PR
@@ -144,7 +144,7 @@ for each item in approved batch plan:
                Execute /issue-work $REPO $ISSUE_NUMBER --$MODE with full CLAUDE.md compliance.
 
                Required rules (do not skip — canonical source: global/skills/_internal/_shared/invariants.md Core block):
-               - PR title/body, commit messages, issue comments: English only
+               - PR title/body, commit messages, issue comments: per CLAUDE_CONTENT_LANGUAGE (default english; see commit-settings.md)
                - Commit format: type(scope): description (no Claude/AI attribution, no emojis)
                - ABSOLUTE CI GATE: gh pr checks must show every check passing before merge
                - Branch: feature off develop, squash merge back via PR

@@ -84,7 +84,7 @@ Agent(
     - NO placeholder returns: no 'return 0', 'return None', 'return {}'
     - NO untested tiers: each tier MUST have passing tests
 
-    Commit format: feat(scope): implement <tier> tier (English only, no emojis)
+    Commit format: feat(scope): implement <tier> tier (language per active CLAUDE_CONTENT_LANGUAGE policy — see commit-settings.md; no emojis)
     Test commit: test(scope): add tests for <tier> tier
 
     Check TaskList for your assigned tasks. Mark each as completed when done."
@@ -139,7 +139,7 @@ Agent(
     Rules:
     - Document each tier as it's completed (don't wait for all tiers)
     - Match existing documentation style
-    - Commit format: docs(scope): document <tier> tier (English only)
+    - Commit format: docs(scope): document <tier> tier (language per active CLAUDE_CONTENT_LANGUAGE policy — see commit-settings.md)
 
     Check TaskList for your assigned tasks. Mark each as completed when done."
 )

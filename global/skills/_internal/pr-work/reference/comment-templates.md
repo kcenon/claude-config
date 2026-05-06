@@ -8,7 +8,7 @@ Templates for CI/CD failure analysis comments posted to pull requests, including
 
 **MANDATORY**: After analyzing failures, post a comment to the PR documenting the analysis.
 
-**IMPORTANT**: All PR comments **MUST** be written in **English only**, regardless of the project's primary language or user's locale.
+**IMPORTANT**: PR comments must comply with the active `CLAUDE_CONTENT_LANGUAGE` policy resolved from `commit-settings.md` (default `english`; other values: `korean_plus_english`, `exclusive_bilingual`, `any`). Do not hard-code "English only" — under `exclusive_bilingual` a Korean-only comment is valid.
 
 ```bash
 gh pr comment $PR_NUMBER --repo $ORG/$PROJECT --body "$(cat <<'EOF'
@@ -58,7 +58,7 @@ EOF
 
 | Item | Requirement |
 |------|-------------|
-| **Language** | **MANDATORY: English only** - All PR comments MUST be written in English, regardless of project language or user locale |
+| **Language** | Comply with the active `CLAUDE_CONTENT_LANGUAGE` policy (see `commit-settings.md`). Per-artifact rule applies: under `exclusive_bilingual`, each comment must be wholly English-only or wholly Korean-only. |
 | Timing | Immediately after failure analysis, before attempting fix |
 | Content | Include actual error messages (sanitized if needed) |
 | Format | Use tables and code blocks for readability |
@@ -78,7 +78,7 @@ Before posting, sanitize the following from error logs:
 
 For subsequent attempts, update the PR with a follow-up comment:
 
-**IMPORTANT**: All PR comments **MUST** be written in **English only**.
+**IMPORTANT**: Comment language follows the active `CLAUDE_CONTENT_LANGUAGE` policy (see `commit-settings.md`).
 
 ```bash
 gh pr comment $PR_NUMBER --repo $ORG/$PROJECT --body "$(cat <<'EOF'
@@ -129,7 +129,7 @@ EOF
 
 When max retry attempts (3) are exceeded without success:
 
-**IMPORTANT**: All escalation comments **MUST** be written in **English only**.
+**IMPORTANT**: Escalation comment language follows the active `CLAUDE_CONTENT_LANGUAGE` policy (see `commit-settings.md`).
 
 1. **Add summary comment to PR**:
    ```bash

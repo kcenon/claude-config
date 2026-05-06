@@ -335,8 +335,8 @@ as you implement, not in a separate planning phase.
 
 4. **Commit per logical unit**:
    - Format: `type(scope): description`
-   - **Language: MANDATORY English only** - All commit messages MUST be written in English
-   - **Forbidden**: Claude/AI references, emojis, Co-Authored-By
+   - **Language**: Follow the active `CLAUDE_CONTENT_LANGUAGE` policy resolved from `commit-settings.md` (default `english`; supports `korean_plus_english`, `exclusive_bilingual`, `any`). Do **not** assume English-only.
+   - **Forbidden** (every policy): Claude/AI references, emojis, Co-Authored-By
 
 ### 6. Build and Test Verification
 
@@ -427,8 +427,8 @@ gh pr create --repo $ORG/$PROJECT \
 
 **Required**:
 - `Closes #<NUMBER>` keyword to link issue
-- **Language: MANDATORY English only** - All PR titles and descriptions MUST be written in English
-- No Claude/AI references, emojis, or Co-Authored-By (see `commit-settings.md`)
+- **Language**: Follow the active `CLAUDE_CONTENT_LANGUAGE` policy (see `commit-settings.md`). PR title and description must each comply with the per-artifact rule of the resolved policy; under `exclusive_bilingual`, each artifact must be wholly English-only or wholly Korean-only.
+- No Claude/AI references, emojis, or Co-Authored-By regardless of policy (see `commit-settings.md`)
 
 After PR creation, capture the PR URL from `gh pr create` output for the summary.
 
@@ -517,7 +517,7 @@ with a summary comment.
 
 ### 12. Update Original Issue
 
-**IMPORTANT**: All issue comments **MUST** be written in **English only**, regardless of the project's primary language or user's locale.
+**IMPORTANT**: Issue comments must comply with the active `CLAUDE_CONTENT_LANGUAGE` policy (resolved from `commit-settings.md`; default `english`). Do not hard-code "English only" — under `exclusive_bilingual` a Korean-only comment is valid, and under `korean_plus_english` mixed inline is valid.
 
 ```bash
 gh issue comment <NUMBER> --repo $ORG/$PROJECT \
@@ -538,7 +538,7 @@ See [_policy.md](../_policy.md) for common rules, including the **Atomic Multi-P
 
 | Item | Rule |
 |------|------|
-| **Language** | **All issue comments, PR titles, PR descriptions, and commit messages MUST be written in English only** |
+| **Language** | All issue comments, PR titles, PR descriptions, and commit messages follow the active `CLAUDE_CONTENT_LANGUAGE` policy (see `commit-settings.md`) |
 | Issue linking | `Closes #NUM` required in PR |
 | Build verification | Must pass before PR creation |
 

@@ -289,9 +289,9 @@ Hooks are user-defined commands that automatically execute during specific Claud
 
 ### 13. PR Language Guard (PreToolUse)
 
-*Hard-blocks non-English titles and bodies in `gh pr` and `gh issue` commands — eliminates the rule drift that lets Korean PR/issue content slip through in long-running batch workflows.*
+*Hard-blocks `gh pr` and `gh issue` titles/bodies that violate the active `CLAUDE_CONTENT_LANGUAGE` policy — eliminates the rule drift that lets off-policy content slip through in long-running batch workflows.*
 
-**Purpose**: Enforces the "All GitHub Issues and Pull Requests must be written in English" rule from `commit-settings.md` at the Bash tool boundary. Mirrors the `commit-message-guard` enforcement model that proved effective for commit messages.
+**Purpose**: Enforces the per-policy artifact rule from `commit-settings.md` (default policy `english`; other values: `korean_plus_english`, `exclusive_bilingual`, `any`) at the Bash tool boundary. Mirrors the `commit-message-guard` enforcement model that proved effective for commit messages.
 
 **Trigger**: `Bash` tool calls matching `gh (pr|issue) (create|edit|comment)`.
 
@@ -302,11 +302,15 @@ Hooks are user-defined commands that automatically execute during specific Claud
 **Logic**:
 1. Scope gate: only process `gh (pr|issue) (create|edit|comment)` commands (all others pass through). Six combinations are guarded — `gh pr create`, `gh pr edit`, `gh pr comment`, `gh issue create`, `gh issue edit`, `gh issue comment`.
 2. Skip command-substitution / heredoc bodies (`--body "$(...)"`) and `--body-file` references — these cannot be parsed at the shell layer, so the hook defers to other safeguards.
-3. Extract `--title` / `-t` and `--body` / `-b` values, supporting both double-quoted and single-quoted forms and `--flag value` / `--flag=value` layouts.
-4. Reject if any extracted value contains a byte outside ASCII printable (0x20-0x7E) or ASCII whitespace (0x09-0x0D).
-5. Deny reason includes the first offending character so Claude can self-correct (e.g. `first: '한'`).
+3. Extract `--title` / `-t`, `--body` / `-b`, and `--notes` / `-n` values, supporting both double-quoted and single-quoted forms and `--flag value` / `--flag=value` layouts.
+4. Dispatch to `validate_content_language` in `hooks/lib/validate-language.sh`, which selects the active validator from `CLAUDE_CONTENT_LANGUAGE` (default `english`).
+5. Deny reason includes the first offending substring and references `commit-settings.md` so Claude can self-correct under whichever policy is active.
 
-**Allowed characters**: ASCII printable (0x20-0x7E) and ASCII whitespace (tab, LF, VT, FF, CR). Anything else — accented Latin, CJK, emoji, symbols outside ASCII — is blocked.
+**Allowed characters (depends on `CLAUDE_CONTENT_LANGUAGE`)**:
+- `english` (default): ASCII printable + whitespace + allowlisted English typographic punctuation (em-dash, en-dash, curly quotes, ellipsis, NBSP).
+- `korean_plus_english`: ASCII + Hangul Syllables / Jamo / Compat Jamo, mixed inline.
+- `exclusive_bilingual`: per-artifact — English-only **or** Korean-only (Korean side allows fenced code, inline code, URLs, and the `한국어(English)` translation form as ASCII containers).
+- `any`: validation skipped.
 
 **Not covered**: `gh pr review --body` is intentionally not guarded (review comments may have different tone/content needs and would warrant a separate policy decision).
 
@@ -333,7 +337,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
   "hookSpecificOutput": {
     "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
-    "permissionDecisionReason": "PR/issue --body rejected: Text contains non-ASCII characters (first run: '한국어'). GitHub Issues and Pull Requests must be written in English only — see commit-settings.md."
+    "permissionDecisionReason": "PR/issue --body rejected: Text contains Korean (Hangul) characters (first run: '한국어'). Active CLAUDE_CONTENT_LANGUAGE='english' rejects this artifact. To allow Korean, set CLAUDE_CONTENT_LANGUAGE=exclusive_bilingual or korean_plus_english. See commit-settings.md."
   }
 }
 ```
@@ -463,7 +467,7 @@ Issue #480 extended scope from `gh (pr|issue) (create|edit|comment)` to include 
 
 *Re-asserts critical policy (commit-settings, branching, conventional commits) immediately after `CLAUDE.md` and `.claude/rules/*.md` are loaded — closes the gap where long sessions drift away from policy that lives only in the system prompt.*
 
-**Purpose**: Inject a policy-reinforcement block right after Claude finishes loading instruction files. The block restates AI-attribution prohibition, English-only PR/issue rule, branching policy, and Conventional Commits format so they remain in active context even when the original instruction files scroll out.
+**Purpose**: Inject a policy-reinforcement block right after Claude finishes loading instruction files. The block restates AI-attribution prohibition, the active `CLAUDE_CONTENT_LANGUAGE` PR/issue rule (resolved from `commit-settings.md`), branching policy, and Conventional Commits format so they remain in active context even when the original instruction files scroll out.
 
 **Trigger**: `InstructionsLoaded` event — fires once per session, after `CLAUDE.md` / `.claude/rules/*.md` have been ingested.
 
@@ -502,7 +506,7 @@ Issue #480 extended scope from `gh (pr|issue) (create|edit|comment)` to include 
 {
   "hookSpecificOutput": {
     "hookEventName": "InstructionsLoaded",
-    "additionalContext": "## Critical Policy Reinforcement (auto-injected after instruction load)\n\n# Commit, Issue, and PR Settings\n\nNo AI/Claude attribution in commits, issues, or PRs.\nAll GitHub Issues and Pull Requests must be written in English.\n\n## Branching\n\n- Default working branch: `develop`. Never push directly to `main` or `develop`.\n..."
+    "additionalContext": "## Critical Policy Reinforcement (auto-injected after instruction load)\n\n# Commit, Issue, and PR Settings\n\nNo AI/Claude attribution in commits, issues, or PRs.\nAll GitHub Issues and Pull Requests follow the active CLAUDE_CONTENT_LANGUAGE policy (values: english | korean_plus_english | exclusive_bilingual | any; default: english). See commit-settings.md for the per-policy artifact rule.\n\n## Branching\n\n- Default working branch: `develop`. Never push directly to `main` or `develop`.\n..."
   }
 }
 ```

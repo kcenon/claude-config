@@ -9,7 +9,7 @@ Skills with iterative work (batch loops, CI polling, multi-round research, per-r
 ## Core (5 lines, re-anchor target)
 
 ```
-- PR title/body, commit messages, issue comments: English only
+- PR title/body, commit messages, issue comments: per CLAUDE_CONTENT_LANGUAGE (default english; see commit-settings.md)
 - Commit format: type(scope): description (no Claude/AI attribution, no emojis)
 - ABSOLUTE CI GATE: gh pr checks must show every check passing before merge
 - Branch: feature off develop, squash merge back via PR

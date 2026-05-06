@@ -23,7 +23,9 @@ if [ -z "$POLICY_TEXT" ]; then
 # Commit, Issue, and PR Settings
 
 No AI/Claude attribution in commits, issues, or PRs.
-All GitHub Issues and Pull Requests must be written in English.
+All GitHub Issues and Pull Requests follow the active CLAUDE_CONTENT_LANGUAGE policy
+(values: english | korean_plus_english | exclusive_bilingual | any; default: english).
+See commit-settings.md for the per-policy artifact rule.
 EOF
 )
 fi
@@ -43,7 +45,7 @@ ${POLICY_TEXT}
 
 Conventional Commits: \`type(scope): description\` or \`type: description\`.
 Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, security.
-Description: lowercase start, no trailing period, no emojis, no AI attribution.
+Description: first char is lowercase ASCII (default) or Hangul (when CLAUDE_CONTENT_LANGUAGE permits Korean). No trailing period, no emojis, no AI attribution.
 EOF
 )
 
