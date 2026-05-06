@@ -75,7 +75,7 @@ Agent(
        git push origin 'v$VERSION'
 
     Rules:
-    - Commit format: chore(release): prepare v$VERSION (English only, no emojis)
+    - Commit format: chore(release): prepare v$VERSION (language per active CLAUDE_CONTENT_LANGUAGE policy — see commit-settings.md; no emojis)
     - Do NOT create tag until reviewer approves changelog
 
     Check TaskList for your assigned tasks. Mark each as completed when done."

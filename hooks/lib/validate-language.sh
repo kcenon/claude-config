@@ -92,7 +92,7 @@ validate_english_only() {
 
         local sample
         sample=$(printf '%s' "$cleaned" | LC_ALL=C grep -oE '[^[:print:][:space:]]+' | head -n1)
-        echo "Text contains $category characters (first run: '$sample'). GitHub Issues and Pull Requests must be written in English only -- see commit-settings.md. (English typographic punctuation such as em-dash, curly quotes, and ellipsis is allowed.)" >&2
+        echo "Text contains $category characters (first run: '$sample'). Active CLAUDE_CONTENT_LANGUAGE='${CLAUDE_CONTENT_LANGUAGE:-english}' rejects this artifact. To allow Korean, set CLAUDE_CONTENT_LANGUAGE=exclusive_bilingual (per-artifact strict) or korean_plus_english (mixed inline). See commit-settings.md. (English typographic punctuation such as em-dash, curly quotes, and ellipsis is allowed under the english policy.)" >&2
         return 1
     fi
 

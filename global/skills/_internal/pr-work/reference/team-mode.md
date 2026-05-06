@@ -75,7 +75,7 @@ Agent(
        apply the requested changes and re-verify locally.
 
     Rules:
-    - Commit format: fix(scope): description (English only, no emojis)
+    - Commit format: fix(scope): description (language per active CLAUDE_CONTENT_LANGUAGE policy — see commit-settings.md; no emojis)
     - No Claude/AI references in commits
     - Validate incrementally: build after each fix
     - Do NOT retry the same build without changes -- diagnose first
@@ -103,7 +103,7 @@ Agent(
        For each failure: identify workflow name, job, step, root cause, error category.
        Categorize: build-error | test-failure | lint-error | type-error | link-error | other.
        Propose specific fixes with file paths.
-    2. Task 2: Post failure analysis comment to the PR (English only).
+    2. Task 2: Post failure analysis comment to the PR (language per active CLAUDE_CONTENT_LANGUAGE policy — see commit-settings.md).
        Include: failed workflows table, root cause analysis, proposed fixes.
     3. Task 5: After dev applies fixes, review the changes:
        - Does the fix address the root cause (not just symptoms)?
@@ -144,7 +144,7 @@ Agent(
 
     Rules:
     - Only update docs affected by the fix
-    - Commit format: docs(scope): description (English only, no emojis)
+    - Commit format: docs(scope): description (language per active CLAUDE_CONTENT_LANGUAGE policy — see commit-settings.md; no emojis)
     - No Claude/AI references in commits
     - Match existing documentation style
 

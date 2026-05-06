@@ -183,7 +183,7 @@ function Test-ContentLanguage {
             $reason = "Text contains characters outside the English+Korean policy (first: '$bad'). CLAUDE_CONTENT_LANGUAGE=korean_plus_english allows ASCII and Hangul only."
         }
         default {
-            $reason = "Text contains non-ASCII characters (first: '$bad'). GitHub Issues and Pull Requests must be written in English only — see commit-settings.md."
+            $reason = "Text contains non-ASCII characters (first: '$bad'). Active CLAUDE_CONTENT_LANGUAGE='$policy' rejects this artifact. To allow Korean, set CLAUDE_CONTENT_LANGUAGE=exclusive_bilingual (per-artifact strict) or korean_plus_english (mixed inline). See commit-settings.md."
         }
     }
 

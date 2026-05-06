@@ -101,7 +101,7 @@ Agent(
     Rules:
     - Validate incrementally: build after each logical change
     - Follow existing code style strictly
-    - Commit format: type(scope): description (English only, no emojis)
+    - Commit format: type(scope): description (language per active CLAUDE_CONTENT_LANGUAGE policy — see commit-settings.md; no emojis)
     - No Claude/AI references in commits
     - When Task 5 is done, send a message to reviewer:
       'Implementation complete. Files changed: [list]. Ready for review.'
@@ -148,7 +148,7 @@ Agent(
        - Push: git push -u origin $BRANCH_NAME
        - Create PR with Closes #$ISSUE_NUMBER
        - PR body: include review summary, all findings and their resolution
-       - English only, no AI references
+       - Language per active CLAUDE_CONTENT_LANGUAGE policy (see commit-settings.md); no AI references
 
     Feedback loop rules:
     - If findings exist, send change requests to dev via SendMessage:
@@ -184,7 +184,7 @@ Agent(
     - Only update docs that are affected by the implementation
     - Do not create new documentation files unless necessary
     - Match existing documentation style and structure
-    - Commit format: docs(scope): description (English only, no emojis)
+    - Commit format: docs(scope): description (language per active CLAUDE_CONTENT_LANGUAGE policy — see commit-settings.md; no emojis)
     - No Claude/AI references in commits
 
     Check TaskList for your assigned tasks. Mark each as completed when done."

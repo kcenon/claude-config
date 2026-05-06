@@ -340,7 +340,7 @@ For each failed workflow:
 
 ### 3. Post Failure Analysis Comment
 
-**MANDATORY**: Post a failure analysis comment to the PR after analysis, before attempting a fix. All comments must be in **English only**. Sanitize secrets, IPs, PII, and connection strings before posting.
+**MANDATORY**: Post a failure analysis comment to the PR after analysis, before attempting a fix. Comment language must comply with the active `CLAUDE_CONTENT_LANGUAGE` policy (see `commit-settings.md`; default `english`). Sanitize secrets, IPs, PII, and connection strings before posting regardless of policy.
 
 > See `reference/comment-templates.md` for the full comment template, guidelines, and sensitive data handling rules.
 
@@ -410,8 +410,8 @@ Fixes CI failure: <brief explanation>"
 
 **Commit rules**:
 - Type: Usually `fix`, `build`, `test`, or `ci`
-- **Language: MANDATORY English only** - All commit messages MUST be written in English
-- No Claude/AI references, emojis, or Co-Authored-By (see `commit-settings.md`)
+- **Language**: Follow the active `CLAUDE_CONTENT_LANGUAGE` policy (see `commit-settings.md`; default `english`).
+- No Claude/AI references, emojis, or Co-Authored-By regardless of policy (see `commit-settings.md`)
 
 ### 8. Push and Verify
 
@@ -668,7 +668,7 @@ and skip merge. Do not force-merge.
 
 ### 11. Failure Escalation
 
-When max retry attempts (3) are exceeded: post summary comment to PR (English only), add `needs-manual-review` label, and report final status to user.
+When max retry attempts (3) are exceeded: post summary comment to PR (language per active `CLAUDE_CONTENT_LANGUAGE` policy — see `commit-settings.md`), add `needs-manual-review` label, and report final status to user.
 
 > See `reference/comment-templates.md` for the escalation comment template and decision matrix.
 
@@ -686,7 +686,7 @@ See [_policy.md](../_policy.md) for common rules, including the **Atomic Multi-P
 
 | Item | Rule |
 |------|------|
-| **Language** | **All PR comments and commit messages MUST be written in English only** |
+| **Language** | All PR comments and commit messages follow the active `CLAUDE_CONTENT_LANGUAGE` policy (see `commit-settings.md`) |
 | Max retry attempts | 3 before escalation |
 | CI poll interval | >= 30 seconds (respect API rate limits) |
 | CI max poll duration | 10 minutes per run (20 polls x 30s) |

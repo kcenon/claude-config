@@ -83,11 +83,18 @@ if ! command -v validate_content_language >/dev/null 2>&1; then
             any)
                 return 0
                 ;;
-            korean_plus_english)
+            korean_plus_english|exclusive_bilingual)
+                # Fallback note: when the shared library validate-language.sh is
+                # absent, both Korean-allowing policies collapse to the relaxed
+                # ASCII+Hangul check. The strict per-artifact exclusivity rule
+                # of `exclusive_bilingual` (no inline mixing) is enforced only
+                # by the shared library. Preferring false negatives over false
+                # positives here avoids wrongly rejecting legitimate Korean
+                # artifacts when the library is missing.
                 if ! printf '%s' "$text" | perl -CSDA -ne '
                     exit 1 if /[^\x{09}-\x{0D}\x{20}-\x{7E}\x{AC00}-\x{D7A3}\x{1100}-\x{11FF}\x{3130}-\x{318F}]/
                 ' 2>/dev/null; then
-                    echo "Text contains characters outside the English+Korean policy. CLAUDE_CONTENT_LANGUAGE=korean_plus_english allows ASCII and Hangul only." >&2
+                    echo "Text contains characters outside the English+Korean policy. CLAUDE_CONTENT_LANGUAGE=$policy fallback allows ASCII and Hangul only (shared library validate-language.sh absent — install it for full enforcement)." >&2
                     return 1
                 fi
                 return 0
@@ -114,7 +121,7 @@ if ! command -v validate_content_language >/dev/null 2>&1; then
                     fi
                     local sample
                     sample=$(printf '%s' "$cleaned" | LC_ALL=C grep -oE '[^[:print:][:space:]]+' | head -n1)
-                    echo "Text contains $category characters (first run: '$sample'). GitHub Issues and Pull Requests must be written in English only -- see commit-settings.md. (English typographic punctuation such as em-dash, curly quotes, and ellipsis is allowed.)" >&2
+                    echo "Text contains $category characters (first run: '$sample'). Active CLAUDE_CONTENT_LANGUAGE='${policy}' rejects this artifact. To allow Korean, set CLAUDE_CONTENT_LANGUAGE=exclusive_bilingual (per-artifact strict) or korean_plus_english (mixed inline). See commit-settings.md. (English typographic punctuation such as em-dash, curly quotes, and ellipsis is allowed under the english policy.)" >&2
                     return 1
                 fi
                 return 0

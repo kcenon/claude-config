@@ -118,7 +118,7 @@ Use this exact template (substitute `${PROCESSED+1}` and `${TOTAL}`):
 
 ```
 [Item ${PROCESSED+1}/${TOTAL}] Required rules:
-- PR title/body, commit messages, issue comments: English only
+- PR title/body, commit messages, issue comments: per CLAUDE_CONTENT_LANGUAGE (default english; see commit-settings.md)
 - Commit format: type(scope): description (no Claude/AI attribution, no emojis)
 - ABSOLUTE CI GATE: gh pr checks must show every check passing before merge
 - Never rationalize a CI failure as "unrelated" or "pre-existing"
@@ -150,7 +150,7 @@ for each item in approved batch plan:
                Execute /pr-work $REPO $PR_NUMBER --$MODE with full CLAUDE.md compliance.
 
                Required rules (do not skip):
-               - PR title/body, commit messages, issue comments: English only
+               - PR title/body, commit messages, issue comments: per CLAUDE_CONTENT_LANGUAGE (default english; see commit-settings.md)
                - Commit format: type(scope): description (no Claude/AI attribution, no emojis)
                - ABSOLUTE CI GATE: gh pr checks must show every check passing before merge
                - Never rationalize a CI failure as "unrelated" or "pre-existing"

@@ -51,8 +51,8 @@ Your per-worker workspace (for logs and intermediate artifacts):
 
 ## Non-Negotiable Rules
 
-1. **Language**: All commit messages, PR titles, PR bodies, and issue comments MUST be English.
-2. **No AI attribution**: Never add "Claude", "Co-Authored-By: Claude", or emojis to commits/PRs.
+1. **Language**: All commit messages, PR titles, PR bodies, and issue comments MUST comply with the active `CLAUDE_CONTENT_LANGUAGE` policy resolved from `~/.claude/commit-settings.md` (default `english`; supports `korean_plus_english`, `exclusive_bilingual`, `any`). Resolve the policy at the start of the worker session — do not hard-code English-only.
+2. **No AI attribution**: Never add "Claude", "Co-Authored-By: Claude", or emojis to commits/PRs (applies under every policy).
 3. **Commit format**: `type(scope): description` (Conventional Commits).
 4. **Branching**: Feature branch off `develop`; squash-merge back via PR. Never push directly to `main` or `develop`.
 5. **ABSOLUTE CI GATE**: Before `gh pr merge`, run `gh pr checks <PR>` and verify every check shows `pass` or `neutral`. Any `fail`, `pending`, `queued`, `in_progress`, `cancelled`, `timed_out`, or `startup_failure` blocks merge.
