@@ -119,9 +119,44 @@ ANTHROPIC_INSTALLER_SHA256="0000000000000000000000000000000000000000000000000000
 Expected: install aborts with the mismatch banner before any code from
 `https://claude.ai/install.sh` is executed.
 
+## Multi-entry-point parity (#620)
+
+The download → verify → run contract is shared across all three install
+entry points:
+
+| Entry point | Verifies via | Pinned hash variable |
+|-------------|--------------|----------------------|
+| `bootstrap.sh` (one-line `curl ... \| bash`) | `hooks/lib/installer-fetch.sh` | `ANTHROPIC_INSTALLER_SHA256` |
+| `scripts/install.sh` (`ensure_claude_cli`) | `hooks/lib/installer-fetch.sh` | `ANTHROPIC_INSTALLER_SHA256` |
+| `bootstrap.ps1` (one-line `irm \| iex`) | `hooks/lib/InstallerFetch.psm1` | `$AnthropicInstallerSha256` |
+
+The bash and PowerShell libs share the same exit-code semantics
+(`0=OK`, `10=DOWNLOAD`, `11=CHECKSUM`, `12=MISMATCH`, `13=RUN`,
+`64=usage`). Regression coverage lives at
+`tests/scripts/installer-fetch-tests.sh`.
+
+Because `bootstrap.sh` and `bootstrap.ps1` run before the repo is cloned,
+both reorder their `main` to clone first, then source/import the lib from
+the just-cloned tag. This makes the `GITHUB_REF` tag the integrity root for
+every subsequent verification step in those entry points.
+
+### PowerShell installer pin
+
+`bootstrap.ps1` ships a parallel pin for `https://claude.ai/install.ps1`.
+Compute it the same way:
+
+```bash
+curl -fsSL https://claude.ai/install.ps1 | sha256sum
+```
+
+Rotate via `$AnthropicInstallerSha256` in `bootstrap.ps1` together with the
+`# pinned YYYY-MM-DD` comment. The same review checklist as the bash pin
+applies; if the bash and PowerShell installers drift independently the
+maintainer rotates each side separately rather than waiting for both.
+
 ## Related
 
-- Issue: #565 (M1.2b)
+- Issue: #565 (M1.2b — bash sha256 pin), #620 (parity sync to ps1 + install.sh)
 - Parent EPIC: #562 (supply-chain hardening rollup)
 - Sibling: #564 / PR #571 (M1.2a — pin `claude-config` source by tag)
 - Workflow: `.github/workflows/check-anthropic-installer.yml`
