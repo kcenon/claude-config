@@ -673,7 +673,7 @@ pre-commit, sync, and audit pipelines.
 | Validator | Purpose | Blocking exit codes |
 |-----------|---------|---------------------|
 | `validate.sh` | Structural and format validity (frontmatter schema, body rules, filename pattern) | 1 (FAIL-STRUCT), 2 (FAIL-FORMAT) |
-| `secret-check.sh` | PII and credential pattern scan | 1 (SECRET-DETECTED) |
+| `secret-check.sh` | PII and credential pattern scan; requires `OWNER_EMAILS` env (#618) | 1 (SECRET-DETECTED), 2 (OWNER_EMAILS unset — fail-closed) |
 | `injection-check.sh` | Suspicious-pattern flagger | None — warn-only (exit 3 = allow with feedback) |
 
 The authoritative contract for all three — including frontmatter schema,
@@ -685,6 +685,21 @@ pattern matching against natural language has an inherent false-positive
 rate, and blocking on it would make legitimate documentation about
 prompt-injection patterns impossible to write. Genuine injection content
 is caught by the monthly semantic review and surfaced to `/memory-review`.
+
+### Continuous integration
+
+Validator and end-to-end memory-sync regressions are gated by
+[`.github/workflows/validate-memory.yml`](../.github/workflows/validate-memory.yml)
+(#621). The workflow mirrors `validate-hooks.yml` but covers the memory
+subsystem: it runs `tests/memory/run-sync-tests.sh`, `run-validation-tests.sh`,
+`run-semantic-review-tests.sh`, and `run-notify-tests.sh` on every PR that
+touches `scripts/memory-sync.sh`, `scripts/memory/`, or `tests/memory/`. The
+sync-tests job exercises T5 (remote commit with secret → exit 2 + auto-
+quarantine), which is the reproducer scenario for the `set -e` bug fixed in
+#617 — the original issue manifested as silent quarantine bypass and would
+now fail this job. A nightly schedule (`17 4 * * *` UTC) additionally runs
+the multi-machine simulation harness; the multi-machine job is skipped on
+fork PRs to keep future secrets contained.
 
 ---
 

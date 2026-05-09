@@ -1,0 +1,105 @@
+name: validate-memory
+
+# Memory subsystem CI gate (#621). Closes the gap where
+# tests/memory/run-*.sh runners only existed for manual invocation. The memory
+# system has the highest blast radius in the project — regressions here corrupt
+# user memory across machines — so it deserves the same automated coverage as
+# hooks/skills.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'scripts/memory-sync.sh'
+      - 'scripts/memory/**'
+      - 'tests/memory/**'
+      - 'global/hooks/memory-write-guard.sh'
+      - '.github/workflows/validate-memory.yml'
+  schedule:
+    # Nightly at 04:17 UTC (13:17 KST). Off-minute to avoid fleet congestion
+    # (batch-drift-regression runs at 03:17 UTC).
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+# Cancel in-progress runs of the same PR / schedule so a fast follow-up commit
+# does not pile up.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync-tests:
+    name: sync (T1-T11 incl. #617 auto-quarantine reproducer)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync tests
+        env:
+          # Required by secret-check.sh as of #618. Test owner is decoupled
+          # from the maintainer's identity.
+          OWNER_EMAILS: 'test-owner@example.com'
+          OWNER_GITHUB_HANDLE: 'test-owner'
+          OWNER_HOME_USER: 'test-owner'
+        run: bash tests/memory/run-sync-tests.sh
+
+  validation-tests:
+    name: validators (validate.sh / secret-check.sh / injection-check.sh)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validation tests
+        env:
+          OWNER_EMAILS: 'test-owner@example.com'
+          OWNER_GITHUB_HANDLE: 'test-owner'
+          OWNER_HOME_USER: 'test-owner'
+        run: bash tests/memory/run-validation-tests.sh
+
+  semantic-review:
+    name: semantic-review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Semantic review tests
+        env:
+          OWNER_EMAILS: 'test-owner@example.com'
+          OWNER_GITHUB_HANDLE: 'test-owner'
+          OWNER_HOME_USER: 'test-owner'
+        run: bash tests/memory/run-semantic-review-tests.sh
+
+  notify:
+    name: notify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Notify tests
+        env:
+          OWNER_EMAILS: 'test-owner@example.com'
+          OWNER_GITHUB_HANDLE: 'test-owner'
+          OWNER_HOME_USER: 'test-owner'
+        run: bash tests/memory/run-notify-tests.sh
+
+  multi-machine:
+    # Multi-machine simulation runs only on schedule and manual dispatch — its
+    # synthetic-git harness builds full bare-repo conflict scenarios and is
+    # heavier than the per-PR sync-tests above. PR runs would amortize poorly.
+    # Skipped in fork PRs even when manually triggered (defense-in-depth: the
+    # harness is read-only against the test sandbox today, but secrets that
+    # land here in future must not leak via fork PRs).
+    name: multi-machine simulation (S1-S5)
+    if: |
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Multi-machine tests
+        env:
+          OWNER_EMAILS: 'test-owner@example.com'
+          OWNER_GITHUB_HANDLE: 'test-owner'
+          OWNER_HOME_USER: 'test-owner'
+        run: bash tests/memory/multi-machine/run-multi-machine-tests.sh
