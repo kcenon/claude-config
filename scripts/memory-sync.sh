@@ -410,10 +410,11 @@ post_pull_validate() {
     base="$(basename "$f")"
     [[ "$base" == "MEMORY.md" ]] && continue
 
-    "$validate" "$f" >/dev/null
-    rc_v=$?
-    "$secret" "$f" >/dev/null
-    rc_s=$?
+    # `rc=0; cmd || rc=$?` preserves exit code under set -e so quarantine still runs.
+    rc_v=0
+    "$validate" "$f" >/dev/null || rc_v=$?
+    rc_s=0
+    "$secret" "$f" >/dev/null || rc_s=$?
     # injection is warn-only; do not factor into the fail count.
     if [[ -n "$injection" ]]; then
       "$injection" "$f" >/dev/null || true
@@ -423,7 +424,9 @@ post_pull_validate() {
     if (( rc_v == 1 || rc_v == 2 )); then
       file_failed=1
     fi
-    if (( rc_s == 1 )); then
+    # secret-check exit 1 = SECRET-DETECTED, exit 2 = OWNER_EMAILS unset (#618).
+    # Both are fail-closed — without OWNER_EMAILS we cannot tell owner from foreign.
+    if (( rc_s == 1 || rc_s == 2 )); then
       file_failed=1
     fi
 

@@ -80,7 +80,9 @@ assert_deny '{"tool_input":{"command":"gh pr create --base main --head release-c
 echo ""
 echo "[Normal workflow: allow]"
 assert_allow '{"tool_input":{"command":"gh pr create --base develop --title \"feat: new feature\""}}' "--base develop → allow"
-assert_allow '{"tool_input":{"command":"gh pr create --title \"feat: something\""}}' "no --base (defaults to develop) → allow"
+# The "no --base" case is now repository-default-dependent (#616). The
+# develop-default scenario is exercised in the [Default-branch query]
+# block below using PR_TARGET_GUARD_DEFAULT_BRANCH_OVERRIDE=develop.
 assert_allow '{"tool_input":{"command":"gh pr create --base develop --head feat/issue-42"}}' "--base develop --head feat/ → allow"
 
 echo ""
@@ -89,6 +91,34 @@ assert_allow '{"tool_input":{"command":"gh pr create --base main-backup --title 
 assert_allow '{"tool_input":{"command":"gh pr create --base maintain --title \"test\""}}' "--base maintain → allow (not exact main)"
 assert_deny '{"tool_input":{"command":"cd repo && gh pr create --base main --title \"fix\""}}' "chained command with --base main → deny"
 assert_deny '{"tool_input":{"command":"gh pr create --repo org/repo --base main --title \"fix\""}}' "--repo with --base main → deny"
+
+echo ""
+echo "[Default-branch query when --base missing (#616)]"
+# PR_TARGET_GUARD_DEFAULT_BRANCH_OVERRIDE injects the resolved branch so the
+# test does not depend on gh API authentication. Drives the new code path
+# that closes the main-default repo bypass.
+assert_with_branch() {
+    local expect="$1" branch="$2" input="$3" label="$4"
+    local result
+    result=$(echo "$input" | PR_TARGET_GUARD_DEFAULT_BRANCH_OVERRIDE="$branch" bash "$HOOK" 2>/dev/null)
+    if echo "$result" | grep -q "\"$expect\""; then
+        ((PASS++))
+        echo "  PASS: $label"
+    else
+        ((FAIL++))
+        ERRORS+=("FAIL: $label — expected $expect, got: $result")
+        echo "  FAIL: $label"
+    fi
+}
+assert_with_branch deny  main "$(cat tests/hooks/fixtures/pr-target-guard/main-default-repo.json)" "fixture: main-default + no --base → deny"
+assert_with_branch deny  main   '{"tool_input":{"command":"gh pr create --title test"}}' "main-default + no --base + no --head → deny"
+assert_with_branch deny  main   '{"tool_input":{"command":"gh pr create --head feat/x --title test"}}' "main-default + --head feat/x → deny"
+assert_with_branch allow main   '{"tool_input":{"command":"gh pr create --head develop --title release"}}' "main-default + --head develop → allow"
+assert_with_branch allow main   '{"tool_input":{"command":"gh pr create --head release/1.0 --title release"}}' "main-default + --head release/1.0 → allow"
+assert_with_branch allow develop '{"tool_input":{"command":"gh pr create --title test"}}' "develop-default + no --base → allow (regression)"
+assert_with_branch deny  master '{"tool_input":{"command":"gh pr create --head fix/bug --title test"}}' "master-default + --head fix/x → deny"
+assert_with_branch allow master '{"tool_input":{"command":"gh pr create --head develop --title release"}}' "master-default + --head develop → allow"
+assert_with_branch allow trunk  '{"tool_input":{"command":"gh pr create --title test"}}' "non-main/master default (trunk) → allow"
 
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="

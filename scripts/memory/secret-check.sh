@@ -6,6 +6,7 @@
 # Exit codes:
 #   0  -- CLEAN (no findings)
 #   1  -- SECRET-DETECTED (at least one finding; blocks merge)
+#   2  -- configuration required (OWNER_EMAILS not set)
 #   64 -- usage error
 #
 # Usage:
@@ -13,23 +14,42 @@
 #   secret-check.sh --all <dir>     batch mode (skips MEMORY.md)
 #   secret-check.sh --help|-h       show usage
 #
-# Environment overrides (all optional):
-#   OWNER_EMAILS         space-separated owner email allowlist (default: kcenon@gmail.com)
-#   OWNER_GITHUB_HANDLE  GitHub handle for no-reply allowlist (default: kcenon)
-#   OWNER_HOME_USER      owner Unix home directory user (default: raphaelshin)
+# Required environment:
+#   OWNER_EMAILS         space-separated owner email allowlist (no default)
+# Optional environment overrides:
+#   OWNER_GITHUB_HANDLE  GitHub handle for no-reply allowlist
+#   OWNER_HOME_USER      owner Unix home directory user
+#
+# See scripts/memory/secret-check.env.example for a sample configuration.
 
 set -u
 
-# Default owner identity. Caller may override via env vars.
-DEFAULT_OWNER_EMAILS="kcenon@gmail.com"
+# Empty default — caller must export OWNER_EMAILS explicitly (issue #618).
+DEFAULT_OWNER_EMAILS=""
 DEFAULT_OWNER_GITHUB_HANDLE="kcenon"
 DEFAULT_OWNER_HOME_USER="raphaelshin"
 
-# Parse OWNER_EMAILS into a bash array (space-separated).
-# Use ${VAR:-default} to avoid mutating the caller's environment.
 read -r -a OWNER_EMAILS_ARR <<< "${OWNER_EMAILS:-$DEFAULT_OWNER_EMAILS}"
 OWNER_GITHUB_HANDLE="${OWNER_GITHUB_HANDLE:-$DEFAULT_OWNER_GITHUB_HANDLE}"
 OWNER_HOME_USER="${OWNER_HOME_USER:-$DEFAULT_OWNER_HOME_USER}"
+
+# Exit 2 = configuration-required (distinct from 1=finding, 64=usage).
+require_owner_emails() {
+  if (( ${#OWNER_EMAILS_ARR[@]} == 0 )) || [[ -z "${OWNER_EMAILS_ARR[0]}" ]]; then
+    cat >&2 <<'EOF'
+secret-check.sh: OWNER_EMAILS is not set.
+
+Memory validation cannot run without a configured owner email allowlist.
+Set the OWNER_EMAILS environment variable (space-separated) before invocation:
+
+    export OWNER_EMAILS="you@example.com"
+
+See scripts/memory/secret-check.env.example for the full configuration template
+and docs/MEMORY_TRUST_BASELINE.md for the trust-model rationale.
+EOF
+    exit 2
+  fi
+}
 
 usage() {
   cat <<EOF
@@ -40,12 +60,14 @@ Usage:
   $(basename "$0") --all <dir>     scan every .md in <dir> (MEMORY.md skipped)
   $(basename "$0") --help|-h       show this help
 
-Exit codes: 0=clean, 1=finding (blocks), 64=usage error.
+Exit codes: 0=clean, 1=finding (blocks), 2=OWNER_EMAILS not set, 64=usage error.
 
-Environment overrides:
-  OWNER_EMAILS          space-separated allowlist (default: ${DEFAULT_OWNER_EMAILS})
-  OWNER_GITHUB_HANDLE   GitHub handle for noreply allowlist (default: ${DEFAULT_OWNER_GITHUB_HANDLE})
-  OWNER_HOME_USER       owner Unix home dir name (default: ${DEFAULT_OWNER_HOME_USER})
+Environment:
+  OWNER_EMAILS          required, space-separated allowlist
+  OWNER_GITHUB_HANDLE   optional GitHub handle for noreply allowlist
+  OWNER_HOME_USER       optional Unix home directory user
+
+See scripts/memory/secret-check.env.example for a sample.
 EOF
 }
 
@@ -166,6 +188,7 @@ main() {
       exit 0
       ;;
     --all)
+      require_owner_emails
       if [[ $# -lt 2 ]] || [[ -z "${2:-}" ]]; then
         echo "error: --all requires a directory argument" >&2
         usage >&2
@@ -194,6 +217,7 @@ main() {
       exit 0
       ;;
     *)
+      require_owner_emails
       if [[ ! -f "$1" ]]; then
         echo "error: file not found: $1" >&2
         exit 64
