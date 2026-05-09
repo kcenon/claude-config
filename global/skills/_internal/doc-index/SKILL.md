@@ -84,6 +84,7 @@ For flat mode projects, generate all 4 files using path-based classification:
 2. Group into bundles by classification (core, coding, api, workflow, security, etc.)
 3. Build cross-reference graph from markdown links between files
 4. Generate keyword-based router from bundle categories
+5. **Description extraction (#625)**: for each file's `description:` field in `manifest.yaml`, call `bash scripts/extract-doc-description.sh <path>` rather than taking the first non-empty line directly. The helper skips frontmatter, headings, and pure-HTML structural lines, strips inline tags from mixed prose, and truncates to 200 characters. This avoids the historical bug where READMEs that opened with a centered badge block produced literal `<p align="center">` descriptions.
 
 Then proceed to Phase 4 (Write) and Phase 5 (Report).
 

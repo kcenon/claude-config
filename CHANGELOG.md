@@ -116,6 +116,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Phase 3 doc-index description extraction (#625). The /doc-index
+  manifest.yaml stored `'<p align="center">'` as the description for
+  files that opened with a centered badge block (most prominently
+  `README.ko.md`, the Korean entry point). New
+  `scripts/extract-doc-description.sh` skips frontmatter, headings, and
+  pure-HTML structural lines, then strips inline tags from mixed prose
+  and truncates to 200 characters. The doc-index SKILL.md flat-mode
+  Phase 3F now references the helper as the canonical extraction path.
+  Both `README.md` and `README.ko.md` entries in
+  `docs/.index/manifest.yaml` were regenerated with meaningful prose
+  descriptions. New `tests/doc-index/` directory contains 4 fixtures
+  (normal, html-only, frontmatter-only, empty) and a 10-case test
+  suite wired into `validate-skills.yml`.
 - Phase 3 ADR metadata headers (#624). The eight `docs/design/*.md`
   files plus the two long-lived performance/regression docs
   (`docs/tier2-benchmark-results.md`, `docs/batch-drift-regression.md`)
