@@ -190,6 +190,8 @@ Both workflows use **path filters** — they only trigger when relevant files ch
 |-------|------|-------|
 | GitHub branch protection | Server-side | Blocks direct push to `main` and `develop` |
 | `pre-push` git hook | Client-side | Blocks direct push to `main` and `develop` locally |
+| `pr-target-guard.sh` PreToolUse hook | Client-side | Blocks `gh pr create` whose effective base is `main`/`master` unless `--head develop` or `--head release/*`. When `--base` is omitted, the hook resolves the repo's default branch via `gh api repos/{owner}/{repo} --jq .default_branch` and applies the same protection — main-default repos no longer bypass the policy by virtue of omitting `--base` (#616). |
+| `validate-pr-target.yml` workflow | Server-side | Auto-closes PRs targeting `main` from non-`develop`, non-`release/*` branches |
 | Squash merge only | Server-side | Only squash merge allowed in GitHub settings |
 | Auto-delete branches | Server-side | Cleans up feature branches after PR merge |
 
