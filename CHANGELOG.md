@@ -116,6 +116,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Phase 3 ADR metadata headers (#624). The eight `docs/design/*.md`
+  files plus the two long-lived performance/regression docs
+  (`docs/tier2-benchmark-results.md`, `docs/batch-drift-regression.md`)
+  now carry a five-field YAML frontmatter (`status`, `audience`,
+  `last_reviewed`, `supersedes`, `superseded_by`). Status assignments
+  reflect implementation reality: `Active` for shipped systems,
+  `Draft` for proposals or design concepts not yet implemented. The
+  new `scripts/validate-adr-headers.sh` lint enforces presence and
+  basic shape on every PR via `validate-skills.yml`. Schema documented
+  in `docs/CUSTOM_EXTENSIONS.md`.
 - Phase 3 README.ko.md sync (#623). Korean README brought back into
   shape parity with English:
   - Translated v1.8.0 and v1.9.0 changelog entries (the v1.7.0 — v1.10.0

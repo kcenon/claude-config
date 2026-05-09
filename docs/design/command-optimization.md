@@ -1,3 +1,11 @@
+---
+status: Active
+audience: contributor
+last_reviewed: 2026-05-09
+supersedes: []
+superseded_by: null
+---
+
 # Command-Specific Token Optimization
 
 > **Version**: 1.2.0
