@@ -85,4 +85,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Windows runner CI for `bootstrap.ps1` and a TTY-aware non-interactive
     default are deferred to a follow-up.
 
+### Added
+
+- Phase 2 memory CI workflow (#621). Adds
+  `.github/workflows/validate-memory.yml`, gating PRs that touch
+  `scripts/memory-sync.sh`, `scripts/memory/`, or `tests/memory/` on the four
+  existing test runners (`run-sync-tests.sh`, `run-validation-tests.sh`,
+  `run-semantic-review-tests.sh`, `run-notify-tests.sh`). The sync-tests job
+  exercises the T5 auto-quarantine reproducer that the #617 `set -e` fix
+  restored. A nightly schedule (`17 4 * * *` UTC) additionally runs the
+  multi-machine simulation harness; the multi-machine job is skipped on fork
+  PRs. Workflow exports `OWNER_EMAILS` so tests run cleanly under the
+  post-#618 fail-closed contract. `docs/MEMORY_SYNC.md` Section 7 cross-
+  references the workflow.
+
 [Unreleased]: https://github.com/kcenon/claude-config/compare/v1.10.0...HEAD
