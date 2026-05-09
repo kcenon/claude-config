@@ -410,10 +410,11 @@ post_pull_validate() {
     base="$(basename "$f")"
     [[ "$base" == "MEMORY.md" ]] && continue
 
-    "$validate" "$f" >/dev/null
-    rc_v=$?
-    "$secret" "$f" >/dev/null
-    rc_s=$?
+    # `rc=0; cmd || rc=$?` preserves exit code under set -e so quarantine still runs.
+    rc_v=0
+    "$validate" "$f" >/dev/null || rc_v=$?
+    rc_s=0
+    "$secret" "$f" >/dev/null || rc_s=$?
     # injection is warn-only; do not factor into the fail count.
     if [[ -n "$injection" ]]; then
       "$injection" "$f" >/dev/null || true
