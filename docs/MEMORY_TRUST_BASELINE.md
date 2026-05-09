@@ -132,7 +132,27 @@ grep '^trust-level:' <memories-dir>/project_steamliner_doc_approval.md
 # expected: trust-level: inferred
 ```
 
-## 8. Cross-References
+## 8. Runtime Owner Identity (OWNER_EMAILS)
+
+Per the explicit-configuration-only principle, `secret-check.sh` does not
+ship a maintainer-specific `OWNER_EMAILS` default. Every installation must
+export the variable before invoking memory-sync flows; an unset value
+yields exit code 2 with a helpful migration message rather than a silent
+"no owner" allowlist (issue #618).
+
+```bash
+export OWNER_EMAILS="you@example.com you+other@example.com"
+# Optional:
+# export OWNER_GITHUB_HANDLE="your-github-handle"
+# export OWNER_HOME_USER="your-unix-user"
+```
+
+A copy-pasteable template lives at `scripts/memory/secret-check.env.example`.
+Trust-level assignment in this document remains valid regardless of the
+runtime owner identity — owner-email matching is one of several heuristics
+applied during scanning, not the source of the per-file tier.
+
+## 9. Cross-References
 
 - `docs/MEMORY_TRUST_MODEL.md` (#511) -- trust-level taxonomy and
   lifecycle.
@@ -142,12 +162,16 @@ grep '^trust-level:' <memories-dir>/project_steamliner_doc_approval.md
   defaults this document confirms.
 - `scripts/memory/injection-check.sh` (#509) -- pre-screen that flagged
   the three CI-policy files referenced in Section 5.
+- `scripts/memory/secret-check.env.example` (#618) -- runtime owner
+  identity template.
 - Issue [#513](https://github.com/kcenon/claude-config/issues/513) --
   authoritative requirement for this decision record.
+- Issue [#618](https://github.com/kcenon/claude-config/issues/618) --
+  removal of hardcoded maintainer email; runtime requirement above.
 - Epic [#505](https://github.com/kcenon/claude-config/issues/505) --
   Phase B trust-tier rollout.
 
-## 9. Change Log
+## 10. Change Log
 
 ### v1.0.0 -- 2026-05-01
 
