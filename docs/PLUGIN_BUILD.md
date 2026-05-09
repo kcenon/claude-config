@@ -55,6 +55,13 @@ workflow fails and the PR cannot merge. This guarantees the invariant
 holds in `main` regardless of how the copies were produced (manual,
 script, or future build tooling).
 
+The same workflow also runs `tests/plugin/smoke-test.sh` (#622) on every
+PR that touches `plugin/`, `plugin-lite/`, or `tests/plugin/`. The smoke
+test catches packaging regressions — manifest schema mismatches, missing
+or renamed skills, broken hook references — before they ship in a release.
+Sh/PowerShell parity: the matching `tests/plugin/smoke-test.ps1` is held
+for the future Windows runner job (out of scope for #622).
+
 ## Why Copy Instead of Symlink
 
 Symlinks are not portable across the install paths the plugin supports

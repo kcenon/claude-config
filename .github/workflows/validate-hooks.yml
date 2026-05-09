@@ -9,8 +9,9 @@ on:
       - 'tests/hooks/**'
       - 'tests/hooks/fixtures/**'
       - 'tests/batch_drift_benchmark/**'
-      - 'plugin/hooks/**'
-      - 'plugin-lite/hooks/**'
+      - 'plugin/**'
+      - 'plugin-lite/**'
+      - 'tests/plugin/**'
       - 'scripts/install.sh'
       - 'scripts/install.ps1'
       - 'scripts/install-manifest.sh'
@@ -75,6 +76,13 @@ jobs:
         # extracts the live command string from hooks.json via python3,
         # which is pre-installed on ubuntu-latest and macos-latest runners.
         run: bash tests/scripts/test-plugin-standalone.sh
+
+      - name: Run plugin/plugin-lite directory smoke test (#622)
+        # Catches packaging regressions (manifest mismatches, missing
+        # skills) before they ship in releases. Sh runner on Linux/macOS;
+        # PowerShell sibling smoke-test.ps1 is exercised when the
+        # InstallerFetch matrix lands a Windows runner.
+        run: bash tests/plugin/smoke-test.sh
 
       - name: Run plugin fallback regression tests
         # Validates probe-driven per-hook stand-down plus failure modes

@@ -232,8 +232,11 @@ file list), so it is unit-tested in isolation. Required cases:
 4. `K >= agent_count` — all agents selected, order preserved by score.
 5. Tie on score — stable alphabetical ordering.
 
-Tests live under `tests/fleet-orchestrator/test_topk_scoring.*` and run as part
-of the skill's CI lane.
+Tests live under `tests/fleet_orchestrator/test_topk_scoring.py` and
+`tests/fleet_orchestrator/test_docs_only_routing.py`. As of #622 they run
+on every PR via `.github/workflows/validate-skills.yml`
+(`python -m pytest tests/fleet_orchestrator/ -q`); silent breakage in the
+scorer would now fail CI rather than ship to consumers of this skill.
 
 #### Fallback and Compatibility
 

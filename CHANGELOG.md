@@ -98,5 +98,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   PRs. Workflow exports `OWNER_EMAILS` so tests run cleanly under the
   post-#618 fail-closed contract. `docs/MEMORY_SYNC.md` Section 7 cross-
   references the workflow.
+- Phase 2 plugin/fleet CI wiring (#622). Two test areas that had passing
+  test code but no CI integration are now connected:
+  - `tests/plugin/smoke-test.sh` runs on every PR via
+    `validate-hooks.yml`, catching plugin packaging regressions
+    (manifest mismatches, missing skills) before release. PR triggers
+    expanded from `plugin/hooks/**` to the full `plugin/**` and
+    `plugin-lite/**` plus `tests/plugin/**`.
+  - `tests/fleet_orchestrator/` pytest suite (17 cases) runs on every
+    PR via `validate-skills.yml`. Pins `topk_scorer.py` routing
+    behavior — silent breakage previously meant wrong agent
+    assignments to work items in any consumer using the
+    fleet-orchestrator skill. Path triggers expanded with
+    `scripts/fleet_orchestrator/**` and `tests/fleet_orchestrator/**`.
+  - `docs/PLUGIN_BUILD.md` and the fleet-orchestrator SKILL.md cross-
+    reference the new CI lanes.
 
 [Unreleased]: https://github.com/kcenon/claude-config/compare/v1.10.0...HEAD

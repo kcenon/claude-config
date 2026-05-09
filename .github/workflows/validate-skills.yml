@@ -19,6 +19,8 @@ on:
       - 'scripts/spec_lint.ps1'
       - 'scripts/spec_lint.py'
       - 'scripts/schemas/**'
+      - 'scripts/fleet_orchestrator/**'
+      - 'tests/fleet_orchestrator/**'
       - 'VERSION_MAP.yml'
       - 'scripts/check_versions.sh'
       - 'scripts/sync_versions.sh'
@@ -59,3 +61,14 @@ jobs:
 
       - name: Run spec linter test suite
         run: bash tests/scripts/test-spec-lint.sh
+
+      - name: Install pytest for fleet_orchestrator tests
+        # pytest is already a transitive dep of jsonschema in some envs; pin
+        # explicitly so the runner does not silently fall back to unittest.
+        run: pip install pytest
+
+      - name: Run fleet_orchestrator pytest (#622)
+        # Pins the topk_scorer routing behavior the fleet-orchestrator skill
+        # depends on. Silent breakage here means consumers route work to the
+        # wrong agent type.
+        run: python -m pytest tests/fleet_orchestrator/ -q
