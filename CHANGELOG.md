@@ -114,4 +114,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `docs/PLUGIN_BUILD.md` and the fleet-orchestrator SKILL.md cross-
     reference the new CI lanes.
 
+### Changed
+
+- Phase 3 README.ko.md sync (#623). Korean README brought back into
+  shape parity with English:
+  - Translated v1.8.0 and v1.9.0 changelog entries (the v1.7.0 — v1.10.0
+    gap noted in the audit). v1.10.0 has no changelog body in either
+    README yet; both will be filled at the next release.
+  - Added 시나리오 D (Use Case D — batch-issue-work / batch-pr-work) and
+    the matching quickstart-table rows. Externally-orchestrated batch
+    flows are now visible to Korean readers without bouncing through
+    the English README.
+  - Added "Memory sync (다중 머신)" and "Related Projects" sections that
+    were English-only. With these the two READMEs now have matching
+    heading counts at every level.
+  - Removed the hardcoded "현재: 1.7.0" line in favor of pointing at
+    `VERSION_MAP.yml` as the single source of truth (mirrors the
+    English approach added in v1.9-era).
+  - New `scripts/diff-readme.sh` compares ATX heading counts at every
+    level between the two files. Awareness of fenced code blocks
+    avoids false positives on `# 1.` style comments. Wired into
+    `validate-skills.yml` (which already triggered on README changes)
+    and added to the `/release` skill checklist between the version
+    drift check and the staging step.
+
 [Unreleased]: https://github.com/kcenon/claude-config/compare/v1.10.0...HEAD

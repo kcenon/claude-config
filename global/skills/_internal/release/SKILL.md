@@ -226,6 +226,14 @@ if [ -f VERSION_MAP.yml ]; then
         bash scripts/check_versions.sh
     fi
 
+    # Verify README.md and README.ko.md still share the same heading skeleton
+    # (#623). A failure here means a section was added or removed in one
+    # README without mirroring in the other; resolve the divergence before
+    # the release ships rather than letting i18n debt accrue.
+    if [ -x scripts/diff-readme.sh ]; then
+        bash scripts/diff-readme.sh
+    fi
+
     # Stage the changes so they land in the release PR
     git add VERSION_MAP.yml
     git add plugin/.claude-plugin/plugin.json plugin-lite/.claude-plugin/plugin.json 2>/dev/null || true

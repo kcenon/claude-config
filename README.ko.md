@@ -45,6 +45,8 @@ vi ~/.claude/git-identity.md
 | 설정 백업 | `./scripts/backup.sh` | `.\scripts\backup.ps1` |
 | 설정 동기화 | `./scripts/sync.sh` | `.\scripts\sync.ps1` |
 | 백업 검증 | `./scripts/verify.sh` | `.\scripts\verify.ps1` |
+| 열린 이슈 일괄 처리 | `./scripts/batch-issue-work.sh <org/repo>` | `.\scripts\batch-issue-work.ps1 -OrgProject <org/repo>` |
+| 실패 PR 일괄 처리 | `./scripts/batch-pr-work.sh <org/repo>` | `.\scripts\batch-pr-work.ps1 -OrgProject <org/repo>` |
 
 상세 시나리오는 [사용 시나리오](#사용-시나리오)를 참조하세요.
 
@@ -766,6 +768,43 @@ vi ~/.claude/git-identity.md
 
 ---
 
+### 시나리오 D: 열린 이슈 또는 실패 PR 일괄 처리
+
+각 항목마다 새 `claude` 프로세스를 띄우는 외부 오케스트레이터입니다. 한 프로세스가 정확히 하나의 이슈(또는 PR)를 처리하므로 항목 사이에 컨텍스트 상태가 누출될 수 없습니다 — 항목 N+1은 항목 1과 동일한 CLAUDE.md / 스킬 attention pool로 시작합니다. `/issue-work`와 `/pr-work`의 in-session 배치 모드를 보완하며, 격리를 OS 프로세스 경계로 끌어올립니다.
+
+다음 상황에서 사용하세요:
+
+- 배치가 in-session 안전 캡(기본 5, `--force-large` 없을 때 하드 캡 10)을 초과할 것으로 예상되고 항목별로 더 엄격한 격리를 원할 때
+- 무인 운영(cron, CI, 야간) 중이며 배치가 얼마나 길게 돌아가든 각 항목이 깨끗한 상태에서 시작하기를 원할 때
+- 라이브 터미널의 단일 스크롤백이 아닌 사후 분석용 항목별 디스크 로그가 필요할 때
+
+```bash
+# 저장소에서 최대 5개의 열린 이슈 처리 (기본 limit)
+./scripts/batch-issue-work.sh kcenon/claude-config
+
+# 최대 3개 이슈 처리
+./scripts/batch-issue-work.sh kcenon/claude-config 3
+
+# 실패한 PR을 대신 처리
+./scripts/batch-pr-work.sh kcenon/claude-config
+```
+
+```powershell
+# PowerShell 동등 명령
+.\scripts\batch-issue-work.ps1 -OrgProject kcenon/claude-config
+.\scripts\batch-issue-work.ps1 -OrgProject kcenon/claude-config -Limit 3
+.\scripts\batch-pr-work.ps1    -OrgProject kcenon/claude-config
+```
+
+항목별 로그는 `~/.claude/batch-logs/<timestamp>/`에 기록됩니다:
+
+- `issue-<번호>.log`: `batch-issue-work`이 처리한 각 이슈
+- `pr-<번호>.log`: `batch-pr-work`이 처리한 각 PR
+
+항목 실패 시 배치는 **일시 중지하고 비-0 코드로 종료**합니다. 성공한 항목은 롤백되지 않습니다. 실패한 항목의 로그를 확인해 근본 원인을 수정한 뒤 오케스트레이터를 다시 실행하세요 — 이미 머지된 항목은 더 이상 열린 목록에 없으므로 자동으로 건너뜁니다.
+
+---
+
 <details>
 <summary><strong>고급 사용법</strong> (GitHub Actions, 환경 변수)</summary>
 
@@ -886,6 +925,17 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ---
 
+## Memory sync (다중 머신)
+
+Memory sync는 Claude Code의 auto-memory를 비공개 git 저장소를 통해 모든 머신 간에 일관되게 유지합니다. 다음 문서를 참조하세요:
+
+- [운영 가이드](docs/MEMORY_SYNC.md) — 일상 운영, 문제 해결, 롤백, 충돌 해결
+- [위협 모델](docs/THREAT_MODEL.md) — 보안 분석, 7가지 위협 카테고리, 5층 방어
+- [검증 명세](docs/MEMORY_VALIDATION_SPEC.md) — 검증기 계약과 frontmatter 스키마
+- [신뢰 모델](docs/MEMORY_TRUST_MODEL.md) — 신뢰 계층과 라이프사이클
+
+---
+
 ## 추가 리소스
 
 - **설정 예제**: `global/` 및 `project/` 디렉토리 참조
@@ -900,10 +950,24 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## 버전
 
-**현재**: 1.7.0 (2026-04-06)
+**현재**: [`VERSION_MAP.yml`](VERSION_MAP.yml)에서 추적 (단일 진실의 출처 — `suite` 필드). 이 README 상단의 shields.io 뱃지는 동일한 필드로부터 `scripts/sync_versions.sh`가 생성합니다. 이 문서에 버전 번호를 하드코딩하지 마세요. 대신 `/release <field> <new-version>`으로 bump하세요.
 
 <details>
 <summary>변경 이력</summary>
+
+#### v1.9.0 (2026-04-13)
+- **다층 브랜치 방어**: `main`으로의 비-release 머지를 막는 4중 강제 계층
+  - PreToolUse 훅 (`pr-target-guard`): `--head develop` 없는 `gh pr create --base main` 차단
+  - GitHub Actions (`validate-pr-target.yml`): non-develop 브랜치에서 `main`을 타겟하는 PR 자동 폐쇄
+  - Release 스킬 무결성 검사: release 전 main/develop 분기 감지
+  - 문서: `branching-strategy.md`의 강제 계층 표
+- **CI 수정**: `validate-skills.yml`의 인라인 Python heredoc 블록 제거 (모든 워크플로우 실행이 YAML 파싱 오류로 실패하던 문제 해결)
+- **README 업데이트**: "PR 생성 시" 섹션 추가, 누락된 hooks 및 워크플로우를 디렉토리 트리에 반영
+
+#### v1.8.0 (2026-04-13)
+- **간소화된 git-flow 브랜칭 전략**: `develop`이 기본 브랜치, `main`을 타겟하는 PR에서만 CI 실행
+- **Pre-push 훅**: 보호 브랜치(`main`, `develop`)로의 직접 push 차단
+- **브랜칭 문서**: 브랜치 모델, CI 정책, release 워크플로우 종합 가이드
 
 #### v1.7.0 (2026-04-06)
 - **Windows PowerShell 완전 지원**: 모든 42개 bash 스크립트에 PowerShell (.ps1) 대응 파일 추가
@@ -991,6 +1055,17 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+---
+
+## Related Projects
+
+### AD-SDLC (Agent-Driven Software Development Lifecycle)
+
+AI 에이전트 기반 소프트웨어 개발 자동화 플랫폼입니다. AD-SDLC 에이전트는 본 프로젝트의 스킬과 가이드라인을 참조해 코드 품질을 향상시킬 수 있습니다.
+
+- **저장소**: [kcenon/claude_code_agent](https://github.com/kcenon/claude_code_agent)
+- **통합 가이드**: [docs/ad-sdlc-integration.md](docs/ad-sdlc-integration.md)
 
 ---
 
