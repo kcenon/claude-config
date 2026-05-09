@@ -1,3 +1,11 @@
+---
+status: Draft
+audience: contributor
+last_reviewed: 2026-05-09
+supersedes: []
+superseded_by: null
+---
+
 # Intelligent Pre-fetching System
 
 > ⚠️ **CUSTOM EXTENSION / DESIGN CONCEPT**

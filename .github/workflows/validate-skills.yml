@@ -21,6 +21,10 @@ on:
       - 'scripts/schemas/**'
       - 'scripts/fleet_orchestrator/**'
       - 'tests/fleet_orchestrator/**'
+      - 'docs/design/**'
+      - 'docs/tier2-benchmark-results.md'
+      - 'docs/batch-drift-regression.md'
+      - 'scripts/validate-adr-headers.sh'
       - 'VERSION_MAP.yml'
       - 'scripts/check_versions.sh'
       - 'scripts/sync_versions.sh'
@@ -78,3 +82,10 @@ jobs:
         # counts at every level. Catches "added a section in English, forgot
         # to translate" drift before it accrues into multi-version debt.
         run: bash scripts/diff-readme.sh
+
+      - name: Verify ADR frontmatter on docs/design (#624)
+        # docs/design/*.md (plus tier2-benchmark-results.md and
+        # batch-drift-regression.md) must carry the five-field ADR
+        # frontmatter so readers can tell at a glance whether a design
+        # document is still load-bearing.
+        run: bash scripts/validate-adr-headers.sh

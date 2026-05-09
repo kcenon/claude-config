@@ -1,3 +1,11 @@
+---
+status: Active
+audience: maintainer
+last_reviewed: 2026-05-09
+supersedes: []
+superseded_by: null
+---
+
 # Token Optimization Discoveries
 
 > **Date**: 2026-01-27

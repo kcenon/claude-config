@@ -336,6 +336,50 @@ For authoritative information on Claude Code features:
 
 > **2026 URL migration**: Claude Code documentation moved from `docs.anthropic.com/en/docs/claude-code/*` (and legacy `docs.claude.com/en/docs/claude-code/*`) to `code.claude.com/docs/en/*`. Old URLs 301-redirect but search rankings suffer; all links in this repo should use `code.claude.com`. See [issue #336](https://github.com/kcenon/claude-config/issues/336).
 
+## ADR / Design Doc Frontmatter (#624)
+
+Files in `docs/design/` and the long-lived performance / regression docs
+(`docs/tier2-benchmark-results.md`, `docs/batch-drift-regression.md`) carry a
+small YAML frontmatter so a reader can tell at a glance whether the document
+is still load-bearing without reading the body. The format is intentionally
+narrow — five fields, all required:
+
+```yaml
+---
+status: Active             # one of: Active | Superseded | Draft
+audience: maintainer       # one of: maintainer | contributor | user
+last_reviewed: 2026-05-09  # ISO date the doc was last confirmed accurate
+supersedes: []             # list of relative paths this doc replaces
+superseded_by: null        # relative path of the doc that replaces this one, or null
+---
+```
+
+Field semantics:
+
+- `status`: `Active` for current, `Draft` for proposals or design concepts
+  not yet implemented, `Superseded` for documents kept for historical context
+  but no longer authoritative.
+- `audience`: who the document is for. `maintainer` for internal design,
+  `contributor` for outside-PR explanations, `user` for end-user-visible
+  docs (rare in `docs/design/`).
+- `last_reviewed`: bumped whenever a maintainer confirms the doc still
+  reflects reality. A future `/doc-index` extension will flag entries older
+  than six months for re-review.
+- `supersedes` / `superseded_by`: builds a forward / backward chain so the
+  index can render "this design was replaced by …" links without prose
+  authors having to add cross-references manually.
+
+Validator: `scripts/validate-adr-headers.sh` is wired into
+`validate-skills.yml` and rejects any `docs/design/` file (plus the two
+named perf / regression docs) that is missing the frontmatter or has an
+out-of-range value. When you create a new design document, copy the
+five-field block from the nearest existing file as a starting point.
+
+This is a custom extension — Claude Code itself does not consume these
+fields. The doc-index skill (`/doc-index`) will eventually surface them in
+`docs/.index/manifest.yaml` so router and bundle recommendations can filter
+on `status: Active` and `audience`.
+
 ## Reporting Issues
 
 If a feature from this configuration doesn't work:
@@ -346,4 +390,4 @@ If a feature from this configuration doesn't work:
 
 ---
 
-*Version: 1.3.0 | Last updated: 2026-04-17*
+*Version: 1.4.0 | Last updated: 2026-05-09*

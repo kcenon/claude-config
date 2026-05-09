@@ -1,3 +1,11 @@
+---
+status: Draft
+audience: maintainer
+last_reviewed: 2026-05-09
+supersedes: []
+superseded_by: null
+---
+
 # Design Proposal: PermissionRequest / PermissionDenied Hooks
 
 > **Status**: Proposal (no implementation)
