@@ -52,7 +52,7 @@ documents:
       - {h: "What's Next", l: 170, e: 201}
   - path: "README.ko.md"
     title: "Claude Configuration Backup & Deployment System"
-    description: "<p align=\"center\">"
+    description: "여러 시스템 간에 CLAUDE.md 설정을 쉽게 공유하고 동기화하는 도구"
     category: root
     scope: root
     size: 34108
@@ -82,7 +82,7 @@ documents:
       - {h: "License", l: 909, e: 917}
   - path: "README.md"
     title: "Claude Configuration Backup & Deployment System"
-    description: "<p align=\"center\">"
+    description: "Easily share and sync CLAUDE.md settings across multiple systems"
     category: root
     scope: root
     size: 35565

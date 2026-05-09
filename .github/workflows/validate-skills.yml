@@ -25,6 +25,9 @@ on:
       - 'docs/tier2-benchmark-results.md'
       - 'docs/batch-drift-regression.md'
       - 'scripts/validate-adr-headers.sh'
+      - 'scripts/extract-doc-description.sh'
+      - 'tests/doc-index/**'
+      - 'docs/.index/manifest.yaml'
       - 'VERSION_MAP.yml'
       - 'scripts/check_versions.sh'
       - 'scripts/sync_versions.sh'
@@ -89,3 +92,9 @@ jobs:
         # frontmatter so readers can tell at a glance whether a design
         # document is still load-bearing.
         run: bash scripts/validate-adr-headers.sh
+
+      - name: Run doc-index description extractor tests (#625)
+        # Pin extract-doc-description.sh behavior. The pre-#625
+        # heuristic took the first non-empty line, producing literal
+        # '<p align="center">' descriptions for HTML-headed READMEs.
+        run: bash tests/doc-index/test-extract-doc-description.sh
