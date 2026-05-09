@@ -20,6 +20,13 @@ export HOME="$TEST_HOME"
 MEM="$HOME/.claude/memory-shared/memories"
 mkdir -p "$MEM"
 
+# OWNER_EMAILS is required by secret-check.sh as of #618. Configure a test
+# owner so the secret-detection paths can run; the test suite still uses
+# validate.sh + secret-check.sh + injection-check.sh as the real chain.
+export OWNER_EMAILS="test-owner@example.com"
+export OWNER_GITHUB_HANDLE="test-owner"
+export OWNER_HOME_USER="test-owner"
+
 # Symlink validators to ${HOME}/.claude/scripts/memory/ so the hook's
 # locator finds them regardless of the user's installed claude-config.
 mkdir -p "$HOME/.claude/scripts/memory"

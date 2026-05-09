@@ -57,7 +57,7 @@ EXIT CODES
 
 VALIDATORS RUN
     validate.sh         (exit 1 = FAIL-STRUCT, 2 = FAIL-FORMAT both block)
-    secret-check.sh     (exit 1 = SECRET-DETECTED blocks)
+    secret-check.sh     (exit 1 = SECRET-DETECTED, 2 = OWNER_EMAILS unset; both block)
     injection-check.sh  (warn-only; never blocks restore)
 
 NOTES
@@ -256,7 +256,7 @@ main() {
   esac
   printf '  validate.sh:    %s\n' "$val_label"
 
-  # secret-check.sh: 0 = CLEAN, 1 = SECRET-DETECTED (blocks).
+  # secret-check.sh: 0 = CLEAN, 1 = SECRET-DETECTED, 2 = OWNER_EMAILS unset (#618).
   local sec_rc=0
   local sec_label="CLEAN"
   local sec_out
@@ -264,6 +264,7 @@ main() {
   case "$sec_rc" in
     0) sec_label="CLEAN" ;;
     1) sec_label="SECRET-DETECTED" ;;
+    2) sec_label="CONFIG-REQUIRED" ;;
     *) sec_label="UNKNOWN($sec_rc)" ;;
   esac
   printf '  secret-check.sh: %s\n' "$sec_label"
@@ -283,8 +284,10 @@ main() {
   fi
 
   # Decide whether to refuse. Blocking failures: validate.sh in (1, 2),
-  # secret-check.sh == 1. injection-check.sh never blocks (per spec).
-  if (( val_rc == 1 || val_rc == 2 || sec_rc == 1 )); then
+  # secret-check.sh in (1, 2). injection-check.sh never blocks (per spec).
+  # secret-check exit 2 = OWNER_EMAILS unset; fail-closed since we cannot
+  # determine owner emails without it (#618).
+  if (( val_rc == 1 || val_rc == 2 || sec_rc == 1 || sec_rc == 2 )); then
     printf '%s\n' "$val_out"
     printf '%s\n' "$sec_out"
     if [[ -n "$inj_out" ]] && (( inj_rc != 0 )); then

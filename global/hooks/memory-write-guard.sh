@@ -20,6 +20,7 @@
 #   4. Decide:
 #        validate.sh exit 1 or 2 -> deny  (FAIL-STRUCT / FAIL-FORMAT)
 #        secret-check.sh exit 1  -> deny  (SECRET-DETECTED)
+#        secret-check.sh exit 2  -> deny  (OWNER_EMAILS not configured, #618)
 #        injection-check.sh exit 3 -> allow with feedback (warn-only, never blocks)
 #        validate.sh exit 3       -> allow with feedback (semantic warning)
 #        else                     -> allow
@@ -253,16 +254,22 @@ build_deny_reason() {
     if [ "$SECRET_RC" -eq 1 ]; then
         reason="${reason}\nsecret-check.sh blocked write:\n${SECRET_OUT}"
     fi
+    if [ "$SECRET_RC" -eq 2 ]; then
+        reason="${reason}\nsecret-check.sh requires configuration (#618):\n${SECRET_OUT}"
+    fi
     printf '%s' "$reason"
 }
 
 # Per spec: validate.sh codes 1 (FAIL-STRUCT) and 2 (FAIL-FORMAT) are blocking;
 # code 3 (WARN-SEMANTIC) is non-blocking. secret-check.sh code 1 is blocking.
+# secret-check.sh code 2 (configuration required, #618) is also blocking —
+# without OWNER_EMAILS we cannot tell owner emails from foreign emails, so
+# fail-closed is the safe choice.
 BLOCK=0
 if [ "$VALIDATE_RC" -eq 1 ] || [ "$VALIDATE_RC" -eq 2 ]; then
     BLOCK=1
 fi
-if [ "$SECRET_RC" -eq 1 ]; then
+if [ "$SECRET_RC" -eq 1 ] || [ "$SECRET_RC" -eq 2 ]; then
     BLOCK=1
 fi
 
