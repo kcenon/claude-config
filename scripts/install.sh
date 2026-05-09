@@ -102,22 +102,27 @@ ensure_claude_cli() {
 
     # Native installer는 Anthropic 공식 권장 방식이며 백그라운드 자동 업데이트를 지원한다.
     # 설치 경로: ~/.local/bin/claude → ~/.local/share/claude/versions/<ver>
-    local installer_url="https://claude.ai/install.sh"
+    #
+    # Supply-chain hardening (#620): delegates to hooks/lib/installer-fetch.sh
+    # for download → sha256 verify → run. The pinned hash is shared with
+    # bootstrap.sh and lives in $ANTHROPIC_INSTALLER_SHA256. Bare
+    # 'curl | bash' is no longer used — every install path verifies.
+    local installer_url="${ANTHROPIC_INSTALLER_URL:-https://claude.ai/install.sh}"
+    local installer_sha="${ANTHROPIC_INSTALLER_SHA256:-b315b46925a9bfb9422f2503dd5aa649f680832f4c076b22d87c39d578c3d830}"
     local install_status=1
-    info "Native installer 실행 중: $installer_url"
-    if command -v curl >/dev/null 2>&1; then
-        if curl -fsSL "$installer_url" | bash; then
-            install_status=0
-        fi
-    elif command -v wget >/dev/null 2>&1; then
-        if wget -qO- "$installer_url" | bash; then
-            install_status=0
-        fi
-    else
-        warning "curl/wget이 모두 없어 자동 설치를 진행할 수 없습니다."
-        echo "  curl 설치 후 재시도하거나 수동으로 다음을 실행하세요:"
-        echo "    curl -fsSL https://claude.ai/install.sh | bash"
+
+    local script_dir repo_root
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    repo_root="$(dirname "$script_dir")"
+    if [ ! -f "$repo_root/hooks/lib/installer-fetch.sh" ]; then
+        warning "installer-fetch.sh not found at $repo_root/hooks/lib/ — refusing unverified install"
         return 0
+    fi
+    # shellcheck disable=SC1091
+    source "$repo_root/hooks/lib/installer-fetch.sh"
+    info "Native installer 실행 중: $installer_url"
+    if installer_fetch_verify_run "$installer_url" "$installer_sha" "claude-installer"; then
+        install_status=0
     fi
 
     if [ $install_status -eq 0 ]; then

@@ -17,7 +17,23 @@ $ErrorActionPreference = 'Stop'
 # GitHub repository settings
 $GitHubUser   = if ($env:GITHUB_USER)   { $env:GITHUB_USER }   else { 'kcenon' }
 $GitHubRepo   = if ($env:GITHUB_REPO)   { $env:GITHUB_REPO }   else { 'claude-config' }
-$GitHubBranch = if ($env:GITHUB_BRANCH) { $env:GITHUB_BRANCH } else { 'main' }
+
+# Pin install source to a release tag for SLSA-aligned supply-chain hardening
+# (#620). Floating refs (e.g. 'main') ship whatever HEAD is at install time,
+# leaving no integrity baseline. GITHUB_BRANCH remains a one-release deprecation
+# alias for the new GITHUB_REF variable.
+if ($env:GITHUB_BRANCH) {
+    Write-Warning "GITHUB_BRANCH is deprecated, use GITHUB_REF"
+}
+$GitHubRef = if ($env:GITHUB_REF) { $env:GITHUB_REF }
+             elseif ($env:GITHUB_BRANCH) { $env:GITHUB_BRANCH }
+             else { 'v1.10.0' }
+
+# Anthropic Claude Code installer pin (#620 — supply-chain parity with bash).
+# The Anthropic-hosted PowerShell installer is pinned by sha256 to prevent
+# MITM substitution. Rotation policy mirrors docs/SUPPLY_CHAIN.md.
+$AnthropicInstallerUrl    = if ($env:ANTHROPIC_INSTALLER_URL) { $env:ANTHROPIC_INSTALLER_URL } else { 'https://claude.ai/install.ps1' }
+$AnthropicInstallerSha256 = if ($env:ANTHROPIC_INSTALLER_SHA256) { $env:ANTHROPIC_INSTALLER_SHA256 } else { 'acc15c3d844b8952e702a24b584d2fdc0b589ee1061c11202529cdd5702711df' }  # pinned 2026-05-09
 
 # Installation directory
 $InstallDir = if ($env:INSTALL_DIR) { $env:INSTALL_DIR } else { Join-Path $HOME 'claude_config_backup' }
@@ -90,12 +106,22 @@ function Confirm-ClaudeCli {
     # Native installer는 Anthropic 공식 권장 방식이며 백그라운드 자동 업데이트를 지원한다.
     # 설치 경로: $env:USERPROFILE\.local\bin\claude.exe (Windows) /
     #           ~/.local/bin/claude (macOS, Linux, WSL)
-    $installerUrl = 'https://claude.ai/install.ps1'
-    Write-Info "Native installer 실행 중: $installerUrl"
-    try {
-        $installerScript = Invoke-RestMethod -Uri $installerUrl -ErrorAction Stop
-        Invoke-Expression $installerScript
-
+    #
+    # Supply-chain hardening (#620): delegates to InstallerFetch.psm1 which
+    # mirrors hooks/lib/installer-fetch.sh. The chained 'irm | iex' pattern is
+    # gone — the script is fetched, sha256-verified, then executed.
+    $modulePath = Join-Path $InstallDir 'hooks' 'lib' 'InstallerFetch.psm1'
+    if (-not (Test-Path -LiteralPath $modulePath)) {
+        Write-Warn "InstallerFetch.psm1 missing at $modulePath — refusing unverified install"
+        return
+    }
+    Import-Module $modulePath -Force -DisableNameChecking
+    Write-Info "Native installer 실행 중: $AnthropicInstallerUrl"
+    $rc = Invoke-InstallerFetchVerifyRun `
+        -Url $AnthropicInstallerUrl `
+        -ExpectedSha256 $AnthropicInstallerSha256 `
+        -Label 'claude-installer'
+    if ($rc -eq 0) {
         # PATH에 새로 추가된 ~/.local/bin이 아직 반영되지 않았을 수 있다.
         $localBin = Join-Path $HOME '.local' 'bin'
         if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
@@ -121,10 +147,9 @@ function Confirm-ClaudeCli {
             Write-Host "  새 PowerShell 세션을 시작하거나 PATH를 갱신하세요."
         }
     }
-    catch {
-        Write-Warn "Claude Code CLI 자동 설치 실패: $($_.Exception.Message)"
-        Write-Host "  수동 설치: irm https://claude.ai/install.ps1 | iex"
-        Write-Host "  또는 Anthropic 공식 가이드: https://code.claude.com/docs/en/setup"
+    else {
+        Write-Warn "Claude Code CLI 자동 설치 실패 (Invoke-InstallerFetchVerifyRun rc=$rc)."
+        Write-Host "  Anthropic 공식 가이드: https://code.claude.com/docs/en/setup"
     }
 }
 
@@ -145,7 +170,7 @@ function Invoke-CloneRepository {
             Write-Info "기존 디렉토리를 사용합니다. git pull 실행..."
             Push-Location $InstallDir
             try {
-                & git pull origin $GitHubBranch
+                & git pull origin $GitHubRef
             }
             finally {
                 Pop-Location
@@ -154,8 +179,9 @@ function Invoke-CloneRepository {
         }
     }
 
-    & git clone "https://github.com/$GitHubUser/$GitHubRepo.git" $InstallDir
-    Write-Ok "저장소 클론 완료: $InstallDir"
+    # Pinned to GITHUB_REF tag with --depth 1 for bandwidth efficiency.
+    & git clone --branch $GitHubRef --depth 1 "https://github.com/$GitHubUser/$GitHubRepo.git" $InstallDir
+    Write-Ok "저장소 클론 완료: $InstallDir (ref: $GitHubRef)"
 }
 
 # ── Install global settings ──────────────────────────────────
@@ -441,8 +467,11 @@ function Install-ProjectSettings {
 
 function Invoke-Main {
     Test-Dependencies
-    Confirm-ClaudeCli
+    # Invoke-CloneRepository must run before Confirm-ClaudeCli — the latter
+    # imports hooks/lib/InstallerFetch.psm1 from the just-cloned tag (#620).
+    # Trust root: GITHUB_REF tag → cloned hooks/lib/* → pinned sha256 verify.
     Invoke-CloneRepository
+    Confirm-ClaudeCli
 
     $installType = Select-InstallType
 

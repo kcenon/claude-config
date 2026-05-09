@@ -60,5 +60,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `GITHUB_REF` variable; setting it emits a stderr warning. Migrate any
   automation that overrides `GITHUB_BRANCH` to `GITHUB_REF` before the next
   major release.
+- Phase 1 supply-chain parity (#620). The download → verify → run contract
+  introduced for `bootstrap.sh` is now extracted into a shared library and
+  applied to the two remaining install entry points:
+  - `hooks/lib/installer-fetch.sh` and `hooks/lib/InstallerFetch.psm1` are
+    the new single source of truth for download + sha256 verify + run.
+    Typed exit codes (`0=OK`, `10=DOWNLOAD`, `11=CHECKSUM`, `12=MISMATCH`,
+    `13=RUN`, `64=usage`) are mirrored in both implementations.
+  - `bootstrap.sh` and `bootstrap.ps1` now clone the repo before invoking
+    the Claude Code CLI installer so the lib is available; the GITHUB_REF
+    tag is therefore the integrity root for every subsequent verification.
+  - `bootstrap.ps1` no longer pipes `irm | iex`; pins the Anthropic
+    PowerShell installer at sha256
+    `acc15c3d844b8952e702a24b584d2fdc0b589ee1061c11202529cdd5702711df`
+    (`# pinned 2026-05-09`).
+  - `bootstrap.ps1` repo clone now uses `--branch $GitHubRef --depth 1`
+    with the same `v1.10.0` default as the bash side. `GITHUB_BRANCH`
+    remains a one-release deprecation alias.
+  - `scripts/install.sh` `ensure_claude_cli` no longer pipes `curl | bash`;
+    sources the shared lib and verifies sha256 before executing.
+  - Regression suite `tests/scripts/installer-fetch-tests.sh` covers
+    happy path, download failure, sha mismatch, run failure, and usage
+    errors with local `file://` fixtures (no network dependency).
+  - Windows runner CI for `bootstrap.ps1` and a TTY-aware non-interactive
+    default are deferred to a follow-up.
 
 [Unreleased]: https://github.com/kcenon/claude-config/compare/v1.10.0...HEAD
