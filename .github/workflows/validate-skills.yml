@@ -72,3 +72,9 @@ jobs:
         # depends on. Silent breakage here means consumers route work to the
         # wrong agent type.
         run: python -m pytest tests/fleet_orchestrator/ -q
+
+      - name: Verify README.md / README.ko.md heading skeleton (#623)
+        # Bilingual contract: the two READMEs must share the same heading
+        # counts at every level. Catches "added a section in English, forgot
+        # to translate" drift before it accrues into multi-version debt.
+        run: bash scripts/diff-readme.sh
