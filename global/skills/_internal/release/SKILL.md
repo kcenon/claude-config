@@ -365,6 +365,18 @@ gh pr merge $PR_NUMBER --repo $ORG/$PROJECT --squash
 
 If CI fails, diagnose and fix on `develop`, push, and re-poll. Max 3 attempts.
 
+#### Sonar Gate on Release PR
+
+The release skill creates a `develop -> main` PR. Apply the same Sonar
+gate that `pr-work` uses (Step 10a) to release PRs as well — Quality Gate
+regressions accumulated on `develop` must not slip into `main`.
+
+Procedure: identical to `pr-work` Step 10a (fetch the `sonarcloud[bot]`
+summary comment, parse the Quality Gate verdict, invoke `sonar-fix` on
+FAIL, re-poll, halt if `sonar-fix` exhausts its `max_iterations`).
+
+See: `~/.claude/skills/_internal/pr-work/SKILL.md` Step 10a.
+
 ### 7. Create Git Tag on main
 
 ```bash

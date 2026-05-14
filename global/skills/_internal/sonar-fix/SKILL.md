@@ -124,14 +124,16 @@ Refer to parent epic #635 for the full rationale.
 
 ## Out of Scope
 
-- Codified fix logic for the six whitelisted rules: deferred to P2
-  (S1481, S1128) and P4 (S1854, S1192, S125, S1116).
-- Integration with the `pr-work` and `release` skills: deferred to P3.
+- Codified fix logic for the remaining whitelisted rules: deferred to P4
+  (S1854, S1192, S125, S1116).
 - Registration in the global `Skill Aliases` table in
   `global/CLAUDE.md`: deferred to P5.
 - SonarQube REST API access, token management, or non-PR sources of
   findings: out of scope by design (the bot comment channel is
   authoritative).
+- Auto-fix for `security_hotspot` or `vulnerability` findings: out of
+  scope by policy — these require human review and never qualify for
+  codified auto-fixes.
 
 ## References
 

@@ -10,6 +10,7 @@ halt_conditions:
   - { type: success, expr: "All PR checks pass" }
   - { type: user,    expr: "user aborts" }
   - { type: limit,   expr: "3 identical CI failures in a row" }
+  - { type: limit,   expr: "sonar-fix exhausted max_iterations and Quality Gate still FAIL" }
 on_halt: "Report failing checks with gh pr checks output, do not merge"
 loop_safe: false
 tiers:
@@ -634,6 +635,39 @@ and the gate enforces the checks above.
 > per-iso-class evidence requirement matrix, the formal "within the last
 > 24h" definition, the full failure-message format, and the override-flag
 > contract.
+
+### 10a. Sonar Gate (sonarcloud[bot] PR Decoration)
+
+After CI passes (Step 9) and before the ABSOLUTE CI GATE merge (Step 10),
+check for a SonarCloud Quality Gate verdict on the PR. SonarCloud reports
+via PR comment from `sonarcloud[bot]`, not via a GitHub Check — so the
+`gh pr checks` gate in Step 10 does not see it.
+
+```bash
+# Fetch sonarcloud[bot] summary comment
+SONAR_COMMENT=$(gh pr view $PR_NUMBER --repo $ORG/$PROJECT \
+  --comments --json comments \
+  -q '.comments[] | select(.author.login == "sonarcloud[bot]") | .body' | tail -1)
+```
+
+If no `sonarcloud[bot]` comment is present, the project is not Sonar-attached —
+**skip** this step and proceed to Step 10.
+
+If a comment is present:
+
+- Extract the Quality Gate verdict from the comment body (look for
+  `Quality Gate passed` or `Quality Gate failed`).
+- If `PASS` -> proceed to Step 10.
+- If `FAIL` -> invoke the `sonar-fix` skill:
+  - Sub-agent: `sonar-fix $PR_NUMBER` (the skill is user-invocable per
+    its frontmatter).
+  - After `sonar-fix` completes, re-poll the `sonarcloud[bot]` summary
+    comment until the verdict flips to PASS or `sonar-fix` reaches its
+    own `max_iterations` (3).
+- If still `FAIL` after `sonar-fix` exhausts `max_iterations` -> halt
+  per pr-work's `halt_conditions` (`sonar-fix exhausted max_iterations
+  and Quality Gate still FAIL`) and exit without merging. Convert the
+  PR to draft and report the final verdict to the user.
 
 ### 10. Auto-Merge on Success
 
