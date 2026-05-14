@@ -77,8 +77,8 @@ The skill stops in three cases, paraphrased from the frontmatter:
 
 After classification, each finding is routed by whitelist match:
 
-- **Whitelist match** (rule ∈ {S1481, S1128} in P2; full whitelist
-  in P4): read the rule's entry in
+- **Whitelist match** (rule ∈ {S1481, S1128, S1854, S1192, S125,
+  S1116}): read the rule's entry in
   `reference/auto-fixable-rules.md` and apply the codified fix
   exactly as specified in its Before/After section.
 - **Whitelist miss**: render the finding into the body in
@@ -88,8 +88,10 @@ After classification, each finding is routed by whitelist match:
 All fixes must be **idempotent** — running the skill twice on the same
 PR must produce the same tree on the second run as on the first. Rules
 that declare a `Safety` section (S1481 RHS side-effect, S1128
-side-effect import) MUST escalate rather than auto-fix when the safety
-predicate cannot be evaluated with certainty. When in doubt, escalate.
+side-effect import, S1854 RHS side-effect, S1192 semantic divergence /
+naming ambiguity, S125 intentional-marker comments, S1116 intentional
+empty body) MUST escalate rather than auto-fix when the safety predicate
+cannot be evaluated with certainty. When in doubt, escalate.
 
 ## Dry-run mode
 
@@ -124,8 +126,6 @@ Refer to parent epic #635 for the full rationale.
 
 ## Out of Scope
 
-- Codified fix logic for the remaining whitelisted rules: deferred to P4
-  (S1854, S1192, S125, S1116).
 - Registration in the global `Skill Aliases` table in
   `global/CLAUDE.md`: deferred to P5.
 - SonarQube REST API access, token management, or non-PR sources of
