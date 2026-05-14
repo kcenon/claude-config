@@ -73,6 +73,55 @@ The skill stops in three cases, paraphrased from the frontmatter:
   rule + same location) indicate the codified fix is not converging,
   so the skill stops to avoid a tight loop.
 
+## Apply
+
+After classification, each finding is routed by whitelist match:
+
+- **Whitelist match** (rule ∈ {S1481, S1128} in P2; full whitelist
+  in P4): read the rule's entry in
+  `reference/auto-fixable-rules.md` and apply the codified fix
+  exactly as specified in its Before/After section.
+- **Whitelist miss**: render the finding into the body in
+  `reference/escalation-template.md` and accumulate it for the single
+  consolidated escalation comment.
+
+All fixes must be **idempotent** — running the skill twice on the same
+PR must produce the same tree on the second run as on the first. Rules
+that declare a `Safety` section (S1481 RHS side-effect, S1128
+side-effect import) MUST escalate rather than auto-fix when the safety
+predicate cannot be evaluated with certainty. When in doubt, escalate.
+
+## Dry-run mode
+
+When the skill is invoked with `--dry-run`:
+
+- No file edits are written and no commit is created.
+- The skill emits a unified diff (`git diff` style) of the fixes it
+  *would* apply to stdout so the operator can review the change set
+  before re-running without `--dry-run`.
+- The same diff may also be posted as a PR comment with the HTML
+  marker `<!-- sonar-fix:dry-run -->` so subsequent dry-run invocations
+  replace the prior preview comment rather than stacking.
+- Escalation comments are still posted in dry-run mode so the manual
+  review path is visible alongside the auto-fix preview.
+
+After review, re-invoke the skill on the same PR without `--dry-run`
+to apply the previewed diff.
+
+## Commit Convention
+
+Auto-fix commits authored by this skill follow:
+
+```
+fix(sonar): <rule-id> -- <short reason>
+```
+
+Examples:
+- `fix(sonar): S1481 -- remove unused local in cli/main.py`
+- `fix(sonar): S1128 -- remove unused import in api/handlers.py`
+
+Refer to parent epic #635 for the full rationale.
+
 ## Out of Scope
 
 - Codified fix logic for the six whitelisted rules: deferred to P2
