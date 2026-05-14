@@ -26,6 +26,7 @@ Global settings applied every session. Routing index only — procedural detail 
 - **Lifecycle skills**: `global/skills/_internal/issue-work`, `pr-work`, `release`, `branch-cleanup`
 - **Build verification**: `global/skills/_internal/pr-work/reference/build-verification.md`
 - **Skill authoring**: `global/skills/_policy.md`, `global/skills/_internal/_shared/invariants.md`
+- **Sonar fix (SonarQube Cloud)**: `global/skills/_internal/sonar-fix`
 - **Skill aliases**: see "Skill Aliases" section below
 
 ## Skill Aliases (post-D2 relocation, see #491, #492)
@@ -39,6 +40,7 @@ When the user types one of the keywords below as a leading command (with or with
 | `release`              | `~/.claude/skills/_internal/release/SKILL.md`               |
 | `branch-cleanup`       | `~/.claude/skills/_internal/branch-cleanup/SKILL.md`        |
 | `ci-fix`               | `~/.claude/skills/_internal/ci-fix/SKILL.md`                |
+| `sonar-fix`            | `~/.claude/skills/_internal/sonar-fix/SKILL.md`             |
 | `harness`              | `~/.claude/skills/_internal/harness/SKILL.md`               |
 | `research`             | `~/.claude/skills/_internal/research/SKILL.md`              |
 | `doc-review`           | `~/.claude/skills/_internal/doc-review/SKILL.md`            |
