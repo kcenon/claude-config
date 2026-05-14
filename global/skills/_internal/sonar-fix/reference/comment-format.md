@@ -22,5 +22,5 @@ Parser must extract: `rule_id`, `severity`, `file:line`, `message`.
 section as a chronological list of `(date, comment_url, verdict, rules[])`
 tuples so future parser tweaks have a regression corpus)
 
-### TODO entries from P2
-- (date) `<url>` — verdict, rule_ids encountered
+### Codified rules (P2)
+- S1481, S1128 — codified in `auto-fixable-rules.md` as of this PR. Sample sonarcloud[bot] comments that triggered these will be archived here in their first real-PR encounter.
