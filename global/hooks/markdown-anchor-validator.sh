@@ -159,6 +159,67 @@ if [ -n "$H_LINES" ]; then
     done < <(paste "$TMP_FILES" "$TMP_ANCHORS")
 fi
 
+# === Lazy cross-file anchor resolution + cache ===
+# Inter-file references may target files that are NOT staged. The primary
+# registry is intentionally built from staged files only (fast path). When an
+# inter-file check misses, fall back to parsing the target file from disk and
+# cache the resulting anchors per file so we never reparse.
+#
+# Cache keys:
+#   RESOLVED_FILES[<path>]=1 marks <path> as already parsed (positive OR negative)
+#   RESOLVED_ANCHORS[<path>::<anchor>]=1 records each anchor discovered in <path>
+declare -A RESOLVED_FILES
+declare -A RESOLVED_ANCHORS
+
+resolve_file_anchors() {
+    local target="$1"
+    # Cache hit (idempotent) — fall through to the lookup in the caller.
+    [[ -n "${RESOLVED_FILES[$target]+x}" ]] && return 0
+    RESOLVED_FILES["$target"]=1
+
+    # Negative cache: target file does not exist on disk.
+    [[ -f "$target" ]] || return 0
+
+    # Single-pass awk: emit one heading-text per line, no per-line metadata.
+    # The transformation pipeline below mirrors the staged-file registry
+    # build (sed/tr stages) so cross-file resolution stays algorithmically
+    # identical to the staged path.
+    local heading_lines
+    heading_lines=$(awk '
+        BEGIN { c = 0 }
+        /^[[:space:]]*(```|~~~)/ { c = !c; next }
+        c { next }
+        match($0, /^#+[[:space:]]/) {
+            h_count = RLENGTH - 1
+            if (h_count >= 1 && h_count <= 6) {
+                h = $0
+                sub(/^#+[[:space:]]+/, "", h)
+                sub(/[[:space:]#]*$/, "", h)
+                if (h != "") print h
+            }
+        }
+    ' "$target" 2>/dev/null) || return 0
+
+    [[ -z "$heading_lines" ]] && return 0
+
+    local -A counts=()
+    local anchor
+    while IFS= read -r heading; do
+        anchor=$(printf '%s' "$heading" \
+            | sed -e 's/\]([^)]*)//g' -e 's/\[//g' -e 's/\*//g' -e 's/`//g' -e 's/<[^>]*>//g' \
+            | tr '[:upper:]' '[:lower:]' \
+            | sed -e 's/[^[:alnum:]_ -]//g' -e 's/ /-/g' -e 's/^-//;s/-$//')
+        [[ -z "$anchor" ]] && continue
+        if [[ -n "${counts[$anchor]+x}" ]]; then
+            counts["$anchor"]=$(( counts["$anchor"] + 1 ))
+            RESOLVED_ANCHORS["${target}::${anchor}-${counts[$anchor]}"]=1
+        else
+            counts["$anchor"]=0
+            RESOLVED_ANCHORS["${target}::${anchor}"]=1
+        fi
+    done <<< "$heading_lines"
+}
+
 # === Check references ===
 ERRORS=()
 
@@ -182,7 +243,12 @@ while IFS=$'\t' read -r _type file line_num ref_file anchor; do
     while [[ "$target" == *"/.."* ]]; do
         target="$(echo "$target" | sed 's|[^/]*/\.\./||')"
     done
-    if [[ -z "${ANCHORS[${target}::${anchor}]+x}" ]]; then
+    if [[ -n "${ANCHORS[${target}::${anchor}]+x}" ]]; then
+        continue
+    fi
+    # Primary registry miss — target may be unstaged. Lazy-parse from disk.
+    resolve_file_anchors "$target"
+    if [[ -z "${RESOLVED_ANCHORS[${target}::${anchor}]+x}" ]]; then
         ERRORS+=("${file##*/}:${line_num}: ${ref_file}#${anchor}")
     fi
 done < <(echo "$AWK_OUTPUT" | grep '^X' || true)

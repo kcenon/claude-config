@@ -160,6 +160,44 @@ foreach ($filePath in $stagedFiles) {
     }
 }
 
+# === Lazy cross-file anchor resolution + cache ===
+# Inter-file references can target files that are NOT staged in the current
+# commit. Building the registry exclusively from staged files (above) is the
+# fast path; when an inter-file check misses, fall back to parsing the target
+# file from disk. Cache results in $ResolvedFiles to avoid double-parse.
+$ResolvedFiles = @{}
+
+function Resolve-FileAnchors {
+    param([string]$FilePath)
+
+    if ($ResolvedFiles.ContainsKey($FilePath)) {
+        return $ResolvedFiles[$FilePath]
+    }
+
+    $anchors = @{}
+    if (-not (Test-Path -LiteralPath $FilePath -PathType Leaf)) {
+        # Cache the negative result so we do not Test-Path on every reference.
+        $ResolvedFiles[$FilePath] = $anchors
+        return $anchors
+    }
+
+    $counts = @{}
+    $refs = Get-MarkdownReferences -FilePath $FilePath
+    foreach ($headingText in $refs.Headings) {
+        $anchor = ConvertTo-GitHubAnchor -Text $headingText
+        if ([string]::IsNullOrEmpty($anchor)) { continue }
+        if ($counts.ContainsKey($anchor)) {
+            $counts[$anchor]++
+            $anchors["${anchor}-$($counts[$anchor])"] = $true
+        } else {
+            $counts[$anchor] = 0
+            $anchors[$anchor] = $true
+        }
+    }
+    $ResolvedFiles[$FilePath] = $anchors
+    return $anchors
+}
+
 # === Check references ===
 $Errors = [System.Collections.Generic.List[string]]::new()
 
@@ -183,7 +221,11 @@ foreach ($filePath in $stagedFiles) {
         $target = "${dir}/$($ref.RefFile)" -replace '\\', '/' -replace '/\./', '/'
 
         $key = "${target}::$($ref.Anchor)"
-        if (-not $Anchors.ContainsKey($key)) {
+        if ($Anchors.ContainsKey($key)) { continue }
+
+        # Primary registry miss — target may be unstaged. Lazy-parse from disk.
+        $targetAnchors = Resolve-FileAnchors -FilePath $target
+        if (-not $targetAnchors.ContainsKey($ref.Anchor)) {
             $fileName = Split-Path $relPath -Leaf
             $Errors.Add("${fileName}:$($ref.LineNum): $($ref.RefFile)#$($ref.Anchor)")
         }
