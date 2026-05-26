@@ -86,6 +86,67 @@ assert_valid_json() {
     fi
 }
 
+# Cross-file scenario runner: stages one fixture as $1 (placed at docs/$1
+# by default), while ALSO copying a sidecar fixture next to it on disk
+# WITHOUT staging it. This is the exact pattern that exposes the
+# cross-file resolution false positive — the inter-file ref's target
+# exists in the working tree but is not in `git diff --cached`.
+#
+# $1: staged fixture filename
+# $2: sidecar fixture filename (copied next to staged file but unstaged)
+# $3: optional staged-path override (default: docs/$1)
+# $4: optional sidecar-path override (default: docs/$2)
+run_cross_file_hook_capture() {
+    local staged_fixture="$1"
+    local sidecar_fixture="$2"
+    local staged_dest="${3:-docs/$staged_fixture}"
+    local sidecar_dest="${4:-docs/$sidecar_fixture}"
+    local root_abs hook_abs tmpdir
+    root_abs="$(pwd)"
+    hook_abs="${root_abs}/${HOOK}"
+    tmpdir=$(mktemp -d)
+    (
+        cd "$tmpdir" && \
+        git init -q && \
+        git config user.email "ci@example.com" && \
+        git config user.name "CI" && \
+        mkdir -p "$(dirname "$staged_dest")" "$(dirname "$sidecar_dest")" && \
+        cp "${root_abs}/tests/markdown-anchor-validator/fixtures/${staged_fixture}" "${staged_dest}" && \
+        cp "${root_abs}/tests/markdown-anchor-validator/fixtures/${sidecar_fixture}" "${sidecar_dest}" && \
+        git add -- "${staged_dest}" && \
+        echo '{"tool_input":{"command":"git commit -m test"}}' | bash "$hook_abs" 2>/dev/null
+    )
+    rm -rf "$tmpdir"
+}
+
+assert_cross_file_allow() {
+    local staged="$1" sidecar="$2" label="$3"
+    local out
+    out=$(run_cross_file_hook_capture "$staged" "$sidecar")
+    if echo "$out" | grep -q '"allow"'; then
+        PASS=$((PASS + 1))
+        echo "  PASS: $label"
+    else
+        FAIL=$((FAIL + 1))
+        ERRORS+=("FAIL: $label — expected allow, got: $out")
+        echo "  FAIL: $label"
+    fi
+}
+
+assert_cross_file_deny() {
+    local staged="$1" sidecar="$2" label="$3"
+    local out
+    out=$(run_cross_file_hook_capture "$staged" "$sidecar")
+    if echo "$out" | grep -q '"deny"'; then
+        PASS=$((PASS + 1))
+        echo "  PASS: $label"
+    else
+        FAIL=$((FAIL + 1))
+        ERRORS+=("FAIL: $label — expected deny, got: $out")
+        echo "  FAIL: $label"
+    fi
+}
+
 echo "=== markdown-anchor-validator.sh tests ==="
 echo ""
 
@@ -114,6 +175,78 @@ echo "[Parity: staged .md outside docs/ is also checked]"
 assert_deny_fixture "bug-a-excessive-hashes.md" \
     "root-level .md with broken anchor → deny" \
     "top-level.md"
+
+echo ""
+echo "[Cross-file resolution: unstaged target with valid anchor → allow]"
+# Regression target for issue #646. Staged file references an anchor in a
+# sibling file that exists on disk but is NOT staged. Before the fix, the
+# anchor registry (built from staged files only) missed the target's
+# headings and the hook denied the commit. After the fix, the validator
+# lazy-parses the unstaged sibling and recognizes the anchor.
+assert_cross_file_allow \
+    "cross-file-source.md" \
+    "cross-file-target.md" \
+    "unstaged target heading → allow"
+
+echo ""
+echo "[Cross-file resolution: existing file but missing anchor → deny]"
+# Negative case authored inline — the fixture itself would have a broken
+# inter-file reference and would fail the hook on its own commit, so we
+# materialize the file inside the temp repo at test time.
+root_abs="$(pwd)"
+hook_abs="${root_abs}/${HOOK}"
+tmpdir=$(mktemp -d)
+out=$(
+    cd "$tmpdir" && \
+    git init -q && \
+    git config user.email "ci@example.com" && \
+    git config user.name "CI" && \
+    mkdir -p docs && \
+    cp "${root_abs}/tests/markdown-anchor-validator/fixtures/cross-file-target.md" docs/cross-file-target.md && \
+    cat > docs/source.md <<'MDFILE'
+# Source with missing anchor
+
+[missing](cross-file-target.md#definitely-missing-heading)
+MDFILE
+    git add docs/source.md && \
+    echo '{"tool_input":{"command":"git commit -m test"}}' | bash "$hook_abs" 2>/dev/null
+)
+rm -rf "$tmpdir"
+if echo "$out" | grep -q '"deny"'; then
+    PASS=$((PASS + 1)); echo "  PASS: unstaged target missing the requested anchor → deny"
+else
+    FAIL=$((FAIL + 1))
+    ERRORS+=("FAIL: missing anchor inline case — expected deny, got: $out")
+    echo "  FAIL: unstaged target missing the requested anchor → deny"
+fi
+
+echo ""
+echo "[Cross-file resolution: target file does not exist → deny]"
+# No sidecar — the referenced file is absent on disk. Lazy resolution
+# must produce an empty anchor set and the validator must deny.
+tmpdir=$(mktemp -d)
+out=$(
+    cd "$tmpdir" && \
+    git init -q && \
+    git config user.email "ci@example.com" && \
+    git config user.name "CI" && \
+    mkdir -p docs && \
+    cat > docs/source.md <<'MDFILE'
+# Source with missing file
+
+[missing](no-such-file.md#whatever)
+MDFILE
+    git add docs/source.md && \
+    echo '{"tool_input":{"command":"git commit -m test"}}' | bash "$hook_abs" 2>/dev/null
+)
+rm -rf "$tmpdir"
+if echo "$out" | grep -q '"deny"'; then
+    PASS=$((PASS + 1)); echo "  PASS: missing referenced file → deny"
+else
+    FAIL=$((FAIL + 1))
+    ERRORS+=("FAIL: missing referenced file — expected deny, got: $out")
+    echo "  FAIL: missing referenced file → deny"
+fi
 
 echo ""
 echo "[Non-commit commands pass through]"

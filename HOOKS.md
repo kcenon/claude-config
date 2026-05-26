@@ -101,10 +101,11 @@ Hooks are user-defined commands that automatically execute during specific Claud
 **Trigger**: `git commit` commands only (all other commands pass through)
 
 **How it works**:
-1. Auto-detects markdown directory (`docs/reference/` → `docs/` → `./`)
-2. **Pass 1**: Builds anchor registry from all headings (GitHub-style slug algorithm)
-3. **Pass 2**: Checks all `](#anchor)` and `](file.md#anchor)` references against registry
-4. Blocks commit if broken anchors are found
+1. Collects staged markdown files via `git diff --cached --name-only --diff-filter=d -- '*.md'`
+2. **Pass 1**: Builds the primary anchor registry from headings in those staged files (GitHub-style slug algorithm)
+3. **Pass 2**: Checks all `](#anchor)` (intra-file) and `](file.md#anchor)` (inter-file) references against the registry
+4. **Cross-file fallback**: when an inter-file reference's target is not in the primary registry (i.e. the target file is on disk but not staged), the validator lazy-parses the target file and caches its anchors. The reference passes if and only if the target heading exists. See issue #646 for the rationale — single-file edit PRs that legitimately reference unstaged sibling files must not produce false positives.
+5. Blocks commit if broken anchors are found
 
 **Anchor generation algorithm** (matches GitHub):
 - Strip inline formatting (bold, italic, code, links)
@@ -116,6 +117,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 - Handles Korean/CJK characters in anchors
 - Validates both intra-file and inter-file references
 - Excludes external URLs (detects `:` in path)
+- Lazy cross-file anchor resolution with per-file caching (no double-parse)
 
 **Behavior**:
 - Returns JSON with `permissionDecision: "deny"` listing broken anchors

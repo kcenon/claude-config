@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `markdown-anchor-validator` hook (both PowerShell and bash variants): cross-file
+  anchor resolution now works against unstaged target files via lazy parsing with
+  per-file caching (#646). Previously the anchor registry was built exclusively
+  from `git diff --cached --name-only`, so inter-file references like
+  `[text](other.md#anchor)` were reported as broken whenever `other.md` was on
+  disk but not staged in the current commit. Single-file edit PRs that
+  legitimately reference sibling documents (e.g. SDS slices referencing IDS / SRS
+  anchors) were systematically blocked. The fix preserves the staged-file
+  registry as a fast path and falls back to disk parsing only when an inter-file
+  reference misses the primary registry; results are cached per file so the same
+  target is never parsed twice.
+
 ### Security
 
 - Phase 0 audit hotfix bundle (#616, #617, #618, #619). Four critical defense
