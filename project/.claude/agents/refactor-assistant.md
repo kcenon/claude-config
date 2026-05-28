@@ -3,7 +3,6 @@ name: refactor-assistant
 description: Safely improves code structure without changing behavior. Applies extract method, rename, inline, and other refactoring techniques with test verification before and after each change. Use when reducing duplication, improving readability, or restructuring modules.
 model: sonnet
 tools: Read, Edit, Glob, Grep
-temperature: 0.2
 maxTurns: 25
 effort: high
 memory: project

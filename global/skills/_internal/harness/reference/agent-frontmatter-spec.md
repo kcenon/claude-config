@@ -14,6 +14,7 @@ Complete reference for all YAML frontmatter fields available in `.claude/agents/
 6. [Lifecycle & Display](#6-lifecycle--display)
 7. [Field Resolution Order](#7-field-resolution-order)
 8. [Examples by Use Case](#8-examples-by-use-case)
+9. [Non-Standard Advisory Extensions](#9-non-standard-advisory-extensions)
 
 ---
 
@@ -316,3 +317,27 @@ model: sonnet
 mcpServers: [api-explorer]
 ---
 ```
+
+---
+
+## 9. Non-Standard Advisory Extensions
+
+The fields in sections 1-6 are the **officially supported** subagent frontmatter, verified
+against `docs.claude.com/en/docs/claude-code/sub-agents`. Some `.claude/agents/*.md` files in
+this repo carry additional keys that the Claude Code harness does **not** read. They are kept
+only as metadata for the repo's own routing/index tooling, mirroring the advisory-field pattern
+documented for skills in `global/skills/_policy.md`.
+
+| Field | Status | Consumed by | Notes |
+|-------|--------|-------------|-------|
+| `keywords` | Non-standard | repo routing/index docs | Explicitly "NOT officially supported" — see `docs/architecture-review-skills-rules.md`. Harness ignores it. |
+| `applies_to` | Non-standard | repo path-routing convention | Glob list; advisory only. The harness has no agent-side path-trigger; use `paths` on a skill instead if runtime triggering is needed. |
+
+### Removed: `temperature`
+
+`temperature` was previously set on the project agents. It is **not** an official field, is not
+listed in sections 1-6, and is silently ignored by the harness — subagents expose no
+sampling-temperature knob. Determinism/breadth is controlled by `effort` (section 3) instead.
+The field was removed in the 2026-05 official-spec review (`docs/official-spec-review-2026-05.md`).
+Do not reintroduce it: unlike skill advisory fields, a sampling parameter cannot be honored even
+as prompt-level self-regulation.
