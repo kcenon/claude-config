@@ -38,6 +38,7 @@ $Suite          = Read-MapField 'suite'
 $Plugin         = Read-MapField 'plugin'
 $PluginLite     = Read-MapField 'plugin-lite'
 $SettingsSchema = Read-MapField 'settings-schema'
+$Hooks          = Read-MapField 'hooks'
 
 $drift = 0
 
@@ -90,9 +91,16 @@ Test-JsonVersion 'global/settings.windows.json'           $SettingsSchema 'setti
 Test-ReadmeBadge 'README.md'    $Suite
 Test-ReadmeBadge 'README.ko.md' $Suite
 
+# hooks has no consumer file to mirror; validate only that the declared value
+# is well-formed SemVer so the field cannot silently rot (deep-audit P1).
+if ($Hooks -notmatch '^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)*$') {
+    Write-Host "FAIL: hooks=$Hooks is not valid SemVer in VERSION_MAP.yml" -ForegroundColor Red
+    $drift = 1
+}
+
 if ($drift -eq 0) {
     Write-Host "check_versions: OK"
-    Write-Host "  suite=$Suite  plugin=$Plugin  plugin-lite=$PluginLite  settings-schema=$SettingsSchema"
+    Write-Host "  suite=$Suite  plugin=$Plugin  plugin-lite=$PluginLite  settings-schema=$SettingsSchema  hooks=$Hooks"
     exit 0
 }
 
