@@ -4,7 +4,7 @@
   "title": "Claude Code SKILL.md Frontmatter (Strict)",
   "description": "Strict variant for global/skills/_internal/* skills (claude-config-owned). Same fields as the canonical schema but all rules including P1-c halt_conditions enforcement are required. External plugin/plugin-lite skills validate against the lenient variant.",
   "type": "object",
-  "required": ["name", "description"],
+  "required": ["description"],
   "additionalProperties": false,
   "allOf": [
     {
@@ -70,8 +70,8 @@
     "description": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 1024,
-      "description": "Skill trigger description. Max 1024 chars. >=100 chars recommended for trigger quality."
+      "maxLength": 1536,
+      "description": "Skill trigger description. Max 1536 chars (official cap on combined description + when_to_use). >=100 chars recommended for trigger quality."
     },
     "when_to_use": {
       "type": "string",
@@ -191,6 +191,44 @@
       "minItems": 1,
       "uniqueItems": true,
       "description": "Severity extension (claude-config): set of severity levels this skill emits findings at. Subset of {S1, S2, S3}; non-empty and unique."
+    },
+    "iso_class": {
+      "type": "string",
+      "enum": ["A", "B", "C", "none"],
+      "description": "Safety-class extension (claude-config): IEC 62304 SW Safety Class the skill applies to. Required on every _internal SKILL.md per global/skills/_policy.md \"Safety-Class Metadata\"; default 'none' for skills that are not safety-relevant."
+    },
+    "safety_class": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "iec_62304": {
+          "type": "string",
+          "enum": ["A", "B", "C"],
+          "description": "Medical-device software (IEC 62304:2006 + Amd 1:2015). Informational; canonical IEC 62304 declaration is iso_class."
+        },
+        "iso_26262": {
+          "type": "string",
+          "enum": ["QM", "ASIL-A", "ASIL-B", "ASIL-C", "ASIL-D"],
+          "description": "Automotive functional safety (ISO 26262)."
+        },
+        "iec_61508": {
+          "type": "string",
+          "enum": ["SIL-1", "SIL-2", "SIL-3", "SIL-4"],
+          "description": "General functional safety (IEC 61508)."
+        },
+        "do_178c": {
+          "type": "string",
+          "enum": ["A", "B", "C", "D", "E"],
+          "description": "Airborne software (RTCA DO-178C)."
+        }
+      },
+      "description": "Safety-class extension (claude-config, optional multi-domain): per-standard applicability map. Keys are mutually independent domain identifiers; a skill may set any non-empty subset. See global/skills/_policy.md \"Safety-Class Metadata\"."
+    },
+    "applies_at_or_above": {
+      "type": "string",
+      "enum": ["A", "B", "C"],
+      "description": "Safety-class extension (claude-config, optional): minimum IEC 62304 class at or above which the skill participates in regulated workflows. Consumers filter the active skill set by comparing the calling project's class against this field."
     }
   }
 }

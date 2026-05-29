@@ -4,7 +4,7 @@
   "title": "Claude Code SKILL.md Frontmatter (Deprecated Alias)",
   "description": "DEPRECATED ALIAS: this URL is preserved for backward compatibility with external plugin authors who already reference it. Its content matches skill-md.schema.lenient.json. New consumers should pick the variant explicitly: .strict.json for global/skills/_internal/ skills, .lenient.json otherwise. The Kill Switch (harness_policies.p4_strict_schema / STRICT_SCHEMA env) can force lenient across all paths.",
   "type": "object",
-  "required": ["name", "description"],
+  "required": ["description"],
   "additionalProperties": true,
   "properties": {
     "name": {
@@ -17,8 +17,8 @@
     "description": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 1024,
-      "description": "Skill trigger description. Max 1024 chars."
+      "maxLength": 1536,
+      "description": "Skill trigger description. Max 1536 chars (official cap on combined description + when_to_use in the skill listing)."
     },
     "when_to_use": { "type": "string", "minLength": 1 },
     "argument-hint": { "type": "string" },
