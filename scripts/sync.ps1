@@ -109,6 +109,13 @@ Write-Host "  3) 차이점만 확인 (변경하지 않음)"
 Write-Host ""
 $syncDirection = Read-Host "선택 (1-3) [기본값: 3]"
 if ([string]::IsNullOrEmpty($syncDirection)) { $syncDirection = '3' }
+# Reject out-of-range input. The dispatch below is binary (1 = backup->system,
+# else = system->backup), so an unvalidated '4' would silently overwrite the
+# backup. The interactive merge (option 4) is bash-only (sync.sh); reject it here.
+if ($syncDirection -notin @('1', '2', '3')) {
+    Write-Warning "잘못된 선택: '$syncDirection'. 1-3만 유효합니다. 대화형 병합(option 4)은 bash sync.sh에서만 지원됩니다."
+    exit 1
+}
 
 # ── Enterprise settings comparison ───────────────────────────
 

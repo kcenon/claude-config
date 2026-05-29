@@ -54,8 +54,17 @@ def extract(path):
 unix_set = extract(sys.argv[1])
 win_set  = extract(sys.argv[2])
 
-only_unix = sorted(unix_set - win_set)
-only_win  = sorted(win_set - unix_set)
+# Intentional asymmetries on the GLOBAL settings surface (see
+# docs/hooks-ownership.md). markdown-anchor-validator is project-owned: on
+# POSIX it lives in project/.claude/settings.json (not global/settings.json),
+# but Windows has no project settings variant, so global/settings.windows.json
+# is its sole carrier. It therefore legitimately appears only in the Windows
+# global file.
+WIN_ONLY_ALLOW = {("PreToolUse", "Bash", "markdown-anchor-validator")}
+UNIX_ONLY_ALLOW = set()
+
+only_unix = sorted((unix_set - win_set) - UNIX_ONLY_ALLOW)
+only_win  = sorted((win_set - unix_set) - WIN_ONLY_ALLOW)
 
 if only_unix or only_win:
     for t in only_unix:

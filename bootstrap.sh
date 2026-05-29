@@ -164,6 +164,12 @@ ensure_claude_cli() {
     # implementation; the lib is fetched as part of the tagged repo, so the
     # GITHUB_REF pin is the integrity root for every subsequent verification.
     local install_status=1
+    # Guard the sourced lib (mirrors scripts/install.sh and bootstrap.ps1):
+    # a missing lib must not abort the whole run under `set -euo pipefail`.
+    if [ ! -f "$INSTALL_DIR/hooks/lib/installer-fetch.sh" ]; then
+        warning "installer-fetch.sh missing — skipping CLI install (clone may be incomplete)"
+        return 0
+    fi
     # shellcheck disable=SC1091
     source "$INSTALL_DIR/hooks/lib/installer-fetch.sh"
     if installer_fetch_verify_run \

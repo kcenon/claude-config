@@ -8,6 +8,7 @@ on:
       - 'hooks/**'
       - 'tests/hooks/**'
       - 'tests/hooks/fixtures/**'
+      - 'tests/markdown-anchor-validator/**'
       - 'tests/batch_drift_benchmark/**'
       - 'plugin/**'
       - 'plugin-lite/**'

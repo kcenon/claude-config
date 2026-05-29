@@ -274,12 +274,12 @@ echo ""
 info "백업된 파일 위치: $BACKUP_DIR"
 echo ""
 
-if [ -d "$BACKUP_DIR/enterprise" ] && [ "$(ls -A $BACKUP_DIR/enterprise 2>/dev/null)" ]; then
+if [ -d "$BACKUP_DIR/enterprise" ] && [ "$(ls -A "$BACKUP_DIR/enterprise" 2>/dev/null)" ]; then
     echo "  📂 Enterprise 설정:"
     if [ -f "$BACKUP_DIR/enterprise/CLAUDE.md" ]; then
         echo "    - CLAUDE.md"
     fi
-    if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ "$(ls -A $BACKUP_DIR/enterprise/rules 2>/dev/null)" ]; then
+    if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
         echo "    - rules/"
     fi
     echo ""
@@ -287,7 +287,7 @@ fi
 
 echo "  📂 글로벌 설정:"
 ls -1 "$BACKUP_DIR/global/" 2>/dev/null | grep -v "^hooks$" | sed 's/^/    - /' || echo "    (없음)"
-if [ -d "$BACKUP_DIR/global/hooks" ] && [ "$(ls -A $BACKUP_DIR/global/hooks 2>/dev/null)" ]; then
+if [ -d "$BACKUP_DIR/global/hooks" ] && [ "$(ls -A "$BACKUP_DIR/global/hooks" 2>/dev/null)" ]; then
     echo "    - hooks/"
 fi
 
@@ -296,16 +296,16 @@ echo "  📂 프로젝트 설정:"
 if [ -f "$BACKUP_DIR/project/CLAUDE.md" ]; then
     echo "    - CLAUDE.md"
 fi
-if [ -d "$BACKUP_DIR/project/.claude/rules" ] && [ "$(ls -A $BACKUP_DIR/project/.claude/rules)" ]; then
+if [ -d "$BACKUP_DIR/project/.claude/rules" ] && [ "$(ls -A "$BACKUP_DIR/project/.claude/rules" 2>/dev/null)" ]; then
     echo "    - .claude/rules/"
 fi
-if [ -d "$BACKUP_DIR/project/.claude/skills" ] && [ "$(ls -A $BACKUP_DIR/project/.claude/skills)" ]; then
+if [ -d "$BACKUP_DIR/project/.claude/skills" ] && [ "$(ls -A "$BACKUP_DIR/project/.claude/skills" 2>/dev/null)" ]; then
     echo "    - .claude/skills/"
 fi
-if [ -d "$BACKUP_DIR/project/.claude/commands" ] && [ "$(ls -A $BACKUP_DIR/project/.claude/commands 2>/dev/null)" ]; then
+if [ -d "$BACKUP_DIR/project/.claude/commands" ] && [ "$(ls -A "$BACKUP_DIR/project/.claude/commands" 2>/dev/null)" ]; then
     echo "    - .claude/commands/"
 fi
-if [ -d "$BACKUP_DIR/project/.claude/agents" ] && [ "$(ls -A $BACKUP_DIR/project/.claude/agents 2>/dev/null)" ]; then
+if [ -d "$BACKUP_DIR/project/.claude/agents" ] && [ "$(ls -A "$BACKUP_DIR/project/.claude/agents" 2>/dev/null)" ]; then
     echo "    - .claude/agents/"
 fi
 
