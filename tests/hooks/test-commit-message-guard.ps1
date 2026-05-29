@@ -59,6 +59,8 @@ Assert-Deny 'docs: created by Anthropic'     'prose created by Anthropic -> deny
 Write-Host ''
 Write-Host '[Other rules still enforced]'
 Assert-Deny 'random text without a type prefix' 'non-conventional format -> deny'
+Assert-Deny 'Feat: capitalized conventional type' 'capitalized type -> deny (case-sensitive, parity with .sh)'
+Assert-Deny 'FIX: uppercase type'                 'uppercase type -> deny (case-sensitive)'
 Assert-Deny 'feat: trailing period.'            'trailing period -> deny'
 
 Write-Host ''

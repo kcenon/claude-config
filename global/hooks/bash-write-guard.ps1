@@ -3,14 +3,21 @@ $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
 
 # bash-write-guard.ps1
-# Detects file-mutation patterns in Bash commands and enforces that the
-# target was Read first this session, mirroring bash-write-guard.sh.
+# Detects file-mutation patterns in Bash commands. Partial mirror of
+# bash-write-guard.sh (Issue #477).
 #
-# Whitelist approach (Issue #477): the script flags any command whose argv
-# matches a known write tool OR contains a redirection to a file. If the
-# write target cannot be statically extracted (e.g. `python -c "..."`,
-# awk script bodies, sed command-line scripts), the call is denied with a
-# message asking the agent to use the Edit/Write tool instead.
+# Coverage on PowerShell hosts:
+#   - Sensitive-target blocking: enforced for BOTH redirection targets and
+#     write-tool argv targets (cp/mv/tee/install/sed -i/...) via pattern
+#     match — the security-relevant cases are covered on every host.
+#   - Uninspectable mutations (python/node/perl/ruby -c|-e, awk bodies):
+#     denied with a message to use the Edit/Write tool instead.
+#   - Read-before-Edit: enforced for redirection targets ONLY. Unlike
+#     bash-write-guard.sh it is NOT applied to argv write-tool destinations
+#     (e.g. `cp src existing.py`), because faithful per-tool argv target
+#     extraction needs the shell tokenizer the .sh sources from hooks/lib
+#     (tokenize-shell.sh). Closing that soft-guard gap is tracked as a
+#     follow-up; it does not affect the sensitive-target protection above.
 
 $json = Read-HookInput
 if (-not $json) {

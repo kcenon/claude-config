@@ -62,9 +62,11 @@ if (-not $msg) {
     exit 0
 }
 
-# Rule 1: Conventional Commits format
+# Rule 1: Conventional Commits format. Use -cnotmatch (case-SENSITIVE) to
+# match validate-commit-message.sh's `grep -qE` — `Feat:`/`FIX:` must be
+# rejected, not silently accepted as on a case-insensitive -notmatch.
 $ccRegex = '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|security)(\([a-z0-9._-]+\))?: .+'
-if ($msg -notmatch $ccRegex) {
+if ($msg -cnotmatch $ccRegex) {
     New-HookDenyResponse -Reason "Commit message must follow Conventional Commits: 'type(scope): description' or 'type: description'. Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, security."
     exit 0
 }
