@@ -72,6 +72,17 @@ if [ ${#MD_FILES[@]} -eq 0 ]; then
     exit 0
 fi
 
+# perl with Unicode property support generates locale-independent anchors
+# (\p{L}\p{N}\p{Pc}) so Korean/CJK headings produce byte-identical anchors to
+# markdown-anchor-validator.ps1 regardless of the installed locale. Fall open
+# if perl is absent, matching the jq/bash-4 guards above (never block on an
+# environment issue).
+if ! command -v perl >/dev/null 2>&1; then
+    echo "markdown-anchor-validator: perl not found on PATH; skipping validation" >&2
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
+    exit 0
+fi
+
 # === Single-pass AWK extraction ===
 # Extract headings and references from all files in one awk invocation.
 # Output format (TSV):
@@ -139,10 +150,12 @@ if [ -n "$H_LINES" ]; then
     # Extract heading texts (field 3+) → bulk transform to GitHub-style anchors
     # Pipeline: strip formatting markers → lowercase → remove non-alnum/space/hyphen/underscore → spaces→hyphens → trim
     # NOTE: GitHub does NOT collapse consecutive hyphens (e.g., "A / B" → "a--b")
+    # Locale-independent anchor transform (Unicode-aware) matching the .ps1.
+    # perl emits exactly one line per input heading (print "$_\n") so the
+    # paste with TMP_FILES stays row-aligned.
     echo "$H_LINES" | cut -f3- | \
         sed -e 's/\]([^)]*)//g' -e 's/\[//g' -e 's/\*//g' -e 's/`//g' -e 's/<[^>]*>//g' | \
-        tr '[:upper:]' '[:lower:]' | \
-        sed -e 's/[^[:alnum:]_ -]//g' -e 's/ /-/g' -e 's/^-//;s/-$//' \
+        perl -CSAD -ne 'chomp; $_=lc; s/[^\p{L}\p{N}\p{Pc} -]//g; s/ /-/g; s/^-//; s/-$//; print "$_\n"' \
         > "$TMP_ANCHORS"
 
     # Merge file paths with generated anchors and build registry
@@ -205,10 +218,12 @@ resolve_file_anchors() {
     local -A counts=()
     local anchor
     while IFS= read -r heading; do
+        # Locale-independent anchor transform (Unicode-aware) matching the
+        # .ps1 and the bulk pipeline above; bare `print` (no trailing newline)
+        # because command substitution captures the value.
         anchor=$(printf '%s' "$heading" \
             | sed -e 's/\]([^)]*)//g' -e 's/\[//g' -e 's/\*//g' -e 's/`//g' -e 's/<[^>]*>//g' \
-            | tr '[:upper:]' '[:lower:]' \
-            | sed -e 's/[^[:alnum:]_ -]//g' -e 's/ /-/g' -e 's/^-//;s/-$//')
+            | perl -CSAD -ne 'chomp; $_=lc; s/[^\p{L}\p{N}\p{Pc} -]//g; s/ /-/g; s/^-//; s/-$//; print')
         [[ -z "$anchor" ]] && continue
         if [[ -n "${counts[$anchor]+x}" ]]; then
             counts["$anchor"]=$(( counts["$anchor"] + 1 ))

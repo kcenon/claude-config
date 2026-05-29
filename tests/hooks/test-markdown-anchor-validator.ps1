@@ -227,6 +227,24 @@ if ($missingFileOut -match '"deny"') {
 }
 
 Write-Host ''
+Write-Host '[CJK/Korean anchors: locale-independent generation (deep-audit P1)]'
+Assert-Allow -Label 'Korean heading + correct Unicode ref -> allow' `
+    -Params @{ StagedFixture = 'cjk-anchor.md' }
+# Negative case authored inline (a committed broken-anchor fixture would trip
+# the markdown-anchor PreToolUse hook on its own commit). The Unicode anchor
+# is 설치-가이드-setup, so a ref to the ASCII-stripped "#-setup" must deny.
+$cjkBrokenOut = Invoke-InlineHookCapture `
+    -SourceContent "# 설치 가이드 Setup`n`n[broken](#-setup)`n"
+if ($cjkBrokenOut -match '"deny"') {
+    $script:Passed++
+    Write-Host '  PASS: Korean heading + ASCII-stripped ref -> deny' -ForegroundColor Green
+} else {
+    $script:Failed++
+    $script:Errors.Add("FAIL: korean broken anchor - expected deny, got: $cjkBrokenOut")
+    Write-Host '  FAIL: Korean heading + ASCII-stripped ref -> deny' -ForegroundColor Red
+}
+
+Write-Host ''
 Write-Host '[Non-commit commands pass through]'
 $result = '{"tool_input":{"command":"ls -la"}}' | & pwsh -NoProfile -File $script:HookPath 2>$null
 if ($result -match '"allow"') {
