@@ -256,11 +256,11 @@ Hooks are user-defined commands that automatically execute during specific Claud
 - Advisory only (conflict prevention), not security-critical
 - Cross-platform: `conflict-guard.sh` and `conflict-guard.ps1`
 
-## 12. PR Target Guard (PreToolUse)
+### 12. PR Target Guard (PreToolUse)
 
-*Enforces branching policy: only `develop` may merge into `main`.*
+*Enforces branching policy: only `develop` or a `release/*` branch may merge into the repo default branch (`main`/`master`).*
 
-**Purpose**: Intercepts `gh pr create` commands and blocks those targeting `main` unless the source branch is `develop` (a legitimate release PR).
+**Purpose**: Intercepts `gh pr create` commands and blocks those targeting the default branch (`main`/`master`) unless the source branch is `develop` or `release/*` (a legitimate release PR).
 
 **Trigger**: `Bash` tool calls containing `gh pr create`
 
@@ -269,10 +269,11 @@ Hooks are user-defined commands that automatically execute during specific Claud
 **Logic**:
 1. Scope gate: only process `gh pr create` commands (all others pass through)
 2. Extract `--base` value (`--base main`, `--base=main`, `-B main`)
-3. If `--base main` detected:
-   - Allow if `--head develop` is also present (release PR via `/release`)
-   - Deny otherwise with guidance message
-4. If no `--base` flag: allow (defaults to `develop`)
+3. If no `--base` flag is present, resolve the repo default branch: use `PR_TARGET_GUARD_DEFAULT_BRANCH_OVERRIDE` if set (test injection), else query `gh api repos/{owner}/{repo} --jq .default_branch` (honoring `--repo`/`-R` when supplied). If the default branch cannot be resolved, allow (graceful degradation)
+4. If the resolved base is `main` or `master`:
+   - Allow if the head branch is `develop` or matches `release/*` (legitimate release PR via `/release`)
+   - Deny otherwise with the branching-policy guidance message
+5. Otherwise (base is neither `main` nor `master`): allow
 
 **Fail policy**: Fail-closed (deny if JSON parsing fails)
 
