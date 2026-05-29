@@ -96,6 +96,16 @@ assert_not_contains "$result" "GitHub CLI not authenticated" \
     "gh pr view (GITHUB_TOKEN) → no auth warning"
 
 echo ""
+echo "[Overmatch fix: benign 'gh' substrings skip the network/auth probe]"
+# 'high'/'weigh' contain the letters g-h but are not the gh CLI. The
+# word-bounded scope gate must skip them entirely (plain allow, no curl,
+# no auth check) instead of firing a network round-trip on every Bash call.
+result=$(run_hook '{"tool_input":{"command":"echo high and weigh in"}}' "")
+assert_contains "$result" '"allow"' "echo high and weigh → allow"
+assert_not_contains "$result" "unreachable" "benign substring → no connectivity probe"
+assert_not_contains "$result" "not authenticated" "benign substring → no auth probe"
+
+echo ""
 echo "=== Results ==="
 echo "Passed: $PASS"
 echo "Failed: $FAIL"

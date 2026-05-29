@@ -41,8 +41,10 @@ EOF
     exit 0
 }
 
-# Only check GitHub-related commands
-if ! echo "$CMD" | grep -qE '(gh |github\.com|api\.github\.com)'; then
+# Only check GitHub-related commands. The `gh` detection is word-bounded
+# (reusing gh-write-verb-guard's prefilter) so benign words like 'high' or
+# 'weigh' no longer trigger a network curl on every Bash call.
+if ! echo "$CMD" | grep -qE '(^|[[:space:]`(])gh[[:space:]]|github\.com|api\.github\.com'; then
     allow_response
 fi
 
@@ -59,7 +61,7 @@ fi
 # `gh auth status` may still report failure (e.g. empty keyring in containers,
 # CI runners, or sandboxed envs). Token-based auth works regardless, so skip
 # the keyring check in that case to avoid false-positive warnings.
-if echo "$CMD" | grep -qE '^gh '; then
+if echo "$CMD" | grep -qE '(^|[[:space:]`(])gh[[:space:]]'; then
     if [ -z "${GH_TOKEN:-}" ] && [ -z "${GITHUB_TOKEN:-}" ]; then
         if ! gh auth status >/dev/null 2>&1; then
             allow_response "GitHub CLI not authenticated. Run 'gh auth login' or 'gh auth status' to check."

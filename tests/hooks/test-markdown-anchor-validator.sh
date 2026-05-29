@@ -249,6 +249,34 @@ else
 fi
 
 echo ""
+echo "[CJK/Korean anchors: locale-independent generation (deep-audit P1)]"
+assert_allow_fixture "cjk-anchor.md" "Korean heading + correct Unicode ref → allow"
+# Negative case authored inline (a committed broken-anchor fixture would trip
+# the markdown-anchor PreToolUse hook on its own commit). The heading
+# "설치 가이드 Setup" yields the Unicode anchor 설치-가이드-setup, so a ref to
+# the C-locale ASCII-stripped "#-setup" must be denied — proving the
+# validator generates the locale-independent anchor.
+tmpdir=$(mktemp -d)
+out=$(
+    cd "$tmpdir" && \
+    git init -q && \
+    git config user.email "ci@example.com" && \
+    git config user.name "CI" && \
+    mkdir -p docs && \
+    printf '# %s\n\n[broken](#-setup)\n' '설치 가이드 Setup' > docs/cjk.md && \
+    git add docs/cjk.md && \
+    echo '{"tool_input":{"command":"git commit -m test"}}' | bash "${root_abs}/${HOOK}" 2>/dev/null
+)
+rm -rf "$tmpdir"
+if echo "$out" | grep -q '"deny"'; then
+    PASS=$((PASS + 1)); echo "  PASS: Korean heading + ASCII-stripped ref → deny"
+else
+    FAIL=$((FAIL + 1))
+    ERRORS+=("FAIL: korean broken anchor — expected deny, got: $out")
+    echo "  FAIL: Korean heading + ASCII-stripped ref → deny"
+fi
+
+echo ""
 echo "[Non-commit commands pass through]"
 # These don't need a fixture — they exit before reading any markdown.
 result=$(echo '{"tool_input":{"command":"ls -la"}}' | bash "$HOOK" 2>/dev/null)
