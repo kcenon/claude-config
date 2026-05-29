@@ -42,7 +42,7 @@ Create a release with automated changelog generation from commits since last rel
 `$ARGUMENTS` format: `<version> [options]` or `<organization>/<project-name> <version> [options]`
 
 - **version**: Semantic version (e.g., 1.2.0, 2.0.0-beta.1)
-- **--target**: Which version track to bump. One of: `suite` (default), `plugin`, `plugin-lite`, `settings-schema`. See "Version Source" below.
+- **--target**: Which version track to bump. One of: `suite` (default), `plugin`, `plugin-lite`, `settings-schema`, `hooks`. See "Version Source" below.
 - **--draft**: Create as draft release (not published)
 - **--prerelease**: Mark as pre-release
 - **--solo**: Force solo mode — single agent handles all steps sequentially
@@ -61,6 +61,7 @@ When this skill runs in the claude-config repository (or any repo that declares 
 | `plugin`          | `plugin/.claude-plugin/plugin.json`                        |
 | `plugin-lite`     | `plugin-lite/.claude-plugin/plugin.json`                   |
 | `settings-schema` | `global/settings.json`, `global/settings.windows.json`     |
+| `hooks`           | _`VERSION_MAP.yml` field only — SemVer-validated by `check_versions`, no consumer file to mirror; bumpable and taggable per hook-bundle rollout_ |
 
 Each field moves on its own SemVer track — bumping `plugin` does NOT bump the others.
 `--target <field>` selects which field to update; default is `suite`.
@@ -108,6 +109,7 @@ fi
 |--------|--------|---------|-------------|
 | `--draft` | flag | false | Create release as draft (not published) |
 | `--prerelease` | flag | false | Mark release as pre-release |
+| `--target` | suite\|plugin\|plugin-lite\|settings-schema\|hooks | suite | Independent SemVer track to bump |
 | `--org` | string | auto-detect | GitHub organization or user |
 
 ## Instructions
@@ -208,7 +210,7 @@ update the map, and propagate to consumers before cutting the release PR:
 if [ -f VERSION_MAP.yml ]; then
     # Parse --target flag (default: suite)
     TARGET="suite"
-    if [[ "$ARGUMENTS" =~ --target[[:space:]]+(suite|plugin|plugin-lite|settings-schema) ]]; then
+    if [[ "$ARGUMENTS" =~ --target[[:space:]]+(suite|plugin|plugin-lite|settings-schema|hooks) ]]; then
         TARGET="${BASH_REMATCH[1]}"
     fi
 
@@ -431,8 +433,14 @@ PROTECTION
 ### 8. Create GitHub Release
 
 ```bash
-# Build release command
-RELEASE_CMD="gh release create v$VERSION --repo $ORG/$PROJECT --title \"v$VERSION\""
+# Build release command. Re-derive TAG_NAME here (Step 7 may run in a
+# separate shell) so non-suite tracks publish against the tag that was
+# actually pushed (<target>-v$VERSION), not a mismatched v$VERSION.
+TAG_NAME="v$VERSION"
+if [ -f VERSION_MAP.yml ] && [ "${TARGET:-suite}" != "suite" ]; then
+    TAG_NAME="${TARGET}-v$VERSION"
+fi
+RELEASE_CMD="gh release create $TAG_NAME --repo $ORG/$PROJECT --title \"$TAG_NAME\""
 
 # Add draft flag if specified
 if [[ "$ARGUMENTS" == *"--draft"* ]]; then
@@ -499,8 +507,8 @@ After completion, provide summary:
 | Version | vVERSION |
 | Type | Release / Draft / Pre-release |
 | Execution mode | Solo / Team |
-| Tag | vVERSION |
-| URL | https://github.com/ORG/PROJECT/releases/tag/vVERSION |
+| Tag | TAG_NAME (`v$VERSION`, or `<target>-v$VERSION` for non-suite tracks) |
+| URL | https://github.com/ORG/PROJECT/releases/tag/TAG_NAME |
 
 ### Changelog Summary
 | Category | Count |

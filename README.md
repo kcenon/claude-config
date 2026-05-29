@@ -435,7 +435,7 @@ claude-config does **not** carry a single repo-wide version. Each shipped artifa
 | `plugin` | Marketplace plugin version | `plugin/.claude-plugin/plugin.json` |
 | `plugin-lite` | Lite plugin (behavioral guardrails) | `plugin-lite/.claude-plugin/plugin.json` |
 | `settings-schema` | Hook-emitting `settings.json` schema | `global/settings.json`, `global/settings.windows.json` |
-| `hooks` | Shipping hook bundle (bumped per rollout) | Surfaced via `HOOKS.md` and `ENFORCEMENT.md` |
+| `hooks` | Shipping hook-bundle label (bumped per rollout) | _none — SemVer-validated by `check_versions`, no consumer file; bump via `/release --target hooks` (tag `hooks-v<version>`)_ |
 
 `scripts/check_versions.sh` verifies each consumer file matches the field declared in `VERSION_MAP.yml`. Use `/release <field> <new-version>` (or `scripts/sync_versions.sh`) to bump exactly one field at a time — synchronizing all five fields would defeat the design and produce noisy "compatible-with-X.Y" badges that change for unrelated reasons. See [`docs/CLAUDE_DOCKER_CONTRACT.md`](docs/CLAUDE_DOCKER_CONTRACT.md) for how `suite` couples to claude-docker's tag line.
 
