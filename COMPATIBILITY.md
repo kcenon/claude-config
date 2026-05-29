@@ -48,6 +48,8 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | `InstructionsLoaded` | instructions-loaded-reinforcer | Reinforce core instructions when context is (re)loaded |
 | `TeammateIdle` | session-logger | Log teammate idle events (Agent Teams) |
 
+> This table lists only the events **this config wires**. The full official catalog is larger (~30 events as of 2026-05; see `code.claude.com/docs/en/hooks`). Unwired official events are not defects -- see `docs/official-spec-rereview-2026-05-29.md`.
+
 ### Settings Features
 
 | Feature | Setting Key | Min Version (est.) |

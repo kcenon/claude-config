@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <em>Docs note (2026): Claude Code documentation moved to <code>code.claude.com/docs/en/*</code>. All references in this repo use the new URLs. See <a href="COMPATIBILITY.md#settings-field-inventory-and-stability">COMPATIBILITY.md</a> for settings field stability classification.</em>
+  <em>Docs note (2026): Claude Code documentation moved to <code>code.claude.com/docs/en/*</code>. All documentation links use the new URLs; older hosts appear only in migration and version-history notes. See <a href="COMPATIBILITY.md#settings-field-inventory-and-stability">COMPATIBILITY.md</a> for settings field stability classification.</em>
 </p>
 
 <p align="center">
@@ -233,7 +233,7 @@ claude_config_backup/
 │   │   └── settings.json      # Status line display settings
 │   ├── commands/               # Global command policies
 │   │   └── _policy.md         # Shared policies for all commands
-│   ├── hooks/                  # 37 hook scripts (.sh + .ps1) — see HOOKS.md for the full catalog
+│   ├── hooks/                  # 35 hook scripts, each in .sh + .ps1 — see HOOKS.md for the full catalog
 │   │   └── lib/               # Shared libraries
 │   │       ├── AttributionValidator.psm1
 │   │       ├── CommonHelpers.psm1  # PowerShell shared module
@@ -315,11 +315,7 @@ claude_config_backup/
 │       │   ├── tools/
 │       │   │   └── gh-cli-scripts.md
 │       │   └── security.md     # Security guidelines
-│       ├── commands/           # Custom slash commands
-│       │   ├── _policy.md
-│       │   ├── pr-review.md
-│       │   ├── code-quality.md
-│       │   └── git-status.md
+│       ├── skills/             # 11 project skills (migrated from slash commands) — e.g. pr-review, code-quality, git-status, security-audit
 │       ├── agents/             # Specialized agent configurations
 │       │   ├── code-reviewer.md
 │       │   ├── codebase-analyzer.md

@@ -323,7 +323,7 @@ mcpServers: [api-explorer]
 ## 9. Non-Standard Advisory Extensions
 
 The fields in sections 1-6 are the **officially supported** subagent frontmatter, verified
-against `docs.claude.com/en/docs/claude-code/sub-agents`. Some `.claude/agents/*.md` files in
+against `code.claude.com/docs/en/sub-agents`. Some `.claude/agents/*.md` files in
 this repo carry additional keys that the Claude Code harness does **not** read. They are kept
 only as metadata for the repo's own routing/index tooling, mirroring the advisory-field pattern
 documented for skills in `global/skills/_policy.md`.
