@@ -1,77 +1,54 @@
 # Plugin Build Policy
 
-This document describes how the `plugin/` and `plugin-lite/` trees are kept in
-sync with the canonical hook lib at `hooks/lib/`.
+This document describes how the `plugin/` and `plugin-lite/` trees are packaged
+for marketplace publication and kept consistent with the rest of the repo.
 
-## Background (#568)
+## Self-Contained Principle (#568)
 
 The marketplace tarballs published from `plugin/` and `plugin-lite/` must be
-self-contained: at runtime the plugin is unpacked at the user's machine and
-sourced without re-fetching files from the original repository. Anything the
-hooks need at runtime therefore has to live inside the plugin tree.
+self-contained: at runtime the plugin is unpacked on the user's machine and
+loaded without re-fetching files from the original repository. Anything a
+shipped hook needs at runtime therefore has to live inside the plugin tree
+itself — a plugin must never depend on a sibling path that only exists in the
+development checkout.
 
-`global/hooks/commit-message-guard.sh` sources its rules from
-`hooks/lib/validate-commit-message.sh` (the single source of truth used by
-both the PreToolUse hook and the git `commit-msg` terminal hook). When a
-plugin marketplace user installs `claude-config`, the runtime resolves the
-sibling `lib/` directory next to `commit-message-guard.sh` -- so each plugin
-tree must ship its own copy of the canonical lib.
+## Bundled Runtime Assets
 
-The hook is **fail-closed**: if the canonical lib cannot be sourced, the
-hook refuses rather than silently falling back to a drifted inline copy.
-Bundling the lib correctly is therefore a release-blocking invariant.
+A plugin tree bundles a runtime asset only when a component it actually ships
+sources that asset at load time. When a bundled copy is required, the canonical
+source lives under `hooks/lib/` and the copy must match it verbatim; add the
+copy to a `diff -q` gate in `.github/workflows/validate-hooks.yml` so the trees
+never drift in `main`.
 
-## Canonical Source
+> History: `plugin/hooks/lib/validate-commit-message.sh` and
+> `plugin-lite/hooks/lib/validate-commit-message.sh` were previously bundled on
+> the assumption that each plugin shipped `commit-message-guard.sh` and resolved
+> the sibling lib at runtime. Neither plugin ships that guard, so the bundled
+> libs had no runtime consumer and were removed (deep-audit
+> `plugin-bundled-lib-no-consumer`). Re-introduce a bundled lib only together
+> with the component that sources it, and restore the `diff -q` gate at the same
+> time.
 
-`hooks/lib/validate-commit-message.sh` is the single source of truth.
+## CI Enforcement (smoke test)
 
-Bundled copies that must match it verbatim:
-
-- `plugin/hooks/lib/validate-commit-message.sh`
-- `plugin-lite/hooks/lib/validate-commit-message.sh`
-
-## Update Procedure
-
-When `hooks/lib/validate-commit-message.sh` changes:
-
-```bash
-cp hooks/lib/validate-commit-message.sh plugin/hooks/lib/validate-commit-message.sh
-cp hooks/lib/validate-commit-message.sh plugin-lite/hooks/lib/validate-commit-message.sh
-
-# Verify the copies are byte-identical to the canonical source.
-diff -q hooks/lib/validate-commit-message.sh plugin/hooks/lib/validate-commit-message.sh
-diff -q hooks/lib/validate-commit-message.sh plugin-lite/hooks/lib/validate-commit-message.sh
-# Both diffs MUST produce no output.
-```
-
-Both copies and the canonical source should land in the same commit so the
-trees never appear drifted in history.
-
-## CI Enforcement
-
-`.github/workflows/validate-hooks.yml` runs the same `diff -q` checks on
-every PR. If either bundled copy drifts from the canonical lib, the
-workflow fails and the PR cannot merge. This guarantees the invariant
-holds in `main` regardless of how the copies were produced (manual,
-script, or future build tooling).
-
-The same workflow also runs `tests/plugin/smoke-test.sh` (#622) on every
-PR that touches `plugin/`, `plugin-lite/`, or `tests/plugin/`. The smoke
-test catches packaging regressions — manifest schema mismatches, missing
+`.github/workflows/validate-hooks.yml` runs `tests/plugin/smoke-test.sh` (#622)
+on every PR that touches `plugin/`, `plugin-lite/`, or `tests/plugin/`. The
+smoke test catches packaging regressions — manifest schema mismatches, missing
 or renamed skills, broken hook references — before they ship in a release.
-Sh/PowerShell parity: the matching `tests/plugin/smoke-test.ps1` is held
-for the future Windows runner job (out of scope for #622).
+Sh/PowerShell parity: the matching `tests/plugin/smoke-test.ps1` is held for the
+future Windows runner job (out of scope for #622).
 
 ## Why Copy Instead of Symlink
 
-Symlinks are not portable across the install paths the plugin supports
-(Linux, macOS, Windows tarballs, git-subdir installs). A real file copy
-is the only representation that survives every install transport. CI
-diff is the integrity check that compensates for the lack of a single
-filesystem inode.
+When a runtime asset must be bundled, use a real file copy rather than a
+symlink: symlinks are not portable across the install paths the plugin supports
+(Linux, macOS, Windows tarballs, git-subdir installs). A real file copy is the
+only representation that survives every install transport, and a CI `diff -q` is
+the integrity check that compensates for the lack of a single filesystem inode.
 
 ## Future Work
 
-A dedicated build script (`scripts/build-plugin.sh`) could automate the
-copy step and stage tarballs for marketplace publication. Until that
-exists, the manual copy + `diff -q` workflow above is the policy.
+A dedicated build script (`scripts/build-plugin.sh`) could automate copying any
+bundled assets and stage tarballs for marketplace publication. Until that
+exists, the manual copy + `diff -q` workflow above is the policy for any asset
+that genuinely needs bundling.
