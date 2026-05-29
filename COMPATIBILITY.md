@@ -124,7 +124,7 @@ reference: [`code.claude.com/docs/en/settings`](https://code.claude.com/docs/en/
 | `showTurnDuration` | **Misplaced** | 2.1.0+ | Officially belongs in `~/.claude.json`, not `settings.json`. May trigger schema validation warning in future CC versions. Consider moving. |
 | `teammateMode` | **Misplaced** | 2.1.0+ | Same as above — belongs in `~/.claude.json`. Valid values: `auto`, `in-process`, `tmux`. |
 
-> **Note:** The `harness_policies.*` P4 timeline fields were relocated out of `settings.json` into `~/.claude/policies/p4-timeline.json` (P4 Phase 2; the P4 hooks already read that file first). Their definitions now live in the [Skill Directory Layout (P4)](#skill-directory-layout-p4) section below.
+> **Note:** The `harness_policies.p4_strict_schema` kill switch is documented in the [Skill Directory Layout (P4)](#skill-directory-layout-p4) section below. The expired P4 rollout-timeline hooks and their `policies/p4-timeline.json` window timestamps were retired once all windows elapsed; only the strict-schema kill switch remains.
 
 ### env fields in settings.json
 
@@ -153,21 +153,15 @@ EPIC #454 P4 introduced a strict/lenient schema split. claude-config-owned skill
 
 | Layer | Path | Schema mode |
 |---|---|---|
-| Internal | `global/skills/_internal/` | strict (when `harness_policies.p4_strict_schema=true`) |
+| Internal | `global/skills/_internal/` | strict (when the kill switch is on) |
 | Plugin | `plugin/skills/` | lenient |
 | Plugin-lite | `plugin-lite/skills/` | lenient |
 
-Strict mode is OFF by default during the post-D2 grace window. The P4 timeline policy now lives in `~/.claude/policies/p4-timeline.json` (read first by `p4-timeline-guard.sh` and `p4-timeline-reminder.sh`; a deprecated `settings.json` fallback is retained in the hooks for backward compatibility and will be dropped in a later step). External plugin/plugin-lite installs are unaffected by the relocation; their skill paths are unchanged.
+### Strict-schema kill switch
 
-### P4 timeline policy fields (`policies/p4-timeline.json`)
+`scripts/spec_lint.py` resolves the kill switch with this precedence: `STRICT_SCHEMA` env var > `harness_policies.p4_strict_schema` in `~/.claude/settings.json` > default `false`. When off (the default), every skill — including `_internal/` — validates against the lenient schema; when on, `_internal/` paths use the strict variant. Enable strict validation with `STRICT_SCHEMA=1` (or by adding `"harness_policies": {"p4_strict_schema": true}` to `settings.json`); `STRICT_SCHEMA=0` forces lenient everywhere. External plugin/plugin-lite installs always validate lenient — their skill paths are unaffected.
 
-| Field | Notes |
-|---|---|
-| `p4_strict_schema` | claude-config kill switch for P4 strict-schema dispatch (EPIC #454). Default `false`. **Bypass:** set `STRICT_SCHEMA=0` env var (env wins over the policy file) to force lenient schema validation across all skills. |
-| `p4_d1_merged_at` | ISO-8601 anchor for the D1 (#461) merge. Read by `p4-timeline-guard.sh` and `p4-timeline-reminder.sh`. |
-| `p4_grace_until` | ISO-8601 deadline for the lenient-only grace window. PRs touching `global/skills/_internal/` are blocked until now() >= this timestamp. **Override:** `CLAUDE_P4_OVERRIDE=1` (RCA required). |
-| `p4_observation_until` | ISO-8601 deadline for the observation window. Edits flipping `p4_strict_schema` to `true` are blocked until now() >= this timestamp. **Override:** `CLAUDE_P4_OVERRIDE=1` (RCA required). |
-| `p4_freeze_until` | ISO-8601 deadline for the post-D2 72h freeze. SessionStart banner remains active until now() >= this timestamp. |
+> The expired P4 rollout-timeline hooks (`p4-timeline-guard`, `p4-timeline-reminder`) and the `policies/p4-timeline.json` window timestamps were retired after all rollout windows elapsed (2026-05-20); only the strict-schema kill switch above remains.
 
 ---
 
@@ -232,9 +226,9 @@ The README v1.7.0 changelog originally claimed "All 42 bash scripts now have Pow
 
 | Surface | Bash count | PowerShell count | Coverage |
 |---|---:|---:|---:|
-| `global/hooks/*.sh` | 37 | 37 | 37/37 (100%) |
+| `global/hooks/*.sh` | 35 | 35 | 35/35 (100%) |
 
-The previous gap (`p4-timeline-guard.sh` and `p4-timeline-reminder.sh`) was closed in #489: both bash hooks now have `.ps1` counterparts wired into `global/settings.windows.json`. A bash/PowerShell parity test (`tests/hooks/test-p4-timeline-guard-parity.sh`) confirms the two implementations return identical decisions across every fixture; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if `*.sh` and `*.ps1` counts diverge.
+The `*.sh` ↔ `*.ps1` mapping is 1:1; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if the counts diverge. (The count dropped from 37 to 35 when the expired P4 rollout-timeline hooks — `p4-timeline-guard` and `p4-timeline-reminder` — were retired; see the strict-schema kill-switch note above.)
 
 The script that produces the live count: `bash -c 'b=$(ls global/hooks/*.sh | wc -l); p=$(ls global/hooks/*.ps1 | wc -l); echo "$p/$b"'`.
 

@@ -735,7 +735,7 @@ PY
         success "tmux.conf 설치 완료!"
     fi
 
-    # policies 디렉토리 설치 (Phase 1 dual-read; p4-timeline-* hooks read from here first)
+    # policies 디렉토리 설치 (있는 경우 정책 JSON 파일 배포)
     if [ -d "$BACKUP_DIR/global/policies" ]; then
         ensure_dir "$HOME/.claude/policies"
         cp "$BACKUP_DIR/global/policies"/*.json "$HOME/.claude/policies/" 2>/dev/null || true
