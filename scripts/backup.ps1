@@ -207,52 +207,64 @@ if ($replace -eq 'y') {
     $entTemp = Join-Path $tempBackup 'enterprise'
     $entItems = Get-ChildItem -LiteralPath $entTemp -ErrorAction SilentlyContinue
     if ($entItems.Count -gt 0) {
+        # copy-then-swap: 복사 실패 시 기존 백업을 파괴하지 않음
         $entDest = Join-Path $BackupDir 'enterprise'
-        if (Test-Path $entDest) {
-            Remove-Item -LiteralPath $entDest -Recurse -Force
-        }
-        Ensure-Directory $entDest | Out-Null
-        Ensure-Directory (Join-Path $entDest 'rules') | Out-Null
+        $entStaging = "$entDest.new"
+        if (Test-Path $entStaging) { Remove-Item -LiteralPath $entStaging -Recurse -Force }
+        Ensure-Directory $entStaging | Out-Null
+        Ensure-Directory (Join-Path $entStaging 'rules') | Out-Null
         try {
-            Copy-Item -Path (Join-Path $entTemp '*') -Destination $entDest -Recurse -Force -ErrorAction Stop
-            Write-SuccessMessage "Enterprise 백업 업데이트됨"
+            Copy-Item -Path (Join-Path $entTemp '*') -Destination $entStaging -Recurse -Force -ErrorAction Stop
         } catch {
             Write-ErrorMessage "Enterprise 백업 업데이트 실패: $_"
+            Remove-Item -LiteralPath $entStaging -Recurse -Force -ErrorAction SilentlyContinue
+            exit 1
         }
+        if (Test-Path $entDest) { Remove-Item -LiteralPath $entDest -Recurse -Force }
+        Rename-Item -LiteralPath $entStaging -NewName 'enterprise'
+        Write-SuccessMessage "Enterprise 백업 업데이트됨"
     }
 
     # Update global directory
     $globalTemp = Join-Path $tempBackup 'global'
     $globalItems = Get-ChildItem -LiteralPath $globalTemp -ErrorAction SilentlyContinue
     if ($globalItems.Count -gt 0) {
+        # copy-then-swap: 복사 실패 시 기존 백업을 파괴하지 않음
         $globalDest = Join-Path $BackupDir 'global'
-        if (Test-Path $globalDest) {
-            Remove-Item -LiteralPath $globalDest -Recurse -Force
-        }
-        Ensure-Directory $globalDest | Out-Null
+        $globalStaging = "$globalDest.new"
+        if (Test-Path $globalStaging) { Remove-Item -LiteralPath $globalStaging -Recurse -Force }
+        Ensure-Directory $globalStaging | Out-Null
         try {
-            Copy-Item -Path (Join-Path $globalTemp '*') -Destination $globalDest -Recurse -Force -ErrorAction Stop
-            Write-SuccessMessage "글로벌 백업 업데이트됨"
+            Copy-Item -Path (Join-Path $globalTemp '*') -Destination $globalStaging -Recurse -Force -ErrorAction Stop
         } catch {
             Write-ErrorMessage "글로벌 백업 업데이트 실패: $_"
+            Remove-Item -LiteralPath $globalStaging -Recurse -Force -ErrorAction SilentlyContinue
+            exit 1
         }
+        if (Test-Path $globalDest) { Remove-Item -LiteralPath $globalDest -Recurse -Force }
+        Rename-Item -LiteralPath $globalStaging -NewName 'global'
+        Write-SuccessMessage "글로벌 백업 업데이트됨"
     }
 
     # Update project directory
     $projTemp = Join-Path $tempBackup 'project'
     $projItems = Get-ChildItem -LiteralPath $projTemp -ErrorAction SilentlyContinue
     if ($projItems.Count -gt 0) {
+        # copy-then-swap: 복사 실패 시 기존 백업을 파괴하지 않음
         $projDest = Join-Path $BackupDir 'project'
-        if (Test-Path $projDest) {
-            Remove-Item -LiteralPath $projDest -Recurse -Force
-        }
-        Ensure-Directory $projDest | Out-Null
+        $projStaging = "$projDest.new"
+        if (Test-Path $projStaging) { Remove-Item -LiteralPath $projStaging -Recurse -Force }
+        Ensure-Directory $projStaging | Out-Null
         try {
-            Copy-Item -Path (Join-Path $projTemp '*') -Destination $projDest -Recurse -Force -ErrorAction Stop
-            Write-SuccessMessage "프로젝트 백업 업데이트됨"
+            Copy-Item -Path (Join-Path $projTemp '*') -Destination $projStaging -Recurse -Force -ErrorAction Stop
         } catch {
             Write-ErrorMessage "프로젝트 백업 업데이트 실패: $_"
+            Remove-Item -LiteralPath $projStaging -Recurse -Force -ErrorAction SilentlyContinue
+            exit 1
         }
+        if (Test-Path $projDest) { Remove-Item -LiteralPath $projDest -Recurse -Force }
+        Rename-Item -LiteralPath $projStaging -NewName 'project'
+        Write-SuccessMessage "프로젝트 백업 업데이트됨"
     }
 
     # Remove temporary backup

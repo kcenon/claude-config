@@ -315,7 +315,11 @@ function Install-GlobalSettings {
     # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
     # Update-ClaudeSettingsJson (below) injects them and is responsible
     # for idempotent reset when the policy returns to default ("english").
-    $settingsSrc = Join-Path $InstallDir 'global' 'settings.json'
+    # PARITY: scripts/install.ps1 selects global/settings.windows.json on this
+    # PowerShell installer — its hooks invoke `pwsh -File ...ps1`. Using
+    # global/settings.json here would ship bare `.sh` hook commands that native
+    # Windows cannot execute. Destination filename stays settings.json.
+    $settingsSrc = Join-Path $InstallDir 'global' 'settings.windows.json'
     if (Test-Path -LiteralPath $settingsSrc) {
         $settingsDst = Join-Path $ClaudeDir 'settings.json'
         Copy-Item -Path $settingsSrc -Destination $settingsDst -Force

@@ -43,8 +43,15 @@ warning() {
 }
 
 # 함수: 에러 메시지
+# Terminal by design: every `cmd || error "..."` site (notably the enterprise
+# CLAUDE.md / rules copies — the highest-priority policy path) must abort
+# rather than fall through to a false `success`. `set -euo pipefail` alone
+# does not catch a failure on the left of `||`. Non-fatal diagnostics use
+# warning() instead (e.g. check_dependencies, which collects all missing
+# commands before its own exit).
 error() {
-    echo -e "${RED}❌ $1${NC}"
+    echo -e "${RED}❌ $1${NC}" >&2
+    exit 1
 }
 
 # 함수: 디렉토리 생성
@@ -61,7 +68,7 @@ check_dependencies() {
     local missing_deps=0
     for cmd in cp mkdir chmod grep sed; do
         if ! command -v "$cmd" >/dev/null 2>&1; then
-            error "필수 명령어 '$cmd'가 설치되어 있지 않습니다."
+            warning "필수 명령어 '$cmd'가 설치되어 있지 않습니다."
             missing_deps=1
         fi
     done
