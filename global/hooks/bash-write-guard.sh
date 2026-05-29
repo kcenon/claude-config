@@ -64,7 +64,9 @@ is_sensitive_target() {
     [ -z "$p" ] && return 1
     local lower
     lower=$(printf '%s' "$p" | tr '[:upper:]' '[:lower:]')
-    case "$p" in
+    # Match against $lower so .ENV / .NETRC etc. on case-insensitive
+    # filesystems (macOS, Windows) cannot bypass the guard.
+    case "$lower" in
         */.env|*.env|*/.env.*|*.env.*) return 0 ;;
         */.ssh/id_*|*/.ssh/*_rsa|*/.ssh/*_dsa|*/.ssh/*_ecdsa|*/.ssh/*_ed25519) return 0 ;;
         */.aws/credentials|*/.aws/config) return 0 ;;

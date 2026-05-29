@@ -99,12 +99,14 @@ is_sensitive() {
     lower=$(printf '%s' "$p" | tr '[:upper:]' '[:lower:]')
 
     # .env, .env.*, including dotted suffix variants.
-    case "$p" in
+    # Match against $lower so .ENV / .Env on case-insensitive filesystems
+    # (macOS, Windows) cannot bypass the guard.
+    case "$lower" in
         */.env|*.env|*/.env.*|*.env.*)
             return 0 ;;
     esac
     # SSH private keys and well-known credential filenames.
-    case "$p" in
+    case "$lower" in
         */.ssh/id_*|*/.ssh/*_rsa|*/.ssh/*_dsa|*/.ssh/*_ecdsa|*/.ssh/*_ed25519)
             return 0 ;;
         */.aws/credentials|*/.aws/config)
@@ -131,7 +133,7 @@ is_sensitive() {
     # Bare credential filenames — e.g. `find -name id_rsa` exposes the
     # filename without a `.ssh/` prefix; treat the bare names as sensitive
     # so a deliberate search for them is also flagged.
-    case "$p" in
+    case "$lower" in
         id_rsa|id_dsa|id_ecdsa|id_ed25519|*/id_rsa|*/id_dsa|*/id_ecdsa|*/id_ed25519)
             return 0 ;;
         credentials|*/credentials)
@@ -139,7 +141,7 @@ is_sensitive() {
     esac
     # System credential files. The `*/etc/...` variants catch macOS where
     # realpath resolves /etc to /private/etc.
-    case "$p" in
+    case "$lower" in
         /etc/shadow|/etc/sudoers|/etc/sudoers.d/*|/etc/ssh/ssh_host_*_key) return 0 ;;
         */etc/shadow|*/etc/sudoers|*/etc/sudoers.d/*|*/etc/ssh/ssh_host_*_key) return 0 ;;
     esac
