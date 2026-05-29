@@ -118,11 +118,8 @@ reference: [`code.claude.com/docs/en/settings`](https://code.claude.com/docs/en/
 | `skipDangerousModePermissionPrompt` | Stable | 2.0.0+ | Ignored in project settings (security). |
 | `showTurnDuration` | **Misplaced** | 2.1.0+ | Officially belongs in `~/.claude.json`, not `settings.json`. May trigger schema validation warning in future CC versions. Consider moving. |
 | `teammateMode` | **Misplaced** | 2.1.0+ | Same as above — belongs in `~/.claude.json`. Valid values: `auto`, `in-process`, `tmux`. |
-| `harness_policies.p4_strict_schema` | Undocumented | — | claude-config Kill Switch for P4 strict-schema dispatch (EPIC #454). Default `false`. **Bypass:** set `STRICT_SCHEMA=0` env var (env wins over settings) to force lenient schema validation across all skills. |
-| `harness_policies.p4_d1_merged_at` | Undocumented | — | ISO-8601 anchor for the D1 (#461) merge. Read by p4-timeline-guard.sh and p4-timeline-reminder.sh. |
-| `harness_policies.p4_grace_until` | Undocumented | — | ISO-8601 deadline for the lenient-only grace window. PRs touching `global/skills/_internal/` are blocked by p4-timeline-guard.sh until now() >= this timestamp. **Override:** `CLAUDE_P4_OVERRIDE=1` (RCA required). |
-| `harness_policies.p4_observation_until` | Undocumented | — | ISO-8601 deadline for the observation window. Edits flipping `p4_strict_schema` to `true` are blocked until now() >= this timestamp. **Override:** `CLAUDE_P4_OVERRIDE=1` (RCA required). |
-| `harness_policies.p4_freeze_until` | Undocumented | — | ISO-8601 deadline for the post-D2 72h freeze. SessionStart banner remains active until now() >= this timestamp. |
+
+> **Note:** The `harness_policies.*` P4 timeline fields were relocated out of `settings.json` into `~/.claude/policies/p4-timeline.json` (P4 Phase 2; the P4 hooks already read that file first). Their definitions now live in the [Skill Directory Layout (P4)](#skill-directory-layout-p4) section below.
 
 ### env fields in settings.json
 
@@ -155,7 +152,17 @@ EPIC #454 P4 introduced a strict/lenient schema split. claude-config-owned skill
 | Plugin | `plugin/skills/` | lenient |
 | Plugin-lite | `plugin-lite/skills/` | lenient |
 
-Strict mode is OFF by default during the post-D2 grace window; see `harness_policies.p4_strict_schema` and the timeline toggles (`p4_grace_until`, `p4_observation_until`, `p4_freeze_until`) in the Settings Field Inventory above. External plugin/plugin-lite installs are unaffected by the relocation; their skill paths are unchanged.
+Strict mode is OFF by default during the post-D2 grace window. The P4 timeline policy now lives in `~/.claude/policies/p4-timeline.json` (read first by `p4-timeline-guard.sh` and `p4-timeline-reminder.sh`; a deprecated `settings.json` fallback is retained in the hooks for backward compatibility and will be dropped in a later step). External plugin/plugin-lite installs are unaffected by the relocation; their skill paths are unchanged.
+
+### P4 timeline policy fields (`policies/p4-timeline.json`)
+
+| Field | Notes |
+|---|---|
+| `p4_strict_schema` | claude-config kill switch for P4 strict-schema dispatch (EPIC #454). Default `false`. **Bypass:** set `STRICT_SCHEMA=0` env var (env wins over the policy file) to force lenient schema validation across all skills. |
+| `p4_d1_merged_at` | ISO-8601 anchor for the D1 (#461) merge. Read by `p4-timeline-guard.sh` and `p4-timeline-reminder.sh`. |
+| `p4_grace_until` | ISO-8601 deadline for the lenient-only grace window. PRs touching `global/skills/_internal/` are blocked until now() >= this timestamp. **Override:** `CLAUDE_P4_OVERRIDE=1` (RCA required). |
+| `p4_observation_until` | ISO-8601 deadline for the observation window. Edits flipping `p4_strict_schema` to `true` are blocked until now() >= this timestamp. **Override:** `CLAUDE_P4_OVERRIDE=1` (RCA required). |
+| `p4_freeze_until` | ISO-8601 deadline for the post-D2 72h freeze. SessionStart banner remains active until now() >= this timestamp. |
 
 ---
 
