@@ -1025,8 +1025,6 @@ this catalog for the canonical hook inventory.
 | [`memory-integrity-check.sh`](#memory-integrity-check) | SessionStart (sync) | yes |
 | [`memory-write-guard.sh`](#memory-write-guard) | PreToolUse (Edit|Write) | yes |
 | [`merge-gate-guard.sh`](#merge-gate-guard) | PreToolUse (Bash) | yes |
-| [`p4-timeline-guard.sh`](#p4-timeline-guard) | PreToolUse (Bash | Edit | Write) | yes |
-| [`p4-timeline-reminder.sh`](#p4-timeline-reminder) | SessionStart | yes |
 | [`post-compact-restore.sh`](#post-compact-restore) | PostCompact (sync) | yes |
 | [`post-task-checkpoint.sh`](#post-task-checkpoint) | PostToolUse | yes |
 | [`pr-language-guard.sh`](#pr-language-guard) | PreToolUse (Bash) | yes |
@@ -1046,7 +1044,7 @@ this catalog for the canonical hook inventory.
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
 | [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 37 bash hooks, 37 with PowerShell counterparts._
+_Total: 35 bash hooks, 35 with PowerShell counterparts._
 
 ### Hook Details
 
@@ -1339,40 +1337,6 @@ Blocks gh pr merge commands when any PR check is not passing.
 | Fail policy | FAIL-OPEN on gh CLI errors. If gh is missing, unauthenticated, |
 | PowerShell counterpart | present (`merge-gate-guard.ps1`) |
 | Source | `global/hooks/merge-gate-guard.sh` |
-
-### p4-timeline-guard
-
-_File:_ `p4-timeline-guard.sh`
-
-_Anchor:_ `#p4-timeline-guard`
-
-Blocks Claude-initiated actions that violate the EPIC #454 P4 rollout timeline.
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Bash | Edit | Write) |
-| Trigger / Matcher | Bash | Edit | Write |
-| Exit codes | 0 (always - decision is in JSON) |
-| Response format | hookSpecificOutput with hookEventName + permissionDecision |
-| PowerShell counterpart | present (`p4-timeline-guard.ps1`) |
-| Source | `global/hooks/p4-timeline-guard.sh` |
-
-### p4-timeline-reminder
-
-_File:_ `p4-timeline-reminder.sh`
-
-_Anchor:_ `#p4-timeline-reminder`
-
-SessionStart banner that surfaces the active P4 rollout window.
-
-| Field | Value |
-|---|---|
-| Hook Type | SessionStart |
-| Trigger / Matcher | — |
-| Exit codes | 0 (always - lifecycle event) |
-| Response format | none (writes to stderr; visible in terminal) |
-| PowerShell counterpart | present (`p4-timeline-reminder.ps1`) |
-| Source | `global/hooks/p4-timeline-reminder.sh` |
 
 ### post-compact-restore
 

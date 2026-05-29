@@ -127,11 +127,6 @@
             "type": "command",
             "command": "~/.claude/hooks/memory-write-guard.sh",
             "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/p4-timeline-guard.sh",
-            "timeout": 5
           }
         ]
       },
@@ -203,11 +198,6 @@
             "type": "command",
             "command": "~/.claude/hooks/attribution-guard.sh",
             "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/p4-timeline-guard.sh",
-            "timeout": 10
           }
         ]
       },
@@ -235,11 +225,6 @@
             "command": "~/.claude/hooks/version-check.sh",
             "timeout": 10,
             "async": true
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/p4-timeline-reminder.sh",
-            "timeout": 5
           },
           {
             "type": "command",

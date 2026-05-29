@@ -76,11 +76,6 @@
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/memory-write-guard.ps1",
             "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/p4-timeline-guard.ps1",
-            "timeout": 5
           }
         ]
       },
@@ -151,11 +146,6 @@
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/attribution-guard.ps1",
             "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/p4-timeline-guard.ps1",
-            "timeout": 10
           }
         ]
       },
@@ -183,11 +173,6 @@
             "command": "pwsh -NoProfile -File ~/.claude/hooks/version-check.ps1",
             "timeout": 10,
             "async": true
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/p4-timeline-reminder.ps1",
-            "timeout": 5
           },
           {
             "type": "command",
