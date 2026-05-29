@@ -29,6 +29,7 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | Hook Event | Used By | Purpose |
 |---|---|---|
 | `PreToolUse` | sensitive-file-guard, dangerous-command-guard, github-api-preflight, markdown-anchor-validator, prompt-validator (LLM), team-limit-guard | Block or allow tool calls before execution |
+| `PostToolUse` | post-task-checkpoint, pre-edit-read-guard, memory-access-logger | Run after a tool call completes (checkpointing, read-tracking, memory-access logging) |
 | `PostToolUseFailure` | tool-failure-logger | Log failed tool executions |
 | `SessionStart` | session-logger, version-check | Session lifecycle logging, version warnings |
 | `SessionEnd` | session-logger, cleanup | Session logging, temp file cleanup |
@@ -37,10 +38,14 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | `SubagentStart` | subagent-logger | Track subagent lifecycle |
 | `SubagentStop` | subagent-logger | Track subagent lifecycle |
 | `PreCompact` | pre-compact-snapshot | Snapshot context before auto-compaction |
+| `PostCompact` | post-compact-restore | Re-assert core principles after context compaction |
 | `WorktreeCreate` | worktree-create | Custom worktree initialization |
 | `WorktreeRemove` | worktree-remove | Custom worktree cleanup |
+| `TaskCreated` | task-created-validator | Validate newly created tasks (Agent Teams) |
 | `TaskCompleted` | task-completed-logger | Log task completions (Agent Teams) |
 | `ConfigChange` | config-change-logger | Log configuration changes |
+| `CwdChanged` | cwd-change-logger | Log working-directory changes (observation only) |
+| `InstructionsLoaded` | instructions-loaded-reinforcer | Reinforce core instructions when context is (re)loaded |
 | `TeammateIdle` | session-logger | Log teammate idle events (Agent Teams) |
 
 ### Settings Features
@@ -227,7 +232,7 @@ The README v1.7.0 changelog originally claimed "All 42 bash scripts now have Pow
 
 | Surface | Bash count | PowerShell count | Coverage |
 |---|---:|---:|---:|
-| `global/hooks/*.sh` | 32 | 32 | 32/32 (100%) |
+| `global/hooks/*.sh` | 37 | 37 | 37/37 (100%) |
 
 The previous gap (`p4-timeline-guard.sh` and `p4-timeline-reminder.sh`) was closed in #489: both bash hooks now have `.ps1` counterparts wired into `global/settings.windows.json`. A bash/PowerShell parity test (`tests/hooks/test-p4-timeline-guard-parity.sh`) confirms the two implementations return identical decisions across every fixture; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if `*.sh` and `*.ps1` counts diverge.
 
@@ -247,4 +252,4 @@ All branches normalize to GNU-timeout exit semantics (exit 124 on budget exceede
 
 ---
 
-*Last updated: 2026-04-17 | claude-config v1.6.0*
+*Last updated: 2026-05-29 | claude-config v1.10.0*
