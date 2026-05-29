@@ -1,7 +1,7 @@
 #!/bin/bash
 # tool-failure-logger.sh
 # Logs tool execution failures for debugging and analysis.
-# Hook Type: ToolFailure
+# Hook Type: PostToolUseFailure
 # Exit codes: 0 (always — lifecycle event)
 # Response format: none (lifecycle event, no JSON output needed)
 #
