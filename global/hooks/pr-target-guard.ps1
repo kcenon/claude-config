@@ -45,23 +45,45 @@ if ($baseMatch.Success) {
     $base = $baseMatch.Groups[1].Value
 }
 
-# If no --base flag found, the PR uses the repo default branch (develop).
-# Allow it -- this is the normal feature-to-develop workflow.
+# If no --base flag found, resolve the repo's default branch instead of
+# blindly allowing. Repos with default_branch=main previously bypassed the
+# policy. PR_TARGET_GUARD_DEFAULT_BRANCH_OVERRIDE lets tests inject without
+# gh. Mirrors the pr-target-guard.sh #616 hardening (lines 70-88).
 if (-not $base) {
-    New-HookAllowResponse
-    exit 0
+    if ($env:PR_TARGET_GUARD_DEFAULT_BRANCH_OVERRIDE) {
+        $base = $env:PR_TARGET_GUARD_DEFAULT_BRANCH_OVERRIDE
+    } else {
+        $repo = $null
+        $rm = [regex]::Match($CMD, '(?:--repo[= ]|-R\s+)["\x27]?([a-zA-Z0-9._/-]+)')
+        if ($rm.Success) { $repo = $rm.Groups[1].Value }
+        if (Get-Command gh -ErrorAction SilentlyContinue) {
+            try {
+                if ($repo) {
+                    $base = (& gh api "repos/$repo" --jq .default_branch 2>$null)
+                } else {
+                    $base = (& gh api 'repos/{owner}/{repo}' --jq .default_branch 2>$null)
+                }
+            } catch {}
+        }
+        if ($base) { $base = ("$base").Trim() }
+    }
+    # Graceful degradation: preserve the historical allow if unresolved.
+    if (-not $base) {
+        New-HookAllowResponse
+        exit 0
+    }
 }
 
 # Strip surrounding quotes if present
 $base = $base -replace '^["\x27]|["\x27]$', ''
 
-# Only block if base is exactly 'main'
-if ($base -ne 'main') {
+# Only block if base is exactly 'main' or 'master'
+if ($base -ne 'main' -and $base -ne 'master') {
     New-HookAllowResponse
     exit 0
 }
 
-# Base is 'main' -- check if this is a release PR (--head develop)
+# Base is 'main' or 'master' -- check if this is a release PR (--head develop)
 $head = $null
 $headMatch = [regex]::Match($CMD, '(?:--head[= ]|-H\s*)["\x27]?([a-zA-Z0-9._/-]+)')
 if ($headMatch.Success) {
@@ -80,6 +102,6 @@ if ($head -like 'release/*') {
     exit 0
 }
 
-# Deny: non-develop/non-release branch targeting main
-New-HookDenyResponse -Reason "PR targeting 'main' is blocked by branching policy. Only 'develop' or 'release/*' branches may merge into 'main'. Feature/fix branches must target 'develop'."
+# Deny: non-develop/non-release branch targeting main or master
+New-HookDenyResponse -Reason "PR targeting '$base' is blocked by branching policy. Only 'develop' or 'release/*' branches may merge into '$base'. Feature/fix branches must target 'develop'."
 exit 0

@@ -6,7 +6,9 @@
 # authoritative source of truth; keep the character sets in sync with them.
 #
 # The CLAUDE_CONTENT_LANGUAGE environment variable selects the policy:
-#   - english (default, unset, or empty) → ASCII printable + whitespace only
+#   - english (default, unset, or empty) → ASCII printable + whitespace,
+#       plus allowlisted English typographic punctuation (em/en-dash, curly
+#       quotes, ellipsis, NBSP) per issue #583
 #   - korean_plus_english → ASCII + Hangul syllables/Jamo/Compat Jamo
 #   - exclusive_bilingual → per-document: english_only when text has no
 #                           Hangul syllables, otherwise korean_with_tech_terms
@@ -51,6 +53,16 @@ function Test-CodePointAllowed {
     # ASCII printable + whitespace (shared across english and korean_plus_english)
     if (($CodePoint -ge 0x20 -and $CodePoint -le 0x7E) -or
         ($CodePoint -ge 0x09 -and $CodePoint -le 0x0D)) {
+        return $true
+    }
+    # Allowlisted English typographic punctuation (issue #583): em-dash,
+    # en-dash, curly double/single quotes, horizontal ellipsis, NBSP. Matches
+    # the strip list in hooks/lib/validate-language.sh (applied before any
+    # category check, so it holds for every policy).
+    if ($CodePoint -eq 0x2014 -or $CodePoint -eq 0x2013 -or
+        $CodePoint -eq 0x201C -or $CodePoint -eq 0x201D -or
+        $CodePoint -eq 0x2018 -or $CodePoint -eq 0x2019 -or
+        $CodePoint -eq 0x2026 -or $CodePoint -eq 0x00A0) {
         return $true
     }
     if ($Policy -eq 'korean_plus_english') {
