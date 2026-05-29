@@ -58,6 +58,9 @@ Invoke-LangCase -Name "unset policy accepts ASCII"          -ExpectedValid $true
 Invoke-LangCase -Name "english rejects Hangul"              -ExpectedValid $false -Policy 'english'   -Text "한국어"
 Invoke-LangCase -Name "english rejects accented Latin"      -ExpectedValid $false -Policy 'english'   -Text "café"
 Invoke-LangCase -Name "english rejects emoji"               -ExpectedValid $false -Policy 'english'   -Text "party 🎉"
+Invoke-LangCase -Name "english allows em-dash (#583)"       -ExpectedValid $true  -Policy 'english'   -Text ("dash" + [char]0x2014 + "here")
+Invoke-LangCase -Name "english allows curly quotes (#583)"  -ExpectedValid $true  -Policy 'english'   -Text ([char]0x201C + "quoted" + [char]0x201D)
+Invoke-LangCase -Name "english allows ellipsis+NBSP (#583)" -ExpectedValid $true  -Policy 'english'   -Text ("wait" + [char]0x2026 + [char]0x00A0 + "x")
 
 Write-Host ""
 Write-Host "[korean_plus_english policy]"

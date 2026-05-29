@@ -49,6 +49,15 @@ if ($CMD -notmatch 'gh\s+pr\s+merge') {
     exit 0
 }
 
+# --- Squash-only enforcement (Issue #478) ---
+# The branching strategy mandates squash merges to develop/main. Reject
+# --merge and --rebase so the gh CLI cannot bypass that policy. Mirrors
+# merge-gate-guard.sh lines 82-88.
+if ($CMD -match '(^|\s)--(merge|rebase)(\s|=|$)') {
+    New-HookDenyResponse -Reason 'gh pr merge --merge/--rebase blocked: branching strategy requires squash merges (use --squash). See workflow/branching-strategy.md.'
+    exit 0
+}
+
 # --- Extract PR number ---
 $prNum = $null
 

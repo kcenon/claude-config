@@ -1,6 +1,7 @@
 #Requires -Version 7.0
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'lib' 'AttributionValidator.psm1') -Force
 
 # attribution-guard.ps1
 # Blocks gh pr/issue/release commands whose user-facing text fields contain
@@ -22,24 +23,9 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
 # one, update the other to keep enforcement consistent across bash and
 # PowerShell hosts.
 
-$AttributionTrailerRegex = '(?m)^\s*(Co-[Aa]uthored-[Bb]y|Co-[Aa]uthor|[Gg]enerated[- ]?[Bb]y|[Cc]reated[- ]?[Bb]y|[Aa]uthored[- ]?[Bb]y|[Ss]igned-[Oo]ff-[Bb]y|[Aa]ssisted-[Bb]y)\s*:\s*.*([Cc]laude|[Aa]nthropic|AI[- ]?[Aa]ssisted)'
-$AttributionEmojiRegex   = '🤖\s*\S*\s*([Cc]laude|[Aa]nthropic)'
-$AttributionProseRegex   = '([Gg]enerated|[Cc]reated|[Aa]uthored|[Ww]ritten)\s+(with|by|using)\s+(Claude|Anthropic|AI[- ]?[Aa]ssistant)'
-
-function Test-AttributionReason {
-    param([string]$Text)
-    if (-not $Text) { return $null }
-    if ($Text -match $AttributionTrailerRegex) {
-        return 'Text contains AI/Claude attribution trailer (Co-Authored-By: / Generated-by: / Authored-by: Claude or Anthropic). Remove the trailer before submitting.'
-    }
-    if ($Text -match $AttributionEmojiRegex) {
-        return 'Text contains AI bot emoji adjacent to Claude/Anthropic attribution. Remove the marker before submitting.'
-    }
-    if ($Text -match $AttributionProseRegex) {
-        return "Text contains AI/Claude attribution prose (e.g. 'Generated with Claude'). Remove the attribution before submitting."
-    }
-    return $null
-}
+# Attribution patterns + Test-AttributionReason now live in the shared
+# lib/AttributionValidator.psm1 (imported above; also used by
+# commit-message-guard.ps1) so the three-pattern rules stay single-sourced.
 
 # Extracts the value for a given long/short flag from a shell command string.
 function Get-FlagValue {

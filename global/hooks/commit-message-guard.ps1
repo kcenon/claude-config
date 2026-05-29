@@ -2,6 +2,7 @@
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'lib' 'LanguageValidator.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'lib' 'AttributionValidator.psm1') -Force
 
 # commit-message-guard.ps1
 # Deterministic git commit message validator
@@ -85,9 +86,12 @@ if ($desc.EndsWith('.')) {
     exit 0
 }
 
-# Rule 4: No AI/Claude attribution
-if ($msg -imatch '(claude|anthropic|ai-assisted|co-authored-by:\s*claude|generated\s+with)') {
-    New-HookDenyResponse -Reason 'Commit message must not contain AI/Claude attribution (claude, anthropic, ai-assisted, generated with, co-authored-by: claude).'
+# Rule 4: No AI/Claude attribution (three-pattern design via the shared
+# AttributionValidator module — casual technical mentions like 'Claude API'
+# or 'Anthropic SDK' are deliberately allowed; mirrors validate-commit-message.sh).
+$attrReason = Test-AttributionReason $msg
+if ($attrReason) {
+    New-HookDenyResponse -Reason "Commit message rejected: $attrReason"
     exit 0
 }
 

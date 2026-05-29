@@ -77,6 +77,17 @@ Assert-Deny -InputJson '{"tool_input":{"file_path":"config/credentials/aws.json"
 Assert-Deny -InputJson '{"tool_input":{"file_path":"config/passwords/list.txt"}}' -Label 'passwords/ -> deny'
 
 Write-Host ''
+Write-Host '[SSH private keys + AWS credentials (parity with .sh)]'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/home/u/.ssh/id_rsa"}}' -Label 'id_rsa -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"id_ed25519"}}' -Label 'id_ed25519 -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/keys/id_ecdsa.bak"}}' -Label 'id_ecdsa.bak -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/home/u/.ssh/id_ed25519.pub"}}' -Label 'id_ed25519.pub -> deny (parity)'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/home/u/.aws/credentials"}}' -Label '.aws/credentials -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/home/u/.aws/config"}}' -Label '.aws/config -> deny'
+Assert-Allow -InputJson '{"tool_input":{"file_path":"src/config"}}' -Label 'non-.aws config -> allow'
+Assert-Allow -InputJson '{"tool_input":{"file_path":"src/identity.py"}}' -Label 'id-prefixed non-key -> allow'
+
+Write-Host ''
 Write-Host '[Allowed system paths]'
 Assert-Allow -InputJson '{"tool_input":{"file_path":"/private/tmp/claude_test"}}' -Label '/private/tmp -> allow (macOS system)'
 

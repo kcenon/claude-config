@@ -58,6 +58,21 @@ if ($FILE -match '\.(pem|key|p12|pfx)$') {
     exit 0
 }
 
+# SSH private keys (mirrors sensitive-file-guard.sh). Matches id_rsa,
+# id_ed25519, id_ecdsa, id_dsa and their suffixed variants (incl. .pub) by
+# basename. $basenameLower is computed above.
+if ($basenameLower -match '^id_(rsa|ed25519|ecdsa|dsa)(\..*)?$') {
+    New-HookDenyResponse -Reason "Access to sensitive file blocked: $FILE (SSH private key)"
+    exit 0
+}
+
+# AWS credential files: basename 'credentials' or 'config' under a .aws dir.
+if (($basenameLower -eq 'credentials' -or $basenameLower -eq 'config') -and
+    ($FILE -match '(?i)[/\\]\.aws[/\\]')) {
+    New-HookDenyResponse -Reason "Access to sensitive file blocked: $FILE (AWS credentials)"
+    exit 0
+}
+
 # Check sensitive directories
 if ($FILE -match '(?i)(secrets|credentials|passwords)[/\\]') {
     New-HookDenyResponse -Reason "Access to sensitive directory blocked: $FILE (protected path)"

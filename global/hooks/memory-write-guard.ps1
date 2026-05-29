@@ -168,7 +168,9 @@ try {
 
     $block = $false
     if ($validateRc -eq 1 -or $validateRc -eq 2) { $block = $true }
-    if ($secretRc -eq 1) { $block = $true }
+    # Fail-closed on secret-check exit code 2 (OWNER_EMAILS not configured,
+    # #618), mirroring memory-write-guard.sh lines 272-274.
+    if ($secretRc -eq 1 -or $secretRc -eq 2) { $block = $true }
 
     if ($block) {
         $reason = "memory-write-guard rejected write to $leaf"
@@ -177,6 +179,9 @@ try {
         }
         if ($secretRc -eq 1) {
             $reason = $reason + "`nsecret-check.sh blocked write:`n" + $secretOut.TrimEnd()
+        }
+        if ($secretRc -eq 2) {
+            $reason = $reason + "`nsecret-check.sh requires configuration (#618):`n" + $secretOut.TrimEnd()
         }
         Write-Output (New-HookDenyResponse -Reason $reason)
         exit 0
