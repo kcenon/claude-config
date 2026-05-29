@@ -68,6 +68,7 @@ probe file format, behavior matrix, and failure modes.
 plugin/
 ├── .claude-plugin/
 │   └── plugin.json          # Plugin manifest
+├── agents/                   # Bundled agent definitions
 ├── skills/                   # Agent Skills
 │   ├── coding-guidelines/
 │   │   ├── SKILL.md
@@ -80,6 +81,8 @@ plugin/
 │   └── ci-debugging/
 ├── hooks/
 │   └── hooks.json            # Security and formatting hooks
+├── .lsp.json                 # LSP server registration
+├── .claudeignore             # Token-optimization ignore list
 └── README.md
 ```
 
