@@ -401,12 +401,21 @@ if python3 -c "import yaml" 2>/dev/null; then
     for skill_file in "${SKILL_FILES[@]}"; do
         relative_path="${skill_file#$BACKUP_DIR/}"
 
+        # A native (non-cygwin) python3 — common on Windows Git Bash / Cygwin —
+        # cannot open a /x/... POSIX-style absolute path. Convert to a mixed
+        # Windows path (D:/...) via cygpath when available; on Linux/macOS
+        # cygpath is absent and the path is used as-is.
+        py_skill_file="$skill_file"
+        if command -v cygpath >/dev/null 2>&1; then
+            py_skill_file="$(cygpath -m "$skill_file")"
+        fi
+
         # 파일에서 직접 frontmatter 추출 및 YAML 검증
         if python3 -c "
 import yaml
 import sys
 
-with open('$skill_file', 'r') as f:
+with open('$py_skill_file', 'r', encoding='utf-8') as f:
     content = f.read()
 
 # frontmatter 추출
