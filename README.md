@@ -233,49 +233,41 @@ claude_config_backup/
 │   │   └── settings.json      # Status line display settings
 │   ├── commands/               # Global command policies
 │   │   └── _policy.md         # Shared policies for all commands
-│   ├── hooks/                  # Hook scripts (macOS + Windows)
-│   │   ├── sensitive-file-guard.sh/.ps1
-│   │   ├── dangerous-command-guard.sh/.ps1
-│   │   ├── github-api-preflight.sh/.ps1
-│   │   ├── markdown-anchor-validator.sh/.ps1
-│   │   ├── prompt-validator.sh/.ps1
-│   │   ├── session-logger.sh/.ps1
-│   │   ├── tool-failure-logger.sh/.ps1
-│   │   ├── subagent-logger.sh/.ps1
-│   │   ├── task-completed-logger.sh/.ps1
-│   │   ├── config-change-logger.sh/.ps1
-│   │   ├── pre-compact-snapshot.sh/.ps1
-│   │   ├── worktree-create.sh/.ps1
-│   │   ├── worktree-remove.sh/.ps1
-│   │   ├── team-limit-guard.sh/.ps1
-│   │   ├── commit-message-guard.sh/.ps1
-│   │   ├── conflict-guard.sh/.ps1
-│   │   ├── pr-target-guard.sh/.ps1
-│   │   ├── version-check.sh/.ps1
-│   │   ├── cleanup.sh/.ps1
+│   ├── hooks/                  # 37 hook scripts (.sh + .ps1) — see HOOKS.md for the full catalog
 │   │   └── lib/               # Shared libraries
+│   │       ├── AttributionValidator.psm1
+│   │       ├── CommonHelpers.psm1  # PowerShell shared module
+│   │       ├── LanguageValidator.psm1
+│   │       ├── path-utils.sh
 │   │       ├── rotate.sh/.ps1
-│   │       └── CommonHelpers.psm1  # PowerShell shared module
+│   │       ├── timeout-wrapper.sh
+│   │       └── tokenize-shell.sh
 │   ├── scripts/                # Utility scripts
 │   │   ├── statusline-command.sh/.ps1
 │   │   ├── team-report.sh/.ps1
 │   │   └── weekly-usage.sh/.ps1
 │   └── skills/                 # Global skills (user-invocable)
-│       └── _internal/          # claude-config-owned skills (strict schema, P4)
+│       └── _internal/          # claude-config-owned skills (strict-validated)
 │           ├── _shared/        # Cross-skill helpers (invariants.md)
 │           ├── branch-cleanup/ # Clean merged/stale branches
 │           ├── ci-fix/         # CI failure remediation workflow
 │           ├── doc-index/      # Generate documentation index files
 │           ├── doc-review/     # Markdown document review
+│           ├── evidence-pack/  # Assemble per-release evidence packages
 │           ├── fleet-orchestrator/ # Fleet orchestration patterns
 │           ├── harness/        # Agent team & skill architecture design
 │           ├── implement-all-levels/ # Enforce complete implementation
 │           ├── issue-create/   # Create GitHub issues (5W1H)
 │           ├── issue-work/     # GitHub issue workflow automation
+│           ├── memory-review/  # Review stale/flagged/duplicate memories
 │           ├── pr-work/        # Fix failed CI/CD for PRs
 │           ├── preflight/      # Pre-push CI preflight checks
 │           ├── release/        # Automated release with changelog
-│           └── research/       # Research/literature review
+│           ├── research/       # Research/literature review
+│           ├── risk-control/   # Manage hazard/risk records (regulated track)
+│           ├── sonar-fix/      # SonarCloud finding triage and fixes
+│           ├── soup-inventory/ # Maintain SOUP (third-party) register
+│           └── traceability/   # Bidirectional traceability matrix
 │
 ├── project/                     # Project settings backup
 │   ├── CLAUDE.md               # Project main configuration
@@ -331,10 +323,12 @@ claude_config_backup/
 │       ├── agents/             # Specialized agent configurations
 │       │   ├── code-reviewer.md
 │       │   ├── codebase-analyzer.md
+│       │   ├── dependency-auditor.md
 │       │   ├── documentation-writer.md
 │       │   ├── qa-reviewer.md
 │       │   ├── refactor-assistant.md
-│       │   └── structure-explorer.md
+│       │   ├── structure-explorer.md
+│       │   └── test-strategist.md
 │       └── skills/             # Claude Code Skills
 │           ├── coding-guidelines/
 │           ├── security-audit/
@@ -370,7 +364,11 @@ claude_config_backup/
 │   ├── commit-msg              # Commit message format validation
 │   ├── install-hooks.sh/.ps1   # Hook installation script
 │   └── lib/
-│       └── validate-commit-message.sh  # Shared validation library
+│       ├── InstallerFetch.psm1
+│       ├── installer-fetch.sh
+│       ├── validate-commit-message.sh  # Shared validation library
+│       ├── validate-language.sh
+│       └── validate-traceability.sh
 │
 ├── .github/
 │   └── workflows/
@@ -655,6 +653,8 @@ Specialized agents in `.claude/agents/` provide focused assistance for specific 
 | `codebase-analyzer` | Codebase architecture and pattern analysis | sonnet |
 | `qa-reviewer` | Integration coherence verification | sonnet |
 | `structure-explorer` | Project directory structure mapping | haiku |
+| `dependency-auditor` | Dependency CVE and license audit | sonnet |
+| `test-strategist` | Test coverage and strategy analysis | sonnet |
 
 ### Agent Configuration
 
