@@ -1014,6 +1014,7 @@ this catalog for the canonical hook inventory.
 | [`commit-message-guard.sh`](#commit-message-guard) | PreToolUse (Bash) | yes |
 | [`config-change-logger.sh`](#config-change-logger) | ConfigChange | yes |
 | [`conflict-guard.sh`](#conflict-guard) | PreToolUse (Bash) | yes |
+| [`cwd-change-logger.sh`](#cwd-change-logger) | CwdChanged | yes |
 | [`dangerous-command-guard.sh`](#dangerous-command-guard) | PreToolUse (Bash) | yes |
 | [`gh-write-verb-guard.sh`](#gh-write-verb-guard) | PreToolUse (Bash) | yes |
 | [`github-api-preflight.sh`](#github-api-preflight) | PreToolUse (Bash) | yes |
@@ -1044,7 +1045,7 @@ this catalog for the canonical hook inventory.
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
 | [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 36 bash hooks, 36 with PowerShell counterparts._
+_Total: 37 bash hooks, 37 with PowerShell counterparts._
 
 ### Hook Details
 
@@ -1166,6 +1167,23 @@ Guards against git operations that could cause conflicts
 | Response format | hookSpecificOutput with hookEventName |
 | PowerShell counterpart | present (`conflict-guard.ps1`) |
 | Source | `global/hooks/conflict-guard.sh` |
+
+### cwd-change-logger
+
+_File:_ `cwd-change-logger.sh`
+
+_Anchor:_ `#cwd-change-logger`
+
+Logs working-directory changes during a session for audit trails.
+
+| Field | Value |
+|---|---|
+| Hook Type | CwdChanged |
+| Trigger / Matcher | — |
+| Exit codes | — |
+| Response format | none (observation-only event; CwdChanged cannot block, exit 2 only shows stderr) |
+| PowerShell counterpart | present (`cwd-change-logger.ps1`) |
+| Source | `global/hooks/cwd-change-logger.sh` |
 
 ### dangerous-command-guard
 
