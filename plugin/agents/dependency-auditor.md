@@ -3,7 +3,6 @@ name: dependency-auditor
 description: Audits project dependencies for CVEs, license conflicts, outdated versions, and unused packages. Runs language-specific audit tools and cross-references vulnerability databases. Use when reviewing dependency security, checking for supply chain risks, or auditing license compliance.
 model: sonnet
 tools: Read, Grep, Glob, Bash
-temperature: 0.1
 maxTurns: 20
 effort: high
 memory: project

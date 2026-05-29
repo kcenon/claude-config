@@ -3,7 +3,6 @@ name: structure-explorer
 description: Maps project directory structure, classifies files by purpose, and identifies key entry points, build configs, and CI workflows. Reports concise structure summaries. Use when surveying unfamiliar projects or mapping file organization.
 model: haiku
 tools: Glob, Read
-temperature: 0.1
 maxTurns: 15
 effort: medium
 memory: local
