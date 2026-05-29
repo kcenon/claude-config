@@ -511,7 +511,7 @@
   "skillListingBudgetFraction": 0.02,
   "disableSkillShellExecution": true,
   "description": "Claude Code Global Settings - Applied to all projects (permissions.deny for security)",
-  "version": "1.16.0",
+  "version": "1.17.0",
   "showTurnDuration": true,
   "teammateMode": "in-process"
 }

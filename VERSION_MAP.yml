@@ -19,5 +19,5 @@
 suite: 1.10.0
 plugin: 2.3.0
 plugin-lite: 1.1.0
-settings-schema: 1.16.0
+settings-schema: 1.17.0
 hooks: 1.1.0
