@@ -496,8 +496,10 @@
   "autoUpdatesChannel": "latest",
   "skipDangerousModePermissionPrompt": true,
   "includeGitInstructions": false,
+  "skillListingBudgetFraction": 0.02,
+  "disableSkillShellExecution": true,
   "description": "Claude Code Global Settings - Applied to all projects (permissions.deny for security)",
-  "version": "1.13.1",
+  "version": "1.14.0",
   "showTurnDuration": true,
   "teammateMode": "in-process",
   "harness_policies": {
