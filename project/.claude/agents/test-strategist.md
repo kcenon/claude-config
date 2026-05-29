@@ -5,6 +5,7 @@ model: sonnet
 tools: Read, Grep, Glob, Bash
 maxTurns: 25
 effort: high
+color: green
 memory: project
 initialPrompt: "Check your memory for known test coverage gaps and established test patterns in this project."
 applies_to:

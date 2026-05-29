@@ -5,6 +5,7 @@ model: sonnet
 tools: Read, Grep, Glob, Bash
 maxTurns: 30
 effort: high
+color: purple
 memory: project
 initialPrompt: "Check your memory for established project patterns and past review findings before starting."
 applies_to:

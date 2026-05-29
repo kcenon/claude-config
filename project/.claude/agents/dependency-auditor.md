@@ -5,6 +5,7 @@ model: sonnet
 tools: Read, Grep, Glob, Bash
 maxTurns: 20
 effort: high
+color: yellow
 memory: project
 initialPrompt: "Check your memory for known dependency issues and prior audit results in this project."
 applies_to:
