@@ -24,6 +24,11 @@ on:
       - 'tests/scripts/test-language-policy-drift.sh'
       - 'tests/scripts/test-installer-prompt-drift.sh'
       - 'scripts/lib/**'
+      - 'global/settings.json'
+      - 'global/settings.windows.json'
+      - 'tests/scripts/test-windows-hooks-parity.sh'
+      - 'tests/scripts/test-hook-ordering.sh'
+      - 'tests/scripts/test-severity-enum.sh'
 
 jobs:
   test:
@@ -109,6 +114,21 @@ jobs:
         # scripts/lib/InstallPrompts.psm1 (PowerShell) - the single source
         # of truth for installer prompts and the policy phrase table.
         run: bash tests/scripts/test-installer-prompt-drift.sh
+
+      - name: Run hook-wiring parity test (settings.json <-> settings.windows.json)
+        # Catches dormant guards: a .ps1 hook present in global/hooks/ but not
+        # wired into settings.windows.json (or POSIX-only drift). This is the
+        # gate the 7 unwired Windows security guards (#655) would have tripped.
+        run: bash tests/scripts/test-windows-hooks-parity.sh
+
+      - name: Run hook ordering test
+        # Asserts the load-bearing PreToolUse hook order (sensitive-file-guard
+        # before pre-edit-read-guard, etc.) is preserved across both settings.
+        run: bash tests/scripts/test-hook-ordering.sh
+
+      - name: Run skill severity enum test
+        # Validates code-review skill frontmatter severity/finding_levels enums.
+        run: bash tests/scripts/test-severity-enum.sh
 
   shellcheck:
     runs-on: ${{ matrix.os }}
