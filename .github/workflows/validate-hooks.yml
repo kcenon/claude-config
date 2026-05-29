@@ -29,6 +29,9 @@ on:
       - 'tests/scripts/test-windows-hooks-parity.sh'
       - 'tests/scripts/test-hook-ordering.sh'
       - 'tests/scripts/test-severity-enum.sh'
+      - 'scripts/backup.sh'
+      - 'scripts/backup.ps1'
+      - 'tests/scripts/test-installer-robustness.sh'
 
 jobs:
   test:
@@ -114,6 +117,13 @@ jobs:
         # scripts/lib/InstallPrompts.psm1 (PowerShell) - the single source
         # of truth for installer prompts and the policy phrase table.
         run: bash tests/scripts/test-installer-prompt-drift.sh
+
+      - name: Run installer robustness test
+        # Guards the per-platform settings-source parity (PowerShell
+        # installers ship settings.windows.json, bash installers ship
+        # settings.json), install.sh error() being terminal, and the
+        # backup.sh/.ps1 copy-then-swap staging (silent-data-loss fix).
+        run: bash tests/scripts/test-installer-robustness.sh
 
       - name: Run hook-wiring parity test (settings.json <-> settings.windows.json)
         # Catches dormant guards: a .ps1 hook present in global/hooks/ but not
