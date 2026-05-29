@@ -453,6 +453,18 @@
           }
         ]
       }
+    ],
+    "CwdChanged": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/cwd-change-logger.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -499,7 +511,7 @@
   "skillListingBudgetFraction": 0.02,
   "disableSkillShellExecution": true,
   "description": "Claude Code Global Settings - Applied to all projects (permissions.deny for security)",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "showTurnDuration": true,
   "teammateMode": "in-process",
   "harness_policies": {
