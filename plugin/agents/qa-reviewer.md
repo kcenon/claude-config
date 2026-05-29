@@ -3,7 +3,6 @@ name: qa-reviewer
 description: Verifies integration coherence and cross-boundary contracts. Checks API response shapes vs frontend consumers, route path mappings, state transition completeness, and endpoint coverage. Use when verifying that connected components agree on contracts, shapes, and paths.
 model: sonnet
 tools: Read, Grep, Glob, Bash
-temperature: 0.2
 maxTurns: 30
 effort: high
 memory: project

@@ -3,7 +3,6 @@ name: codebase-analyzer
 description: Analyzes codebase architecture, patterns, conventions, and dependency structure. Reports findings with file:line references and confidence scores. Use when exploring unfamiliar codebases, auditing architecture, or mapping module boundaries.
 model: sonnet
 tools: Read, Glob, Grep
-temperature: 0.2
 maxTurns: 25
 effort: high
 memory: project
