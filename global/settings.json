@@ -160,11 +160,6 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/hooks/markdown-anchor-validator.sh",
-            "timeout": 30
-          },
-          {
-            "type": "command",
             "command": "~/.claude/hooks/commit-message-guard.sh",
             "timeout": 5
           },

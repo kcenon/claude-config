@@ -1,7 +1,7 @@
 ---
 name: fleet-orchestrator
 description: "Fan out a single high-level directive (audit, deprecation cleanup, fix, migration, version bump) across an arbitrary list of repositories as parallel Agent workers, with a supervisor that polls a shared manifest, renders a live status table, and aggregates final results. Use when the user says 'apply X across repos', 'audit N repositories', 'sweep every repo', 'run the same fix in all projects', 'parallel multi-repo', 'fleet-wide change', or provides a list of repositories with a single directive. Preferred over running issue-work in each repo sequentially."
-argument-hint: "<repos-spec> <directive-spec> [--max-parallel N] [--retry N] [--poll-interval SEC] [--dry-run] [--reanchor-interval N] [--top-k N] [--agents-dir PATH]"
+argument-hint: "<repos-spec> <directive-spec> [--max-parallel N] [--max-retries N] [--poll-interval SEC] [--reanchor-interval N] [--top-k N] [--agents-dir PATH] [--resume <fleet-id>]"
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: "Bash(gh *), Bash(flock *), Bash(jq *)"
