@@ -5,6 +5,7 @@ model: haiku
 tools: Glob, Read
 maxTurns: 15
 effort: medium
+color: cyan
 memory: local
 applies_to:
   - "**/Makefile"

@@ -5,6 +5,8 @@ model: sonnet
 tools: Read, Edit, Glob, Grep
 maxTurns: 25
 effort: high
+permissionMode: acceptEdits
+color: red
 memory: project
 initialPrompt: "Check your memory for past refactoring decisions and established patterns in this project."
 applies_to:

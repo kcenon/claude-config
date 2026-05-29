@@ -5,6 +5,7 @@ model: sonnet
 tools: Read, Glob, Grep
 maxTurns: 25
 effort: high
+color: blue
 memory: project
 initialPrompt: "Check your memory for previously identified architecture patterns and conventions in this project."
 applies_to:

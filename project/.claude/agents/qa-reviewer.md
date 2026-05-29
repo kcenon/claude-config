@@ -5,6 +5,7 @@ model: sonnet
 tools: Read, Grep, Glob, Bash
 maxTurns: 30
 effort: high
+color: orange
 memory: project
 initialPrompt: "Check your memory for known boundary mismatches and integration patterns in this project."
 applies_to:
