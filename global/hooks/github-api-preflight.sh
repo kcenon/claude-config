@@ -15,28 +15,18 @@ if [ -z "$CMD" ]; then
     CMD="${CLAUDE_TOOL_INPUT:-}"
 fi
 
-# Helper function for allow response
+# Helper function for allow response.
+# Use jq -nc --arg so the JSON library handles all escaping (quotes,
+# backslashes, newlines). This closes the heredoc-interpolation injection
+# class banned elsewhere in the suite (issue #567 / #579).
 allow_response() {
     local message="${1:-}"
     if [ -n "$message" ]; then
-        cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "allow",
-    "additionalContext": "$message"
-  }
-}
-EOF
+        jq -nc --arg ctx "$message" \
+            '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow", additionalContext: $ctx}}'
     else
-        cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "allow"
-  }
-}
-EOF
+        jq -nc \
+            '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow"}}'
     fi
     exit 0
 }

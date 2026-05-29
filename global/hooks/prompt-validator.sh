@@ -9,17 +9,17 @@ set -euo pipefail
 
 PROMPT="${CLAUDE_USER_PROMPT:-}"
 
-# Helper function for allow response with warning
+# Helper function for allow response with warning.
+# jq -nc --arg handles all escaping, avoiding the heredoc-interpolation
+# injection class banned elsewhere in the suite (issue #567 / #579). This is an
+# advisory UserPromptSubmit hook: if jq is unavailable, emit no context rather
+# than risk a malformed payload (the prompt is still allowed).
 allow_with_warning() {
     local warning="$1"
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "UserPromptSubmit",
-    "additionalContext": "$warning"
-  }
-}
-EOF
+    if command -v jq >/dev/null 2>&1; then
+        jq -nc --arg ctx "$warning" \
+            '{hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $ctx}}'
+    fi
     exit 0
 }
 

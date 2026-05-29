@@ -99,10 +99,10 @@ assert_allow '{"tool_input":{"command":"git diff >/dev/null 2>&1"}}' "git diff >
 echo ""
 echo "[allow response shape]"
 allow_sample=$(echo '{"tool_input":{"command":"git status 2>&1 | head -20"}}' | bash "$HOOK" 2>/dev/null)
-if echo "$allow_sample" | grep -q '"permissionDecisionReason"'; then
-    ((PASS++)); echo "  PASS: allow response includes permissionDecisionReason"
+if echo "$allow_sample" | grep -q '"additionalContext"'; then
+    ((PASS++)); echo "  PASS: allow response includes additionalContext"
 else
-    ((FAIL++)); ERRORS+=("FAIL: allow response missing permissionDecisionReason — got: $allow_sample"); echo "  FAIL: allow response missing permissionDecisionReason"
+    ((FAIL++)); ERRORS+=("FAIL: allow response missing additionalContext — got: $allow_sample"); echo "  FAIL: allow response missing additionalContext"
 fi
 if echo "$allow_sample" | grep -q 'Safe read-only compound command'; then
     ((PASS++)); echo "  PASS: compound pattern emits dedicated reason"
