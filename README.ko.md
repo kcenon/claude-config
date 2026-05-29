@@ -205,39 +205,40 @@ claude_config_backup/
 │   ├── ccstatusline/           # 상태줄 설정
 │   ├── commands/               # 글로벌 명령어 정책
 │   │   └── _policy.md         # 모든 명령어 공통 정책
-│   ├── hooks/                  # Hook 스크립트 (macOS + Windows)
-│   │   ├── sensitive-file-guard.sh/.ps1
-│   │   ├── dangerous-command-guard.sh/.ps1
-│   │   ├── github-api-preflight.sh/.ps1
-│   │   ├── markdown-anchor-validator.sh/.ps1
-│   │   ├── prompt-validator.sh/.ps1
-│   │   ├── session-logger.sh/.ps1
-│   │   ├── tool-failure-logger.sh/.ps1
-│   │   ├── subagent-logger.sh/.ps1
-│   │   ├── task-completed-logger.sh/.ps1
-│   │   ├── config-change-logger.sh/.ps1
-│   │   ├── pre-compact-snapshot.sh/.ps1
-│   │   ├── worktree-create.sh/.ps1
-│   │   ├── worktree-remove.sh/.ps1
-│   │   ├── team-limit-guard.sh/.ps1
-│   │   ├── commit-message-guard.sh/.ps1
-│   │   ├── conflict-guard.sh/.ps1
-│   │   ├── pr-target-guard.sh/.ps1
-│   │   ├── version-check.sh/.ps1
-│   │   └── cleanup.sh/.ps1
+│   ├── hooks/                  # 총 37개 훅 스크립트 (.sh + .ps1) — 전체 목록은 HOOKS.md 참조
+│   │   └── lib/               # 공유 라이브러리
+│   │       ├── AttributionValidator.psm1
+│   │       ├── CommonHelpers.psm1  # PowerShell 공유 모듈
+│   │       ├── LanguageValidator.psm1
+│   │       ├── path-utils.sh
+│   │       ├── rotate.sh/.ps1
+│   │       ├── timeout-wrapper.sh
+│   │       └── tokenize-shell.sh
 │   ├── scripts/                # 유틸리티 스크립트
 │   │   ├── statusline-command.sh/.ps1
 │   │   └── weekly-usage.sh
 │   └── skills/                 # 글로벌 Skills (사용자 호출형)
-│       ├── branch-cleanup/     # 병합/오래된 브랜치 정리
-│       ├── doc-index/          # 문서 인덱스 파일 생성
-│       ├── doc-review/         # 마크다운 문서 리뷰
-│       ├── implement-all-levels/ # 완전 구현 강제
-│       ├── issue-create/       # GitHub 이슈 생성 (5W1H)
-│       ├── issue-work/         # GitHub 이슈 워크플로우
-│       ├── pr-work/            # PR CI/CD 실패 수정
-│       ├── release/            # 자동 릴리스 생성
-│       └── harness/            # Agent team & skill 아키텍처 설계
+│       └── _internal/          # claude-config 전용 스킬 (strict 검증)
+│           ├── _shared/        # 스킬 공통 헬퍼 (invariants.md)
+│           ├── branch-cleanup/ # 병합/오래된 브랜치 정리
+│           ├── ci-fix/         # CI 실패 수정 워크플로우
+│           ├── doc-index/      # 문서 인덱스 파일 생성
+│           ├── doc-review/     # 마크다운 문서 리뷰
+│           ├── evidence-pack/  # 릴리스 증거 패키지 조립
+│           ├── fleet-orchestrator/ # Fleet 오케스트레이션 패턴
+│           ├── harness/        # Agent team & skill 아키텍처 설계
+│           ├── implement-all-levels/ # 완전 구현 강제
+│           ├── issue-create/   # GitHub 이슈 생성 (5W1H)
+│           ├── issue-work/     # GitHub 이슈 워크플로우
+│           ├── memory-review/  # 오래된/플래그/중복 메모리 검토
+│           ├── pr-work/        # PR CI/CD 실패 수정
+│           ├── preflight/      # 푸시 전 CI 사전점검
+│           ├── release/        # 자동 릴리스 생성
+│           ├── research/       # 리서치/문헌 조사
+│           ├── risk-control/   # 위험/해저드 기록 관리 (규제 트랙)
+│           ├── sonar-fix/      # SonarCloud 결함 분류 및 수정
+│           ├── soup-inventory/ # SOUP(서드파티) 레지스터 관리
+│           └── traceability/   # 양방향 추적성 매트릭스
 │
 ├── project/                     # 프로젝트 설정 백업
 │   ├── CLAUDE.md               # 프로젝트 메인 설정
@@ -292,10 +293,12 @@ claude_config_backup/
 │       ├── agents/             # 특화 에이전트 설정
 │       │   ├── code-reviewer.md
 │       │   ├── codebase-analyzer.md
+│       │   ├── dependency-auditor.md
 │       │   ├── documentation-writer.md
 │       │   ├── qa-reviewer.md
 │       │   ├── refactor-assistant.md
-│       │   └── structure-explorer.md
+│       │   ├── structure-explorer.md
+│       │   └── test-strategist.md
 │       └── skills/             # Claude Code Skills
 │           ├── coding-guidelines/
 │           ├── security-audit/
@@ -324,7 +327,11 @@ claude_config_backup/
 │   ├── commit-msg              # 커밋 메시지 형식 검증
 │   ├── install-hooks.sh/.ps1   # Hook 설치 스크립트
 │   └── lib/
-│       └── validate-commit-message.sh  # 공유 검증 라이브러리
+│       ├── InstallerFetch.psm1
+│       ├── installer-fetch.sh
+│       ├── validate-commit-message.sh  # 공유 검증 라이브러리
+│       ├── validate-language.sh
+│       └── validate-traceability.sh
 │
 ├── .github/
 │   └── workflows/
@@ -610,6 +617,8 @@ paths:
 | `codebase-analyzer` | 코드베이스 아키텍처 및 패턴 분석 | sonnet |
 | `qa-reviewer` | 통합 일관성 검증 | sonnet |
 | `structure-explorer` | 프로젝트 디렉토리 구조 매핑 | haiku |
+| `dependency-auditor` | 의존성 CVE 및 라이선스 감사 | sonnet |
+| `test-strategist` | 테스트 커버리지 및 전략 분석 | sonnet |
 
 ### Agent 설정
 
