@@ -789,3 +789,7 @@ Loop bind points for pr-work:
 ## Error Handling
 
 See `reference/error-handling.md` for prerequisite checks, runtime errors, batch mode errors, and common CI failure patterns.
+
+## Side Effects and Loop-Safety
+
+This skill is `loop_safe: false`. It pushes commits, opens/updates pull requests, and merges them once CI passes. Re-running under `/loop` would push duplicate commits or re-attempt merges on already-handled PRs. Resume an interrupted run from its last phase via session-resume state rather than re-invoking from scratch.

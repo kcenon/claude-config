@@ -281,3 +281,7 @@ See `reference/team-mode.md` for the complete team mode workflow with per-tier d
 | Team mode: teammate failure | Fallback to Solo Mode from next incomplete tier |
 | Team mode: review loop exceeded | Approve tier with remaining items noted (max 2 rounds) |
 | Agent Teams not enabled | Fall back to Solo Mode with warning |
+
+## Side Effects and Loop-Safety
+
+This skill is `loop_safe: false`. It writes code across multiple implementation tiers and may spawn teammate agents. Re-running would re-edit files already implemented or duplicate teammate work, risking conflicting changes. Resume from the first incomplete tier rather than re-invoking the whole skill.

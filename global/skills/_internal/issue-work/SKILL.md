@@ -601,3 +601,7 @@ In batch mode, use the summary format from **Phase B-5** instead. Include per-it
 ## Error Handling
 
 See `reference/error-handling.md` for prerequisite checks, runtime errors, and batch mode errors.
+
+## Side Effects and Loop-Safety
+
+This skill is `loop_safe: false`. Each invocation creates branches, opens or advances pull requests, and posts comments against live GitHub issues. Wrapping it in `/loop` would re-trigger work on already-handled issues and create duplicate branches/PRs. The exit contract is "one resolved issue (or batch) per invocation," not a no-side-effect retry — resume an interrupted run from the documented session-resume state rather than re-running blindly.

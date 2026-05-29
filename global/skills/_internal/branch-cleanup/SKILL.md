@@ -235,3 +235,7 @@ After completion, provide summary:
 | Protected branch in list | Skip automatically with warning | No action needed |
 | Current branch selected | Skip automatically | Checkout different branch first |
 | Network error (remote) | Report "Cannot reach remote - check connection" | Verify internet connection |
+
+## Side Effects and Loop-Safety
+
+This skill is `loop_safe: false`. It deletes merged and stale local/remote branches. Repeated invocation is a destructive cascade with nothing left to do after the first pass, and could race against concurrent branch creation. Run it once per cleanup; do not wrap it in `/loop`.

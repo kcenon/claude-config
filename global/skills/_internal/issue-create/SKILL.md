@@ -310,3 +310,7 @@ After completion, provide summary:
 | Issue creation failed | Report GitHub API error with details | Check repository permissions |
 | Network timeout | Report "Cannot reach GitHub - check connection" | Verify internet connection |
 | Label not found | Create issue without label, warn user | Labels may need to be created in repository |
+
+## Side Effects and Loop-Safety
+
+This skill is `loop_safe: false`. Each invocation opens one or more GitHub issues. Wrapping it in `/loop` would create duplicate issues. The exit contract is "one issue (or planned set) per invocation"; re-run only with a new, distinct specification.

@@ -247,3 +247,7 @@ or `router.yaml`. Those remain `doc-index`'s responsibility.
 - Validation rules and exit codes: `reference/validation-rules.md`
 - Catalogue producer: `global/skills/_internal/doc-index/SKILL.md`
 - Parent epic: `kcenon/claude-config#588`
+
+## Side Effects and Loop-Safety
+
+This skill is `loop_safe: true`. It is a single-pass (`max_iterations: 1`) read-mostly operation: it consumes `docs/.index/{manifest,bundles,graph,router}.yaml` and writes only `docs/.index/traceability.{yaml,md}`, never mutating source documents. Re-running is idempotent — it regenerates the same two artifacts from current inputs, so wrapping it in a `/loop` is safe (and a no-op when `graph.yaml` is absent). The `max_iterations: 1` / `halt_conditions` metadata expresses single-pass exit semantics, not a polling loop.

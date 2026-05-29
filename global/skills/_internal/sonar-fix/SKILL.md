@@ -140,3 +140,7 @@ Refer to parent epic #635 for the full rationale.
 - [reference/auto-fixable-rules.md](reference/auto-fixable-rules.md)
 - [reference/comment-format.md](reference/comment-format.md)
 - [reference/escalation-template.md](reference/escalation-template.md)
+
+## Side Effects and Loop-Safety
+
+This skill is `loop_safe: false`. It pushes fix commits to live PRs and replies to SonarCloud bot comments. Re-running would push duplicate commits or re-process already-handled findings. Run it once per PR review cycle; resume rather than re-invoke.

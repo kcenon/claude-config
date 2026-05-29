@@ -265,3 +265,7 @@ After generation, confirm:
 - **Skill writing guide**: `reference/skill-writing-guide.md` -- writing patterns, examples, data schema standards
 - **Skill testing guide**: `reference/skill-testing-guide.md` -- testing/evaluation/iterative improvement methodology
 - **QA agent guide**: `reference/qa-agent-guide.md` -- for including a QA agent in build harnesses; covers integration coherence verification, boundary bug patterns, and QA agent definition templates based on 7 real-world bug cases
+
+## Side Effects and Loop-Safety
+
+This skill is `loop_safe: false`. It scaffolds skills/agents and may spawn agent teams. Re-running for the same target would overwrite generated artifacts or spawn duplicate teams. Treat each invocation as a single design/build pass, not an idempotent retry.

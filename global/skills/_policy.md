@@ -132,7 +132,7 @@ default_tier: standard        # Tier used when caller omits --tier
 
 ### When to Apply
 
-Required for skills whose `SKILL.md` body exceeds 5 KB (current examples: `issue-work`, `pr-work`). Optional for smaller skills, where a single loading mode suffices.
+Recommended for skills whose `SKILL.md` body exceeds 5 KB; adopted incrementally rather than all at once (current tiered skills: `issue-work`, `pr-work` — see the phased-rollout note under "Tiered Skills" in `docs/TOKEN_OPTIMIZATION.md`). Optional for smaller skills, where a single loading mode suffices.
 
 ### Invocation
 
