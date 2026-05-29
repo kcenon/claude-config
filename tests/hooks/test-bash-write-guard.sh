@@ -83,6 +83,13 @@ assert_deny 'dd of=/etc/shadow' "dd of=/etc/shadow"
 assert_deny 'echo y >> .env' "append >> .env"
 
 echo ""
+echo "[deny — case-insensitive variants (macOS/Windows bypass guard)]"
+assert_deny 'echo x > .ENV' "write uppercase .ENV"
+assert_deny 'tee ./config/.Env.Local' "write mixed-case .Env.Local"
+assert_deny 'cp k ~/.SSH/ID_RSA' "write uppercase .SSH/ID_RSA"
+assert_deny 'curl x | tee ~/.AWS/credentials' "write uppercase .AWS dir"
+
+echo ""
 echo "[deny — uninspectable mutation patterns (Red Team Vector E)]"
 assert_deny 'python -c "open(\"/etc/x\", \"w\").write(\"y\")"' "python -c"
 assert_deny 'python3 -c "import pathlib; pathlib.Path(\"f\").write_text(\"y\")"' "python3 -c"
