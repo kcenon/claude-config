@@ -106,7 +106,10 @@ assert_decision() {
 assert_reason_roundtrip() {
     local out="$1" expected="$2" label="$3"
     local got
-    got=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)
+    # Deny carries the reason under permissionDecisionReason; allow carries it
+    # under additionalContext (suite-wide convention). Accept either so the
+    # roundtrip check works for both paths.
+    got=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // .hookSpecificOutput.additionalContext // empty' 2>/dev/null)
     if [ "$got" = "$expected" ]; then
         ((PASS++))
         echo "  PASS [reason roundtrip]: $label"

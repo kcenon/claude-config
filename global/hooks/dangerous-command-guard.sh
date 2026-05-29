@@ -66,9 +66,12 @@ deny_response() {
 allow_response() {
     local reason="${1:-dangerous-command-guard: no dangerous pattern matched}"
     log_decision "allow" "$reason" "${CMD:-}"
+    # Allow-path diagnostic goes under additionalContext (the model-visible
+    # allow channel), matching the .ps1 New-HookAllowResponse and the rest of
+    # the suite; permissionDecisionReason is reserved for deny decisions.
     jq -nc \
         --arg reason "$reason" \
-        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow", permissionDecisionReason: $reason}}'
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow", additionalContext: $reason}}'
     exit 0
 }
 
