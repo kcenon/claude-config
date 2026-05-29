@@ -15,6 +15,11 @@ on:
       - 'scripts/validate_skills.sh'
       - 'scripts/check_references.sh'
       - 'scripts/sync_references.sh'
+      - 'scripts/check_agents.sh'
+      - 'scripts/check_agents.ps1'
+      - 'tests/scripts/test-check-agents.sh'
+      - 'plugin/agents/**'
+      - 'project/.claude/agents/**'
       - 'scripts/spec_lint.sh'
       - 'scripts/spec_lint.ps1'
       - 'scripts/spec_lint.py'
@@ -62,6 +67,15 @@ jobs:
 
       - name: Check workflow reference mirrors match canonical
         run: ./scripts/check_references.sh
+
+      - name: Check plugin/project agent bodies in sync
+        # plugin/agents and project/.claude/agents are near-duplicate copies;
+        # this guard strips per-layer frontmatter and the one genericized
+        # rules-path sentence, then fails if the bodies otherwise diverge.
+        run: ./scripts/check_agents.sh
+
+      - name: Run agent drift guard test suite
+        run: bash tests/scripts/test-check-agents.sh
 
       - name: Check VERSION_MAP consumers match declared values
         run: ./scripts/check_versions.sh

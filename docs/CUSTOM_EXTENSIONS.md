@@ -206,6 +206,16 @@ pwsh scripts/sync_references.ps1   # Windows
 
 **Why this pattern**: Symlinks do not round-trip reliably through `git clone` on default Windows configurations. Build-time sync keeps all three files byte-identical without requiring platform-specific filesystem features.
 
+### Agent Definitions (drift guard)
+
+**Type**: Repository-internal convention
+
+The eight agent definitions exist in two layers — `project/.claude/agents/` and the standalone `plugin/agents/` bundle. They are near-duplicates but **not** byte-identical by design: frontmatter differs per layer (the project copy carries `color:`; neither carries the non-canonical `temperature:` field), and the body genericizes exactly one repo-specific "language-specific rules" sentence in the plugin copy.
+
+**CI enforcement**: `.github/workflows/validate-skills.yml` runs `scripts/check_agents.sh` (PowerShell twin: `scripts/check_agents.ps1`). It strips frontmatter and normalizes that single sentence, then fails (exit 2) if the agent **bodies** otherwise diverge — so a behavioral instruction edited in one layer but not the other cannot ship silently.
+
+**Skill reference files are intentionally NOT guarded this way.** Beyond the four workflow references above, the `plugin/skills/*/reference/` tree is a curated *re-structuring* of `project/.claude/rules/` — content is split and recombined across files (e.g. `rules/api/observability.md` becomes `observability.md` + `logging.md`; `rules/coding/` standards fan out into `general.md`/`quality.md`/`concurrency.md`/`memory.md`). A per-file 1:1 drift check would false-positive on that reorganization, so the plugin reference bundle is maintained as an independent curated distribution.
+
 ### Version Declarations (VERSION_MAP SSOT)
 
 **Type**: Repository-internal convention
