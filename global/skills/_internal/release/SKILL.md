@@ -532,3 +532,7 @@ Loop bind point: between each CI retry and each merge-gate verification. For a t
 ## Error Handling
 
 See `reference/error-handling.md` for prerequisite checks and runtime error handling.
+
+## Side Effects and Loop-Safety
+
+This skill is `loop_safe: false`. It bumps versions, creates git tags, and publishes GitHub releases. Repeated invocation would create duplicate or conflicting tags/releases for the same version. The idempotency contract is "one release per version bump"; never wrap it in `/loop`.
