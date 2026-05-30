@@ -4,14 +4,28 @@ A Claude Code Plugin providing comprehensive development guidelines and best pra
 
 ## Installation
 
-### Via CLI (Recommended)
+### Via Marketplace (Recommended)
+
+This repository ships a marketplace manifest at `.claude-plugin/marketplace.json`,
+so the plugins install through the standard marketplace flow. Add the marketplace
+once, then install:
 
 ```bash
-# Install from git repository (subdirectory source)
-claude plugin install claude-config --source git-subdir --url https://github.com/kcenon/claude-config --subdir plugin
+# Add this repo as a marketplace (GitHub owner/repo shorthand)
+claude plugin marketplace add kcenon/claude-config
 
-# Or install with scope
-claude plugin install claude-config --source git-subdir --url https://github.com/kcenon/claude-config --subdir plugin -s project
+# Install the plugin
+claude plugin install claude-config@kcenon-plugins
+
+# Or install at project scope (shared with the team via .claude/settings.json)
+claude plugin install claude-config@kcenon-plugins --scope project
+```
+
+Inside an interactive Claude Code session, use the slash-command equivalents:
+
+```
+/plugin marketplace add kcenon/claude-config
+/plugin install claude-config@kcenon-plugins
 ```
 
 ### Via Direct Loading (Development)
@@ -88,9 +102,11 @@ plugin/
 
 ## Plugin Manifest Compatibility
 
-Verified against Claude Code plugin system (April 2026). The `plugin.json` manifest
-contains only the official schema fields (`name`, `version`, `description`, `author`,
-`homepage`, `repository`, `license`, `compatibility`, `keywords`).
+Verified against Claude Code plugin system (May 2026). The `plugin.json` manifest
+contains only the official schema fields (`$schema`, `name`, `version`, `description`,
+`author`, `homepage`, `repository`, `license`, `keywords`). The minimum Claude Code
+version is documented in prose under "Requirements" below, since the manifest schema
+has no version-gating field.
 
 Component directories (`agents/`, `skills/`, `hooks/hooks.json`, `.mcp.json`, `.lsp.json`)
 are auto-discovered by Claude Code at the plugin root — no explicit path fields are

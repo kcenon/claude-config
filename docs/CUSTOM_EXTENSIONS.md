@@ -322,7 +322,7 @@ When copying this configuration to another project:
 1. **Import syntax** - May need to convert to explicit file paths
 2. **Custom directives** - `@load:`, `@skip:` may not work
 3. **Design documents** - Describe concepts, not implement features
-4. **Global commands** - Require installation to `~/.claude/commands/`
+4. **Global commands** - Installed as skills under `~/.claude/skills/_internal/` (migrated from `~/.claude/commands/`)
 
 ### Migration Checklist
 

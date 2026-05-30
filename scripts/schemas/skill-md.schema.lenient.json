@@ -4,7 +4,7 @@
   "title": "Claude Code SKILL.md Frontmatter (Lenient)",
   "description": "Lenient variant for plugin/, plugin-lite/, and external author skills. Validates only core required fields (name, description). additionalProperties is true so unknown fields do NOT fail; P1-c halt_conditions enforcement is omitted. External plugin authors who want stricter validation may opt in by placing skills under global/skills/_internal/ which dispatches to the strict variant. The strict-mode Kill Switch (harness_policies.p4_strict_schema or STRICT_SCHEMA env var) can also force lenient validation across all paths.",
   "type": "object",
-  "required": ["name", "description"],
+  "required": ["description"],
   "additionalProperties": true,
   "properties": {
     "name": {
@@ -17,8 +17,8 @@
     "description": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 1024,
-      "description": "Skill trigger description. Max 1024 chars."
+      "maxLength": 1536,
+      "description": "Skill trigger description. Max 1536 chars (official cap on combined description + when_to_use in the skill listing)."
     },
     "when_to_use": { "type": "string", "minLength": 1 },
     "argument-hint": { "type": "string" },

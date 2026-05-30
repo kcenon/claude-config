@@ -76,8 +76,9 @@ second-machine onboarding.
   Markdown viewer.
 - The canonical example path used throughout is
   `~/.claude/projects/-Users-raphaelshin-Sources/memory`. The directory name
-  is the cwd-encoded form Claude Code uses for the author's primary work tree;
-  yours will differ — substitute the path printed by `ls ~/.claude/projects/`.
+  is the git-repo-derived form Claude Code uses for the author's repository
+  (the same directory is shared across all worktrees of that repo); yours will
+  differ — substitute the path printed by `ls ~/.claude/projects/`.
 - The shared clone always lives at `~/.claude/memory-shared/`.
   `scripts/memory-sync.sh`, `scripts/memory-status.sh`, and the SessionStart
   hook all default to this location.

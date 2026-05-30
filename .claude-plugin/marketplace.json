@@ -1,0 +1,19 @@
+{
+  "name": "kcenon-plugins",
+  "owner": {
+    "name": "kcenon"
+  },
+  "description": "Claude Code development-guidelines plugins: the full coding/security/performance suite and a lite behavioral-guardrails plugin.",
+  "plugins": [
+    {
+      "name": "claude-config",
+      "source": "./plugin",
+      "description": "Comprehensive Claude Code configuration with coding guidelines, security, and performance skills for software development best practices"
+    },
+    {
+      "name": "claude-config-lite",
+      "source": "./plugin-lite",
+      "description": "Core behavioral guardrails for LLM coding, derived from Andrej Karpathy's observations. Minimal footprint, maximum impact."
+    }
+  ]
+}

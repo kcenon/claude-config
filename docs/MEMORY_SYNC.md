@@ -397,7 +397,7 @@ authoritative contract.
 
 ### 5.7 Phase 6 — Symlink the project memory directory
 
-Claude Code stores per-project memory under a cwd-encoded path such as
+Claude Code stores per-project memory under a git-repo-derived path such as
 `~/.claude/projects/-Users-<user>-Sources/memory/`. Replace it with a
 symlink to the shared store so memories written in this project flow
 through the sync engine. This mirrors `MEMORY_MIGRATION.md` Phase 5 but
@@ -421,8 +421,8 @@ ln -s ~/.claude/memory-shared/memories \
   ~/.claude/projects/-Users-<user>-Sources/memory
 ```
 
-Substitute `<user>` and the project path as the cwd-encoding requires;
-each machine has its own encoded path. The symlink **target** is always
+Substitute `<user>` and the project path as the git-repo-derived directory
+requires; each machine may have its own path. The symlink **target** is always
 `~/.claude/memory-shared/memories`.
 
 ### 5.8 Phase 7 — Verify primary picked up the change
@@ -483,9 +483,9 @@ The high-frequency failure modes during second-machine onboarding:
 - **Phase 7 does not see the new commit on primary**: the primary's
   scheduler may not have triggered yet. Run `memory-sync.sh` manually on
   the primary to fast-forward.
-- **Phase 6 cwd-encoded path differs between machines**: each machine has
-  its own encoded path because home directories differ; the symlink
-  target (`~/.claude/memory-shared/memories`) is identical on every
+- **Phase 6 git-repo-derived path differs between machines**: each machine may
+  have its own path because the repository can live at a different location;
+  the symlink target (`~/.claude/memory-shared/memories`) is identical on every
   machine, only the source path changes.
 - **First sync reports "fatal: refusing to merge unrelated histories"**:
   must not happen with a fresh clone. If it does, the clone in Phase 2

@@ -1038,7 +1038,7 @@ this catalog for the canonical hook inventory.
 | [`task-completed-logger.sh`](#task-completed-logger) | TaskCompleted | yes |
 | [`task-created-validator.sh`](#task-created-validator) | TaskCreated (sync, blocking) | yes |
 | [`team-limit-guard.sh`](#team-limit-guard) | PreToolUse (TeamCreate) | yes |
-| [`tool-failure-logger.sh`](#tool-failure-logger) | ToolFailure | yes |
+| [`tool-failure-logger.sh`](#tool-failure-logger) | PostToolUseFailure | yes |
 | [`traceability-guard.sh`](#traceability-guard) | PreToolUse (Bash) | yes |
 | [`version-check.sh`](#version-check) | SessionStart | yes |
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
@@ -1569,7 +1569,7 @@ Logs tool execution failures for debugging and analysis.
 
 | Field | Value |
 |---|---|
-| Hook Type | ToolFailure |
+| Hook Type | PostToolUseFailure |
 | Trigger / Matcher | — |
 | Exit codes | 0 (always — lifecycle event) |
 | Response format | none (lifecycle event, no JSON output needed) |
