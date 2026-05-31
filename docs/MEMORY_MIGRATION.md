@@ -16,7 +16,7 @@
 4. [Phase 2 — Backfill Local Frontmatter](#4-phase-2--backfill-local-frontmatter)
 5. [Phase 3 — Trust-Level Baseline Review](#5-phase-3--trust-level-baseline-review)
 6. [Phase 4 — Clone claude-memory and Install Hooks](#6-phase-4--clone-claude-memory-and-install-hooks)
-7. [Phase 5 — Symlink Project Memory to the Shared Clone](#7-phase-5--symlink-project-memory-to-the-shared-clone)
+7. [Phase 5 — Redirect Project Memory to the Shared Clone](#7-phase-5--redirect-project-memory-to-the-shared-clone)
 8. [Phase 6 — Verify the Write-Guard Hook](#8-phase-6--verify-the-write-guard-hook)
 9. [Phase 7 — First Manual Sync](#9-phase-7--first-manual-sync)
 10. [Phase 8 — Post-Migration Validation](#10-phase-8--post-migration-validation)
@@ -299,10 +299,29 @@ local `settings.json` before continuing.
 
 ---
 
-## 7. Phase 5 — Symlink Project Memory to the Shared Clone
+## 7. Phase 5 — Redirect Project Memory to the Shared Clone
 
 **Goal**: Redirect Claude Code's memory reads/writes from the per-project
 directory to the shared clone, transparently and reversibly.
+
+### Primary: redirect via `autoMemoryDirectory` (recommended)
+
+Set the official redirection setting in **user-tier** settings so the
+per-project path never has to be enumerated or symlinked:
+
+```jsonc
+// ~/.claude/settings.json
+{ "autoMemoryDirectory": "~/.claude/memory-shared/memories" }
+```
+
+It accepts an absolute or `~/`-prefixed path and is honored only from
+user/policy settings and `--settings` (rejected from project/local — see
+[`THREAT_MODEL.md`](./THREAT_MODEL.md) Section 4, so a cloned repo cannot
+redirect memory writes). You still migrate your existing files into the
+clone (**Stage the swap** and **Move classified files** below), but skip
+**Create the symlink** — the setting replaces it. The symlink path that
+follows remains the fallback for harness versions that predate
+`autoMemoryDirectory`.
 
 ### Stage the swap
 
@@ -320,7 +339,10 @@ Copy your reviewed files (excluding any that you quarantined in
 `-n` (no-clobber) ensures we never overwrite a seeded file accidentally.
 Compare counts and resolve any collisions manually before continuing.
 
-### Create the symlink
+### Create the symlink (fallback only)
+
+Skip this step if you set `autoMemoryDirectory` above; it is needed only on
+harness versions that predate the setting.
 
     ln -s ~/.claude/memory-shared/memories memory
 
@@ -582,7 +604,7 @@ the system as production-stable or onboarding a second machine
 ## 13. Rollback Procedure
 
 **Goal**: Restore the original layout in under one minute. This procedure
-is the safety net for any failure between [Phase 5](#7-phase-5--symlink-project-memory-to-the-shared-clone)
+is the safety net for any failure between [Phase 5](#7-phase-5--redirect-project-memory-to-the-shared-clone)
 and [Phase 8](#10-phase-8--post-migration-validation).
 
 ### Commands

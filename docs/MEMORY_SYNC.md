@@ -395,10 +395,39 @@ If the write-guard rejects the file, consult
 [`MEMORY_VALIDATION_SPEC.md`](./MEMORY_VALIDATION_SPEC.md) for the
 authoritative contract.
 
-### 5.7 Phase 6 — Symlink the project memory directory
+### 5.7 Phase 6 — Redirect the project memory directory
 
 Claude Code stores per-project memory under a git-repo-derived path such as
-`~/.claude/projects/-Users-<user>-Sources/memory/`. Replace it with a
+`~/.claude/projects/-Users-<user>-Sources/memory/`. This phase points that
+storage at the shared store so memories written in this project flow
+through the sync engine.
+
+**Primary: `autoMemoryDirectory` (recommended).** Rather than enumerate the
+git-repo-derived path per machine, set the official `autoMemoryDirectory`
+setting to redirect auto-memory storage straight at the shared store:
+
+```jsonc
+// ~/.claude/settings.json  (user tier)
+{
+  "autoMemoryDirectory": "~/.claude/memory-shared/memories"
+}
+```
+
+`autoMemoryDirectory` accepts an absolute or `~/`-prefixed path and is
+honored **only from user/policy settings and `--settings`** — it is
+rejected from project/local settings, so a cloned repository cannot
+redirect memory writes (see
+[`THREAT_MODEL.md`](./THREAT_MODEL.md) Section 4). The redirected target is
+the synced clone, so auto-memory writes flow through the sync engine
+exactly as the symlink approach intends, without depending on the
+per-machine git-repo-derived path and without any `mv` / `ln -s` step. If a
+project memory directory already exists it is simply no longer used once
+the setting is in place; move it aside as `memory.deprecated` first if you
+want to migrate its files into the clone (`cp -n memory.deprecated/*.md
+~/.claude/memory-shared/memories/`).
+
+**Fallback: symlink the project memory directory.** On harness versions
+without `autoMemoryDirectory`, replace the per-project directory with a
 symlink to the shared store so memories written in this project flow
 through the sync engine. This mirrors `MEMORY_MIGRATION.md` Phase 5 but
 the new machine may not have an existing project memory directory yet.
