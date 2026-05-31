@@ -22,6 +22,9 @@
     "pr": ""
   },
 
+  "enableAllProjectMcpServers": false,
+  "enabledMcpjsonServers": [],
+
   "sandbox": {
     "enabled": true,
     "autoAllowBashIfSandboxed": true,
