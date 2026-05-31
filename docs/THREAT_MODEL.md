@@ -125,6 +125,7 @@ Five primary layers form the core defense, plus orthogonal layers:
 | Monthly semantic review | `semantic-review.sh` ([#530](https://github.com/kcenon/claude-config/issues/530)), opt-in | Catches subtle injection that heuristic checks miss (self-reinforcing instructions, compositional injection) |
 | Access logging | [`memory-access-logger.sh`](../global/hooks/memory-access-logger.sh) ([#531](https://github.com/kcenon/claude-config/issues/531)) | Path-only record; feeds unused-memory check; supports forensic review |
 | Trust tiers | `verified` / `inferred` / `quarantined` ([`MEMORY_TRUST_MODEL.md`](./MEMORY_TRUST_MODEL.md)) | Auto-application gate: only `verified` is auto-applied; `inferred` is shown with marker; `quarantined` never auto-applied |
+| Settings-tier redirection | `autoMemoryDirectory` user/policy-only ([#673](https://github.com/kcenon/claude-config/issues/673)) | When auto-memory storage is redirected to the shared clone via `autoMemoryDirectory`, the setting is honored only from user/policy settings and `--settings`; project/local settings are rejected, so a cloned repository cannot point memory writes at an attacker-controlled path. Strictly stronger than the filesystem symlink it replaces, which any process with write access could repoint |
 
 ---
 
