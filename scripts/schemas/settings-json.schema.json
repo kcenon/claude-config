@@ -58,15 +58,81 @@
             "hooks": {
               "type": "array",
               "items": {
-                "type": "object",
-                "required": ["type"],
-                "additionalProperties": true,
-                "properties": {
-                  "type":    { "type": "string", "enum": ["command", "http", "mcp_tool", "prompt", "agent"] },
-                  "command": { "type": "string", "minLength": 1 },
-                  "timeout": { "type": "integer", "minimum": 0 },
-                  "async":   { "type": "boolean" }
-                }
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": ["type", "command"],
+                    "additionalProperties": true,
+                    "properties": {
+                      "type":          { "const": "command" },
+                      "command":       { "type": "string", "minLength": 1 },
+                      "args":          { "type": "array", "items": { "type": "string" } },
+                      "async":         { "type": "boolean" },
+                      "asyncRewake":   { "type": "boolean" },
+                      "shell":         { "type": "string", "enum": ["bash", "powershell"] },
+                      "timeout":       { "type": "integer", "minimum": 0 },
+                      "if":            { "type": "string" },
+                      "once":          { "type": "boolean" },
+                      "statusMessage": { "type": "string" }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["type", "url"],
+                    "additionalProperties": true,
+                    "properties": {
+                      "type":           { "const": "http" },
+                      "url":            { "type": "string" },
+                      "headers":        { "type": "object" },
+                      "allowedEnvVars": { "type": "array", "items": { "type": "string" } },
+                      "timeout":        { "type": "integer", "minimum": 0 },
+                      "if":             { "type": "string" },
+                      "once":           { "type": "boolean" },
+                      "statusMessage":  { "type": "string" }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["type", "server", "tool"],
+                    "additionalProperties": true,
+                    "properties": {
+                      "type":          { "const": "mcp_tool" },
+                      "server":        { "type": "string" },
+                      "tool":          { "type": "string" },
+                      "input":         { "type": "object" },
+                      "timeout":       { "type": "integer", "minimum": 0 },
+                      "if":            { "type": "string" },
+                      "once":          { "type": "boolean" },
+                      "statusMessage": { "type": "string" }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["type", "prompt"],
+                    "additionalProperties": true,
+                    "properties": {
+                      "type":          { "const": "prompt" },
+                      "prompt":        { "type": "string", "minLength": 1 },
+                      "model":         { "type": "string" },
+                      "timeout":       { "type": "integer", "minimum": 0 },
+                      "if":            { "type": "string" },
+                      "once":          { "type": "boolean" },
+                      "statusMessage": { "type": "string" }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["type"],
+                    "additionalProperties": true,
+                    "properties": {
+                      "type":          { "const": "agent" },
+                      "timeout":       { "type": "integer", "minimum": 0 },
+                      "if":            { "type": "string" },
+                      "once":          { "type": "boolean" },
+                      "statusMessage": { "type": "string" }
+                    }
+                  }
+                ]
               }
             }
           }
