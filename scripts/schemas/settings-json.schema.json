@@ -20,6 +20,8 @@
     "enableAllProjectMcpServers": { "type": "boolean" },
     "enabledMcpjsonServers":  { "type": "array", "items": { "type": "string" } },
     "disabledMcpjsonServers": { "type": "array", "items": { "type": "string" } },
+    "claudeMd": { "type": "string" },
+    "claudeMdExcludes": { "type": "array", "items": { "type": "string" } },
     "env": {
       "type": "object",
       "additionalProperties": { "type": ["string", "number", "boolean"] }
