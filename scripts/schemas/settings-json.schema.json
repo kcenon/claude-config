@@ -9,6 +9,14 @@
     "$schema": { "type": "string" },
     "respectGitignore": { "type": "boolean" },
     "cleanupPeriodDays": { "type": "integer", "minimum": 0 },
+    "minimumVersion": { "type": "string" },
+    "worktree": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "baseRef": { "type": "string", "enum": ["fresh", "head"] }
+      }
+    },
     "env": {
       "type": "object",
       "additionalProperties": { "type": ["string", "number", "boolean"] }

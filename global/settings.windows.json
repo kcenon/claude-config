@@ -6,6 +6,11 @@
   "respectGitignore": true,
   "cleanupPeriodDays": 30,
 
+  "minimumVersion": "2.2.0",
+  "worktree": {
+    "baseRef": "head"
+  },
+
   "language": "korean",
 
   "outputStyle": "Explanatory",
