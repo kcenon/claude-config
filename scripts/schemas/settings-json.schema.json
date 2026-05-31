@@ -17,6 +17,9 @@
         "baseRef": { "type": "string", "enum": ["fresh", "head"] }
       }
     },
+    "enableAllProjectMcpServers": { "type": "boolean" },
+    "enabledMcpjsonServers":  { "type": "array", "items": { "type": "string" } },
+    "disabledMcpjsonServers": { "type": "array", "items": { "type": "string" } },
     "env": {
       "type": "object",
       "additionalProperties": { "type": ["string", "number", "boolean"] }

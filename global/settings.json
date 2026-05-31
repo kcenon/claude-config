@@ -18,6 +18,8 @@
     "commit": "",
     "pr": ""
   },
+  "enableAllProjectMcpServers": false,
+  "enabledMcpjsonServers": [],
   "permissions": {
     "defaultMode": "default",
     "disableBypassPermissionsMode": "disable",
