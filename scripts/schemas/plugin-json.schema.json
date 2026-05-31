@@ -7,12 +7,21 @@
   "required": ["name", "version", "description"],
   "additionalProperties": true,
   "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema URL for editor autocomplete and validation. Claude Code ignores this field at load time."
+    },
     "name": {
       "type": "string",
       "pattern": "^[a-z0-9][a-z0-9-]*$",
       "minLength": 1,
       "maxLength": 128,
-      "description": "Plugin identifier. Lowercase letters, digits, and hyphens; cannot start with hyphen."
+      "description": "Plugin identifier. Lowercase letters, digits, and hyphens; cannot start with hyphen. Used for namespacing and lookup."
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable name shown in the /plugin picker and other UI surfaces (Claude Code v2.1.143+). May contain spaces and any casing; falls back to name when omitted. Not used for namespacing or lookup."
     },
     "version": {
       "type": "string",
@@ -54,19 +63,9 @@
       ]
     },
     "license": { "type": "string", "minLength": 1 },
-    "compatibility": {
-      "type": "object",
-      "additionalProperties": true,
-      "properties": {
-        "minClaudeCodeVersion": {
-          "type": "string",
-          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*).*$"
-        },
-        "maxClaudeCodeVersion": {
-          "type": "string",
-          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*).*$"
-        }
-      }
+    "defaultEnabled": {
+      "type": "boolean",
+      "description": "Whether the plugin starts in an enabled state when the user has not set one (Claude Code v2.1.154+). Defaults to true."
     },
     "keywords": {
       "type": "array",

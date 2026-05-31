@@ -82,6 +82,13 @@
       "type": "string",
       "description": "Usage hint shown to the user, e.g., \"<file-or-directory> [--verbose]\"."
     },
+    "arguments": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ],
+      "description": "Named positional arguments for $name substitution in the skill content. Space-separated string or YAML list; names map to argument positions in order."
+    },
     "disable-model-invocation": {
       "type": "boolean",
       "description": "When true, the model cannot auto-invoke this skill (user-only)."
@@ -96,6 +103,13 @@
         { "type": "array", "items": { "type": "string" }, "minItems": 1 }
       ],
       "description": "Tools the skill is allowed to call. Scalar (\"Bash(git *)\") or array form."
+    },
+    "disallowed-tools": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ],
+      "description": "Tools removed from Claude's available pool while this skill is active. Scalar or array form."
     },
     "model": {
       "type": "string",

@@ -22,9 +22,21 @@
     },
     "when_to_use": { "type": "string", "minLength": 1 },
     "argument-hint": { "type": "string" },
+    "arguments": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ]
+    },
     "disable-model-invocation": { "type": "boolean" },
     "user-invocable": { "type": "boolean" },
     "allowed-tools": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ]
+    },
+    "disallowed-tools": {
       "oneOf": [
         { "type": "string" },
         { "type": "array", "items": { "type": "string" }, "minItems": 1 }
