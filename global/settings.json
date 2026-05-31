@@ -16,6 +16,8 @@
   },
   "permissions": {
     "defaultMode": "default",
+    "disableBypassPermissionsMode": "disable",
+    "disableAutoMode": "disable",
     "allow": [
       "Bash(git status:*)",
       "Bash(git log:*)",
