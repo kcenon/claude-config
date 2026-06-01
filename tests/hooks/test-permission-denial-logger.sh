@@ -93,11 +93,22 @@ assert_no_logfile "$LOG" "CLAUDE_PERMISSION_LOGGER=0 writes nothing"
 
 echo ""
 echo "[Redaction — secrets must not reach disk]"
-LOG=$(run_hook "" '{"tool_name":"Bash","tool_input":{"command":"curl -H \"Authorization: Bearer sk-live-SECRET12345\" https://u:hunter2PW@h.example/x?token=ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"}}')
+# Secret-shaped fixtures are assembled at runtime via adjacent-quote
+# concatenation so no contiguous secret pattern appears in the committed
+# source (would trip secret scanners such as GitGuardian). The assembled
+# runtime values are real-shaped and exercise the hook's redaction regex.
+fake_bearer='sk-''live-SECRET12345'
+fake_urlpw='hunter2''PW'
+fake_pat='ghp_''ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+redaction_cmd=$(printf 'curl -H "Authorization: Bearer %s" https://u:%s@h.example/x?token=%s' \
+    "$fake_bearer" "$fake_urlpw" "$fake_pat")
+redaction_input=$(jq -cn --arg cmd "$redaction_cmd" \
+    '{tool_name:"Bash", tool_input:{command:$cmd}}')
+LOG=$(run_hook "" "$redaction_input")
 assert_log_contains "$LOG" '<REDACTED>' "writes a <REDACTED> marker"
-assert_log_absent_pattern "$LOG" 'sk-live-SECRET12345' "bearer token scrubbed"
-assert_log_absent_pattern "$LOG" 'hunter2PW' "URL inline password scrubbed"
-assert_log_absent_pattern "$LOG" 'ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ' "github PAT scrubbed"
+assert_log_absent_pattern "$LOG" "$fake_bearer" "bearer token scrubbed"
+assert_log_absent_pattern "$LOG" "$fake_urlpw" "URL inline password scrubbed"
+assert_log_absent_pattern "$LOG" "$fake_pat" "github PAT scrubbed"
 
 echo ""
 echo "[Fail-closed input handling]"
