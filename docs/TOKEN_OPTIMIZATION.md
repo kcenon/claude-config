@@ -487,10 +487,13 @@ Pass the tier as a flag when invoking a tiered skill:
 Omitting `--tier` selects the skill's declared `default_tier`. Unknown tier
 values fall back to `default_tier` with a warning.
 
-### Tiered Skills (this PR)
+### Tiered Skills
 
 - `pr-work`
 - `issue-work`
+- `fleet-orchestrator`
+- `harness`
+- `release`
 
 Additional skills will adopt the schema as their bodies cross the 5 KB
 threshold or as workflow demand justifies differentiated loading.

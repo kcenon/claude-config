@@ -11,7 +11,22 @@ halt_conditions:
   - { type: limit,   expr: "--max-parallel worker pool drains with no pending items" }
 on_halt: "Render final fleet-status table with per-repo outcome and exit"
 loop_safe: false
+tiers:
+  light:
+    ref_docs: []
+    deep_checks: false
+  standard:
+    ref_docs: [core]
+    deep_checks: false
+  deep:
+    ref_docs: [core]
+    deep_checks: true
+default_tier: standard
 iso_class: none
+# ref_docs keys:
+#   core -> reference/worker-template.md
+#   (reference/manifest-schema.json is a JSON Schema, not a prose ref_doc;
+#    it is cited in-body and loaded directly when rendering fleet-status.json)
 ---
 
 # Fleet Orchestrator -- Parallel Multi-Repo Directive Executor
