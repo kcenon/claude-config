@@ -79,7 +79,7 @@ files. Recording them so future reviews do not re-flag them:
 | D2 | high | plugins | README install commands use **non-existent** flags `--source/--url/--subdir` and there is no `marketplace.json`, so the plugins are not installable as documented | `plugin/README.md:10-15`, `plugin-lite/README.md:19-21` |
 | D3 | high | skills | strict skill schema rejects the repo's **own** `iso_class`/`safety_class`/`applies_at_or_above` extension fields, blocking the `p4_strict_schema` flip (internal contradiction) | `scripts/schemas/skill-md.schema.strict.json:8` vs `global/skills/_internal/pr-work/SKILL.md:27` |
 | D4 | high | memory | memory-sync docs assume a cwd-encoded per-worktree path; official auto-memory is now git-repo-derived and shared across worktrees, so the user-facing migration instructions are wrong | `docs/MEMORY_MIGRATION.md:77`, `docs/MEMORY_SYNC.md:400` |
-| D5 | med | settings/perms | local `settings-json.schema.json` lags official: `defaultMode` enum missing `auto`/`dontAsk`; hook handler `type` enum locked to `command`; permissions object missing `disableBypassPermissionsMode`/`disableAutoMode`/`additionalDirectories` | `scripts/schemas/settings-json.schema.json:29,54,25-37` |
+| D5 | ~~med~~ **RESOLVED** | settings/perms | ~~local `settings-json.schema.json` lags official~~ — **fixed**: `defaultMode` enum now includes `auto`/`dontAsk`; the hook handler `type` is no longer locked to `command` (all 5 official handler types — `command`, `http`, `mcp_tool`, `prompt`, `agent` — plus the `if` conditional and `once` flag are modeled via the `anyOf` branch set); the permissions object now declares `disableBypassPermissionsMode`/`disableAutoMode`/`additionalDirectories` | `scripts/schemas/settings-json.schema.json` (`defaultMode` enum; `hooks` `anyOf` handler-type branches with `if`/`once`; `permissions` properties) |
 | D6 | med | plugins | both manifests ship a non-official `compatibility.minClaudeCodeVersion` field (trips `--strict`); neither declares `$schema` | `plugin/.claude-plugin/plugin.json:12`, `plugin-lite/.claude-plugin/plugin.json:12` |
 | D7 | med | skills | skill schemas mark `name` as required (official: optional, defaults to directory name); description `maxLength` 1024 vs official 1536 | `scripts/schemas/skill-md.schema.*.json` |
 | D8 | med | hooks | `tool-failure-logger` header + `HOOKS.md` name a phantom event `ToolFailure` (actual wiring correctly uses `PostToolUseFailure`) | `global/hooks/tool-failure-logger.sh:4`, `HOOKS.md:1041,1572` |
@@ -152,8 +152,10 @@ D1 `.mcp.json` package names; D2 plugin install flow + `marketplace.json`; D3 st
 
 ### Track C -- Validation-schema sync (backlog)
 
-D5 (settings schema enums/fields), D6 (plugin manifest `compatibility`/`$schema`), D7 (skill
-schema `name`/`maxLength`), D8 (`ToolFailure` -> `PostToolUseFailure`).
+~~D5 (settings schema enums/fields)~~ **done** (schema now models all 5 hook handler types +
+`if`/`once`, the full `defaultMode` enum, and the permissions hardening fields); D6 (plugin
+manifest `compatibility`/`$schema`), D7 (skill schema `name`/`maxLength`), D8 (`ToolFailure` ->
+`PostToolUseFailure`).
 
 ### Track D -- Opportunity backlog (GitHub issues)
 

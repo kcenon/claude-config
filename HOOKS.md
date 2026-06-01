@@ -1025,6 +1025,7 @@ this catalog for the canonical hook inventory.
 | [`memory-integrity-check.sh`](#memory-integrity-check) | SessionStart (sync) | yes |
 | [`memory-write-guard.sh`](#memory-write-guard) | PreToolUse (Edit|Write) | yes |
 | [`merge-gate-guard.sh`](#merge-gate-guard) | PreToolUse (Bash) | yes |
+| [`permission-denial-logger.sh`](#permission-denial-logger) | PermissionDenied | yes |
 | [`post-compact-restore.sh`](#post-compact-restore) | PostCompact (sync) | yes |
 | [`post-task-checkpoint.sh`](#post-task-checkpoint) | PostToolUse | yes |
 | [`pr-language-guard.sh`](#pr-language-guard) | PreToolUse (Bash) | yes |
@@ -1044,7 +1045,7 @@ this catalog for the canonical hook inventory.
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
 | [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 35 bash hooks, 35 with PowerShell counterparts._
+_Total: 36 bash hooks, 36 with PowerShell counterparts._
 
 ### Hook Details
 
@@ -1337,6 +1338,24 @@ Blocks gh pr merge commands when any PR check is not passing.
 | Fail policy | FAIL-OPEN on gh CLI errors. If gh is missing, unauthenticated, |
 | PowerShell counterpart | present (`merge-gate-guard.ps1`) |
 | Source | `global/hooks/merge-gate-guard.sh` |
+
+### permission-denial-logger
+
+_File:_ `permission-denial-logger.sh`
+
+_Anchor:_ `#permission-denial-logger`
+
+Appends a redacted JSONL audit record for every denied tool call.
+
+| Field | Value |
+|---|---|
+| Hook Type | PermissionDenied |
+| Trigger / Matcher | — |
+| Exit codes | 0 (always — passive logger, never alters the permission decision) |
+| Response format | none (observation-only event; no JSON emitted, never blocks) |
+| Fail policy | best-effort; logging failures are swallowed and never surface |
+| PowerShell counterpart | present (`permission-denial-logger.ps1`) |
+| Source | `global/hooks/permission-denial-logger.sh` |
 
 ### post-compact-restore
 
