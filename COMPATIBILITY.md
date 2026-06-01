@@ -47,6 +47,7 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | `CwdChanged` | cwd-change-logger | Log working-directory changes (observation only) |
 | `InstructionsLoaded` | instructions-loaded-reinforcer | Reinforce core instructions when context is (re)loaded |
 | `TeammateIdle` | session-logger | Log teammate idle events (Agent Teams) |
+| `PermissionDenied` | permission-denial-logger | Append a redacted JSONL audit record of denied tool calls (observation only) |
 
 > This table lists only the events **this config wires**. The full official catalog is larger (~30 events as of 2026-05; see `code.claude.com/docs/en/hooks`). Unwired official events are not defects -- see `docs/official-spec-rereview-2026-05-29.md`.
 
@@ -228,9 +229,9 @@ The README v1.7.0 changelog originally claimed "All 42 bash scripts now have Pow
 
 | Surface | Bash count | PowerShell count | Coverage |
 |---|---:|---:|---:|
-| `global/hooks/*.sh` | 35 | 35 | 35/35 (100%) |
+| `global/hooks/*.sh` | 36 | 36 | 36/36 (100%) |
 
-The `*.sh` ↔ `*.ps1` mapping is 1:1; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if the counts diverge. (The count dropped from 37 to 35 when the expired P4 rollout-timeline hooks — `p4-timeline-guard` and `p4-timeline-reminder` — were retired; see the strict-schema kill-switch note above.)
+The `*.sh` ↔ `*.ps1` mapping is 1:1; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if the counts diverge. (The count dropped from 37 to 35 when the expired P4 rollout-timeline hooks — `p4-timeline-guard` and `p4-timeline-reminder` — were retired; see the strict-schema kill-switch note above. It rose to 36 when `permission-denial-logger` was added for the `PermissionDenied` audit event.)
 
 The script that produces the live count: `bash -c 'b=$(ls global/hooks/*.sh | wc -l); p=$(ls global/hooks/*.ps1 | wc -l); echo "$p/$b"'`.
 

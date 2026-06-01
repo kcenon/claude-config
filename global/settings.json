@@ -453,6 +453,18 @@
           }
         ]
       }
+    ],
+    "PermissionDenied": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/permission-denial-logger.sh",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
