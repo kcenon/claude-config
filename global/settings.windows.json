@@ -406,6 +406,18 @@
           }
         ]
       }
+    ],
+    "PermissionDenied": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/permission-denial-logger.ps1",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
     ]
   },
 
