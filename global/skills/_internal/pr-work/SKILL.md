@@ -5,6 +5,7 @@ argument-hint: "[project-name] [pr-number] [--solo|--team] [--limit N] [--dry-ru
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: "Bash(gh *)"
+disallowed-tools: [WebSearch, WebFetch, NotebookEdit]
 max_iterations: 5
 halt_conditions:
   - { type: success, expr: "All PR checks pass" }
