@@ -6,6 +6,7 @@ user-invocable: true
 disable-model-invocation: true
 context: fork
 allowed-tools: "Bash(git *) Bash(gh *)"
+disallowed-tools: [WebSearch, WebFetch, NotebookEdit]
 max_iterations: 5
 halt_conditions:
   - { type: success, expr: "Release PR merged and tag published" }

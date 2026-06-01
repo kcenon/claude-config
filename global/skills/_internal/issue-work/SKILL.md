@@ -5,6 +5,7 @@ argument-hint: "[project-name] [issue-number] [--solo|--team] [--limit N] [--dry
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: "Bash(gh *)"
+disallowed-tools: [WebSearch, WebFetch, NotebookEdit]
 max_iterations: 10
 halt_conditions:
   - { type: success, expr: "CI all-green and PR merged" }
