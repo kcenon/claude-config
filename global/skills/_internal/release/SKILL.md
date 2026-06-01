@@ -14,7 +14,21 @@ halt_conditions:
   - { type: failure, expr: "integrity check fails" }
 on_halt: "Report incomplete release state, leave tag/PR in whatever state they are in, do not force-publish"
 loop_safe: false
+tiers:
+  light:
+    ref_docs: []
+    deep_checks: false
+  standard:
+    ref_docs: [core]
+    deep_checks: true
+  deep:
+    ref_docs: [core, advanced]
+    deep_checks: true
+default_tier: standard
 iso_class: none
+# ref_docs keys:
+#   core     -> reference/error-handling.md
+#   advanced -> reference/team-mode.md
 ---
 
 # Release Command

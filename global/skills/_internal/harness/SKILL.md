@@ -5,7 +5,23 @@ argument-hint: "[domain-or-project-description]"
 user-invocable: true
 disable-model-invocation: true
 loop_safe: false
+tiers:
+  light:
+    ref_docs: []
+    deep_checks: false
+  standard:
+    ref_docs: [core]
+    deep_checks: false
+  deep:
+    ref_docs: [core, advanced]
+    deep_checks: true
+default_tier: standard
 iso_class: none
+# ref_docs keys:
+#   core     -> reference/agent-design-patterns.md, reference/agent-frontmatter-spec.md
+#   advanced -> reference/orchestrator-template.md, reference/team-examples.md,
+#               reference/skill-writing-guide.md, reference/skill-testing-guide.md,
+#               reference/qa-agent-guide.md, reference/long-running-harness-guide.md
 ---
 
 # Harness -- Agent Team & Skill Architect
