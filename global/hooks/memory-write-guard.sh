@@ -247,7 +247,8 @@ INJECTION_OUT="$("$INJECTION_BIN" "$TMP_FILE" 2>&1)" || INJECTION_RC=$?
 # ----- decision --------------------------------------------------------------
 
 build_deny_reason() {
-    local reason="memory-write-guard rejected write to $(basename "$RESOLVED")"
+    local reason
+    reason="memory-write-guard rejected write to $(basename "$RESOLVED")"
     if [ "$VALIDATE_RC" -eq 1 ] || [ "$VALIDATE_RC" -eq 2 ]; then
         reason="${reason}\nvalidate.sh (exit ${VALIDATE_RC}):\n${VALIDATE_OUT}"
     fi

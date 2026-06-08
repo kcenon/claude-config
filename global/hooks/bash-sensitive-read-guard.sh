@@ -58,9 +58,10 @@ resolve_path() {
     # patterns inside ${p#'...'} are required because some bash builds
     # tilde-expand the unquoted form, leaving a literal `~` in the result
     # and producing nonsense like `/Users/x/~/.ssh/id_rsa`.
+    # shellcheck disable=SC2088  # '~/' case patterns match literal tildes, not expansions
     case "$p" in
         '~')         p="${HOME:-$p}" ;;
-        '~/'*)       p="${HOME}/${p#'~/'}" ;;
+        '~/'*)       p="${HOME}/${p:2}" ;;
         '$HOME')     p="${HOME:-$p}" ;;
         '$HOME/'*)   p="${HOME}/${p#'$HOME/'}" ;;
     esac
@@ -359,7 +360,6 @@ if [ "${#CMD}" -gt "$SRG_TOKENIZER_MAX_BYTES" ]; then
 fi
 
 # Walk every sub-command. Single hit denies the whole call.
-prev=""
 while IFS= read -r sub; do
     [ -z "$sub" ] && continue
     if reason=$(inspect_subcommand "$sub"); then
@@ -367,7 +367,6 @@ while IFS= read -r sub; do
     else
         deny_response "$reason"
     fi
-    prev="$sub"
 done < <(split_subcommands "$CMD")
 
 allow_response

@@ -356,7 +356,7 @@ inspect_write_subcommand() {
     fi
 
     # --- Sensitive-target check (always denied, regardless of Read state) ---
-    local check_target resolved
+    local resolved
     if [ -n "$redirect_target" ]; then
         case "$redirect_target" in
             /dev/null|/dev/stderr|/dev/stdout|/dev/tty)
