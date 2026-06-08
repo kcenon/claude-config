@@ -89,20 +89,29 @@ function Read-HookInput {
     .DESCRIPTION
         Replacement for the bash pattern: INPUT=$(cat); echo "$INPUT" | jq -r '.field'
         Returns $null if stdin is empty or contains invalid JSON.
+
+        A short bounded retry guards an intermittent Windows race where the stdin
+        redirection is not yet observable at process start ([Console]::IsInputRedirected
+        momentarily false), which would otherwise yield an empty read and a
+        spurious fail-closed deny. Once stdin IS redirected, an empty payload is
+        treated as genuinely empty (the stream is consumed and not retried).
     #>
-    try {
-        if ([Console]::IsInputRedirected) {
-            $raw = [Console]::In.ReadToEnd()
-            if ([string]::IsNullOrWhiteSpace($raw)) {
-                return $null
+    for ($attempt = 0; $attempt -lt 10; $attempt++) {
+        try {
+            if ([Console]::IsInputRedirected) {
+                $raw = [Console]::In.ReadToEnd()
+                if ([string]::IsNullOrWhiteSpace($raw)) {
+                    return $null
+                }
+                return ($raw | ConvertFrom-Json)
             }
-            return ($raw | ConvertFrom-Json)
         }
-        return $null
+        catch {
+            return $null
+        }
+        Start-Sleep -Milliseconds 20
     }
-    catch {
-        return $null
-    }
+    return $null
 }
 
 # ──────────────────────────────────────────────────────────────
