@@ -23,7 +23,11 @@ $json = Read-HookInput
 
 # Configurable limit via environment variable (default: 3)
 $maxTeams = if ($env:MAX_TEAMS) { [int]$env:MAX_TEAMS } else { 3 }
-$teamsDir = Join-Path $HOME '.claude' 'teams'
+$teamsDir = if (-not [string]::IsNullOrWhiteSpace($env:CLAUDE_TEAMS_DIR)) {
+    $env:CLAUDE_TEAMS_DIR
+} else {
+    Join-Path $HOME '.claude' 'teams'
+}
 
 # Skip check if teams directory does not exist
 if (-not (Test-Path -LiteralPath $teamsDir -PathType Container)) {

@@ -24,7 +24,7 @@ try {
 
     function Assert-Deny {
         param([string]$InputJson, [string]$Label)
-        $result = $InputJson | & pwsh -NoProfile -Command "& { `$env:HOME = '$TestHome'; & '$($script:HookPath)' }" 2>$null
+        $result = $InputJson | & pwsh -NoProfile -Command "& { `$env:CLAUDE_TEAMS_DIR = '$teamsDir'; & '$($script:HookPath)' }" 2>$null
         if ($result -match '"deny"') {
             $script:Passed++
             Write-Host "  PASS: $Label" -ForegroundColor Green
@@ -37,7 +37,7 @@ try {
 
     function Assert-Allow {
         param([string]$InputJson, [string]$Label)
-        $result = $InputJson | & pwsh -NoProfile -Command "& { `$env:HOME = '$TestHome'; & '$($script:HookPath)' }" 2>$null
+        $result = $InputJson | & pwsh -NoProfile -Command "& { `$env:CLAUDE_TEAMS_DIR = '$teamsDir'; & '$($script:HookPath)' }" 2>$null
         if ($result -match '"allow"' -or [string]::IsNullOrEmpty($result)) {
             $script:Passed++
             Write-Host "  PASS: $Label" -ForegroundColor Green
@@ -86,7 +86,7 @@ try {
     Write-Host ''
     Write-Host '[MAX_TEAMS env override]'
     # With 4 teams and MAX_TEAMS=5, should allow
-    $result = '{}' | & pwsh -NoProfile -Command "& { `$env:HOME = '$TestHome'; `$env:MAX_TEAMS = '5'; & '$($script:HookPath)' }" 2>$null
+    $result = '{}' | & pwsh -NoProfile -Command "& { `$env:CLAUDE_TEAMS_DIR = '$teamsDir'; `$env:MAX_TEAMS = '5'; & '$($script:HookPath)' }" 2>$null
     if ($result -match '"allow"') {
         $script:Passed++
         Write-Host '  PASS: 4 teams with MAX_TEAMS=5 -> allow' -ForegroundColor Green
@@ -97,7 +97,7 @@ try {
     }
 
     # With 4 teams and MAX_TEAMS=4, should deny
-    $result = '{}' | & pwsh -NoProfile -Command "& { `$env:HOME = '$TestHome'; `$env:MAX_TEAMS = '4'; & '$($script:HookPath)' }" 2>$null
+    $result = '{}' | & pwsh -NoProfile -Command "& { `$env:CLAUDE_TEAMS_DIR = '$teamsDir'; `$env:MAX_TEAMS = '4'; & '$($script:HookPath)' }" 2>$null
     if ($result -match '"deny"') {
         $script:Passed++
         Write-Host '  PASS: 4 teams with MAX_TEAMS=4 -> deny' -ForegroundColor Green
@@ -108,7 +108,7 @@ try {
     }
 
     # With 4 teams and MAX_TEAMS=1, should deny
-    $result = '{}' | & pwsh -NoProfile -Command "& { `$env:HOME = '$TestHome'; `$env:MAX_TEAMS = '1'; & '$($script:HookPath)' }" 2>$null
+    $result = '{}' | & pwsh -NoProfile -Command "& { `$env:CLAUDE_TEAMS_DIR = '$teamsDir'; `$env:MAX_TEAMS = '1'; & '$($script:HookPath)' }" 2>$null
     if ($result -match '"deny"') {
         $script:Passed++
         Write-Host '  PASS: 4 teams with MAX_TEAMS=1 -> deny' -ForegroundColor Green
