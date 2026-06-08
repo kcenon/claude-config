@@ -401,7 +401,7 @@ function Test-Administrator {
 # Replaces bash mkdir -p
 # ──────────────────────────────────────────────────────────────
 
-function Ensure-Directory {
+function New-DirectoryIfMissing {
     <#
     .SYNOPSIS
         Creates a directory if it does not exist. Returns the path.
@@ -412,6 +412,11 @@ function Ensure-Directory {
     }
     return $Path
 }
+
+# Back-compat: existing hooks/scripts call 'Ensure-Directory'. Aliases are
+# exempt from PowerShell's approved-verb check, so this preserves the call
+# name without re-introducing the module-import warning. See issue #696.
+Set-Alias -Name Ensure-Directory -Value New-DirectoryIfMissing
 
 # ──────────────────────────────────────────────────────────────
 # Export all functions
@@ -437,5 +442,5 @@ Export-ModuleMember -Function @(
     'Test-Prerequisites'
     'Get-GitHubRepo'
     'Test-Administrator'
-    'Ensure-Directory'
-)
+    'New-DirectoryIfMissing'
+) -Alias @('Ensure-Directory')
