@@ -23,7 +23,7 @@ cat > /dev/null
 
 # Configurable limit via environment variable (default: 3)
 MAX_TEAMS="${MAX_TEAMS:-3}"
-TEAMS_DIR="$HOME/.claude/teams"
+TEAMS_DIR="${CLAUDE_TEAMS_DIR:-$HOME/.claude/teams}"
 
 # Use jq -nc --arg reason ... so the JSON library handles all escaping
 # (quotes, backslashes, newlines, tabs, carriage returns, etc.). This closes
