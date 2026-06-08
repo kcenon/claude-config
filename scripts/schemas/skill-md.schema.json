@@ -4,7 +4,7 @@
   "title": "Claude Code SKILL.md Frontmatter (Deprecated Alias)",
   "description": "DEPRECATED ALIAS: this URL is preserved for backward compatibility with external plugin authors who already reference it. Its content matches skill-md.schema.lenient.json. New consumers should pick the variant explicitly: .strict.json for global/skills/_internal/ skills, .lenient.json otherwise. The Kill Switch (harness_policies.p4_strict_schema / STRICT_SCHEMA env) can force lenient across all paths.",
   "type": "object",
-  "required": ["description"],
+  "required": ["name", "description"],
   "additionalProperties": true,
   "properties": {
     "name": {

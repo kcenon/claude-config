@@ -4,7 +4,7 @@
   "title": "Claude Code SKILL.md Frontmatter (Strict)",
   "description": "Strict variant for global/skills/_internal/* skills (claude-config-owned). Same fields as the canonical schema but all rules including P1-c halt_conditions enforcement are required. External plugin/plugin-lite skills validate against the lenient variant.",
   "type": "object",
-  "required": ["description"],
+  "required": ["name", "description"],
   "additionalProperties": false,
   "allOf": [
     {

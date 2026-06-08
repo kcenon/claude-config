@@ -177,7 +177,7 @@ assert_output_contains "'warp' is not one of" "$out" "context enum error"
 assert_output_contains "'zsh' is not one of" "$out" "shell enum error"
 
 # ── Fixture: description too long ────────────────────────────
-LONG_DESC="$(printf 'x%.0s' {1..1100})"
+LONG_DESC="$(printf 'x%.0s' {1..1600})"
 LONG_SKILL="$WORK/long-desc-skill.md"
 write_file "$LONG_SKILL" "---
 name: long-desc
@@ -188,9 +188,9 @@ content
 "
 
 echo ""
-echo "[case 5: description >1024 chars rejected]"
+echo "[case 5: description >1536 chars rejected]"
 out=$(run_lint skill "$LONG_SKILL" 2>&1); rc=$?
-assert_exit 1 "$rc" "1100-char description -> exit 1"
+assert_exit 1 "$rc" "1600-char description -> exit 1"
 assert_output_contains "is too long" "$out" "max length error"
 
 # ── Fixture: missing required name/description ───────────────
