@@ -1,6 +1,6 @@
 #Requires -Version 7.0
 $ErrorActionPreference = 'Stop'
-Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -WarningAction SilentlyContinue
 
 # permission-denial-logger.ps1
 # Appends a redacted JSONL audit record for every denied tool call.

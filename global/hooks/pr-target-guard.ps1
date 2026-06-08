@@ -1,6 +1,6 @@
 #Requires -Version 7.0
 $ErrorActionPreference = 'Stop'
-Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -WarningAction SilentlyContinue
 
 # pr-target-guard.ps1
 # Blocks PRs targeting 'main' from non-develop branches

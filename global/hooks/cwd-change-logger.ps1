@@ -1,6 +1,6 @@
 #Requires -Version 7.0
 $ErrorActionPreference = 'Stop'
-Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -WarningAction SilentlyContinue
 
 # cwd-change-logger.ps1
 # Logs working-directory changes during a session for audit trails.

@@ -1,6 +1,6 @@
 #Requires -Version 7.0
 $ErrorActionPreference = 'Stop'
-Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -WarningAction SilentlyContinue
 Import-Module (Join-Path $PSScriptRoot 'lib' 'LanguageValidator.psm1') -Force
 
 # pr-language-guard.ps1
