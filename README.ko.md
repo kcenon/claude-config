@@ -141,6 +141,12 @@ cd ~\claude_config_backup
 > **참고**: PowerShell 7+ (`pwsh`)가 필요합니다. `winget install Microsoft.PowerShell`로 설치하세요.
 > 실행 정책 오류 시: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
 
+#### Docker 호환 dual-variant 설치
+
+`install.ps1`은 모든 hook 및 유틸리티 스크립트의 PowerShell(`.ps1`)·bash(`.sh`) 변종을 **둘 다** `~/.claude/hooks/`와 `~/.claude/scripts/`에 배포합니다. `.sh` 파일은 LF 줄바꿈(UTF-8, BOM 없음)으로 작성됩니다.
+
+이는 Windows 호스트의 `~/.claude/`가 Linux Claude Code 컨테이너에 bind-mount될 때(예: 동반 [claude-docker](https://github.com/kcenon/claude-docker) 프로젝트) 중요합니다: 컨테이너 entrypoint가 `pwsh ... -File foo.ps1` hook 명령을 `foo.sh`로 재작성하는데, 마운트에 대응 `.sh` 파일이 있어야만 동작합니다. 설치 스크립트는 페어링 감사를 실행해 `.sh` 짝이 없는 `.ps1`(또는 그 반대)을 경고하여 Docker 측 재작성이 누락 파일로 조용히 해석되지 않게 합니다.
+
 ### 경량 Plugin (Behavioral Guardrails Only)
 
 전체 구성 없이 핵심 동작 교정만 원하시나요?
@@ -705,18 +711,23 @@ Create a team to implement the notification system:
 
 ---
 
-## Pre-commit Hook
+## Git Hooks
 
-SKILL.md 파일을 커밋 전 자동으로 검증하려면 pre-commit hook을 설치하세요:
+SKILL.md 파일을 커밋 전 자동으로 검증하려면 git hook을 설치하세요:
 
 ```bash
 ./hooks/install-hooks.sh
 ```
 
-Hook이 수행하는 작업:
+### Pre-commit Hook
 - SKILL.md 파일 변경 감지
 - `validate_skills.sh` 자동 실행
 - 유효하지 않은 SKILL.md 파일이 있으면 커밋 차단
+
+### Pre-push Hook
+- 보호 브랜치(`main`, `develop`)로의 직접 push 차단
+- 보호 브랜치는 pull request 워크플로 필요
+- 크로스 플랫폼: `pre-push`(bash)와 `pre-push.ps1`(PowerShell)
 
 ---
 

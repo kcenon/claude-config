@@ -5,7 +5,7 @@ Enforced by `settings.json` (`attribution: ""`), the `commit-message-guard` PreT
 
 Filename references to project root config files (`CLAUDE.md`, `CLAUDE.local.md`) and narrative mentions of the config (e.g. "the CLAUDE config loader") are allowed in commit subjects — only attribution patterns (`Co-Authored-By:` trailers, bot emoji adjacent to Claude/Anthropic, "generated/created/authored {with|by|using} {Claude|Anthropic}" prose) are rejected. See the three-pattern design comment in `hooks/lib/validate-commit-message.sh` for the exact rules.
 
-All GitHub Issues and Pull Requests must follow the active `CLAUDE_CONTENT_LANGUAGE` policy. Validation is dispatched by `hooks/lib/validate-language.sh` (single source of truth — see issue #410 for the design and #447 for the `exclusive_bilingual` mode):
+All GitHub Issues and Pull Requests must follow the active `CLAUDE_CONTENT_LANGUAGE` policy (English by default). Validation is dispatched by `hooks/lib/validate-language.sh` (single source of truth — see issue #410 for the design and #447 for the `exclusive_bilingual` mode):
 
 | `CLAUDE_CONTENT_LANGUAGE` | Per-artifact rule |
 |---------------------------|-------------------|
