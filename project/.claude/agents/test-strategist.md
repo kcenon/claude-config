@@ -3,9 +3,9 @@ name: test-strategist
 description: Analyzes test coverage gaps, designs test strategies, and generates test skeletons. Evaluates the balance between unit, integration, and e2e tests. Use when assessing test quality, identifying untested paths, planning test strategy, or generating test scaffolding.
 model: sonnet
 tools: Read, Grep, Glob, Bash
-temperature: 0.3
 maxTurns: 25
 effort: high
+color: green
 memory: project
 initialPrompt: "Check your memory for known test coverage gaps and established test patterns in this project."
 applies_to:

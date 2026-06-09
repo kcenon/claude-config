@@ -30,13 +30,20 @@ Skills that perform iterative work (retry loops, polling loops, multi-round refi
 
 ```yaml
 max_iterations: <int>          # Hard upper bound on loop iterations
-halt_condition: "<expression>" # Natural language or regex describing success/abort signal
-on_halt: "<action>"            # What to do when halt condition fires (report, escalate, exit)
+halt_condition: "<expression>" # Legacy: natural language or regex describing success/abort signal
+halt_conditions:               # Preferred: structured form (array of {type, expr}); string form also accepted in P1 grace period
+  - { type: success, expr: "<expression>" }
+  - { type: limit,   expr: "<expression>" }
+on_halt: "<action>"            # What to do when a halt condition fires (report, escalate, exit)
 ```
+
+Note: these fields (`max_iterations`, `halt_condition`, `halt_conditions`, `on_halt`, and the `loop_safe` flag below) are LLM-advisory metadata only — Claude Code does not enforce them at runtime. The harness surfaces the `SKILL.md` frontmatter into the model's context, and the model self-regulates against the declared limits as a prompt-level discipline. For deterministic enforcement (hard counters, kill switches, budget caps), use a `PreToolUse` hook with persistent counter state or environment-variable limits read by the skill body.
 
 Required for skills whose body contains a polling loop, retry loop, or multi-round iteration (`issue-work`, `pr-work`, `ci-fix`, `release`, `research`, `fleet-orchestrator`). Optional otherwise.
 
 Prefer regex or symbolic halt conditions over free-form prose when the signal is deterministic (CI status, exit codes). Reserve natural language for cases where interpretation is intrinsically subjective.
+
+`halt_condition` (singular, string) is the legacy key. `halt_conditions` (plural) is the structured replacement: array entries are `{type, expr}` where `type ∈ [success, failure, limit, user, fallback]`. Both keys validate during the P1 grace period; A2/A3 will migrate skills and tighten enforcement.
 
 ## Loop-Safety Flag
 
@@ -50,6 +57,52 @@ loop_safe: true | false
 - `loop_safe: false` — invocations create external artifacts (PRs, issues, releases, branch deletions) or mutate shared state. Wrapping in `/loop` would produce duplicates or destructive cascades. Examples: `issue-work`, `pr-work`, `release`, `branch-cleanup`, `issue-create`, `harness`, `implement-all-levels`, `fleet-orchestrator`.
 
 Rules and anti-patterns: `docs/loop-patterns.md`.
+
+## Workspace Layout
+
+Skills that produce per-invocation artifacts write them to a workspace directory using a numeric phase prefix so the filesystem reflects pipeline order:
+
+```
+_workspace/{date}-{n}/NN_<phase>.<ext>
+```
+
+- `{date}` — invocation date in `YYYY-MM-DD` form.
+- `{n}` — 1-based ordinal for invocations in the same day.
+- `NN_` — 2-digit zero-padded phase index (`00_`, `01_`, …, `99_`). The leading zero keeps lexical order aligned with execution order.
+- `<phase>` — lowercase snake_case phase name (e.g. `discovery`, `plan`, `implement`, `review`).
+- `<ext>` — artifact extension (`md`, `json`, `txt`, `log`, …).
+
+Examples:
+
+```
+_workspace/2026-04-26-1/00_discovery.md
+_workspace/2026-04-26-1/01_plan.md
+_workspace/2026-04-26-1/02_implement.log
+_workspace/2026-04-26-1/03_review.md
+```
+
+The last `NN_*.ext` file in a workspace is the immediate halt-trace anchor: combined with `halt_conditions` (P1), it pinpoints where iteration stopped and why. Existing artifacts are point-forward only — no migration is required for prior workspaces.
+
+`scripts/check_workspace_prefix.sh` enforces the convention: non-conforming files emit warnings (not failures) during the rollout.
+
+## Severity
+
+Code-review domain skills declare severity in their frontmatter so triage can be automated. Free-form prose previously produced inconsistent merge-block thresholds; the enum collapses that ambiguity.
+
+```yaml
+severity: S1 | S2 | S3              # Primary tier this skill triages at
+finding_levels: [S1, S2, S3]        # Subset of levels this skill emits findings at
+```
+
+| Tier | Meaning | Effect on PR |
+|------|---------|--------------|
+| `S1` | Block-merge | Reviewer must resolve before merge — no exceptions |
+| `S2` | Review-required | Reviewer attention requested; can be acknowledged-and-deferred |
+| `S3` | Advisory | Informational only; no action required |
+
+Both fields are optional and apply to code-review domain skills only (e.g. `code-quality`, `security-audit`, `pr-review`). `doc-review` and `release` are explicitly out of scope — they describe gates, not findings, and would create category errors.
+
+`finding_levels` lists every level the skill may surface. A skill with `severity: S2` and `finding_levels: [S1, S2]` triages at S2 by default but can escalate individual findings to S1.
 
 ## Tier Preset Schema
 
@@ -79,7 +132,7 @@ default_tier: standard        # Tier used when caller omits --tier
 
 ### When to Apply
 
-Required for skills whose `SKILL.md` body exceeds 5 KB (current examples: `issue-work`, `pr-work`). Optional for smaller skills, where a single loading mode suffices.
+Recommended for skills whose `SKILL.md` body exceeds 5 KB; adopted incrementally rather than all at once (current tiered skills: `issue-work`, `pr-work`, `fleet-orchestrator`, `harness`, `release` — see the phased-rollout note under "Tiered Skills" in `docs/TOKEN_OPTIMIZATION.md`). Optional for smaller skills, where a single loading mode suffices.
 
 ### Invocation
 
@@ -94,3 +147,56 @@ When `--tier` is omitted, the skill runs at its declared `default_tier`. Unknown
 ### Cross-reference
 
 See `docs/TOKEN_OPTIMIZATION.md` for token-impact figures and empirical guidance on when each tier is appropriate.
+
+## Safety-Class Metadata
+
+Skills declare their applicability to safety-classified projects via frontmatter so consumers on the regulated-industry track can filter activities by the SW Safety Class of the calling project. The fields are metadata-only -- declaring a class does not change skill behavior; it exposes the contract that future filtering layers (e.g. `evidence-pack`'s manifest) can read.
+
+```yaml
+iso_class: A | B | C | none
+safety_class:                        # Optional, multi-domain map
+  iec_62304: A | B | C
+  iso_26262: QM | ASIL-A | ASIL-B | ASIL-C | ASIL-D
+  iec_61508: SIL-1 | SIL-2 | SIL-3 | SIL-4
+  do_178c:   A | B | C | D | E
+applies_at_or_above: A | B | C       # Optional, minimum class for participation
+```
+
+### `iso_class` (required)
+
+Every `SKILL.md` must declare `iso_class`. The value is the IEC 62304 §5.3 SW Safety Classification the skill applies to.
+
+| Value | Meaning |
+|-------|---------|
+| `A`   | Skill applies at every safety class (Class A and above). Safety-relevant skills (`traceability`, `evidence-pack`, `risk-control`) and any skill whose body explicitly references compliance, traceability, or evidence collection use this value. |
+| `B`   | Skill applies at Class B and above. Reserved for skills that introduce rigor only meaningful when the project handles non-serious-injury risk. |
+| `C`   | Skill applies at Class C only. Reserved for skills tied to life-supporting / life-sustaining device development. |
+| `none`| Default. Skill is not safety-relevant; it neither requires nor produces evidence the regulated-industry track depends on. Use this for general workflow skills (`git-status`, `documentation`, `pr-review`, etc.). |
+
+### `safety_class` (optional, multi-domain)
+
+When a skill needs to express applicability across more than the IEC 62304 axis, it adds a `safety_class:` map. The map's keys are domain identifiers; the values are domain-native enums. The keys are mutually independent -- a skill may set any subset.
+
+| Key | Domain | Values |
+|-----|--------|--------|
+| `iec_62304` | Medical-device software (IEC 62304:2006 + Amd 1:2015) | `A`, `B`, `C` |
+| `iso_26262` | Automotive functional safety (ISO 26262) | `QM`, `ASIL-A`, `ASIL-B`, `ASIL-C`, `ASIL-D` |
+| `iec_61508` | General functional safety (IEC 61508) | `SIL-1`, `SIL-2`, `SIL-3`, `SIL-4` |
+| `do_178c`   | Airborne software (RTCA DO-178C) | `A`, `B`, `C`, `D`, `E` |
+
+`safety_class.iec_62304` is informational; the canonical IEC 62304 declaration is `iso_class`. The two are kept consistent by convention -- if `iso_class: A` then `safety_class.iec_62304: A` (when present).
+
+### `applies_at_or_above` (optional)
+
+Names the minimum class at or above which the skill participates in regulated workflows. Consumers filter the active skill set by comparing the calling project's declared class against this field. Example: `applies_at_or_above: A` means the skill participates whenever the project is Class A, B, or C.
+
+### When to Apply
+
+Required for every `SKILL.md` (default `iso_class: none`). The validator (`scripts/validate_skills.sh`) emits a warning when the field is missing during the one-release grace period; subsequent releases convert the warning to a hard failure.
+
+### Cross-reference
+
+- IEC 62304 §5.3 source: `project/.claude/rules/compliance/iec-62304.md`
+- ISO 14971 risk-management context: `project/.claude/rules/compliance/iso-14971.md`
+- Validator: `scripts/validate_skills.sh`
+- Invariant: `global/skills/_internal/_shared/invariants.md`

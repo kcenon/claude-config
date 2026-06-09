@@ -18,7 +18,7 @@
 #     which the commit-msg validator would reject. These checkpoint commits
 #     are throwaway and squashed at release time.
 
-set -uo pipefail
+set -euo pipefail
 
 # Read stdin (may be empty for synthetic invocations).
 INPUT=$(cat 2>/dev/null || true)

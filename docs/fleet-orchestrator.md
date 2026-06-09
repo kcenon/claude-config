@@ -1,9 +1,9 @@
 # Fleet Orchestrator — Parallel Multi-Repo Directive Execution
 
 > **Type**: Skill documentation
-> **Skill location**: `global/skills/fleet-orchestrator/`
+> **Skill location**: `global/skills/_internal/fleet-orchestrator/`
 > **Related issues**: #366 (this skill), #360 (post-task-checkpoint hook, closed), #361 (atomic multi-phase rule, closed)
-> **Related skills**: [`harness`](../global/skills/harness/SKILL.md), [`issue-work`](../global/skills/issue-work/SKILL.md), [`pr-work`](../global/skills/pr-work/SKILL.md)
+> **Related skills**: [`harness`](../global/skills/_internal/harness/SKILL.md), [`issue-work`](../global/skills/_internal/issue-work/SKILL.md), [`pr-work`](../global/skills/_internal/pr-work/SKILL.md)
 > **Purpose**: Fan out a single directive across N repositories as parallel worker Agents, with a supervisor that polls a shared manifest and aggregates results.
 
 ## Background
@@ -47,7 +47,7 @@ The skill instantiates the Fan-out/Fan-in + Supervisor pattern from
 |-----------|------|
 | Supervisor | Main session. Input validation, worker fan-out, manifest polling, aggregation, final report. Never edits code itself. |
 | Worker (N×) | Fresh `general-purpose` Agent per repo, launched with `run_in_background=true`. Runs issue-work/pr-work on its assigned repo and writes terminal status to the manifest. |
-| Manifest | `_workspace/fleet/fleet-status.json`. Single source of truth for fleet state. Guarded by `flock`. Schema: `global/skills/fleet-orchestrator/reference/manifest-schema.json`. |
+| Manifest | `_workspace/fleet/fleet-status.json`. Single source of truth for fleet state. Guarded by `flock`. Schema: `global/skills/_internal/fleet-orchestrator/reference/manifest-schema.json`. |
 
 ## Relationship to Existing Skills
 
@@ -88,7 +88,7 @@ classifier.
 /fleet-orchestrator --org kcenon "Dry run only" --dry-run
 ```
 
-See `global/skills/fleet-orchestrator/SKILL.md` for the full argument list and
+See `global/skills/_internal/fleet-orchestrator/SKILL.md` for the full argument list and
 workflow phases.
 
 ## Output Artifacts
@@ -131,8 +131,8 @@ This skill assumes the following infrastructure is in place:
 
 ## References
 
-- Skill entry point: `global/skills/fleet-orchestrator/SKILL.md`
-- Worker prompt template: `global/skills/fleet-orchestrator/reference/worker-template.md`
-- Manifest schema: `global/skills/fleet-orchestrator/reference/manifest-schema.json`
-- Architecture pattern origin: `global/skills/harness/reference/agent-design-patterns.md` (Fan-out/Fan-in, Supervisor sections)
+- Skill entry point: `global/skills/_internal/fleet-orchestrator/SKILL.md`
+- Worker prompt template: `global/skills/_internal/fleet-orchestrator/reference/worker-template.md`
+- Manifest schema: `global/skills/_internal/fleet-orchestrator/reference/manifest-schema.json`
+- Architecture pattern origin: `global/skills/_internal/harness/reference/agent-design-patterns.md` (Fan-out/Fan-in, Supervisor sections)
 - Motivating report: 2026-04-18 `/insights` "On the Horizon #1" — Parallel Multi-Repo Autonomous PR Fleet

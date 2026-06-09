@@ -45,9 +45,9 @@ echo ""
 echo "[attribution_leaks]"
 assert_eq "$(extract_attribution_leaks '')" 0 "empty input"
 assert_eq "$(extract_attribution_leaks 'fix typo in readme')" 0 "clean message"
-assert_eq "$(extract_attribution_leaks 'add claude integration')" 1 "single claude reference"
-assert_eq "$(extract_attribution_leaks 'generated with claude code by anthropic')" 3 "generated with + claude + anthropic"
-assert_eq "$(extract_attribution_leaks 'AI-assisted refactor')" 1 "ai-assisted"
+assert_eq "$(extract_attribution_leaks 'add claude integration')" 0 "casual claude reference (allowed by 3-pattern design)"
+assert_eq "$(extract_attribution_leaks 'generated with claude code by anthropic')" 1 "prose attribution: generated with claude"
+assert_eq "$(extract_attribution_leaks 'AI-assisted refactor')" 0 "casual ai-assisted (allowed)"
 assert_eq "$(extract_attribution_leaks 'Co-Authored-By: Claude')" 1 "co-authored-by claude"
 
 echo ""
@@ -88,7 +88,7 @@ DRIFTED_COMMITS=$(cat <<'GIT_LOG'
 feat: add feature
 Updated the parser
 fix: Resolve issue.
-chore: add claude integration
+chore: code generated with Claude
 GIT_LOG
 )
 assert_eq "$(extract_commit_format_violations "$CLEAN_COMMITS")" 0 "all clean commits"

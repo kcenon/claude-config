@@ -1,0 +1,1 @@
+Red Team variant G: whitespace obfuscation via `${IFS}`. After IFS expansion the shell would execute `rm -rf /`. The hook denies any sub-command that originally embedded `${IFS}` or `$IFS` because there is no legitimate reason to construct `rm` from those substrings.

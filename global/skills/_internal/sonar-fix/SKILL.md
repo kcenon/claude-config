@@ -1,0 +1,146 @@
+---
+name: sonar-fix
+description: Parse sonarcloud[bot] PR comments, classify findings, codify whitelisted auto-fixes, escalate the rest.
+argument-hint: "<pr-number> [--dry-run]"
+user-invocable: true
+disable-model-invocation: true
+allowed-tools: "Bash(gh *)"
+max_iterations: 3
+halt_conditions:
+  - { type: success,  expr: "sonarcloud[bot] reports Quality Gate PASS" }
+  - { type: fallback, expr: "no rule matches whitelist after 3 attempts" }
+  - { type: limit,    expr: "3 identical re-scan failures" }
+loop_safe: false
+severity: S2
+finding_levels: [S1, S2, S3]
+iso_class: none
+---
+
+# sonar-fix
+
+## Overview
+
+The `sonar-fix` skill processes PR decoration emitted by SonarQube Cloud
+via the `sonarcloud[bot]` GitHub account. It parses the bot's summary
+and inline review comments, classifies each finding by rule and
+severity, and follows a `classify -> fix -> escalate` flow. Whitelisted
+rules (see `reference/auto-fixable-rules.md`) are eligible for codified
+auto-fixes in later phases; everything else is escalated back to the
+PR author as a single consolidated comment. No SonarQube REST API
+tokens are required; the bot's PR comments are the only data source.
+
+## Classify
+
+The skill reads two channels from the PR conversation:
+
+1. The single `sonarcloud[bot]` **summary comment**, which carries the
+   Quality Gate verdict (`PASS` or `FAIL`).
+2. The `sonarcloud[bot]` **inline review comments**, one per finding,
+   anchored to a diff line.
+
+For every inline comment, the parser extracts `rule_id`, `severity`,
+`file:line`, and `message`, producing a `(rule_id, severity)` mapping
+keyed by location. The parsing contract is captured in
+`reference/comment-format.md` and must be treated as the single source
+of truth for regex and field layout.
+
+## Summary
+
+After classification the skill posts a single comment to the PR with a
+breakdown table: total findings, count per rule, count per severity,
+and which findings are eligible for auto-fix versus escalation. The
+comment is idempotent across runs so re-scans replace rather than
+append.
+
+## Escalate
+
+Findings that do not match an entry in the auto-fix whitelist are
+reported using the body in `reference/escalation-template.md`. The
+escalation comment is also idempotent: a single HTML marker comment
+identifies prior escalations from this skill so subsequent runs update
+the existing comment instead of stacking new ones.
+
+## Halt Conditions
+
+The skill stops in three cases, paraphrased from the frontmatter:
+
+- **Success**: the latest `sonarcloud[bot]` summary reports Quality
+  Gate PASS, meaning no further action is needed.
+- **Fallback**: after three classification attempts no remaining
+  finding matches the auto-fix whitelist, so the skill escalates and
+  exits.
+- **Limit**: three identical re-scan failures in a row (same
+  rule + same location) indicate the codified fix is not converging,
+  so the skill stops to avoid a tight loop.
+
+## Apply
+
+After classification, each finding is routed by whitelist match:
+
+- **Whitelist match** (rule ∈ {S1481, S1128, S1854, S1192, S125,
+  S1116}): read the rule's entry in
+  `reference/auto-fixable-rules.md` and apply the codified fix
+  exactly as specified in its Before/After section.
+- **Whitelist miss**: render the finding into the body in
+  `reference/escalation-template.md` and accumulate it for the single
+  consolidated escalation comment.
+
+All fixes must be **idempotent** — running the skill twice on the same
+PR must produce the same tree on the second run as on the first. Rules
+that declare a `Safety` section (S1481 RHS side-effect, S1128
+side-effect import, S1854 RHS side-effect, S1192 semantic divergence /
+naming ambiguity, S125 intentional-marker comments, S1116 intentional
+empty body) MUST escalate rather than auto-fix when the safety predicate
+cannot be evaluated with certainty. When in doubt, escalate.
+
+## Dry-run mode
+
+When the skill is invoked with `--dry-run`:
+
+- No file edits are written and no commit is created.
+- The skill emits a unified diff (`git diff` style) of the fixes it
+  *would* apply to stdout so the operator can review the change set
+  before re-running without `--dry-run`.
+- The same diff may also be posted as a PR comment with the HTML
+  marker `<!-- sonar-fix:dry-run -->` so subsequent dry-run invocations
+  replace the prior preview comment rather than stacking.
+- Escalation comments are still posted in dry-run mode so the manual
+  review path is visible alongside the auto-fix preview.
+
+After review, re-invoke the skill on the same PR without `--dry-run`
+to apply the previewed diff.
+
+## Commit Convention
+
+Auto-fix commits authored by this skill follow:
+
+```
+fix(sonar): <rule-id> -- <short reason>
+```
+
+Examples:
+- `fix(sonar): S1481 -- remove unused local in cli/main.py`
+- `fix(sonar): S1128 -- remove unused import in api/handlers.py`
+
+Refer to parent epic #635 for the full rationale.
+
+## Out of Scope
+
+- Registration in the global `Skill Aliases` table in
+  `global/CLAUDE.md`: deferred to P5.
+- SonarQube REST API access, token management, or non-PR sources of
+  findings: out of scope by design (the bot comment channel is
+  authoritative).
+- Auto-fix for `security_hotspot` or `vulnerability` findings: out of
+  scope by policy — these require human review and never qualify for
+  codified auto-fixes.
+
+## References
+
+- [reference/auto-fixable-rules.md](reference/auto-fixable-rules.md)
+- [reference/comment-format.md](reference/comment-format.md)
+- [reference/escalation-template.md](reference/escalation-template.md)
+
+## Side Effects and Loop-Safety
+
+This skill is `loop_safe: false`. It pushes fix commits to live PRs and replies to SonarCloud bot comments. Re-running would push duplicate commits or re-process already-handled findings. Run it once per PR review cycle; resume rather than re-invoke.

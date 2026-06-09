@@ -1,0 +1,1 @@
+Uppercase -R flag variant of rm -rf /.

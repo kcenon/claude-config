@@ -6,12 +6,12 @@
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-filesystem", "/path/to/allowed/directory"],
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed/directory"],
       "description": "File system access for reading/writing files"
     },
     "github": {
       "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-github"],
+      "args": ["-y", "@modelcontextprotocol/server-github"],
       "env": {
         "GITHUB_TOKEN": "${GITHUB_TOKEN}"
       },
@@ -19,7 +19,7 @@
     },
     "postgres": {
       "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-postgres"],
+      "args": ["-y", "@modelcontextprotocol/server-postgres"],
       "env": {
         "DATABASE_URL": "${DATABASE_URL}"
       },
@@ -27,7 +27,7 @@
     },
     "slack": {
       "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-slack"],
+      "args": ["-y", "@modelcontextprotocol/server-slack"],
       "env": {
         "SLACK_TOKEN": "${SLACK_TOKEN}"
       },
@@ -35,7 +35,7 @@
     },
     "memory": {
       "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-memory"],
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
       "description": "Persistent memory for storing and retrieving information"
     }
   },
@@ -43,6 +43,9 @@
   "_comments": {
     "usage": "Copy this file to your project root and configure the servers you need",
     "security": "Never commit this file with actual tokens - use environment variables",
-    "customization": "Remove unused servers and update paths for your project"
+    "customization": "Remove unused servers and update paths for your project",
+    "governance": "MCP enablement is constrained at the user tier: global/settings.json sets enableAllProjectMcpServers:false with an empty enabledMcpjsonServers allowlist, so a project-supplied .mcp.json is never auto-enabled - each server must be approved explicitly. Consistent with the repo's secret-blocking posture (#677).",
+    "successor-migration": "Intentionally deferred (#677): this template keeps the @modelcontextprotocol namespace rather than migrating github/postgres/slack to third-party successors, to avoid endorsing third parties. The successor pointers in 'servers' below are informational only.",
+    "servers": "Reference servers live under the @modelcontextprotocol namespace (NOT @anthropic). filesystem and memory are actively maintained. github, postgres, and slack reference servers are deprecated upstream; the maintained successors are GitHub's official HTTP server (https://api.githubcopilot.com/mcp/ - see .mcp.json.example for the http transport shape), @bytebase/dbhub for PostgreSQL, and the community slack-mcp-server. Verify the current package before relying on it in production."
   }
 }

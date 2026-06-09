@@ -1,0 +1,10 @@
+[Unit]
+Description=Claude memory sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -lc '%h/.claude/scripts/memory-sync.sh --lock-timeout 30'
+StandardOutput=append:/tmp/claude-memory-sync.out
+StandardError=append:/tmp/claude-memory-sync.err

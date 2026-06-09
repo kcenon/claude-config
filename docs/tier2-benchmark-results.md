@@ -1,3 +1,11 @@
+---
+status: Active
+audience: maintainer
+last_reviewed: 2026-05-09
+supersedes: []
+superseded_by: null
+---
+
 # Tier 2 Benchmark Results
 
 Quantitative comparison of Tier 2 isolation strategies against the

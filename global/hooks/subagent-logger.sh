@@ -1,6 +1,9 @@
 #!/bin/bash
-# Subagent Logger Hook
-# Logs subagent start/stop events for monitoring
+# subagent-logger.sh
+# Logs subagent start/stop events for monitoring.
+# Hook Type: SubagentStart, SubagentStop
+# Exit codes: 0 (always — lifecycle event)
+# Response format: none (lifecycle event, no JSON output needed)
 #
 # Usage: subagent-logger.sh <start|stop>
 #

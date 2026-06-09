@@ -64,8 +64,15 @@ if ($backupType -eq '4' -or $backupType -eq '5') {
 
         $entRules = Join-Path $enterpriseDir 'rules'
         if (Test-Path -LiteralPath $entRules -PathType Container) {
-            Copy-Item -Path (Join-Path $entRules '*') -Destination (Join-Path $tempBackup 'enterprise' 'rules') -Recurse -Force -ErrorAction SilentlyContinue
-            Write-SuccessMessage "rules 디렉토리 백업됨"
+            $items = Get-ChildItem -Path $entRules
+            if ($items.Count -gt 0) {
+                try {
+                    Copy-Item -Path (Join-Path $entRules '*') -Destination (Join-Path $tempBackup 'enterprise' 'rules') -Recurse -Force -ErrorAction Stop
+                    Write-SuccessMessage "rules 디렉토리 백업됨"
+                } catch {
+                    Write-ErrorMessage "rules 디렉토리 백업 실패: $_"
+                }
+            }
         }
     }
     else {
@@ -106,8 +113,15 @@ if ($backupType -eq '1' -or $backupType -eq '3' -or $backupType -eq '5') {
     if (Test-Path -LiteralPath $hooksDir -PathType Container) {
         $hooksBackup = Join-Path $tempBackup 'global' 'hooks'
         Ensure-Directory $hooksBackup | Out-Null
-        Copy-Item -Path (Join-Path $hooksDir '*.sh') -Destination $hooksBackup -Force -ErrorAction SilentlyContinue
-        Write-SuccessMessage "hooks 디렉토리 백업됨"
+        $items = Get-ChildItem -Path $hooksDir -Filter '*.sh'
+        if ($items.Count -gt 0) {
+            try {
+                Copy-Item -Path (Join-Path $hooksDir '*.sh') -Destination $hooksBackup -Force -ErrorAction Stop
+                Write-SuccessMessage "hooks 디렉토리 백업됨"
+            } catch {
+                Write-ErrorMessage "hooks 디렉토리 백업 실패: $_"
+            }
+        }
     }
 }
 
@@ -193,13 +207,21 @@ if ($replace -eq 'y') {
     $entTemp = Join-Path $tempBackup 'enterprise'
     $entItems = Get-ChildItem -LiteralPath $entTemp -ErrorAction SilentlyContinue
     if ($entItems.Count -gt 0) {
+        # copy-then-swap: 복사 실패 시 기존 백업을 파괴하지 않음
         $entDest = Join-Path $BackupDir 'enterprise'
-        if (Test-Path $entDest) {
-            Remove-Item -LiteralPath $entDest -Recurse -Force
+        $entStaging = "$entDest.new"
+        if (Test-Path $entStaging) { Remove-Item -LiteralPath $entStaging -Recurse -Force }
+        Ensure-Directory $entStaging | Out-Null
+        Ensure-Directory (Join-Path $entStaging 'rules') | Out-Null
+        try {
+            Copy-Item -Path (Join-Path $entTemp '*') -Destination $entStaging -Recurse -Force -ErrorAction Stop
+        } catch {
+            Write-ErrorMessage "Enterprise 백업 업데이트 실패: $_"
+            Remove-Item -LiteralPath $entStaging -Recurse -Force -ErrorAction SilentlyContinue
+            exit 1
         }
-        Ensure-Directory $entDest | Out-Null
-        Ensure-Directory (Join-Path $entDest 'rules') | Out-Null
-        Copy-Item -Path (Join-Path $entTemp '*') -Destination $entDest -Recurse -Force -ErrorAction SilentlyContinue
+        if (Test-Path $entDest) { Remove-Item -LiteralPath $entDest -Recurse -Force }
+        Rename-Item -LiteralPath $entStaging -NewName 'enterprise'
         Write-SuccessMessage "Enterprise 백업 업데이트됨"
     }
 
@@ -207,12 +229,20 @@ if ($replace -eq 'y') {
     $globalTemp = Join-Path $tempBackup 'global'
     $globalItems = Get-ChildItem -LiteralPath $globalTemp -ErrorAction SilentlyContinue
     if ($globalItems.Count -gt 0) {
+        # copy-then-swap: 복사 실패 시 기존 백업을 파괴하지 않음
         $globalDest = Join-Path $BackupDir 'global'
-        if (Test-Path $globalDest) {
-            Remove-Item -LiteralPath $globalDest -Recurse -Force
+        $globalStaging = "$globalDest.new"
+        if (Test-Path $globalStaging) { Remove-Item -LiteralPath $globalStaging -Recurse -Force }
+        Ensure-Directory $globalStaging | Out-Null
+        try {
+            Copy-Item -Path (Join-Path $globalTemp '*') -Destination $globalStaging -Recurse -Force -ErrorAction Stop
+        } catch {
+            Write-ErrorMessage "글로벌 백업 업데이트 실패: $_"
+            Remove-Item -LiteralPath $globalStaging -Recurse -Force -ErrorAction SilentlyContinue
+            exit 1
         }
-        Ensure-Directory $globalDest | Out-Null
-        Copy-Item -Path (Join-Path $globalTemp '*') -Destination $globalDest -Recurse -Force -ErrorAction SilentlyContinue
+        if (Test-Path $globalDest) { Remove-Item -LiteralPath $globalDest -Recurse -Force }
+        Rename-Item -LiteralPath $globalStaging -NewName 'global'
         Write-SuccessMessage "글로벌 백업 업데이트됨"
     }
 
@@ -220,12 +250,20 @@ if ($replace -eq 'y') {
     $projTemp = Join-Path $tempBackup 'project'
     $projItems = Get-ChildItem -LiteralPath $projTemp -ErrorAction SilentlyContinue
     if ($projItems.Count -gt 0) {
+        # copy-then-swap: 복사 실패 시 기존 백업을 파괴하지 않음
         $projDest = Join-Path $BackupDir 'project'
-        if (Test-Path $projDest) {
-            Remove-Item -LiteralPath $projDest -Recurse -Force
+        $projStaging = "$projDest.new"
+        if (Test-Path $projStaging) { Remove-Item -LiteralPath $projStaging -Recurse -Force }
+        Ensure-Directory $projStaging | Out-Null
+        try {
+            Copy-Item -Path (Join-Path $projTemp '*') -Destination $projStaging -Recurse -Force -ErrorAction Stop
+        } catch {
+            Write-ErrorMessage "프로젝트 백업 업데이트 실패: $_"
+            Remove-Item -LiteralPath $projStaging -Recurse -Force -ErrorAction SilentlyContinue
+            exit 1
         }
-        Ensure-Directory $projDest | Out-Null
-        Copy-Item -Path (Join-Path $projTemp '*') -Destination $projDest -Recurse -Force -ErrorAction SilentlyContinue
+        if (Test-Path $projDest) { Remove-Item -LiteralPath $projDest -Recurse -Force }
+        Rename-Item -LiteralPath $projStaging -NewName 'project'
         Write-SuccessMessage "프로젝트 백업 업데이트됨"
     }
 

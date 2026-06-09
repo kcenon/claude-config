@@ -1,6 +1,6 @@
 #Requires -Version 7.0
 $ErrorActionPreference = 'Stop'
-Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -WarningAction SilentlyContinue
 
 # merge-gate-guard.ps1
 # Blocks gh pr merge commands when any PR check is not passing.
@@ -49,6 +49,15 @@ if ($CMD -notmatch 'gh\s+pr\s+merge') {
     exit 0
 }
 
+# --- Squash-only enforcement (Issue #478) ---
+# The branching strategy mandates squash merges to develop/main. Reject
+# --merge and --rebase so the gh CLI cannot bypass that policy. Mirrors
+# merge-gate-guard.sh lines 82-88.
+if ($CMD -match '(^|\s)--(merge|rebase)(\s|=|$)') {
+    New-HookDenyResponse -Reason 'gh pr merge --merge/--rebase blocked: branching strategy requires squash merges (use --squash). See workflow/branching-strategy.md.'
+    exit 0
+}
+
 # --- Extract PR number ---
 $prNum = $null
 
@@ -92,15 +101,44 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
     exit 0
 }
 
-# --- Call gh pr checks ---
+# --- Call gh pr checks (bounded by Start-Job/Wait-Job timeout) ---
+# Wall-clock budget for a single `gh pr checks` invocation. Mirrors the
+# Bash GH_CHECKS_TIMEOUT_SEC contract.
+$timeoutSec = if ($env:GH_CHECKS_TIMEOUT_SEC) { [int]$env:GH_CHECKS_TIMEOUT_SEC } else { 10 }
+
 $ghArgs = @('pr', 'checks', $prNum, '--json', 'bucket,name,state')
 if ($repo) { $ghArgs += @('-R', $repo) }
 
+$checksRaw = $null
+$ghExit = 0
+$timedOut = $false
+
 try {
-    $checksRaw = & gh @ghArgs 2>&1
-    $ghExit = $LASTEXITCODE
+    $job = Start-Job -ScriptBlock {
+        param($ghArgs)
+        $out = & gh @ghArgs 2>&1
+        [pscustomobject]@{ Output = $out; ExitCode = $LASTEXITCODE }
+    } -ArgumentList (,$ghArgs)
+
+    if (Wait-Job $job -Timeout $timeoutSec) {
+        $result = Receive-Job $job
+        if ($result) {
+            $checksRaw = $result.Output
+            $ghExit = $result.ExitCode
+        }
+    } else {
+        Stop-Job $job | Out-Null
+        $timedOut = $true
+    }
+    Remove-Job $job -Force | Out-Null
 } catch {
     Write-Diag "gh invocation threw: $_"
+    New-HookAllowResponse
+    exit 0
+}
+
+if ($timedOut) {
+    Write-Diag "gh pr checks timed out after ${timeoutSec}s, allowing merge (fail-open)"
     New-HookAllowResponse
     exit 0
 }

@@ -1,0 +1,47 @@
+name: Anthropic installer drift check
+
+# Re-validates the sha256 pin for the Anthropic Claude Code installer that
+# `bootstrap.sh` invokes. Fails (alerts maintainers) when the upstream
+# installer drifts from the pinned hash. Auto-rotation is intentionally
+# NOT performed — pin rotation requires human review per
+# docs/SUPPLY_CHAIN.md.
+
+on:
+  schedule:
+    # Weekly Monday 06:07 UTC. Off the :00 minute mark to avoid the
+    # cron-fleet thundering herd.
+    - cron: '7 6 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify pinned sha256 against upstream
+        run: |
+          set -euo pipefail
+          PINNED=$(grep -E '^ANTHROPIC_INSTALLER_SHA256=' bootstrap.sh \
+                    | sed -E 's/.*:-([0-9a-f]{64}).*/\1/')
+          if [ -z "$PINNED" ] || [ "${#PINNED}" -ne 64 ]; then
+            echo "Could not extract pinned sha256 from bootstrap.sh" >&2
+            exit 2
+          fi
+          ACTUAL=$(curl -fsSL https://claude.ai/install.sh | sha256sum | awk '{print $1}')
+          echo "PINNED=$PINNED"
+          echo "ACTUAL=$ACTUAL"
+          if [ "$PINNED" != "$ACTUAL" ]; then
+            {
+              echo "Anthropic installer sha256 drift detected."
+              echo "  pinned: $PINNED"
+              echo "  actual: $ACTUAL"
+              echo "Open a PR updating ANTHROPIC_INSTALLER_SHA256 in bootstrap.sh"
+              echo "after reviewing the upstream change. See docs/SUPPLY_CHAIN.md."
+            } >&2
+            exit 1
+          fi
+          echo "sha256 pin matches upstream."

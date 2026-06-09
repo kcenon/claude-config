@@ -1,0 +1,329 @@
+---
+name: doc-index
+description: "Generate document index files (manifest, bundles, graph, router) for project documentation. Creates docs/.index/ with searchable registry, feature-grouped bundles, cross-reference dependency graph, and query routing. Supports flat mode (generic projects, script-driven) and grouped mode (projects with doc_id frontmatter, Claude-curated)."
+user-invocable: true
+disable-model-invocation: true
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - Glob
+  - Grep
+loop_safe: true
+halt_conditions:
+  - { type: success, expr: "all index files generated under docs/.index/" }
+  - { type: failure, expr: "manifest generation or write step errors out" }
+on_halt: "Report which index files were produced before failure and stop"
+iso_class: none
+---
+
+# Document Index Generator
+
+Generate structured YAML index files for project documentation.
+
+## Usage
+
+```
+/doc-index
+```
+
+No arguments. Operates on the current project directory.
+
+## Output Files
+
+| File | Purpose |
+|------|---------|
+| `docs/.index/manifest.yaml` | Document registry with metadata, sections, and tags |
+| `docs/.index/bundles.yaml` | Feature-grouped document sets with line ranges |
+| `docs/.index/graph.yaml` | Cross-reference dependency graph with impact analysis |
+| `docs/.index/router.yaml` | Query-to-bundle routing with ID routes |
+
+## Architecture
+
+The skill operates in two modes based on the project's document structure:
+
+- **Flat mode** (<50% of files have `doc_id` frontmatter): Path-based classification. Claude categorizes documents by directory structure and generates index files with basic keyword matching.
+- **Grouped mode** (>50% of files have `doc_id` frontmatter): **Claude-curated**. Claude reads key documents, understands domain relationships, and generates index files with semantic understanding.
+
+## Instructions
+
+### Phase 0: Validate Environment
+
+1. Verify the current directory contains `.md` files
+2. Create `docs/.index/` directory if needed: `mkdir -p docs/.index`
+3. If `bundles.yaml` already exists, note the `custom:` section for preservation
+4. If `router.yaml` already exists, note the `id_patterns:` section for preservation
+
+### Phase 1: Document Discovery
+
+Run these commands to collect project metadata:
+
+```bash
+# 1. Find all markdown files
+find . -name "*.md" -not -path "*/.git/*" -type f | sort
+
+# 2. Count files with doc_id frontmatter
+grep -rl "^doc_id:" --include="*.md" . | wc -l
+
+# 3. Total file count
+find . -name "*.md" -not -path "*/.git/*" -type f | wc -l
+```
+
+### Phase 2: Mode Detection
+
+Calculate: `doc_id_count / total_count`
+
+- If > 50% → **Grouped mode** → proceed to Phase 3G
+- If ≤ 50% → **Flat mode** → proceed to Phase 3F
+
+### Phase 3F: Flat Mode (Path-Based)
+
+For flat mode projects, generate all 4 files using path-based classification:
+
+1. Classify documents by directory path: `rules/` → rule, `skills/` → skill, `agents/` → agent, `reference/` → reference, etc.
+2. Group into bundles by classification (core, coding, api, workflow, security, etc.)
+3. Build cross-reference graph from markdown links between files
+4. Generate keyword-based router from bundle categories
+5. **Description extraction (#625)**: for each file's `description:` field in `manifest.yaml`, call `bash scripts/extract-doc-description.sh <path>` rather than taking the first non-empty line directly. The helper skips frontmatter, headings, and pure-HTML structural lines, strips inline tags from mixed prose, and truncates to 200 characters. This avoids the historical bug where READMEs that opened with a centered badge block produced literal `<p align="center">` descriptions.
+
+Then proceed to Phase 4 (Write) and Phase 5 (Report).
+
+### Phase 3G: Grouped Mode (Claude-Curated)
+
+This is the core of the skill. You read documents and generate index files with domain understanding.
+
+#### Step 3G.1: Collect Structural Data
+
+Run these to gather raw metadata efficiently:
+
+```bash
+# All section headings with line numbers
+grep -rn '^## \|^### ' docs/ 2>/dev/null | head -800
+
+# All doc_ids
+grep -rn '^doc_id:' docs/ 2>/dev/null
+
+# File sizes
+find docs/ -name "*.md" -type f -exec wc -c {} + 2>/dev/null | sort -n
+
+# Cross-references (markdown links between docs)
+grep -rn '\[.*\]([^)]*\.md[^)]*)' docs/ 2>/dev/null | grep -v '\.index/' | head -1500
+```
+
+#### Step 3G.2: Read Key Documents
+
+Read these selectively — do NOT read entire large documents:
+
+1. **SDS (Software Design Specification)**: Find via doc_id containing `SAD` or `SDS`.
+   - Read SI definition sections: find `### .*SI-[A-Z]` headings, read each SI's definition (~20-40 lines per SI)
+   - Each SI definition contains: safety class, implementation language, SOUP dependencies, SRS allocation, functional description, sub-components
+
+2. **SRS (Software Requirements Specification)**: Find via doc_id containing `SRS`.
+   - Read only `## ` section headings to understand the category structure (SRS-DATA, SRS-CALC, SRS-SEC, etc.)
+   - Note each section's line range
+
+3. **Reference documents**: For each file in the reference directory:
+   - Read the first 5-10 lines (title, doc_id, description) to understand its domain topic
+   - Do NOT read full content
+
+4. **Screen/Flow documents**: Read frontmatter only for hazard_ids, screen_id, flow_id
+
+#### Step 3G.3: Generate manifest.yaml
+
+Write `docs/.index/manifest.yaml` with this structure:
+
+```yaml
+# docs/.index/manifest.yaml
+# Generated by /doc-index
+_meta: {schema: "1.0.0", generated: "YYYY-MM-DD", docs: N, size_mb: X.XX}
+
+core:
+  - id: DOC-ID
+    file: relative/path.md
+    title: "Document Title"
+    keywords: [keyword1, keyword2]
+    req_count: N        # SRS-xxx count (if any)
+    sections:
+      - {h: "Heading", l: start, e: end, req: [SRS-CAT]}
+
+# UI Screens (compact)
+screens:
+  - {id: DOC-ID, file: path.md, scr: SCR-NNN, title: "...", hazards: [H-01]}
+
+# UI Flows (compact)
+flows:
+  - {id: DOC-ID, file: path.md, flw: FLW-NNN, screens: [SCR-001, SCR-002]}
+
+# Reference Documents (subcategorized)
+reference:
+  regulatory:
+    - {id: DOC-ID, file: path.md, title: "..."}
+  rendering:
+    - {id: DOC-ID, file: path.md, title: "..."}
+  # ... infrastructure, security, clinical, business, standards, general
+
+# Placeholders — stubs
+placeholders:
+  - {id: DOC-ID, file: path.md}
+
+# Reports — skip unless reviewing
+reports:
+  - path.md
+```
+
+Classification rules:
+- `ui/screens/` → screens, `ui/flows/` → flows, `ui/` other → ui_support
+- `reference/` → reference (subcategorize by content: regulatory, rendering, infrastructure, security, clinical, business, standards)
+- `placeholders/` → placeholders, `reports/` → reports
+- Everything else with doc_id → core
+
+#### Step 3G.4: Generate bundles.yaml
+
+Write `docs/.index/bundles.yaml`. This is where domain understanding matters most.
+
+```yaml
+# docs/.index/bundles.yaml
+# Generated by /doc-index
+_meta: {schema: "1.0.0", generated: "YYYY-MM-DD"}
+```
+
+**SI Bundles** — For each SI found in the SDS:
+
+Read the SI definition section and determine related files using these signals (in priority order):
+
+1. **SDS definition section**: Include with precise line range from the `### ` heading
+2. **SRS allocation**: Parse the `SRS 할당` / `SRS allocation` row in the definition table → find the matching SRS `## ` sections by category code
+3. **Explicit links**: Follow markdown links in the SI definition to referenced documents
+4. **Domain relevance**: Match reference documents whose title/topic relates to the SI's domain (e.g., SI named "DICOM Gateway" → include documents about DICOM protocol, networking, coordinate transforms)
+5. **Screen documents**: Include screens that implement the SI's SRS categories (use functional categories like DATA, CALC, DISP, REPT — skip cross-cutting categories like SAFE, SEC, PERF that appear in most screens)
+6. **Core documents**: Include IDS/DBS/other core docs that share functional SRS categories with the SI
+7. **UI support docs**: If SI has USAB allocation, include UI support documents (design system, etc.)
+
+Format per SI bundle:
+```yaml
+si-xx:
+  name: "SI Full Name (SI-XX)"
+  files:
+    - {file: path.md, lines: "start-end", note: "SI-XX def"}
+    - {file: srs-path.md, lines: "start-end", note: "Section Name (SRS-CAT-xxx)"}
+    - {file: reference/related-doc.md}
+```
+
+**Workflow Bundles** — For each FLW document:
+- Include the flow document itself
+- Include all SCR documents referenced in the flow (scan for `SCR-NNN` patterns)
+- Name: `workflow-{flow-name}`
+
+**Cross-Cutting Bundles**:
+- `security`: SRS security section + threat model + auth/encryption/protection reference docs
+- `safety`: SRS safety section + risk management + screens with hazard references
+- `database`: Database schema + data-related reference docs
+- `api`: Interface design spec + API reference docs
+- `testing`: Verification/validation plans + test-related docs
+- `regulatory-submission`: Core regulatory deliverables only (SRS, SDS, SVP, VAL, PRD, SDP, TM, DBS, IDS) — exclude reports, audit files, placeholders
+
+**Preserve** the existing `custom:` section from the previous bundles.yaml if it exists.
+
+#### Step 3G.5: Generate graph.yaml
+
+Write `docs/.index/graph.yaml`:
+
+```yaml
+# docs/.index/graph.yaml
+# Generated by /doc-index
+_meta: {schema: "1.0.0", generated: "YYYY-MM-DD"}
+```
+
+**cascade** — Document-level impact chains. For each document that references another (from cross-reference data):
+- Group by source doc_id
+- For each target, write a semantic "why" based on the document types:
+  - Known pairs: PRD→SRS ("SRS derives from PRD"), SRS→SDS ("Requirement allocation"), SRS→SVP ("Test case mapping"), SRS→TM ("Threats map to SRS-SEC/SAFE"), etc.
+  - Other pairs: "Referenced in {section heading}" using the line number from the cross-reference
+  - Fallback: "Referenced"
+
+**screen_cascade** — Screen → flow mappings. For screens appearing in 2+ flows, mark as hub screens.
+
+**req_chains** — For each SRS category (SRS-DATA, SRS-CALC, etc.):
+- Find related SI items (from SDS allocation matrix)
+- Find related screens (by SRS category references in screen docs)
+- Find related hazards (from screen frontmatter hazard_ids)
+- Find related test category (TC-{CAT})
+- Find related reference docs
+
+**hazard_map** — From screen frontmatter `hazard_ids`: map each H-NN to affected screens.
+
+#### Step 3G.6: Generate router.yaml
+
+Write `docs/.index/router.yaml`:
+
+```yaml
+# docs/.index/router.yaml
+# Generated by /doc-index
+_meta: {schema: "1.0.0", generated: "YYYY-MM-DD"}
+```
+
+**id_routes** — Auto-discover identifier patterns from documents:
+- `SRS`: compound format `SRS-{CAT}-{NNN}`, source = SRS document, build section_map from SRS `## ` headings
+- `TC`: from SVP document
+- `H`: from risk management reference doc
+- `HUS`: from validation plan
+- `SCR`: directory-based `ui/screens/SCR-{NNN}-*.md`
+- `FLW`: directory-based `ui/flows/FLW-{NNN}-*.md`
+- `SI`: from SDS document, alpha code format `SI-{CODE}`
+- `IF`: from SDS document
+- `T`: from threat model document
+
+**intent_routes** — Keyword → bundle mapping based on which bundles were generated.
+
+**skip** — `[placeholders/*, reports/weekly_report/*, reports/monthly_report/*]`
+
+**Preserve** the existing `id_patterns:` section if present.
+
+### Phase 4: Validate Output
+
+After generating all files:
+1. Verify all 4 files exist in `docs/.index/`
+2. Check that manifest covers all discovered documents
+3. Check that each SI bundle has ≥3 files (SDS + SRS + at least 1 reference)
+4. Check that cross-cutting bundles have reasonable sizes (5-15 files each)
+
+### Phase 5: Report
+
+Present results:
+
+```markdown
+## Document Index Generated
+
+| Metric | Value |
+|--------|-------|
+| Mode | flat/grouped |
+| Total documents | N |
+| manifest.yaml | X bytes |
+| bundles.yaml | Y bytes |
+| graph.yaml | Z bytes |
+| router.yaml | W bytes |
+| SI bundles | N (grouped only) |
+| Workflow bundles | N (grouped only) |
+```
+
+## Policies
+
+### Command-Specific Rules
+
+| Item | Rule |
+|------|------|
+| Scope | Only `.md` files, excluding `.git/` and `docs/.index/` |
+| Custom bundles | `custom:` section in `bundles.yaml` is never overwritten |
+| ID patterns | `id_patterns:` section in `router.yaml` is never overwritten |
+| Code blocks | References inside fenced code blocks are excluded from graph |
+| No scripts | All logic is in SKILL.md — no external scripts |
+
+## How Claude Uses the Index Files
+
+| Scenario | Claude Action |
+|----------|---------------|
+| "What docs exist about X?" | Read router.yaml → match keyword → Read bundles.yaml |
+| "I'm working on feature X" | Read bundles.yaml → find matching bundle → Read docs with line ranges |
+| "I changed file X" | Read graph.yaml → find cascade targets → impact checklist |
+| "What does SRS-CALC-001 say?" | Read router.yaml → id_routes.SRS → section_map.CALC → read exact lines |
+| "Which screens has H-07?" | Read graph.yaml → hazard_map.H-07 → list affected screens |

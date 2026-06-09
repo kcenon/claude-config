@@ -17,7 +17,23 @@ $ErrorActionPreference = 'Stop'
 # GitHub repository settings
 $GitHubUser   = if ($env:GITHUB_USER)   { $env:GITHUB_USER }   else { 'kcenon' }
 $GitHubRepo   = if ($env:GITHUB_REPO)   { $env:GITHUB_REPO }   else { 'claude-config' }
-$GitHubBranch = if ($env:GITHUB_BRANCH) { $env:GITHUB_BRANCH } else { 'main' }
+
+# Pin install source to a release tag for SLSA-aligned supply-chain hardening
+# (#620). Floating refs (e.g. 'main') ship whatever HEAD is at install time,
+# leaving no integrity baseline. GITHUB_BRANCH remains a one-release deprecation
+# alias for the new GITHUB_REF variable.
+if ($env:GITHUB_BRANCH) {
+    Write-Warning "GITHUB_BRANCH is deprecated, use GITHUB_REF"
+}
+$GitHubRef = if ($env:GITHUB_REF) { $env:GITHUB_REF }
+             elseif ($env:GITHUB_BRANCH) { $env:GITHUB_BRANCH }
+             else { 'v1.10.0' }
+
+# Anthropic Claude Code installer pin (#620 — supply-chain parity with bash).
+# The Anthropic-hosted PowerShell installer is pinned by sha256 to prevent
+# MITM substitution. Rotation policy mirrors docs/SUPPLY_CHAIN.md.
+$AnthropicInstallerUrl    = if ($env:ANTHROPIC_INSTALLER_URL) { $env:ANTHROPIC_INSTALLER_URL } else { 'https://claude.ai/install.ps1' }
+$AnthropicInstallerSha256 = if ($env:ANTHROPIC_INSTALLER_SHA256) { $env:ANTHROPIC_INSTALLER_SHA256 } else { 'acc15c3d844b8952e702a24b584d2fdc0b589ee1061c11202529cdd5702711df' }  # pinned 2026-05-09
 
 # Installation directory
 $InstallDir = if ($env:INSTALL_DIR) { $env:INSTALL_DIR } else { Join-Path $HOME 'claude_config_backup' }
@@ -52,6 +68,91 @@ function Test-Dependencies {
     Write-Ok "의존성 확인 완료"
 }
 
+# ── Ensure Claude Code CLI is installed ──────────────────────
+# version-check.ps1, batch-issue-work.ps1 등이 `claude --version` / `claude`
+# 명령을 호출하므로 미설치 시 silent failure가 발생한다. 본 함수는 부트스트랩
+# 시점에 사용자 동의 하에 Anthropic 공식 native installer로 Claude Code CLI를
+# 설치한다.
+# 참고: https://code.claude.com/docs/en/setup
+function Confirm-ClaudeCli {
+    Write-Info "Claude Code CLI 확인 중..."
+
+    if (Get-Command claude -ErrorAction SilentlyContinue) {
+        try {
+            $ccVersion = (& claude --version 2>$null | Select-Object -First 1)
+        }
+        catch {
+            $ccVersion = $null
+        }
+        if ([string]::IsNullOrWhiteSpace($ccVersion)) { $ccVersion = 'version unknown' }
+        Write-Ok "Claude Code CLI 이미 설치됨: $ccVersion"
+        return
+    }
+
+    Write-Warn "Claude Code CLI가 설치되어 있지 않습니다."
+    Write-Host "  Claude Code CLI는 hooks(version-check), batch scripts(issue-work, pr-work) 등이"
+    Write-Host "  의존하는 핵심 도구입니다. 미설치 상태에서는 일부 기능이 동작하지 않습니다."
+    Write-Host ""
+
+    $installClaude = Read-Host "Claude Code CLI를 지금 설치하시겠습니까? (y/n) [기본값: y]"
+    if ([string]::IsNullOrEmpty($installClaude)) { $installClaude = 'y' }
+
+    if ($installClaude -ne 'y') {
+        Write-Warn "Claude Code CLI 설치 건너뜀. 추후 수동 설치:"
+        Write-Host "    irm https://claude.ai/install.ps1 | iex"
+        return
+    }
+
+    # Native installer는 Anthropic 공식 권장 방식이며 백그라운드 자동 업데이트를 지원한다.
+    # 설치 경로: $env:USERPROFILE\.local\bin\claude.exe (Windows) /
+    #           ~/.local/bin/claude (macOS, Linux, WSL)
+    #
+    # Supply-chain hardening (#620): delegates to InstallerFetch.psm1 which
+    # mirrors hooks/lib/installer-fetch.sh. The chained 'irm | iex' pattern is
+    # gone — the script is fetched, sha256-verified, then executed.
+    $modulePath = Join-Path $InstallDir 'hooks' 'lib' 'InstallerFetch.psm1'
+    if (-not (Test-Path -LiteralPath $modulePath)) {
+        Write-Warn "InstallerFetch.psm1 missing at $modulePath — refusing unverified install"
+        return
+    }
+    Import-Module $modulePath -Force -DisableNameChecking
+    Write-Info "Native installer 실행 중: $AnthropicInstallerUrl"
+    $rc = Invoke-InstallerFetchVerifyRun `
+        -Url $AnthropicInstallerUrl `
+        -ExpectedSha256 $AnthropicInstallerSha256 `
+        -Label 'claude-installer'
+    if ($rc -eq 0) {
+        # PATH에 새로 추가된 ~/.local/bin이 아직 반영되지 않았을 수 있다.
+        $localBin = Join-Path $HOME '.local' 'bin'
+        if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+            if (Test-Path $localBin) {
+                $env:PATH = "$localBin$([System.IO.Path]::PathSeparator)$env:PATH"
+            }
+        }
+
+        if (Get-Command claude -ErrorAction SilentlyContinue) {
+            try {
+                $ccVersion = (& claude --version 2>$null | Select-Object -First 1)
+            }
+            catch {
+                $ccVersion = $null
+            }
+            if ([string]::IsNullOrWhiteSpace($ccVersion)) { $ccVersion = 'version unknown' }
+            Write-Ok "Claude Code CLI 설치 완료: $ccVersion"
+            $claudePath = (Get-Command claude -ErrorAction SilentlyContinue).Source
+            if ($claudePath) { Write-Host "  설치 위치: $claudePath" }
+        }
+        else {
+            Write-Warn "Native installer는 종료되었으나 'claude'를 PATH에서 찾을 수 없습니다."
+            Write-Host "  새 PowerShell 세션을 시작하거나 PATH를 갱신하세요."
+        }
+    }
+    else {
+        Write-Warn "Claude Code CLI 자동 설치 실패 (Invoke-InstallerFetchVerifyRun rc=$rc)."
+        Write-Host "  Anthropic 공식 가이드: https://code.claude.com/docs/en/setup"
+    }
+}
+
 # ── Clone repository ─────────────────────────────────────────
 
 function Invoke-CloneRepository {
@@ -69,7 +170,7 @@ function Invoke-CloneRepository {
             Write-Info "기존 디렉토리를 사용합니다. git pull 실행..."
             Push-Location $InstallDir
             try {
-                & git pull origin $GitHubBranch
+                & git pull origin $GitHubRef
             }
             finally {
                 Pop-Location
@@ -78,8 +179,9 @@ function Invoke-CloneRepository {
         }
     }
 
-    & git clone "https://github.com/$GitHubUser/$GitHubRepo.git" $InstallDir
-    Write-Ok "저장소 클론 완료: $InstallDir"
+    # Pinned to GITHUB_REF tag with --depth 1 for bandwidth efficiency.
+    & git clone --branch $GitHubRef --depth 1 "https://github.com/$GitHubUser/$GitHubRepo.git" $InstallDir
+    Write-Ok "저장소 클론 완료: $InstallDir (ref: $GitHubRef)"
 }
 
 # ── Install global settings ──────────────────────────────────
@@ -98,8 +200,15 @@ function Install-GlobalSettings {
         . $manifestHelper
     }
 
+    # Load shared installer prompts (single source of truth, mirrored at
+    # scripts/lib/install-prompts.sh for bash).
+    $promptsModule = Join-Path $InstallDir 'scripts' 'lib' 'InstallPrompts.psm1'
+    if (Test-Path -LiteralPath $promptsModule) {
+        Import-Module $promptsModule -Force -DisableNameChecking
+    }
+
     # Copy files (manifest-guarded: local edits preserved by default)
-    $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'conversation-language.md', 'git-identity.md', 'token-management.md')
+    $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'git-identity.md', 'token-management.md')
     foreach ($gf in $globalFiles) {
         $src  = Join-Path $InstallDir 'global' $gf
         $dest = Join-Path $ClaudeDir $gf
@@ -112,11 +221,70 @@ function Install-GlobalSettings {
             else {
                 Write-Info "$gf 로컬 변경 유지"
             }
-        }
-        else {
+        } else {
             Copy-Item -LiteralPath $src -Destination $ClaudeDir -Force
             Write-Ok "$gf 설치됨"
         }
+    }
+
+    # conversation-language.md 템플릿 처리
+    $tmplPath = Join-Path $InstallDir 'global' 'conversation-language.md.tmpl'
+    if (Test-Path -LiteralPath $tmplPath) {
+        $agentChoice = Show-AgentLanguagePrompt
+        $script:agentLanguage = $agentChoice.Language
+        $displayLang = $agentChoice.Display
+
+        $dest = Join-Path $ClaudeDir "conversation-language.md"
+        if (Invoke-GuardedTemplateCopy -SrcTmpl $tmplPath -Dest $dest -Key "conversation-language.md" -DisplayLang $displayLang) {
+            Write-Ok "conversation-language.md 설치됨 (언어: $displayLang)"
+        } else {
+            Write-Info "conversation-language.md 로컬 변경 유지"
+        }
+    } else {
+        $script:agentLanguage = "korean"
+        # Static-file fallback. The default repo ships only the .tmpl, so this
+        # branch is unreachable in normal use. It exists to support fork users
+        # who replace the .tmpl with a hand-edited static .md — preserving
+        # their file via Invoke-GuardedCopy instead of silently dropping it.
+        $staticMd = Join-Path $InstallDir 'global' 'conversation-language.md'
+        if (Test-Path -LiteralPath $staticMd) {
+            $dest = Join-Path $ClaudeDir 'conversation-language.md'
+            if (Invoke-GuardedCopy -Src $staticMd -Dest $dest -Key "conversation-language.md") {
+                Write-Ok "conversation-language.md 설치됨"
+            } else {
+                Write-Info "conversation-language.md 로컬 변경 유지"
+            }
+        }
+    }
+
+    # Content language policy selection (CLAUDE_CONTENT_LANGUAGE)
+    $contentLanguage = Show-ContentLanguagePrompt
+
+    # Legacy settings.json migration warning (informational only).
+    $null = Show-LegacySettingsWarning -SettingsPath (Join-Path $HOME '.claude/settings.json') -NewSelection $contentLanguage
+
+    # Install global skills and commands.
+    # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
+    # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의
+    # "Skill Aliases" 표에 따라 leading keyword 호출로만 실행된다.
+    $globalSkillsSrc = Join-Path $InstallDir 'global' 'skills'
+    if (Test-Path -LiteralPath $globalSkillsSrc -PathType Container) {
+        $globalSkillsDst = Join-Path $ClaudeDir 'skills'
+        if (-not (Test-Path $globalSkillsDst)) {
+            New-Item -ItemType Directory -Path $globalSkillsDst -Force | Out-Null
+        }
+        Copy-Item -Path "$globalSkillsSrc\*" -Destination $globalSkillsDst -Recurse -Force
+        $skillCount = (Get-ChildItem -Path $globalSkillsDst -Filter SKILL.md -Recurse -ErrorAction SilentlyContinue).Count
+        Write-Ok "글로벌 skills 설치 완료 ($skillCount 개)"
+    }
+    $globalCommandsSrc = Join-Path $InstallDir 'global' 'commands'
+    if (Test-Path -LiteralPath $globalCommandsSrc -PathType Container) {
+        $globalCommandsDst = Join-Path $ClaudeDir 'commands'
+        if (-not (Test-Path $globalCommandsDst)) {
+            New-Item -ItemType Directory -Path $globalCommandsDst -Force | Out-Null
+        }
+        Copy-Item -Path "$globalCommandsSrc\*" -Destination $globalCommandsDst -Recurse -Force
+        Write-Ok "글로벌 commands 설치 완료"
     }
 
     # tmux config installation
@@ -131,7 +299,7 @@ function Install-GlobalSettings {
         Write-Ok "tmux 설정 설치 완료"
     }
 
-    # ccstatusline settings
+    # settings.json (ccstatusline)
     $ccstatuslineSrc = Join-Path $InstallDir 'global' 'ccstatusline'
     if (Test-Path -LiteralPath $ccstatuslineSrc -PathType Container) {
         $ccstatuslineDst = Join-Path $HOME '.config' 'ccstatusline'
@@ -140,6 +308,27 @@ function Install-GlobalSettings {
         }
         Copy-Item -Path (Join-Path $ccstatuslineSrc 'settings.json') -Destination $ccstatuslineDst -Force
         Write-Ok "ccstatusline 설정 설치 완료"
+    }
+
+    # settings.json (Claude Code)
+    # Intentionally bypasses Invoke-GuardedCopy: policy attributes (.language,
+    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
+    # Update-ClaudeSettingsJson (below) injects them and is responsible
+    # for idempotent reset when the policy returns to default ("english").
+    # PARITY: scripts/install.ps1 selects global/settings.windows.json on this
+    # PowerShell installer — its hooks invoke `pwsh -File ...ps1`. Using
+    # global/settings.json here would ship bare `.sh` hook commands that native
+    # Windows cannot execute. Destination filename stays settings.json.
+    $settingsSrc = Join-Path $InstallDir 'global' 'settings.windows.json'
+    if (Test-Path -LiteralPath $settingsSrc) {
+        $settingsDst = Join-Path $ClaudeDir 'settings.json'
+        Copy-Item -Path $settingsSrc -Destination $settingsDst -Force
+
+        if (Update-ClaudeSettingsJson -SettingsPath $settingsDst -AgentLang $script:agentLanguage -ContentLang $contentLanguage) {
+            Write-Ok "settings.json (에이전트: $($script:agentLanguage), 컨텐츠: $contentLanguage) 설치 완료"
+        } else {
+            Write-Ok "settings.json 설치 완료 (기본값)"
+        }
     }
 
     # npm package installation (statusline dependencies)
@@ -282,7 +471,11 @@ function Install-ProjectSettings {
 
 function Invoke-Main {
     Test-Dependencies
+    # Invoke-CloneRepository must run before Confirm-ClaudeCli — the latter
+    # imports hooks/lib/InstallerFetch.psm1 from the just-cloned tag (#620).
+    # Trust root: GITHUB_REF tag → cloned hooks/lib/* → pinned sha256 verify.
     Invoke-CloneRepository
+    Confirm-ClaudeCli
 
     $installType = Select-InstallType
 

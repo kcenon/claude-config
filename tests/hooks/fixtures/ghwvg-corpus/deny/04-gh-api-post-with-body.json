@@ -1,0 +1,6 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "gh api repos/owner/repo/issues -f title=hi -f body=test"
+  }
+}

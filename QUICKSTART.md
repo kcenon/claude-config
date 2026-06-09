@@ -53,6 +53,8 @@ cd ~\claude_config_backup
 .\scripts\install.ps1
 ```
 
+> **Note**: If the `claude` CLI is missing, the installer offers (with consent) to run Anthropic's native installer (`https://claude.ai/install.{sh,ps1}`). Decline to install manually later. See [PREREQUISITES.md → Auto-installed by bootstrap](PREREQUISITES.md#auto-installed-by-bootstrap).
+
 **Selection:**
 ```
 Select installation type:
@@ -171,18 +173,16 @@ See `README.md` for detailed information:
 
 ### Try a skill
 
+> **Two invocation modes.** `/git-status`, `/code-quality`, `/security-audit`, `/performance-review`, `/pr-review` are slash-catalog skills — Claude Code's `/`-autocomplete will suggest them. The workflow-automation set (`issue-work`, `pr-work`, `release`, `issue-create`, `branch-cleanup`, `harness`, `doc-index`, `doc-review`, `implement-all-levels`) is intentionally hidden under `~/.claude/skills/_internal/` and resolved by the **Skill Aliases** table in `global/CLAUDE.md`. Type the keyword as the leading command — the leading `/` is optional, but `/`-autocomplete will not suggest these. See [README → Skills](README.md#skills--what-you-can-do).
+
 ````bash
-# Check your repo status
-/git-status
+# Slash-catalog skills (autocompleted)
+/git-status                              # Check repo status
+/code-quality src/                       # Review code quality
 
-# Review code quality of a file or directory
-/code-quality src/
-
-# Create a well-structured GitHub issue
-/issue-create my-project --type feature
-
-# Automate an issue from start to PR
-/issue-work my-project 42
+# Keyword-aliased skills (no autocomplete; alias table resolves them)
+issue-create my-project --type feature   # leading slash optional
+issue-work my-project 42                 # automate an issue from start to PR
 ````
 
 ### Choose your path

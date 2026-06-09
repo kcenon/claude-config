@@ -82,16 +82,10 @@ function New-LocalClaude {
     }
 }
 
-function Get-PolicyPhrase {
-    # Issue #411: map CLAUDE_CONTENT_LANGUAGE value to a short phrase.
-    # Reads the script-scope $contentLanguage set after the install-type prompt.
-    switch ($script:contentLanguage) {
-        'english'             { return 'English' }
-        'korean_plus_english' { return 'English or Korean' }
-        'any'                 { return 'any language' }
-        default               { return 'English' }
-    }
-}
+# Note: Get-PolicyPhrase is provided by scripts/lib/InstallPrompts.psm1
+# which is imported in the language-prompt section below. The local
+# definition was removed to keep the bash, PowerShell, and drift-test
+# tables in lockstep.
 
 function Invoke-PolicyTemplate {
     # Renders a .md.tmpl file by replacing {{CONTENT_LANGUAGE_POLICY}}
@@ -100,7 +94,10 @@ function Invoke-PolicyTemplate {
         [Parameter(Mandatory)][string]$Source,
         [Parameter(Mandatory)][string]$Destination
     )
-    $phrase = Get-PolicyPhrase
+    $phrase = Get-PolicyPhrase -Policy $script:contentLanguage
+
+    # Note: Agent language substitution is handled by Invoke-GuardedTemplateCopy.
+
     $content = [System.IO.File]::ReadAllText($Source)
     $rendered = $content -replace '\{\{CONTENT_LANGUAGE_POLICY\}\}', $phrase
     $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
@@ -136,6 +133,81 @@ function Test-Administrator {
         return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     } else {
         return ($(id -u) -eq 0)
+    }
+}
+
+# Verify Claude Code CLI presence and offer interactive installation.
+# version-check.ps1 hook and batch-* scripts call `claude --version` / `claude`
+# directly; deploying configuration without the CLI causes silent failures.
+# Uses Anthropic's official native installer (recommended method).
+# Reference: https://code.claude.com/docs/en/setup
+function Confirm-ClaudeCli {
+    Write-Info "Checking Claude Code CLI..."
+
+    if (Get-Command claude -ErrorAction SilentlyContinue) {
+        try {
+            $ccVersion = (& claude --version 2>$null | Select-Object -First 1)
+        }
+        catch {
+            $ccVersion = $null
+        }
+        if ([string]::IsNullOrWhiteSpace($ccVersion)) { $ccVersion = 'version unknown' }
+        Write-Success "Claude Code CLI already installed: $ccVersion"
+        return
+    }
+
+    Write-Warn "Claude Code CLI is not installed."
+    Write-Host "  Hooks (version-check) and batch scripts (issue-work, pr-work) call the"
+    Write-Host "  'claude' command directly. Some features will not work without it."
+    Write-Host ""
+
+    $installClaude = Read-Host "Install Claude Code CLI now? (y/n) [default: y]"
+    if ([string]::IsNullOrEmpty($installClaude)) { $installClaude = 'y' }
+
+    if ($installClaude -ne 'y') {
+        Write-Warn "Skipping Claude Code CLI install. Manual install:"
+        Write-Host "    irm https://claude.ai/install.ps1 | iex"
+        return
+    }
+
+    # Native installer is the official recommended method and supports background auto-update.
+    # Install path: $env:USERPROFILE\.local\bin\claude.exe (Windows) /
+    #               ~/.local/bin/claude (macOS, Linux, WSL)
+    $installerUrl = 'https://claude.ai/install.ps1'
+    Write-Info "Running native installer: $installerUrl"
+    try {
+        $installerScript = Invoke-RestMethod -Uri $installerUrl -ErrorAction Stop
+        Invoke-Expression $installerScript
+
+        # The newly created ~/.local/bin may not yet be on PATH for this session.
+        $localBin = Join-Path $HOME '.local' 'bin'
+        if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+            if (Test-Path $localBin) {
+                $env:PATH = "$localBin$([System.IO.Path]::PathSeparator)$env:PATH"
+            }
+        }
+
+        if (Get-Command claude -ErrorAction SilentlyContinue) {
+            try {
+                $ccVersion = (& claude --version 2>$null | Select-Object -First 1)
+            }
+            catch {
+                $ccVersion = $null
+            }
+            if ([string]::IsNullOrWhiteSpace($ccVersion)) { $ccVersion = 'version unknown' }
+            Write-Success "Claude Code CLI installed: $ccVersion"
+            $claudePath = (Get-Command claude -ErrorAction SilentlyContinue).Source
+            if ($claudePath) { Write-Host "  Install location: $claudePath" }
+        }
+        else {
+            Write-Warn "Native installer finished but 'claude' is not on PATH."
+            Write-Host "  Open a new PowerShell session or refresh your PATH."
+        }
+    }
+    catch {
+        Write-Warn "Claude Code CLI auto-install failed: $($_.Exception.Message)"
+        Write-Host "  Manual install: irm https://claude.ai/install.ps1 | iex"
+        Write-Host "  Or follow the official guide: https://code.claude.com/docs/en/setup"
     }
 }
 
@@ -207,8 +279,15 @@ function Install-Enterprise {
     # Copy rules directory
     $sourceRules = Join-Path $BackupDir "enterprise/rules"
     if (Test-Path $sourceRules) {
-        Copy-Item -Path "$sourceRules\*" -Destination $rulesDir -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Success "rules directory installed"
+        $items = Get-ChildItem -Path $sourceRules
+        if ($items.Count -gt 0) {
+            try {
+                Copy-Item -Path "$sourceRules\*" -Destination $rulesDir -Recurse -Force -ErrorAction Stop
+                Write-Success "rules directory installed"
+            } catch {
+                Write-Err "Failed to copy rules: $_"
+            }
+        }
     }
 
     Write-Success "Enterprise settings installation complete!"
@@ -227,6 +306,10 @@ Write-Host "                                                    " -ForegroundCol
 Write-Host "==================================================" -ForegroundColor Blue
 Write-Host ""
 
+# ── Claude Code CLI presence check ────────────────────────────
+
+Confirm-ClaudeCli
+
 # ── Installation type selection ───────────────────────────────
 
 Write-Info "Select installation type:"
@@ -240,28 +323,23 @@ Write-Host ""
 $installType = Read-Host "Selection (1-5) [default: 3]"
 if ([string]::IsNullOrEmpty($installType)) { $installType = '3' }
 
-# ── Content language policy (CLAUDE_CONTENT_LANGUAGE) ─────────
-# Default "english" preserves current behavior byte-for-byte. The
-# dispatcher falls back to english when the env var is unset, so we skip
-# writing settings.json at all for option 1.
-Write-Host ""
-Write-Info "Select content-language policy (commit / PR / issue validation scope):"
-Write-Host "  1) English (default, identical to current behavior)"
-Write-Host "  2) Korean + English (accept Hangul)"
-Write-Host "  3) Any (skip language validation; AI attribution block stays on)"
-Write-Host ""
+# ── Language selection prompts ────────────────────────────────
+# Single source of truth in scripts/lib/InstallPrompts.psm1 (mirrored by
+# scripts/lib/install-prompts.sh for bash). The simplified UI offers
+# English/Korean only; advanced policies (korean_plus_english, any) remain
+# accepted by the validator but must be set via direct settings.json edit.
+# Only the Global / Enterprise install paths touch settings.json; "english"
+# leaves the dispatcher at its default and skips writing settings.json.
+$promptsModule = Join-Path $ScriptDir 'lib' 'InstallPrompts.psm1'
+Import-Module $promptsModule -Force -DisableNameChecking
 
-$langType = Read-Host "Selection (1-3) [default: 1]"
-if ([string]::IsNullOrEmpty($langType)) { $langType = '1' }
-switch ($langType) {
-    '1'     { $contentLanguage = 'english' }
-    '2'     { $contentLanguage = 'korean_plus_english' }
-    '3'     { $contentLanguage = 'any' }
-    default {
-        Write-Warn "Unknown selection: $langType. Using english."
-        $contentLanguage = 'english'
-    }
-}
+$contentLanguage = Show-ContentLanguagePrompt
+$agentChoice = Show-AgentLanguagePrompt
+$agentLanguage = $agentChoice.Language
+$agentDisplayLang = $agentChoice.Display
+
+# Legacy settings.json migration warning (informational only).
+$null = Show-LegacySettingsWarning -SettingsPath (Join-Path $HOME '.claude/settings.json') -NewSelection $contentLanguage
 
 # ── Enterprise CLAUDE.md conflict detection (issue #411) ───────
 # Enterprise policy takes the highest precedence; warn when the chosen
@@ -306,56 +384,72 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
     $claudeDir = Join-Path $HOME ".claude"
     Ensure-Directory $claudeDir
 
-    # Copy configuration files
-        $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'conversation-language.md', 'git-identity.md', 'token-management.md')
-        foreach ($gf in $globalFiles) {
-            $src = Join-Path $BackupDir "global/$gf"
-            # Issue #411: prefer .tmpl + substitution when present so the
-            # installed file matches the selected content-language policy.
-            $srcTmpl = "$src.tmpl"
-            if (Test-Path $srcTmpl) {
-                Invoke-PolicyTemplate -Source $srcTmpl -Destination (Join-Path $claudeDir $gf)
-                Write-Success "$gf installed (policy phrase: $(Get-PolicyPhrase))"
-            } elseif (Test-Path $src) {
-                Copy-Item -Path $src -Destination $claudeDir -Force
+    # Load install-manifest helper (fail-fast — fallback paths assume this loaded)
+    $manifestHelper = Join-Path $BackupDir 'scripts\install-manifest.ps1'
+    if (-not (Test-Path -LiteralPath $manifestHelper)) {
+        throw "install-manifest.ps1 helper not found at: $manifestHelper"
+    }
+    . $manifestHelper
+
+    # Copy configuration files (manifest-guarded)
+    $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'git-identity.md', 'token-management.md')
+    foreach ($gf in $globalFiles) {
+        $src = Join-Path $BackupDir "global/$gf"
+        # Issue #411: prefer .tmpl + substitution when present
+        $srcTmpl = "$src.tmpl"
+        if (Test-Path $srcTmpl) {
+            # Render to a temporary file using the existing policy substitution
+            $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "policy_$([guid]::NewGuid()).md"
+            Invoke-PolicyTemplate -Source $srcTmpl -Destination $tmpFile
+            if (Invoke-GuardedCopy -Src $tmpFile -Dest (Join-Path $claudeDir $gf) -Key $gf) {
+                Write-Success "$gf installed (policy phrase: $(Get-PolicyPhrase -Policy $script:contentLanguage))"
+            } else {
+                Write-Info "$gf local changes preserved"
+            }
+            Remove-Item -LiteralPath $tmpFile -Force -ErrorAction SilentlyContinue
+        } elseif (Test-Path $src) {
+            if (Invoke-GuardedCopy -Src $src -Dest (Join-Path $claudeDir $gf) -Key $gf) {
                 Write-Success "$gf installed"
+            } else {
+                Write-Info "$gf local changes preserved"
             }
         }
+    }
+
+    # conversation-language.md template rendering.
+    # $agentDisplayLang is populated by Show-AgentLanguagePrompt; fall
+    # back to deriving from $agentLanguage if the prompt was skipped
+    # (e.g. project-only install path).
+    $tmplPath = Join-Path $BackupDir "global/conversation-language.md.tmpl"
+    if (Test-Path $tmplPath) {
+        if (-not $agentDisplayLang) {
+            $agentDisplayLang = if ($agentLanguage -eq 'english') { 'English' } else { 'Korean' }
+        }
+
+        if (Invoke-GuardedTemplateCopy -SrcTmpl $tmplPath -Dest (Join-Path $claudeDir "conversation-language.md") -Key "conversation-language.md" -DisplayLang $agentDisplayLang) {
+            Write-Success "conversation-language.md installed (Language: $agentDisplayLang)"
+        } else {
+            Write-Info "conversation-language.md local changes preserved"
+        }
+    }
 
     # Install settings.windows.json as settings.json
+    # Intentionally bypasses Invoke-GuardedCopy: policy attributes (.language,
+    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
+    # Update-ClaudeSettingsJson (below) injects them and is responsible
+    # for idempotent reset when the policy returns to default ("english").
     $settingsSource = Join-Path $BackupDir "global/settings.windows.json"
     if (Test-Path $settingsSource) {
         $destSettings = Join-Path $claudeDir "settings.json"
         Copy-Item -Path $settingsSource -Destination $destSettings -Force
         Write-Success "Hook settings (settings.json) installed! [Windows version]"
 
-        # Write CLAUDE_CONTENT_LANGUAGE under env only when the user chose
-        # a non-default policy. "english" matches the dispatcher default so
-        # touching the file would add churn for no behavior change.
-        if ($contentLanguage -ne 'english') {
-            try {
-                $settingsObj = Get-Content -Raw -LiteralPath $destSettings | ConvertFrom-Json
-                if (-not $settingsObj.PSObject.Properties.Name -contains 'env') {
-                    $settingsObj | Add-Member -NotePropertyName 'env' -NotePropertyValue ([PSCustomObject]@{})
-                }
-                if (-not $settingsObj.env) {
-                    $settingsObj.env = [PSCustomObject]@{}
-                }
-                if ($settingsObj.env.PSObject.Properties.Name -contains 'CLAUDE_CONTENT_LANGUAGE') {
-                    $settingsObj.env.CLAUDE_CONTENT_LANGUAGE = $contentLanguage
-                } else {
-                    $settingsObj.env | Add-Member -NotePropertyName 'CLAUDE_CONTENT_LANGUAGE' -NotePropertyValue $contentLanguage -Force
-                }
-                ($settingsObj | ConvertTo-Json -Depth 32) | Set-Content -LiteralPath $destSettings -Encoding UTF8
-                Write-Success "CLAUDE_CONTENT_LANGUAGE=$contentLanguage written to settings.json"
-            }
-            catch {
-                Write-Warn "Failed to write CLAUDE_CONTENT_LANGUAGE automatically: $_"
-                Write-Host "  Add this manually to ~/.claude/settings.json under env:"
-                Write-Host "    `"CLAUDE_CONTENT_LANGUAGE`": `"$contentLanguage`""
-            }
+        # Write CLAUDE_CONTENT_LANGUAGE under env, and update agent language
+        if (Update-ClaudeSettingsJson -SettingsPath $destSettings -AgentLang $agentLanguage -ContentLang $contentLanguage) {
+            Write-Success "settings.json updated with language=$agentLanguage and CLAUDE_CONTENT_LANGUAGE=$contentLanguage"
         } else {
-            Write-Info "CLAUDE_CONTENT_LANGUAGE=english (default; settings.json unchanged)"
+            Write-Warn "Failed to automatically update settings.json"
+            Write-Host "  Please update ~/.claude/settings.json manually with language settings."
         }
     }
 
@@ -372,23 +466,70 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         $hooksDir = Join-Path $claudeDir "hooks"
         Ensure-Directory $hooksDir
 
-        Copy-Item -Path "$hooksSource\*.ps1" -Destination $hooksDir -Force -ErrorAction SilentlyContinue
+        try {
+            $ps1Items = Get-ChildItem -Path $hooksSource -Filter '*.ps1' -File
+            if ($ps1Items.Count -gt 0) {
+                Copy-Item -Path "$hooksSource\*.ps1" -Destination $hooksDir -Force -ErrorAction Stop
+            }
+        } catch {
+            Write-Err "Failed to copy hook scripts: $_"
+        }
         Get-ChildItem -Path $hooksSource -Filter '*.sh' -File -ErrorAction SilentlyContinue | ForEach-Object {
             Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $hooksDir $_.Name)
         }
 
+        # Deploy global/hooks/lib/ shared libraries (.sh, .ps1, .psm1).
+        # PARITY: install.sh:617-627 must mirror this block. Both installers
+        # share the same destination ~/.claude/hooks/lib/. See issue #586 —
+        # install.sh previously skipped this directory because its top-level
+        # *.sh glob is non-recursive. Do not remove either side without a
+        # cross-platform regression check (see scripts/verify.{sh,ps1}).
         $hooksLibSource = Join-Path $hooksSource 'lib'
         if (Test-Path $hooksLibSource) {
             $hooksLibDir = Join-Path $hooksDir 'lib'
             Ensure-Directory $hooksLibDir
-            Copy-Item -Path "$hooksLibSource\*.ps1" -Destination $hooksLibDir -Force -ErrorAction SilentlyContinue
-            Copy-Item -Path "$hooksLibSource\*.psm1" -Destination $hooksLibDir -Force -ErrorAction SilentlyContinue
+            try {
+                $ps1Items = Get-ChildItem -Path $hooksLibSource -Filter '*.ps1' -File
+                if ($ps1Items.Count -gt 0) {
+                    Copy-Item -Path "$hooksLibSource\*.ps1" -Destination $hooksLibDir -Force -ErrorAction Stop
+                }
+                $psm1Items = Get-ChildItem -Path $hooksLibSource -Filter '*.psm1' -File
+                if ($psm1Items.Count -gt 0) {
+                    Copy-Item -Path "$hooksLibSource\*.psm1" -Destination $hooksLibDir -Force -ErrorAction Stop
+                }
+            } catch {
+                Write-Err "Failed to copy hook lib scripts: $_"
+            }
             Get-ChildItem -Path $hooksLibSource -Filter '*.sh' -File -ErrorAction SilentlyContinue | ForEach-Object {
                 Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $hooksLibDir $_.Name)
             }
         }
 
-        Copy-Item -Path "$hooksSource\*.json" -Destination $hooksDir -Force -ErrorAction SilentlyContinue
+        # Shared bash validator library (issue #447 Phase 1). Mirrors the
+        # install.sh block that copies repo-root hooks/lib/*.sh into
+        # ~/.claude/hooks/lib/. pr-language-guard.sh and commit-message-guard.sh
+        # source this library at runtime; without it the hooks fall back to the
+        # inline english-only dispatcher regardless of CLAUDE_CONTENT_LANGUAGE.
+        $sharedLibSource = Join-Path $BackupDir 'hooks/lib'
+        if (Test-Path $sharedLibSource) {
+            $hooksLibDir = Join-Path $hooksDir 'lib'
+            Ensure-Directory $hooksLibDir
+            foreach ($lib in @('validate-commit-message.sh', 'validate-language.sh')) {
+                $libSrc = Join-Path $sharedLibSource $lib
+                if (Test-Path $libSrc) {
+                    Install-BashScript -SourcePath $libSrc -DestinationPath (Join-Path $hooksLibDir $lib)
+                }
+            }
+        }
+
+        try {
+            $jsonItems = Get-ChildItem -Path $hooksSource -Filter '*.json' -File
+            if ($jsonItems.Count -gt 0) {
+                Copy-Item -Path "$hooksSource\*.json" -Destination $hooksDir -Force -ErrorAction Stop
+            }
+        } catch {
+            Write-Err "Failed to copy json configurations: $_"
+        }
 
         Write-Success "Hook scripts installed (hooks/*.ps1 + *.sh + lib/ + *.json)!"
 
@@ -421,12 +562,35 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         $scriptsDir = Join-Path $claudeDir "scripts"
         Ensure-Directory $scriptsDir
 
-        Copy-Item -Path "$scriptsSource\*.ps1" -Destination $scriptsDir -Force -ErrorAction SilentlyContinue
+        try {
+            $ps1Items = Get-ChildItem -Path $scriptsSource -Filter '*.ps1' -File
+            if ($ps1Items.Count -gt 0) {
+                Copy-Item -Path "$scriptsSource\*.ps1" -Destination $scriptsDir -Force -ErrorAction Stop
+            }
+        } catch {
+            Write-Err "Failed to copy utility scripts: $_"
+        }
         Get-ChildItem -Path $scriptsSource -Filter '*.sh' -File -ErrorAction SilentlyContinue | ForEach-Object {
             Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $scriptsDir $_.Name)
         }
 
         Write-Success "Utility scripts installed (scripts/*.ps1 + *.sh)!"
+    }
+
+    # Install policy files (if present).
+    $policiesSource = Join-Path $BackupDir "global/policies"
+    if (Test-Path $policiesSource) {
+        $policiesDir = Join-Path $claudeDir "policies"
+        Ensure-Directory $policiesDir
+        try {
+            $jsonItems = Get-ChildItem -Path $policiesSource -Filter '*.json' -File
+            if ($jsonItems.Count -gt 0) {
+                Copy-Item -Path "$policiesSource\*.json" -Destination $policiesDir -Force -ErrorAction Stop
+            }
+            Write-Success "Policy files (policies/*.json) installed!"
+        } catch {
+            Write-Err "Failed to copy policy files: $_"
+        }
     }
 
     # Hook pairing audit: warn on orphans so Docker-side rewrites don't silently
@@ -444,6 +608,37 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
             Write-Host "  Add the missing variant to global/hooks/ and re-run install.ps1 to fix."
         } else {
             Write-Success "Hook pairing audit passed (all .ps1/.sh stems matched)."
+        }
+    }
+
+    # Install global skills (mirrors install.sh:473-484).
+    # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
+    # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의
+    # "Skill Aliases" 표에 따라 leading keyword 호출로만 실행된다.
+    # `Copy-Item -Path "$src\*"` 패턴으로 _policy.md 같은 루트 레벨 파일까지 복사한다.
+    $skillsSource = Join-Path $BackupDir "global/skills"
+    if (Test-Path $skillsSource) {
+        $skillsDir = Join-Path $claudeDir "skills"
+        Ensure-Directory $skillsDir
+        try {
+            Copy-Item -Path "$skillsSource\*" -Destination $skillsDir -Recurse -Force -ErrorAction Stop
+            $skillCount = (Get-ChildItem -Path $skillsDir -Filter SKILL.md -Recurse -ErrorAction SilentlyContinue).Count
+            Write-Success "Global Skills ($skillCount) installed!"
+        } catch {
+            Write-Err "Failed to copy global skills: $_"
+        }
+    }
+
+    # Install global commands (mirrors install.sh:485-489).
+    $commandsSource = Join-Path $BackupDir "global/commands"
+    if (Test-Path $commandsSource) {
+        $commandsDir = Join-Path $claudeDir "commands"
+        Ensure-Directory $commandsDir
+        try {
+            Copy-Item -Path "$commandsSource\*" -Destination $commandsDir -Recurse -Force -ErrorAction Stop
+            Write-Success "Global Commands installed!"
+        } catch {
+            Write-Err "Failed to copy global commands: $_"
         }
     }
 
@@ -534,7 +729,7 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
         Copy-Item -Path $sourceRules -Destination $projectClaudeDir -Recurse -Force
         # Issue #411: render any .md.tmpl found under rules/ with the chosen policy phrase.
         Invoke-PolicyTemplatesInDir -Path (Join-Path $projectClaudeDir 'rules')
-        Write-Success "Rules directory installed! (policy phrase: $(Get-PolicyPhrase))"
+        Write-Success "Rules directory installed! (policy phrase: $(Get-PolicyPhrase -Policy $script:contentLanguage))"
     }
 
     # Skills directory
@@ -612,6 +807,12 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
     Write-Host "    - ~/.claude/settings.json (Hook settings - Windows)"
     Write-Host "    - ~/.claude/hooks/ (PowerShell + bash hook scripts, lib/, data)"
     Write-Host "    - ~/.claude/scripts/ (PowerShell + bash utility scripts)"
+    if (Test-Path (Join-Path $HOME ".claude/skills")) {
+        Write-Host "    - ~/.claude/skills/ (Global skills — keyword-invoked via CLAUDE.md alias table)"
+    }
+    if (Test-Path (Join-Path $HOME ".claude/commands")) {
+        Write-Host "    - ~/.claude/commands/ (Global commands)"
+    }
     Write-Host "    - ~/.config/ccstatusline/ (ccstatusline settings)"
 }
 

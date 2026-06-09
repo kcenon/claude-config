@@ -2,6 +2,8 @@
 
 This document describes the Hook settings included in claude-config.
 
+> **Authoritative inventory**: the [Auto-Generated Hook Catalog](#auto-generated-hook-catalog) at the bottom of this document is the single source of truth for the list of hooks shipped under `global/hooks/`. It is regenerated from the leading comment block of each hook script by `scripts/gen-hooks-md.sh` and verified in CI by `.github/workflows/validate-hooks-doc.yml`. The narrative sections that follow provide additional context for the most-used hooks but defer to that catalog for the canonical list.
+
 ## Overview
 
 Hooks are user-defined commands that automatically execute during specific Claude Code events.
@@ -27,7 +29,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Restore core principles after context compaction | [Post-Compact Restore](#17-post-compact-restore-postcompact) |
 | Validate task descriptions at creation time | [Task Created Validator](#18-task-created-validator-taskcreated) |
 | Auto-commit working tree after Task/Agent runs | [Post Task/Agent Checkpoint](#19-post-taskagent-checkpoint-posttooluse) |
-| Block Edit/Write on files that weren't Read first | [Pre-edit Read Guard](#20-pre-edit-read-guard-pretoolusepostooluse) |
+| Block Edit/Write on files that weren't Read first | [Pre-edit Read Guard](#20-pre-edit-read-guard-pretooluseposttooluse) |
 | Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
 | Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
 | Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
@@ -99,10 +101,11 @@ Hooks are user-defined commands that automatically execute during specific Claud
 **Trigger**: `git commit` commands only (all other commands pass through)
 
 **How it works**:
-1. Auto-detects markdown directory (`docs/reference/` → `docs/` → `./`)
-2. **Pass 1**: Builds anchor registry from all headings (GitHub-style slug algorithm)
-3. **Pass 2**: Checks all `](#anchor)` and `](file.md#anchor)` references against registry
-4. Blocks commit if broken anchors are found
+1. Collects staged markdown files via `git diff --cached --name-only --diff-filter=d -- '*.md'`
+2. **Pass 1**: Builds the primary anchor registry from headings in those staged files (GitHub-style slug algorithm)
+3. **Pass 2**: Checks all `](#anchor)` (intra-file) and `](file.md#anchor)` (inter-file) references against the registry
+4. **Cross-file fallback**: when an inter-file reference's target is not in the primary registry (i.e. the target file is on disk but not staged), the validator lazy-parses the target file and caches its anchors. The reference passes if and only if the target heading exists. See issue #646 for the rationale — single-file edit PRs that legitimately reference unstaged sibling files must not produce false positives.
+5. Blocks commit if broken anchors are found
 
 **Anchor generation algorithm** (matches GitHub):
 - Strip inline formatting (bold, italic, code, links)
@@ -114,6 +117,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 - Handles Korean/CJK characters in anchors
 - Validates both intra-file and inter-file references
 - Excludes external URLs (detects `:` in path)
+- Lazy cross-file anchor resolution with per-file caching (no double-parse)
 
 **Behavior**:
 - Returns JSON with `permissionDecision: "deny"` listing broken anchors
@@ -252,11 +256,11 @@ Hooks are user-defined commands that automatically execute during specific Claud
 - Advisory only (conflict prevention), not security-critical
 - Cross-platform: `conflict-guard.sh` and `conflict-guard.ps1`
 
-## 12. PR Target Guard (PreToolUse)
+### 12. PR Target Guard (PreToolUse)
 
-*Enforces branching policy: only `develop` may merge into `main`.*
+*Enforces branching policy: only `develop` or a `release/*` branch may merge into the repo default branch (`main`/`master`).*
 
-**Purpose**: Intercepts `gh pr create` commands and blocks those targeting `main` unless the source branch is `develop` (a legitimate release PR).
+**Purpose**: Intercepts `gh pr create` commands and blocks those targeting the default branch (`main`/`master`) unless the source branch is `develop` or `release/*` (a legitimate release PR).
 
 **Trigger**: `Bash` tool calls containing `gh pr create`
 
@@ -265,10 +269,11 @@ Hooks are user-defined commands that automatically execute during specific Claud
 **Logic**:
 1. Scope gate: only process `gh pr create` commands (all others pass through)
 2. Extract `--base` value (`--base main`, `--base=main`, `-B main`)
-3. If `--base main` detected:
-   - Allow if `--head develop` is also present (release PR via `/release`)
-   - Deny otherwise with guidance message
-4. If no `--base` flag: allow (defaults to `develop`)
+3. If no `--base` flag is present, resolve the repo default branch: use `PR_TARGET_GUARD_DEFAULT_BRANCH_OVERRIDE` if set (test injection), else query `gh api repos/{owner}/{repo} --jq .default_branch` (honoring `--repo`/`-R` when supplied). If the default branch cannot be resolved, allow (graceful degradation)
+4. If the resolved base is `main` or `master`:
+   - Allow if the head branch is `develop` or matches `release/*` (legitimate release PR via `/release`)
+   - Deny otherwise with the branching-policy guidance message
+5. Otherwise (base is neither `main` nor `master`): allow
 
 **Fail policy**: Fail-closed (deny if JSON parsing fails)
 
@@ -287,9 +292,9 @@ Hooks are user-defined commands that automatically execute during specific Claud
 
 ### 13. PR Language Guard (PreToolUse)
 
-*Hard-blocks non-English titles and bodies in `gh pr` and `gh issue` commands — eliminates the rule drift that lets Korean PR/issue content slip through in long-running batch workflows.*
+*Hard-blocks `gh pr` and `gh issue` titles/bodies that violate the active `CLAUDE_CONTENT_LANGUAGE` policy — eliminates the rule drift that lets off-policy content slip through in long-running batch workflows.*
 
-**Purpose**: Enforces the "All GitHub Issues and Pull Requests must be written in English" rule from `commit-settings.md` at the Bash tool boundary. Mirrors the `commit-message-guard` enforcement model that proved effective for commit messages.
+**Purpose**: Enforces the per-policy artifact rule from `commit-settings.md` (default policy `english`; other values: `korean_plus_english`, `exclusive_bilingual`, `any`) at the Bash tool boundary. Mirrors the `commit-message-guard` enforcement model that proved effective for commit messages.
 
 **Trigger**: `Bash` tool calls matching `gh (pr|issue) (create|edit|comment)`.
 
@@ -300,11 +305,15 @@ Hooks are user-defined commands that automatically execute during specific Claud
 **Logic**:
 1. Scope gate: only process `gh (pr|issue) (create|edit|comment)` commands (all others pass through). Six combinations are guarded — `gh pr create`, `gh pr edit`, `gh pr comment`, `gh issue create`, `gh issue edit`, `gh issue comment`.
 2. Skip command-substitution / heredoc bodies (`--body "$(...)"`) and `--body-file` references — these cannot be parsed at the shell layer, so the hook defers to other safeguards.
-3. Extract `--title` / `-t` and `--body` / `-b` values, supporting both double-quoted and single-quoted forms and `--flag value` / `--flag=value` layouts.
-4. Reject if any extracted value contains a byte outside ASCII printable (0x20-0x7E) or ASCII whitespace (0x09-0x0D).
-5. Deny reason includes the first offending character so Claude can self-correct (e.g. `first: '한'`).
+3. Extract `--title` / `-t`, `--body` / `-b`, and `--notes` / `-n` values, supporting both double-quoted and single-quoted forms and `--flag value` / `--flag=value` layouts.
+4. Dispatch to `validate_content_language` in `hooks/lib/validate-language.sh`, which selects the active validator from `CLAUDE_CONTENT_LANGUAGE` (default `english`).
+5. Deny reason includes the first offending substring and references `commit-settings.md` so Claude can self-correct under whichever policy is active.
 
-**Allowed characters**: ASCII printable (0x20-0x7E) and ASCII whitespace (tab, LF, VT, FF, CR). Anything else — accented Latin, CJK, emoji, symbols outside ASCII — is blocked.
+**Allowed characters (depends on `CLAUDE_CONTENT_LANGUAGE`)**:
+- `english` (default): ASCII printable + whitespace + allowlisted English typographic punctuation (em-dash, en-dash, curly quotes, ellipsis, NBSP).
+- `korean_plus_english`: ASCII + Hangul Syllables / Jamo / Compat Jamo, mixed inline.
+- `exclusive_bilingual`: per-artifact — English-only **or** Korean-only (Korean side allows fenced code, inline code, URLs, and the `한국어(English)` translation form as ASCII containers).
+- `any`: validation skipped.
 
 **Not covered**: `gh pr review --body` is intentionally not guarded (review comments may have different tone/content needs and would warrant a separate policy decision).
 
@@ -331,7 +340,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
   "hookSpecificOutput": {
     "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
-    "permissionDecisionReason": "PR/issue --body rejected: Text contains non-ASCII characters (first run: '한국어'). GitHub Issues and Pull Requests must be written in English only — see commit-settings.md."
+    "permissionDecisionReason": "PR/issue --body rejected: Text contains Korean (Hangul) characters (first run: '한국어'). Active CLAUDE_CONTENT_LANGUAGE='english' rejects this artifact. To allow Korean, set CLAUDE_CONTENT_LANGUAGE=exclusive_bilingual or korean_plus_english. See commit-settings.md."
   }
 }
 ```
@@ -392,34 +401,48 @@ A diagnostic is written to stderr in each fail-open case so the user can see why
 
 ### 15. Attribution Guard (PreToolUse)
 
-*Hard-blocks AI/Claude attribution markers (Co-Authored-By: Claude, "Generated with Claude", Anthropic, etc.) in `gh pr` and `gh issue` titles and bodies — extends the existing commit-message attribution check to PR/issue text.*
+*Hard-blocks AI/Claude attribution markers (`Co-Authored-By: Claude`, `🤖 Claude`, "Generated with Claude", etc.) in PR/issue/release artifacts created via the `gh` CLI — closes the channels the commit-message guard cannot reach.*
 
-**Purpose**: Enforces the "No AI/Claude attribution in commits, issues, or PRs" rule from `commit-settings.md`. The existing `commit-message-guard` only inspects `git commit -m` messages; PR and issue bodies created via `gh` previously bypassed it. This hook closes that gap by gating the same Bash boundary that `pr-language-guard` uses.
+**Purpose**: Enforces the "No AI/Claude attribution in commits, issues, or PRs" rule from `commit-settings.md`. The existing `commit-message-guard` only inspects `git commit -m` messages; PR titles/bodies, issue titles/bodies, PR review bodies, and release notes created via `gh` previously bypassed it. This hook closes that gap by gating the same Bash boundary that `pr-language-guard` uses.
 
-**Trigger**: `Bash` tool calls matching `gh (pr|issue) (create|edit|comment)`.
+**Trigger**: `Bash` tool calls matching one of:
+- `gh pr (create|edit|comment|review)` — `--title`, `--body`
+- `gh issue (create|edit|comment)` — `--title`, `--body`
+- `gh release (create|edit)` — `--notes` (`-n` short flag also supported)
+
+Issue #480 extended scope from `gh (pr|issue) (create|edit|comment)` to include `pr review` and `release create|edit`. The `--notes` channel was the largest remaining attribution leak, since release notes are highly visible artifacts.
 
 **Files**: `global/hooks/attribution-guard.sh`, `global/hooks/attribution-guard.ps1`
 
-**Shared validation library**: `hooks/lib/validate-commit-message.sh` exposes `CMV_ATTRIBUTION_REGEX` and `validate_no_attribution()` — the same regex used by `commit-message-guard` for git commit messages. Both bash hooks source this single source of truth so attribution rules stay in lockstep across enforcement layers. The PowerShell variant inlines the equivalent regex (since the bash library cannot be sourced from PowerShell); update both when changing the pattern.
+**Shared validation library**: `hooks/lib/validate-commit-message.sh` exposes `CMV_ATTRIBUTION_TRAILER_REGEX`, `CMV_ATTRIBUTION_EMOJI_REGEX`, `CMV_ATTRIBUTION_PROSE_REGEX`, and the unified `validate_no_attribution()` function. Both bash hooks source this single source of truth so attribution rules stay in lockstep across enforcement layers. The PowerShell variant inlines equivalent patterns; update both when changing the design.
 
-**Patterns blocked** (case-insensitive):
-- `claude` (any standalone occurrence)
-- `anthropic`
-- `ai-assisted`
-- `co-authored-by: claude` (with optional whitespace)
-- `generated with` (matches "Generated with Claude Code" etc.)
+**Three-pattern design** (issue #480 — replaces the earlier broad case-insensitive prose match that produced false positives on legitimate technical writing):
+
+1. **Trailer-style attribution** anchored at the start of any line:
+   - `Co-Authored-By: Claude`, `Co-Author: Anthropic`
+   - `Generated-by: Claude`, `Generated by: Claude`
+   - `Created-by: Anthropic`, `Authored-by: Claude`
+   - `Signed-Off-By: Claude`, `Assisted-By: AI-Assisted`
+2. **Bot emoji** directly adjacent to Claude/Anthropic:
+   - `🤖 Claude`, `🤖 generated by Anthropic`
+3. **`Generated|Created|Authored|Written {with|by|using} {Claude|Anthropic|AI-Assistant}`** prose:
+   - "Generated with Claude", "Created by Anthropic", "Written using AI-Assistant"
+
+**Allowed (deliberately) — false-positive prevention**:
+- Casual technical mentions: "feat: add Claude API integration", "fix: anthropic SDK fallback", "Compatible with Claude 4.7 models"
+- These describe what the code interacts with, not who authored the change. Blocking them was the most-reported friction in the prior broad-regex design.
 
 **Logic**:
-1. Scope gate: only process `gh (pr|issue) (create|edit|comment)` commands. Six combinations are guarded: `gh pr create|edit|comment`, `gh issue create|edit|comment`.
-2. Skip command-substitution / heredoc bodies (`--body "$(...)"`) and `--body-file` references — these cannot be parsed at the shell layer.
-3. Extract `--title` / `-t` and `--body` / `-b` values supporting double-quoted, single-quoted, and `--flag value` / `--flag=value` layouts.
-4. Pass each value through `validate_no_attribution()`. Reject if the regex matches.
+1. Scope gate: only process the extended `gh` subcommand set above.
+2. Skip command-substitution / heredoc bodies (`--body "$(...)"`, `--notes "$(...)"`) and file-based references (`--body-file`, `--notes-file`, `-F`) — these cannot be parsed at the shell layer.
+3. Extract `--title`/`-t`, `--body`/`-b`, `--notes`/`-n` using bash native `[[ =~ ]]` so multi-line values match correctly.
+4. Pass each value through `validate_no_attribution()`. Reject on match from any of the three patterns; the deny reason names which pattern fired.
 
 **Fail policy**: Fail-open. If stdin parsing fails or the command is unrecognized, the hook returns `allow`. The `commit-msg` git hook and `commit-message-guard` PreToolUse hook remain as additional layers for committed content.
 
 **Behavior**:
 - Returns JSON with `permissionDecision: "deny"` when attribution is detected
-- Defers to other layers for command-substitution and `--body-file` cases
+- Defers to other layers for command-substitution and file-based cases
 - Timeout: 5 seconds
 - Cross-platform: `attribution-guard.sh` and `attribution-guard.ps1`
 
@@ -438,7 +461,7 @@ A diagnostic is written to stderr in each fail-open case so the user can see why
   "hookSpecificOutput": {
     "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
-    "permissionDecisionReason": "PR/issue --body rejected: Text contains AI/Claude attribution (claude, anthropic, ai-assisted, generated with, co-authored-by: claude). Remove attribution before submitting."
+    "permissionDecisionReason": "release --notes rejected: Text contains AI/Claude attribution trailer (Co-Authored-By: / Generated-by: / Authored-by: Claude or Anthropic). Remove the trailer before submitting."
   }
 }
 ```
@@ -447,7 +470,7 @@ A diagnostic is written to stderr in each fail-open case so the user can see why
 
 *Re-asserts critical policy (commit-settings, branching, conventional commits) immediately after `CLAUDE.md` and `.claude/rules/*.md` are loaded — closes the gap where long sessions drift away from policy that lives only in the system prompt.*
 
-**Purpose**: Inject a policy-reinforcement block right after Claude finishes loading instruction files. The block restates AI-attribution prohibition, English-only PR/issue rule, branching policy, and Conventional Commits format so they remain in active context even when the original instruction files scroll out.
+**Purpose**: Inject a policy-reinforcement block right after Claude finishes loading instruction files. The block restates AI-attribution prohibition, the active `CLAUDE_CONTENT_LANGUAGE` PR/issue rule (resolved from `commit-settings.md`), branching policy, and Conventional Commits format so they remain in active context even when the original instruction files scroll out.
 
 **Trigger**: `InstructionsLoaded` event — fires once per session, after `CLAUDE.md` / `.claude/rules/*.md` have been ingested.
 
@@ -486,7 +509,7 @@ A diagnostic is written to stderr in each fail-open case so the user can see why
 {
   "hookSpecificOutput": {
     "hookEventName": "InstructionsLoaded",
-    "additionalContext": "## Critical Policy Reinforcement (auto-injected after instruction load)\n\n# Commit, Issue, and PR Settings\n\nNo AI/Claude attribution in commits, issues, or PRs.\nAll GitHub Issues and Pull Requests must be written in English.\n\n## Branching\n\n- Default working branch: `develop`. Never push directly to `main` or `develop`.\n..."
+    "additionalContext": "## Critical Policy Reinforcement (auto-injected after instruction load)\n\n# Commit, Issue, and PR Settings\n\nNo AI/Claude attribution in commits, issues, or PRs.\nAll GitHub Issues and Pull Requests follow the active CLAUDE_CONTENT_LANGUAGE policy (values: english | korean_plus_english | exclusive_bilingual | any; default: english). See commit-settings.md for the per-policy artifact rule.\n\n## Branching\n\n- Default working branch: `develop`. Never push directly to `main` or `develop`.\n..."
   }
 }
 ```
@@ -964,3 +987,680 @@ which clang-format
 
 - [Claude Code Hooks Official Documentation](https://code.claude.com/docs/en/hooks)
 - [Settings Official Documentation](https://code.claude.com/docs/en/settings)
+
+<!-- BEGIN AUTO-GENERATED HOOKS -->
+
+<!-- This section is regenerated by scripts/gen-hooks-md.sh.
+     Do not edit by hand — your changes will be overwritten.
+     To update: edit the leading comment block of the
+     relevant `global/hooks/*.sh` script and re-run the
+     generator. -->
+
+## Auto-Generated Hook Catalog
+
+The catalog below is built from the leading comment block
+of each hook script under `global/hooks/`. It is the
+authoritative listing — the hand-written sections elsewhere
+in this document provide narrative context but defer to
+this catalog for the canonical hook inventory.
+
+### Index
+
+| Hook | Hook Type | PowerShell |
+|---|---|---|
+| [`attribution-guard.sh`](#attribution-guard) | PreToolUse (Bash) | yes |
+| [`bash-sensitive-read-guard.sh`](#bash-sensitive-read-guard) | PreToolUse (Bash) | yes |
+| [`bash-write-guard.sh`](#bash-write-guard) | PreToolUse (Bash) | yes |
+| [`cleanup.sh`](#cleanup) | SessionEnd | yes |
+| [`commit-message-guard.sh`](#commit-message-guard) | PreToolUse (Bash) | yes |
+| [`config-change-logger.sh`](#config-change-logger) | ConfigChange | yes |
+| [`conflict-guard.sh`](#conflict-guard) | PreToolUse (Bash) | yes |
+| [`cwd-change-logger.sh`](#cwd-change-logger) | CwdChanged | yes |
+| [`dangerous-command-guard.sh`](#dangerous-command-guard) | PreToolUse (Bash) | yes |
+| [`gh-write-verb-guard.sh`](#gh-write-verb-guard) | PreToolUse (Bash) | yes |
+| [`github-api-preflight.sh`](#github-api-preflight) | PreToolUse (Bash) | yes |
+| [`instructions-loaded-reinforcer.sh`](#instructions-loaded-reinforcer) | InstructionsLoaded (sync) | yes |
+| [`markdown-anchor-validator.sh`](#markdown-anchor-validator) | PreToolUse (Bash) | yes |
+| [`memory-access-logger.sh`](#memory-access-logger) | PostToolUse (Read) | yes |
+| [`memory-integrity-check.sh`](#memory-integrity-check) | SessionStart (sync) | yes |
+| [`memory-write-guard.sh`](#memory-write-guard) | PreToolUse (Edit|Write) | yes |
+| [`merge-gate-guard.sh`](#merge-gate-guard) | PreToolUse (Bash) | yes |
+| [`permission-denial-logger.sh`](#permission-denial-logger) | PermissionDenied | yes |
+| [`post-compact-restore.sh`](#post-compact-restore) | PostCompact (sync) | yes |
+| [`post-task-checkpoint.sh`](#post-task-checkpoint) | PostToolUse | yes |
+| [`pr-language-guard.sh`](#pr-language-guard) | PreToolUse (Bash) | yes |
+| [`pr-target-guard.sh`](#pr-target-guard) | PreToolUse (Bash) | yes |
+| [`pre-compact-snapshot.sh`](#pre-compact-snapshot) | PreCompact (async) | yes |
+| [`pre-edit-read-guard.sh`](#pre-edit-read-guard) | PreToolUse (Edit|Write) + PostToolUse (Read) | yes |
+| [`prompt-validator.sh`](#prompt-validator) | UserPromptSubmit | yes |
+| [`sensitive-file-guard.sh`](#sensitive-file-guard) | PreToolUse (Edit|Write|Read) | yes |
+| [`session-logger.sh`](#session-logger) | SessionStart, SessionEnd, Stop, TeammateIdle | yes |
+| [`subagent-logger.sh`](#subagent-logger) | SubagentStart, SubagentStop | yes |
+| [`task-completed-logger.sh`](#task-completed-logger) | TaskCompleted | yes |
+| [`task-created-validator.sh`](#task-created-validator) | TaskCreated (sync, blocking) | yes |
+| [`team-limit-guard.sh`](#team-limit-guard) | PreToolUse (TeamCreate) | yes |
+| [`tool-failure-logger.sh`](#tool-failure-logger) | PostToolUseFailure | yes |
+| [`traceability-guard.sh`](#traceability-guard) | PreToolUse (Bash) | yes |
+| [`version-check.sh`](#version-check) | SessionStart | yes |
+| [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
+| [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
+
+_Total: 36 bash hooks, 36 with PowerShell counterparts._
+
+### Hook Details
+
+### attribution-guard
+
+_File:_ `attribution-guard.sh`
+
+_Anchor:_ `#attribution-guard`
+
+Blocks gh pr/issue/release commands whose user-facing text fields contain AI/Claude attribution markers. Scope (Issue #480 extended): pr create|edit|comment|review, issue create|edit|comment, release create|edit.
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | hookSpecificOutput with hookEventName |
+| PowerShell counterpart | present (`attribution-guard.ps1`) |
+| Source | `global/hooks/attribution-guard.sh` |
+
+### bash-sensitive-read-guard
+
+_File:_ `bash-sensitive-read-guard.sh`
+
+_Anchor:_ `#bash-sensitive-read-guard`
+
+Blocks reading sensitive files via the Bash tool channel.
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | hookSpecificOutput with hookEventName |
+| PowerShell counterpart | present (`bash-sensitive-read-guard.ps1`) |
+| Source | `global/hooks/bash-sensitive-read-guard.sh` |
+
+### bash-write-guard
+
+_File:_ `bash-write-guard.sh`
+
+_Anchor:_ `#bash-write-guard`
+
+Enforces the "Read before Edit/Write" invariant on the Bash tool channel.
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | — |
+| PowerShell counterpart | present (`bash-write-guard.ps1`) |
+| Source | `global/hooks/bash-write-guard.sh` |
+
+### cleanup
+
+_File:_ `cleanup.sh`
+
+_Anchor:_ `#cleanup`
+
+Cleans up temporary files created during session
+
+| Field | Value |
+|---|---|
+| Hook Type | SessionEnd |
+| Trigger / Matcher | — |
+| Exit codes | 0=success |
+| Response format | none (lifecycle event, no JSON output needed) |
+| PowerShell counterpart | present (`cleanup.ps1`) |
+| Source | `global/hooks/cleanup.sh` |
+
+### commit-message-guard
+
+_File:_ `commit-message-guard.sh`
+
+_Anchor:_ `#commit-message-guard`
+
+Deterministic git commit message validator
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | hookSpecificOutput with hookEventName |
+| PowerShell counterpart | present (`commit-message-guard.ps1`) |
+| Source | `global/hooks/commit-message-guard.sh` |
+
+### config-change-logger
+
+_File:_ `config-change-logger.sh`
+
+_Anchor:_ `#config-change-logger`
+
+Logs configuration file changes during session
+
+| Field | Value |
+|---|---|
+| Hook Type | ConfigChange |
+| Trigger / Matcher | — |
+| Exit codes | — |
+| Response format | none (lifecycle event, no JSON output needed) |
+| PowerShell counterpart | present (`config-change-logger.ps1`) |
+| Source | `global/hooks/config-change-logger.sh` |
+
+### conflict-guard
+
+_File:_ `conflict-guard.sh`
+
+_Anchor:_ `#conflict-guard`
+
+Guards against git operations that could cause conflicts
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | hookSpecificOutput with hookEventName |
+| PowerShell counterpart | present (`conflict-guard.ps1`) |
+| Source | `global/hooks/conflict-guard.sh` |
+
+### cwd-change-logger
+
+_File:_ `cwd-change-logger.sh`
+
+_Anchor:_ `#cwd-change-logger`
+
+Logs working-directory changes during a session for audit trails.
+
+| Field | Value |
+|---|---|
+| Hook Type | CwdChanged |
+| Trigger / Matcher | — |
+| Exit codes | — |
+| Response format | none (observation-only event; CwdChanged cannot block, exit 2 only shows stderr) |
+| PowerShell counterpart | present (`cwd-change-logger.ps1`) |
+| Source | `global/hooks/cwd-change-logger.sh` |
+
+### dangerous-command-guard
+
+_File:_ `dangerous-command-guard.sh`
+
+_Anchor:_ `#dangerous-command-guard`
+
+Blocks dangerous bash commands and records every decision.
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | hookSpecificOutput with hookEventName |
+| PowerShell counterpart | present (`dangerous-command-guard.ps1`) |
+| Source | `global/hooks/dangerous-command-guard.sh` |
+
+### gh-write-verb-guard
+
+_File:_ `gh-write-verb-guard.sh`
+
+_Anchor:_ `#gh-write-verb-guard`
+
+Narrows the `gh` CLI surface on the Bash channel:
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | — |
+| PowerShell counterpart | present (`gh-write-verb-guard.ps1`) |
+| Source | `global/hooks/gh-write-verb-guard.sh` |
+
+### github-api-preflight
+
+_File:_ `github-api-preflight.sh`
+
+_Anchor:_ `#github-api-preflight`
+
+Checks GitHub API connectivity before executing GitHub-related commands
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON, warning only) |
+| Response format | hookSpecificOutput with hookEventName |
+| PowerShell counterpart | present (`github-api-preflight.ps1`) |
+| Source | `global/hooks/github-api-preflight.sh` |
+
+### instructions-loaded-reinforcer
+
+_File:_ `instructions-loaded-reinforcer.sh`
+
+_Anchor:_ `#instructions-loaded-reinforcer`
+
+Re-asserts critical policy after CLAUDE.md / .claude/rules/*.md loads.
+
+| Field | Value |
+|---|---|
+| Hook Type | InstructionsLoaded (sync) |
+| Trigger / Matcher | sync |
+| Exit codes | 0 (always — context is delivered via JSON) |
+| Response format | hookSpecificOutput.additionalContext |
+| PowerShell counterpart | present (`instructions-loaded-reinforcer.ps1`) |
+| Source | `global/hooks/instructions-loaded-reinforcer.sh` |
+
+### markdown-anchor-validator
+
+_File:_ `markdown-anchor-validator.sh`
+
+_Anchor:_ `#markdown-anchor-validator`
+
+Validates markdown anchor references before git commit
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | hookSpecificOutput with hookEventName |
+| PowerShell counterpart | present (`markdown-anchor-validator.ps1`) |
+| Source | `global/hooks/markdown-anchor-validator.sh` |
+
+### memory-access-logger
+
+_File:_ `memory-access-logger.sh`
+
+_Anchor:_ `#memory-access-logger`
+
+Logs Claude Code Read tool calls targeting memory files (path only).
+
+| Field | Value |
+|---|---|
+| Hook Type | PostToolUse (Read) |
+| Trigger / Matcher | Read |
+| Exit codes | 0 (always — this is a passive logger; failure must NOT affect tool flow) |
+| Response format | empty stdout (PostToolUse cannot influence the past tool call) |
+| PowerShell counterpart | present (`memory-access-logger.ps1`) |
+| Source | `global/hooks/memory-access-logger.sh` |
+
+### memory-integrity-check
+
+_File:_ `memory-integrity-check.sh`
+
+_Anchor:_ `#memory-integrity-check`
+
+Prints a brief memory health summary at SessionStart. Reads ~/.claude/memory-shared/ metadata only -- no network, no validators.
+
+| Field | Value |
+|---|---|
+| Hook Type | SessionStart (sync) |
+| Trigger / Matcher | sync |
+| Exit codes | 0 always (SessionStart must never block the session) |
+| Response format | — |
+| PowerShell counterpart | present (`memory-integrity-check.ps1`) |
+| Source | `global/hooks/memory-integrity-check.sh` |
+
+### memory-write-guard
+
+_File:_ `memory-write-guard.sh`
+
+_Anchor:_ `#memory-write-guard`
+
+Validates Claude Code Edit/Write tool calls targeting memory files BEFORE disk write.
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Edit|Write) |
+| Trigger / Matcher | Edit|Write |
+| Exit codes | 0 (always — decision is encoded in JSON response) |
+| Response format | hookSpecificOutput with hookEventName "PreToolUse" |
+| PowerShell counterpart | present (`memory-write-guard.ps1`) |
+| Source | `global/hooks/memory-write-guard.sh` |
+
+### merge-gate-guard
+
+_File:_ `merge-gate-guard.sh`
+
+_Anchor:_ `#merge-gate-guard`
+
+Blocks gh pr merge commands when any PR check is not passing.
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | hookSpecificOutput with hookEventName |
+| Fail policy | FAIL-OPEN on gh CLI errors. If gh is missing, unauthenticated, |
+| PowerShell counterpart | present (`merge-gate-guard.ps1`) |
+| Source | `global/hooks/merge-gate-guard.sh` |
+
+### permission-denial-logger
+
+_File:_ `permission-denial-logger.sh`
+
+_Anchor:_ `#permission-denial-logger`
+
+Appends a redacted JSONL audit record for every denied tool call.
+
+| Field | Value |
+|---|---|
+| Hook Type | PermissionDenied |
+| Trigger / Matcher | — |
+| Exit codes | 0 (always — passive logger, never alters the permission decision) |
+| Response format | none (observation-only event; no JSON emitted, never blocks) |
+| Fail policy | best-effort; logging failures are swallowed and never surface |
+| PowerShell counterpart | present (`permission-denial-logger.ps1`) |
+| Source | `global/hooks/permission-denial-logger.sh` |
+
+### post-compact-restore
+
+_File:_ `post-compact-restore.sh`
+
+_Anchor:_ `#post-compact-restore`
+
+Re-injects core/principles.md after automatic context compaction. Pairs with pre-compact-snapshot.sh (PreCompact event).
+
+| Field | Value |
+|---|---|
+| Hook Type | PostCompact (sync) |
+| Trigger / Matcher | sync |
+| Exit codes | 0 (always — context delivered via JSON) |
+| Response format | hookSpecificOutput.additionalContext |
+| PowerShell counterpart | present (`post-compact-restore.ps1`) |
+| Source | `global/hooks/post-compact-restore.sh` |
+
+### post-task-checkpoint
+
+_File:_ `post-task-checkpoint.sh`
+
+_Anchor:_ `#post-task-checkpoint`
+
+Auto-commits working-tree changes after a Task or Agent tool call completes, preventing a later sub-agent from silently overwriting a prior agent's output.
+
+| Field | Value |
+|---|---|
+| Hook Type | PostToolUse |
+| Trigger / Matcher | Task|Agent |
+| Exit codes | — |
+| Response format | — |
+| PowerShell counterpart | present (`post-task-checkpoint.ps1`) |
+| Source | `global/hooks/post-task-checkpoint.sh` |
+
+### pr-language-guard
+
+_File:_ `pr-language-guard.sh`
+
+_Anchor:_ `#pr-language-guard`
+
+Blocks gh commands that publish artifacts (PRs, issues, comments, reviews, releases) when their text content violates the resolved CLAUDE_CONTENT_LANGUAGE policy.
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | hookSpecificOutput with hookEventName |
+| PowerShell counterpart | present (`pr-language-guard.ps1`) |
+| Source | `global/hooks/pr-language-guard.sh` |
+
+### pr-target-guard
+
+_File:_ `pr-target-guard.sh`
+
+_Anchor:_ `#pr-target-guard`
+
+Blocks PRs targeting 'main' from non-develop branches
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | hookSpecificOutput with hookEventName |
+| PowerShell counterpart | present (`pr-target-guard.ps1`) |
+| Source | `global/hooks/pr-target-guard.sh` |
+
+### pre-compact-snapshot
+
+_File:_ `pre-compact-snapshot.sh`
+
+_Anchor:_ `#pre-compact-snapshot`
+
+Captures working state before automatic context compaction
+
+| Field | Value |
+|---|---|
+| Hook Type | PreCompact (async) |
+| Trigger / Matcher | async |
+| Exit codes | — |
+| Response format | — |
+| PowerShell counterpart | present (`pre-compact-snapshot.ps1`) |
+| Source | `global/hooks/pre-compact-snapshot.sh` |
+
+### pre-edit-read-guard
+
+_File:_ `pre-edit-read-guard.sh`
+
+_Anchor:_ `#pre-edit-read-guard`
+
+Enforces the "Read before Edit/Write" tool contract.
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Edit|Write) + PostToolUse (Read) |
+| Trigger / Matcher | Read |
+| Exit codes | 0 (always — decision is in JSON for PreToolUse, no JSON for PostToolUse) |
+| Response format | hookSpecificOutput with hookEventName (PreToolUse only) |
+| PowerShell counterpart | present (`pre-edit-read-guard.ps1`) |
+| Source | `global/hooks/pre-edit-read-guard.sh` |
+
+### prompt-validator
+
+_File:_ `prompt-validator.sh`
+
+_Anchor:_ `#prompt-validator`
+
+Validates user prompts for dangerous operations
+
+| Field | Value |
+|---|---|
+| Hook Type | UserPromptSubmit |
+| Trigger / Matcher | — |
+| Exit codes | 0=allow (with optional warning) |
+| Response format | hookSpecificOutput with additionalContext (UserPromptSubmit) |
+| PowerShell counterpart | present (`prompt-validator.ps1`) |
+| Source | `global/hooks/prompt-validator.sh` |
+
+### sensitive-file-guard
+
+_File:_ `sensitive-file-guard.sh`
+
+_Anchor:_ `#sensitive-file-guard`
+
+Blocks access to sensitive files
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Edit|Write|Read) |
+| Trigger / Matcher | Edit|Write|Read |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | hookSpecificOutput with hookEventName |
+| PowerShell counterpart | present (`sensitive-file-guard.ps1`) |
+| Source | `global/hooks/sensitive-file-guard.sh` |
+
+### session-logger
+
+_File:_ `session-logger.sh`
+
+_Anchor:_ `#session-logger`
+
+Logs session start/end events
+
+| Field | Value |
+|---|---|
+| Hook Type | SessionStart, SessionEnd, Stop, TeammateIdle |
+| Trigger / Matcher | — |
+| Exit codes | — |
+| Response format | none (lifecycle event, no JSON output needed) |
+| PowerShell counterpart | present (`session-logger.ps1`) |
+| Source | `global/hooks/session-logger.sh` |
+
+### subagent-logger
+
+_File:_ `subagent-logger.sh`
+
+_Anchor:_ `#subagent-logger`
+
+Logs subagent start/stop events for monitoring.
+
+| Field | Value |
+|---|---|
+| Hook Type | SubagentStart, SubagentStop |
+| Trigger / Matcher | — |
+| Exit codes | 0 (always — lifecycle event) |
+| Response format | none (lifecycle event, no JSON output needed) |
+| PowerShell counterpart | present (`subagent-logger.ps1`) |
+| Source | `global/hooks/subagent-logger.sh` |
+
+### task-completed-logger
+
+_File:_ `task-completed-logger.sh`
+
+_Anchor:_ `#task-completed-logger`
+
+Logs task completion events for audit trail
+
+| Field | Value |
+|---|---|
+| Hook Type | TaskCompleted |
+| Trigger / Matcher | — |
+| Exit codes | — |
+| Response format | — |
+| PowerShell counterpart | present (`task-completed-logger.ps1`) |
+| Source | `global/hooks/task-completed-logger.sh` |
+
+### task-created-validator
+
+_File:_ `task-created-validator.sh`
+
+_Anchor:_ `#task-created-validator`
+
+Validates task quality at creation time.
+
+| Field | Value |
+|---|---|
+| Hook Type | TaskCreated (sync, blocking) |
+| Trigger / Matcher | sync, blocking |
+| Exit codes | 0 = approve, 2 = block (stderr message shown to model) |
+| Response format | — |
+| PowerShell counterpart | present (`task-created-validator.ps1`) |
+| Source | `global/hooks/task-created-validator.sh` |
+
+### team-limit-guard
+
+_File:_ `team-limit-guard.sh`
+
+_Anchor:_ `#team-limit-guard`
+
+Limits the maximum number of concurrent Agent Teams
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (TeamCreate) |
+| Trigger / Matcher | TeamCreate |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | hookSpecificOutput with hookEventName |
+| PowerShell counterpart | present (`team-limit-guard.ps1`) |
+| Source | `global/hooks/team-limit-guard.sh` |
+
+### tool-failure-logger
+
+_File:_ `tool-failure-logger.sh`
+
+_Anchor:_ `#tool-failure-logger`
+
+Logs tool execution failures for debugging and analysis.
+
+| Field | Value |
+|---|---|
+| Hook Type | PostToolUseFailure |
+| Trigger / Matcher | — |
+| Exit codes | 0 (always — lifecycle event) |
+| Response format | none (lifecycle event, no JSON output needed) |
+| PowerShell counterpart | present (`tool-failure-logger.ps1`) |
+| Source | `global/hooks/tool-failure-logger.sh` |
+
+### traceability-guard
+
+_File:_ `traceability-guard.sh`
+
+_Anchor:_ `#traceability-guard`
+
+Deterministic traceability cascade validator.
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | hookSpecificOutput with hookEventName |
+| PowerShell counterpart | present (`traceability-guard.ps1`) |
+| Source | `global/hooks/traceability-guard.sh` |
+
+### version-check
+
+_File:_ `version-check.sh`
+
+_Anchor:_ `#version-check`
+
+Checks Claude Code version against known problematic versions
+
+| Field | Value |
+|---|---|
+| Hook Type | SessionStart |
+| Trigger / Matcher | — |
+| Exit codes | — |
+| Response format | none (lifecycle event, no JSON output needed) |
+| PowerShell counterpart | present (`version-check.ps1`) |
+| Source | `global/hooks/version-check.sh` |
+
+### worktree-create
+
+_File:_ `worktree-create.sh`
+
+_Anchor:_ `#worktree-create`
+
+Creates an isolated worktree directory for non-git environments
+
+| Field | Value |
+|---|---|
+| Hook Type | WorktreeCreate (synchronous, type: command only) |
+| Trigger / Matcher | synchronous, type: command only |
+| Exit codes | — |
+| Response format | — |
+| PowerShell counterpart | present (`worktree-create.ps1`) |
+| Source | `global/hooks/worktree-create.sh` |
+
+### worktree-remove
+
+_File:_ `worktree-remove.sh`
+
+_Anchor:_ `#worktree-remove`
+
+Cleans up and logs worktree removal events
+
+| Field | Value |
+|---|---|
+| Hook Type | WorktreeRemove (async, type: command only) |
+| Trigger / Matcher | async, type: command only |
+| Exit codes | — |
+| Response format | — |
+| PowerShell counterpart | present (`worktree-remove.ps1`) |
+| Source | `global/hooks/worktree-remove.sh` |
+
+<!-- END AUTO-GENERATED HOOKS -->

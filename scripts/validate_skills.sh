@@ -4,7 +4,7 @@
 # ===========================================
 # SKILL.md 파일의 형식과 무결성을 검증하는 스크립트
 
-set -e
+set -euo pipefail
 
 # 색상 정의
 RED='\033[0;31m'
@@ -163,7 +163,25 @@ validate_skill() {
         fi
     fi
 
-    # 4. 파일 라인 수 검증 (권장: 500줄 이하)
+    # 4. iso_class 필드 검증 (issue #597)
+    # P1 grace period: 누락 시 WARNING. 다음 릴리즈에서 hard FAIL로 전환 예정 (TODO)
+    local iso_class
+    iso_class=$(get_field "$frontmatter" "iso_class")
+    if [ -z "$iso_class" ]; then
+        warning "iso_class 필드 없음 (P1 grace period: 다음 릴리즈에서 hard FAIL로 전환 예정)"
+        record_warning
+    else
+        # iso_class 값 검증: A | B | C | none
+        if ! echo "$iso_class" | grep -qE "^(A|B|C|none)$"; then
+            warning "iso_class 값 형식 오류: '$iso_class' (허용: A | B | C | none) (P1 grace period)"
+            record_warning
+        else
+            success "iso_class 유효: '$iso_class'"
+            record_pass
+        fi
+    fi
+
+    # 5. 파일 라인 수 검증 (권장: 500줄 이하)
     local line_count
     line_count=$(wc -l < "$skill_file" | tr -d ' ')
     if [ "$line_count" -gt 500 ]; then
@@ -174,7 +192,7 @@ validate_skill() {
         record_pass
     fi
 
-    # 5. reference 디렉토리 확인
+    # 6. reference 디렉토리 확인
     local skill_dir
     skill_dir=$(dirname "$skill_file")
     if [ -d "${skill_dir}/reference" ]; then
@@ -199,15 +217,21 @@ validate_skill() {
         fi
     fi
 
-    # 6. 프론트매터 대 본문 일관성 (drift)
-    if echo "$frontmatter" | grep -qE "^(max_iterations|halt_condition):"; then
+    # 7. 프론트매터 대 본문 일관성 (drift)
+    if echo "$frontmatter" | grep -qE "^(max_iterations|halt_condition|halt_conditions):"; then
         if ! grep -qiE "(loop|retry|iteration|poll)" "$skill_file"; then
-            warning "max_iterations/halt_condition 선언되었으나 본문에 loop/retry/iteration/poll 참조 없음"
+            warning "max_iterations/halt_condition(s) 선언되었으나 본문에 loop/retry/iteration/poll 참조 없음"
             record_warning
         else
             success "loop 메타데이터 본문 일관성 확인"
             record_pass
         fi
+    fi
+
+    # 7a. P1-c (issue #458): legacy halt_condition 단일 키 deprecation
+    if echo "$frontmatter" | grep -qE "^halt_condition:[[:space:]]"; then
+        warning "halt_condition (legacy) 키가 사용됨 — halt_conditions array form으로 마이그레이션 필요 (P1 grace period; 다음 릴리즈에서 제거 예정)"
+        record_warning
     fi
 
     if echo "$frontmatter" | grep -qE "^loop_safe:[[:space:]]*false"; then
@@ -377,12 +401,21 @@ if python3 -c "import yaml" 2>/dev/null; then
     for skill_file in "${SKILL_FILES[@]}"; do
         relative_path="${skill_file#$BACKUP_DIR/}"
 
+        # A native (non-cygwin) python3 — common on Windows Git Bash / Cygwin —
+        # cannot open a /x/... POSIX-style absolute path. Convert to a mixed
+        # Windows path (D:/...) via cygpath when available; on Linux/macOS
+        # cygpath is absent and the path is used as-is.
+        py_skill_file="$skill_file"
+        if command -v cygpath >/dev/null 2>&1; then
+            py_skill_file="$(cygpath -m "$skill_file")"
+        fi
+
         # 파일에서 직접 frontmatter 추출 및 YAML 검증
         if python3 -c "
 import yaml
 import sys
 
-with open('$skill_file', 'r') as f:
+with open('$py_skill_file', 'r', encoding='utf-8') as f:
     content = f.read()
 
 # frontmatter 추출
@@ -433,6 +466,29 @@ if [ -x "$SCRIPT_DIR/spec_lint.sh" ]; then
     fi
 else
     warning "spec_lint.sh 누락 — 스키마 검증 건너뜀"
+    record_warning
+fi
+
+# Workspace prefix convention (P3) — warn-only during rollout
+echo ""
+echo "======================================================"
+info "Workspace 접두사 검증 (NN_<phase>.<ext>)"
+echo "======================================================"
+echo ""
+
+if [ -x "$SCRIPT_DIR/check_workspace_prefix.sh" ]; then
+    ws_out="$("$SCRIPT_DIR/check_workspace_prefix.sh" "$BACKUP_DIR" 2>&1)" || true
+    ws_warn="$(echo "$ws_out" | sed -n 's/.*warnings=\([0-9]*\).*/\1/p' | tail -n1)"
+    if [ "${ws_warn:-0}" = "0" ]; then
+        success "check_workspace_prefix: 위반 사항 없음"
+        record_pass
+    else
+        echo "$ws_out"
+        warning "check_workspace_prefix: ${ws_warn}개 파일이 NN_<phase>.<ext> 컨벤션을 따르지 않음 (warn-only)"
+        record_warning
+    fi
+else
+    warning "check_workspace_prefix.sh 누락 — workspace 접두사 검증 건너뜀"
     record_warning
 fi
 

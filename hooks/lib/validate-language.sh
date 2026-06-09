@@ -35,8 +35,15 @@
 #     ASCII whitespace (space, tab, newline, carriage return, form feed,
 #     vertical tab). LC_ALL=C forces grep to interpret character classes
 #     as 7-bit ASCII regardless of the user's locale.
-#   - Any byte outside that set — accented Latin, CJK, emoji, symbols —
-#     fails validation.
+#   - Common English typographic punctuation is allowlisted before the
+#     ASCII check (see issue #583): em-dash (U+2014), en-dash (U+2013),
+#     curly double/single quotes (U+201C/D, U+2018/9), horizontal
+#     ellipsis (U+2026), and non-breaking space (U+00A0). These are
+#     unambiguously English typography and must not be rejected.
+#   - Any other byte outside the ASCII set -- accented Latin, CJK,
+#     Cyrillic, Greek, emoji, other symbols -- fails validation. The
+#     error message identifies the offending script category when it
+#     can be determined.
 validate_english_only() {
     local text="$1"
 
@@ -44,10 +51,48 @@ validate_english_only() {
         return 0
     fi
 
-    if printf '%s' "$text" | LC_ALL=C grep -q '[^[:print:][:space:]]'; then
+    # Strip allowlisted English typographic punctuation before the
+    # ASCII check. perl -CSDA decodes input as UTF-8 regardless of locale.
+    local cleaned
+    cleaned=$(printf '%s' "$text" | perl -CSDA -pe '
+        s/[\x{2014}\x{2013}\x{201C}\x{201D}\x{2018}\x{2019}\x{2026}\x{00A0}]//g;
+    ' 2>/dev/null)
+
+    if printf '%s' "$cleaned" | LC_ALL=C grep -q '[^[:print:][:space:]]'; then
+        # Identify the offending script category for a more useful error
+        # message. Falls back to "non-Latin script" when no specific
+        # category matches.
+        local category="non-Latin script"
+        if printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{AC00}-\x{D7A3}\x{1100}-\x{11FF}\x{3130}-\x{318F}]/' 2>/dev/null; then
+            :
+        else
+            category="Korean (Hangul)"
+        fi
+        if [ "$category" = "non-Latin script" ]; then
+            if printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{3040}-\x{309F}\x{30A0}-\x{30FF}\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}]/' 2>/dev/null; then
+                :
+            else
+                category="CJK (Chinese/Japanese)"
+            fi
+        fi
+        if [ "$category" = "non-Latin script" ]; then
+            if printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{0400}-\x{04FF}]/' 2>/dev/null; then
+                :
+            else
+                category="Cyrillic"
+            fi
+        fi
+        if [ "$category" = "non-Latin script" ]; then
+            if printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{0370}-\x{03FF}]/' 2>/dev/null; then
+                :
+            else
+                category="Greek"
+            fi
+        fi
+
         local sample
-        sample=$(printf '%s' "$text" | LC_ALL=C grep -oE '[^[:print:][:space:]]+' | head -n1)
-        echo "Text contains non-ASCII characters (first run: '$sample'). GitHub Issues and Pull Requests must be written in English only — see commit-settings.md." >&2
+        sample=$(printf '%s' "$cleaned" | LC_ALL=C grep -oE '[^[:print:][:space:]]+' | head -n1)
+        echo "Text contains $category characters (first run: '$sample'). Active CLAUDE_CONTENT_LANGUAGE='${CLAUDE_CONTENT_LANGUAGE:-english}' rejects this artifact. To allow Korean, set CLAUDE_CONTENT_LANGUAGE=exclusive_bilingual (per-artifact strict) or korean_plus_english (mixed inline). See commit-settings.md. (English typographic punctuation such as em-dash, curly quotes, and ellipsis is allowed under the english policy.)" >&2
         return 1
     fi
 
@@ -89,10 +134,52 @@ validate_english_or_korean() {
     return 0
 }
 
+# validate_korean_with_tech_terms <text>
+# Returns 0 on valid, 1 on invalid. On failure, prints reason to stderr.
+#
+# Korean-mode branch of the exclusive_bilingual policy (issue #447). The
+# rule: after stripping the four allowed ASCII containers below, the
+# residual text must contain zero [A-Za-z] characters. Bare English
+# tokens inline with Korean prose are rejected with a remediation hint.
+#
+# Allowed ASCII containers (strip in this order — see issue #447):
+#   1. Fenced code blocks — triple backticks.
+#   2. Inline code — single backticks.
+#   3. URLs — https?://... runs of non-whitespace.
+#   4. Parenthesized ASCII immediately preceded by a Hangul run —
+#      the 한국어(English) translation form.
+#
+# Strip ordering matters: fenced first so nested backticks inside fences
+# are not mis-stripped; then inline code so parenthesized content inside
+# backticks is preserved inside the code; then URLs; finally the
+# translation form.
+validate_korean_with_tech_terms() {
+    local text="$1"
+    [ -z "$text" ] && return 0
+
+    local stripped
+    stripped=$(printf '%s' "$text" | perl -CSDA -0777 -pe '
+        s/```[\s\S]*?```//g;
+        s/`[^`\n]*`//g;
+        s{https?://\S+}{}g;
+        s/[\x{AC00}-\x{D7A3}]+\s*\([^)\n]*\)//g;
+    ' 2>/dev/null)
+
+    if printf '%s' "$stripped" | LC_ALL=C grep -qE '[A-Za-z]'; then
+        local sample
+        sample=$(printf '%s' "$stripped" | LC_ALL=C grep -oE '[A-Za-z]+' | head -n1)
+        echo "Korean-mode policy violation: bare English token '$sample' detected. Wrap in backticks or use the '한국어(English)' form. CLAUDE_CONTENT_LANGUAGE=exclusive_bilingual requires document-level language exclusivity." >&2
+        return 1
+    fi
+    return 0
+}
+
 # validate_content_language <text>
 # Dispatcher — selects the validator based on CLAUDE_CONTENT_LANGUAGE:
 #   - english (default, unset, or empty) → validate_english_only
 #   - korean_plus_english → validate_english_or_korean
+#   - exclusive_bilingual → english_only when text has no Hangul syllables,
+#                           otherwise validate_korean_with_tech_terms
 #   - any → skip validation (always returns 0)
 #
 # NOTE: This dispatcher does NOT control AI/Claude attribution enforcement.
@@ -110,11 +197,21 @@ validate_content_language() {
         korean_plus_english)
             validate_english_or_korean "$text"
             ;;
+        exclusive_bilingual)
+            # Hangul syllable detection routes the document to the
+            # appropriate mode. No Hangul = English mode = strict ASCII
+            # whitelist. Any Hangul = Korean mode = strip-then-scan.
+            if printf '%s' "$text" | perl -CSDA -ne 'exit 1 if /[\x{AC00}-\x{D7A3}]/' 2>/dev/null; then
+                validate_english_only "$text"
+            else
+                validate_korean_with_tech_terms "$text"
+            fi
+            ;;
         any)
             return 0
             ;;
         *)
-            echo "CLAUDE_CONTENT_LANGUAGE has unknown value '$policy'. Valid values: english, korean_plus_english, any." >&2
+            echo "CLAUDE_CONTENT_LANGUAGE has unknown value '$policy'. Valid values: english, korean_plus_english, exclusive_bilingual, any." >&2
             validate_english_only "$text"
             ;;
     esac

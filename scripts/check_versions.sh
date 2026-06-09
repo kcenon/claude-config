@@ -38,6 +38,7 @@ SUITE=$(read_map_field "suite")
 PLUGIN=$(read_map_field "plugin")
 PLUGIN_LITE=$(read_map_field "plugin-lite")
 SETTINGS_SCHEMA=$(read_map_field "settings-schema")
+HOOKS=$(read_map_field "hooks")
 
 drift=0
 
@@ -88,9 +89,16 @@ check_json_version "global/settings.windows.json"            "$SETTINGS_SCHEMA" 
 check_readme_badge "README.md"    "$SUITE"
 check_readme_badge "README.ko.md" "$SUITE"
 
+# hooks has no consumer file to mirror; validate only that the declared value
+# is well-formed SemVer so the field cannot silently rot (deep-audit P1).
+if ! printf '%s' "$HOOKS" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)*$'; then
+    echo "FAIL: hooks=$HOOKS is not valid SemVer in VERSION_MAP.yml" >&2
+    drift=1
+fi
+
 if [ "$drift" -eq 0 ]; then
     echo "check_versions: OK"
-    echo "  suite=$SUITE  plugin=$PLUGIN  plugin-lite=$PLUGIN_LITE  settings-schema=$SETTINGS_SCHEMA"
+    echo "  suite=$SUITE  plugin=$PLUGIN  plugin-lite=$PLUGIN_LITE  settings-schema=$SETTINGS_SCHEMA  hooks=$HOOKS"
     exit 0
 fi
 

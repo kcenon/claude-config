@@ -52,17 +52,33 @@ if ! echo "$CMD" | grep -qE 'git\s+commit'; then
     exit 0
 fi
 
-# Collect markdown files: docs/*.md (core) + docs/reference/*.md
-# Excludes docs/ui/, docs/placeholders/ to avoid anchor registry pollution
+# Collect staged markdown files (deletions excluded via --diff-filter=d).
+# Mirrors markdown-anchor-validator.ps1 so the same staged tree produces
+# an identical allow/deny decision on every supported platform. The
+# working-tree presence check ([ -f ]) drops paths git lists but the
+# checkout no longer contains (e.g., type-change edge cases), matching
+# the PowerShell hook's Test-Path -PathType Leaf filter.
 MD_FILES=()
-if [ -d "docs" ]; then
-    while IFS= read -r f; do [[ -n "$f" ]] && MD_FILES+=("$f"); done < <(find docs -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort)
-    [ -d "docs/reference" ] && while IFS= read -r f; do [[ -n "$f" ]] && MD_FILES+=("$f"); done < <(find docs/reference -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort)
-else
-    while IFS= read -r f; do [[ -n "$f" ]] && MD_FILES+=("$f"); done < <(find . -maxdepth 2 -name '*.md' -type f 2>/dev/null | sort)
+if command -v git >/dev/null 2>&1; then
+    while IFS= read -r f; do
+        [[ -n "$f" ]] || continue
+        [[ -f "$f" ]] || continue
+        MD_FILES+=("$f")
+    done < <(git diff --cached --name-only --diff-filter=d -- '*.md' 2>/dev/null | sort)
 fi
 
 if [ ${#MD_FILES[@]} -eq 0 ]; then
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
+    exit 0
+fi
+
+# perl with Unicode property support generates locale-independent anchors
+# (\p{L}\p{N}\p{Pc}) so Korean/CJK headings produce byte-identical anchors to
+# markdown-anchor-validator.ps1 regardless of the installed locale. Fall open
+# if perl is absent, matching the jq/bash-4 guards above (never block on an
+# environment issue).
+if ! command -v perl >/dev/null 2>&1; then
+    echo "markdown-anchor-validator: perl not found on PATH; skipping validation" >&2
     printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
     exit 0
 fi
@@ -134,10 +150,12 @@ if [ -n "$H_LINES" ]; then
     # Extract heading texts (field 3+) → bulk transform to GitHub-style anchors
     # Pipeline: strip formatting markers → lowercase → remove non-alnum/space/hyphen/underscore → spaces→hyphens → trim
     # NOTE: GitHub does NOT collapse consecutive hyphens (e.g., "A / B" → "a--b")
+    # Locale-independent anchor transform (Unicode-aware) matching the .ps1.
+    # perl emits exactly one line per input heading (print "$_\n") so the
+    # paste with TMP_FILES stays row-aligned.
     echo "$H_LINES" | cut -f3- | \
         sed -e 's/\]([^)]*)//g' -e 's/\[//g' -e 's/\*//g' -e 's/`//g' -e 's/<[^>]*>//g' | \
-        tr '[:upper:]' '[:lower:]' | \
-        sed -e 's/[^[:alnum:]_ -]//g' -e 's/ /-/g' -e 's/^-//;s/-$//' \
+        perl -CSAD -ne 'chomp; $_=lc; s/[^\p{L}\p{N}\p{Pc} -]//g; s/ /-/g; s/^-//; s/-$//; print "$_\n"' \
         > "$TMP_ANCHORS"
 
     # Merge file paths with generated anchors and build registry
@@ -153,6 +171,69 @@ if [ -n "$H_LINES" ]; then
         fi
     done < <(paste "$TMP_FILES" "$TMP_ANCHORS")
 fi
+
+# === Lazy cross-file anchor resolution + cache ===
+# Inter-file references may target files that are NOT staged. The primary
+# registry is intentionally built from staged files only (fast path). When an
+# inter-file check misses, fall back to parsing the target file from disk and
+# cache the resulting anchors per file so we never reparse.
+#
+# Cache keys:
+#   RESOLVED_FILES[<path>]=1 marks <path> as already parsed (positive OR negative)
+#   RESOLVED_ANCHORS[<path>::<anchor>]=1 records each anchor discovered in <path>
+declare -A RESOLVED_FILES
+declare -A RESOLVED_ANCHORS
+
+resolve_file_anchors() {
+    local target="$1"
+    # Cache hit (idempotent) — fall through to the lookup in the caller.
+    [[ -n "${RESOLVED_FILES[$target]+x}" ]] && return 0
+    RESOLVED_FILES["$target"]=1
+
+    # Negative cache: target file does not exist on disk.
+    [[ -f "$target" ]] || return 0
+
+    # Single-pass awk: emit one heading-text per line, no per-line metadata.
+    # The transformation pipeline below mirrors the staged-file registry
+    # build (sed/tr stages) so cross-file resolution stays algorithmically
+    # identical to the staged path.
+    local heading_lines
+    heading_lines=$(awk '
+        BEGIN { c = 0 }
+        /^[[:space:]]*(```|~~~)/ { c = !c; next }
+        c { next }
+        match($0, /^#+[[:space:]]/) {
+            h_count = RLENGTH - 1
+            if (h_count >= 1 && h_count <= 6) {
+                h = $0
+                sub(/^#+[[:space:]]+/, "", h)
+                sub(/[[:space:]#]*$/, "", h)
+                if (h != "") print h
+            }
+        }
+    ' "$target" 2>/dev/null) || return 0
+
+    [[ -z "$heading_lines" ]] && return 0
+
+    local -A counts=()
+    local anchor
+    while IFS= read -r heading; do
+        # Locale-independent anchor transform (Unicode-aware) matching the
+        # .ps1 and the bulk pipeline above; bare `print` (no trailing newline)
+        # because command substitution captures the value.
+        anchor=$(printf '%s' "$heading" \
+            | sed -e 's/\]([^)]*)//g' -e 's/\[//g' -e 's/\*//g' -e 's/`//g' -e 's/<[^>]*>//g' \
+            | perl -CSAD -ne 'chomp; $_=lc; s/[^\p{L}\p{N}\p{Pc} -]//g; s/ /-/g; s/^-//; s/-$//; print')
+        [[ -z "$anchor" ]] && continue
+        if [[ -n "${counts[$anchor]+x}" ]]; then
+            counts["$anchor"]=$(( counts["$anchor"] + 1 ))
+            RESOLVED_ANCHORS["${target}::${anchor}-${counts[$anchor]}"]=1
+        else
+            counts["$anchor"]=0
+            RESOLVED_ANCHORS["${target}::${anchor}"]=1
+        fi
+    done <<< "$heading_lines"
+}
 
 # === Check references ===
 ERRORS=()
@@ -177,7 +258,12 @@ while IFS=$'\t' read -r _type file line_num ref_file anchor; do
     while [[ "$target" == *"/.."* ]]; do
         target="$(echo "$target" | sed 's|[^/]*/\.\./||')"
     done
-    if [[ -z "${ANCHORS[${target}::${anchor}]+x}" ]]; then
+    if [[ -n "${ANCHORS[${target}::${anchor}]+x}" ]]; then
+        continue
+    fi
+    # Primary registry miss — target may be unstaged. Lazy-parse from disk.
+    resolve_file_anchors "$target"
+    if [[ -z "${RESOLVED_ANCHORS[${target}::${anchor}]+x}" ]]; then
         ERRORS+=("${file##*/}:${line_num}: ${ref_file}#${anchor}")
     fi
 done < <(echo "$AWK_OUTPUT" | grep '^X' || true)

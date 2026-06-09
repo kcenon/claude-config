@@ -52,6 +52,16 @@ assert_deny '{"tool_input":{"file_path":"/app/.env.local"}}' ".env.local → den
 assert_deny '{"tool_input":{"file_path":"/app/.env.production"}}' ".env.production → deny"
 assert_deny '{"tool_input":{"file_path":"/app/.env.development"}}' ".env.development → deny"
 assert_deny '{"tool_input":{"file_path":"config/.env"}}' "nested .env → deny"
+assert_deny '{"tool_input":{"file_path":"/app/.env.backup.20260101"}}' ".env.backup.<ts> → deny"
+
+echo ""
+echo "[.env template allow-list (issue #582)]"
+assert_allow '{"tool_input":{"file_path":"/app/.env.example"}}' ".env.example → allow"
+assert_allow '{"tool_input":{"file_path":"/app/.env.example.local"}}' ".env.example.local → allow"
+assert_allow '{"tool_input":{"file_path":"/app/.env.sample"}}' ".env.sample → allow"
+assert_allow '{"tool_input":{"file_path":"/app/.env.template"}}' ".env.template → allow"
+assert_allow '{"tool_input":{"file_path":"config/.env.example"}}' "nested .env.example → allow"
+assert_allow '{"tool_input":{"file_path":"/app/.ENV.EXAMPLE"}}' "case-insensitive .env.example → allow"
 
 echo ""
 echo "[Certificate/key patterns]"

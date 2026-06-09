@@ -1,0 +1,1 @@
+Dangerous string inside an echoed quoted argument. With sub-command tokenization (Issue #476), the parser correctly identifies that `rm -rf /` here is argv[1] of `echo` (a string literal), not an actual `rm` invocation. Flipped from deny to allow as part of the P0.1 rewrite — string-literal arguments must not trigger argv-level dangerous-command checks.

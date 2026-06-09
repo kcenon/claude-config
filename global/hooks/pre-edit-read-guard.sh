@@ -1,6 +1,9 @@
 #!/bin/bash
 # pre-edit-read-guard.sh
 # Enforces the "Read before Edit/Write" tool contract.
+# Hook Type: PreToolUse (Edit|Write) + PostToolUse (Read)
+# Exit codes: 0 (always — decision is in JSON for PreToolUse, no JSON for PostToolUse)
+# Response format: hookSpecificOutput with hookEventName (PreToolUse only)
 #
 # Registered under TWO hook entries in global/settings.json:
 #   1. PreToolUse  matcher "Edit|Write" → guard mode (deny when tracker lacks file_path)
@@ -16,36 +19,26 @@
 # Exit codes: always 0. Decision is encoded in the JSON response for PreToolUse
 # events; PostToolUse emits no JSON and is best-effort.
 
-set -uo pipefail
+set -euo pipefail
 
 # --- helpers ----------------------------------------------------------------
 
+# Use jq -nc --arg reason ... so the JSON library handles all escaping
+# (quotes, backslashes, newlines, tabs, carriage returns, etc.). This closes
+# the historical injection class where a crafted reason string concatenated
+# into the heredoc could flip the decision (issue #567 / sub-issue #579).
+# Replaces the prior manual `${var//\\/\\\\}` / `${var//\"/\\\"}` escapes.
 allow_response() {
-    cat <<'EOF'
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "allow"
-  }
-}
-EOF
+    jq -nc \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow"}}'
     exit 0
 }
 
 deny_response() {
     local reason="$1"
-    # Escape backslashes and double-quotes so the reason survives raw embedding.
-    reason="${reason//\\/\\\\}"
-    reason="${reason//\"/\\\"}"
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "$reason"
-  }
-}
-EOF
+    jq -nc \
+        --arg reason "$reason" \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $reason}}'
     exit 0
 }
 

@@ -11,7 +11,7 @@ This project includes content adapted from the following third-party projects.
 - **Copyright**: Copyright (c) Robin (revfactory)
 - **Version**: 1.0.1 (as of integration date)
 - **Files affected**:
-  - `global/skills/harness/` — adapted from `skills/harness/`
+  - `global/skills/_internal/harness/` — adapted from `skills/harness/`
 
 ### Modifications
 

@@ -1,10 +1,15 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "description": "Claude Code Global Settings (Windows) - Applied to all projects (permissions.deny for security)",
-  "version": "1.12.2",
+  "version": "1.17.0",
 
   "respectGitignore": true,
   "cleanupPeriodDays": 30,
+
+  "minimumVersion": "2.2.0",
+  "worktree": {
+    "baseRef": "head"
+  },
 
   "language": "korean",
 
@@ -14,9 +19,11 @@
 
   "attribution": {
     "commit": "",
-    "pr": "",
-    "issue": ""
+    "pr": ""
   },
+
+  "enableAllProjectMcpServers": false,
+  "enabledMcpjsonServers": [],
 
   "sandbox": {
     "enabled": true,
@@ -54,6 +61,8 @@
   "skipDangerousModePermissionPrompt": true,
   "effortLevel": "high",
   "includeGitInstructions": false,
+  "skillListingBudgetFraction": 0.02,
+  "disableSkillShellExecution": true,
 
   "hooks": {
     "PreToolUse": [
@@ -70,6 +79,11 @@
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/pre-edit-read-guard.ps1",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/memory-write-guard.ps1",
+            "timeout": 5
           }
         ]
       },
@@ -79,6 +93,21 @@
           {
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/dangerous-command-guard.ps1",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/bash-sensitive-read-guard.ps1",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/bash-write-guard.ps1",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/gh-write-verb-guard.ps1",
             "timeout": 5
           },
           {
@@ -95,6 +124,11 @@
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/commit-message-guard.ps1",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/traceability-guard.ps1",
+            "timeout": 10
           },
           {
             "type": "command",
@@ -147,6 +181,11 @@
             "command": "pwsh -NoProfile -File ~/.claude/hooks/version-check.ps1",
             "timeout": 10,
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/memory-integrity-check.ps1",
+            "timeout": 5
           }
         ]
       }
@@ -202,6 +241,12 @@
           {
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/pre-edit-read-guard.ps1",
+            "timeout": 5,
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/memory-access-logger.ps1",
             "timeout": 5,
             "async": true
           }
@@ -349,6 +394,30 @@
           }
         ]
       }
+    ],
+    "CwdChanged": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/cwd-change-logger.ps1",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/permission-denial-logger.ps1",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
     ]
   },
 
@@ -361,6 +430,8 @@
 
   "permissions": {
     "defaultMode": "default",
+    "disableBypassPermissionsMode": "disable",
+    "disableAutoMode": "disable",
     "allow": [
       "Bash(git status:*)",
       "Bash(git log:*)",
@@ -374,23 +445,62 @@
       "Bash(git describe:*)",
       "Bash(git for-each-ref:*)",
       "Bash(git worktree list:*)",
-      "Bash(git fetch:*)",
+      "Bash(git fetch origin:*)",
+      "Bash(git fetch upstream:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr list:*)",
       "Bash(gh pr diff:*)",
       "Bash(gh pr checks:*)",
       "Bash(gh pr status:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr edit:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr close:*)",
+      "Bash(gh pr reopen:*)",
+      "Bash(gh pr ready:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(gh pr review:*)",
+      "Bash(gh pr checkout:*)",
       "Bash(gh issue view:*)",
       "Bash(gh issue list:*)",
       "Bash(gh issue status:*)",
+      "Bash(gh issue create:*)",
+      "Bash(gh issue edit:*)",
+      "Bash(gh issue close:*)",
+      "Bash(gh issue reopen:*)",
+      "Bash(gh issue comment:*)",
+      "Bash(gh issue develop:*)",
+      "Bash(gh label list:*)",
+      "Bash(gh label create:*)",
+      "Bash(gh label edit:*)",
+      "Bash(gh label delete:*)",
       "Bash(gh run view:*)",
       "Bash(gh run list:*)",
+      "Bash(gh run rerun:*)",
+      "Bash(gh run cancel:*)",
+      "Bash(gh run download:*)",
+      "Bash(gh run watch:*)",
       "Bash(gh workflow list:*)",
       "Bash(gh workflow view:*)",
+      "Bash(gh workflow run:*)",
+      "Bash(gh workflow enable:*)",
+      "Bash(gh workflow disable:*)",
       "Bash(gh repo view:*)",
       "Bash(gh release view:*)",
       "Bash(gh release list:*)",
-      "Bash(gh auth status:*)"
+      "Bash(gh release create:*)",
+      "Bash(gh release edit:*)",
+      "Bash(gh release delete:*)",
+      "Bash(gh release upload:*)",
+      "Bash(gh auth status:*)",
+      "Bash(gh api -X GET:*)",
+      "Bash(gh api -H *:*)",
+      "Bash(gh api repos/*:*)",
+      "Bash(gh api orgs/*:*)",
+      "Bash(gh api users/*:*)",
+      "Bash(gh api user:*)",
+      "Bash(gh api rate_limit:*)",
+      "Bash(gh api graphql:*)"
     ],
     "deny": [
       "Read(.env)",

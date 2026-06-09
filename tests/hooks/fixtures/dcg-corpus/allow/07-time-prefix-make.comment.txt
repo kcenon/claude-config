@@ -1,0 +1,1 @@
+Common wrapper prefix (`time`, `nice`, `nohup`) before a benign command. Tokenizer strips one wrapper layer before checking argv[0], so `time make -j8` is inspected as `make -j8` and allowed.

@@ -89,20 +89,29 @@ function Read-HookInput {
     .DESCRIPTION
         Replacement for the bash pattern: INPUT=$(cat); echo "$INPUT" | jq -r '.field'
         Returns $null if stdin is empty or contains invalid JSON.
+
+        A short bounded retry guards an intermittent Windows race where the stdin
+        redirection is not yet observable at process start ([Console]::IsInputRedirected
+        momentarily false), which would otherwise yield an empty read and a
+        spurious fail-closed deny. Once stdin IS redirected, an empty payload is
+        treated as genuinely empty (the stream is consumed and not retried).
     #>
-    try {
-        if ([Console]::IsInputRedirected) {
-            $raw = [Console]::In.ReadToEnd()
-            if ([string]::IsNullOrWhiteSpace($raw)) {
-                return $null
+    for ($attempt = 0; $attempt -lt 10; $attempt++) {
+        try {
+            if ([Console]::IsInputRedirected) {
+                $raw = [Console]::In.ReadToEnd()
+                if ([string]::IsNullOrWhiteSpace($raw)) {
+                    return $null
+                }
+                return ($raw | ConvertFrom-Json)
             }
-            return ($raw | ConvertFrom-Json)
         }
-        return $null
+        catch {
+            return $null
+        }
+        Start-Sleep -Milliseconds 20
     }
-    catch {
-        return $null
-    }
+    return $null
 }
 
 # ──────────────────────────────────────────────────────────────
@@ -330,18 +339,24 @@ function Test-Prerequisites {
         }
     }
 
-    # Special check: gh auth status
+    # Special check: gh auth status.
+    # Skip when GH_TOKEN or GITHUB_TOKEN is set — gh CLI authenticates via the
+    # env token even when the keyring-based status check fails (containers, CI,
+    # sandboxed environments).
     if ($Commands -contains 'gh' -and $allFound) {
-        try {
-            $null = & gh auth status 2>&1
-            if ($LASTEXITCODE -ne 0) {
-                Write-ErrorMessage "gh CLI is not authenticated. Run 'gh auth login' first."
+        $hasTokenEnv = -not [string]::IsNullOrEmpty($env:GH_TOKEN) -or -not [string]::IsNullOrEmpty($env:GITHUB_TOKEN)
+        if (-not $hasTokenEnv) {
+            try {
+                $null = & gh auth status 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    Write-ErrorMessage "gh CLI is not authenticated. Run 'gh auth login' first."
+                    $allFound = $false
+                }
+            }
+            catch {
+                Write-ErrorMessage "gh CLI authentication check failed."
                 $allFound = $false
             }
-        }
-        catch {
-            Write-ErrorMessage "gh CLI authentication check failed."
-            $allFound = $false
         }
     }
     return $allFound
@@ -395,7 +410,7 @@ function Test-Administrator {
 # Replaces bash mkdir -p
 # ──────────────────────────────────────────────────────────────
 
-function Ensure-Directory {
+function New-DirectoryIfMissing {
     <#
     .SYNOPSIS
         Creates a directory if it does not exist. Returns the path.
@@ -406,6 +421,11 @@ function Ensure-Directory {
     }
     return $Path
 }
+
+# Back-compat: existing hooks/scripts call 'Ensure-Directory'. Aliases are
+# exempt from PowerShell's approved-verb check, so this preserves the call
+# name without re-introducing the module-import warning. See issue #696.
+Set-Alias -Name Ensure-Directory -Value New-DirectoryIfMissing
 
 # ──────────────────────────────────────────────────────────────
 # Export all functions
@@ -431,5 +451,5 @@ Export-ModuleMember -Function @(
     'Test-Prerequisites'
     'Get-GitHubRepo'
     'Test-Administrator'
-    'Ensure-Directory'
-)
+    'New-DirectoryIfMissing'
+) -Alias @('Ensure-Directory')

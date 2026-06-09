@@ -1,0 +1,1 @@
+Legitimate use case for searching audit logs containing dangerous patterns. argv tokens are `grep`, `rm -rf /`, `history.log`. Sub-command tokenization correctly recognises argv[1] as a string literal, not a command.

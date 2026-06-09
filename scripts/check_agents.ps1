@@ -1,0 +1,61 @@
+#Requires -Version 7.0
+# check_agents.ps1 — PowerShell twin of check_agents.sh.
+# Drift guard for the 8 agent definitions duplicated across plugin/agents/
+# and project/.claude/agents/. See check_agents.sh for the full rationale:
+# frontmatter differs per layer and one repo-path sentence is genericized in
+# the plugin copy; the bodies must otherwise stay identical.
+# Exit: 0 = in sync, 2 = drift.
+
+$ErrorActionPreference = 'Stop'
+
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$RootDir   = Split-Path -Parent $ScriptDir
+
+$Agents = @(
+    'code-reviewer'
+    'codebase-analyzer'
+    'dependency-auditor'
+    'documentation-writer'
+    'qa-reviewer'
+    'refactor-assistant'
+    'structure-explorer'
+    'test-strategist'
+)
+
+function Get-NormalizedBody {
+    param([string]$Path)
+    $dashes = 0
+    $body = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in (Get-Content -LiteralPath $Path -Encoding utf8)) {
+        if ($dashes -lt 2 -and $line -eq '---') { $dashes++; continue }
+        if ($dashes -ge 2) {
+            if ($line -match '^If .*language-specific rules.*read them before starting\.$') {
+                $body.Add('<RULES_PATH_NOTE>')
+            } else {
+                $body.Add($line)
+            }
+        }
+    }
+    return ($body -join "`n")
+}
+
+$drift = 0
+foreach ($a in $Agents) {
+    $p = Join-Path $RootDir "plugin/agents/$a.md"
+    $c = Join-Path $RootDir "project/.claude/agents/$a.md"
+    if (-not (Test-Path -LiteralPath $p)) { Write-Host "FAIL: missing plugin/agents/$a.md"; $drift = 1; continue }
+    if (-not (Test-Path -LiteralPath $c)) { Write-Host "FAIL: missing project/.claude/agents/$a.md"; $drift = 1; continue }
+    if ((Get-NormalizedBody $p) -ne (Get-NormalizedBody $c)) {
+        Write-Host "FAIL: agent body drift: plugin/agents/$a.md vs project/.claude/agents/$a.md"
+        $drift = 1
+    }
+}
+
+if ($drift -eq 0) {
+    Write-Host "check_agents: OK ($($Agents.Count) agent pairs in sync)"
+    exit 0
+}
+
+Write-Host ""
+Write-Host "check_agents: drift detected between plugin/agents and project/.claude/agents."
+exit 2

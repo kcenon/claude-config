@@ -7,6 +7,8 @@ context: fork
 argument-hint: "<run-id-or-url>"
 paths: ".github/workflows/**, Makefile, CMakeLists.txt"
 when_to_use: "CI failure, build error, test timeout"
+finding_levels: [S1, S2, S3]
+iso_class: none
 ---
 
 # CI/CD Debugging Skill
@@ -121,3 +123,15 @@ Priority order:
 
 ## Reference Documents (Import Syntax)
 @./reference/common-failures.md
+
+## Output
+
+Findings emitted by this skill (root-cause classifications, fix recommendations) MUST include a `severity:` field:
+
+| Severity | Meaning |
+|----------|---------|
+| S1 | Block-merge: build broken, all checks failing, branch unmergeable |
+| S2 | Review-required: intermittent failure, platform-specific regression |
+| S3 | Advisory: warning-only, log noise, non-blocking dependency drift |
+
+When a finding's severity is ambiguous, default to `S3` (advisory) per the false-positive playbook.

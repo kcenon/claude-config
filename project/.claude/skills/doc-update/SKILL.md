@@ -12,6 +12,7 @@ allowed-tools:
   - Read
   - Edit
   - Write
+iso_class: none
 ---
 
 # Document Update Command

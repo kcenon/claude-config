@@ -1,0 +1,6 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "chmod 4755 /usr/local/bin/helper"
+  }
+}

@@ -9,6 +9,19 @@
     "$schema": { "type": "string" },
     "respectGitignore": { "type": "boolean" },
     "cleanupPeriodDays": { "type": "integer", "minimum": 0 },
+    "minimumVersion": { "type": "string" },
+    "worktree": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "baseRef": { "type": "string", "enum": ["fresh", "head"] }
+      }
+    },
+    "enableAllProjectMcpServers": { "type": "boolean" },
+    "enabledMcpjsonServers":  { "type": "array", "items": { "type": "string" } },
+    "disabledMcpjsonServers": { "type": "array", "items": { "type": "string" } },
+    "claudeMd": { "type": "string" },
+    "claudeMdExcludes": { "type": "array", "items": { "type": "string" } },
     "env": {
       "type": "object",
       "additionalProperties": { "type": ["string", "number", "boolean"] }
@@ -28,11 +41,14 @@
       "properties": {
         "defaultMode": {
           "type": "string",
-          "enum": ["default", "acceptEdits", "bypassPermissions", "plan"]
+          "enum": ["default", "acceptEdits", "bypassPermissions", "plan", "auto", "dontAsk"]
         },
         "allow": { "type": "array", "items": { "type": "string" } },
         "ask":   { "type": "array", "items": { "type": "string" } },
-        "deny":  { "type": "array", "items": { "type": "string" } }
+        "deny":  { "type": "array", "items": { "type": "string" } },
+        "disableBypassPermissionsMode": { "type": "string", "enum": ["disable"] },
+        "disableAutoMode":              { "type": "string", "enum": ["disable"] },
+        "additionalDirectories":        { "type": "array", "items": { "type": "string" } }
       }
     },
     "hooks": {
@@ -47,15 +63,81 @@
             "hooks": {
               "type": "array",
               "items": {
-                "type": "object",
-                "required": ["type", "command"],
-                "additionalProperties": true,
-                "properties": {
-                  "type":    { "type": "string", "enum": ["command"] },
-                  "command": { "type": "string", "minLength": 1 },
-                  "timeout": { "type": "integer", "minimum": 0 },
-                  "async":   { "type": "boolean" }
-                }
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": ["type", "command"],
+                    "additionalProperties": true,
+                    "properties": {
+                      "type":          { "const": "command" },
+                      "command":       { "type": "string", "minLength": 1 },
+                      "args":          { "type": "array", "items": { "type": "string" } },
+                      "async":         { "type": "boolean" },
+                      "asyncRewake":   { "type": "boolean" },
+                      "shell":         { "type": "string", "enum": ["bash", "powershell"] },
+                      "timeout":       { "type": "integer", "minimum": 0 },
+                      "if":            { "type": "string" },
+                      "once":          { "type": "boolean" },
+                      "statusMessage": { "type": "string" }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["type", "url"],
+                    "additionalProperties": true,
+                    "properties": {
+                      "type":           { "const": "http" },
+                      "url":            { "type": "string" },
+                      "headers":        { "type": "object" },
+                      "allowedEnvVars": { "type": "array", "items": { "type": "string" } },
+                      "timeout":        { "type": "integer", "minimum": 0 },
+                      "if":             { "type": "string" },
+                      "once":           { "type": "boolean" },
+                      "statusMessage":  { "type": "string" }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["type", "server", "tool"],
+                    "additionalProperties": true,
+                    "properties": {
+                      "type":          { "const": "mcp_tool" },
+                      "server":        { "type": "string" },
+                      "tool":          { "type": "string" },
+                      "input":         { "type": "object" },
+                      "timeout":       { "type": "integer", "minimum": 0 },
+                      "if":            { "type": "string" },
+                      "once":          { "type": "boolean" },
+                      "statusMessage": { "type": "string" }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["type", "prompt"],
+                    "additionalProperties": true,
+                    "properties": {
+                      "type":          { "const": "prompt" },
+                      "prompt":        { "type": "string", "minLength": 1 },
+                      "model":         { "type": "string" },
+                      "timeout":       { "type": "integer", "minimum": 0 },
+                      "if":            { "type": "string" },
+                      "once":          { "type": "boolean" },
+                      "statusMessage": { "type": "string" }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["type"],
+                    "additionalProperties": true,
+                    "properties": {
+                      "type":          { "const": "agent" },
+                      "timeout":       { "type": "integer", "minimum": 0 },
+                      "if":            { "type": "string" },
+                      "once":          { "type": "boolean" },
+                      "statusMessage": { "type": "string" }
+                    }
+                  }
+                ]
               }
             }
           }
@@ -106,6 +188,16 @@
     "description":                       { "type": "string" },
     "version":                           { "type": "string" },
     "showTurnDuration":                  { "type": "boolean" },
-    "teammateMode":                      { "type": "string", "enum": ["in-process", "subprocess"] }
+    "teammateMode":                      { "type": "string", "enum": ["in-process", "subprocess"] },
+    "harness_policies": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "p4_strict_schema": {
+          "type": "boolean",
+          "description": "Kill Switch for P4 strict-schema dispatch. When false, even _internal/ skills validate against the lenient schema. Settings precedence: STRICT_SCHEMA env var > this field > default false."
+        }
+      }
+    }
   }
 }

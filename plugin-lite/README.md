@@ -15,9 +15,22 @@ A single skill (`behavioral-guardrails`) with 4 principles:
 
 ## Installation
 
+This plugin is published in the repository marketplace manifest
+(`.claude-plugin/marketplace.json`). Add the marketplace once, then install:
+
 ```bash
-# Install from git repository (subdirectory source)
-claude plugin install claude-config-lite --source git-subdir --url https://github.com/kcenon/claude-config --subdir plugin-lite
+# Add this repo as a marketplace (GitHub owner/repo shorthand)
+claude plugin marketplace add kcenon/claude-config
+
+# Install the lite plugin
+claude plugin install claude-config-lite@kcenon-plugins
+```
+
+Inside an interactive Claude Code session, use the slash-command equivalents:
+
+```
+/plugin marketplace add kcenon/claude-config
+/plugin install claude-config-lite@kcenon-plugins
 ```
 
 Or test locally:

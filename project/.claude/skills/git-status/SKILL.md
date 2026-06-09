@@ -5,6 +5,7 @@ user-invocable: true
 disable-model-invocation: true
 model: haiku
 allowed-tools: "Bash(git *)"
+iso_class: none
 ---
 
 # Git Status Command

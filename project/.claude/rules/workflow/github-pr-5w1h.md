@@ -27,6 +27,21 @@ Every PR MUST link to at least one issue (unless trivial fix).
 - **Reference**: `Relates to #N`, `Part of #N`, `See also #N`
 - **After PR creation**: Add implementation update comment to linked issue(s)
 
+### Auto-close behavior on develop merges
+
+GitHub's built-in auto-close fires only when a PR is merged into the
+**default branch** (`main` in this repo). Because this repo's workflow
+squash-merges feature PRs into `develop`, the built-in mechanism is bypassed.
+
+The `.github/workflows/auto-close-linked-issues.yml` workflow restores the
+auto-close behavior for non-default-branch merges: it scans the merged PR's
+body for `Closes/Fixes/Resolves #N` keywords and closes each referenced
+issue with a "Closed by #PR" comment. PRs targeting the default branch are
+skipped (GitHub already handles them).
+
+You can rely on the keywords as documented above; no manual
+`gh issue close` step is required after merge.
+
 ## Quick Reference
 
 ### PR Title Conventions

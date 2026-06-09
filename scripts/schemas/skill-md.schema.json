@@ -1,33 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kcenon/claude-config/scripts/schemas/skill-md.schema.json",
-  "title": "Claude Code SKILL.md Frontmatter",
-  "description": "Canonical schema for Claude Code 2026 SKILL.md YAML frontmatter. 14 official fields plus claude-config iteration-control extension fields (max_iterations, halt_condition, on_halt, loop_safe) and tier-preset extension fields (tiers, default_tier).",
+  "title": "Claude Code SKILL.md Frontmatter (Deprecated Alias)",
+  "description": "DEPRECATED ALIAS: this URL is preserved for backward compatibility with external plugin authors who already reference it. Its content matches skill-md.schema.lenient.json. New consumers should pick the variant explicitly: .strict.json for global/skills/_internal/ skills, .lenient.json otherwise. The Kill Switch (harness_policies.p4_strict_schema / STRICT_SCHEMA env) can force lenient across all paths.",
   "type": "object",
   "required": ["name", "description"],
-  "additionalProperties": false,
-  "$defs": {
-    "tierEntry": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "ref_docs": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Skill-defined alias keys resolving to reference/*.md files inside the skill's directory."
-        },
-        "deep_checks": {
-          "type": "boolean",
-          "description": "Opt-in flag for deeper verification passes (extra lint, full build, integrity checks)."
-        },
-        "max_files": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Advisory cap on the number of files the skill should enumerate or modify in a single invocation."
-        }
-      }
-    }
-  },
+  "additionalProperties": true,
   "properties": {
     "name": {
       "type": "string",
@@ -39,108 +17,70 @@
     "description": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 1024,
-      "description": "Skill trigger description. Max 1024 chars. >=100 chars recommended for trigger quality."
+      "maxLength": 1536,
+      "description": "Skill trigger description. Max 1536 chars (official cap on combined description + when_to_use in the skill listing)."
     },
-    "when_to_use": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Plain-language hint of when this skill applies."
+    "when_to_use": { "type": "string", "minLength": 1 },
+    "argument-hint": { "type": "string" },
+    "arguments": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ]
     },
-    "argument-hint": {
-      "type": "string",
-      "description": "Usage hint shown to the user, e.g., \"<file-or-directory> [--verbose]\"."
-    },
-    "disable-model-invocation": {
-      "type": "boolean",
-      "description": "When true, the model cannot auto-invoke this skill (user-only)."
-    },
-    "user-invocable": {
-      "type": "boolean",
-      "description": "When true, the user can invoke this skill via slash command."
-    },
+    "disable-model-invocation": { "type": "boolean" },
+    "user-invocable": { "type": "boolean" },
     "allowed-tools": {
       "oneOf": [
         { "type": "string" },
         { "type": "array", "items": { "type": "string" }, "minItems": 1 }
-      ],
-      "description": "Tools the skill is allowed to call. Scalar (\"Bash(git *)\") or array form."
+      ]
     },
-    "model": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Preferred model identifier (e.g., haiku, sonnet, opus)."
+    "disallowed-tools": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ]
     },
-    "effort": {
-      "type": "string",
-      "enum": ["low", "medium", "high", "xhigh", "max"],
-      "description": "Effort level for model invocation."
-    },
-    "context": {
-      "type": "string",
-      "enum": ["fork"],
-      "description": "Context strategy. \"fork\" runs the skill in a forked context window."
-    },
+    "model": { "type": "string", "minLength": 1 },
+    "effort": { "type": "string", "enum": ["low", "medium", "high", "xhigh", "max"] },
+    "context": { "type": "string", "enum": ["fork"] },
     "agent": {
       "oneOf": [
         { "type": "string" },
         { "type": "array", "items": { "type": "string" }, "minItems": 1 }
-      ],
-      "description": "Agent name(s) this skill prefers to delegate to."
+      ]
     },
     "hooks": {
       "oneOf": [
         { "type": "string" },
         { "type": "array", "items": { "type": "string" }, "minItems": 1 },
         { "type": "object" }
-      ],
-      "description": "Hook bindings scoped to this skill."
+      ]
     },
     "paths": {
       "oneOf": [
         { "type": "string" },
         { "type": "array", "items": { "type": "string" }, "minItems": 1 }
-      ],
-      "description": "Glob path patterns this skill applies to (comma-separated string or array)."
+      ]
     },
-    "shell": {
-      "type": "string",
-      "enum": ["bash", "powershell"],
-      "description": "Preferred shell when the skill runs commands."
+    "shell": { "type": "string", "enum": ["bash", "powershell"] },
+    "max_iterations": { "type": "integer", "minimum": 1 },
+    "halt_condition": { "type": "string", "minLength": 1 },
+    "halt_conditions": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "array", "minItems": 1 }
+      ]
     },
-    "max_iterations": {
-      "type": "integer",
-      "minimum": 1,
-      "description": "Iteration-control extension (claude-config): maximum number of self-loops before the skill is forced to halt."
-    },
-    "halt_condition": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Iteration-control extension (claude-config): plain-language condition that stops the iteration loop early."
-    },
-    "on_halt": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Iteration-control extension (claude-config): action to take when halt_condition fires or max_iterations is reached."
-    },
-    "loop_safe": {
-      "type": "boolean",
-      "description": "Iteration-control extension (claude-config): true when the skill is safe to run inside an autonomous /loop, false when it must exit the loop before acting."
-    },
-    "tiers": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "light":    { "$ref": "#/$defs/tierEntry" },
-        "standard": { "$ref": "#/$defs/tierEntry" },
-        "deep":     { "$ref": "#/$defs/tierEntry" }
-      },
-      "description": "Tier-preset extension (claude-config): per-tier loading hints for skills whose SKILL.md body exceeds 5 KB. See global/skills/_policy.md."
-    },
-    "default_tier": {
-      "type": "string",
-      "enum": ["light", "standard", "deep"],
-      "description": "Tier-preset extension (claude-config): tier applied when the caller omits --tier. Defaults to 'standard' when this field is absent."
+    "on_halt": { "type": "string", "minLength": 1 },
+    "loop_safe": { "type": "boolean" },
+    "severity": { "type": "string", "enum": ["S1", "S2", "S3"] },
+    "finding_levels": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["S1", "S2", "S3"] },
+      "minItems": 1,
+      "uniqueItems": true
     }
   }
 }

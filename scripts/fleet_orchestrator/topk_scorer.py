@@ -1,7 +1,7 @@
 """Top-K agent routing scorer for fleet-orchestrator.
 
 Implements the scoring algorithm specified in
-``global/skills/fleet-orchestrator/SKILL.md`` Phase 2.5.
+``global/skills/_internal/fleet-orchestrator/SKILL.md`` Phase 2.5.
 
 The module is intentionally pure (no I/O side effects beyond reading agent
 frontmatter YAML files when the helper ``load_agents`` is used) so the

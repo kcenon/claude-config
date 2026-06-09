@@ -4,7 +4,7 @@
 # ====================================
 # 백업된 CLAUDE.md 설정을 새 시스템에 자동으로 설치하는 스크립트
 
-set -e  # 에러 발생 시 스크립트 중단
+set -euo pipefail  # 에러, 미정의 변수, 파이프 실패 시 스크립트 중단
 
 # 색상 정의
 RED='\033[0;31m'
@@ -43,16 +43,114 @@ warning() {
 }
 
 # 함수: 에러 메시지
+# Terminal by design: every `cmd || error "..."` site (notably the enterprise
+# CLAUDE.md / rules copies — the highest-priority policy path) must abort
+# rather than fall through to a false `success`. `set -euo pipefail` alone
+# does not catch a failure on the left of `||`. Non-fatal diagnostics use
+# warning() instead (e.g. check_dependencies, which collects all missing
+# commands before its own exit).
 error() {
-    echo -e "${RED}❌ $1${NC}"
+    echo -e "${RED}❌ $1${NC}" >&2
+    exit 1
 }
 
 # 함수: 디렉토리 생성
 ensure_dir() {
     local dir="$1"
     if [ ! -d "$dir" ]; then
-        mkdir -p "$dir"
+        mkdir -p "$dir" || error "디렉토리 생성 실패: $dir"
         success "디렉토리 생성: $dir"
+    fi
+}
+
+# 함수: 의존성 확인
+check_dependencies() {
+    local missing_deps=0
+    for cmd in cp mkdir chmod grep sed; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            warning "필수 명령어 '$cmd'가 설치되어 있지 않습니다."
+            missing_deps=1
+        fi
+    done
+    if [ $missing_deps -ne 0 ]; then
+        exit 1
+    fi
+}
+
+# 함수: Claude Code CLI 설치 확인 및 자동 설치
+# version-check.sh 등 hook 스크립트와 batch-issue-work.sh / batch-pr-work.sh가
+# `claude --version` / `claude` 명령을 직접 호출한다. 미설치 상태에서 설정만
+# 배포되면 silent failure가 발생하므로 설치 시점에 Anthropic 공식 native
+# installer를 통한 동의 기반 자동 설치를 제공한다.
+# 참고: https://code.claude.com/docs/en/setup
+ensure_claude_cli() {
+    info "Claude Code CLI 확인 중..."
+
+    if command -v claude >/dev/null 2>&1; then
+        local cc_version
+        cc_version="$(claude --version 2>/dev/null | head -n1)"
+        success "Claude Code CLI 이미 설치됨: ${cc_version:-version unknown}"
+        return 0
+    fi
+
+    warning "Claude Code CLI가 설치되어 있지 않습니다."
+    echo "  설치된 hook(version-check) 및 batch 스크립트가 'claude' 명령을 호출하므로,"
+    echo "  미설치 상태에서는 일부 기능이 정상 동작하지 않습니다."
+    echo ""
+
+    read -p "Claude Code CLI를 지금 설치하시겠습니까? (y/n) [기본값: y]: " INSTALL_CLAUDE
+    INSTALL_CLAUDE=${INSTALL_CLAUDE:-y}
+
+    if [ "$INSTALL_CLAUDE" != "y" ]; then
+        warning "Claude Code CLI 설치 건너뜀. 추후 수동 설치:"
+        echo "    curl -fsSL https://claude.ai/install.sh | bash"
+        return 0
+    fi
+
+    # Native installer는 Anthropic 공식 권장 방식이며 백그라운드 자동 업데이트를 지원한다.
+    # 설치 경로: ~/.local/bin/claude → ~/.local/share/claude/versions/<ver>
+    #
+    # Supply-chain hardening (#620): delegates to hooks/lib/installer-fetch.sh
+    # for download → sha256 verify → run. The pinned hash is shared with
+    # bootstrap.sh and lives in $ANTHROPIC_INSTALLER_SHA256. Bare
+    # 'curl | bash' is no longer used — every install path verifies.
+    local installer_url="${ANTHROPIC_INSTALLER_URL:-https://claude.ai/install.sh}"
+    local installer_sha="${ANTHROPIC_INSTALLER_SHA256:-b315b46925a9bfb9422f2503dd5aa649f680832f4c076b22d87c39d578c3d830}"
+    local install_status=1
+
+    local script_dir repo_root
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    repo_root="$(dirname "$script_dir")"
+    if [ ! -f "$repo_root/hooks/lib/installer-fetch.sh" ]; then
+        warning "installer-fetch.sh not found at $repo_root/hooks/lib/ — refusing unverified install"
+        return 0
+    fi
+    # shellcheck disable=SC1091
+    source "$repo_root/hooks/lib/installer-fetch.sh"
+    info "Native installer 실행 중: $installer_url"
+    if installer_fetch_verify_run "$installer_url" "$installer_sha" "claude-installer"; then
+        install_status=0
+    fi
+
+    if [ $install_status -eq 0 ]; then
+        if ! command -v claude >/dev/null 2>&1 && [ -x "$HOME/.local/bin/claude" ]; then
+            export PATH="$HOME/.local/bin:$PATH"
+        fi
+        if command -v claude >/dev/null 2>&1; then
+            local cc_version
+            cc_version="$(claude --version 2>/dev/null | head -n1)"
+            success "Claude Code CLI 설치 완료: ${cc_version:-version unknown}"
+            echo "  설치 위치: $(command -v claude)"
+        else
+            warning "Native installer는 종료되었으나 'claude'를 PATH에서 찾을 수 없습니다."
+            echo "  새 셸을 열거나 ~/.local/bin을 PATH에 추가하세요:"
+            echo "    export PATH=\"\$HOME/.local/bin:\$PATH\""
+        fi
+    else
+        warning "Claude Code CLI 자동 설치 실패."
+        echo "  수동 설치:"
+        echo "    curl -fsSL https://claude.ai/install.sh | bash"
+        echo "  또는 Anthropic 공식 가이드: https://code.claude.com/docs/en/setup"
     fi
 }
 
@@ -83,16 +181,11 @@ create_local_claude() {
     fi
 }
 
-# 함수: 정책 phrase 반환 (install-time substitution용, issue #411)
-# CLAUDE_CONTENT_LANGUAGE 값에 매핑되는 짧은 phrase를 반환합니다.
-get_policy_phrase() {
-    case "${CONTENT_LANGUAGE:-english}" in
-        english)             echo "English" ;;
-        korean_plus_english) echo "English or Korean" ;;
-        any)                 echo "any language" ;;
-        *)                   echo "English" ;;
-    esac
-}
+# Note: get_policy_phrase is provided by scripts/lib/install-prompts.sh,
+# which is sourced before any callers (the prompt section sources it
+# explicitly; render_policy_tmpl below depends on it). Kept centralized
+# in the lib so the bash, PowerShell, and drift-test definitions stay
+# in lockstep.
 
 # 함수: .tmpl 파일을 읽어 {{CONTENT_LANGUAGE_POLICY}}를 phrase로 치환한 뒤 대상에 기록
 # 사용법: render_policy_tmpl <src.tmpl> <dest.md>
@@ -188,12 +281,12 @@ install_enterprise() {
             sudo mkdir -p "$enterprise_dir/rules"
 
             # 파일 복사
-            sudo cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/"
+            sudo cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/" || error "CLAUDE.md 복사 실패"
             success "CLAUDE.md 설치됨"
 
             # rules 디렉토리 복사
-            if [ -d "$BACKUP_DIR/enterprise/rules" ]; then
-                sudo cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" 2>/dev/null || true
+            if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
+                sudo cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" || error "rules 복사 실패"
                 success "rules 디렉토리 설치됨"
             fi
 
@@ -201,16 +294,18 @@ install_enterprise() {
             sudo chmod 755 "$enterprise_dir"
             sudo chmod 644 "$enterprise_dir/CLAUDE.md"
             sudo chmod 755 "$enterprise_dir/rules"
-            sudo chmod 644 "$enterprise_dir/rules"/* 2>/dev/null || true
+            if [ -n "$(ls -A "$enterprise_dir/rules" 2>/dev/null)" ]; then
+                sudo chmod 644 "$enterprise_dir/rules"/* || error "rules 권한 설정 실패"
+            fi
         else
             # sudo 불필요
             mkdir -p "$enterprise_dir"
             mkdir -p "$enterprise_dir/rules"
-            cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/"
+            cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/" || error "CLAUDE.md 복사 실패"
             success "CLAUDE.md 설치됨"
 
-            if [ -d "$BACKUP_DIR/enterprise/rules" ]; then
-                cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" 2>/dev/null || true
+            if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
+                cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" || error "rules 복사 실패"
                 success "rules 디렉토리 설치됨"
             fi
         fi
@@ -218,11 +313,11 @@ install_enterprise() {
         # Windows
         mkdir -p "$enterprise_dir"
         mkdir -p "$enterprise_dir/rules"
-        cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/"
+        cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/" || error "CLAUDE.md 복사 실패"
         success "CLAUDE.md 설치됨"
 
-        if [ -d "$BACKUP_DIR/enterprise/rules" ]; then
-            cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" 2>/dev/null || true
+        if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
+            cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" || error "rules 복사 실패"
             success "rules 디렉토리 설치됨"
         fi
     fi
@@ -231,6 +326,168 @@ install_enterprise() {
     echo ""
     warning "중요: enterprise/CLAUDE.md를 조직 정책에 맞게 수정하세요!"
 }
+
+# ----- Memory Sync Scheduler (issue #527) -----
+#
+# Installs the platform-native scheduler that invokes memory-sync.sh hourly.
+# macOS: launchd LaunchAgent at ~/Library/LaunchAgents/com.kcenon.claude-memory-sync.plist
+# Linux: systemd user units at ~/.config/systemd/user/memory-sync.{service,timer}
+#
+# Skipped silently when CLAUDE_MEMORY_REPO_URL is unset. Installs are idempotent:
+# re-running unloads/disables the prior unit cleanly, then re-loads/enables.
+#
+# Test/dry-run overrides (no destructive launchctl/systemctl side effects):
+#   LAUNCHD_TARGET_DIR=/tmp/foo     redirect plist destination away from
+#                                   ~/Library/LaunchAgents (also skips launchctl)
+#   SYSTEMD_USER_DIR=/tmp/bar       redirect unit destination away from
+#                                   ~/.config/systemd/user (also skips systemctl)
+# These overrides also disable the launchctl bootstrap / systemctl enable steps
+# so the install function can be exercised on CI runners and dev sandboxes
+# without modifying real launchd / systemd state.
+
+install_launchd_agent() {
+    local src_plist="$BACKUP_DIR/scripts/launchd/com.kcenon.claude-memory-sync.plist"
+    if [ ! -f "$src_plist" ]; then
+        warning "launchd plist source not found: $src_plist"
+        return 1
+    fi
+
+    local target_dir="${LAUNCHD_TARGET_DIR:-$HOME/Library/LaunchAgents}"
+    local target_plist="$target_dir/com.kcenon.claude-memory-sync.plist"
+
+    ensure_dir "$target_dir"
+    cp "$src_plist" "$target_plist"
+    chmod 644 "$target_plist"
+
+    # Skip launchctl when redirected to a test directory.
+    if [ -n "${LAUNCHD_TARGET_DIR:-}" ]; then
+        info "[install] LAUNCHD_TARGET_DIR set; skipping launchctl bootstrap"
+        success "launchd plist staged at $target_plist (test mode)"
+        return 0
+    fi
+
+    # Idempotent activation: bootout (ignore failure if not loaded) then bootstrap.
+    local domain="gui/$(id -u)"
+    launchctl bootout "$domain" "$target_plist" 2>/dev/null || true
+    if launchctl bootstrap "$domain" "$target_plist" 2>/dev/null; then
+        success "launchd agent loaded ($domain com.kcenon.claude-memory-sync)"
+    else
+        warning "launchctl bootstrap failed; falling back to load/unload"
+        launchctl unload "$target_plist" 2>/dev/null || true
+        launchctl load "$target_plist" || warning "launchctl load failed"
+    fi
+}
+
+install_systemd_timer() {
+    local src_dir="$BACKUP_DIR/scripts/systemd"
+    if [ ! -f "$src_dir/memory-sync.service" ] || [ ! -f "$src_dir/memory-sync.timer" ]; then
+        warning "systemd unit sources not found in $src_dir"
+        return 1
+    fi
+
+    local target_dir="${SYSTEMD_USER_DIR:-$HOME/.config/systemd/user}"
+    ensure_dir "$target_dir"
+    cp "$src_dir/memory-sync.service" "$target_dir/"
+    cp "$src_dir/memory-sync.timer" "$target_dir/"
+    chmod 644 "$target_dir/memory-sync.service" "$target_dir/memory-sync.timer"
+
+    # Skip systemctl when redirected to a test directory.
+    if [ -n "${SYSTEMD_USER_DIR:-}" ]; then
+        info "[install] SYSTEMD_USER_DIR set; skipping systemctl enable"
+        success "systemd units staged at $target_dir (test mode)"
+        return 0
+    fi
+
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl --user daemon-reload 2>/dev/null || warning "systemctl daemon-reload failed"
+        if systemctl --user enable --now memory-sync.timer 2>/dev/null; then
+            success "systemd user timer enabled (memory-sync.timer)"
+        else
+            warning "systemctl --user enable failed; check 'loginctl enable-linger' and DBUS_SESSION_BUS_ADDRESS"
+        fi
+    else
+        warning "systemctl not found; units copied but timer not enabled"
+    fi
+}
+
+install_memory_sync() {
+    if [ -z "${CLAUDE_MEMORY_REPO_URL:-}" ]; then
+        info "[install] CLAUDE_MEMORY_REPO_URL not set; skipping memory sync setup"
+        return 0
+    fi
+
+    if [ ! -d "$HOME/.claude/memory-shared/.git" ]; then
+        info "[install] cloning memory repo from $CLAUDE_MEMORY_REPO_URL"
+        if ! git clone "$CLAUDE_MEMORY_REPO_URL" "$HOME/.claude/memory-shared"; then
+            warning "[install] memory repo clone failed; aborting scheduler install"
+            return 1
+        fi
+        if [ -x "$HOME/.claude/memory-shared/scripts/install-hooks.sh" ]; then
+            (cd "$HOME/.claude/memory-shared" && ./scripts/install-hooks.sh) || \
+                warning "[install] memory repo install-hooks.sh failed"
+        fi
+    else
+        info "[install] memory repo already cloned at $HOME/.claude/memory-shared"
+    fi
+
+    case "$(uname -s)" in
+        Darwin)
+            install_launchd_agent
+            ;;
+        Linux)
+            install_systemd_timer
+            ;;
+        *)
+            warning "[install] platform $(uname -s) not supported for memory sync; scheduler skipped"
+            ;;
+    esac
+}
+
+uninstall_memory_sync() {
+    case "$(uname -s)" in
+        Darwin)
+            local target_dir="${LAUNCHD_TARGET_DIR:-$HOME/Library/LaunchAgents}"
+            local target_plist="$target_dir/com.kcenon.claude-memory-sync.plist"
+            if [ -f "$target_plist" ]; then
+                if [ -z "${LAUNCHD_TARGET_DIR:-}" ]; then
+                    launchctl bootout "gui/$(id -u)" "$target_plist" 2>/dev/null || \
+                        launchctl unload "$target_plist" 2>/dev/null || true
+                fi
+                rm -f "$target_plist"
+                success "launchd agent removed ($target_plist)"
+            else
+                info "launchd agent not present at $target_plist"
+            fi
+            ;;
+        Linux)
+            local target_dir="${SYSTEMD_USER_DIR:-$HOME/.config/systemd/user}"
+            if [ -z "${SYSTEMD_USER_DIR:-}" ] && command -v systemctl >/dev/null 2>&1; then
+                systemctl --user disable --now memory-sync.timer 2>/dev/null || true
+            fi
+            rm -f "$target_dir/memory-sync.service" "$target_dir/memory-sync.timer"
+            if [ -z "${SYSTEMD_USER_DIR:-}" ] && command -v systemctl >/dev/null 2>&1; then
+                systemctl --user daemon-reload 2>/dev/null || true
+            fi
+            success "systemd units removed from $target_dir"
+            ;;
+        *)
+            info "platform $(uname -s) has no memory sync scheduler to remove"
+            ;;
+    esac
+    success "[uninstall] memory sync scheduler removed"
+}
+
+# Early exit path for --uninstall-memory-sync (issue #527).
+# Honored before the interactive install prompts so users can clean up
+# the scheduler without re-running the full installer.
+if [ "${1:-}" = "--uninstall-memory-sync" ]; then
+    uninstall_memory_sync
+    exit 0
+fi
+
+# 의존성 확인
+check_dependencies
+ensure_claude_cli
 
 # 설치 타입 선택
 echo ""
@@ -244,27 +501,22 @@ echo ""
 read -p "선택 (1-5) [기본값: 3]: " INSTALL_TYPE
 INSTALL_TYPE=${INSTALL_TYPE:-3}
 
-# 컨텐츠 언어 정책 선택 (CLAUDE_CONTENT_LANGUAGE)
-# Global / Enterprise 설치 경로에서만 settings.json을 갱신합니다.
-# 기본값 english는 settings.json을 건드리지 않습니다 (dispatcher 기본값과 일치).
-echo ""
-info "컨텐츠 언어 정책을 선택하세요 (commit / PR / issue 검증 범위):"
-echo "  1) English (기본, 현재 동작과 완전 동일)"
-echo "  2) Korean + English (Hangul 허용)"
-echo "  3) Any (언어 검증 없음 — 단, AI 귀속 차단은 유지)"
-echo ""
-read -p "선택 (1-3) [기본값: 1]: " LANG_TYPE
-LANG_TYPE=${LANG_TYPE:-1}
+# Language selection prompts. Single source of truth in scripts/lib/install-prompts.sh
+# (mirrored by scripts/lib/InstallPrompts.psm1 for PowerShell). The simplified UI
+# offers English/Korean only; advanced policies (korean_plus_english, any) remain
+# accepted by the validator but must be set via direct settings.json edit.
+# Only the Global / Enterprise install paths touch settings.json; "english" leaves
+# the dispatcher at its default and skips writing settings.json.
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/install-prompts.sh"
+prompt_content_language
+prompt_agent_language
 
-case "$LANG_TYPE" in
-    1) CONTENT_LANGUAGE="english" ;;
-    2) CONTENT_LANGUAGE="korean_plus_english" ;;
-    3) CONTENT_LANGUAGE="any" ;;
-    *)
-        warning "알 수 없는 입력: $LANG_TYPE. english로 진행합니다."
-        CONTENT_LANGUAGE="english"
-        ;;
-esac
+# Legacy settings.json migration warning (informational only).
+# If the existing settings.json holds a CLAUDE_CONTENT_LANGUAGE value the
+# simplified UI no longer surfaces (korean_plus_english, any), warn the
+# operator before the new selection overwrites it.
+warn_legacy_settings_value "$HOME/.claude/settings.json" || true
 
 # Enterprise CLAUDE.md 충돌 감지 (issue #411)
 # Enterprise 정책 경로는 Claude Code에서 최상위 우선순위를 가집니다 (install.sh:122-124 참조).
@@ -302,34 +554,69 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
 
     # ~/.claude 디렉토리 생성
     ensure_dir "$HOME/.claude"
+    chmod 700 "$HOME/.claude"
 
-    # 파일 설치
-    for gf in CLAUDE.md commit-settings.md conversation-language.md git-identity.md token-management.md; do
-        [ -f "$BACKUP_DIR/global/$gf" ] && cp "$BACKUP_DIR/global/$gf" "$HOME/.claude/" && success "$gf 설치됨"
+    # 설치 매니페스트 헬퍼 로드
+    # shellcheck disable=SC1091
+    source "$BACKUP_DIR/scripts/install-manifest.sh"
+
+    # 파일 설치 (매니페스트 가드 사용)
+    for gf in CLAUDE.md commit-settings.md git-identity.md token-management.md; do
+        if [ -f "$BACKUP_DIR/global/$gf" ]; then
+            if guarded_copy "$BACKUP_DIR/global/$gf" "$HOME/.claude/$gf" "$gf"; then
+                if [ "$gf" = "git-identity.md" ] || [ "$gf" = "token-management.md" ]; then
+                    chmod 600 "$HOME/.claude/$gf"
+                else
+                    chmod 644 "$HOME/.claude/$gf"
+                fi
+                success "$gf 설치됨"
+            else
+                info "$gf 로컬 변경 유지"
+            fi
+        fi
     done
 
-    # settings.json 설치 (Hook 설정)
+    # conversation-language.md 템플릿 렌더링
+    # AGENT_DISPLAY_LANG is populated by prompt_agent_language() in
+    # scripts/lib/install-prompts.sh; fall back if the prompt was skipped
+    # (e.g. project-only install path).
+    if [ -f "$BACKUP_DIR/global/conversation-language.md.tmpl" ]; then
+        if [ -z "${AGENT_DISPLAY_LANG:-}" ]; then
+            if [ "${AGENT_LANGUAGE:-korean}" = "english" ]; then
+                AGENT_DISPLAY_LANG="English"
+            else
+                AGENT_DISPLAY_LANG="Korean"
+            fi
+        fi
+
+        if guarded_template_copy "$BACKUP_DIR/global/conversation-language.md.tmpl" "$HOME/.claude/conversation-language.md" "conversation-language.md" "$AGENT_DISPLAY_LANG"; then
+            chmod 644 "$HOME/.claude/conversation-language.md"
+            success "conversation-language.md 설치됨 (언어: $AGENT_DISPLAY_LANG)"
+        else
+            info "conversation-language.md 로컬 변경 유지"
+        fi
+    fi
+
+    # settings.json install (Hook configuration)
+    # Intentionally bypasses guarded_copy: policy attributes (.language,
+    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
+    # update_claude_settings_json (below) injects them and is responsible
+    # for idempotent reset when the policy returns to default ("english").
     if [ -f "$BACKUP_DIR/global/settings.json" ]; then
         cp "$BACKUP_DIR/global/settings.json" "$HOME/.claude/"
         success "Hook 설정 (settings.json) 설치 완료!"
 
-        # CLAUDE_CONTENT_LANGUAGE env 주입
-        # english(기본)은 dispatcher 기본값과 일치하므로 파일을 건드리지 않습니다.
-        if [ "$CONTENT_LANGUAGE" != "english" ]; then
-            if command -v jq >/dev/null 2>&1; then
-                tmpfile=$(mktemp)
-                jq --arg v "$CONTENT_LANGUAGE" \
-                   '.env = (.env // {}) | .env.CLAUDE_CONTENT_LANGUAGE = $v' \
-                   "$HOME/.claude/settings.json" > "$tmpfile" \
-                   && mv "$tmpfile" "$HOME/.claude/settings.json" \
-                   && success "CLAUDE_CONTENT_LANGUAGE=$CONTENT_LANGUAGE 을 settings.json에 기록했습니다."
-            else
-                warning "jq가 설치되어 있지 않아 CLAUDE_CONTENT_LANGUAGE를 자동 설정할 수 없습니다."
+        # CLAUDE_CONTENT_LANGUAGE env 주입 및 Agent Language 속성 업데이트
+        if update_claude_settings_json "$HOME/.claude/settings.json" "$AGENT_LANGUAGE" "$CONTENT_LANGUAGE"; then
+            success "settings.json: language=$AGENT_LANGUAGE, CLAUDE_CONTENT_LANGUAGE=$CONTENT_LANGUAGE 업데이트 완료."
+        else
+            warning "jq가 설치되어 있지 않아 settings.json을 자동 업데이트할 수 없습니다."
+            if [ "$CONTENT_LANGUAGE" != "english" ]; then
                 echo "  수동으로 ~/.claude/settings.json 의 env 섹션에 다음을 추가하세요:"
                 echo "    \"CLAUDE_CONTENT_LANGUAGE\": \"$CONTENT_LANGUAGE\""
             fi
-        else
-            info "CLAUDE_CONTENT_LANGUAGE=english (기본값, settings.json 무변경)"
+            echo "  그리고 루트 레벨에 다음을 추가/수정하세요:"
+            echo "    \"language\": \"$AGENT_LANGUAGE\""
         fi
     fi
 
@@ -338,7 +625,28 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         ensure_dir "$HOME/.claude/hooks"
         cp "$BACKUP_DIR/global/hooks"/*.sh "$HOME/.claude/hooks/" 2>/dev/null || true
         chmod +x "$HOME/.claude/hooks/"*.sh 2>/dev/null || true
-        success "Hook 스크립트 (hooks/) 설치 완료!"
+
+        # Deploy global/hooks/lib/*.sh (issue #586). Mirrors install.ps1:481-500.
+        # The *.sh glob above is non-recursive, so without this block the four
+        # shared libraries (tokenize-shell.sh, path-utils.sh, timeout-wrapper.sh,
+        # rotate.sh) are silently dropped. dangerous-command-guard.sh,
+        # gh-write-verb-guard.sh, bash-write-guard.sh, and
+        # bash-sensitive-read-guard.sh source tokenize-shell.sh at runtime.
+        if [ -d "$BACKUP_DIR/global/hooks/lib" ]; then
+            ensure_dir "$HOME/.claude/hooks/lib"
+            cp "$BACKUP_DIR/global/hooks/lib"/*.sh "$HOME/.claude/hooks/lib/" 2>/dev/null || true
+            chmod +x "$HOME/.claude/hooks/lib/"*.sh 2>/dev/null || true
+
+            # Post-copy regression guard for #586. tokenize-shell.sh is the
+            # canonical sub-command splitter (see #476); its absence weakens
+            # four Bash-channel guards. Surface a loud warning at install time
+            # so the regression cannot reach a user session silently.
+            if [ ! -f "$HOME/.claude/hooks/lib/tokenize-shell.sh" ]; then
+                warning "hooks/lib/tokenize-shell.sh 미설치 - Bash 가드가 약화됩니다 (issue #586)"
+            fi
+        fi
+
+        success "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
 
         # Full-suite probe (issue #423): advertise which canonical guards the
         # plugin surface should stand down for. Plugin/hooks.json inspects this
@@ -384,10 +692,11 @@ PY
         fi
     fi
 
-    # 공유 검증 라이브러리 설치 (commit-message-guard.sh 및 pr-language-guard.sh에서 사용)
+    # 공유 검증 라이브러리 설치 (commit-message-guard.sh, pr-language-guard.sh,
+    # traceability-guard.sh가 사용)
     if [ -d "$BACKUP_DIR/hooks/lib" ]; then
         ensure_dir "$HOME/.claude/hooks/lib"
-        for lib in validate-commit-message.sh validate-language.sh; do
+        for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
             if [ -f "$BACKUP_DIR/hooks/lib/$lib" ]; then
                 cp "$BACKUP_DIR/hooks/lib/$lib" "$HOME/.claude/hooks/lib/"
                 chmod +x "$HOME/.claude/hooks/lib/$lib"
@@ -426,14 +735,21 @@ PY
         success "tmux.conf 설치 완료!"
     fi
 
+    # policies 디렉토리 설치 (있는 경우 정책 JSON 파일 배포)
+    if [ -d "$BACKUP_DIR/global/policies" ]; then
+        ensure_dir "$HOME/.claude/policies"
+        cp "$BACKUP_DIR/global/policies"/*.json "$HOME/.claude/policies/" 2>/dev/null || true
+        success "정책 파일 (policies/) 설치 완료!"
+    fi
+
     # skills 디렉토리 설치 (global skills: harness, pr-work, issue-work, etc.)
+    # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
+    # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의
+    # "Skill Aliases" 표에 따라 leading keyword 호출로만 실행된다.
+    # `cp -r src/. dst/` 점 트릭으로 _policy.md 같은 루트 레벨 파일까지 복사한다.
     if [ -d "$BACKUP_DIR/global/skills" ]; then
         mkdir -p "$HOME/.claude/skills"
-        for skill_dir in "$BACKUP_DIR/global/skills"/*/; do
-            if [ -d "$skill_dir" ]; then
-                cp -r "$skill_dir" "$HOME/.claude/skills/"
-            fi
-        done
+        cp -r "$BACKUP_DIR/global/skills"/. "$HOME/.claude/skills/"
         skill_count=$(find "$HOME/.claude/skills" -name "SKILL.md" | wc -l | tr -d ' ')
         success "Global Skills (${skill_count}개) 설치 완료!"
     fi
@@ -475,6 +791,14 @@ PY
     fi
 
     success "글로벌 설정 설치 완료!"
+
+    # Memory sync scheduler (issue #527).
+    # Opt-in via CLAUDE_MEMORY_REPO_URL env var; no-op when unset.
+    # Installed only on global-touching profiles (1, 3, 5) since the scheduler
+    # invokes ~/.claude/scripts/memory-sync.sh which lives under the global tree.
+    echo ""
+    info "메모리 동기화 스케줄러 설치 중..."
+    install_memory_sync
 
     # Git identity 개인화 안내
     echo ""

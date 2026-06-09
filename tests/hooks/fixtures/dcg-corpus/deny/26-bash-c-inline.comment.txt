@@ -1,0 +1,1 @@
+Red Team variant I: `bash -c '...'` (and `sh -c`, `zsh -c`, etc.) hides its payload behind a single string argument that the static parser treats as opaque. Denied unconditionally; users must run scripts as files instead.

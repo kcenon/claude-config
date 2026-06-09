@@ -10,6 +10,7 @@ allowed-tools:
 model: sonnet
 context: fork
 argument-hint: "<file-or-directory>"
+iso_class: none
 ---
 
 # Performance Review Skill

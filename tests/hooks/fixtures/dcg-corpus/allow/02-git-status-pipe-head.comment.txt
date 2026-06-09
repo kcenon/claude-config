@@ -1,0 +1,1 @@
+git status piped to head — safe read-only compound.

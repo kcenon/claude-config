@@ -53,6 +53,16 @@ set_json_version() {
         echo "SKIP: $file (not found)" >&2
         return
     fi
+    # The substitution below is global; it is correct only while each target has
+    # exactly one "version" key. Assert that invariant so a second key fails
+    # loudly here instead of being silently clobbered (matches check_versions.sh,
+    # which reads the first match via `head -1`).
+    local version_keys
+    version_keys=$(grep -cE '"version"[[:space:]]*:' "$path")
+    if [ "$version_keys" -gt 1 ]; then
+        echo "ERROR: $file has $version_keys \"version\" keys; set_json_version assumes exactly one." >&2
+        return 1
+    fi
     sed_inplace 's/("version"[[:space:]]*:[[:space:]]*")[^"]+(")/\1'"${new}"'\2/' "$path"
     echo "synced: $file -> version=$new"
 }

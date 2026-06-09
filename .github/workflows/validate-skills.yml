@@ -15,10 +15,24 @@ on:
       - 'scripts/validate_skills.sh'
       - 'scripts/check_references.sh'
       - 'scripts/sync_references.sh'
+      - 'scripts/check_agents.sh'
+      - 'scripts/check_agents.ps1'
+      - 'tests/scripts/test-check-agents.sh'
+      - 'plugin/agents/**'
+      - 'project/.claude/agents/**'
       - 'scripts/spec_lint.sh'
       - 'scripts/spec_lint.ps1'
       - 'scripts/spec_lint.py'
       - 'scripts/schemas/**'
+      - 'scripts/fleet_orchestrator/**'
+      - 'tests/fleet_orchestrator/**'
+      - 'docs/design/**'
+      - 'docs/tier2-benchmark-results.md'
+      - 'docs/batch-drift-regression.md'
+      - 'scripts/validate-adr-headers.sh'
+      - 'scripts/extract-doc-description.sh'
+      - 'tests/doc-index/**'
+      - 'docs/.index/manifest.yaml'
       - 'VERSION_MAP.yml'
       - 'scripts/check_versions.sh'
       - 'scripts/sync_versions.sh'
@@ -54,8 +68,47 @@ jobs:
       - name: Check workflow reference mirrors match canonical
         run: ./scripts/check_references.sh
 
+      - name: Check plugin/project agent bodies in sync
+        # plugin/agents and project/.claude/agents are near-duplicate copies;
+        # this guard strips per-layer frontmatter and the one genericized
+        # rules-path sentence, then fails if the bodies otherwise diverge.
+        run: ./scripts/check_agents.sh
+
+      - name: Run agent drift guard test suite
+        run: bash tests/scripts/test-check-agents.sh
+
       - name: Check VERSION_MAP consumers match declared values
         run: ./scripts/check_versions.sh
 
       - name: Run spec linter test suite
         run: bash tests/scripts/test-spec-lint.sh
+
+      - name: Install pytest for fleet_orchestrator tests
+        # pytest is already a transitive dep of jsonschema in some envs; pin
+        # explicitly so the runner does not silently fall back to unittest.
+        run: pip install pytest
+
+      - name: Run fleet_orchestrator pytest (#622)
+        # Pins the topk_scorer routing behavior the fleet-orchestrator skill
+        # depends on. Silent breakage here means consumers route work to the
+        # wrong agent type.
+        run: python -m pytest tests/fleet_orchestrator/ -q
+
+      - name: Verify README.md / README.ko.md heading skeleton (#623)
+        # Bilingual contract: the two READMEs must share the same heading
+        # counts at every level. Catches "added a section in English, forgot
+        # to translate" drift before it accrues into multi-version debt.
+        run: bash scripts/diff-readme.sh
+
+      - name: Verify ADR frontmatter on docs/design (#624)
+        # docs/design/*.md (plus tier2-benchmark-results.md and
+        # batch-drift-regression.md) must carry the five-field ADR
+        # frontmatter so readers can tell at a glance whether a design
+        # document is still load-bearing.
+        run: bash scripts/validate-adr-headers.sh
+
+      - name: Run doc-index description extractor tests (#625)
+        # Pin extract-doc-description.sh behavior. The pre-#625
+        # heuristic took the first non-empty line, producing literal
+        # '<p align="center">' descriptions for HTML-headed READMEs.
+        run: bash tests/doc-index/test-extract-doc-description.sh

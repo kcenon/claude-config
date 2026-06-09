@@ -4,7 +4,7 @@
 # =======================================
 # 백업의 무결성과 완전성을 확인하는 스크립트
 
-set -e
+set -euo pipefail
 
 # 색상 정의
 RED='\033[0;31m'
@@ -169,6 +169,16 @@ if [ -f "$BACKUP_DIR/global/settings.json" ]; then
         FAILED_CHECKS=$((FAILED_CHECKS + 1))
     fi
 fi
+
+# Hook 공유 라이브러리 검증 (issue #586 회귀 방지)
+# install.sh / install.ps1 가 ~/.claude/hooks/lib/ 로 복사하는 핵심 .sh 파일들이
+# 저장소에 빠진 채 머지되는 것을 CI 단계에서 잡는다. dangerous-command-guard,
+# gh-write-verb-guard, bash-write-guard, bash-sensitive-read-guard 가
+# tokenize-shell.sh 를 source 하므로 누락 시 Bash 가드가 약화된다.
+check_file "$BACKUP_DIR/global/hooks/lib/tokenize-shell.sh" "global/hooks/lib/tokenize-shell.sh"
+check_file "$BACKUP_DIR/global/hooks/lib/path-utils.sh" "global/hooks/lib/path-utils.sh"
+check_file "$BACKUP_DIR/global/hooks/lib/timeout-wrapper.sh" "global/hooks/lib/timeout-wrapper.sh"
+check_file "$BACKUP_DIR/global/hooks/lib/rotate.sh" "global/hooks/lib/rotate.sh"
 
 # 프로젝트 설정 파일 검증
 echo ""

@@ -1,0 +1,80 @@
+name: Validate HOOKS.md Drift
+
+# Re-runs scripts/gen-hooks-md.sh and fails the PR if HOOKS.md and the
+# filesystem (global/hooks/*.sh comment headers) have drifted. The
+# generator is idempotent: a second run after the first must produce no
+# diff.
+#
+# Branch policy: the repo's default CI policy is "main-targeting PRs only",
+# but this validator is cheap and catches drift early, so it also runs on
+# PRs targeting `develop` per acceptance criteria of issue #481.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'global/hooks/**'
+      - 'HOOKS.md'
+      - 'scripts/gen-hooks-md.sh'
+      - '.github/workflows/validate-hooks-doc.yml'
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run generator in --check mode
+        run: bash scripts/gen-hooks-md.sh --check
+
+      - name: Verify generator idempotency
+        # Run the generator twice in --stdout mode; the two outputs must
+        # be byte-identical or the generator is non-deterministic.
+        run: |
+          first=$(bash scripts/gen-hooks-md.sh --stdout)
+          second=$(bash scripts/gen-hooks-md.sh --stdout)
+          if [ "$first" != "$second" ]; then
+            echo "Generator output changed between runs (non-idempotent)" >&2
+            diff <(printf '%s\n' "$first") <(printf '%s\n' "$second") >&2 || true
+            exit 1
+          fi
+
+  parity:
+    # Parity audit per #489: every bash hook in global/hooks/*.sh must have a
+    # PowerShell counterpart of the same basename, and vice versa. Fails the
+    # PR if counts diverge so the COMPATIBILITY.md ratio cannot drift silently.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Audit .sh / .ps1 parity
+        run: |
+          missing=0
+          sh_count=0
+          ps_count=0
+          for sh in global/hooks/*.sh; do
+            sh_count=$((sh_count + 1))
+            base=$(basename "$sh" .sh)
+            ps="global/hooks/${base}.ps1"
+            if [ ! -f "$ps" ]; then
+              echo "MISSING PowerShell counterpart for $sh -> $ps" >&2
+              missing=$((missing + 1))
+            fi
+          done
+          for ps in global/hooks/*.ps1; do
+            ps_count=$((ps_count + 1))
+            base=$(basename "$ps" .ps1)
+            sh="global/hooks/${base}.sh"
+            if [ ! -f "$sh" ]; then
+              echo "MISSING bash counterpart for $ps -> $sh" >&2
+              missing=$((missing + 1))
+            fi
+          done
+          echo "Bash hooks: $sh_count, PowerShell hooks: $ps_count"
+          if [ "$sh_count" -ne "$ps_count" ] || [ "$missing" -ne 0 ]; then
+            echo "Parity audit FAILED: counts diverge or counterparts missing" >&2
+            exit 1
+          fi
+          echo "Parity audit PASSED: $sh_count/$sh_count counterparts present"

@@ -1,0 +1,12 @@
+{
+  "tool_input": {
+    "command": "gh pr create --repo kcenon/vcpkg-registry --title \"chore: update manifest\" --body \"routine update\""
+  },
+  "_meta": {
+    "fixture": "pr-target-guard/main-default-repo",
+    "issue": "https://github.com/kcenon/claude-config/issues/616",
+    "scenario": "gh pr create with no --base in a repo whose default branch is main",
+    "expected": "deny — must not bypass the policy because default_branch=main",
+    "test_invocation": "PR_TARGET_GUARD_DEFAULT_BRANCH_OVERRIDE=main bash global/hooks/pr-target-guard.sh < tests/hooks/fixtures/pr-target-guard/main-default-repo.json"
+  }
+}

@@ -11,7 +11,7 @@
 #   curl -sSL -H "Authorization: token YOUR_GITHUB_TOKEN" \
 #     https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash
 
-set -e
+set -euo pipefail
 
 # 색상 정의
 RED='\033[0;31m'
@@ -23,7 +23,23 @@ NC='\033[0m'
 # GitHub 저장소 설정
 GITHUB_USER="${GITHUB_USER:-kcenon}"
 GITHUB_REPO="${GITHUB_REPO:-claude-config}"
-GITHUB_BRANCH="${GITHUB_BRANCH:-main}"
+
+# Pin install source to a release tag for SLSA-aligned supply-chain hardening.
+# Floating refs (e.g. `main`) ship whatever HEAD is at install time, leaving no
+# integrity baseline if `main` is briefly compromised. Override with GITHUB_REF.
+if [ -n "${GITHUB_BRANCH:-}" ]; then
+    echo "warning: GITHUB_BRANCH is deprecated, use GITHUB_REF" >&2
+    GITHUB_REF="${GITHUB_REF:-$GITHUB_BRANCH}"
+fi
+GITHUB_REF="${GITHUB_REF:-v1.10.0}"
+
+# Anthropic Claude Code installer pin (M1.2b — supply-chain hardening, see #565).
+# The Anthropic-hosted install script is pinned by sha256 to prevent MITM
+# substitution. Rotation policy: docs/SUPPLY_CHAIN.md. The weekly drift check
+# workflow `.github/workflows/check-anthropic-installer.yml` fails when the
+# upstream sha256 deviates from this value.
+ANTHROPIC_INSTALLER_URL="${ANTHROPIC_INSTALLER_URL:-https://claude.ai/install.sh}"
+ANTHROPIC_INSTALLER_SHA256="${ANTHROPIC_INSTALLER_SHA256:-b315b46925a9bfb9422f2503dd5aa649f680832f4c076b22d87c39d578c3d830}"  # pinned 2026-05-03
 
 # 설치 디렉토리
 INSTALL_DIR="${INSTALL_DIR:-$HOME/claude_config_backup}"
@@ -45,19 +61,144 @@ success() { echo -e "${GREEN}✅ $1${NC}"; }
 warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
 error() { echo -e "${RED}❌ $1${NC}"; exit 1; }
 
+# Path-guarded rm helper (M1.3, see #566).
+# This file is consumed via `curl | bash`, so the canonical helper at
+# scripts/lib/safe-rm.sh is unavailable when clone_repository() removes
+# a stale $INSTALL_DIR. The function is intentionally inlined here and
+# kept byte-equivalent in semantics with scripts/lib/safe-rm.sh.
+# Resolves the canonical path via `realpath -e`, then asserts it lies
+# under an allow-listed prefix before deleting. See safe-rm.sh for the
+# full threat model and allow-list rationale.
+safe_rm_rf() {
+    local raw="${1:-}"
+    if [ -z "$raw" ]; then
+        echo "safe_rm_rf: target required" >&2
+        return 1
+    fi
+    # Idempotent: missing target is not an error.
+    if [ ! -e "$raw" ] && [ ! -L "$raw" ]; then
+        return 0
+    fi
+    local target
+    target=$(realpath -e "$raw") || {
+        echo "safe_rm_rf: cannot resolve $raw" >&2
+        return 1
+    }
+    case "$target" in
+        "$HOME"/.claude/*) ;;
+        "$HOME"/.claude-backup/*) ;;
+        "$HOME"/claude_config_backup/*) ;;
+        /tmp/claude-*) ;;
+        /tmp/claude-config-*) ;;
+        *)
+            echo "safe_rm_rf: refused — $target is outside allow-listed prefix" >&2
+            return 1
+            ;;
+    esac
+    rm -rf -- "$target"
+}
+
 # 의존성 확인
 check_dependencies() {
     info "의존성 확인 중..."
 
-    if ! command -v git &> /dev/null; then
-        error "git이 설치되어 있지 않습니다. 먼저 git을 설치하세요."
-    fi
+    # Required tools enforced by claude-config hooks (see PREREQUISITES.md).
+    # `gh` and `perl` are checked in addition to git/curl because several
+    # PreToolUse guards (merge-gate-guard, attribution-guard, markdown-anchor-
+    # validator) and the `lib/timeout-wrapper.sh` fallback rely on them.
+    local missing=()
+    for cmd in jq gh git perl; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            missing+=("$cmd")
+        fi
+    done
 
     if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then
-        error "curl 또는 wget이 필요합니다."
+        missing+=("curl-or-wget")
+    fi
+
+    if [ ${#missing[@]} -gt 0 ]; then
+        error "필수 도구가 설치되어 있지 않습니다: ${missing[*]}. 설치 안내는 PREREQUISITES.md를 참고하세요."
     fi
 
     success "의존성 확인 완료"
+}
+
+# Claude Code CLI 설치 확인 및 자동 설치
+# version-check.sh, batch-issue-work.sh 등이 `claude --version` / `claude` 명령을
+# 호출하므로 미설치 시 silent failure가 발생한다. 본 함수는 부트스트랩 시점에
+# 사용자 동의 하에 Anthropic 공식 native installer로 Claude Code CLI를 설치한다.
+# 참고: https://code.claude.com/docs/en/setup
+ensure_claude_cli() {
+    info "Claude Code CLI 확인 중..."
+
+    if command -v claude >/dev/null 2>&1; then
+        local cc_version
+        cc_version="$(claude --version 2>/dev/null | head -n1)"
+        success "Claude Code CLI 이미 설치됨: ${cc_version:-version unknown}"
+        return 0
+    fi
+
+    warning "Claude Code CLI가 설치되어 있지 않습니다."
+    echo "  Claude Code CLI는 hooks(version-check), batch scripts(issue-work, pr-work) 등이"
+    echo "  의존하는 핵심 도구입니다. 미설치 상태에서는 일부 기능이 동작하지 않습니다."
+    echo ""
+
+    read -p "Claude Code CLI를 지금 설치하시겠습니까? (y/n) [기본값: y]: " INSTALL_CLAUDE
+    INSTALL_CLAUDE=${INSTALL_CLAUDE:-y}
+
+    if [ "$INSTALL_CLAUDE" != "y" ]; then
+        warning "Claude Code CLI 설치 건너뜀. 추후 수동 설치 가이드:"
+        echo "    https://code.claude.com/docs/en/setup"
+        echo "  또는 본 스크립트를 다시 실행해 sha256 검증된 자동 설치를 진행하세요."
+        return 0
+    fi
+
+    # Native installer는 Anthropic 공식 권장 방식이며 백그라운드 자동 업데이트를 지원한다.
+    # 설치 경로: ~/.local/bin/claude → ~/.local/share/claude/versions/<ver>
+    #
+    # Supply-chain hardening (M1.2b, see #565; lib extraction #620):
+    # Delegates to hooks/lib/installer-fetch.sh which encapsulates the
+    # download → verify-sha256 → run contract. Source it from the clone so
+    # bootstrap.sh, scripts/install.sh and bootstrap.ps1 share one
+    # implementation; the lib is fetched as part of the tagged repo, so the
+    # GITHUB_REF pin is the integrity root for every subsequent verification.
+    local install_status=1
+    # Guard the sourced lib (mirrors scripts/install.sh and bootstrap.ps1):
+    # a missing lib must not abort the whole run under `set -euo pipefail`.
+    if [ ! -f "$INSTALL_DIR/hooks/lib/installer-fetch.sh" ]; then
+        warning "installer-fetch.sh missing — skipping CLI install (clone may be incomplete)"
+        return 0
+    fi
+    # shellcheck disable=SC1091
+    source "$INSTALL_DIR/hooks/lib/installer-fetch.sh"
+    if installer_fetch_verify_run \
+        "$ANTHROPIC_INSTALLER_URL" \
+        "$ANTHROPIC_INSTALLER_SHA256" \
+        "claude-installer"; then
+        install_status=0
+    fi
+
+    if [ $install_status -eq 0 ]; then
+        # 새로 만들어진 ~/.local/bin이 현재 셸 PATH에 없을 수 있으므로 일시 prepend.
+        if ! command -v claude >/dev/null 2>&1 && [ -x "$HOME/.local/bin/claude" ]; then
+            export PATH="$HOME/.local/bin:$PATH"
+        fi
+        if command -v claude >/dev/null 2>&1; then
+            local cc_version
+            cc_version="$(claude --version 2>/dev/null | head -n1)"
+            success "Claude Code CLI 설치 완료: ${cc_version:-version unknown}"
+            echo "  설치 위치: $(command -v claude)"
+        else
+            warning "Native installer는 종료되었으나 'claude'를 PATH에서 찾을 수 없습니다."
+            echo "  새 셸을 열거나 ~/.local/bin을 PATH에 추가하세요:"
+            echo "    export PATH=\"\$HOME/.local/bin:\$PATH\""
+        fi
+    else
+        warning "Claude Code CLI 자동 설치 실패."
+        echo "  Anthropic 공식 설치 가이드를 참고하세요: https://code.claude.com/docs/en/setup"
+        echo "  또는 본 스크립트를 다시 실행해 sha256 검증된 자동 설치를 재시도하세요."
+    fi
 }
 
 # 저장소 클론
@@ -70,18 +211,18 @@ clone_repository() {
         OVERWRITE=${OVERWRITE:-n}
 
         if [ "$OVERWRITE" = "y" ]; then
-            rm -rf "$INSTALL_DIR"
+            safe_rm_rf "$INSTALL_DIR"
         else
             info "기존 디렉토리를 사용합니다. git pull 실행..."
             cd "$INSTALL_DIR"
-            git pull origin "$GITHUB_BRANCH"
+            git pull origin "$GITHUB_REF"
             return
         fi
     fi
 
-    # GitHub에서 클론
-    git clone "https://github.com/$GITHUB_USER/$GITHUB_REPO.git" "$INSTALL_DIR"
-    success "저장소 클론 완료: $INSTALL_DIR"
+    # GitHub에서 클론 (pinned to GITHUB_REF, --depth 1 for bandwidth efficiency)
+    git clone --branch "$GITHUB_REF" --depth 1 "https://github.com/$GITHUB_USER/$GITHUB_REPO.git" "$INSTALL_DIR"
+    success "저장소 클론 완료: $INSTALL_DIR (ref: $GITHUB_REF)"
 }
 
 # 글로벌 설정 설치
@@ -94,9 +235,11 @@ install_global() {
     # 설치 매니페스트 헬퍼 로드 (SHA-256 해시 기반 로컬 변경 보존)
     # shellcheck disable=SC1091
     source "$INSTALL_DIR/scripts/install-manifest.sh"
+    # shellcheck disable=SC1091
+    source "$INSTALL_DIR/scripts/lib/install-prompts.sh"
 
     # 파일 복사 (매니페스트 가드: 로컬 편집은 기본적으로 유지)
-    for gf in CLAUDE.md commit-settings.md conversation-language.md git-identity.md token-management.md; do
+    for gf in CLAUDE.md commit-settings.md git-identity.md token-management.md; do
         src="$INSTALL_DIR/global/$gf"
         dest="$CLAUDE_DIR/$gf"
         [ -f "$src" ] || continue
@@ -106,6 +249,67 @@ install_global() {
             info "$gf 로컬 변경 유지"
         fi
     done
+
+    # conversation-language.md 템플릿 처리
+    if [ -f "$INSTALL_DIR/global/conversation-language.md.tmpl" ]; then
+        prompt_agent_language
+
+        if guarded_template_copy "$INSTALL_DIR/global/conversation-language.md.tmpl" "$CLAUDE_DIR/conversation-language.md" "conversation-language.md" "$AGENT_DISPLAY_LANG"; then
+            success "conversation-language.md 설치됨 (언어: $AGENT_DISPLAY_LANG)"
+        else
+            info "conversation-language.md 로컬 변경 유지"
+        fi
+    else
+        AGENT_LANGUAGE="korean"
+        # Static-file fallback. The default repo ships only the .tmpl, so this
+        # branch is unreachable in normal use. It exists to support fork users
+        # who replace the .tmpl with a hand-edited static .md — preserving
+        # their file via guarded_copy instead of silently dropping it.
+        if [ -f "$INSTALL_DIR/global/conversation-language.md" ]; then
+            if guarded_copy "$INSTALL_DIR/global/conversation-language.md" "$CLAUDE_DIR/conversation-language.md" "conversation-language.md"; then
+                success "conversation-language.md 설치됨"
+            else
+                info "conversation-language.md 로컬 변경 유지"
+            fi
+        fi
+    fi
+
+    # Content language policy selection (CLAUDE_CONTENT_LANGUAGE)
+    prompt_content_language
+
+    # Legacy settings.json migration warning (informational only).
+    warn_legacy_settings_value "$HOME/.claude/settings.json" || true
+
+    # settings.json install (Claude Code settings)
+    # Intentionally bypasses guarded_copy: policy attributes (.language,
+    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
+    # update_claude_settings_json (below) injects them and is responsible
+    # for idempotent reset when the policy returns to default ("english").
+    if [ -f "$INSTALL_DIR/global/settings.json" ]; then
+        cp "$INSTALL_DIR/global/settings.json" "$HOME/.claude/settings.json"
+
+        if update_claude_settings_json "$HOME/.claude/settings.json" "${AGENT_LANGUAGE:-korean}" "$CONTENT_LANGUAGE"; then
+            success "settings.json (에이전트: ${AGENT_LANGUAGE:-korean}, 컨텐츠: $CONTENT_LANGUAGE) 설치 완료"
+        else
+            success "settings.json 설치 완료 (기본값)"
+        fi
+    fi
+
+    # 글로벌 skills 및 commands 설치
+    # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
+    # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의
+    # "Skill Aliases" 표에 따라 leading keyword 호출로만 실행된다.
+    if [ -d "$INSTALL_DIR/global/skills" ]; then
+        mkdir -p "$CLAUDE_DIR/skills"
+        cp -r "$INSTALL_DIR/global/skills"/. "$CLAUDE_DIR/skills/"
+        skill_count=$(find "$CLAUDE_DIR/skills" -name "SKILL.md" | wc -l | tr -d ' ')
+        success "글로벌 skills 설치 완료 (${skill_count}개)"
+    fi
+    if [ -d "$INSTALL_DIR/global/commands" ]; then
+        mkdir -p "$CLAUDE_DIR/commands"
+        cp -r "$INSTALL_DIR/global/commands"/. "$CLAUDE_DIR/commands/"
+        success "글로벌 commands 설치 완료"
+    fi
 
     # tmux 설정 설치
     if [ -f "$INSTALL_DIR/global/tmux.conf" ]; then
@@ -203,7 +407,11 @@ install_project() {
 # 메인 실행
 main() {
     check_dependencies
+    # clone_repository must run before ensure_claude_cli — the latter sources
+    # hooks/lib/installer-fetch.sh from the just-cloned tag (#620). Trust
+    # root: GITHUB_REF tag → cloned hooks/lib/* → pinned sha256 verification.
     clone_repository
+    ensure_claude_cli
     select_install_type
 
     case $INSTALL_TYPE in

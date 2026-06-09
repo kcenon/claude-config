@@ -29,6 +29,7 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | Hook Event | Used By | Purpose |
 |---|---|---|
 | `PreToolUse` | sensitive-file-guard, dangerous-command-guard, github-api-preflight, markdown-anchor-validator, prompt-validator (LLM), team-limit-guard | Block or allow tool calls before execution |
+| `PostToolUse` | post-task-checkpoint, pre-edit-read-guard, memory-access-logger | Run after a tool call completes (checkpointing, read-tracking, memory-access logging) |
 | `PostToolUseFailure` | tool-failure-logger | Log failed tool executions |
 | `SessionStart` | session-logger, version-check | Session lifecycle logging, version warnings |
 | `SessionEnd` | session-logger, cleanup | Session logging, temp file cleanup |
@@ -37,11 +38,18 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | `SubagentStart` | subagent-logger | Track subagent lifecycle |
 | `SubagentStop` | subagent-logger | Track subagent lifecycle |
 | `PreCompact` | pre-compact-snapshot | Snapshot context before auto-compaction |
+| `PostCompact` | post-compact-restore | Re-assert core principles after context compaction |
 | `WorktreeCreate` | worktree-create | Custom worktree initialization |
 | `WorktreeRemove` | worktree-remove | Custom worktree cleanup |
+| `TaskCreated` | task-created-validator | Validate newly created tasks (Agent Teams) |
 | `TaskCompleted` | task-completed-logger | Log task completions (Agent Teams) |
 | `ConfigChange` | config-change-logger | Log configuration changes |
+| `CwdChanged` | cwd-change-logger | Log working-directory changes (observation only) |
+| `InstructionsLoaded` | instructions-loaded-reinforcer | Reinforce core instructions when context is (re)loaded |
 | `TeammateIdle` | session-logger | Log teammate idle events (Agent Teams) |
+| `PermissionDenied` | permission-denial-logger | Append a redacted JSONL audit record of denied tool calls (observation only) |
+
+> This table lists only the events **this config wires**. The full official catalog is larger (~30 events as of 2026-05; see `code.claude.com/docs/en/hooks`). Unwired official events are not defects -- see `docs/official-spec-rereview-2026-05-29.md`.
 
 ### Settings Features
 
@@ -119,6 +127,8 @@ reference: [`code.claude.com/docs/en/settings`](https://code.claude.com/docs/en/
 | `showTurnDuration` | **Misplaced** | 2.1.0+ | Officially belongs in `~/.claude.json`, not `settings.json`. May trigger schema validation warning in future CC versions. Consider moving. |
 | `teammateMode` | **Misplaced** | 2.1.0+ | Same as above — belongs in `~/.claude.json`. Valid values: `auto`, `in-process`, `tmux`. |
 
+> **Note:** The `harness_policies.p4_strict_schema` kill switch is documented in the [Skill Directory Layout (P4)](#skill-directory-layout-p4) section below. The expired P4 rollout-timeline hooks and their `policies/p4-timeline.json` window timestamps were retired once all windows elapsed; only the strict-schema kill switch remains.
+
 ### env fields in settings.json
 
 | Field | Status | Min CC Version | Notes |
@@ -137,6 +147,24 @@ reference: [`code.claude.com/docs/en/settings`](https://code.claude.com/docs/en/
 ### SessionStart version check (optional)
 
 `global/hooks/version-check.sh` currently warns on known-bad versions (see "Known Problematic Versions" below). A future enhancement could extend it to warn when the detected Claude Code version has known breaking changes to any Experimental field above.
+
+---
+
+## Skill Directory Layout (P4)
+
+EPIC #454 P4 introduced a strict/lenient schema split. claude-config-owned skills are nested under `global/skills/_internal/` so `scripts/spec_lint.py` dispatches them through the strict schema; plugin-distributed skills stay at `plugin/skills/` and `plugin-lite/skills/` and validate against the lenient schema.
+
+| Layer | Path | Schema mode |
+|---|---|---|
+| Internal | `global/skills/_internal/` | strict (when the kill switch is on) |
+| Plugin | `plugin/skills/` | lenient |
+| Plugin-lite | `plugin-lite/skills/` | lenient |
+
+### Strict-schema kill switch
+
+`scripts/spec_lint.py` resolves the kill switch with this precedence: `STRICT_SCHEMA` env var > `harness_policies.p4_strict_schema` in `~/.claude/settings.json` > default `false`. When off (the default), every skill — including `_internal/` — validates against the lenient schema; when on, `_internal/` paths use the strict variant. Enable strict validation with `STRICT_SCHEMA=1` (or by adding `"harness_policies": {"p4_strict_schema": true}` to `settings.json`); `STRICT_SCHEMA=0` forces lenient everywhere. External plugin/plugin-lite installs always validate lenient — their skill paths are unaffected.
+
+> The expired P4 rollout-timeline hooks (`p4-timeline-guard`, `p4-timeline-reminder`) and the `policies/p4-timeline.json` window timestamps were retired after all rollout windows elapsed (2026-05-20); only the strict-schema kill switch above remains.
 
 ---
 
@@ -195,6 +223,30 @@ When upgrading Claude Code itself:
 - Use `install.ps1` on Windows instead of `install.sh`
 - PowerShell 7+ (`pwsh`) is required for Windows support
 
+### PowerShell parity status
+
+The README v1.7.0 changelog originally claimed "All 42 bash scripts now have PowerShell counterparts". That wording was inaccurate and has been retracted. The current authoritative coverage for `global/hooks/`:
+
+| Surface | Bash count | PowerShell count | Coverage |
+|---|---:|---:|---:|
+| `global/hooks/*.sh` | 36 | 36 | 36/36 (100%) |
+
+The `*.sh` ↔ `*.ps1` mapping is 1:1; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if the counts diverge. (The count dropped from 37 to 35 when the expired P4 rollout-timeline hooks — `p4-timeline-guard` and `p4-timeline-reminder` — were retired; see the strict-schema kill-switch note above. It rose to 36 when `permission-denial-logger` was added for the `PermissionDenied` audit event.)
+
+The script that produces the live count: `bash -c 'b=$(ls global/hooks/*.sh | wc -l); p=$(ls global/hooks/*.ps1 | wc -l); echo "$p/$b"'`.
+
+#### Cross-platform `timeout` fallback (`global/hooks/lib/timeout-wrapper.sh`)
+
+`merge-gate-guard.sh` bounds its `gh pr checks` call via `_run_with_timeout`. The
+wrapper resolves to the first available implementation, in this order:
+
+1. **GNU `timeout`** — present on Linux (coreutils) and BSD distros that ship coreutils.
+2. **`gtimeout`** — installed by `brew install coreutils` on macOS.
+3. **`perl alarm`** — universal fallback. macOS ships `/usr/bin/perl` by default, so vanilla machines without Homebrew coreutils still get a bounded call.
+4. **Pure-bash `wait`/`kill`** — last-resort fallback for minimal images (e.g. busybox) that lack perl.
+
+All branches normalize to GNU-timeout exit semantics (exit 124 on budget exceeded). The PowerShell guard uses `Start-Job` + `Wait-Job -Timeout` for the same contract. Override the budget with `GH_CHECKS_TIMEOUT_SEC` (default `10`).
+
 ---
 
-*Last updated: 2026-04-17 | claude-config v1.6.0*
+*Last updated: 2026-05-29 | claude-config v1.10.0*

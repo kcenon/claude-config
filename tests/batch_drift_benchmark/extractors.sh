@@ -52,7 +52,7 @@ extract_attribution_leaks() {
         return 0
     fi
     local count
-    count=$(printf '%s' "$text" | grep -oiE "$CMV_ATTRIBUTION_REGEX" 2>/dev/null | wc -l)
+    count=$(printf '%s' "$text" | grep -oiE "$CMV_ATTRIBUTION_TRAILER_REGEX|$CMV_ATTRIBUTION_EMOJI_REGEX|$CMV_ATTRIBUTION_PROSE_REGEX" 2>/dev/null | wc -l)
     echo $((count + 0))
 }
 

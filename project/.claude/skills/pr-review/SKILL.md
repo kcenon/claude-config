@@ -9,6 +9,7 @@ allowed-tools:
   - Read
   - Grep
   - Glob
+iso_class: none
 ---
 
 # PR Review Command

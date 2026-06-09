@@ -1,0 +1,1 @@
+Red Team variant L: setuid bit set via symbolic mode (`u+s`). Same denial reason as the numeric form, exercised through the symbolic-mode branch.

@@ -21,32 +21,35 @@
 # "hard-fail on tool unavailability". Server-side branch protection rules
 # remain as the authoritative gate.
 
-set -uo pipefail
+set -euo pipefail
+
+# --- Resolve script dir + load shared helpers ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/timeout-wrapper.sh
+. "$SCRIPT_DIR/lib/timeout-wrapper.sh"
+
+# Wall-clock budget for any single `gh pr checks` invocation. Slow networks
+# and GitHub degradation can otherwise pin the entire PreToolUse chain on
+# the gh internal default (~30 s). 10 s is short enough to keep merge UX
+# snappy and long enough to ride out typical jitter.
+GH_CHECKS_TIMEOUT_SEC="${GH_CHECKS_TIMEOUT_SEC:-10}"
 
 # --- Response helpers ---
+# Use jq -nc --arg reason ... so the JSON library handles all escaping
+# (quotes, backslashes, newlines, tabs, carriage returns, etc.). This closes
+# the historical injection class where a crafted reason string concatenated
+# into the heredoc could flip the decision (issue #567 / sub-issue #579).
 deny_response() {
     local reason="$1"
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "$reason"
-  }
-}
-EOF
+    jq -nc \
+        --arg reason "$reason" \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $reason}}'
     exit 0
 }
 
 allow_response() {
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "allow"
-  }
-}
-EOF
+    jq -nc \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow"}}'
     exit 0
 }
 
@@ -74,6 +77,14 @@ fi
 # --- Scope: only validate gh pr merge commands ---
 if ! echo "$CMD" | grep -qE 'gh[[:space:]]+pr[[:space:]]+merge'; then
     allow_response
+fi
+
+# --- Squash-only enforcement (Issue #478) ---
+# The branching strategy mandates squash merges to develop/main. Reject
+# `--merge` and `--rebase` flags so the gh CLI cannot bypass that policy
+# even when the model is convinced "this one time" is fine.
+if echo "$CMD" | grep -qE -- '(^|[[:space:]])--(merge|rebase)([[:space:]]|=|$)'; then
+    deny_response "gh pr merge --merge/--rebase blocked: branching strategy requires squash merges (use --squash). See workflow/branching-strategy.md."
 fi
 
 # --- Extract PR number ---
@@ -114,13 +125,22 @@ if ! command -v gh >/dev/null 2>&1; then
     allow_response
 fi
 
-# --- Call gh pr checks ---
+# --- Call gh pr checks (bounded by cross-platform timeout wrapper) ---
+GH_RC=0
 if [ -n "$REPO" ]; then
-    CHECKS_JSON=$(gh pr checks "$PR_NUM" -R "$REPO" --json bucket,name,state 2>&1)
+    CHECKS_JSON=$(_run_with_timeout "$GH_CHECKS_TIMEOUT_SEC" gh pr checks "$PR_NUM" -R "$REPO" --json bucket,name,state 2>&1) || GH_RC=$?
 else
-    CHECKS_JSON=$(gh pr checks "$PR_NUM" --json bucket,name,state 2>&1)
+    CHECKS_JSON=$(_run_with_timeout "$GH_CHECKS_TIMEOUT_SEC" gh pr checks "$PR_NUM" --json bucket,name,state 2>&1) || GH_RC=$?
 fi
-GH_RC=$?
+
+# 124 is the GNU-timeout sentinel; the wrapper normalizes perl/bash fallbacks
+# to the same code so a single branch covers all platforms. Fail-open per
+# the guard's stated policy — server-side branch protection remains the
+# authoritative gate.
+if [ $GH_RC -eq 124 ]; then
+    log_diag "gh pr checks timed out after ${GH_CHECKS_TIMEOUT_SEC}s, allowing merge (fail-open)"
+    allow_response
+fi
 
 if [ $GH_RC -ne 0 ]; then
     log_diag "gh pr checks failed (exit $GH_RC), allowing merge (fail-open): ${CHECKS_JSON}"
@@ -135,12 +155,12 @@ fi
 
 # --- Parse non-passing checks ---
 # Allowed buckets: pass, skipping. Anything else blocks the merge.
+JQ_RC=0
 NON_PASSING=$(printf '%s' "$CHECKS_JSON" | jq -r '
     [.[] | select(.bucket != "pass" and .bucket != "skipping")
          | "\(.name) [\(.bucket)/\(.state)]"]
     | join(", ")
-' 2>/dev/null)
-JQ_RC=$?
+' 2>/dev/null) || JQ_RC=$?
 
 if [ $JQ_RC -ne 0 ]; then
     log_diag "jq parse failed, allowing merge (fail-open): ${CHECKS_JSON}"

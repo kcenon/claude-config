@@ -1,0 +1,5 @@
+{
+  "expect_decision": "allow",
+  "generate": "1mb_payload",
+  "max_runtime_ms": 2000
+}

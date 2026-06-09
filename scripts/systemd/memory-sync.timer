@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly Claude memory sync
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+Unit=memory-sync.service
+
+[Install]
+WantedBy=timers.target

@@ -3,4 +3,17 @@
 No AI/Claude attribution in commits, issues, or PRs.
 Enforced by `settings.json` (`attribution: ""`), the `commit-message-guard` PreToolUse hook (Claude-side feedback loop), and the `commit-msg` git hook installed by `hooks/install-hooks.sh` (terminal-side gate).
 
-All GitHub Issues and Pull Requests must be written in English.
+Filename references to project root config files (`CLAUDE.md`, `CLAUDE.local.md`) and narrative mentions of the config (e.g. "the CLAUDE config loader") are allowed in commit subjects — only attribution patterns (`Co-Authored-By:` trailers, bot emoji adjacent to Claude/Anthropic, "generated/created/authored {with|by|using} {Claude|Anthropic}" prose) are rejected. See the three-pattern design comment in `hooks/lib/validate-commit-message.sh` for the exact rules.
+
+All GitHub Issues and Pull Requests must follow the active `CLAUDE_CONTENT_LANGUAGE` policy (English by default). Validation is dispatched by `hooks/lib/validate-language.sh` (single source of truth — see issue #410 for the design and #447 for the `exclusive_bilingual` mode):
+
+| `CLAUDE_CONTENT_LANGUAGE` | Per-artifact rule |
+|---------------------------|-------------------|
+| `english` (default, unset, or empty) | ASCII only. Allowlisted English typographic punctuation accepted: em-dash, en-dash, curly quotes, ellipsis, NBSP. |
+| `korean_plus_english`     | ASCII + Hangul (Syllables / Jamo / Compat Jamo). Mixed inline allowed. |
+| `exclusive_bilingual`     | Each artifact (title / body / comment) is **either** English-only **or** Korean-only — no inline mixing. Inside Korean artifacts, the following ASCII containers are allowed: fenced code blocks, inline code, URLs, and the `한국어(English)` translation form. |
+| `any`                     | Skip language validation. |
+
+Sub-agents, skills, and reinforcer hooks MUST resolve the runtime policy from `CLAUDE_CONTENT_LANGUAGE` rather than hard-coding "English only". When in doubt, defer to this file and the dispatcher in `validate-language.sh`.
+
+Conversation language (the language Claude uses to *talk to the user* and reason in `<thinking>`) is a separate axis governed by `conversation-language.md` and `settings.json` `language`. Artifact language ≠ conversation language: a Korean-speaking user may publish English-only PRs (or vice versa) depending on the policy above.

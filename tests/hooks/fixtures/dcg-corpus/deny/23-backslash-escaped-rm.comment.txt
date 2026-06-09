@@ -1,0 +1,1 @@
+Red Team variant F: `\rm` bypasses any shell alias for `rm` (e.g. `alias rm='rm -i'`). The tokenizer collapses a leading `\` on argv[0] before matching, so this still resolves to `rm` and is denied.

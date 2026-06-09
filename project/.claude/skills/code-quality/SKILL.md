@@ -10,6 +10,7 @@ allowed-tools:
   - Glob
   - Read
 paths: "**/*.{cpp,py,ts,go,rs,kt,java}"
+iso_class: none
 ---
 
 # Code Quality Analysis Command

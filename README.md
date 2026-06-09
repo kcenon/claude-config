@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <em>Docs note (2026): Claude Code documentation moved to <code>code.claude.com/docs/en/*</code>. All references in this repo use the new URLs. See <a href="COMPATIBILITY.md#settings-field-inventory-and-stability">COMPATIBILITY.md</a> for settings field stability classification.</em>
+  <em>Docs note (2026): Claude Code documentation moved to <code>code.claude.com/docs/en/*</code>. All documentation links use the new URLs; older hosts appear only in migration and version-history notes. See <a href="COMPATIBILITY.md#settings-field-inventory-and-stability">COMPATIBILITY.md</a> for settings field stability classification.</em>
 </p>
 
 <p align="center">
@@ -68,7 +68,7 @@ Install claude-config and Claude Code immediately gains these capabilities:
 
 **Commit quality** — Broken markdown links, AI attribution, and non-conventional commit messages are caught before they reach your repository.
 
-**Configurable content language** — Pick at install time whether commit messages, PR bodies, and documentation are restricted to English, English + Korean (Hangul), or unrestricted (`CLAUDE_CONTENT_LANGUAGE=english|korean_plus_english|any`). Default preserves the previous English-only behavior.
+**Configurable content language** — Pick at install time whether commit messages, PR bodies, and documentation are written in English (ASCII only) or Korean (per-artifact strict, no inline mixing). The two-option installer prompt maps to `CLAUDE_CONTENT_LANGUAGE=english|exclusive_bilingual`; advanced legacy values (`korean_plus_english`, `any`) remain available via direct `settings.json` edit.
 
 **Code quality on demand** — `/security-audit`, `/performance-review`, `/code-quality`, and `/pr-review` provide specialized analysis when you need it.
 
@@ -85,6 +85,8 @@ Install claude-config and Claude Code immediately gains these capabilities:
 ```bash
 curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash
 ```
+
+> **What bootstrap does for you.** It checks for the Claude Code CLI and, on consent, runs Anthropic's native installer (`https://claude.ai/install.sh`) so the `claude` binary lands in `~/.local/bin/` and supports background auto-update. The npm package `@anthropic-ai/claude-code` is no longer used. PowerShell uses the parallel `claude.ai/install.ps1`. See [PREREQUISITES.md → Auto-installed by bootstrap](https://github.com/kcenon/claude-config/blob/develop/PREREQUISITES.md#auto-installed-by-bootstrap).
 
 ### Private Repository
 
@@ -138,6 +140,11 @@ commands to `foo.sh`, which only works if the matching `.sh` file exists on
 the mount. The installer also runs a pairing audit and warns about any `.ps1`
 without a `.sh` sibling (or vice versa) so Docker-side rewrites do not silently
 resolve to missing files.
+
+> **See also**: [`docs/CLAUDE_DOCKER_CONTRACT.md`](docs/CLAUDE_DOCKER_CONTRACT.md) —
+> formal contract between claude-config and claude-docker covering directory
+> layout, hook command grammar, dual-variant pairing, the `.full-suite-active`
+> probe, and CRLF normalization guarantees.
 
 ### Plugin Installation (Beta)
 
@@ -226,43 +233,41 @@ claude_config_backup/
 │   │   └── settings.json      # Status line display settings
 │   ├── commands/               # Global command policies
 │   │   └── _policy.md         # Shared policies for all commands
-│   ├── hooks/                  # Hook scripts (macOS + Windows)
-│   │   ├── sensitive-file-guard.sh/.ps1
-│   │   ├── dangerous-command-guard.sh/.ps1
-│   │   ├── github-api-preflight.sh/.ps1
-│   │   ├── markdown-anchor-validator.sh/.ps1
-│   │   ├── prompt-validator.sh/.ps1
-│   │   ├── session-logger.sh/.ps1
-│   │   ├── tool-failure-logger.sh/.ps1
-│   │   ├── subagent-logger.sh/.ps1
-│   │   ├── task-completed-logger.sh/.ps1
-│   │   ├── config-change-logger.sh/.ps1
-│   │   ├── pre-compact-snapshot.sh/.ps1
-│   │   ├── worktree-create.sh/.ps1
-│   │   ├── worktree-remove.sh/.ps1
-│   │   ├── team-limit-guard.sh/.ps1
-│   │   ├── commit-message-guard.sh/.ps1
-│   │   ├── conflict-guard.sh/.ps1
-│   │   ├── pr-target-guard.sh/.ps1
-│   │   ├── version-check.sh/.ps1
-│   │   ├── cleanup.sh/.ps1
+│   ├── hooks/                  # 35 hook scripts, each in .sh + .ps1 — see HOOKS.md for the full catalog
 │   │   └── lib/               # Shared libraries
+│   │       ├── AttributionValidator.psm1
+│   │       ├── CommonHelpers.psm1  # PowerShell shared module
+│   │       ├── LanguageValidator.psm1
+│   │       ├── path-utils.sh
 │   │       ├── rotate.sh/.ps1
-│   │       └── CommonHelpers.psm1  # PowerShell shared module
+│   │       ├── timeout-wrapper.sh
+│   │       └── tokenize-shell.sh
 │   ├── scripts/                # Utility scripts
 │   │   ├── statusline-command.sh/.ps1
 │   │   ├── team-report.sh/.ps1
 │   │   └── weekly-usage.sh/.ps1
 │   └── skills/                 # Global skills (user-invocable)
-│       ├── branch-cleanup/     # Clean merged/stale branches
-│       ├── doc-index/          # Generate documentation index files
-│       ├── doc-review/         # Markdown document review
-│       ├── implement-all-levels/ # Enforce complete implementation
-│       ├── issue-create/       # Create GitHub issues (5W1H)
-│       ├── issue-work/         # GitHub issue workflow automation
-│       ├── pr-work/            # Fix failed CI/CD for PRs
-│       ├── release/            # Automated release with changelog
-│       └── harness/            # Agent team & skill architecture design
+│       └── _internal/          # claude-config-owned skills (strict-validated)
+│           ├── _shared/        # Cross-skill helpers (invariants.md)
+│           ├── branch-cleanup/ # Clean merged/stale branches
+│           ├── ci-fix/         # CI failure remediation workflow
+│           ├── doc-index/      # Generate documentation index files
+│           ├── doc-review/     # Markdown document review
+│           ├── evidence-pack/  # Assemble per-release evidence packages
+│           ├── fleet-orchestrator/ # Fleet orchestration patterns
+│           ├── harness/        # Agent team & skill architecture design
+│           ├── implement-all-levels/ # Enforce complete implementation
+│           ├── issue-create/   # Create GitHub issues (5W1H)
+│           ├── issue-work/     # GitHub issue workflow automation
+│           ├── memory-review/  # Review stale/flagged/duplicate memories
+│           ├── pr-work/        # Fix failed CI/CD for PRs
+│           ├── preflight/      # Pre-push CI preflight checks
+│           ├── release/        # Automated release with changelog
+│           ├── research/       # Research/literature review
+│           ├── risk-control/   # Manage hazard/risk records (regulated track)
+│           ├── sonar-fix/      # SonarCloud finding triage and fixes
+│           ├── soup-inventory/ # Maintain SOUP (third-party) register
+│           └── traceability/   # Bidirectional traceability matrix
 │
 ├── project/                     # Project settings backup
 │   ├── CLAUDE.md               # Project main configuration
@@ -310,18 +315,16 @@ claude_config_backup/
 │       │   ├── tools/
 │       │   │   └── gh-cli-scripts.md
 │       │   └── security.md     # Security guidelines
-│       ├── commands/           # Custom slash commands
-│       │   ├── _policy.md
-│       │   ├── pr-review.md
-│       │   ├── code-quality.md
-│       │   └── git-status.md
+│       ├── skills/             # 11 project skills (migrated from slash commands) — e.g. pr-review, code-quality, git-status, security-audit
 │       ├── agents/             # Specialized agent configurations
 │       │   ├── code-reviewer.md
 │       │   ├── codebase-analyzer.md
+│       │   ├── dependency-auditor.md
 │       │   ├── documentation-writer.md
 │       │   ├── qa-reviewer.md
 │       │   ├── refactor-assistant.md
-│       │   └── structure-explorer.md
+│       │   ├── structure-explorer.md
+│       │   └── test-strategist.md
 │       └── skills/             # Claude Code Skills
 │           ├── coding-guidelines/
 │           ├── security-audit/
@@ -357,7 +360,11 @@ claude_config_backup/
 │   ├── commit-msg              # Commit message format validation
 │   ├── install-hooks.sh/.ps1   # Hook installation script
 │   └── lib/
-│       └── validate-commit-message.sh  # Shared validation library
+│       ├── InstallerFetch.psm1
+│       ├── installer-fetch.sh
+│       ├── validate-commit-message.sh  # Shared validation library
+│       ├── validate-language.sh
+│       └── validate-traceability.sh
 │
 ├── .github/
 │   └── workflows/
@@ -367,10 +374,15 @@ claude_config_backup/
 │
 ├── docs/                        # Design docs and guides
 │   ├── branching-strategy.md   # Branch model, CI policy, release workflow
+│   ├── CLAUDE_DOCKER_CONTRACT.md  # Integration contract with claude-docker (SSOT)
+│   ├── install.md              # Installer flow, manifests, post-install verification
+│   ├── SANDBOX_TLS.md          # Sandbox-aware TLS troubleshooting (gh, curl)
 │   ├── TOKEN_OPTIMIZATION.md
 │   ├── SKILL_TOKEN_REPORT.md
 │   ├── CUSTOM_EXTENSIONS.md
 │   ├── ad-sdlc-integration.md
+│   ├── plugin-vs-global.md
+│   ├── hooks-ownership.md
 │   └── design/                 # Architecture design docs
 │       ├── optimization-discoveries.md
 │       ├── optimization-phases.md
@@ -390,14 +402,36 @@ claude_config_backup/
 │       └── behavioral-guardrails/
 │           └── SKILL.md        # Single behavioral guardrails skill
 │
-├── bootstrap.sh/.ps1            # One-line install script
+├── tests/                       # Hook + skill golden corpus, regression runners
+├── bootstrap.sh/.ps1            # One-line install script (also auto-installs Claude Code CLI)
+├── VERSION_MAP.yml              # Single Source of Truth for component SemVers (see "Versioning" below)
+├── COMPATIBILITY.md             # settings.json field stability matrix vs Claude Code releases
+├── ENFORCEMENT.md               # Three-layer attribution / commit guard enforcement model
+├── PREREQUISITES.md             # Tool list and per-platform install commands
+├── THIRD_PARTY_NOTICES.md       # Upstream attribution for vendored snippets
 ├── README.md                    # Detailed guide (English)
 ├── README.ko.md                 # Detailed guide (Korean)
-├── QUICKSTART.md               # Quick start guide
-└── HOOKS.md                    # Hook configuration guide
+├── QUICKSTART.md                # Quick start guide
+└── HOOKS.md                     # Hook configuration guide
 ```
 
 </details>
+
+---
+
+## Versioning
+
+claude-config does **not** carry a single repo-wide version. Each shipped artifact has its own SemVer line that bumps independently, recorded in `VERSION_MAP.yml`:
+
+| Field | Tracked artifact | Consumer files |
+|-------|------------------|----------------|
+| `suite` | The end-user "release" identifier surfaced by the README badge | `README.md`, `README.ko.md` shields URL |
+| `plugin` | Marketplace plugin version | `plugin/.claude-plugin/plugin.json` |
+| `plugin-lite` | Lite plugin (behavioral guardrails) | `plugin-lite/.claude-plugin/plugin.json` |
+| `settings-schema` | Hook-emitting `settings.json` schema | `global/settings.json`, `global/settings.windows.json` |
+| `hooks` | Shipping hook-bundle label (bumped per rollout) | _none — SemVer-validated by `check_versions`, no consumer file; bump via `/release --target hooks` (tag `hooks-v<version>`)_ |
+
+`scripts/check_versions.sh` verifies each consumer file matches the field declared in `VERSION_MAP.yml`. Use `/release <field> <new-version>` (or `scripts/sync_versions.sh`) to bump exactly one field at a time — synchronizing all five fields would defeat the design and produce noisy "compatible-with-X.Y" badges that change for unrelated reasons. See [`docs/CLAUDE_DOCKER_CONTRACT.md`](docs/CLAUDE_DOCKER_CONTRACT.md) for how `suite` couples to claude-docker's tag line.
 
 ---
 
@@ -440,13 +474,19 @@ These behaviors activate immediately after installation — no configuration nee
 
 ### Content Language Policy
 
-Both installers (`install.sh` and `install.ps1`) prompt for a content-language policy after the installation-type selection. The choice is written to `~/.claude/settings.json` under `env.CLAUDE_CONTENT_LANGUAGE` and controls what the language validators accept at runtime.
+Both installers (`install.sh` and `install.ps1`) prompt for a content-language policy after the installation-type selection. The simplified UI offers two choices that map to fixed-language guarantees for artifacts:
 
-| Value | Validator accepts | Rule-document phrase |
-|-------|-------------------|----------------------|
-| `english` (default) | ASCII printable + whitespace only | `English` |
-| `korean_plus_english` | ASCII + Hangul Syllables / Jamo / Compat Jamo | `English or Korean` |
-| `any` | Skip language validation | `any language` |
+| UI choice | `CLAUDE_CONTENT_LANGUAGE` value | Validator accepts | Rule-document phrase |
+|-----------|----------------------------------|-------------------|----------------------|
+| English (default) | `english` | ASCII printable + whitespace only | `English` |
+| Korean | `exclusive_bilingual` | Per-artifact: English-only OR Korean-only with limited ASCII containers, no inline mixing | `English or Korean (document-exclusive)` |
+
+The validator additionally accepts two legacy values that are **not surfaced in the UI** — set them via direct `settings.json` edit if needed:
+
+| Legacy value | When to use | Validator accepts |
+|--------------|-------------|-------------------|
+| `korean_plus_english` | Pre-issue-#447 installs that rely on inline mixing | ASCII + Hangul Syllables / Jamo / Compat Jamo |
+| `any` | OSS repositories accepting any language | Skip language validation entirely |
 
 The installer substitutes the chosen phrase into three rule-document templates (`global/commit-settings.md.tmpl`, `project/.claude/rules/core/communication.md.tmpl`, `project/.claude/rules/workflow/git-commit-format.md.tmpl`) so the documented rule matches the validator behavior.
 
@@ -553,9 +593,16 @@ When you work on files matching these patterns, the rule is automatically loaded
 
 ## Skills — What You Can Do
 
-Invoke any skill by typing its command in Claude Code.
+Skills come in two invocation modes:
+
+1. **Slash-catalog skills** (`/code-quality`, `/security-audit`, `/performance-review`, `/pr-review`, `/git-status` and the `plugin/` skills below) live as one-level folders in `~/.claude/skills/` and appear in Claude Code's `/`-autocomplete. Type the command and the harness dispatches it.
+2. **Keyword-aliased skills** (`/issue-work`, `/pr-work`, `/release`, `/issue-create`, `/branch-cleanup`, `/harness`, `/doc-index`, `/doc-review`, `/implement-all-levels`) are intentionally hidden under `~/.claude/skills/_internal/` with `disable-model-invocation: true`. They are **not** in Claude Code's `/`-autocomplete. The model resolves them via the **Skill Aliases** table in `global/CLAUDE.md` when you start your message with the keyword (the leading `/` is optional). Both `issue-work` and `/issue-work` work; tab-completion will not suggest them.
+
+The tables below mark each command's mode.
 
 ### Workflow Automation
+
+All commands in this group are **keyword-aliased** (no slash-autocomplete; resolved by the alias table).
 
 | Command | What it does |
 |---------|-------------|
@@ -576,13 +623,15 @@ Invoke any skill by typing its command in Claude Code.
 
 ### Design and Documentation
 
-| Command | What it does |
-|---------|-------------|
-| `/harness` | Design agent teams and generate skills for any domain |
-| `/doc-index` | Generate documentation index files (manifest, bundles, graph, router) |
-| `/doc-review` | Review markdown documents for accuracy, anchors, cross-references |
-| `/git-status` | Repository status with actionable insights |
-| `/implement-all-levels` | Enforce complete implementation of all tiers for tiered features |
+`/git-status` is a slash-catalog skill; the rest in this table are keyword-aliased.
+
+| Command | Mode | What it does |
+|---------|------|-------------|
+| `/harness` | keyword | Design agent teams and generate skills for any domain |
+| `/doc-index` | keyword | Generate documentation index files (manifest, bundles, graph, router) |
+| `/doc-review` | keyword | Review markdown documents for accuracy, anchors, cross-references |
+| `/git-status` | slash | Repository status with actionable insights |
+| `/implement-all-levels` | keyword | Enforce complete implementation of all tiers for tiered features |
 
 ---
 
@@ -600,6 +649,8 @@ Specialized agents in `.claude/agents/` provide focused assistance for specific 
 | `codebase-analyzer` | Codebase architecture and pattern analysis | sonnet |
 | `qa-reviewer` | Integration coherence verification | sonnet |
 | `structure-explorer` | Project directory structure mapping | haiku |
+| `dependency-auditor` | Dependency CVE and license audit | sonnet |
+| `test-strategist` | Test coverage and strategy analysis | sonnet |
 
 ### Agent Configuration
 
@@ -856,9 +907,19 @@ cp -r ~/project/.claude ~/claude_config_backup/project/
 # When using bootstrap.sh
 GITHUB_USER=your-username \
 GITHUB_REPO=your-repo \
+GITHUB_REF=v1.10.0 \
 INSTALL_DIR=~/my-claude-config \
 bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh)"
 ```
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `GITHUB_USER` | `kcenon` | GitHub user/org owning the repo |
+| `GITHUB_REPO` | `claude-config` | Repository name |
+| `GITHUB_REF` | latest release tag (e.g. `v1.10.0`) | Tag, branch, or commit to clone. Pinning to a tag is SLSA-aligned supply-chain hardening — the install is reproducible and resistant to a transient compromise of `main`. Override with `develop` only for development testing. |
+| `INSTALL_DIR` | `~/claude_config_backup` | Where to clone the repo |
+
+> **Deprecated**: `GITHUB_BRANCH` is preserved as a one-release alias for `GITHUB_REF` and emits a stderr deprecation warning when set. Migrate to `GITHUB_REF` before the next major release.
 
 </details>
 
@@ -933,6 +994,17 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ---
 
+## Memory sync (multi-machine)
+
+Memory sync keeps Claude Code's auto-memory consistent across all your machines via a private git store. See:
+
+- [Operations guide](docs/MEMORY_SYNC.md) - Daily ops, troubleshooting, rollback, conflict resolution
+- [Threat model](docs/THREAT_MODEL.md) - Security analysis, 7 threat categories, 5-layer defense
+- [Validation spec](docs/MEMORY_VALIDATION_SPEC.md) - Validator contract and frontmatter schema
+- [Trust model](docs/MEMORY_TRUST_MODEL.md) - Trust tiers and lifecycle
+
+---
+
 ## Additional Resources
 
 - **Configuration Examples**: See `global/` and `project/` directories
@@ -947,7 +1019,7 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 ## Version
 
-**Current**: 1.9.0 (2026-04-13)
+**Current**: tracked in [`VERSION_MAP.yml`](VERSION_MAP.yml) (single source of truth — `suite` field). The shields.io badge at the top of this README is generated from the same field by `scripts/sync_versions.sh`. Do not hardcode version numbers in this document; bump them with `/release <field> <new-version>` instead.
 
 <details>
 <summary>Changelog</summary>
@@ -967,9 +1039,9 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 - **Branching documentation**: comprehensive branch model, CI policy, and release workflow guide
 
 #### v1.7.0 (2026-04-06)
-- **Full Windows PowerShell parity**: All 42 bash scripts now have PowerShell (.ps1) counterparts
-  - All utility scripts: `install`, `verify`, `sync`, `backup`, `validate_skills`, `bootstrap`
-  - All 16 hook scripts with identical security behavior (fail-closed model preserved)
+- **Windows PowerShell coverage**: substantial PowerShell (`.ps1`) parity for utility, hook, and helper scripts. The earlier "All 42 bash scripts now have PowerShell counterparts" wording was inaccurate — see [COMPATIBILITY.md › PowerShell parity status](https://github.com/kcenon/claude-config/blob/develop/COMPATIBILITY.md#powershell-parity-status) for the live count and the list of bash hooks without `.ps1` counterparts. Tracked for restoration in a follow-up issue.
+  - Most utility scripts: `install`, `verify`, `sync`, `backup`, `validate_skills`, `bootstrap`
+  - Most hook scripts with identical security behavior (fail-closed model preserved)
   - All 8 GitHub CLI helper scripts (`scripts/gh/`)
   - All 3 global scripts (`statusline-command`, `team-report`, `weekly-usage`)
   - All 7 test scripts for hook validation

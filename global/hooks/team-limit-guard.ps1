@@ -1,19 +1,33 @@
 #Requires -Version 7.0
 $ErrorActionPreference = 'Stop'
-Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -WarningAction SilentlyContinue
 
 # team-limit-guard.ps1
 # Limits the maximum number of concurrent Agent Teams
 # Hook Type: PreToolUse (TeamCreate)
 # Exit codes: 0 (always - decision is in JSON)
 # Response format: hookSpecificOutput with hookEventName
+#
+# NOTE on matcher stability: this hook is registered with
+# "matcher": "TeamCreate" in settings.json (lines 203-212). The official
+# PreToolUse matcher contract expects a tool name, but TeamCreate is not
+# explicitly listed in the public Claude Code tool catalog at
+# https://code.claude.com/docs/en/hooks. Its semantic stability across
+# Claude Code versions is therefore uncertain - the matcher could be
+# renamed, reclassified, or silently dropped without a deprecation cycle.
+# Re-verify the matcher semantics on every Claude Code version bump and
+# update the settings.json registration if the contract changes.
 
 # Read input from stdin (Claude Code passes JSON via stdin)
 $json = Read-HookInput
 
 # Configurable limit via environment variable (default: 3)
 $maxTeams = if ($env:MAX_TEAMS) { [int]$env:MAX_TEAMS } else { 3 }
-$teamsDir = Join-Path $HOME '.claude' 'teams'
+$teamsDir = if (-not [string]::IsNullOrWhiteSpace($env:CLAUDE_TEAMS_DIR)) {
+    $env:CLAUDE_TEAMS_DIR
+} else {
+    Join-Path $HOME '.claude' 'teams'
+}
 
 # Skip check if teams directory does not exist
 if (-not (Test-Path -LiteralPath $teamsDir -PathType Container)) {

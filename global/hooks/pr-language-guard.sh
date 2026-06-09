@@ -1,51 +1,50 @@
 #!/bin/bash
 # pr-language-guard.sh
-# Blocks gh pr/issue create|edit|comment commands whose --title or --body
-# contains non-ASCII characters.
+# Blocks gh commands that publish artifacts (PRs, issues, comments,
+# reviews, releases) when their text content violates the resolved
+# CLAUDE_CONTENT_LANGUAGE policy.
 # Hook Type: PreToolUse (Bash)
 # Exit codes: 0 (always — decision is in JSON)
 # Response format: hookSpecificOutput with hookEventName
 #
-# Enforces the "All GitHub Issues and Pull Requests must be written in
-# English" rule from commit-settings.md. Mirrors the commit-message-guard
-# enforcement model that proved effective for commit messages: a hard hook
-# gate at the Bash tool boundary catches drift in long-running batch
-# workflows where the model occasionally lapses into non-English content.
+# Coverage:
+#   gh pr      create | edit | comment | review     (--title, --body)
+#   gh issue   create | edit | comment              (--title, --body)
+#   gh release create | edit                        (--title, --notes)
+#
+# Enforces the content-language rule from commit-settings.md. Mirrors
+# the commit-message-guard enforcement model that proved effective for
+# commit messages: a hard hook gate at the Bash tool boundary catches
+# drift in long-running batch workflows where the model occasionally
+# lapses into non-policy content.
 #
 # Sources shared validation rules from hooks/lib/validate-language.sh
 # (single source of truth — see #291).
 #
-# NOTE on parsing limits: --body arguments using $(...) command substitution,
-# heredocs, or --body-file references are not parseable at this layer.
-# In such cases the hook returns "allow" and defers to other safeguards
-# (server-side review, commit hooks for committed content).
+# NOTE on parsing limits: text arguments using $(...) command substitution,
+# heredocs, or *-file references (--body-file, --notes-file) are not
+# parseable at this layer. In such cases the hook returns "allow" and
+# defers to other safeguards (server-side review, commit hooks for
+# committed content).
 
-set -uo pipefail
+set -euo pipefail
 
 # --- Response helpers ---
+# Use jq -nc --arg reason ... so the JSON library handles all escaping
+# (quotes, backslashes, newlines, tabs, carriage returns, etc.). This closes
+# the historical injection class where a crafted reason string concatenated
+# into the heredoc could flip the decision (issue #567 / sub-issue #579).
 deny_response() {
     local reason="$1"
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "$reason"
-  }
-}
-EOF
+    jq -nc \
+        --arg reason "$reason" \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $reason}}'
     exit 0
 }
 
 allow_response() {
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "allow"
-  }
-}
-EOF
+    jq -nc \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow"}}'
     exit 0
 }
 
@@ -84,20 +83,45 @@ if ! command -v validate_content_language >/dev/null 2>&1; then
             any)
                 return 0
                 ;;
-            korean_plus_english)
+            korean_plus_english|exclusive_bilingual)
+                # Fallback note: when the shared library validate-language.sh is
+                # absent, both Korean-allowing policies collapse to the relaxed
+                # ASCII+Hangul check. The strict per-artifact exclusivity rule
+                # of `exclusive_bilingual` (no inline mixing) is enforced only
+                # by the shared library. Preferring false negatives over false
+                # positives here avoids wrongly rejecting legitimate Korean
+                # artifacts when the library is missing.
                 if ! printf '%s' "$text" | perl -CSDA -ne '
                     exit 1 if /[^\x{09}-\x{0D}\x{20}-\x{7E}\x{AC00}-\x{D7A3}\x{1100}-\x{11FF}\x{3130}-\x{318F}]/
                 ' 2>/dev/null; then
-                    echo "Text contains characters outside the English+Korean policy. CLAUDE_CONTENT_LANGUAGE=korean_plus_english allows ASCII and Hangul only." >&2
+                    echo "Text contains characters outside the English+Korean policy. CLAUDE_CONTENT_LANGUAGE=$policy fallback allows ASCII and Hangul only (shared library validate-language.sh absent — install it for full enforcement)." >&2
                     return 1
                 fi
                 return 0
                 ;;
             *)
-                if printf '%s' "$text" | LC_ALL=C grep -q '[^[:print:][:space:]]'; then
+                # Strip allowlisted English typographic punctuation
+                # (em-dash, en-dash, curly quotes, ellipsis, NBSP) before
+                # the ASCII check so unambiguously English typography is
+                # not rejected. See issue #583.
+                local cleaned
+                cleaned=$(printf '%s' "$text" | perl -CSDA -pe '
+                    s/[\x{2014}\x{2013}\x{201C}\x{201D}\x{2018}\x{2019}\x{2026}\x{00A0}]//g;
+                ' 2>/dev/null)
+                if printf '%s' "$cleaned" | LC_ALL=C grep -q '[^[:print:][:space:]]'; then
+                    local category="non-Latin script"
+                    if ! printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{AC00}-\x{D7A3}\x{1100}-\x{11FF}\x{3130}-\x{318F}]/' 2>/dev/null; then
+                        category="Korean (Hangul)"
+                    elif ! printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{3040}-\x{309F}\x{30A0}-\x{30FF}\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}]/' 2>/dev/null; then
+                        category="CJK (Chinese/Japanese)"
+                    elif ! printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{0400}-\x{04FF}]/' 2>/dev/null; then
+                        category="Cyrillic"
+                    elif ! printf '%s' "$cleaned" | perl -CSDA -ne 'exit 1 if /[\x{0370}-\x{03FF}]/' 2>/dev/null; then
+                        category="Greek"
+                    fi
                     local sample
-                    sample=$(printf '%s' "$text" | LC_ALL=C grep -oE '[^[:print:][:space:]]+' | head -n1)
-                    echo "Text contains non-ASCII characters (first run: '$sample'). GitHub Issues and Pull Requests must be written in English only — see commit-settings.md." >&2
+                    sample=$(printf '%s' "$cleaned" | LC_ALL=C grep -oE '[^[:print:][:space:]]+' | head -n1)
+                    echo "Text contains $category characters (first run: '$sample'). Active CLAUDE_CONTENT_LANGUAGE='${policy}' rejects this artifact. To allow Korean, set CLAUDE_CONTENT_LANGUAGE=exclusive_bilingual (per-artifact strict) or korean_plus_english (mixed inline). See commit-settings.md. (English typographic punctuation such as em-dash, curly quotes, and ellipsis is allowed under the english policy.)" >&2
                     return 1
                 fi
                 return 0
@@ -119,17 +143,21 @@ if [ -z "$CMD" ]; then
     CMD="${CLAUDE_TOOL_INPUT:-}"
 fi
 
-# --- Scope: only validate gh pr|issue create|edit|comment commands ---
-if ! echo "$CMD" | grep -qE 'gh[[:space:]]+(pr|issue)[[:space:]]+(create|edit|comment)'; then
+# --- Scope: only validate gh commands that publish artifact text ---
+# Three command families share the gate:
+#   gh (pr|issue) (create|edit|comment)
+#   gh pr review            (review-thread comment body)
+#   gh release (create|edit) (release notes + title)
+if ! echo "$CMD" | grep -qE 'gh[[:space:]]+(pr|issue)[[:space:]]+(create|edit|comment)|gh[[:space:]]+pr[[:space:]]+review|gh[[:space:]]+release[[:space:]]+(create|edit)'; then
     allow_response
 fi
 
 # --- Skip command-substitution / heredoc / file-based bodies ---
 # These cannot be parsed reliably at the shell layer.
-if echo "$CMD" | grep -qE -- '(--body|-b|--title|-t)[[:space:]=]+"\$\('; then
+if echo "$CMD" | grep -qE -- '(--body|-b|--title|-t|--notes|-n)[[:space:]=]+"\$\('; then
     allow_response
 fi
-if echo "$CMD" | grep -qE -- '--body-file[[:space:]=]+'; then
+if echo "$CMD" | grep -qE -- '(--body-file|--notes-file|-F)[[:space:]=]+'; then
     allow_response
 fi
 
@@ -173,16 +201,22 @@ extract_quoted_value() {
 
 TITLE=$(extract_quoted_value "$CMD" "--title" "-t")
 BODY=$(extract_quoted_value "$CMD" "--body"  "-b")
+NOTES=$(extract_quoted_value "$CMD" "--notes" "-n")
 
 # --- Validate (dispatches on CLAUDE_CONTENT_LANGUAGE, default english) ---
 if [ -n "$TITLE" ]; then
     REASON=$(validate_content_language "$TITLE" 2>&1) || \
-        deny_response "PR/issue --title rejected: $REASON"
+        deny_response "gh artifact --title rejected: $REASON"
 fi
 
 if [ -n "$BODY" ]; then
     REASON=$(validate_content_language "$BODY" 2>&1) || \
-        deny_response "PR/issue --body rejected: $REASON"
+        deny_response "gh artifact --body rejected: $REASON"
+fi
+
+if [ -n "$NOTES" ]; then
+    REASON=$(validate_content_language "$NOTES" 2>&1) || \
+        deny_response "gh release --notes rejected: $REASON"
 fi
 
 allow_response
