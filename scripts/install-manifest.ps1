@@ -198,7 +198,7 @@ function Update-ClaudeSettingsJson {
                     $settingsObj.env.PSObject.Properties.Remove('CLAUDE_CONTENT_LANGUAGE')
                     
                     # If env is now empty, remove it entirely to keep settings.json clean
-                    if ($settingsObj.env.PSObject.Properties.Count -eq 0) {
+                    if (@($settingsObj.env.PSObject.Properties).Count -eq 0) {
                         $settingsObj.PSObject.Properties.Remove('env')
                     }
                 }

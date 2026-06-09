@@ -16,7 +16,7 @@ try {
     New-Item -ItemType Directory -Path $claudeDir | Out-Null
     
     $manifestPath = Join-Path $claudeDir ".install-manifest.json"
-    Set-ManifestPath $manifestPath
+    $env:MANIFEST_PATH = $manifestPath
 
     # Test Update-ClaudeSettingsJson
     $settingsPath = Join-Path $testDir "settings.json"
