@@ -15,7 +15,14 @@ ERRORS=()
 cd "$(dirname "$0")/../.." || exit 1
 
 # Establish a test memory tree under HOME so the hook's path gate triggers.
-TEST_HOME="$(mktemp -d -t mwg-home.XXXXXX)"
+# Use a symlinked HOME to exercise macOS-style realpath normalization
+# (/var/... -> /private/var/...), where the file path and memory root must be
+# normalized before comparing.
+TEST_HOME_REAL="$(mktemp -d -t mwg-home.XXXXXX)"
+TEST_HOME="${TEST_HOME_REAL}.link"
+if ! ln -s "$TEST_HOME_REAL" "$TEST_HOME" 2>/dev/null; then
+    TEST_HOME="$TEST_HOME_REAL"
+fi
 export HOME="$TEST_HOME"
 MEM="$HOME/.claude/memory-shared/memories"
 mkdir -p "$MEM"
@@ -35,7 +42,10 @@ ln -sf "$(pwd)/scripts/memory/secret-check.sh"    "$HOME/.claude/scripts/memory/
 ln -sf "$(pwd)/scripts/memory/injection-check.sh" "$HOME/.claude/scripts/memory/injection-check.sh"
 
 cleanup() {
-    rm -rf "$TEST_HOME" 2>/dev/null || true
+    if [ "$TEST_HOME" != "$TEST_HOME_REAL" ]; then
+        rm -f "$TEST_HOME" 2>/dev/null || true
+    fi
+    rm -rf "$TEST_HOME_REAL" 2>/dev/null || true
 }
 trap cleanup EXIT
 
