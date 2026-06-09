@@ -148,6 +148,9 @@ RESOLVED="$(resolve_path "$FILE_PATH")"
 
 # Activation gate: path must be a .md file under $HOME/.claude/memory-shared/memories/.
 MEMORY_ROOT="${HOME}/.claude/memory-shared/memories"
+if [ -d "$MEMORY_ROOT" ]; then
+    MEMORY_ROOT="$(resolve_path "$MEMORY_ROOT")"
+fi
 case "$RESOLVED" in
     "$MEMORY_ROOT"/*.md) ;;
     *) emit_allow "" ;;
