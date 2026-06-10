@@ -24,6 +24,8 @@ on:
       - 'scripts/spec_lint.ps1'
       - 'scripts/spec_lint.py'
       - 'scripts/schemas/**'
+      - 'tests/scripts/test-spec-lint.sh'
+      - 'tests/scripts/test-spec-lint.ps1'
       - 'scripts/fleet_orchestrator/**'
       - 'tests/fleet_orchestrator/**'
       - 'docs/design/**'
@@ -41,6 +43,7 @@ on:
       - 'global/settings.json'
       - 'global/settings.windows.json'
       - 'project/.claude/settings.json'
+      - '.github/workflows/validate-skills.yml'
       - 'README.md'
       - 'README.ko.md'
 
@@ -82,6 +85,9 @@ jobs:
 
       - name: Run spec linter test suite
         run: bash tests/scripts/test-spec-lint.sh
+
+      - name: Run spec linter test suite (PowerShell)
+        run: pwsh -NoProfile -File tests/scripts/test-spec-lint.ps1
 
       - name: Install pytest for fleet_orchestrator tests
         # pytest is already a transitive dep of jsonschema in some envs; pin
