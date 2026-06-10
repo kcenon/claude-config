@@ -25,4 +25,4 @@ feat, fix, docs, style, refactor, perf, test, build, ci, chore, security
 
 No AI/Claude attribution or emojis in commit messages. See global `commit-settings.md`.
 
-> For hook scripts and CI verification, see `reference/commit-hooks.md`.
+> For hook scripts and CI verification, see `.claude/reference/workflow/commit-hooks.md`.

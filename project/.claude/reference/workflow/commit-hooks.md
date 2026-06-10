@@ -4,7 +4,7 @@ alwaysApply: false
 
 # Commit Hook Scripts & CI Verification
 
-> **Loading**: Excluded from default context via `.claudeignore`. Load with `@load: reference/commit-hooks`.
+> **Loading**: Lives in `.claude/reference/`, outside the auto-loaded `.claude/rules/` tree, so it is never injected automatically. Load with `@load: reference/commit-hooks`.
 
 ## Git Hook Setup
 
