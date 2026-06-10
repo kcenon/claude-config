@@ -31,14 +31,13 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | `PreToolUse` | sensitive-file-guard, dangerous-command-guard, github-api-preflight, markdown-anchor-validator, prompt-validator (LLM), team-limit-guard | Block or allow tool calls before execution |
 | `PostToolUse` | post-task-checkpoint, pre-edit-read-guard, memory-access-logger | Run after a tool call completes (checkpointing, read-tracking, memory-access logging) |
 | `PostToolUseFailure` | tool-failure-logger | Log failed tool executions |
-| `SessionStart` | session-logger, version-check | Session lifecycle logging, version warnings |
+| `SessionStart` | session-logger, version-check, post-compact-restore (matcher: `compact`) | Session lifecycle logging, version warnings, post-compaction principles restore |
 | `SessionEnd` | session-logger, cleanup | Session logging, temp file cleanup |
 | `Stop` | session-logger | Log when Claude stops generating |
 | `UserPromptSubmit` | prompt-validator | Validate user prompts before processing |
 | `SubagentStart` | subagent-logger | Track subagent lifecycle |
 | `SubagentStop` | subagent-logger | Track subagent lifecycle |
 | `PreCompact` | pre-compact-snapshot | Snapshot context before auto-compaction |
-| `PostCompact` | post-compact-restore | Re-assert core principles after context compaction |
 | `WorktreeCreate` | worktree-create | Custom worktree initialization |
 | `WorktreeRemove` | worktree-remove | Custom worktree cleanup |
 | `TaskCreated` | task-created-validator | Validate newly created tasks (Agent Teams) |

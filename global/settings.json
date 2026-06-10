@@ -235,6 +235,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/post-compact-restore.sh",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "SessionEnd": [
@@ -347,17 +357,6 @@
             "command": "~/.claude/hooks/pre-compact-snapshot.sh",
             "timeout": 10,
             "async": true
-          }
-        ]
-      }
-    ],
-    "PostCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/post-compact-restore.sh",
-            "timeout": 5
           }
         ]
       }

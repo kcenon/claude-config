@@ -124,7 +124,7 @@ The table below shows which hook needs which tool, so an operator can decide whe
 | `task-created-validator.sh` | `jq` or `python3` | Hook fails open |
 | `pre-edit-read-guard.sh` | `jq` | Hook fails open |
 | `instructions-loaded-reinforcer.sh` | `jq` (preferred), falls back to hand-escape | Hook still emits JSON, with reduced robustness |
-| `post-compact-restore.sh` | `jq` (preferred) | Same as above |
+| `post-compact-restore.sh` | `jq` (preferred) or `python3` | No parser: silent no-op; no `jq`: hand-escaped JSON |
 
 ## Verifying After Install
 
