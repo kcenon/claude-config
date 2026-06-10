@@ -470,16 +470,15 @@ Issue #480 extended scope from `gh (pr|issue) (create|edit|comment)` to include 
 
 *Re-asserts critical policy (commit-settings, branching, conventional commits) immediately after `CLAUDE.md` and `.claude/rules/*.md` are loaded — closes the gap where long sessions drift away from policy that lives only in the system prompt.*
 
-**Purpose**: Inject a policy-reinforcement block right after Claude finishes loading instruction files. The block restates AI-attribution prohibition, the active `CLAUDE_CONTENT_LANGUAGE` PR/issue rule (resolved from `commit-settings.md`), branching policy, and Conventional Commits format so they remain in active context even when the original instruction files scroll out.
+**Purpose**: Inject a short, fixed policy digest right after Claude finishes loading instruction files. The digest restates the AI-attribution prohibition, the `CLAUDE_CONTENT_LANGUAGE` policy pointer (full rules stay in `commit-settings.md`), protected-branch policy, and Conventional Commits format so they remain in active context even when the original instruction files scroll out. The full `commit-settings.md` text already reaches context via the `CLAUDE.md` @import chain, so the hook never re-injects it verbatim (issue #716); the payload is capped at ~10 lines / ~500 bytes.
 
 **Trigger**: `InstructionsLoaded` event — fires once per session, after `CLAUDE.md` / `.claude/rules/*.md` have been ingested.
 
 **Files**: `global/hooks/instructions-loaded-reinforcer.sh`, `global/hooks/instructions-loaded-reinforcer.ps1`
 
 **Logic**:
-1. Locate `commit-settings.md` in `~/.claude/commit-settings.md` (falls back to `${CLAUDE_HOME}/commit-settings.md`, then to an inline minimal policy if neither file exists).
-2. Compose a reinforcement block containing the located policy text plus branching and commit-format reminders.
-3. Emit JSON via `jq` if available; otherwise hand-escape and print the JSON literal.
+1. Compose a fixed four-item digest (attribution ban, content-language pointer, protected-branch rules, Conventional Commits format). No file is read into the payload.
+2. Emit JSON via `jq` if available; otherwise hand-escape and print the JSON literal.
 
 **Behavior**:
 - Returns JSON with `hookSpecificOutput.additionalContext` carrying the reinforcement text
@@ -509,7 +508,7 @@ Issue #480 extended scope from `gh (pr|issue) (create|edit|comment)` to include 
 {
   "hookSpecificOutput": {
     "hookEventName": "InstructionsLoaded",
-    "additionalContext": "## Critical Policy Reinforcement (auto-injected after instruction load)\n\n# Commit, Issue, and PR Settings\n\nNo AI/Claude attribution in commits, issues, or PRs.\nAll GitHub Issues and Pull Requests follow the active CLAUDE_CONTENT_LANGUAGE policy (values: english | korean_plus_english | exclusive_bilingual | any; default: english). See commit-settings.md for the per-policy artifact rule.\n\n## Branching\n\n- Default working branch: `develop`. Never push directly to `main` or `develop`.\n..."
+    "additionalContext": "## Critical Policy Reinforcement (digest)\n\n- No AI/Claude attribution in commits, issues, or PRs.\n- Issue/PR/commit prose: follow the CLAUDE_CONTENT_LANGUAGE policy (see commit-settings.md).\n- Branches: work branches from develop; never push directly to main or develop; squash merge only.\n- Commits: Conventional Commits `type(scope): description`; lowercase first char, no trailing period."
   }
 }
 ```

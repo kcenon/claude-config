@@ -9,50 +9,21 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 # Hook Type: InstructionsLoaded (sync)
 # Exit codes: 0 (always - context is delivered via JSON)
 
-$policyText = $null
-$candidates = @(
-    (Join-Path $HOME '.claude' 'commit-settings.md')
-)
-if ($env:CLAUDE_HOME) {
-    $candidates += (Join-Path $env:CLAUDE_HOME 'commit-settings.md')
-}
-foreach ($candidate in $candidates) {
-    if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
-        $policyText = (([System.IO.File]::ReadAllText($candidate, [System.Text.Encoding]::UTF8)) -replace "`r`n", "`n").TrimEnd("`n")
-        break
-    }
-}
+# Fixed short digest (issue #716): the full commit-settings.md text already
+# reaches context via the CLAUDE.md @import chain, so re-injecting it verbatim
+# on every InstructionsLoaded event is pure duplication. Keep the payload to
+# ~10 lines / ~500 bytes and never read policy file contents into it.
+# Must stay byte-equivalent to the digest in instructions-loaded-reinforcer.sh.
+$reinforcement = @'
+## Critical Policy Reinforcement (digest)
 
-if (-not $policyText) {
-    $policyText = @'
-# Commit, Issue, and PR Settings
-
-No AI/Claude attribution in commits, issues, or PRs.
-All GitHub Issues and Pull Requests follow the active CLAUDE_CONTENT_LANGUAGE policy
-(values: english | korean_plus_english | exclusive_bilingual | any; default: english).
-See commit-settings.md for the per-policy artifact rule.
+- No AI/Claude attribution in commits, issues, or PRs.
+- Issue/PR/commit prose: follow the CLAUDE_CONTENT_LANGUAGE policy (see commit-settings.md).
+- Branches: work branches from develop; never push directly to main or develop; squash merge only.
+- Commits: Conventional Commits `type(scope): description`; lowercase first char, no trailing period.
 '@
-}
 
-$reinforcement = @"
-## Critical Policy Reinforcement (auto-injected after instruction load)
-
-$policyText
-
-## Branching
-
-- Default working branch: ``develop``. Never push directly to ``main`` or ``develop``.
-- Feature/fix PRs target ``develop``; release PRs target ``main``.
-- Squash merge required.
-
-## Commit Format
-
-Conventional Commits: ``type(scope): description`` or ``type: description``.
-Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, security.
-Description: first char is lowercase ASCII (default) or Hangul (when CLAUDE_CONTENT_LANGUAGE permits Korean). No trailing period, no emojis, no AI attribution.
-"@
-
-$reinforcement = ($reinforcement -replace "`r`n", "`n").TrimEnd("`n") + "`n"
+$reinforcement = ($reinforcement -replace "`r`n", "`n").TrimEnd("`n")
 
 $response = @{
     hookSpecificOutput = @{
