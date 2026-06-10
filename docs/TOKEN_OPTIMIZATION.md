@@ -216,7 +216,7 @@ Excludes project-specific unnecessary content:
 .npm-cache/
 
 # Reference documents (load on demand)
-rules/*/reference/
+reference/          # on-demand docs, relocated out of rules/ (issue #714)
 skills/*/reference/
 
 # Agents (load when needed)
@@ -292,7 +292,7 @@ Reference documents are excluded by default but easily accessible when needed.
 ### Method 1: Explicit File Path
 
 ```markdown
-Can you review the label definitions in rules/workflow/reference/label-definitions.md?
+Can you review the label definitions in .claude/reference/workflow/label-definitions.md?
 ```
 
 Claude Code will load the specific file when you reference it.
@@ -321,9 +321,9 @@ Claude Code will identify and load appropriate reference files.
 
 | File | Tokens | Purpose |
 |------|--------|---------|
-| `rules/workflow/reference/label-definitions.md` | ~4,000 | GitHub label standards |
-| `rules/workflow/reference/automation-patterns.md` | ~6,000 | GitHub Actions, gh CLI |
-| `rules/workflow/reference/issue-examples.md` | ~8,000 | Issue splitting, templates |
+| `.claude/reference/workflow/label-definitions.md` | ~4,000 | GitHub label standards |
+| `.claude/reference/workflow/automation-patterns.md` | ~6,000 | GitHub Actions, gh CLI |
+| `.claude/reference/workflow/issue-examples.md` | ~8,000 | Issue splitting, templates |
 | **Total** | **~18,000** | Load on demand only |
 
 ### Cache Directories
@@ -390,7 +390,7 @@ Comment out specific patterns in `.claudeignore`:
 
 ```gitignore
 # Temporarily re-enable reference docs
-# rules/*/reference/
+# reference/
 ```
 
 ## Troubleshooting

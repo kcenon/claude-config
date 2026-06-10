@@ -1901,7 +1901,7 @@ documents:
       - {h: "I/O Optimization", l: 259, e: 290}
       - {h: "Compiler Optimizations", l: 291, e: 331}
       - {h: "Performance Testing", l: 332, e: 382}
-  - path: "project/.claude/rules/coding/reference/anti-patterns.md"
+  - path: "project/.claude/reference/coding/anti-patterns.md"
     title: "Anti-Patterns Reference"
     description: "Concrete before/after examples of common LLM coding mistakes. Each example maps "
     category: rule
@@ -2157,7 +2157,7 @@ documents:
       - {h: "3. Progressive Exploration Strategy", l: 29, e: 61}
       - {h: "4. Present Analysis Plan", l: 62, e: 70}
       - {h: "5. Report Findings", l: 71, e: 82}
-  - path: "project/.claude/rules/workflow/reference/5w1h-examples.md"
+  - path: "project/.claude/reference/workflow/5w1h-examples.md"
     title: "5W1H Examples and Templates"
     description: "```markdown"
     category: rule
@@ -2193,7 +2193,7 @@ documents:
       - {h: "Where", l: 302, e: 309}
       - {h: "How", l: 310, e: 325}
       - {h: "Checklist", l: 326, e: 336}
-  - path: "project/.claude/rules/workflow/reference/agent-teams.md"
+  - path: "project/.claude/reference/workflow/agent-teams.md"
     title: "Agent Teams and Parallel Workflow Patterns"
     description: "Choose the right parallel strategy based on your task characteristics:"
     category: rule
@@ -2213,7 +2213,7 @@ documents:
       - {h: "Practical Examples", l: 410, e: 438}
       - {h: "Best Practices", l: 439, e: 448}
       - {h: "Troubleshooting", l: 449, e: 476}
-  - path: "project/.claude/rules/workflow/reference/automation-patterns.md"
+  - path: "project/.claude/reference/workflow/automation-patterns.md"
     title: "Automation Patterns Reference"
     description: "Use the GitHub CLI (`gh`) for efficient issue creation with labels."
     category: rule
@@ -2228,7 +2228,7 @@ documents:
       - {h: "GitHub Actions Labeler", l: 113, e: 191}
       - {h: "Issue Auto-Labeling Workflow", l: 192, e: 266}
       - {h: "Label Validation Workflow", l: 267, e: 324}
-  - path: "project/.claude/rules/workflow/reference/commit-hooks.md"
+  - path: "project/.claude/reference/workflow/commit-hooks.md"
     title: "Commit Hook Scripts & CI Verification"
     description: "The canonical `commit-msg` hook script lives at `hooks/commit-msg` and is instal"
     category: rule
@@ -2239,7 +2239,7 @@ documents:
       - {h: "Git Hook Setup", l: 9, e: 30}
       - {h: "CI/CD Verification", l: 31, e: 61}
       - {h: "Verification Commands", l: 62, e: 74}
-  - path: "project/.claude/rules/workflow/reference/issue-examples.md"
+  - path: "project/.claude/reference/workflow/issue-examples.md"
     title: "Issue Examples Reference"
     description: "**MANDATORY**: Issues estimated to exceed **2-3 days** of work MUST be split int"
     category: rule
@@ -2257,7 +2257,7 @@ documents:
       - {h: "Issue-PR Bidirectional Linking", l: 407, e: 424}
       - {h: "Implementation Update", l: 425, e: 446}
       - {h: "Implementation Progress", l: 447, e: 461}
-  - path: "project/.claude/rules/workflow/reference/label-definitions.md"
+  - path: "project/.claude/reference/workflow/label-definitions.md"
     title: "Label Definitions Reference"
     description: "Use priority labels to indicate urgency and importance:"
     category: rule
@@ -2275,7 +2275,7 @@ documents:
       - {h: "Mandatory Label Checklist", l: 146, e: 171}
       - {h: "Label Decision Tree", l: 172, e: 204}
       - {h: "Label Naming Convention", l: 205, e: 216}
-  - path: "project/.claude/rules/workflow/reference/session-resume-templates.md"
+  - path: "project/.claude/reference/workflow/session-resume-templates.md"
     title: "Session Resume Templates"
     description: "```markdown"
     category: rule

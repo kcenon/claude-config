@@ -195,14 +195,14 @@ Rules and skills load on demand — only what's relevant to your current task is
 
 ### Loading reference documents
 
-Some detailed reference documents are excluded from initial context for efficiency. Load them when needed:
+Detailed reference documents live in `.claude/reference/`, outside the auto-loaded `.claude/rules/` tree, so they never enter initial context. Load them when needed:
 
 ```markdown
 # Ask Claude to load a specific reference
 @load: reference/agent-teams
 
 # Or reference the file directly
-Can you review rules/workflow/reference/label-definitions.md?
+Can you review .claude/reference/workflow/label-definitions.md?
 ```
 
 For advanced customization, see [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md).
@@ -286,8 +286,7 @@ claude_config_backup/
 │       │   │   ├── error-handling.md
 │       │   │   ├── safety.md
 │       │   │   ├── performance.md
-│       │   │   ├── cpp-specifics.md
-│       │   │   └── reference/anti-patterns.md
+│       │   │   └── cpp-specifics.md
 │       │   ├── api/            # API & Architecture
 │       │   │   ├── api-design.md
 │       │   │   ├── architecture.md
@@ -300,8 +299,7 @@ claude_config_backup/
 │       │   │   ├── build-verification.md
 │       │   │   ├── ci-resilience.md
 │       │   │   ├── performance-analysis.md
-│       │   │   ├── session-resume.md
-│       │   │   └── reference/  # Label definitions, automation, agent teams
+│       │   │   └── session-resume.md
 │       │   ├── core/           # Core settings
 │       │   │   ├── environment.md
 │       │   │   ├── communication.md
@@ -315,6 +313,9 @@ claude_config_backup/
 │       │   ├── tools/
 │       │   │   └── gh-cli-scripts.md
 │       │   └── security.md     # Security guidelines
+│       ├── reference/          # On-demand reference docs (outside rules/, never auto-loaded)
+│       │   ├── coding/         # anti-patterns.md
+│       │   └── workflow/       # 5W1H examples, labels, automation, agent teams
 │       ├── skills/             # 11 project skills (migrated from slash commands) — e.g. pr-review, code-quality, git-status, security-audit
 │       ├── agents/             # Specialized agent configurations
 │       │   ├── code-reviewer.md
@@ -696,7 +697,7 @@ Create a team to implement the notification system:
 
 Keep teams to 2-3 teammates for optimal coordination. Assign distinct file sets to avoid conflicts.
 
-For architecture patterns, display modes, hooks, and advanced configuration, see `rules/workflow/reference/agent-teams.md`.
+For architecture patterns, display modes, hooks, and advanced configuration, see `.claude/reference/workflow/agent-teams.md`.
 
 ---
 

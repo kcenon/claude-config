@@ -108,9 +108,9 @@ Load only when explicitly required:
 level_3_reference:
   # Issue management
   issue_management:
-    - workflow/reference/label-definitions.md      # 6,000 tokens
-    - workflow/reference/issue-examples.md         # 8,000 tokens
-    - workflow/reference/automation-patterns.md    # 9,000 tokens
+    - reference/workflow/label-definitions.md      # 6,000 tokens
+    - reference/workflow/issue-examples.md         # 8,000 tokens
+    - reference/workflow/automation-patterns.md    # 9,000 tokens
 
   # Advanced patterns
   advanced_coding:
@@ -326,11 +326,11 @@ stage_3_contextual:
 
   # Only if issue mentions labeling
   if_labeling:
-    - workflow/reference/label-definitions.md  # 6,000 tokens
+    - reference/workflow/label-definitions.md  # 6,000 tokens
 
   # Only if large issue needs splitting
   if_splitting:
-    - workflow/reference/issue-examples.md     # 8,000 tokens
+    - reference/workflow/issue-examples.md     # 8,000 tokens
 
 total_minimum: 14,800 tokens (89% better than v1.1.0)
 total_maximum: 34,800 tokens (still 30% better than v1.1.0)
@@ -370,7 +370,7 @@ class LazyReferenceLoader:
         """Load label definitions only when mentioning labels"""
         if 'label-definitions' not in self.reference_cache:
             self.reference_cache['label-definitions'] = load(
-                'workflow/reference/label-definitions.md'
+                'reference/workflow/label-definitions.md'
             )
         return self.reference_cache['label-definitions']
 
@@ -378,7 +378,7 @@ class LazyReferenceLoader:
         """Load issue examples only when splitting issues"""
         if 'issue-examples' not in self.reference_cache:
             self.reference_cache['issue-examples'] = load(
-                'workflow/reference/issue-examples.md'
+                'reference/workflow/issue-examples.md'
             )
         return self.reference_cache['issue-examples']
 ```
@@ -407,7 +407,7 @@ def generate_response_with_dynamic_loading(user_message: str):
 
     # Phase 4: Lazy load Level 3 references
     if mentions_specific_concept(user_message, 'labels'):
-        reference = lazy_load('workflow/reference/label-definitions.md')
+        reference = lazy_load('reference/workflow/label-definitions.md')
         response += provide_label_guidance(reference)
 
     return response
@@ -455,9 +455,9 @@ rules/security.md
 rules/project-management/testing.md
 
 # LEVEL 3: REFERENCE (exclude, lazy load on demand)
-rules/workflow/reference/label-definitions.md
-rules/workflow/reference/issue-examples.md
-rules/workflow/reference/automation-patterns.md
+reference/workflow/label-definitions.md
+reference/workflow/issue-examples.md
+reference/workflow/automation-patterns.md
 rules/coding/concurrency.md
 rules/coding/memory.md
 rules/api/
