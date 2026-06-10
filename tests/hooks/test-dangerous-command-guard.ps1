@@ -80,6 +80,39 @@ Assert-Allow -InputJson '{"tool_input":{"command":"git status"}}' -Label 'git st
 Assert-Allow -InputJson '{"tool_input":{"command":"npm install"}}' -Label 'npm install -> allow'
 
 Write-Host ''
+Write-Host '[allow response shape - issue #715: plain allow is silent]'
+$plainSample = '{"tool_input":{"command":"ls -la"}}' | & pwsh -NoProfile -File $script:HookPath 2>$null
+if ($plainSample -match 'additionalContext') {
+    $script:Failed++
+    $script:Errors.Add("FAIL: plain allow must not carry additionalContext - got: $plainSample")
+    Write-Host '  FAIL: plain allow carries additionalContext' -ForegroundColor Red
+} else {
+    $script:Passed++
+    Write-Host '  PASS: plain allow has no additionalContext' -ForegroundColor Green
+}
+$compoundSample = '{"tool_input":{"command":"git status 2>&1 | head -20"}}' | & pwsh -NoProfile -File $script:HookPath 2>$null
+if ($compoundSample -match 'additionalContext') {
+    $script:Failed++
+    $script:Errors.Add("FAIL: compound allow must not carry additionalContext - got: $compoundSample")
+    Write-Host '  FAIL: compound allow carries additionalContext' -ForegroundColor Red
+} else {
+    $script:Passed++
+    Write-Host '  PASS: compound allow has no additionalContext' -ForegroundColor Green
+}
+# Warning-class allow (coarse-scan fallback) must keep additionalContext.
+$env:DCG_TOKENIZER_MAX_BYTES = '10'
+$coarseSample = '{"tool_input":{"command":"echo aaaaaaaaaaaaaaaaaaaaaaaa"}}' | & pwsh -NoProfile -File $script:HookPath 2>$null
+Remove-Item Env:DCG_TOKENIZER_MAX_BYTES -ErrorAction SilentlyContinue
+if ($coarseSample -match 'additionalContext' -and $coarseSample -match 'Coarse-scan allow') {
+    $script:Passed++
+    Write-Host '  PASS: coarse-scan warning keeps additionalContext' -ForegroundColor Green
+} else {
+    $script:Failed++
+    $script:Errors.Add("FAIL: coarse-scan warning lost additionalContext - got: $coarseSample")
+    Write-Host '  FAIL: coarse-scan warning lost additionalContext' -ForegroundColor Red
+}
+
+Write-Host ''
 Write-Host "=== Results: $($script:Passed) passed, $($script:Failed) failed ==="
 if ($script:Errors.Count -gt 0) {
     Write-Host ''

@@ -10,6 +10,10 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 # Path gate: only acts when the resolved path is under
 # "$HOME/.claude/memory-shared/memories/" and ends with ".md".
 #
+# Allow-path output (issue #715 audit): plain allows already emit the minimal
+# allow JSON with no additionalContext; only warn-only validator findings and
+# internal-failure diagnostics intentionally attach context.
+#
 # See memory-write-guard.sh for full design notes.
 
 # ----- read input ------------------------------------------------------------

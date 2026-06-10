@@ -115,6 +115,28 @@ for f in "$CORPUS_ROOT"/edge/*.json; do
 done
 
 echo ""
+echo "[plain-pass silence — issue #715]"
+plain_sample=$(echo '{"tool_input":{"command":"gh pr view 123"}}' | bash "$HOOK" 2>/dev/null)
+if echo "$plain_sample" | grep -q '"allow"' && ! echo "$plain_sample" | grep -q '"additionalContext"'; then
+    ((PASS++)); echo "  PASS: read-only gh pass emits no additionalContext"
+else
+    ((FAIL++)); ERRORS+=("FAIL: read-only gh pass shape — got: $plain_sample"); echo "  FAIL: read-only gh pass emits additionalContext"
+fi
+nongh_sample=$(echo '{"tool_input":{"command":"ls -la"}}' | bash "$HOOK" 2>/dev/null)
+if echo "$nongh_sample" | grep -q '"allow"' && ! echo "$nongh_sample" | grep -q '"additionalContext"'; then
+    ((PASS++)); echo "  PASS: non-gh pass emits no additionalContext"
+else
+    ((FAIL++)); ERRORS+=("FAIL: non-gh pass shape — got: $nongh_sample"); echo "  FAIL: non-gh pass emits additionalContext"
+fi
+# State-change warning must keep its additionalContext (decision value).
+warn_sample=$(echo '{"tool_input":{"command":"gh issue comment 1 --body hi"}}' | bash "$HOOK" 2>/dev/null)
+if echo "$warn_sample" | grep -q '"additionalContext"' && echo "$warn_sample" | grep -q 'state-changing gh operation'; then
+    ((PASS++)); echo "  PASS: state-change warning keeps additionalContext"
+else
+    ((FAIL++)); ERRORS+=("FAIL: state-change warning lost additionalContext — got: $warn_sample"); echo "  FAIL: state-change warning lost additionalContext"
+fi
+
+echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
 if [ ${#ERRORS[@]} -gt 0 ]; then
     echo ""

@@ -13,6 +13,11 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 #   ${env:CLAUDE_LOG_DIR}/dangerous-command-guard.log (defaults to
 #   ~/.claude/logs) so an operator can verify whether the hook returned
 #   allow/deny for a specific command.
+#
+# Allow-path output (issue #715): plain allows emit the minimal allow JSON
+# with no additionalContext (pass-path context is token noise on every Bash
+# call); the allow reason goes to the file log only. Only the coarse-scan
+# allow (degraded inspection warning) keeps additionalContext.
 
 $logDir = if ($env:CLAUDE_LOG_DIR) { $env:CLAUDE_LOG_DIR } else { Join-Path $HOME '.claude/logs' }
 $logFile = Join-Path $logDir 'dangerous-command-guard.log'
@@ -48,6 +53,18 @@ function Respond-Deny {
 
 function Respond-Allow {
     param([string]$Reason = 'dangerous-command-guard: no dangerous pattern matched')
+    Write-Decision -Decision 'allow' -Reason $Reason -Command $CMD
+    # Plain allow stays silent on stdout (issue #715): pass-path
+    # additionalContext is token noise for the model. The allow reason is
+    # preserved in the file log above for operator debugging.
+    New-HookAllowResponse
+    exit 0
+}
+
+function Respond-AllowWithContext {
+    # Warning-class allow: the context has decision value for the model
+    # (e.g. degraded coarse-scan inspection), so it stays on stdout.
+    param([string]$Reason)
     Write-Decision -Decision 'allow' -Reason $Reason -Command $CMD
     New-HookAllowResponse -AdditionalContext $Reason
     exit 0
@@ -88,7 +105,7 @@ if ($CMD.Length -gt $maxBytes) {
     if ($CMD -match '(curl|wget)\s.*\|\s*(sh|bash|zsh|dash|python[23]?|perl|ruby|node)\b') {
         Respond-Deny 'Remote script execution via pipe blocked for security'
     }
-    Respond-Allow "Coarse-scan allow (input exceeds tokenizer budget of $maxBytes bytes)"
+    Respond-AllowWithContext "Coarse-scan allow (input exceeds tokenizer budget of $maxBytes bytes)"
 }
 
 function Split-Subcommands {
@@ -373,8 +390,8 @@ foreach ($sub in (Flatten-Subcommands -Cmd $CMD)) {
     $prev = $sub
 }
 
-# Tag well-known safe read-only compound patterns so the reason line explains
-# why a pipe-bearing command was auto-allowed.
+# Tag well-known safe read-only compound patterns so the logged reason
+# explains why a pipe-bearing command was auto-allowed.
 $safeHead = '^(git\s+(status|log|diff|show|branch|tag|remote|ls-files|rev-parse|describe|for-each-ref|worktree|fetch)|gh\s+(pr|issue|run|workflow|repo|release|auth)\s+(view|list|status|diff|checks))\b'
 if (($CMD -match '\|') -or ($CMD -match '2>&1') -or ($CMD -match '>\s*/dev/null')) {
     if ($CMD -match $safeHead) {

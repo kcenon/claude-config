@@ -14,6 +14,11 @@
 #   If a prompt was presented despite an "allow" log entry, the root
 #   cause is upstream of this hook (e.g. unsandboxed path, multi-hook
 #   merge, permission mode), not the guard.
+#
+# Allow-path output (issue #715): plain allows emit the minimal allow JSON
+# with no additionalContext (pass-path context is token noise on every Bash
+# call); the allow reason goes to the file log only. Only the coarse-scan
+# allow (degraded inspection warning) keeps additionalContext.
 
 set -euo pipefail
 
@@ -66,9 +71,20 @@ deny_response() {
 allow_response() {
     local reason="${1:-dangerous-command-guard: no dangerous pattern matched}"
     log_decision "allow" "$reason" "${CMD:-}"
-    # Allow-path diagnostic goes under additionalContext (the model-visible
-    # allow channel), matching the .ps1 New-HookAllowResponse and the rest of
-    # the suite; permissionDecisionReason is reserved for deny decisions.
+    # Plain allow stays silent on stdout (issue #715): pass-path
+    # additionalContext is token noise for the model. The allow reason is
+    # preserved in the file log above for operator debugging.
+    jq -nc \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow"}}'
+    exit 0
+}
+
+allow_with_context() {
+    # Warning-class allow: the context has decision value for the model
+    # (e.g. degraded coarse-scan inspection), so it stays on stdout under
+    # additionalContext; permissionDecisionReason is reserved for deny.
+    local reason="$1"
+    log_decision "allow" "$reason" "${CMD:-}"
     jq -nc \
         --arg reason "$reason" \
         '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow", additionalContext: $reason}}'
@@ -112,7 +128,7 @@ if [ "${#CMD}" -gt "$DCG_TOKENIZER_MAX_BYTES" ]; then
     if echo "$CMD" | grep -qE '(curl|wget)\s.*\|\s*(sh|bash|zsh|dash|python[23]?|perl|ruby|node)\b'; then
         deny_response "Remote script execution via pipe blocked for security"
     fi
-    allow_response "Coarse-scan allow (input exceeds tokenizer budget of ${DCG_TOKENIZER_MAX_BYTES} bytes)"
+    allow_with_context "Coarse-scan allow (input exceeds tokenizer budget of ${DCG_TOKENIZER_MAX_BYTES} bytes)"
 fi
 
 # --- Tokenizer-based inspection ----------------------------------------------
@@ -362,9 +378,9 @@ inspect_command() {
     return 0
 }
 
-# Tag well-known safe read-only compound patterns so the reason line explains
-# why a pipe-bearing command was auto-allowed. This is a label, not an
-# exception: the inspection above has already cleared every sub-command.
+# Tag well-known safe read-only compound patterns so the logged reason
+# explains why a pipe-bearing command was auto-allowed. This is a label, not
+# an exception: the inspection above has already cleared every sub-command.
 SAFE_READ_ONLY_HEAD='^(git\s+(status|log|diff|show|branch|tag|remote|ls-files|rev-parse|describe|for-each-ref|worktree|fetch)|gh\s+(pr|issue|run|workflow|repo|release|auth)\s+(view|list|status|diff|checks))\b'
 
 if reason=$(inspect_command "$CMD"); then
