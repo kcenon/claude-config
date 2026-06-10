@@ -9,7 +9,7 @@ alwaysApply: false
 > **Version**: 1.2.0
 > **Parent**: [GitHub PR Guidelines](../github-pr-5w1h.md)
 > **Purpose**: Decision framework for Claude Code parallel execution strategies
-> **Loading**: Excluded from default context via `.claudeignore`. Load with `@load: reference/agent-teams`.
+> **Loading**: Lives in `.claude/reference/`, outside the auto-loaded `.claude/rules/` tree, so it is never injected automatically. Load with `@load: reference/agent-teams`.
 
 ## Decision Matrix
 

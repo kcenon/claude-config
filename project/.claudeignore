@@ -23,8 +23,11 @@ claude-config/global/
 .claude/rules/conditional-loading.md        # 11KB - Loading rules documentation
 
 # Reference documents (load on demand)
-# Migration: DONE — YAML frontmatter alwaysApply: false (all reference files now have frontmatter)
-.claude/rules/*/reference/
+# Migration: DONE — relocated to .claude/reference/ (issue #714). The context
+# loader scans .claude/rules/ physically, ignoring alwaysApply: false and this
+# file, so placement OUTSIDE the rules tree is the actual blocking mechanism.
+# Patterns below are belt-and-suspenders for loaders that honor .claudeignore.
+.claude/reference/
 .claude/**/reference/
 
 # ALL detailed rules (load on demand based on task/context)
@@ -60,10 +63,6 @@ claude-config/global/
 # .claude/rules/workflow/git-commit-format.md - ALLOWED (essential)
 # .claude/rules/workflow/github-issue-5w1h.md - ALLOWED (essential)
 # .claude/rules/workflow/github-pr-5w1h.md - ALLOWED (essential)
-
-# Exclude workflow reference docs
-# Migration: DONE — YAML frontmatter alwaysApply: false
-.claude/rules/workflow/reference/
 
 # Agents (load when needed)
 # Migration: DONE — on-demand loading is built-in

@@ -120,9 +120,9 @@ Rarely accessed, always loaded fresh:
 ```yaml
 cold_modules:
   # Reference documents - large and infrequent
-  - workflow/reference/label-definitions.md     # Access: 15%, Size: 6,000 tokens
-  - workflow/reference/issue-examples.md        # Access: 10%, Size: 8,000 tokens
-  - workflow/reference/automation-patterns.md   # Access: 12%, Size: 9,000 tokens
+  - reference/workflow/label-definitions.md     # Access: 15%, Size: 6,000 tokens
+  - reference/workflow/issue-examples.md        # Access: 10%, Size: 8,000 tokens
+  - reference/workflow/automation-patterns.md   # Access: 12%, Size: 9,000 tokens
 
   # Advanced coding
   - coding/concurrency.md                       # Access: 8%, Size: 12,000 tokens

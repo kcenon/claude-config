@@ -846,6 +846,12 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         success "Rules 디렉토리 설치 완료! (policy phrase: $(get_policy_phrase))"
     fi
 
+    # reference 디렉토리 설치 (on-demand docs, rules/ 밖으로 이전 — issue #714)
+    if [ -d "$BACKUP_DIR/project/.claude/reference" ]; then
+        cp -r "$BACKUP_DIR/project/.claude/reference" "$PROJECT_DIR/.claude/"
+        success "Reference 디렉토리 설치 완료!"
+    fi
+
     # Skills 디렉토리 설치
     if [ -d "$BACKUP_DIR/project/.claude/skills" ]; then
         cp -r "$BACKUP_DIR/project/.claude/skills" "$PROJECT_DIR/.claude/"
@@ -923,6 +929,7 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     echo "    - $PROJECT_DIR/CLAUDE.md"
     echo "    - $PROJECT_DIR/.claudeignore (Token Optimization)"
     echo "    - $PROJECT_DIR/.claude/rules/ (Guidelines)"
+    echo "    - $PROJECT_DIR/.claude/reference/ (On-demand reference docs)"
     echo "    - $PROJECT_DIR/.claude/settings.json (Hook 설정)"
     if [ -d "$BACKUP_DIR/project/.claude/skills" ]; then
         echo "    - $PROJECT_DIR/.claude/skills/ (Skills)"

@@ -17,7 +17,7 @@ Follow the **5W1H framework** so reviewers can quickly understand and evaluate c
 | 5 | **Where** | Files changed, architecture/API/database impact |
 | 6 | **How** | Implementation details, testing done, test plan, breaking changes, rollback |
 
-> Examples and templates: see `reference/5w1h-examples.md`
+> Examples and templates: see `.claude/reference/workflow/5w1h-examples.md`
 
 ## Issue Linking (MANDATORY)
 

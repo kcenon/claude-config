@@ -32,7 +32,8 @@ Loaded when matching files are open:
 
 ## Reference Docs
 
-Load with `@load: reference/<name>`:
+Stored in `.claude/reference/` (`coding/`, `workflow/`), outside the auto-loaded
+`.claude/rules/` tree so they are never injected by default. Load with `@load: reference/<name>`:
 - `anti-patterns` -- Before/after examples for core principles
 - `5w1h-examples` -- Issue/PR templates with full 5W1H
 - `agent-teams` -- Multi-agent patterns and configuration

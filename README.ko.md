@@ -175,14 +175,14 @@ claude --plugin-dir ./plugin-lite
 
 ### 레퍼런스 문서 로드
 
-일부 상세 레퍼런스 문서는 효율성을 위해 초기 컨텍스트에서 제외됩니다. 필요할 때 로드하세요:
+상세 레퍼런스 문서는 자동 로드되는 `.claude/rules/` 트리 밖의 `.claude/reference/`에 위치하므로 초기 컨텍스트에 주입되지 않습니다. 필요할 때 로드하세요:
 
 ```markdown
 # 특정 레퍼런스 로드 요청
 @load: reference/agent-teams
 
 # 또는 파일을 직접 참조
-rules/workflow/reference/label-definitions.md를 검토해주세요.
+.claude/reference/workflow/label-definitions.md를 검토해주세요.
 ```
 
 고급 커스터마이징은 [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md)를 참조하세요.
@@ -262,8 +262,7 @@ claude_config_backup/
 │       │   │   ├── error-handling.md
 │       │   │   ├── safety.md
 │       │   │   ├── performance.md
-│       │   │   ├── cpp-specifics.md
-│       │   │   └── reference/anti-patterns.md
+│       │   │   └── cpp-specifics.md
 │       │   ├── api/            # API 및 아키텍처
 │       │   │   ├── api-design.md
 │       │   │   ├── architecture.md
@@ -276,8 +275,7 @@ claude_config_backup/
 │       │   │   ├── build-verification.md
 │       │   │   ├── ci-resilience.md
 │       │   │   ├── performance-analysis.md
-│       │   │   ├── session-resume.md
-│       │   │   └── reference/  # 레이블, 자동화, Agent Teams
+│       │   │   └── session-resume.md
 │       │   ├── core/           # 핵심 설정
 │       │   │   ├── environment.md
 │       │   │   ├── communication.md
@@ -291,6 +289,9 @@ claude_config_backup/
 │       │   ├── tools/
 │       │   │   └── gh-cli-scripts.md
 │       │   └── security.md     # 보안 가이드라인
+│       ├── reference/          # 온디맨드 레퍼런스 문서 (rules/ 밖, 자동 로드 안 됨)
+│       │   ├── coding/         # anti-patterns.md
+│       │   └── workflow/       # 5W1H 예시, 레이블, 자동화, Agent Teams
 │       ├── commands/           # 사용자 정의 슬래시 명령어
 │       │   ├── _policy.md
 │       │   ├── pr-review.md
@@ -670,7 +671,7 @@ Create a team to implement the notification system:
 
 최적의 조정을 위해 팀을 2-3명으로 유지하세요. 파일 충돌을 피하기 위해 각 팀원에게 별도의 파일 세트를 할당하세요.
 
-아키텍처 패턴, 표시 모드, 훅, 고급 설정은 `rules/workflow/reference/agent-teams.md`를 참조하세요.
+아키텍처 패턴, 표시 모드, 훅, 고급 설정은 `.claude/reference/workflow/agent-teams.md`를 참조하세요.
 
 ---
 

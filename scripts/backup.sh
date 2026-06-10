@@ -171,6 +171,13 @@ if [ "$BACKUP_TYPE" = "2" ] || [ "$BACKUP_TYPE" = "3" ] || [ "$BACKUP_TYPE" = "5
             success ".claude/rules 디렉토리 백업됨"
         fi
 
+        # Reference 디렉토리 백업
+        if [ -d "$PROJECT_DIR/.claude/reference" ]; then
+            mkdir -p "$TEMP_BACKUP/project/.claude/reference"
+            cp -r "$PROJECT_DIR/.claude/reference"/* "$TEMP_BACKUP/project/.claude/reference/"
+            success "reference 디렉토리 백업됨"
+        fi
+
         # .claude/settings.json 백업
         if [ -f "$PROJECT_DIR/.claude/settings.json" ]; then
             cp "$PROJECT_DIR/.claude/settings.json" "$TEMP_BACKUP/project/.claude/"
@@ -298,6 +305,9 @@ if [ -f "$BACKUP_DIR/project/CLAUDE.md" ]; then
 fi
 if [ -d "$BACKUP_DIR/project/.claude/rules" ] && [ "$(ls -A "$BACKUP_DIR/project/.claude/rules" 2>/dev/null)" ]; then
     echo "    - .claude/rules/"
+fi
+if [ -d "$BACKUP_DIR/project/.claude/reference" ] && [ "$(ls -A "$BACKUP_DIR/project/.claude/reference" 2>/dev/null)" ]; then
+    echo "    - .claude/reference/"
 fi
 if [ -d "$BACKUP_DIR/project/.claude/skills" ] && [ "$(ls -A "$BACKUP_DIR/project/.claude/skills" 2>/dev/null)" ]; then
     echo "    - .claude/skills/"

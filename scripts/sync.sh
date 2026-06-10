@@ -227,6 +227,13 @@ if [ "$CHECK_PROJECT" = "y" ]; then
             [ ${PIPESTATUS[0]} -ne 0 ] && PROJECT_DIFF=1
         fi
 
+        # reference 디렉토리 비교 (issue #714)
+        if [ -d "$BACKUP_DIR/project/.claude/reference" ] && [ -d "$PROJECT_DIR/.claude/reference" ]; then
+            highlight "reference 디렉토리 비교:"
+            diff -rq "$BACKUP_DIR/project/.claude/reference" "$PROJECT_DIR/.claude/reference" 2>/dev/null | head -10 || true
+            [ ${PIPESTATUS[0]} -ne 0 ] && PROJECT_DIFF=1
+        fi
+
         # skills 디렉토리 비교
         if [ -d "$BACKUP_DIR/project/.claude/skills" ] || [ -d "$PROJECT_DIR/.claude/skills" ]; then
             highlight "skills 디렉토리 비교:"
@@ -433,6 +440,12 @@ if [ "$SYNC_DIRECTION" = "1" ]; then
             success "rules → 시스템"
         }
 
+        [ -d "$BACKUP_DIR/project/.claude/reference" ] && {
+            mkdir -p "$PROJECT_DIR/.claude/reference"
+            cp -r "$BACKUP_DIR/project/.claude/reference"/* "$PROJECT_DIR/.claude/reference/"
+            success "reference → 시스템"
+        }
+
         [ -d "$BACKUP_DIR/project/.claude/skills" ] && {
             mkdir -p "$PROJECT_DIR/.claude/skills"
             cp -r "$BACKUP_DIR/project/.claude/skills"/* "$PROJECT_DIR/.claude/skills/"
@@ -504,6 +517,12 @@ else
             mkdir -p "$BACKUP_DIR/project/.claude/rules"
             cp -r "$PROJECT_DIR/.claude/rules"/* "$BACKUP_DIR/project/.claude/rules/"
             success "rules → 백업"
+        }
+
+        [ -d "$PROJECT_DIR/.claude/reference" ] && {
+            mkdir -p "$BACKUP_DIR/project/.claude/reference"
+            cp -r "$PROJECT_DIR/.claude/reference"/* "$BACKUP_DIR/project/.claude/reference/"
+            success "reference → 백업"
         }
 
         [ -d "$PROJECT_DIR/.claude/skills" ] && {

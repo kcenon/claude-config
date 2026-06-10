@@ -202,28 +202,28 @@ nodes:
     - target: "project/.claude/rules/coding/error-handling.md"
       type: link
   "project/.claude/rules/workflow/git-commit-format.md":
-    - target: "project/.claude/rules/workflow/reference/commit-hooks.md"
+    - target: "project/.claude/reference/workflow/commit-hooks.md"
       type: see
   "project/.claude/rules/workflow/github-issue-5w1h.md":
-    - target: "project/.claude/rules/workflow/reference/5w1h-examples.md"
+    - target: "project/.claude/reference/workflow/5w1h-examples.md"
       type: see
   "project/.claude/rules/workflow/github-pr-5w1h.md":
-    - target: "project/.claude/rules/workflow/reference/5w1h-examples.md"
+    - target: "project/.claude/reference/workflow/5w1h-examples.md"
       type: see
-  "project/.claude/rules/workflow/reference/agent-teams.md":
+  "project/.claude/reference/workflow/agent-teams.md":
     - target: "project/.claude/rules/workflow/github-pr-5w1h.md"
       type: link
-  "project/.claude/rules/workflow/reference/automation-patterns.md":
+  "project/.claude/reference/workflow/automation-patterns.md":
     - target: "project/.claude/rules/workflow/github-issue-5w1h.md"
       type: link
-  "project/.claude/rules/workflow/reference/issue-examples.md":
+  "project/.claude/reference/workflow/issue-examples.md":
     - target: "project/.claude/rules/workflow/github-issue-5w1h.md"
       type: link
-  "project/.claude/rules/workflow/reference/label-definitions.md":
+  "project/.claude/reference/workflow/label-definitions.md":
     - target: "project/.claude/rules/workflow/github-issue-5w1h.md"
       type: link
   "project/.claude/rules/workflow/session-resume.md":
-    - target: "project/.claude/rules/workflow/reference/session-resume-templates.md"
+    - target: "project/.claude/reference/workflow/session-resume-templates.md"
       type: see
   "project/.claude/skills/api-design/SKILL.md":
     - target: "project/.claude/skills/api-design/reference/api-design.md"

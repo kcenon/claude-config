@@ -732,6 +732,13 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
         Write-Success "Rules directory installed! (policy phrase: $(Get-PolicyPhrase -Policy $script:contentLanguage))"
     }
 
+    # reference directory (on-demand docs relocated out of rules/ -- issue #714)
+    $sourceReference = Join-Path $BackupDir "project/.claude/reference"
+    if (Test-Path $sourceReference) {
+        Copy-Item -Path $sourceReference -Destination $projectClaudeDir -Recurse -Force
+        Write-Success "Reference directory installed!"
+    }
+
     # Skills directory
     $sourceSkills = Join-Path $BackupDir "project/.claude/skills"
     if (Test-Path $sourceSkills) {
@@ -820,6 +827,7 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
     Write-Host "  Project settings:"
     Write-Host "    - $projectDir\CLAUDE.md"
     Write-Host "    - $projectDir\.claude\rules\ (Guidelines)"
+    Write-Host "    - $projectDir\.claude\reference\ (On-demand reference docs)"
     Write-Host "    - $projectDir\.claude\settings.json (Hook settings)"
     $sourceSkills = Join-Path $BackupDir "project/.claude/skills"
     if (Test-Path $sourceSkills) {

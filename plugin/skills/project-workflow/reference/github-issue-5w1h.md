@@ -17,7 +17,7 @@ Follow the **5W1H framework** for comprehensive, actionable issues.
 | 5 | **Where** | Affected files/components, environment, related issues/PRs |
 | 6 | **How** | Technical approach, acceptance criteria, reproduction steps, testing |
 
-> Examples and templates: see `reference/5w1h-examples.md`
+> Examples and templates: see `.claude/reference/workflow/5w1h-examples.md`
 
 ## Quick Reference
 
@@ -33,7 +33,7 @@ Follow the **5W1H framework** for comprehensive, actionable issues.
 
 ### Issue Splitting Rule
 
-**Issues > 2-3 days MUST be split.** See `reference/issue-examples.md`.
+**Issues > 2-3 days MUST be split.** See `.claude/reference/workflow/issue-examples.md`.
 
 ### Auto-Close Keywords (in PRs)
 
@@ -47,4 +47,4 @@ Follow the **5W1H framework** for comprehensive, actionable issues.
 | **Type** | `type/bug`, `type/feature`, `type/enhancement`, `type/docs` |
 | **Size** | `size/XS`, `size/S`, `size/M`, `size/L`, `size/XL` |
 
-> Full definitions: `reference/label-definitions.md` | Automation: `reference/automation-patterns.md`
+> Full definitions: `.claude/reference/workflow/label-definitions.md` | Automation: `.claude/reference/workflow/automation-patterns.md`
