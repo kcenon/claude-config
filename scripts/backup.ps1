@@ -155,6 +155,15 @@ if ($backupType -eq '2' -or $backupType -eq '3' -or $backupType -eq '5') {
             Write-SuccessMessage ".claude/rules 디렉토리 백업됨"
         }
 
+        # Reference directory
+        $referenceDir = Join-Path $projectDir '.claude' 'reference'
+        if (Test-Path -LiteralPath $referenceDir -PathType Container) {
+            $referenceBackup = Join-Path $tempBackup 'project' '.claude' 'reference'
+            Ensure-Directory $referenceBackup | Out-Null
+            Copy-Item -Path (Join-Path $referenceDir '*') -Destination $referenceBackup -Recurse -Force
+            Write-SuccessMessage "reference 디렉토리 백업됨"
+        }
+
         # .claude/settings.json
         $projSettings = Join-Path $projectDir '.claude' 'settings.json'
         if (Test-Path -LiteralPath $projSettings -PathType Leaf) {
@@ -326,6 +335,11 @@ if (Test-Path $projMdFile) { Write-Host "    - CLAUDE.md" }
 $projRulesDir = Join-Path $projDir '.claude' 'rules'
 if ((Test-Path $projRulesDir) -and (Get-ChildItem $projRulesDir -ErrorAction SilentlyContinue).Count -gt 0) {
     Write-Host "    - .claude/rules/"
+}
+
+$projReferenceDir = Join-Path $projDir '.claude' 'reference'
+if ((Test-Path $projReferenceDir) -and (Get-ChildItem $projReferenceDir -ErrorAction SilentlyContinue).Count -gt 0) {
+    Write-Host "    - .claude/reference/"
 }
 
 $projSkillsDir = Join-Path $projDir '.claude' 'skills'

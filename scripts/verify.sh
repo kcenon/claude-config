@@ -190,6 +190,7 @@ echo ""
 check_file "$BACKUP_DIR/project/CLAUDE.md" "프로젝트 CLAUDE.md"
 check_dir "$BACKUP_DIR/project/.claude" ".claude 디렉토리"
 check_dir "$BACKUP_DIR/project/.claude/rules" ".claude/rules 디렉토리"
+check_dir "$BACKUP_DIR/project/.claude/reference" ".claude/reference 디렉토리"
 check_file "$BACKUP_DIR/project/.claude/settings.json" "프로젝트 settings.json (Hook 설정)"
 
 # 프로젝트 settings.json JSON 유효성 검사
