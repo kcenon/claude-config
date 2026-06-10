@@ -7,45 +7,17 @@
 
 set -euo pipefail
 
-# --- Locate commit-settings.md (try canonical user path, fall back to inline) ---
-POLICY_TEXT=""
-for candidate in \
-    "${HOME}/.claude/commit-settings.md" \
-    "${CLAUDE_HOME:-${HOME}/.claude}/commit-settings.md"; do
-    if [ -n "$candidate" ] && [ -f "$candidate" ]; then
-        POLICY_TEXT="$(cat "$candidate")"
-        break
-    fi
-done
+# Fixed short digest (issue #716): the full commit-settings.md text already
+# reaches context via the CLAUDE.md @import chain, so re-injecting it verbatim
+# on every InstructionsLoaded event is pure duplication. Keep the payload to
+# ~10 lines / ~500 bytes and never read policy file contents into it.
+REINFORCEMENT=$(cat <<'EOF'
+## Critical Policy Reinforcement (digest)
 
-if [ -z "$POLICY_TEXT" ]; then
-    POLICY_TEXT=$(cat <<'EOF'
-# Commit, Issue, and PR Settings
-
-No AI/Claude attribution in commits, issues, or PRs.
-All GitHub Issues and Pull Requests follow the active CLAUDE_CONTENT_LANGUAGE policy
-(values: english | korean_plus_english | exclusive_bilingual | any; default: english).
-See commit-settings.md for the per-policy artifact rule.
-EOF
-)
-fi
-
-REINFORCEMENT=$(cat <<EOF
-## Critical Policy Reinforcement (auto-injected after instruction load)
-
-${POLICY_TEXT}
-
-## Branching
-
-- Default working branch: \`develop\`. Never push directly to \`main\` or \`develop\`.
-- Feature/fix PRs target \`develop\`; release PRs target \`main\`.
-- Squash merge required.
-
-## Commit Format
-
-Conventional Commits: \`type(scope): description\` or \`type: description\`.
-Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, security.
-Description: first char is lowercase ASCII (default) or Hangul (when CLAUDE_CONTENT_LANGUAGE permits Korean). No trailing period, no emojis, no AI attribution.
+- No AI/Claude attribution in commits, issues, or PRs.
+- Issue/PR/commit prose: follow the CLAUDE_CONTENT_LANGUAGE policy (see commit-settings.md).
+- Branches: work branches from develop; never push directly to main or develop; squash merge only.
+- Commits: Conventional Commits `type(scope): description`; lowercase first char, no trailing period.
 EOF
 )
 
