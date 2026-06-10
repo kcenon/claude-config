@@ -796,9 +796,10 @@ through the `permissionDecision` field, not through the exit code.
 - Skips if tool is not installed (no error)
 - Timeout: 30 seconds
 
-## Permission Settings (permissions.deny)
+## Permission Settings
 
-Deny rules defined in `global/settings.json`:
+Deny rules defined in `global/settings.json` and `global/settings.windows.json`
+block direct tool access to sensitive files:
 
 ```json
 {
@@ -816,6 +817,26 @@ Deny rules defined in `global/settings.json`:
   }
 }
 ```
+
+The Windows profile also carries a narrow `permissions.allow` list for native
+`PowerShell(...)` read-only discovery commands. It covers common inspection
+verbs such as `Get-ChildItem`, `Test-Path`, `Select-Object`, `Select-String`,
+and `Write-Output`, plus read-only `git` and `gh` commands. The allowlist is
+intended to reduce repeated confirmation prompts for routine local inspection;
+it is not a general bypass profile.
+
+The Windows profile intentionally keeps these guardrails:
+
+- `permissions.defaultMode` remains `default`.
+- `disableBypassPermissionsMode` and `disableAutoMode` remain `disable`.
+- No broad `PowerShell(*)` rule is allowed.
+- Direct content reads such as `Get-Content`, file mutation cmdlets, remote
+  execution cmdlets, and state-changing `gh` commands are not allowlisted.
+- Sensitive-file deny rules stay in place.
+
+`skipDangerousModePermissionPrompt` only suppresses the extra dangerous-mode
+launch warning. It does not widen `permissions.allow`, and it does not override
+the installed profile's bypass/auto-mode disable settings.
 
 ## Windows Support (PowerShell)
 

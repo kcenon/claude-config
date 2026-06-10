@@ -28,6 +28,7 @@ on:
       - 'global/settings.json'
       - 'global/settings.windows.json'
       - 'tests/scripts/test-windows-hooks-parity.sh'
+      - 'tests/scripts/test-windows-powershell-permissions.sh'
       - 'tests/scripts/test-hook-ordering.sh'
       - 'tests/scripts/test-severity-enum.sh'
       - 'scripts/backup.sh'
@@ -123,6 +124,11 @@ jobs:
         # wired into settings.windows.json (or POSIX-only drift). This is the
         # gate the 7 unwired Windows security guards (#655) would have tripped.
         run: bash tests/scripts/test-windows-hooks-parity.sh
+
+      - name: Run Windows PowerShell permissions policy test
+        # Ensures Windows gets narrow read-only PowerShell discovery allowances
+        # without broad PowerShell(*) or state-changing gh grants.
+        run: bash tests/scripts/test-windows-powershell-permissions.sh
 
       - name: Run hook ordering test
         # Asserts the load-bearing PreToolUse hook order (sensitive-file-guard
