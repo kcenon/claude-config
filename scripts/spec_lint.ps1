@@ -114,8 +114,10 @@ function Invoke-LintGroup {
     )
     if (-not $Paths -or $Paths.Count -eq 0) { return 0 }
     Write-Host "[spec_lint] mode=$ModeName files=$($Paths.Count)"
-    & $python $SpecLintPy '--mode' $ModeName @script:commonArgs @Paths
-    return $LASTEXITCODE
+    $output = & $python $SpecLintPy '--mode' $ModeName @script:commonArgs @Paths 2>&1
+    $rc = $LASTEXITCODE
+    foreach ($line in $output) { Write-Host $line }
+    return $rc
 }
 
 # Make commonArgs visible to helper
