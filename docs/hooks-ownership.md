@@ -30,7 +30,7 @@ that could be registered from multiple surfaces.
 | `PostToolUseFailure` | `.*` | `tool-failure-logger.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `SubagentStart`/`SubagentStop` | `.*` | `subagent-logger.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `PreCompact` | — | `pre-compact-snapshot.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PostCompact` | — | `post-compact-restore.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
+| `SessionStart` | `compact` | `post-compact-restore.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `InstructionsLoaded` | — | `instructions-loaded-reinforcer.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `TaskCreated` | — | `task-created-validator.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `WorktreeCreate`/`WorktreeRemove` | — | `worktree-create.{sh,ps1}` / `worktree-remove.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |

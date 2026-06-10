@@ -22,7 +22,7 @@ What gets blocked, by which layer, and how to unblock it. Read in five minutes. 
 | `TeamCreate` when `~/.claude/teams/` already has `MAX_TEAMS` (default 3) | `team-limit-guard` (PreToolUse) | Team creation blocked | Shut down an idle team first |
 | `rm -rf /`, `chmod 777`, `curl … \| sh` | `dangerous-command-guard` (PreToolUse) | Catastrophic command blocked | Use a smaller, scoped command |
 | Edit/Write/Read on `.env`, `.pem`, `.key`, `secrets/`, `credentials/` | `sensitive-file-guard` (PreToolUse) + `permissions.deny` | Tool call blocked | Do not exfiltrate secrets; reference variable names instead |
-| Auto-compaction discards core principles | `pre-compact-snapshot` + `post-compact-restore` (PreCompact / PostCompact) | Not blocking — re-injects principles into post-compact context | No action |
+| Auto-compaction discards core principles | `pre-compact-snapshot` + `post-compact-restore` (PreCompact / SessionStart matcher `compact`) | Not blocking — re-injects principles into post-compact context | No action |
 | Instruction load (CLAUDE.md ingest) | `instructions-loaded-reinforcer` (InstructionsLoaded) | Not blocking — re-asserts commit / branching / language policy | No action |
 | Task or Agent tool returns dirty working tree | `post-task-checkpoint` (PostToolUse, async) | Not blocking — auto-commits `wip(agent): ...` checkpoint | No action; squash at PR merge |
 

@@ -5,11 +5,22 @@ $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -WarningAction SilentlyContinue
 
 # post-compact-restore.ps1
-# Re-injects core/principles.md after automatic context compaction.
+# Re-asserts the four core principles after automatic context compaction.
 # Pairs with pre-compact-snapshot.ps1 (PreCompact event).
-# Hook Type: PostCompact (sync)
-# Exit codes: 0 (always - context delivered via JSON)
+# Hook Type: SessionStart (matcher: compact, sync)
+# Exit codes: 0 (always - silent no-op unless stdin source is "compact")
 
+# Defense in depth (issue #720): the settings matcher ("compact") already
+# filters SessionStart invocations, but stay silent if the hook is ever
+# wired without a matcher so startup/resume/clear sessions are not spammed.
+$json = Read-HookInput
+$source = ''
+if ($null -ne $json) {
+    try { $source = [string]$json.source } catch { $source = '' }
+}
+if ($source -ne 'compact') { exit 0 }
+
+# --- Logging (mirrors pre-compact-snapshot.ps1 contract) ---
 $logDir = Join-Path $HOME '.claude' 'logs'
 $logFile = Join-Path $logDir 'compact-snapshots.log'
 Ensure-Directory $logDir | Out-Null
@@ -19,7 +30,7 @@ $sessionId = if ($env:CLAUDE_SESSION_ID) { $env:CLAUDE_SESSION_ID } else { 'unkn
 $workingDir = try { $PWD.Path } catch { 'unknown' }
 
 $entry = @"
-=== PostCompact Restore ===
+=== Post-Compact Restore ===
 Time: $timestamp
 Session: $sessionId
 Working Dir: $workingDir
@@ -27,53 +38,30 @@ Working Dir: $workingDir
 "@
 Add-Content -Path $logFile -Value $entry
 
-$principlesText = $null
-$candidates = @()
-if ($env:CLAUDE_PROJECT_DIR) {
-    $candidates += (Join-Path $env:CLAUDE_PROJECT_DIR '.claude' 'rules' 'core' 'principles.md')
-}
-$candidates += (Join-Path $HOME '.claude' 'rules' 'core' 'principles.md')
-$candidates += (Join-Path $PWD.Path '.claude' 'rules' 'core' 'principles.md')
-$candidates += (Join-Path (Split-Path -Parent $PWD.Path) '.claude' 'rules' 'core' 'principles.md')
+# Fixed short digest (issue #720): the PostCompact event does not support
+# hookSpecificOutput, so this hook listens on SessionStart (source ==
+# "compact") - the official channel for injecting context after compaction.
+# Keep the payload to a few lines and never read rule files into it.
+# Must stay byte-equivalent to the digest in post-compact-restore.sh.
+$digest = @'
+## Post-Compaction Restore (digest)
 
-foreach ($candidate in $candidates) {
-    if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
-        $principlesText = (([System.IO.File]::ReadAllText($candidate, [System.Text.Encoding]::UTF8)) -replace "`r`n", "`n").TrimEnd("`n")
-        break
-    }
-}
+Context was just compacted. Re-asserting the four core principles:
 
-if (-not $principlesText) {
-    $principlesText = @'
-# Core Principles
+1. Think Before Acting - state assumptions explicitly; if uncertain, ask.
+2. Minimize & Focus - minimum code that solves the problem; nothing speculative.
+3. Surgical Precision - touch only what you must; clean up only your own mess.
+4. Verify & Iterate - define success criteria; loop until verified.
 
-1. **Think Before Acting** — State assumptions explicitly. If uncertain, ask.
-2. **Minimize & Focus** — Minimum code that solves the problem. Nothing speculative.
-3. **Surgical Precision** — Touch only what you must. Clean up only your own mess.
-4. **Verify & Iterate** — Define success criteria. Loop until verified.
-
-## Behavioral Guardrails
-
-- Stay focused on the user's original request. Note unrelated issues at the end without acting on them.
-- If the same approach fails 3 times, stop and propose alternatives rather than retrying blindly.
-- Bias toward execution — start making changes immediately when asked to update or edit documents.
+Self-check: "Would a senior engineer say this diff is focused, minimal, and well-verified?"
 '@
-}
 
-$context = @"
-## Post-Compaction Restore (auto-injected)
-
-Context was just compacted. Re-asserting core principles to prevent drift:
-
-$principlesText
-"@
-
-$context = ($context -replace "`r`n", "`n").TrimEnd("`n") + "`n"
+$digest = ($digest -replace "`r`n", "`n").TrimEnd("`n")
 
 $response = @{
     hookSpecificOutput = @{
-        hookEventName     = 'PostCompact'
-        additionalContext = $context
+        hookEventName     = 'SessionStart'
+        additionalContext = $digest
     }
 }
 Write-Output ($response | ConvertTo-Json -Depth 3 -Compress)

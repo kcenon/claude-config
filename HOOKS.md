@@ -26,7 +26,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Block gh pr merge when any check is non-passing | [Merge Gate Guard](#14-merge-gate-guard-pretooluse) |
 | Block AI/Claude attribution in gh PR/issue commands | [Attribution Guard](#15-attribution-guard-pretooluse) |
 | Re-inject critical policy after instruction load | [Instructions Loaded Reinforcer](#16-instructions-loaded-reinforcer-instructionsloaded) |
-| Restore core principles after context compaction | [Post-Compact Restore](#17-post-compact-restore-postcompact) |
+| Restore core principles after context compaction | [Post-Compact Restore](#17-post-compact-restore-sessionstart) |
 | Validate task descriptions at creation time | [Task Created Validator](#18-task-created-validator-taskcreated) |
 | Auto-commit working tree after Task/Agent runs | [Post Task/Agent Checkpoint](#19-post-taskagent-checkpoint-posttooluse) |
 | Block Edit/Write on files that weren't Read first | [Pre-edit Read Guard](#20-pre-edit-read-guard-pretooluseposttooluse) |
@@ -513,34 +513,39 @@ Issue #480 extended scope from `gh (pr|issue) (create|edit|comment)` to include 
 }
 ```
 
-### 17. Post-Compact Restore (PostCompact)
+### 17. Post-Compact Restore (SessionStart)
 
-*Re-injects `core/principles.md` immediately after Claude Code automatically compacts the conversation — pairs with `pre-compact-snapshot` to keep the four core principles in context across long sessions.*
+*Re-asserts the four core principles immediately after Claude Code automatically compacts the conversation - pairs with `pre-compact-snapshot` to keep the principles in context across long sessions.*
 
-**Purpose**: When automatic context compaction discards the original `CLAUDE.md` and rule files, this hook re-asserts the four core principles (Think, Minimize, Surgical, Verify) plus behavioral guardrails so the model does not regress to pre-policy defaults after compaction.
+**Purpose**: When automatic context compaction discards the original `CLAUDE.md` and rule files, this hook re-asserts the four core principles (Think, Minimize, Surgical, Verify) plus the senior-engineer self-check so the model does not regress to pre-policy defaults after compaction.
 
-**Trigger**: `PostCompact` event — fires once whenever the harness completes an automatic compaction cycle. Pairs with the existing `pre-compact-snapshot` hook (PreCompact event) which captures pre-compact state.
+**Trigger**: `SessionStart` event with matcher `compact` - fires once when the harness starts the fresh post-compaction context. The `PostCompact` event does NOT support `hookSpecificOutput` (Claude Code rejects such output with "Hook JSON output validation failed"); `SessionStart` with `source == "compact"` is the official channel for injecting context after compaction (issue #720). Pairs with the existing `pre-compact-snapshot` hook (PreCompact event) which captures pre-compact state.
 
 **Files**: `global/hooks/post-compact-restore.sh`, `global/hooks/post-compact-restore.ps1`
 
 **Logic**:
-1. Append a restore record (timestamp, session id, working directory) to `~/.claude/logs/compact-snapshots.log` — the same log written by `pre-compact-snapshot.sh` so PreCompact / PostCompact pairs can be correlated.
-2. Locate `core/principles.md` from one of: `${CLAUDE_PROJECT_DIR}/.claude/rules/core/principles.md`, `~/.claude/rules/core/principles.md`, or the current working directory tree (falls back to an inline minimal principles block if no file is found).
-3. Wrap the located text in a "Post-Compaction Restore" section explaining why it is being re-asserted.
-4. Emit JSON via `jq` if available; otherwise hand-escape and print the JSON literal.
+1. Parse stdin JSON and exit 0 silently (no output) unless `source` is `"compact"` - defense in depth in case the hook is ever wired without a matcher, so startup/resume/clear sessions are never spammed.
+2. Append a restore record (timestamp, session id, working directory) to `~/.claude/logs/compact-snapshots.log` - the same log written by `pre-compact-snapshot.sh` so snapshot / restore pairs can be correlated.
+3. Emit a fixed short digest (~500 bytes) of the four core principles plus the self-check line. The hook never reads rule files into the payload; `.sh` and `.ps1` emit byte-equivalent `additionalContext`.
 
 **Behavior**:
-- Returns JSON with `hookSpecificOutput.additionalContext` carrying the principles re-assertion
-- Always exits 0 — the hook never blocks compaction; it only augments the post-compact context
+- Returns JSON with `hookSpecificOutput.{hookEventName: "SessionStart", additionalContext}` carrying the principles digest
+- Always exits 0 - the hook never blocks session start; it only augments the post-compact context
+- Silent no-op (no output) for any `source` other than `"compact"`, for empty stdin, and when no JSON parser is available
 - Writes to `~/.claude/logs/compact-snapshots.log` (created on demand)
 - Cross-platform: `post-compact-restore.sh` and `post-compact-restore.ps1`
 
 **Configuration**:
 ```json
 {
-  "type": "command",
-  "command": "~/.claude/hooks/post-compact-restore.sh",
-  "timeout": 5
+  "matcher": "compact",
+  "hooks": [
+    {
+      "type": "command",
+      "command": "~/.claude/hooks/post-compact-restore.sh",
+      "timeout": 5
+    }
+  ]
 }
 ```
 
@@ -548,7 +553,8 @@ Issue #480 extended scope from `gh (pr|issue) (create|edit|comment)` to include 
 ```json
 {
   "session_id": "abc123",
-  "hook_event_name": "PostCompact",
+  "hook_event_name": "SessionStart",
+  "source": "compact",
   "cwd": "/path/to/project"
 }
 ```
@@ -557,8 +563,8 @@ Issue #480 extended scope from `gh (pr|issue) (create|edit|comment)` to include 
 ```json
 {
   "hookSpecificOutput": {
-    "hookEventName": "PostCompact",
-    "additionalContext": "## Post-Compaction Restore (auto-injected)\n\nContext was just compacted. Re-asserting core principles to prevent drift:\n\n# Core Principles\n\n1. **Think Before Acting** — State assumptions explicitly. If uncertain, ask.\n..."
+    "hookEventName": "SessionStart",
+    "additionalContext": "## Post-Compaction Restore (digest)\n\nContext was just compacted. Re-asserting the four core principles:\n\n1. Think Before Acting - state assumptions explicitly; if uncertain, ask.\n..."
   }
 }
 ```
@@ -1025,7 +1031,7 @@ this catalog for the canonical hook inventory.
 | [`memory-write-guard.sh`](#memory-write-guard) | PreToolUse (Edit|Write) | yes |
 | [`merge-gate-guard.sh`](#merge-gate-guard) | PreToolUse (Bash) | yes |
 | [`permission-denial-logger.sh`](#permission-denial-logger) | PermissionDenied | yes |
-| [`post-compact-restore.sh`](#post-compact-restore) | PostCompact (sync) | yes |
+| [`post-compact-restore.sh`](#post-compact-restore) | SessionStart (matcher: compact, sync) | yes |
 | [`post-task-checkpoint.sh`](#post-task-checkpoint) | PostToolUse | yes |
 | [`pr-language-guard.sh`](#pr-language-guard) | PreToolUse (Bash) | yes |
 | [`pr-target-guard.sh`](#pr-target-guard) | PreToolUse (Bash) | yes |
@@ -1362,14 +1368,15 @@ _File:_ `post-compact-restore.sh`
 
 _Anchor:_ `#post-compact-restore`
 
-Re-injects core/principles.md after automatic context compaction. Pairs with pre-compact-snapshot.sh (PreCompact event).
+Re-asserts the four core principles after automatic context compaction. Pairs with pre-compact-snapshot.sh (PreCompact event).
 
 | Field | Value |
 |---|---|
-| Hook Type | PostCompact (sync) |
-| Trigger / Matcher | sync |
-| Exit codes | 0 (always — context delivered via JSON) |
+| Hook Type | SessionStart (matcher: compact, sync) |
+| Trigger / Matcher | matcher: compact, sync |
+| Exit codes | 0 (always - silent no-op unless stdin source is "compact") |
 | Response format | hookSpecificOutput.additionalContext |
+| Fail policy | fails quiet - no JSON parser or non-compact source means no output |
 | PowerShell counterpart | present (`post-compact-restore.ps1`) |
 | Source | `global/hooks/post-compact-restore.sh` |
 
