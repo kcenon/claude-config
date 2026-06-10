@@ -125,6 +125,29 @@ assert_decision "$(build_payload Write "$MEM/MEMORY.md" 'index')" 'allow' 'MEMOR
 assert_decision '{"tool_name":"Write","tool_input":{"content":"x"}}' 'allow' 'Missing file_path -> allow (fail-open)'
 
 echo ""
+echo "[Plain-pass silence -- issue #715]"
+plain_sample=$(printf '%s' "$(build_payload Write /tmp/non-memory.txt 'hello')" | bash "$HOOK" 2>/dev/null)
+if printf '%s' "$plain_sample" | grep -q '"additionalContext"'; then
+    FAIL=$((FAIL + 1)); ERRORS+=("FAIL: non-memory plain allow must not carry additionalContext -- got: $plain_sample"); echo "  FAIL: non-memory plain allow carries additionalContext"
+else
+    PASS=$((PASS + 1)); echo "  PASS: non-memory plain allow has no additionalContext"
+fi
+# Warn-only validator findings must keep their additionalContext feedback.
+# Build this payload with pure-bash printf (not jq --arg / env): on
+# MSYS/Git Bash, path-like arguments and env values handed to a native
+# jq.exe get converted to Windows paths, which would dodge the hook's
+# path gate. The body contains no quotes/backslashes, so escaping
+# newlines is sufficient for valid JSON.
+warn_payload=$(printf '{"tool_name":"Write","tool_input":{"file_path":"%s","content":"%s"}}' \
+    "$MEM/feedback_strict_ctx.md" "${INJECTION_BODY//$'\n'/\\n}")
+warn_sample=$(printf '%s' "$warn_payload" | bash "$HOOK" 2>/dev/null)
+if printf '%s' "$warn_sample" | grep -q '"additionalContext"'; then
+    PASS=$((PASS + 1)); echo "  PASS: warn-only finding keeps additionalContext"
+else
+    FAIL=$((FAIL + 1)); ERRORS+=("FAIL: warn-only finding lost additionalContext -- got: $warn_sample"); echo "  FAIL: warn-only finding lost additionalContext"
+fi
+
+echo ""
 echo "[Memory write decisions]"
 assert_decision "$(build_payload Write "$MEM/feedback_clean.md" "$CLEAN_BODY")" 'allow' 'Clean memory write -> allow'
 assert_decision "$(build_payload Write "$MEM/feedback_leak.md" "$SECRET_BODY")" 'deny'  'Secret in memory -> deny'
