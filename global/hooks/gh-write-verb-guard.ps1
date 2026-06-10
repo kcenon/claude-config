@@ -11,6 +11,10 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 # via additionalContext on in-scope state changes) but uses regex over
 # the raw command string instead of the bash tokenizer. Substitution-aware
 # splitting is therefore weaker on Windows. The bash variant is canonical.
+#
+# Allow-path output (issue #715 audit): plain passes already emit the minimal
+# allow JSON with no additionalContext; the state-change warning intentionally
+# keeps additionalContext because it carries decision value.
 
 $json = Read-HookInput
 if (-not $json) { New-HookAllowResponse; exit 0 }

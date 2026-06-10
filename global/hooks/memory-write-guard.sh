@@ -32,6 +32,10 @@
 #   anything that slips through; this hook must NOT block legitimate work
 #   because of its own bug.
 #
+# Allow-path output (issue #715 audit): plain allows already emit the minimal
+# allow JSON with no additionalContext; only warn-only validator findings and
+# internal-failure diagnostics intentionally attach context.
+#
 # Bash 3.2 compatible (macOS default).
 
 set -euo pipefail
