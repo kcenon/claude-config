@@ -117,6 +117,10 @@ Before producing output, verify:
 ### Verdict
 One of: `PASS` | `WARN` (non-critical issues) | `FAIL` (critical vulnerabilities or license conflicts)
 
+## Tool Constraints
+
+Bash is restricted to read-only audit and diagnostic commands. Prefer side-effect-free flags: `npm audit --package-lock-only`, `pip-audit` without installs, `cargo audit` (read-only), plus `git diff` / `git log`. Do not install packages, modify lockfiles, write files, or make network calls beyond read-only vulnerability-database lookups. This agent reports findings and never mutates the working tree.
+
 ## Reporting
 
 Return your findings to the calling session as your final message. This agent runs as a single-return node; the calling session decides any follow-up. A multi-agent `team-lead` handoff topology is not wired in this configuration.

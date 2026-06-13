@@ -114,6 +114,10 @@ Before producing output, verify:
 ### Verdict
 One of: `ADEQUATE` | `NEEDS_IMPROVEMENT` (gaps identified) | `CRITICAL` (major paths untested)
 
+## Tool Constraints
+
+Bash is restricted to read-only diagnostic commands — for example `git diff`, `git log`, repository linters, and type checks such as `tsc --noEmit`. Do not use Bash to write or modify files, install packages, or make network calls. This agent reports findings and never mutates the working tree.
+
 ## Reporting
 
 Return your findings to the calling session as your final message. This agent runs as a single-return node; the calling session decides any follow-up. A multi-agent `team-lead` handoff topology is not wired in this configuration.
