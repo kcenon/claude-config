@@ -637,7 +637,6 @@ name: agent-name
 description: 에이전트의 역할
 model: sonnet
 tools: Read, Edit
-temperature: 0.3
 ---
 ```
 

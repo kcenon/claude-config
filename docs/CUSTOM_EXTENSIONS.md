@@ -214,6 +214,10 @@ The eight agent definitions exist in two layers — `project/.claude/agents/` an
 
 **CI enforcement**: `.github/workflows/validate-skills.yml` runs `scripts/check_agents.sh` (PowerShell twin: `scripts/check_agents.ps1`). It strips frontmatter and normalizes that single sentence, then fails (exit 2) if the agent **bodies** otherwise diverge — so a behavioral instruction edited in one layer but not the other cannot ship silently.
 
+**Advisory frontmatter (`applies_to`, `keywords`)**: every agent declares `applies_to` (a glob list) and `keywords`. These are **not** official Claude Code runtime path-triggers — the runtime delegates to a sub-agent only by its `description`. They are advisory inputs consumed by the `fleet-orchestrator` skill's Top-K routing score (`score = 2 * matched_applies_to_globs + 1 * matched_keywords`, see `global/skills/_internal/fleet-orchestrator/SKILL.md`). Opening a file that matches an `applies_to` glob does **not** auto-invoke the agent; keep delegation intent in `description`.
+
+**`structure-explorer` memory scope**: `structure-explorer` is intentionally the only agent with `memory: local` and no `initialPrompt` — it performs stateless, 1-shot, breadth-first exploration with no cross-call state to persist, so the project-memory bootstrap pattern used by the other seven agents does not apply.
+
 **Skill reference files are intentionally NOT guarded this way.** Beyond the four workflow references above, the `plugin/skills/*/reference/` tree is a curated *re-structuring* of `project/.claude/rules/` — content is split and recombined across files (e.g. `rules/api/observability.md` becomes `observability.md` + `logging.md`; `rules/coding/` standards fan out into `general.md`/`quality.md`/`concurrency.md`/`memory.md`). A per-file 1:1 drift check would false-positive on that reorganization, so the plugin reference bundle is maintained as an independent curated distribution.
 
 ### Version Declarations (VERSION_MAP SSOT)

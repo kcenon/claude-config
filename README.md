@@ -663,7 +663,6 @@ name: agent-name
 description: What the agent does
 model: sonnet
 tools: Read, Edit
-temperature: 0.3
 ---
 ```
 
