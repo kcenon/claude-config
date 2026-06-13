@@ -5,6 +5,7 @@ model: sonnet
 tools: Read, Write, Edit, Glob
 maxTurns: 30
 effort: high
+permissionMode: acceptEdits
 memory: project
 initialPrompt: "Check your memory for established documentation patterns and style conventions in this project."
 applies_to:

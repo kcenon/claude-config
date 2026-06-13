@@ -210,7 +210,7 @@ pwsh scripts/sync_references.ps1   # Windows
 
 **Type**: Repository-internal convention
 
-The eight agent definitions exist in two layers — `project/.claude/agents/` and the standalone `plugin/agents/` bundle. They are near-duplicates but **not** byte-identical by design: frontmatter differs per layer (the project copy carries `color:`; neither carries the non-canonical `temperature:` field), and the body genericizes exactly one repo-specific "language-specific rules" sentence in the plugin copy.
+The eight agent definitions exist in two layers — `project/.claude/agents/` and the standalone `plugin/agents/` bundle. They are near-duplicates but **not** byte-identical by design: frontmatter differs per layer (the project copy carries `color:`; neither carries the non-canonical `temperature:` field; `permissionMode: acceptEdits` is kept identical across both layers for the two write agents, documentation-writer and refactor-assistant), and the body genericizes exactly one repo-specific "language-specific rules" sentence in the plugin copy.
 
 **CI enforcement**: `.github/workflows/validate-skills.yml` runs `scripts/check_agents.sh` (PowerShell twin: `scripts/check_agents.ps1`). It strips frontmatter and normalizes that single sentence, then fails (exit 2) if the agent **bodies** otherwise diverge — so a behavioral instruction edited in one layer but not the other cannot ship silently.
 
