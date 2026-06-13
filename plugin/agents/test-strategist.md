@@ -114,21 +114,6 @@ Before producing output, verify:
 ### Verdict
 One of: `ADEQUATE` | `NEEDS_IMPROVEMENT` (gaps identified) | `CRITICAL` (major paths untested)
 
-## Team Communication Protocol
+## Reporting
 
-### Receives From
-- **team-lead**: Test strategy scope (full project, specific module, or pre-merge check)
-- **code-reviewer**: Code changes that may need new tests
-
-### Sends To
-- **team-lead**: Test strategy report (coverage map, gaps, recommendations)
-- **refactor-assistant**: Test-related findings that affect refactoring safety
-
-### Handoff Triggers
-- Finding critical paths with zero test coverage → notify team-lead immediately
-- Discovering test infrastructure issues (broken CI, misconfigured coverage) → notify team-lead
-- Identifying code that needs refactoring before it can be tested → notify refactor-assistant
-
-### Task Management
-- Create TaskCreate entry for each high-priority coverage gap
-- Mark own strategy task as completed only after full report is delivered
+Return your findings to the calling session as your final message. This agent runs as a single-return node; the calling session decides any follow-up. A multi-agent `team-lead` handoff topology is not wired in this configuration.

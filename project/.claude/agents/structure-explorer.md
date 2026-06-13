@@ -108,19 +108,6 @@ Report findings using this structure:
 4. Read key configuration files for project metadata
 5. Compile structure summary
 
-## Team Communication Protocol
+## Reporting
 
-### Receives From
-- **team-lead**: Exploration target (repository path, scope, depth preference)
-
-### Sends To
-- **team-lead**: Structure summary report (directory layout, file statistics, key files)
-- **codebase-analyzer**: Project structure map for architecture analysis
-
-### Handoff Triggers
-- Exploration complete → send structure map to codebase-analyzer for deeper analysis
-- Discovering unusually complex directory nesting (>5 levels) → note in report for team-lead
-
-### Task Management
-- Mark own exploration task as completed after structure summary is delivered
-- Do not create follow-up tasks (structure exploration is a one-shot operation)
+Return your findings to the calling session as your final message. This agent runs as a single-return node; the calling session decides any follow-up. A multi-agent `team-lead` handoff topology is not wired in this configuration.
