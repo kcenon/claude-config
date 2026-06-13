@@ -63,6 +63,39 @@ sed -i 's|^If .*language-specific rules.*read them before starting\.$|If any lan
 assert_exit 0 $rc "rules-path sentence variant -> exit 0"
 rm -rf "$sb"
 
+# Portable in-place replace: BSD sed (macOS) needs `-i ''` while GNU sed
+# (Linux/CI) rejects the empty arg, so use a temp file + mv that works on both.
+replace_in_file() {
+    local pattern="$1" file="$2" tmp
+    tmp="$(mktemp)"
+    sed "$pattern" "$file" > "$tmp" && mv "$tmp" "$file"
+}
+
+# 5. A `tools` frontmatter divergence in one layer is flagged.
+sb=$(mktemp -d); mk_sandbox "$sb"
+replace_in_file 's|^tools: Read, Grep, Glob, Bash$|tools: Read, Grep, Glob, Bash, Write|' \
+    "$sb/plugin/agents/qa-reviewer.md"
+( cd "$sb" && bash scripts/check_agents.sh >/dev/null 2>&1 ); rc=$?
+assert_exit 2 $rc "tools frontmatter drift -> exit 2"
+rm -rf "$sb"
+
+# 6. A `permissionMode` frontmatter divergence in one layer is flagged.
+sb=$(mktemp -d); mk_sandbox "$sb"
+replace_in_file 's|^permissionMode: acceptEdits$|permissionMode: bypassPermissions|' \
+    "$sb/project/.claude/agents/documentation-writer.md"
+( cd "$sb" && bash scripts/check_agents.sh >/dev/null 2>&1 ); rc=$?
+assert_exit 2 $rc "permissionMode frontmatter drift -> exit 2"
+rm -rf "$sb"
+
+# 7. An intended per-layer frontmatter field (color) is tolerated even when it
+#    differs — the guard only compares `tools` and `permissionMode`.
+sb=$(mktemp -d); mk_sandbox "$sb"
+replace_in_file 's|^color: .*$|color: magenta|' \
+    "$sb/project/.claude/agents/qa-reviewer.md"
+( cd "$sb" && bash scripts/check_agents.sh >/dev/null 2>&1 ); rc=$?
+assert_exit 0 $rc "color-only frontmatter diff -> exit 0"
+rm -rf "$sb"
+
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
 if [ ${#ERRORS[@]} -gt 0 ]; then

@@ -3,7 +3,9 @@
 # Drift guard for the 8 agent definitions duplicated across plugin/agents/
 # and project/.claude/agents/. See check_agents.sh for the full rationale:
 # frontmatter differs per layer and one repo-path sentence is genericized in
-# the plugin copy; the bodies must otherwise stay identical.
+# the plugin copy; the bodies must otherwise stay identical. In addition the
+# behavioral frontmatter fields `tools` and `permissionMode` must match across
+# layers (intended per-layer fields like `color` are exempt).
 # Exit: 0 = in sync, 2 = drift.
 
 $ErrorActionPreference = 'Stop'
@@ -39,6 +41,25 @@ function Get-NormalizedBody {
     return ($body -join "`n")
 }
 
+# Extract the value of a frontmatter key from the first '---' block. Returns
+# the empty string when the key is absent, so a key declared on only one layer
+# surfaces as a drift.
+function Get-FrontmatterField {
+    param([string]$Path, [string]$Key)
+    $dashes = 0
+    foreach ($line in (Get-Content -LiteralPath $Path -Encoding utf8)) {
+        if ($line -eq '---') {
+            $dashes++
+            if ($dashes -ge 2) { break }
+            continue
+        }
+        if ($dashes -eq 1 -and $line -match ('^' + [regex]::Escape($Key) + ':')) {
+            return ($line -replace ('^' + [regex]::Escape($Key) + ':\s*'), '').TrimEnd()
+        }
+    }
+    return ''
+}
+
 $drift = 0
 foreach ($a in $Agents) {
     $p = Join-Path $RootDir "plugin/agents/$a.md"
@@ -49,10 +70,21 @@ foreach ($a in $Agents) {
         Write-Host "FAIL: agent body drift: plugin/agents/$a.md vs project/.claude/agents/$a.md"
         $drift = 1
     }
+
+    # Behavioral frontmatter parity: layers may differ in declarative fields
+    # (color, model, ...) but must agree on what the agent can do.
+    foreach ($field in @('tools', 'permissionMode')) {
+        $pv = Get-FrontmatterField $p $field
+        $cv = Get-FrontmatterField $c $field
+        if ($pv -ne $cv) {
+            Write-Host "FAIL: frontmatter '$field' drift for $($a): plugin='$pv' project='$cv'"
+            $drift = 1
+        }
+    }
 }
 
 if ($drift -eq 0) {
-    Write-Host "check_agents: OK ($($Agents.Count) agent pairs in sync)"
+    Write-Host "check_agents: OK ($($Agents.Count) agent pairs: bodies + behavioral frontmatter in sync)"
     exit 0
 }
 
