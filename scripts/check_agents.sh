@@ -15,6 +15,14 @@
 # near-duplicate pair cannot silently diverge (e.g. a behavioral instruction
 # edited in one copy but not the other).
 #
+# In addition, the two BEHAVIORAL frontmatter fields `tools` and
+# `permissionMode` must match across layers: they change what a sub-agent is
+# allowed to do, so a per-layer divergence (such as the #729 permissionMode
+# drift) is a real defect, not an intended per-layer difference. Intended
+# per-layer fields (`color`, plus declarative ones like `model`/`maxTurns`/
+# `effort`/`memory`/`applies_to`/`keywords`/`initialPrompt`) are deliberately
+# NOT compared, so future intended per-layer diffs are not blocked.
+#
 # Reference drift is intentionally NOT guarded here: the plugin skill
 # reference tree is a curated RE-STRUCTURING of rules/ (content is split and
 # recombined across files, e.g. observability -> observability + logging), so
@@ -46,6 +54,24 @@ strip_and_norm() {
         | sed -E 's/^If .*language-specific rules.*read them before starting\.$/<RULES_PATH_NOTE>/'
 }
 
+# Extract the value of a frontmatter key (e.g. `tools`, `permissionMode`) from
+# the first '---' block of an agent file. Matches `^<key>:` only inside the
+# frontmatter, trims surrounding whitespace, and prints the empty string when
+# the key is absent (so a key declared on one layer but not the other surfaces
+# as a drift).
+frontmatter_field() {
+    awk -v key="$2" '
+        BEGIN { f = 0 }
+        /^---$/ { f++; if (f >= 2) exit; next }
+        f == 1 && $0 ~ "^" key ":" {
+            sub("^" key ":[ \t]*", "")
+            sub(/[ \t]+$/, "")
+            print
+            exit
+        }
+    ' "$1"
+}
+
 drift=0
 for a in "${AGENTS[@]}"; do
     p="$ROOT_DIR/plugin/agents/$a.md"
@@ -59,15 +85,27 @@ for a in "${AGENTS[@]}"; do
         diff <(strip_and_norm "$p") <(strip_and_norm "$c") 2>/dev/null | sed 's/^/    /' >&2 || true
         drift=1
     fi
+
+    # Behavioral frontmatter parity: the layers may differ in declarative
+    # fields (color, model, ...) but must agree on what the agent can do.
+    for field in tools permissionMode; do
+        pv="$(frontmatter_field "$p" "$field")"
+        cv="$(frontmatter_field "$c" "$field")"
+        if [ "$pv" != "$cv" ]; then
+            echo "FAIL: frontmatter '$field' drift for $a: plugin='$pv' project='$cv'" >&2
+            drift=1
+        fi
+    done
 done
 
 if [ "$drift" -eq 0 ]; then
-    echo "check_agents: OK (${#AGENTS[@]} agent pairs in sync)"
+    echo "check_agents: OK (${#AGENTS[@]} agent pairs: bodies + behavioral frontmatter in sync)"
     exit 0
 fi
 
 echo "" >&2
 echo "check_agents: drift detected between plugin/agents and project/.claude/agents." >&2
-echo "The body content must match (frontmatter and the single rules-path" >&2
-echo "sentence may differ by design). Reconcile the divergent lines above." >&2
+echo "The body content and the behavioral frontmatter fields ('tools',"  >&2
+echo "'permissionMode') must match. Other frontmatter (e.g. 'color') and the"  >&2
+echo "single rules-path sentence may differ by design. Reconcile the lines above." >&2
 exit 2
