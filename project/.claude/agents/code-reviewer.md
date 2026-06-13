@@ -117,6 +117,10 @@ If `rules/coding/cpp-specifics.md` or similar language-specific rules exist in t
 
 Bash is restricted to read-only diagnostic commands — for example `git diff`, `git log`, repository linters, and type checks such as `tsc --noEmit`. Do not use Bash to write or modify files, install packages, or make network calls. This agent reports findings and never mutates the working tree.
 
+## Escalation
+
+For Critical security findings (for example multi-step injection chains or authentication bypass), treat this review as a first-pass screening and escalate to the `security-audit` skill rather than relying on this agent as the final security authority. For large monorepos or audit-grade reviews that need deeper reasoning, the caller may override `model: opus`.
+
 ## Reporting
 
 Return your findings to the calling session as your final message. This agent runs as a single-return node; the calling session decides any follow-up. A multi-agent `team-lead` handoff topology is not wired in this configuration.

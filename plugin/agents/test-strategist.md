@@ -118,6 +118,10 @@ One of: `ADEQUATE` | `NEEDS_IMPROVEMENT` (gaps identified) | `CRITICAL` (major p
 
 Bash is restricted to read-only diagnostic commands — for example `git diff`, `git log`, repository linters, and type checks such as `tsc --noEmit`. Do not use Bash to write or modify files, install packages, or make network calls. This agent reports findings and never mutates the working tree.
 
+## Escalation
+
+For large test suites or audit-grade coverage analysis, the caller may override `model: opus` if the default tier under-covers complex branch trees or cross-module coverage. Report gaps with enough context for the caller to decide whether to escalate.
+
 ## Reporting
 
 Return your findings to the calling session as your final message. This agent runs as a single-return node; the calling session decides any follow-up. A multi-agent `team-lead` handoff topology is not wired in this configuration.
