@@ -115,6 +115,10 @@ Detect the primary language and apply matching analysis:
 
 If language-specific rules exist in the project's rules directory, read them before starting.
 
+## Escalation
+
+For large monorepos or deep structural reasoning — for example cyclic-dependency tracing across many modules — the caller may override `model: opus` if the default tier misses subtle relationships. Always report findings with confidence scores so the caller can decide whether to escalate.
+
 ## Reporting
 
 Return your findings to the calling session as your final message. This agent runs as a single-return node; the calling session decides any follow-up. A multi-agent `team-lead` handoff topology is not wired in this configuration.
