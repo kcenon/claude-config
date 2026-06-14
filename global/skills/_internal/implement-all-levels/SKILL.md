@@ -50,9 +50,11 @@ Auto-recommend based on tier count and complexity:
 | Per-tier complexity | Low (< 100 LOC each) | High (100+ LOC each) |
 | Cross-tier dependencies | Minimal | Significant |
 
-Use `AskUserQuestion` to present the choice:
+**Decisive signals → apply silently.** When the signals are unambiguous (all point the same direction — e.g. 2 low-complexity tiers with minimal cross-tier dependencies → solo, 3+ high-complexity tiers with significant dependencies → team), set `$EXEC_MODE` to the recommended mode WITHOUT asking and print a one-line notice, e.g. `[Mode: solo — 2 simple tiers; pass --team to override]` (or `[Mode: team — 3 complex tiers; pass --solo to override]`). The user can still override with the `--solo`/`--team` flags handled in 0-1.
 
-- **Question**: "Implement <feature> with N tiers. Which execution mode?"
+**Conflicting signals → ask.** Only when signals genuinely point in different directions (e.g. only 2 tiers but each is high-complexity with significant cross-tier dependencies) use `AskUserQuestion` to present the choice:
+
+- **Question**: "Implement <feature> with N tiers (mixed signals). Which execution mode?"
 - **Header**: "Mode"
 - **Options**:
   1. Recommended mode with "(Recommended)" suffix

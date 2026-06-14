@@ -1,7 +1,7 @@
 ---
 name: branch-cleanup
 description: Clean up merged and stale branches from local and remote repositories. Use when branch list is cluttered or after merging PRs.
-argument-hint: "[project-name] [--dry-run] [--include-remote]"
+argument-hint: "[project-name] [--execute] [--include-remote]"
 user-invocable: true
 disable-model-invocation: true
 context: fork
@@ -18,15 +18,15 @@ Clean up merged and stale branches from local and remote repositories.
 
 ```
 /branch-cleanup [<project-name>] [options]
-/branch-cleanup [--dry-run] [--include-remote] [--stale-days <days>]
+/branch-cleanup [--execute] [--include-remote] [--stale-days <days>]
 ```
 
 **Example**:
 ```
-/branch-cleanup                                    # Clean current repo, local only
-/branch-cleanup --dry-run                          # Preview what would be deleted
-/branch-cleanup hospital_erp_system                # Clean specific project
-/branch-cleanup --include-remote --stale-days 30  # Include remote, 30-day threshold
+/branch-cleanup                                    # Dry-run preview (default), local only
+/branch-cleanup --execute                          # Actually delete the previewed branches
+/branch-cleanup hospital_erp_system                # Preview specific project
+/branch-cleanup --execute --include-remote --stale-days 30  # Delete, include remote, 30-day threshold
 ```
 
 ## Arguments
@@ -37,9 +37,13 @@ Clean up merged and stale branches from local and remote repositories.
 
 | Option | Values | Default | Description |
 |--------|--------|---------|-------------|
-| `--dry-run` | flag | false | Preview branches without deleting |
+| `--execute` | flag | false | Actually delete branches. Without it, the command is a read-only dry-run preview. |
 | `--include-remote` | flag | false | Also clean remote tracking branches |
 | `--stale-days` | number | 90 | Days since last commit to consider stale |
+
+By default (no `--execute`) the command performs a **read-only dry-run preview** and deletes nothing.
+Confirmation happens at invocation time by adding `--execute` — there is no interactive mid-run prompt,
+so the command is scriptable.
 
 ## Protected Branches
 
@@ -119,16 +123,15 @@ Present categorized results:
 - release/v2.0
 ```
 
-### 5. Confirm Deletion
+### 5. Gate Deletion on --execute
 
-If `--dry-run` is NOT specified:
+The default run is a read-only dry-run preview. Stop here unless `--execute` was passed —
+the user confirms by re-invoking with the flag, so there is no interactive prompt.
 
 ```bash
-# Prompt for confirmation
-echo "Delete the above branches? (y/N)"
-read -r CONFIRM
-if [[ "$CONFIRM" != "y" && "$CONFIRM" != "Y" ]]; then
-    echo "Aborted."
+# Without --execute, this is a preview only: report and exit without deleting.
+if [[ "$EXECUTE" != "true" ]]; then
+    echo "Dry-run preview only. Re-run with --execute to delete the above branches."
     exit 0
 fi
 ```
@@ -180,7 +183,7 @@ See [_policy.md](../_policy.md) for common rules.
 |------|------|
 | Protected branches | Never delete main, master, develop, release/*, hotfix/* |
 | Current branch | Never delete the currently checked-out branch |
-| Confirmation | Always require confirmation unless --dry-run |
+| Confirmation | Default run is a read-only dry-run preview; deletion requires the explicit --execute flag |
 | Remote deletion | Only with explicit --include-remote flag |
 
 ## Output

@@ -1,7 +1,7 @@
 ---
 name: issue-work
 description: Automate GitHub issue workflow - select issue, create branch, implement, build, test, and create PR.
-argument-hint: "[project-name] [issue-number] [--solo|--team] [--limit N] [--dry-run] [--inline]"
+argument-hint: "[project-name] [issue-number] [--solo|--team] [--limit N] [--dry-run] [--inline] [--wait-on-timeout]"
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: "Bash(gh *)"
@@ -89,6 +89,8 @@ Automate GitHub issue workflow with project name as argument.
 - `[--priority <level>]`: Filter batch to this priority level and above
   - Levels: `critical`, `high`, `medium`, `low`, `all` (default: `all`)
 
+- `[--wait-on-timeout]`: On the CI-polling timeout (Step 9), ask the user whether to keep waiting instead of taking the default action. **Default (omitted)**: when the 10-minute polling limit is reached with runs still pending, leave the PR open and print a resume command (`pr-work <PR_NUM>`) rather than blocking on a prompt. Pass this flag only when you want the interactive "wait longer?" question back.
+
 ## Argument Parsing
 
 Parse `$ARGUMENTS` and extract project, organization, issue number, and batch flags:
@@ -96,7 +98,7 @@ Parse `$ARGUMENTS` and extract project, organization, issue number, and batch fl
 ```bash
 ARGS="$ARGUMENTS"
 ISSUE_NUMBER="" PROJECT="" ORG="" EXEC_MODE=""
-BATCH_MODE="single"  BATCH_LIMIT=5  DRY_RUN=false  PRIORITY_FILTER="all"  FORCE_LARGE=false  NO_CONFIRM=false  INLINE_MODE=false  AUTO_RESTART=false  NO_RESTART=false
+BATCH_MODE="single"  BATCH_LIMIT=5  DRY_RUN=false  PRIORITY_FILTER="all"  FORCE_LARGE=false  NO_CONFIRM=false  INLINE_MODE=false  AUTO_RESTART=false  NO_RESTART=false  WAIT_ON_TIMEOUT=false
 MAX_LIMIT=10
 CONFIRM_INTERVAL=5
 
@@ -109,6 +111,7 @@ if [[ "$ARGS" == *"--no-confirm"* ]]; then NO_CONFIRM=true; ARGS=$(echo "$ARGS" 
 if [[ "$ARGS" == *"--no-restart"* ]]; then NO_RESTART=true; ARGS=$(echo "$ARGS" | sed 's/--no-restart//g'); fi
 if [[ "$ARGS" == *"--auto-restart"* ]]; then AUTO_RESTART=true; ARGS=$(echo "$ARGS" | sed 's/--auto-restart//g'); fi
 if [[ "$ARGS" == *"--inline"* ]]; then INLINE_MODE=true; ARGS=$(echo "$ARGS" | sed 's/--inline//g'); fi
+if [[ "$ARGS" == *"--wait-on-timeout"* ]]; then WAIT_ON_TIMEOUT=true; ARGS=$(echo "$ARGS" | sed 's/--wait-on-timeout//g'); fi
 if [[ "$ARGS" =~ --limit[[:space:]]+([0-9]+) ]]; then BATCH_LIMIT="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--limit[[:space:]]+[0-9]+//g'); fi
 if [[ "$ARGS" =~ --priority[[:space:]]+(critical|high|medium|low|all) ]]; then PRIORITY_FILTER="${BASH_REMATCH[1]}"; ARGS=$(echo "$ARGS" | sed -E 's/--priority[[:space:]]+\w+//g'); fi
 
@@ -211,9 +214,11 @@ Auto-recommend based on issue size:
 | Acceptance criteria | < 3 items | 4+ items |
 | Subtask references | None | "Part of", checklist items |
 
-Use `AskUserQuestion` to present the choice:
+**Decisive signals → apply silently.** When the signals are unambiguous (all point the same direction — e.g. `size/XS`/`size/S` → solo, `size/L`/`size/XL` → team), set `$EXEC_MODE` to the recommended mode WITHOUT asking and print a one-line notice, e.g. `[Mode: solo — XS issue; pass --team to override]` (or `[Mode: team — L issue; pass --solo to override]`). The user can still override with the `--solo`/`--team` flags handled in 0-1.
 
-- **Question**: "Issue #$ISSUE_NUMBER — <title> (<estimated-size>). Which execution mode?"
+**Conflicting signals → ask.** Only when signals genuinely point in different directions (e.g. `size/S` label but 4+ acceptance criteria and "Part of" references) use `AskUserQuestion` to present the choice:
+
+- **Question**: "Issue #$ISSUE_NUMBER — <title> (<estimated-size>, mixed signals). Which execution mode?"
 - **Header**: "Mode"
 - **Options**:
   1. Recommended mode with "(Recommended)" suffix
@@ -462,8 +467,19 @@ A run that is `in_progress` or `queued` is NOT a passing run — wait for it.
 
 **Timeout**: If 10-minute polling limit is reached and any run is still
 `in_progress` or `queued`, stop polling, report the current status table
-to the user, and **do NOT merge**. Ask the user whether to wait longer
-or leave the PR open for manual merge.
+to the user, and **do NOT merge**.
+
+**Default** (no `--wait-on-timeout`): leave the PR open and print a resume
+command so CI can finish unattended:
+
+```
+[CI still running after 10 min — leaving PR open. Resume with: pr-work $PR_NUMBER]
+```
+
+Do not block on a prompt. Only when `--wait-on-timeout` was passed, ask the
+user whether to wait longer or leave the PR open for manual merge. This
+mirrors the ci-fix timeout behavior of defaulting to a resumable hand-off
+rather than an interactive stall.
 
 **Do NOT** use `gh run watch` — it blocks the entire session.
 

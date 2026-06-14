@@ -3,8 +3,65 @@
 # Claude Configuration Auto-Installer
 # ====================================
 # 백업된 CLAUDE.md 설정을 새 시스템에 자동으로 설치하는 스크립트
+#
+# Usage:
+#   scripts/install.sh                        # interactive (default)
+#   scripts/install.sh --yes                  # non-interactive, accept all defaults
+#   scripts/install.sh -y                     # alias for --yes
+#   scripts/install.sh --type 3               # pre-select install type (1-5)
+#   scripts/install.sh --type 1 --yes         # combined
+#   scripts/install.sh --uninstall-memory-sync
+#
+# Non-interactive environment overrides (combined with or without --yes):
+#   INSTALL_TYPE        1-5   install type selection
+#   AGENT_LANGUAGE      english | korean
+#   CONTENT_LANGUAGE    english | exclusive_bilingual | korean_plus_english | any
+#   PROJECT_DIR         absolute path to project directory
+#   INSTALL_NPM         y | n  (install ccstatusline / claude-limitline)
+#
+# When --yes is given, prompts not covered by env vars fall back to the same
+# defaults that the interactive prompts show (INSTALL_TYPE=3, AGENT_LANGUAGE
+# default=korean, CONTENT_LANGUAGE default=english, PROJECT_DIR=pwd,
+# INSTALL_NPM=y, CREATE_LOCAL=y).
 
 set -euo pipefail  # 에러, 미정의 변수, 파이프 실패 시 스크립트 중단
+
+# ── Argument parsing (mirrors hooks/install-hooks.sh FORCE_MODE pattern) ──────
+FORCE_MODE=0
+_PENDING_TYPE=""
+_arg_prev=""
+for _arg in "$@"; do
+    if [ "$_arg_prev" = "--type" ]; then
+        _PENDING_TYPE="$_arg"
+        _arg_prev=""
+        continue
+    fi
+    case "$_arg" in
+        --yes|-y)
+            FORCE_MODE=1
+            ;;
+        --type)
+            # value is the next argument; handled via _arg_prev
+            ;;
+        --uninstall-memory-sync)
+            # handled later in the script; pass through
+            ;;
+        -h|--help)
+            sed -n '3,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+            exit 0
+            ;;
+        *)
+            echo "install.sh: unknown argument '$_arg'" >&2
+            echo "Run with --help for usage." >&2
+            exit 2
+            ;;
+    esac
+    _arg_prev="$_arg"
+done
+# Apply --type value if provided
+[ -n "$_PENDING_TYPE" ] && INSTALL_TYPE="${INSTALL_TYPE:-$_PENDING_TYPE}"
+unset _arg _arg_prev _PENDING_TYPE
+# ──────────────────────────────────────────────────────────────────────────────
 
 # 색상 정의
 RED='\033[0;31m'
@@ -98,8 +155,12 @@ ensure_claude_cli() {
     echo "  미설치 상태에서는 일부 기능이 정상 동작하지 않습니다."
     echo ""
 
-    read -p "Claude Code CLI를 지금 설치하시겠습니까? (y/n) [기본값: y]: " INSTALL_CLAUDE
-    INSTALL_CLAUDE=${INSTALL_CLAUDE:-y}
+    if [ "${FORCE_MODE:-0}" = "1" ]; then
+        INSTALL_CLAUDE="y"
+    else
+        read -p "Claude Code CLI를 지금 설치하시겠습니까? (y/n) [기본값: y]: " INSTALL_CLAUDE
+        INSTALL_CLAUDE=${INSTALL_CLAUDE:-y}
+    fi
 
     if [ "$INSTALL_CLAUDE" != "y" ]; then
         warning "Claude Code CLI 설치 건너뜀. 추후 수동 설치:"
@@ -258,8 +319,12 @@ install_enterprise() {
         echo ""
         echo -e "${YELLOW}Recommendation: Customize enterprise/CLAUDE.md first, then re-run.${NC}"
         echo ""
-        read -p "Deploy uncustomized template anyway? (y/n) [default: n]: " DEPLOY_TEMPLATE
-        DEPLOY_TEMPLATE=${DEPLOY_TEMPLATE:-n}
+        if [ "${FORCE_MODE:-0}" = "1" ]; then
+            DEPLOY_TEMPLATE="n"
+        else
+            read -p "Deploy uncustomized template anyway? (y/n) [default: n]: " DEPLOY_TEMPLATE
+            DEPLOY_TEMPLATE=${DEPLOY_TEMPLATE:-n}
+        fi
         if [ "$DEPLOY_TEMPLATE" != "y" ]; then
             info "Enterprise installation skipped. Customize enterprise/CLAUDE.md first."
             return 0
@@ -480,10 +545,15 @@ uninstall_memory_sync() {
 # Early exit path for --uninstall-memory-sync (issue #527).
 # Honored before the interactive install prompts so users can clean up
 # the scheduler without re-running the full installer.
-if [ "${1:-}" = "--uninstall-memory-sync" ]; then
+_check_uninstall() {
+    for _a in "$@"; do [ "$_a" = "--uninstall-memory-sync" ] && return 0; done
+    return 1
+}
+if _check_uninstall "$@"; then
     uninstall_memory_sync
     exit 0
 fi
+unset -f _check_uninstall
 
 # 의존성 확인
 check_dependencies
@@ -498,8 +568,16 @@ echo "  3) 둘 다 설치 (권장)"
 echo "  4) Enterprise 설정만 설치 (관리자 권한 필요)"
 echo "  5) 전체 설치 (Enterprise + Global + Project)"
 echo ""
-read -p "선택 (1-5) [기본값: 3]: " INSTALL_TYPE
-INSTALL_TYPE=${INSTALL_TYPE:-3}
+# Non-interactive guard: INSTALL_TYPE may be pre-set via --type N or env var.
+# FORCE_MODE=1 (--yes/-y) applies the default (3) when neither is set.
+if [ -z "${INSTALL_TYPE:-}" ]; then
+    if [ "$FORCE_MODE" = "1" ]; then
+        INSTALL_TYPE="3"
+    else
+        read -p "선택 (1-5) [기본값: 3]: " INSTALL_TYPE
+        INSTALL_TYPE=${INSTALL_TYPE:-3}
+    fi
+fi
 
 # Language selection prompts. Single source of truth in scripts/lib/install-prompts.sh
 # (mirrored by scripts/lib/InstallPrompts.psm1 for PowerShell). The simplified UI
@@ -530,8 +608,12 @@ if [ "$CONTENT_LANGUAGE" != "english" ]; then
         warning "  Enterprise CLAUDE.md가 영어 강제를 명시하지만, 선택한 정책은 '$CONTENT_LANGUAGE' 입니다."
         warning "  Enterprise 경로는 최상위 우선순위로 로드되므로 이 선택은 enterprise 정책 위반이 될 수 있습니다."
         echo ""
-        read -p "그래도 '$CONTENT_LANGUAGE' 로 계속하시겠습니까? (y/n) [기본값: n]: " OVERRIDE_ENTERPRISE
-        OVERRIDE_ENTERPRISE=${OVERRIDE_ENTERPRISE:-n}
+        if [ "$FORCE_MODE" = "1" ]; then
+            OVERRIDE_ENTERPRISE="n"
+        else
+            read -p "그래도 '$CONTENT_LANGUAGE' 로 계속하시겠습니까? (y/n) [기본값: n]: " OVERRIDE_ENTERPRISE
+            OVERRIDE_ENTERPRISE=${OVERRIDE_ENTERPRISE:-n}
+        fi
         if [ "$OVERRIDE_ENTERPRISE" != "y" ]; then
             info "english로 재설정합니다."
             CONTENT_LANGUAGE="english"
@@ -575,6 +657,39 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
             fi
         fi
     done
+
+    # Git identity auto-fill (issue #748).
+    # When git config --global user.name and user.email are both present,
+    # pre-fill ~/.claude/git-identity.md with those values so non-interactive
+    # installs produce a usable file without manual editing.
+    # Idempotent: only fills placeholder lines (YOUR NAME / YOUR EMAIL pattern)
+    # and only when the file exists — never overwrites a user-customized file.
+    _git_identity_target="$HOME/.claude/git-identity.md"
+    if [ -f "$_git_identity_target" ]; then
+        _git_name="$(git config --global user.name 2>/dev/null || true)"
+        _git_email="$(git config --global user.email 2>/dev/null || true)"
+        if [ -n "$_git_name" ] && [ -n "$_git_email" ]; then
+            # Only patch lines that still contain placeholder tokens.
+            # The heuristic: lines with "YOUR NAME" or "YOUR EMAIL" (case-insensitive)
+            # are treated as unfilled placeholders; lines with actual values are left alone.
+            if grep -qi "YOUR NAME\|YOUR EMAIL\|<your" "$_git_identity_target" 2>/dev/null; then
+                sed -i.bak \
+                    -e "s/YOUR NAME/$_git_name/g" \
+                    -e "s/YOUR EMAIL/$_git_email/g" \
+                    -e "s/<your[^>]*name[^>]*>/$_git_name/gi" \
+                    -e "s/<your[^>]*email[^>]*>/$_git_email/gi" \
+                    "$_git_identity_target" 2>/dev/null && \
+                    rm -f "$_git_identity_target.bak" && \
+                    success "git-identity.md: git global config로 자동 채우기 완료 (${_git_name} <${_git_email}>)" || \
+                    mv "$_git_identity_target.bak" "$_git_identity_target" 2>/dev/null || true
+            else
+                info "git-identity.md: 이미 사용자 정의 값 유지"
+            fi
+        else
+            warning "git config --global user.name / user.email 미설정 — git-identity.md를 수동으로 편집하세요"
+        fi
+    fi
+    unset _git_identity_target _git_name _git_email
 
     # conversation-language.md 템플릿 렌더링
     # AGENT_DISPLAY_LANG is populated by prompt_agent_language() in
@@ -770,8 +885,15 @@ PY
     # npm 패키지 설치 (statusline 의존성)
     echo ""
     if command -v npm &> /dev/null; then
-        read -p "Statusline npm 패키지를 설치하시겠습니까? (ccstatusline, claude-limitline) (y/n) [기본값: y]: " INSTALL_NPM
-        INSTALL_NPM=${INSTALL_NPM:-y}
+        # Non-interactive guard: INSTALL_NPM may be pre-set via env var or --yes.
+        if [ -z "${INSTALL_NPM:-}" ]; then
+            if [ "$FORCE_MODE" = "1" ]; then
+                INSTALL_NPM="y"
+            else
+                read -p "Statusline npm 패키지를 설치하시겠습니까? (ccstatusline, claude-limitline) (y/n) [기본값: y]: " INSTALL_NPM
+                INSTALL_NPM=${INSTALL_NPM:-y}
+            fi
+        fi
         if [ "$INSTALL_NPM" = "y" ]; then
             info "npm 패키지 설치 중..."
             if npm install -g ccstatusline claude-limitline 2>/dev/null; then
@@ -816,8 +938,15 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
 
     # 설치 디렉토리 확인
     DEFAULT_PROJECT_DIR="$(pwd)"
-    read -p "프로젝트 디렉토리 경로 [기본값: $DEFAULT_PROJECT_DIR]: " PROJECT_DIR
-    PROJECT_DIR=${PROJECT_DIR:-$DEFAULT_PROJECT_DIR}
+    # Non-interactive guard: PROJECT_DIR may be pre-set via env var or --yes.
+    if [ -z "${PROJECT_DIR:-}" ]; then
+        if [ "$FORCE_MODE" = "1" ]; then
+            PROJECT_DIR="$DEFAULT_PROJECT_DIR"
+        else
+            read -p "프로젝트 디렉토리 경로 [기본값: $DEFAULT_PROJECT_DIR]: " PROJECT_DIR
+            PROJECT_DIR=${PROJECT_DIR:-$DEFAULT_PROJECT_DIR}
+        fi
+    fi
 
     if [ ! -d "$PROJECT_DIR" ]; then
         error "디렉토리가 존재하지 않습니다: $PROJECT_DIR"
@@ -878,8 +1007,15 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
 
     # CLAUDE.local.md 생성 (개인 설정용)
     echo ""
-    read -p "개인용 CLAUDE.local.md를 생성하시겠습니까? (y/n) [기본값: y]: " CREATE_LOCAL
-    CREATE_LOCAL=${CREATE_LOCAL:-y}
+    # Non-interactive guard: --yes accepts default (y).
+    if [ -z "${CREATE_LOCAL:-}" ]; then
+        if [ "$FORCE_MODE" = "1" ]; then
+            CREATE_LOCAL="y"
+        else
+            read -p "개인용 CLAUDE.local.md를 생성하시겠습니까? (y/n) [기본값: y]: " CREATE_LOCAL
+            CREATE_LOCAL=${CREATE_LOCAL:-y}
+        fi
+    fi
     if [ "$CREATE_LOCAL" = "y" ]; then
         create_local_claude "$PROJECT_DIR"
     fi

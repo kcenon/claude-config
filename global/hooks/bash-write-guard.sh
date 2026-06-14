@@ -384,10 +384,21 @@ inspect_write_subcommand() {
             done
             ;;
         awk|gawk|mawk)
-            # awk script bodies routinely write via `print > FILE`. Any
-            # awk invocation that reaches this point is treated as
-            # uninspectable; whitelist with `--whitelist-awk` is a future
-            # extension (not in this PR).
+            # awk script bodies can write via `print > FILE`, `print >> FILE`,
+            # or `print | "cmd"` — and the target may be a bare word or a
+            # variable (`print > f`), which leaves the shell-level
+            # $redirect_target empty and would slip past a quote-anchored regex
+            # (even reaching sensitive files like `/etc/passwd`). So allow ONLY
+            # when the invocation has NO write target whatsoever: no shell-level
+            # `>`/`>>` redirect (reuse $redirect_target) AND the awk program text
+            # contains no `>` or `|` output operator at all. This conservatively
+            # over-denies comparison/field-separator awk (`$1>5`, `-F'|'`) — the
+            # same as the historical deny-all behavior — but never lets a write
+            # through. Read-only field extraction / aggregation still passes.
+            if [ -z "$redirect_target" ] \
+                && ! printf '%s' "$sub" | grep -qE '[>|]'; then
+                return 0
+            fi
             echo "Uninspectable file mutation pattern (awk script may write via redirection); use Edit/Write tool instead"
             return 1
             ;;

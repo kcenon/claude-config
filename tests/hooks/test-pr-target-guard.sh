@@ -121,6 +121,31 @@ assert_with_branch allow master '{"tool_input":{"command":"gh pr create --head d
 assert_with_branch allow trunk  '{"tool_input":{"command":"gh pr create --title test"}}' "non-main/master default (trunk) → allow"
 
 echo ""
+echo "[Default-branch cache reuse (#747)]"
+# Seed the per-repo cache and prove the cached value is used WITHOUT any gh
+# call: a stripped PATH (no gh, no git) means an uncached run could not
+# resolve and would fail open (allow). A deny therefore proves the cache hit.
+CACHE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/prtg-cache.XXXXXX" 2>/dev/null) || CACHE_DIR="${TMPDIR:-/tmp}/prtg-cache.$$"
+trap 'rm -rf "$CACHE_DIR"' EXIT
+# Slug must match repo_cache_slug(): non-alnum/._- chars become '_'.
+SLUG="org_cached-repo"
+printf 'main\n' > "$CACHE_DIR/.pr-target-guard-default-${SLUG}"
+assert_cache() {
+    local expect="$1" input="$2" label="$3"
+    local result
+    result=$(echo "$input" | TMPDIR="$CACHE_DIR" PATH="/usr/bin:/bin" bash "$HOOK" 2>/dev/null)
+    if echo "$result" | grep -q "\"$expect\""; then
+        ((PASS++)); echo "  PASS: $label"
+    else
+        ((FAIL++)); ERRORS+=("FAIL: $label — expected $expect, got: $result"); echo "  FAIL: $label"
+    fi
+}
+assert_cache deny '{"tool_input":{"command":"gh pr create --repo org/cached-repo --head fix/x --title test"}}' "cached main-default + fix/x → deny (no gh call)"
+assert_cache allow '{"tool_input":{"command":"gh pr create --repo org/cached-repo --head develop --title release"}}' "cached main-default + develop → allow"
+# A repo with no cache entry and no gh/git available must still fail open.
+assert_cache allow '{"tool_input":{"command":"gh pr create --repo org/uncached-repo --head fix/x --title test"}}' "uncached repo, no gh → allow (fail-open preserved)"
+
+echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
 if [ ${#ERRORS[@]} -gt 0 ]; then
     echo ""

@@ -1,7 +1,7 @@
 ---
 name: sonar-fix
 description: Parse sonarcloud[bot] PR comments, classify findings, codify whitelisted auto-fixes, escalate the rest.
-argument-hint: "<pr-number> [--dry-run]"
+argument-hint: "[pr-number] [--dry-run]"
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: "Bash(gh *)"
@@ -17,6 +17,23 @@ iso_class: none
 ---
 
 # sonar-fix
+
+## Arguments
+
+| Argument | Purpose |
+|----------|---------|
+| `[pr-number]` | PR to process. If omitted, auto-detect the current branch's open PR (mirrors `ci-fix`). |
+| `--dry-run` | Classify and print the proposed actions only; do not post comments or write files. |
+
+When `pr-number` is omitted, resolve it from the current branch's open PR
+before classifying:
+
+```bash
+PR_NUMBER=$(gh pr list --head "$(git branch --show-current)" --json number -q '.[0].number')
+```
+
+If no open PR is found for the current branch, halt and ask the user to
+pass an explicit `pr-number`.
 
 ## Overview
 

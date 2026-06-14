@@ -97,6 +97,21 @@ assert_deny 'node -e "require(\"fs\").writeFileSync(\"f\",\"y\")"' "node -e"
 assert_deny 'perl -e "open(F,\">f\");print F \"y\""' "perl -e"
 assert_deny 'awk "BEGIN{print \"x\" > \"/tmp/y\"}"' "awk script body"
 assert_deny 'gawk "BEGIN{print > \"f\"}"' "gawk script body"
+# Regression (#747 review): bare-word / bare-variable / append / pipe redirects
+# leave the shell-level redirect target empty and MUST still deny — including
+# when the target resolves to a sensitive file.
+assert_deny "awk 'BEGIN{print \"y\" > f}'" "awk bare-variable redirect"
+assert_deny "awk 'BEGIN{f=\"/etc/passwd\"; print \"x\" > f}'" "awk bare-var to sensitive file"
+assert_deny "awk 'BEGIN{print \"y\" > out}'" "awk bare-word redirect"
+assert_deny "awk 'BEGIN{print \"y\" >> f}'" "awk append redirect"
+assert_deny "awk 'BEGIN{printf \"y\" > f}'" "awk printf redirect"
+assert_deny "awk 'BEGIN{print \"y\" | \"cat>/tmp/x\"}'" "awk pipe-to-command"
+
+echo ""
+echo "[allow — read-only awk (no write target)]"
+assert_allow "awk '{print \$1}' file.txt" "awk print column (no redirect)"
+assert_allow "awk '/TODO/{c++} END{print c}' src.txt" "awk count pattern (no redirect)"
+assert_allow "ps aux | awk '{print \$2}'" "awk in pipe (no redirect)"
 
 echo ""
 echo "[deny — wrapper bypass for sensitive write]"

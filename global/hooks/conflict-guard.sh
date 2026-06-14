@@ -76,9 +76,18 @@ fi
 # Best-effort subcommand extraction; pipefail-safe (grep no-match returns 1).
 SUBCMD=$(echo "$CMD" | grep -oE 'git[[:space:]]+(merge|rebase|cherry-pick|pull)' | awk '{print $2}' || true)
 
+# Only tracked-file modifications risk data loss here. Untracked files
+# (porcelain status `??`) are never silently overwritten by merge/rebase/
+# cherry-pick/pull — git refuses and aborts if an incoming change would clobber
+# one — so excluding them removes a false-positive block (e.g. `git pull` in a
+# tree that merely has new, unadded scratch files). The conflict-state checks
+# above stay strict regardless.
 DIRTY=$(git status --porcelain 2>/dev/null) || allow_response
 if [ -n "$DIRTY" ]; then
-    deny_response "Uncommitted changes detected. Commit or stash changes before running git $SUBCMD to prevent data loss."
+    DIRTY_TRACKED=$(printf '%s\n' "$DIRTY" | grep -v '^??' || true)
+    if [ -n "$DIRTY_TRACKED" ]; then
+        deny_response "Uncommitted changes detected. Commit or stash changes before running git $SUBCMD to prevent data loss."
+    fi
 fi
 
 # All checks passed
