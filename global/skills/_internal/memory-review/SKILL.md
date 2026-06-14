@@ -130,15 +130,10 @@ Action: (y) verify  (n) quarantine  (e) edit  (s) skip  (q) quit
 
 Wait for the user's keystroke.
 
-#### Pagination
-
 Per epic R4 mitigation: only flagged items surface here. Clean items are not
-shown — the audit report already excluded them. After every 5 entries, pause
-and ask:
-
-```
-Reviewed 5 entries. (c) continue  (q) quit
-```
+shown — the audit report already excluded them. The per-entry `(q) quit` action
+already lets the user stop at any point, so no separate pagination gate is needed;
+use `--limit N` to bound the entry count up front.
 
 ### 4. Apply the user's choice
 
@@ -244,7 +239,7 @@ manually when ready.`
 ## Output formatting
 
 - Each entry: filename, description quote, key audit metadata, then choices
-- Pagination: every 5 entries pause and ask "continue / quit"
+- Stopping: per-entry `(q) quit` ends the walk; bound the count up front with `--limit N`
 - Quote-block memory excerpts with `>` so the user sees the original intent
 - Use relative paths under `~/.claude/memory-shared/` for readability
 

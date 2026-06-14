@@ -29,6 +29,60 @@ allow_response() {
     exit 0
 }
 
+# --- Default-branch resolution cache (detection only; not a policy change) ---
+# The protection decision below is unchanged: a resolved BASE of main/master
+# still blocks non-develop/non-release heads, and an unresolved BASE still
+# fails open. This block only makes resolving the default branch cheaper by
+# (a) preferring a local `git symbolic-ref` over a network round-trip and
+# (b) caching the resolved value per repo for a short TTL within the session.
+
+# Seconds a cached default-branch value stays fresh. Short by design — a
+# stale value only ever affects *detection cost*, never the policy outcome,
+# but we keep it tight so a genuinely changed default is picked up quickly.
+PR_TARGET_GUARD_CACHE_TTL_SEC="${PR_TARGET_GUARD_CACHE_TTL_SEC:-300}"
+
+# repo_cache_slug <repo-or-empty> -> filesystem-safe slug on stdout.
+repo_cache_slug() {
+    local repo="$1"
+    if [ -z "$repo" ]; then
+        printf '%s' "__local__"
+        return 0
+    fi
+    # Replace every non-alphanumeric char so the slug is a single path token.
+    printf '%s' "$repo" | tr -c 'A-Za-z0-9._-' '_'
+}
+
+# cache_path <slug> -> cache file path on stdout.
+cache_path() {
+    local dir="${TMPDIR:-/tmp}"
+    printf '%s/.pr-target-guard-default-%s' "${dir%/}" "$1"
+}
+
+# cache_get <slug> -> cached branch on stdout (exit 0) if file exists and is
+# within TTL; else exit 1.
+cache_get() {
+    local file
+    file=$(cache_path "$1")
+    [ -f "$file" ] || return 1
+    local now mtime age
+    now=$(date +%s 2>/dev/null) || return 1
+    # Portable mtime: GNU `stat -c`, then BSD `stat -f`.
+    mtime=$(stat -c %Y "$file" 2>/dev/null || stat -f %m "$file" 2>/dev/null) || return 1
+    [ -n "$mtime" ] || return 1
+    age=$((now - mtime))
+    if [ "$age" -lt 0 ] || [ "$age" -gt "$PR_TARGET_GUARD_CACHE_TTL_SEC" ]; then
+        return 1
+    fi
+    cat "$file" 2>/dev/null
+}
+
+# cache_put <slug> <branch> — best-effort; failure to write is non-fatal.
+cache_put() {
+    local file
+    file=$(cache_path "$1")
+    printf '%s\n' "$2" > "$file" 2>/dev/null || true
+}
+
 # Read input from stdin (Claude Code passes JSON via stdin)
 INPUT=$(cat)
 
@@ -75,10 +129,36 @@ if [ -z "$BASE" ]; then
         if [ -z "$REPO" ]; then
             REPO=$(echo "$CMD" | sed -nE "s/.*-R[[:space:]]+[\"']?([a-zA-Z0-9._/-]+).*/\1/p" | head -1)
         fi
-        if [ -n "$REPO" ]; then
-            BASE=$(gh api "repos/$REPO" --jq .default_branch 2>/dev/null || true)
-        else
-            BASE=$(gh api 'repos/{owner}/{repo}' --jq .default_branch 2>/dev/null || true)
+
+        SLUG=$(repo_cache_slug "$REPO")
+
+        # 1. Session cache hit — cheapest, avoids both git and gh.
+        BASE=$(cache_get "$SLUG" || true)
+
+        # 2. Local heuristic — derive the default branch from the tracked
+        #    origin/HEAD symref. Only meaningful for the local-repo case
+        #    (no explicit --repo/-R), since a remote repo's default cannot be
+        #    inferred from the local checkout. Strips the "origin/" prefix.
+        if [ -z "$BASE" ] && [ -z "$REPO" ] && command -v git >/dev/null 2>&1; then
+            local_head=$(git symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null || true)
+            if [ -n "$local_head" ]; then
+                BASE="${local_head#refs/remotes/origin/}"
+            fi
+        fi
+
+        # 3. Network fallback — query GitHub only when the cheaper paths
+        #    yielded nothing.
+        if [ -z "$BASE" ]; then
+            if [ -n "$REPO" ]; then
+                BASE=$(gh api "repos/$REPO" --jq .default_branch 2>/dev/null || true)
+            else
+                BASE=$(gh api 'repos/{owner}/{repo}' --jq .default_branch 2>/dev/null || true)
+            fi
+        fi
+
+        # Cache any successful resolution for reuse within the TTL window.
+        if [ -n "$BASE" ]; then
+            cache_put "$SLUG" "$BASE"
         fi
     fi
     # Graceful degradation: preserve historical allow if we cannot resolve.

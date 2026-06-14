@@ -58,7 +58,19 @@ _prompts_warn() {
 # Sets:
 #   AGENT_LANGUAGE      english | korean
 #   AGENT_DISPLAY_LANG  English | Korean
+#
+# Non-interactive override: set AGENT_LANGUAGE before calling to skip the
+# prompt. AGENT_DISPLAY_LANG is derived automatically when AGENT_LANGUAGE
+# is already set, so callers can rely on both being populated afterwards.
 prompt_agent_language() {
+    if [ -n "${AGENT_LANGUAGE:-}" ]; then
+        case "$AGENT_LANGUAGE" in
+            english) AGENT_DISPLAY_LANG="English" ;;
+            korean)  AGENT_DISPLAY_LANG="Korean"  ;;
+            *)       AGENT_DISPLAY_LANG="Korean"  ;;
+        esac
+        return 0
+    fi
     echo ""
     _prompts_info "Select Agent Conversation Language:"
     echo "  1) English"
@@ -87,7 +99,12 @@ prompt_agent_language() {
 # prompt_content_language
 # Sets:
 #   CONTENT_LANGUAGE  english | exclusive_bilingual
+#
+# Non-interactive override: set CONTENT_LANGUAGE before calling to skip the
+# prompt entirely.  All four canonical values are accepted; the simplified UI
+# surfaces only english and exclusive_bilingual.
 prompt_content_language() {
+    [ -n "${CONTENT_LANGUAGE:-}" ] && return 0
     echo ""
     _prompts_info "Select Content Language (artifact validation scope):"
     _prompts_info "  Locks the language of generated documents, commits, PRs, issues, and comments."

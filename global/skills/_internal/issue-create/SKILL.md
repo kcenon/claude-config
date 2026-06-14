@@ -1,7 +1,7 @@
 ---
 name: issue-create
 description: Create well-structured GitHub issues using the 5W1H framework with proper labels and acceptance criteria.
-argument-hint: "<project-name> [--type bug|feature] [--priority high|medium]"
+argument-hint: "[project-name] [--type bug|feature] [--priority high|medium]"
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: "Bash(gh issue *)"
@@ -17,12 +17,14 @@ Create well-structured GitHub issues using the 5W1H framework.
 ## Usage
 
 ```
-/issue-create <project-name> [--type <type>] [--priority <priority>] [--org <organization>]
+/issue-create [project-name] [--type <type>] [--priority <priority>] [--org <organization>]
 /issue-create <organization>/<project-name> [--type <type>] [--priority <priority>]
 ```
 
 **Example**:
 ```
+/issue-create                                                  # Infer org/repo from cwd origin
+/issue-create --type bug --priority high                       # Flag-only, infer from cwd origin
 /issue-create hospital_erp_system                              # Interactive mode
 /issue-create hospital_erp_system --type bug --priority high   # With options
 /issue-create mycompany/hospital_erp_system --type feature     # Full repo path
@@ -30,9 +32,9 @@ Create well-structured GitHub issues using the 5W1H framework.
 
 ## Arguments
 
-`$ARGUMENTS` format: `<project-name> [options]` or `<organization>/<project-name> [options]`
+`$ARGUMENTS` format: `[project-name] [options]` or `<organization>/<project-name> [options]`
 
-- **Project name**: Repository name (or full path with organization)
+- **Project name**: Repository name (or full path with organization). Optional — when omitted or only flags are passed, org/repo are inferred from `git remote get-url origin` of the current working directory.
 - **--type**: Issue type (bug, feature, refactor, docs) - default: feature
 - **--priority**: Priority level (critical, high, medium, low) - default: medium
 - **--org**: GitHub organization or user (optional, auto-detected if not provided)
@@ -41,19 +43,35 @@ Create well-structured GitHub issues using the 5W1H framework.
 
 Parse `$ARGUMENTS` and determine organization:
 
+The `<project-name>` positional is **optional**. When the first argument is absent
+or flag-only (every token starts with `-`), infer org/repo from `git remote get-url origin`
+of the current working directory (same default as `pr-work`/`ci-fix`) instead of erroring.
+
 ```bash
+# Determine the first positional token (ignore flags). Empty when the user passed
+# only flags or no arguments at all.
+FIRST_ARG=$(echo "$ARGUMENTS" | awk '{for (i=1;i<=NF;i++) if ($i !~ /^-/) {print $i; exit}}')
+
 # Check if --org flag is provided
 if [[ "$ARGUMENTS" == *"--org"* ]]; then
-    PROJECT=$(echo "$ARGUMENTS" | awk '{print $1}')
+    PROJECT="$FIRST_ARG"
     ORG=$(echo "$ARGUMENTS" | sed -n 's/.*--org[[:space:]]*\([^[:space:]]*\).*/\1/p')
-# Check if first argument contains / (full path format)
-elif [[ "$(echo "$ARGUMENTS" | awk '{print $1}')" == *"/"* ]]; then
-    REPO_PATH=$(echo "$ARGUMENTS" | awk '{print $1}')
-    ORG=$(echo "$REPO_PATH" | cut -d'/' -f1)
-    PROJECT=$(echo "$REPO_PATH" | cut -d'/' -f2)
-# Auto-detect from git remote
+# Check if first positional contains / (full path format)
+elif [[ "$FIRST_ARG" == *"/"* ]]; then
+    ORG=$(echo "$FIRST_ARG" | cut -d'/' -f1)
+    PROJECT=$(echo "$FIRST_ARG" | cut -d'/' -f2)
+# No project name given (absent or flag-only) → infer org/repo from cwd's origin
+elif [[ -z "$FIRST_ARG" ]]; then
+    REMOTE_URL=$(git remote get-url origin 2>/dev/null)
+    ORG=$(echo "$REMOTE_URL" | sed -E 's|.*[:/]([^/]+)/[^/]+\.git$|\1|' | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
+    PROJECT=$(echo "$REMOTE_URL" | sed -E 's|.*[:/][^/]+/([^/]+)\.git$|\1|' | sed -E 's|.*[:/][^/]+/([^/]+)$|\1|')
+    if [[ -z "$ORG" || -z "$PROJECT" ]]; then
+        echo "Error: No project name given and current directory has no git remote 'origin'. Pass <project-name> or run from inside the repo."
+        exit 1
+    fi
+# Auto-detect org from a named project directory's git remote
 else
-    PROJECT=$(echo "$ARGUMENTS" | awk '{print $1}')
+    PROJECT="$FIRST_ARG"
     cd "$PROJECT" 2>/dev/null || { echo "Error: Project directory not found: $PROJECT"; exit 1; }
     ORG=$(git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/[^/]+\.git$|\1|' | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
     if [[ -z "$ORG" ]]; then

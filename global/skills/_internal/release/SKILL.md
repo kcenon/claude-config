@@ -154,9 +154,11 @@ fi
 | Release type | Patch (x.x.X) | Major/Minor (X.x.x, x.X.x) |
 | Has breaking changes | No | Yes |
 
-Use `AskUserQuestion` to present the choice:
+**Decisive signals → apply silently.** When the signals are unambiguous (all point the same direction — e.g. a patch release with < 20 commits and no breaking changes → solo, a major/minor release with 20+ commits or breaking changes → team), set `$EXEC_MODE` to the recommended mode WITHOUT asking and print a one-line notice, e.g. `[Mode: solo — patch release, $COMMIT_COUNT commits; pass --team to override]` (or `[Mode: team — major release; pass --solo to override]`). The user can still override with the `--solo`/`--team` flags handled in 0-1.
 
-- **Question**: "Release v$VERSION with $COMMIT_COUNT commits. Which execution mode?"
+**Conflicting signals → ask.** Only when signals genuinely point in different directions (e.g. a patch version bump but 20+ commits, or a minor release with very few commits) use `AskUserQuestion` to present the choice:
+
+- **Question**: "Release v$VERSION with $COMMIT_COUNT commits (mixed signals). Which execution mode?"
 - **Header**: "Mode"
 - **Options**:
   1. Recommended mode with "(Recommended)" suffix
