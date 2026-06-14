@@ -14,6 +14,7 @@ Global settings applied every session. Routing index only — procedural detail 
 - Protected branches: never direct-push to `main` or `develop`; PR + squash merge only
 - Read-before-Edit: Read any file before Edit/Write
 - Conflicts: never auto-resolve source code; `git merge --abort` if intractable
+- Command length: keep each Bash/PowerShell call short enough to parse (target <~900 bytes); extract longer logic to a `.ps1`/`.sh` file and invoke by path
 
 ## Routing
 
