@@ -838,6 +838,29 @@ The Windows profile intentionally keeps these guardrails:
 launch warning. It does not widen `permissions.allow`, and it does not override
 the installed profile's bypass/auto-mode disable settings.
 
+### Over-length commands and the parse limit
+
+A single Bash/PowerShell command that exceeds the harness command-parser limit
+(observed at ~965 bytes; harness-internal and not configurable here) cannot be
+parsed, so it cannot match any `permissions.allow` rule and falls back to a
+manual prompt. This is distinct from the hooks' own 16384-byte tokenizer budget
+(`DCG_TOKENIZER_MAX_BYTES`), which is a downstream performance guard, not the
+cause of the prompt.
+
+Decisions for this repo:
+
+- **Do not widen the allow-list to escape the prompt.** A rule like
+  `Bash(pwsh -File:*)` would auto-approve execution of *any* script file — the
+  allow-list grammar cannot scope by path
+  (`scripts/schemas/settings-json.schema.json`) — which would defeat the narrow
+  Windows profile above. Accept a one-time prompt for the wrapper invocation
+  instead.
+- **No hook mitigation.** The parse limit is upstream of the hook layer; a hook
+  cannot pre-empt or override the harness fallback, so this is out of scope.
+- **Prevention is the lever.** Keep single commands short and extract long logic
+  to a script — see `project/.claude/rules/core/environment.md`
+  (Command Construction).
+
 ## Windows Support (PowerShell)
 
 ### Overview
