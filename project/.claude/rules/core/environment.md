@@ -35,5 +35,41 @@ prompt, even when every cmdlet it uses is individually allowlisted.
     `Write-Output` lines) — these also fail to match single-cmdlet allow rules
     such as `PowerShell(Get-ChildItem:*)`, so they prompt regardless of length.
 
+### Compound commands erode the matchable prefix
+
+Length is not the only trigger. A *compound* PowerShell command — even a short
+one — often cannot be reduced to a matchable prefix, so the permission engine
+stores the **entire command string** as a one-off literal. The next call with
+any argument changed no longer matches, so "Yes, and don't ask again" never
+accumulates reusable coverage. The fix is to make the **first token a plain
+cmdlet** and keep each call to a single subcommand.
+
+Three rules of thumb:
+
+1. **First token must be a cmdlet.** A leading variable assignment
+   (`$env:X='y'; ...`, `$work = ...`) or a `cd <path>; ...` chain makes the
+   whole line the prefix. Pass paths/values inline instead
+   (`gh ... --repo <owner/repo>`, `git -C <path> ...`, `python -X utf8 ...`).
+2. **Break the chain.** `A; B; foreach {...}` and deep `A | B | C | D` require
+   every subcommand to be allow-listed; split into focused calls.
+3. **Prefer the dedicated tool.** File discovery -> Glob; content search ->
+   Grep; file read -> Read. These bypass shell permission matching entirely.
+
+Prompt-free rewrites (generalized):
+
+| Instead of | Use |
+|------------|-----|
+| `cd <repo>; gh issue view <n> ... \| ConvertFrom-Json \| ...` | `gh issue view <n> --repo <owner/repo> --json number,title,state,body` |
+| `cd <repo>; foreach ($n in <a>,<b>) { gh issue view $n ... }` | one `gh issue view <n>` per number, or `gh issue list --search "<a> <b>"` |
+| `$env:PYTHONIOENCODING='utf-8'; python -m <mod>` | `python -X utf8 -m <mod>` |
+| `$work = ...; if (...) {...}; git -C $work ...` | `git -C <literal-path> ...` |
+| `Get-ChildItem X -Recurse \| Where-Object {...} \| Select-Object ...` | Glob tool, or `Get-ChildItem X -Recurse -Filter *.ts -Name` |
+| `Select-String -Path X -Pattern Y \| ... \| ForEach-Object {...}` | Grep tool, or `Select-String -Path X -Pattern Y` |
+| `(Get-Content X \| Measure-Object -Line).Lines` | Read tool, or `Get-Content X -TotalCount <n>` |
+
+> **Sandbox note**: `autoAllowBashIfSandboxed` auto-approves the Bash tool only,
+> never PowerShell tool calls, and the sandbox does not run on Windows — so
+> PowerShell prompts are governed by `permissions.allow` matching alone.
+
 See `HOOKS.md` (Windows permission profile) for why the allow-list is not
 widened to auto-approve arbitrary `pwsh -File` invocations.
