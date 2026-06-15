@@ -66,6 +66,7 @@ Prompt-free rewrites (generalized):
 | `Get-ChildItem X -Recurse \| Where-Object {...} \| Select-Object ...` | Glob tool, or `Get-ChildItem X -Recurse -Filter *.ts -Name` |
 | `Select-String -Path X -Pattern Y \| ... \| ForEach-Object {...}` | Grep tool, or `Select-String -Path X -Pattern Y` |
 | `(Get-Content X \| Measure-Object -Line).Lines` | Read tool, or `Get-Content X -TotalCount <n>` |
+| `if (Test-Path X) { Get-Content X } else {...}` | Read tool on X (a not-found error signals absence), or `Get-Content X -ErrorAction SilentlyContinue` |
 
 > **Sandbox note**: `autoAllowBashIfSandboxed` auto-approves the Bash tool only,
 > never PowerShell tool calls, and the sandbox does not run on Windows — so

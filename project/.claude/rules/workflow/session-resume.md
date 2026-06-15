@@ -18,8 +18,14 @@ Write `.claude/resume.md` in the project directory when:
 
 ## How to Resume
 
-At session start, if `.claude/resume.md` exists:
-1. Read and present the saved state to the user
+At session start, use the **Read tool** on `.claude/resume.md` to check for and
+load saved state. A not-found error means there is no resume file — proceed
+normally. Do **not** wrap the check in an `if`/`Test-Path` compound shell command:
+it erodes the matchable command prefix and triggers a permission prompt (see
+`core/environment.md`, "Compound commands erode the matchable prefix").
+
+When the file is present:
+1. Present the saved state to the user
 2. If user confirms, proceed from the documented "Next Action"
 3. After completing the workflow, delete the resume file
 
