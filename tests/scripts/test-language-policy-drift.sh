@@ -1,109 +1,231 @@
 #!/bin/bash
 # test-language-policy-drift.sh
-# Drift regression for issue #411.
+# Drift regression for issues #411 and #761.
 #
-# For each rule document shipped with a .md.tmpl twin, this test verifies:
+# This test binds to the REAL template renderer (render_policy_tmpl /
+# render_policy_tmpls_in_dir, single-sourced into scripts/lib/install-prompts.sh
+# by #760) instead of a hand-rolled sed mock. Exercising the production
+# renderer is the whole point: a mock can silently diverge from the code the
+# installers actually run, which is exactly the drift this suite guards.
 #
-#   1. The canonical .md file equals the .tmpl file rendered with the
-#      "english" policy phrase. If someone edits the .md without updating
-#      the .tmpl (or vice versa), the installer would overwrite the doc
-#      with a stale phrase on any non-english policy - this catches that.
+# Coverage:
 #
-#   2. For every policy returned by all_policy_values (english,
-#      korean_plus_english, exclusive_bilingual, any), the rendered output
-#      contains the expected phrase. Policy values that cannot be rendered
-#      deterministically fail the test.
+#   1. Render matrix — for each *.md.tmpl twin and each of the three shipped
+#      language-profile presets (english / Korean / Hybrid), render through
+#      render_policy_tmpl and assert:
+#        a. the expected policy / agent phrases are present, and
+#        b. ZERO leftover {{PLACEHOLDER}} tokens survive (zero-residue gate).
+#
+#   2. Canonical drift — for every template that ships a committed .md twin,
+#      the english-preset render must equal that canonical .md. Editing the
+#      .md without the .tmpl (or vice versa) would let the installer overwrite
+#      the doc with a stale phrase on a non-english policy; this catches it.
+#      The template-only canonical-contract comment line is stripped before
+#      comparison (it ships in the .tmpl, never in the rendered .md).
+#
+#   3. Directory render — copy project/.claude/rules to a tempdir, run
+#      render_policy_tmpls_in_dir over it, and assert no {{...}} residue and
+#      no *.md.tmpl files survive (the bootstrap bulk-render path).
 #
 # Run: bash tests/scripts/test-language-policy-drift.sh
 # Exit: 0 on all-pass, 1 on any drift or rendering failure.
+#
+# NOTE (PowerShell parity, #761): the PowerShell renderer
+# (Invoke-PolicyTemplate / Invoke-PolicyTemplatesInDir in
+# scripts/lib/InstallPrompts.psm1) is intentionally NOT exercised here — a
+# psm1 import unit test is deferred to a follow-up. The bash/PowerShell phrase
+# tables and policy lists are kept in lockstep by
+# tests/scripts/test-installer-prompt-drift.sh.
 
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Source the canonical phrase table from scripts/lib/install-prompts.sh.
-# Keeping this test in lockstep with the installers prevents the kind of
-# silent drift this test was created to catch (issue #411).
+# Source the REAL renderer and phrase table from the installer lib. The lib is
+# load-guarded (INSTALL_PROMPTS_SH_LOADED) and only defines functions on
+# source — it auto-runs nothing — so sourcing has no side effects.
 # shellcheck disable=SC1091
 source "$REPO_ROOT/scripts/lib/install-prompts.sh"
 
-# Files under coverage — (canonical .md, .tmpl) pairs
-TEMPLATE_PAIRS=(
-    "$REPO_ROOT/global/commit-settings.md|$REPO_ROOT/global/commit-settings.md.tmpl"
-    "$REPO_ROOT/project/.claude/rules/core/communication.md|$REPO_ROOT/project/.claude/rules/core/communication.md.tmpl"
-    "$REPO_ROOT/project/.claude/rules/workflow/git-commit-format.md|$REPO_ROOT/project/.claude/rules/workflow/git-commit-format.md.tmpl"
+# Marker prefix for the template-only canonical-contract comment. Stripped
+# before the canonical .md == rendered .tmpl comparison so the comment can
+# live in the .tmpl without being mirrored into the committed .md.
+CONTRACT_MARKER='tmpl-contract:'
+
+# All shipped templates. The .md column is the committed canonical twin, or
+# "-" for bootstrap-only templates that render straight into ~/.claude with no
+# in-repo .md (e.g. conversation-language).
+#   format: <tmpl> | <canonical .md or -> | <space-separated expected-substring keys>
+TEMPLATES=(
+    "global/commit-settings.md.tmpl|global/commit-settings.md|content"
+    "global/conversation-language.md.tmpl|-|agent"
+    "project/.claude/rules/core/communication.md.tmpl|project/.claude/rules/core/communication.md|content agent agentlang"
+    "project/.claude/rules/workflow/git-commit-format.md.tmpl|project/.claude/rules/workflow/git-commit-format.md|content"
 )
 
-# policy → phrase table built from the lib (no hard-coded duplication).
-declare -A PHRASE
-while IFS= read -r policy; do
-    [ -n "$policy" ] || continue
-    PHRASE[$policy]="$(get_policy_phrase "$policy")"
-done < <(all_policy_values)
+# Presets: name | CONTENT_LANGUAGE | AGENT_DISPLAY_LANG | AGENT_LANGUAGE
+PRESETS=(
+    "english|english|English|english"
+    "Korean|exclusive_bilingual|Korean|korean"
+    "Hybrid|english|Korean|korean"
+)
 
 PASS=0
 FAIL=0
 
-render() {
-    local tmpl="$1" phrase="$2"
-    sed -e "s|{{CONTENT_LANGUAGE_POLICY}}|${phrase}|g" \
-        -e "s|{{AGENT_LANGUAGE_POLICY}}|English|g" \
-        -e "s|{{AGENT_LANGUAGE}}|english|g" "$tmpl"
+pass() { PASS=$((PASS + 1)); echo "  PASS: $1"; }
+fail() { FAIL=$((FAIL + 1)); echo "  FAIL: $1"; }
+
+# strip_contract <file>  — emit file with the contract-comment line removed
+# and CR stripped (repo carries mixed CRLF/LF on Windows clones).
+strip_contract() {
+    grep -v "$CONTRACT_MARKER" "$1" | tr -d '\r'
 }
 
-echo "=== Content-language policy drift test (#411) ==="
+echo "=== Content-language policy drift test (#411, #761) ==="
 echo ""
 
-for pair in "${TEMPLATE_PAIRS[@]}"; do
-    md="${pair%%|*}"
-    tmpl="${pair##*|}"
-    name="$(basename "$md")"
+# ---------------------------------------------------------------------------
+# 1 + 2: per-template render matrix and canonical drift.
+# ---------------------------------------------------------------------------
+for entry in "${TEMPLATES[@]}"; do
+    IFS='|' read -r tmpl_rel md_rel keys <<<"$entry"
+    tmpl="$REPO_ROOT/$tmpl_rel"
+    name="$(basename "$tmpl_rel")"
 
     echo "[${name}]"
 
-    if [ ! -f "$md" ]; then
-        echo "  FAIL: canonical .md missing: $md"
-        FAIL=$((FAIL + 1))
-        continue
-    fi
     if [ ! -f "$tmpl" ]; then
-        echo "  FAIL: .tmpl missing: $tmpl"
-        FAIL=$((FAIL + 1))
+        fail "template missing: $tmpl_rel"
+        echo ""
         continue
     fi
 
-    # Check 1: canonical .md equals .tmpl rendered with english phrase.
-    # Line-ending insensitive (repo has mixed CRLF/LF; on Windows clones all
-    # files roundtrip through CRLF via Git autocrlf).
-    if diff -q <(render "$tmpl" "${PHRASE[english]}" | tr -d '\r') <(tr -d '\r' < "$md") >/dev/null 2>&1; then
-        PASS=$((PASS + 1))
-        echo "  PASS: canonical .md matches .tmpl rendered with english phrase"
-    else
-        FAIL=$((FAIL + 1))
-        echo "  FAIL: canonical .md drifted from .tmpl (english render)"
-        echo "  --- diff (canonical vs rendered, LF-normalized) ---"
-        diff <(render "$tmpl" "${PHRASE[english]}" | tr -d '\r') <(tr -d '\r' < "$md") | head -20 | sed 's/^/      /'
-        echo "  ---------------------------------------------------"
-    fi
+    for preset in "${PRESETS[@]}"; do
+        IFS='|' read -r pname cl adl al <<<"$preset"
+        rendered="$(mktemp)"
 
-    # Check 2: each policy produces output containing its phrase.
-    # Iterate the full canonical list from the lib so a newly added policy
-    # value automatically gets covered.
-    while IFS= read -r policy; do
-        [ -n "$policy" ] || continue
-        phrase="${PHRASE[$policy]}"
-        if render "$tmpl" "$phrase" | grep -qF "$phrase"; then
-            PASS=$((PASS + 1))
-            echo "  PASS: ${policy} render contains '${phrase}'"
+        # Set the three preset vars in a subshell and render through the REAL
+        # renderer. The subshell keeps ambient state from leaking across
+        # presets and matches how the installers invoke render_policy_tmpl.
+        (
+            CONTENT_LANGUAGE="$cl"
+            AGENT_DISPLAY_LANG="$adl"
+            AGENT_LANGUAGE="$al"
+            export CONTENT_LANGUAGE AGENT_DISPLAY_LANG AGENT_LANGUAGE
+            render_policy_tmpl "$tmpl" "$rendered"
+        )
+
+        # 1a: expected-substring assertions (only the keys each tmpl uses).
+        for key in $keys; do
+            case "$key" in
+                content)
+                    want="$(get_policy_phrase "$cl")"
+                    if grep -qF "$want" "$rendered"; then
+                        pass "${pname}: content phrase '${want}' present"
+                    else
+                        fail "${pname}: content phrase '${want}' missing"
+                    fi
+                    ;;
+                agent)
+                    if grep -qF "$adl" "$rendered"; then
+                        pass "${pname}: agent display '${adl}' present"
+                    else
+                        fail "${pname}: agent display '${adl}' missing"
+                    fi
+                    ;;
+                agentlang)
+                    # AGENT_LANGUAGE lands in `language: "<value>"`.
+                    if grep -qF "language: \"$al\"" "$rendered"; then
+                        pass "${pname}: agent language '${al}' present"
+                    else
+                        fail "${pname}: agent language '${al}' missing"
+                    fi
+                    ;;
+            esac
+        done
+
+        # 1b: zero-residue gate — no {{PLACEHOLDER}} may survive.
+        if grep -qE '\{\{[A-Z_]+\}\}' "$rendered"; then
+            leftover="$(grep -oE '\{\{[A-Z_]+\}\}' "$rendered" | sort -u | paste -sd, -)"
+            fail "${pname}: leftover placeholders survive render: ${leftover}"
         else
-            FAIL=$((FAIL + 1))
-            echo "  FAIL: ${policy} render missing phrase '${phrase}'"
+            pass "${pname}: no leftover {{...}} placeholders"
         fi
-    done < <(all_policy_values)
+
+        # 2: canonical drift — english preset must equal the committed .md.
+        if [ "$pname" = "english" ] && [ "$md_rel" != "-" ]; then
+            md="$REPO_ROOT/$md_rel"
+            if [ ! -f "$md" ]; then
+                fail "canonical .md missing: $md_rel"
+            elif diff -q \
+                <(strip_contract "$rendered") \
+                <(strip_contract "$md") >/dev/null 2>&1; then
+                pass "canonical .md matches english render"
+            else
+                fail "canonical .md drifted from english render"
+                echo "  --- diff (rendered vs canonical, contract-stripped, LF-normalized) ---"
+                diff <(strip_contract "$rendered") <(strip_contract "$md") \
+                    | head -20 | sed 's/^/      /'
+                echo "  ---------------------------------------------------------------------"
+            fi
+        fi
+
+        rm -f "$rendered"
+    done
 
     echo ""
 done
+
+# ---------------------------------------------------------------------------
+# 3: directory render — exercise render_policy_tmpls_in_dir on a copy of the
+#    project rules tree (the bootstrap bulk-render path).
+# ---------------------------------------------------------------------------
+echo "[render_policy_tmpls_in_dir]"
+rules_src="$REPO_ROOT/project/.claude/rules"
+if [ ! -d "$rules_src" ]; then
+    fail "rules source dir missing: project/.claude/rules"
+else
+    work="$(mktemp -d)"
+    cp -r "$rules_src" "$work/rules"
+
+    # Guard: the copy must actually contain templates, else the assertions
+    # below would pass vacuously.
+    n_tmpl_before="$(find "$work/rules" -type f -name '*.md.tmpl' | wc -l | tr -d ' ')"
+    if [ "$n_tmpl_before" -eq 0 ]; then
+        fail "no *.md.tmpl found in copied rules tree (vacuous test)"
+    else
+        pass "copied rules tree contains ${n_tmpl_before} template(s)"
+
+        (
+            CONTENT_LANGUAGE="english"
+            AGENT_DISPLAY_LANG="English"
+            AGENT_LANGUAGE="english"
+            export CONTENT_LANGUAGE AGENT_DISPLAY_LANG AGENT_LANGUAGE
+            render_policy_tmpls_in_dir "$work/rules"
+        )
+
+        # No *.md.tmpl may survive the bulk render (they are rendered + removed).
+        if find "$work/rules" -type f -name '*.md.tmpl' | grep -q .; then
+            surviving="$(find "$work/rules" -type f -name '*.md.tmpl' | sed "s|$work/||")"
+            fail "*.md.tmpl survived directory render: ${surviving}"
+        else
+            pass "no *.md.tmpl survived directory render"
+        fi
+
+        # No {{...}} residue may survive in any rendered .md.
+        if grep -rqE '\{\{[A-Z_]+\}\}' "$work/rules"; then
+            fail "leftover {{...}} placeholders survive in rendered rules tree"
+            grep -rnE '\{\{[A-Z_]+\}\}' "$work/rules" | head -10 | sed 's/^/      /'
+        else
+            pass "no leftover {{...}} placeholders in rendered rules tree"
+        fi
+    fi
+
+    rm -rf "$work"
+fi
+echo ""
 
 echo "=== Results: ${PASS} passed, ${FAIL} failed ==="
 if [ "$FAIL" -gt 0 ]; then
