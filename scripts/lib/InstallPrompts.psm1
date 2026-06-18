@@ -30,49 +30,71 @@ function Script:Write-PromptWarn {
 }
 
 function Show-LanguageProfilePrompt {
+    # Non-interactive override mirrors the bash prompt_language_profile contract
+    # (issue #762): AGENT_LANGUAGE / CONTENT_LANGUAGE are honored INDEPENDENTLY.
+    # The -AgentLanguage / -ContentLanguage params default to the ambient env
+    # vars (bash reads $AGENT_LANGUAGE / $CONTENT_LANGUAGE; the PowerShell twin
+    # reads $env:AGENT_LANGUAGE / $env:CONTENT_LANGUAGE). The interactive block
+    # runs only when BOTH are unset; presets are then re-applied over whatever
+    # the prompt set, and the still-unset half falls back to the Hybrid default
+    # (AGENT=korean / CONTENT=english) rather than being clobbered.
     [CmdletBinding()]
-    param()
+    param(
+        [string]$AgentLanguage = $env:AGENT_LANGUAGE,
+        [string]$ContentLanguage = $env:CONTENT_LANGUAGE
+    )
 
-    Write-Host ""
-    Script:Write-PromptInfo "Select Language Profile Preset:"
-    Write-Host "  1) English Unified (Dialogue & Documents both in English)"
-    Write-Host "  2) Korean Unified  (Dialogue & Documents both in Korean - exclusive)"
-    Write-Host "  3) Hybrid Mode     (Dialogue in Korean, Documents in English - default)"
-    Write-Host ""
+    # Capture which values the caller preset before the prompt may overwrite.
+    $agentPreset = if ([string]::IsNullOrEmpty($AgentLanguage)) { $null } else { $AgentLanguage }
+    $contentPreset = if ([string]::IsNullOrEmpty($ContentLanguage)) { $null } else { $ContentLanguage }
 
-    $sel = Read-Host "Selection (1-3) [default: 3]"
-    if ([string]::IsNullOrEmpty($sel)) { $sel = '3' }
+    $resolvedAgent = $null
+    $resolvedContent = $null
 
-    switch ($sel) {
-        '1' {
-            return [pscustomobject]@{
-                AgentLanguage = 'english'
-                AgentDisplay = 'English'
-                ContentLanguage = 'english'
+    # Run the interactive block only when BOTH are unset.
+    if ($null -eq $agentPreset -and $null -eq $contentPreset) {
+        Write-Host ""
+        Script:Write-PromptInfo "Select Language Profile Preset:"
+        Write-Host "  1) English Unified (Dialogue & Documents both in English)"
+        Write-Host "  2) Korean Unified  (Dialogue & Documents both in Korean - exclusive)"
+        Write-Host "  3) Hybrid Mode     (Dialogue in Korean, Documents in English - default)"
+        Write-Host ""
+
+        $sel = Read-Host "Selection (1-3) [default: 3]"
+        if ([string]::IsNullOrEmpty($sel)) { $sel = '3' }
+
+        switch ($sel) {
+            '1' { $resolvedAgent = 'english'; $resolvedContent = 'english' }
+            '2' { $resolvedAgent = 'korean';  $resolvedContent = 'exclusive_bilingual' }
+            '3' { $resolvedAgent = 'korean';  $resolvedContent = 'english' }
+            default {
+                Script:Write-PromptWarn "Unknown selection: $sel. Falling back to Hybrid Mode."
+                $resolvedAgent = 'korean'; $resolvedContent = 'english'
             }
         }
-        '2' {
-            return [pscustomobject]@{
-                AgentLanguage = 'korean'
-                AgentDisplay = 'Korean'
-                ContentLanguage = 'exclusive_bilingual'
-            }
-        }
-        '3' {
-            return [pscustomobject]@{
-                AgentLanguage = 'korean'
-                AgentDisplay = 'Korean'
-                ContentLanguage = 'english'
-            }
-        }
-        default {
-            Script:Write-PromptWarn "Unknown selection: $sel. Falling back to Hybrid Mode."
-            return [pscustomobject]@{
-                AgentLanguage = 'korean'
-                AgentDisplay = 'Korean'
-                ContentLanguage = 'english'
-            }
-        }
+    }
+
+    # Re-apply presets over whatever the prompt set, then fill the still-unset
+    # half from the Hybrid default. Each var is honored independently.
+    if ($null -ne $agentPreset)   { $resolvedAgent = $agentPreset }
+    if ($null -ne $contentPreset) { $resolvedContent = $contentPreset }
+    if ([string]::IsNullOrEmpty($resolvedAgent))   { $resolvedAgent = 'korean' }
+    if ([string]::IsNullOrEmpty($resolvedContent)) { $resolvedContent = 'english' }
+
+    # Derive Display from the final AGENT_LANGUAGE. An if/elseif (not a switch
+    # with quoted-literal arms) is used deliberately so this block does not
+    # collide with the installer-prompt-drift test's static phrase extractor,
+    # which scans for `'<policy>' { return '<phrase>' }` lines in this module.
+    if ($resolvedAgent -eq 'english') {
+        $agentDisplay = 'English'
+    } else {
+        $agentDisplay = 'Korean'
+    }
+
+    return [pscustomobject]@{
+        AgentLanguage = $resolvedAgent
+        AgentDisplay = $agentDisplay
+        ContentLanguage = $resolvedContent
     }
 }
 

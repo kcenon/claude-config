@@ -60,49 +60,51 @@ _prompts_warn() {
 #   AGENT_DISPLAY_LANG  English | Korean
 #   CONTENT_LANGUAGE    english | exclusive_bilingual
 #
-# Non-interactive override: set AGENT_LANGUAGE and CONTENT_LANGUAGE before calling
-# to skip the prompt entirely.
+# Non-interactive override: set AGENT_LANGUAGE and/or CONTENT_LANGUAGE before
+# calling to skip or partially skip the prompt. Each var is honored
+# INDEPENDENTLY (issue #762): presetting only one still suppresses the prompt
+# only when both are set; the still-unset half falls back to the Hybrid default
+# (AGENT_LANGUAGE=korean / CONTENT_LANGUAGE=english) rather than being clobbered.
 prompt_language_profile() {
-    # If both are already set (e.g. non-interactive), derive Display and return
-    if [ -n "${AGENT_LANGUAGE:-}" ] && [ -n "${CONTENT_LANGUAGE:-}" ]; then
-        case "$AGENT_LANGUAGE" in
-            english) AGENT_DISPLAY_LANG="English" ;;
-            korean)  AGENT_DISPLAY_LANG="Korean"  ;;
-            *)       AGENT_DISPLAY_LANG="Korean"  ;;
-        esac
-        return 0
-    fi
-    echo ""
-    _prompts_info "Select Language Profile Preset:"
-    echo "  1) English Unified (Dialogue & Documents both in English)"
-    echo "  2) Korean Unified  (Dialogue & Documents both in Korean - exclusive)"
-    echo "  3) Hybrid Mode     (Dialogue in Korean, Documents in English - default)"
-    echo ""
-    read -r -p "Selection (1-3) [default: 3]: " _profile_type
-    _profile_type=${_profile_type:-3}
+    # Capture which vars the caller preset BEFORE the prompt may overwrite them.
+    local _agent_preset="" _content_preset=""
+    [ -n "${AGENT_LANGUAGE:-}" ]   && _agent_preset="$AGENT_LANGUAGE"
+    [ -n "${CONTENT_LANGUAGE:-}" ] && _content_preset="$CONTENT_LANGUAGE"
 
-    case "$_profile_type" in
-        1)
-            AGENT_LANGUAGE="english"
-            AGENT_DISPLAY_LANG="English"
-            CONTENT_LANGUAGE="english"
-            ;;
-        2)
-            AGENT_LANGUAGE="korean"
-            AGENT_DISPLAY_LANG="Korean"
-            CONTENT_LANGUAGE="exclusive_bilingual"
-            ;;
-        3)
-            AGENT_LANGUAGE="korean"
-            AGENT_DISPLAY_LANG="Korean"
-            CONTENT_LANGUAGE="english"
-            ;;
-        *)
-            _prompts_warn "Unknown selection: $_profile_type. Falling back to Hybrid Mode."
-            AGENT_LANGUAGE="korean"
-            AGENT_DISPLAY_LANG="Korean"
-            CONTENT_LANGUAGE="english"
-            ;;
+    # Run the interactive block only when BOTH are unset.
+    if [ -z "$_agent_preset" ] && [ -z "$_content_preset" ]; then
+        echo ""
+        _prompts_info "Select Language Profile Preset:"
+        echo "  1) English Unified (Dialogue & Documents both in English)"
+        echo "  2) Korean Unified  (Dialogue & Documents both in Korean - exclusive)"
+        echo "  3) Hybrid Mode     (Dialogue in Korean, Documents in English - default)"
+        echo ""
+        read -r -p "Selection (1-3) [default: 3]: " _profile_type
+        _profile_type=${_profile_type:-3}
+
+        case "$_profile_type" in
+            1) AGENT_LANGUAGE="english"; CONTENT_LANGUAGE="english" ;;
+            2) AGENT_LANGUAGE="korean";  CONTENT_LANGUAGE="exclusive_bilingual" ;;
+            3) AGENT_LANGUAGE="korean";  CONTENT_LANGUAGE="english" ;;
+            *)
+                _prompts_warn "Unknown selection: $_profile_type. Falling back to Hybrid Mode."
+                AGENT_LANGUAGE="korean"; CONTENT_LANGUAGE="english"
+                ;;
+        esac
+    fi
+
+    # Re-apply presets over whatever the prompt set, then fill the still-unset
+    # half from the Hybrid default. Each var is honored independently.
+    [ -n "$_agent_preset" ]   && AGENT_LANGUAGE="$_agent_preset"
+    [ -n "$_content_preset" ] && CONTENT_LANGUAGE="$_content_preset"
+    AGENT_LANGUAGE="${AGENT_LANGUAGE:-korean}"
+    CONTENT_LANGUAGE="${CONTENT_LANGUAGE:-english}"
+
+    # Derive Display from the final AGENT_LANGUAGE via the single existing case.
+    case "$AGENT_LANGUAGE" in
+        english) AGENT_DISPLAY_LANG="English" ;;
+        korean)  AGENT_DISPLAY_LANG="Korean"  ;;
+        *)       AGENT_DISPLAY_LANG="Korean"  ;;
     esac
 }
 
