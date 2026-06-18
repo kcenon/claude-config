@@ -13,13 +13,16 @@ the three rule documents that describe the rule to humans and to Claude.
 ## Installer UI (simplified)
 
 Both `bootstrap.{sh,ps1}` and `scripts/install.{sh,ps1}` present a
-two-option prompt that maps directly to a fixed-language guarantee for
-artifacts (commits, PRs, issues, comments, generated documents):
+single three-option preset prompt (Language Profile Preset) that selects
+both the agent conversation language and the artifact content language in
+one keystroke. The artifact half (commits, PRs, issues, comments,
+generated documents) is guaranteed as follows:
 
-| UI choice | `CLAUDE_CONTENT_LANGUAGE` value | Guarantee |
-|-----------|----------------------------------|-----------|
-| English | `english` | All artifacts in English (ASCII only, Hangul rejected) |
-| Korean  | `exclusive_bilingual` | Each artifact is either English-only or Korean-only — no inline mixing |
+| Preset | `AGENT_LANGUAGE` | `CLAUDE_CONTENT_LANGUAGE` | Artifact guarantee |
+|--------|------------------|----------------------------|--------------------|
+| 1) English Unified | `english` | `english` | All artifacts in English (ASCII only, Hangul rejected) |
+| 2) Korean Unified  | `korean`  | `exclusive_bilingual` | Each artifact is either English-only or Korean-only — no inline mixing |
+| 3) Hybrid Mode (default) | `korean` | `english` | Dialogue in Korean, artifacts in English (ASCII only) |
 
 The simplified UI lives in a single source of truth at
 `scripts/lib/install-prompts.sh` (bash) and
@@ -29,21 +32,21 @@ installers and both PowerShell installers `source` / `Import-Module`
 this single library, so prompt edits cannot drift between the four
 entry points.
 
-### Asymmetric defaults
+### Default preset
 
-The Content Language prompt defaults to **English** (option 1), while the
-Agent Conversation Language prompt defaults to **Korean** (option 2).
-This asymmetry is intentional: the most common configuration for Korean
-operators in this codebase is "Claude responds in Korean, but artifacts
-ship in English." With these defaults, pressing Enter twice during a
-fresh install lands directly on that combination, requiring no extra
-keystrokes for the common case while still letting English-only
-operators take the same path with two `1` keystrokes.
+The single Language Profile Preset prompt defaults to **option 3, Hybrid
+Mode** (`AGENT_LANGUAGE=korean` / `CONTENT_LANGUAGE=english`). This is the
+most common configuration for Korean operators in this codebase: "Claude
+responds in Korean, but artifacts ship in English." With this default,
+pressing Enter once during a fresh install lands directly on that
+combination, requiring no extra keystrokes for the common case while
+still letting operators pick option 1 (English Unified) or option 2
+(Korean Unified) with a single key.
 
 ### Drift guards
 
-Two regression tests enforce that the installer prompts and the policy
-phrase table never drift:
+Three regression tests enforce that the installer prompts, the policy
+phrase table, and the docs that describe them never drift:
 
 - `tests/scripts/test-installer-prompt-drift.sh` — compares the bash lib
   and the PowerShell module on canonical policy values, the
@@ -54,6 +57,13 @@ phrase table never drift:
   phrase, and that every CLAUDE_CONTENT_LANGUAGE value renders
   deterministically. Sources `install-prompts.sh` so it cannot drift
   from the installer phrase table.
+- `tests/scripts/test-doc-prompt-lockstep.sh` — pins the live 3-option
+  preset prompt as the single source of truth: it fails if any tracked
+  file reintroduces a removed prompt-function identifier or a stale
+  description of the old two-prompt flow, and asserts the preset header,
+  the three option labels, and the `[default: 3]` line are still present
+  in `install-prompts.sh`. Wired into
+  `.github/workflows/validate-hooks.yml`.
 
 ### Legacy migration warning
 

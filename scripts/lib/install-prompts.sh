@@ -76,7 +76,7 @@ prompt_language_profile() {
         echo ""
         _prompts_info "Select Language Profile Preset:"
         echo "  1) English Unified (Dialogue & Documents both in English)"
-        echo "  2) Korean Unified  (Dialogue & Documents both in Korean - exclusive)"
+        echo "  2) Korean Unified  (Each artifact Korean-only or English-only; no inline mix)"
         echo "  3) Hybrid Mode     (Dialogue in Korean, Documents in English - default)"
         echo ""
         read -r -p "Selection (1-3) [default: 3]: " _profile_type
