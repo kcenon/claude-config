@@ -393,9 +393,9 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
     }
 
     # conversation-language.md template rendering.
-    # $agentDisplayLang is populated by Show-AgentLanguagePrompt; fall
-    # back to deriving from $agentLanguage if the prompt was skipped
-    # (e.g. project-only install path).
+    # $agentDisplayLang is populated by Show-LanguageProfilePrompt (derived
+    # from $profileChoice); fall back to deriving from $agentLanguage if the
+    # prompt was skipped (e.g. project-only install path).
     $tmplPath = Join-Path $BackupDir "global/conversation-language.md.tmpl"
     if (Test-Path $tmplPath) {
         if (-not $agentDisplayLang) {

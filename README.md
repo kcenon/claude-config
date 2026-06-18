@@ -68,7 +68,7 @@ Install claude-config and Claude Code immediately gains these capabilities:
 
 **Commit quality** — Broken markdown links, AI attribution, and non-conventional commit messages are caught before they reach your repository.
 
-**Configurable content language** — Pick at install time whether commit messages, PR bodies, and documentation are written in English (ASCII only) or Korean (per-artifact strict, no inline mixing). The two-option installer prompt maps to `CLAUDE_CONTENT_LANGUAGE=english|exclusive_bilingual`; advanced legacy values (`korean_plus_english`, `any`) remain available via direct `settings.json` edit.
+**Configurable content language** — Pick at install time whether commit messages, PR bodies, and documentation are written in English (ASCII only) or Korean (per-artifact strict, no inline mixing). The three-option preset installer prompt maps to `CLAUDE_CONTENT_LANGUAGE=english|exclusive_bilingual`; advanced legacy values (`korean_plus_english`, `any`) remain available via direct `settings.json` edit.
 
 **Code quality on demand** — `/security-audit`, `/performance-review`, `/code-quality`, and `/pr-review` provide specialized analysis when you need it.
 

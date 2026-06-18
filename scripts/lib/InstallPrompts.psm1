@@ -56,7 +56,7 @@ function Show-LanguageProfilePrompt {
         Write-Host ""
         Script:Write-PromptInfo "Select Language Profile Preset:"
         Write-Host "  1) English Unified (Dialogue & Documents both in English)"
-        Write-Host "  2) Korean Unified  (Dialogue & Documents both in Korean - exclusive)"
+        Write-Host "  2) Korean Unified  (Each artifact Korean-only or English-only; no inline mix)"
         Write-Host "  3) Hybrid Mode     (Dialogue in Korean, Documents in English - default)"
         Write-Host ""
 

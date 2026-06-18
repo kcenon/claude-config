@@ -24,6 +24,7 @@ on:
       - 'tests/scripts/test-install-permissions-policy.sh'
       - 'tests/scripts/test-language-policy-drift.sh'
       - 'tests/scripts/test-installer-prompt-drift.sh'
+      - 'tests/scripts/test-doc-prompt-lockstep.sh'
       - 'tests/scripts/test-language-override-contract.sh'
       - 'scripts/lib/**'
       - 'global/settings.json'
@@ -118,6 +119,14 @@ jobs:
         # scripts/lib/InstallPrompts.psm1 (PowerShell) - the single source
         # of truth for installer prompts and the policy phrase table.
         run: bash tests/scripts/test-installer-prompt-drift.sh
+
+      - name: Run doc/prompt lockstep test
+        # Pins the live 3-option Language Profile Preset prompt as the
+        # single source of truth (#763): fails if any tracked file
+        # reintroduces a removed prompt-function identifier or a stale
+        # two-prompt description, and asserts the preset header, the three
+        # option labels, and the [default: 3] line are still present.
+        run: bash tests/scripts/test-doc-prompt-lockstep.sh
 
       - name: Run language override contract test
         # Locks the independent non-interactive env-override contract

@@ -669,9 +669,9 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     unset _git_identity_target _git_name _git_email
 
     # conversation-language.md 템플릿 렌더링
-    # AGENT_DISPLAY_LANG is populated by prompt_agent_language() in
-    # scripts/lib/install-prompts.sh; fall back if the prompt was skipped
-    # (e.g. project-only install path).
+    # AGENT_DISPLAY_LANG is populated by prompt_language_profile() in
+    # scripts/lib/install-prompts.sh (derived from $profileChoice); fall
+    # back if the prompt was skipped (e.g. project-only install path).
     if [ -f "$BACKUP_DIR/global/conversation-language.md.tmpl" ]; then
         if [ -z "${AGENT_DISPLAY_LANG:-}" ]; then
             if [ "${AGENT_LANGUAGE:-korean}" = "english" ]; then
