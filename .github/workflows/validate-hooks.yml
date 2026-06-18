@@ -168,13 +168,15 @@ jobs:
           failed=0
           # Broad loop: every tracked .sh, gated at error severity. Self-tracking
           # — new scripts are covered automatically with no workflow change.
-          mapfile -t scripts < <(git ls-files '*.sh')
-          for f in "${scripts[@]}"; do
+          # while-read over process substitution (not `... | while`) keeps the
+          # failed flag in the current shell and stays bash 3.2 compatible
+          # (macOS runners lack the bash 4+ `mapfile`).
+          while IFS= read -r f; do
             echo "Checking (error) $f..."
             if ! shellcheck --severity=error -e SC2086 "$f"; then
               failed=1
             fi
-          done
+          done < <(git ls-files '*.sh')
           # Strict loop: hook + benchmark scripts held to the stricter warning bar.
           for script in global/hooks/*.sh tests/batch_drift_benchmark/*.sh; do
             echo "Checking (warning) $script..."
