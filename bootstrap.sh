@@ -250,17 +250,17 @@ install_global() {
         fi
     done
 
+    # Language policy selection (Unified Language Profile)
+    prompt_language_profile
+
     # conversation-language.md 템플릿 처리
     if [ -f "$INSTALL_DIR/global/conversation-language.md.tmpl" ]; then
-        prompt_agent_language
-
         if guarded_template_copy "$INSTALL_DIR/global/conversation-language.md.tmpl" "$CLAUDE_DIR/conversation-language.md" "conversation-language.md" "$AGENT_DISPLAY_LANG"; then
             success "conversation-language.md 설치됨 (언어: $AGENT_DISPLAY_LANG)"
         else
             info "conversation-language.md 로컬 변경 유지"
         fi
     else
-        AGENT_LANGUAGE="korean"
         # Static-file fallback. The default repo ships only the .tmpl, so this
         # branch is unreachable in normal use. It exists to support fork users
         # who replace the .tmpl with a hand-edited static .md — preserving
@@ -273,9 +273,6 @@ install_global() {
             fi
         fi
     fi
-
-    # Content language policy selection (CLAUDE_CONTENT_LANGUAGE)
-    prompt_content_language
 
     # Legacy settings.json migration warning (informational only).
     warn_legacy_settings_value "$HOME/.claude/settings.json" || true

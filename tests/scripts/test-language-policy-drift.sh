@@ -47,7 +47,9 @@ FAIL=0
 
 render() {
     local tmpl="$1" phrase="$2"
-    sed "s|{{CONTENT_LANGUAGE_POLICY}}|${phrase}|g" "$tmpl"
+    sed -e "s|{{CONTENT_LANGUAGE_POLICY}}|${phrase}|g" \
+        -e "s|{{AGENT_LANGUAGE_POLICY}}|English|g" \
+        -e "s|{{AGENT_LANGUAGE}}|english|g" "$tmpl"
 }
 
 echo "=== Content-language policy drift test (#411) ==="

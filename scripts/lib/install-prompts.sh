@@ -54,16 +54,17 @@ _prompts_warn() {
     fi
 }
 
-# prompt_agent_language
+# prompt_language_profile
 # Sets:
 #   AGENT_LANGUAGE      english | korean
 #   AGENT_DISPLAY_LANG  English | Korean
+#   CONTENT_LANGUAGE    english | exclusive_bilingual
 #
-# Non-interactive override: set AGENT_LANGUAGE before calling to skip the
-# prompt. AGENT_DISPLAY_LANG is derived automatically when AGENT_LANGUAGE
-# is already set, so callers can rely on both being populated afterwards.
-prompt_agent_language() {
-    if [ -n "${AGENT_LANGUAGE:-}" ]; then
+# Non-interactive override: set AGENT_LANGUAGE and CONTENT_LANGUAGE before calling
+# to skip the prompt entirely.
+prompt_language_profile() {
+    # If both are already set (e.g. non-interactive), derive Display and return
+    if [ -n "${AGENT_LANGUAGE:-}" ] && [ -n "${CONTENT_LANGUAGE:-}" ]; then
         case "$AGENT_LANGUAGE" in
             english) AGENT_DISPLAY_LANG="English" ;;
             korean)  AGENT_DISPLAY_LANG="Korean"  ;;
@@ -72,53 +73,34 @@ prompt_agent_language() {
         return 0
     fi
     echo ""
-    _prompts_info "Select Agent Conversation Language:"
-    echo "  1) English"
-    echo "  2) Korean"
+    _prompts_info "Select Language Profile Preset:"
+    echo "  1) English Unified (Dialogue & Documents both in English)"
+    echo "  2) Korean Unified  (Dialogue & Documents both in Korean - exclusive)"
+    echo "  3) Hybrid Mode     (Dialogue in Korean, Documents in English - default)"
     echo ""
-    read -r -p "Selection (1-2) [default: 2]: " _agent_lang_type
-    _agent_lang_type=${_agent_lang_type:-2}
+    read -r -p "Selection (1-3) [default: 3]: " _profile_type
+    _profile_type=${_profile_type:-3}
 
-    case "$_agent_lang_type" in
+    case "$_profile_type" in
         1)
             AGENT_LANGUAGE="english"
             AGENT_DISPLAY_LANG="English"
+            CONTENT_LANGUAGE="english"
             ;;
         2)
             AGENT_LANGUAGE="korean"
             AGENT_DISPLAY_LANG="Korean"
+            CONTENT_LANGUAGE="exclusive_bilingual"
             ;;
-        *)
-            _prompts_warn "Unknown selection: $_agent_lang_type. Falling back to korean."
+        3)
             AGENT_LANGUAGE="korean"
             AGENT_DISPLAY_LANG="Korean"
+            CONTENT_LANGUAGE="english"
             ;;
-    esac
-}
-
-# prompt_content_language
-# Sets:
-#   CONTENT_LANGUAGE  english | exclusive_bilingual
-#
-# Non-interactive override: set CONTENT_LANGUAGE before calling to skip the
-# prompt entirely.  All four canonical values are accepted; the simplified UI
-# surfaces only english and exclusive_bilingual.
-prompt_content_language() {
-    [ -n "${CONTENT_LANGUAGE:-}" ] && return 0
-    echo ""
-    _prompts_info "Select Content Language (artifact validation scope):"
-    _prompts_info "  Locks the language of generated documents, commits, PRs, issues, and comments."
-    echo "  1) English (ASCII only - no Hangul allowed in artifacts)"
-    echo "  2) Korean  (per-artifact strict - Hangul or English document, no inline mixing)"
-    echo ""
-    read -r -p "Selection (1-2) [default: 1]: " _content_lang_type
-    _content_lang_type=${_content_lang_type:-1}
-
-    case "$_content_lang_type" in
-        1) CONTENT_LANGUAGE="english" ;;
-        2) CONTENT_LANGUAGE="exclusive_bilingual" ;;
         *)
-            _prompts_warn "Unknown selection: $_content_lang_type. Falling back to english."
+            _prompts_warn "Unknown selection: $_profile_type. Falling back to Hybrid Mode."
+            AGENT_LANGUAGE="korean"
+            AGENT_DISPLAY_LANG="Korean"
             CONTENT_LANGUAGE="english"
             ;;
     esac
