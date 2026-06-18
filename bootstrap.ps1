@@ -227,13 +227,15 @@ function Install-GlobalSettings {
         }
     }
 
+    # Language policy selection (Unified Language Profile)
+    $profileChoice = Show-LanguageProfilePrompt
+    $script:agentLanguage = $profileChoice.AgentLanguage
+    $displayLang = $profileChoice.AgentDisplay
+    $contentLanguage = $profileChoice.ContentLanguage
+
     # conversation-language.md 템플릿 처리
     $tmplPath = Join-Path $InstallDir 'global' 'conversation-language.md.tmpl'
     if (Test-Path -LiteralPath $tmplPath) {
-        $agentChoice = Show-AgentLanguagePrompt
-        $script:agentLanguage = $agentChoice.Language
-        $displayLang = $agentChoice.Display
-
         $dest = Join-Path $ClaudeDir "conversation-language.md"
         if (Invoke-GuardedTemplateCopy -SrcTmpl $tmplPath -Dest $dest -Key "conversation-language.md" -DisplayLang $displayLang) {
             Write-Ok "conversation-language.md 설치됨 (언어: $displayLang)"
@@ -241,7 +243,6 @@ function Install-GlobalSettings {
             Write-Info "conversation-language.md 로컬 변경 유지"
         }
     } else {
-        $script:agentLanguage = "korean"
         # Static-file fallback. The default repo ships only the .tmpl, so this
         # branch is unreachable in normal use. It exists to support fork users
         # who replace the .tmpl with a hand-edited static .md — preserving
@@ -256,9 +257,6 @@ function Install-GlobalSettings {
             }
         }
     }
-
-    # Content language policy selection (CLAUDE_CONTENT_LANGUAGE)
-    $contentLanguage = Show-ContentLanguagePrompt
 
     # Legacy settings.json migration warning (informational only).
     $null = Show-LegacySettingsWarning -SettingsPath (Join-Path $HOME '.claude/settings.json') -NewSelection $contentLanguage

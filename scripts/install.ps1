@@ -88,18 +88,19 @@ function New-LocalClaude {
 # tables in lockstep.
 
 function Invoke-PolicyTemplate {
-    # Renders a .md.tmpl file by replacing {{CONTENT_LANGUAGE_POLICY}}
-    # with the resolved phrase and writes the result to $Destination as UTF-8.
+    # Renders a .md.tmpl file by replacing {{CONTENT_LANGUAGE_POLICY}},
+    # {{AGENT_LANGUAGE_POLICY}}, and {{AGENT_LANGUAGE}} with their resolved values
+    # and writes the result to $Destination as UTF-8.
     param(
         [Parameter(Mandatory)][string]$Source,
         [Parameter(Mandatory)][string]$Destination
     )
     $phrase = Get-PolicyPhrase -Policy $script:contentLanguage
 
-    # Note: Agent language substitution is handled by Invoke-GuardedTemplateCopy.
-
     $content = [System.IO.File]::ReadAllText($Source)
     $rendered = $content -replace '\{\{CONTENT_LANGUAGE_POLICY\}\}', $phrase
+    $rendered = $rendered -replace '\{\{AGENT_LANGUAGE_POLICY\}\}', $script:agentDisplayLang
+    $rendered = $rendered -replace '\{\{AGENT_LANGUAGE\}\}', $script:agentLanguage
     $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
     [System.IO.File]::WriteAllText($Destination, $rendered, $utf8NoBom)
 }
@@ -333,10 +334,10 @@ if ([string]::IsNullOrEmpty($installType)) { $installType = '3' }
 $promptsModule = Join-Path $ScriptDir 'lib' 'InstallPrompts.psm1'
 Import-Module $promptsModule -Force -DisableNameChecking
 
-$contentLanguage = Show-ContentLanguagePrompt
-$agentChoice = Show-AgentLanguagePrompt
-$agentLanguage = $agentChoice.Language
-$agentDisplayLang = $agentChoice.Display
+$profileChoice = Show-LanguageProfilePrompt
+$agentLanguage = $profileChoice.AgentLanguage
+$agentDisplayLang = $profileChoice.AgentDisplay
+$contentLanguage = $profileChoice.ContentLanguage
 
 # Legacy settings.json migration warning (informational only).
 $null = Show-LegacySettingsWarning -SettingsPath (Join-Path $HOME '.claude/settings.json') -NewSelection $contentLanguage

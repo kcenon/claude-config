@@ -110,26 +110,20 @@ check "surfaced policies (PowerShell)" "$expected_surfaced" "$ps_surfaced"
 echo ""
 echo "[4] Prompt-string parity (selection prompts)"
 
-# Both libs must use the same "Selection (1-2) [default: N]" defaults
-# for both prompts. Defaults: agent=2, content=1.
-# The agent prompt appears first in both files; the content prompt appears
-# second. Extract the digit inside the [default: N] suffix.
+# Both libs must use the same "Selection (1-3) [default: 3]" default.
+# Extract the digit inside the [default: N] suffix.
 extract_default() {
-    local file="$1" rank="$2"  # rank = "head" | "tail"
-    grep -E 'Selection \(1-2\) \[default: [0-9]\]' "$file" \
-        | "$rank" -1 \
+    local file="$1"
+    grep -E 'Selection \(1-3\) \[default: [0-9]\]' "$file" \
+        | head -1 \
         | sed -E 's/.*\[default: ([0-9])\].*/\1/'
 }
 
-bash_agent_default="$(extract_default "$BASH_LIB" head)"
-bash_content_default="$(extract_default "$BASH_LIB" tail)"
-ps_agent_default="$(extract_default "$PS_LIB" head)"
-ps_content_default="$(extract_default "$PS_LIB" tail)"
+bash_default="$(extract_default "$BASH_LIB")"
+ps_default="$(extract_default "$PS_LIB")"
 
-check "agent default"   "$bash_agent_default"   "$ps_agent_default"
-check "content default" "$bash_content_default" "$ps_content_default"
-check "agent default = 2" "2" "$bash_agent_default"
-check "content default = 1" "1" "$bash_content_default"
+check "unified default match" "$bash_default" "$ps_default"
+check "unified default is 3" "3" "$bash_default"
 
 echo ""
 echo "=== Results: ${PASS} passed, ${FAIL} failed ==="

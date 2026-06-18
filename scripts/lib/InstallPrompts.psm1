@@ -29,49 +29,49 @@ function Script:Write-PromptWarn {
     Write-Host "  $Message" -ForegroundColor Yellow
 }
 
-function Show-AgentLanguagePrompt {
+function Show-LanguageProfilePrompt {
     [CmdletBinding()]
     param()
 
     Write-Host ""
-    Script:Write-PromptInfo "Select Agent Conversation Language:"
-    Write-Host "  1) English"
-    Write-Host "  2) Korean"
+    Script:Write-PromptInfo "Select Language Profile Preset:"
+    Write-Host "  1) English Unified (Dialogue & Documents both in English)"
+    Write-Host "  2) Korean Unified  (Dialogue & Documents both in Korean - exclusive)"
+    Write-Host "  3) Hybrid Mode     (Dialogue in Korean, Documents in English - default)"
     Write-Host ""
 
-    $sel = Read-Host "Selection (1-2) [default: 2]"
-    if ([string]::IsNullOrEmpty($sel)) { $sel = '2' }
+    $sel = Read-Host "Selection (1-3) [default: 3]"
+    if ([string]::IsNullOrEmpty($sel)) { $sel = '3' }
 
     switch ($sel) {
-        '1'     { return [pscustomobject]@{ Language = 'english'; Display = 'English' } }
-        '2'     { return [pscustomobject]@{ Language = 'korean';  Display = 'Korean'  } }
-        default {
-            Script:Write-PromptWarn "Unknown selection: $sel. Falling back to korean."
-            return [pscustomobject]@{ Language = 'korean'; Display = 'Korean' }
+        '1' {
+            return [pscustomobject]@{
+                AgentLanguage = 'english'
+                AgentDisplay = 'English'
+                ContentLanguage = 'english'
+            }
         }
-    }
-}
-
-function Show-ContentLanguagePrompt {
-    [CmdletBinding()]
-    param()
-
-    Write-Host ""
-    Script:Write-PromptInfo "Select Content Language (artifact validation scope):"
-    Script:Write-PromptInfo "  Locks the language of generated documents, commits, PRs, issues, and comments."
-    Write-Host "  1) English (ASCII only - no Hangul allowed in artifacts)"
-    Write-Host "  2) Korean  (per-artifact strict - Hangul or English document, no inline mixing)"
-    Write-Host ""
-
-    $sel = Read-Host "Selection (1-2) [default: 1]"
-    if ([string]::IsNullOrEmpty($sel)) { $sel = '1' }
-
-    switch ($sel) {
-        '1'     { return 'english' }
-        '2'     { return 'exclusive_bilingual' }
+        '2' {
+            return [pscustomobject]@{
+                AgentLanguage = 'korean'
+                AgentDisplay = 'Korean'
+                ContentLanguage = 'exclusive_bilingual'
+            }
+        }
+        '3' {
+            return [pscustomobject]@{
+                AgentLanguage = 'korean'
+                AgentDisplay = 'Korean'
+                ContentLanguage = 'english'
+            }
+        }
         default {
-            Script:Write-PromptWarn "Unknown selection: $sel. Falling back to english."
-            return 'english'
+            Script:Write-PromptWarn "Unknown selection: $sel. Falling back to Hybrid Mode."
+            return [pscustomobject]@{
+                AgentLanguage = 'korean'
+                AgentDisplay = 'Korean'
+                ContentLanguage = 'english'
+            }
         }
     }
 }
@@ -155,4 +155,4 @@ function Show-LegacySettingsWarning {
     return $true
 }
 
-Export-ModuleMember -Function Show-AgentLanguagePrompt, Show-ContentLanguagePrompt, Get-PolicyPhrase, Get-AllPolicyValues, Test-LegacyContentLanguage, Read-SettingsContentLanguage, Show-LegacySettingsWarning
+Export-ModuleMember -Function Show-LanguageProfilePrompt, Get-PolicyPhrase, Get-AllPolicyValues, Test-LegacyContentLanguage, Read-SettingsContentLanguage, Show-LegacySettingsWarning

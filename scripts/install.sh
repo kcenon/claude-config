@@ -256,7 +256,9 @@ render_policy_tmpl() {
     local phrase
     phrase="$(get_policy_phrase)"
     # sed 구분자를 |로 사용해 경로/phrase 충돌 회피
-    sed "s|{{CONTENT_LANGUAGE_POLICY}}|${phrase}|g" "$src" > "$dest"
+    sed -e "s|{{CONTENT_LANGUAGE_POLICY}}|${phrase}|g" \
+        -e "s|{{AGENT_LANGUAGE_POLICY}}|${AGENT_DISPLAY_LANG:-Korean}|g" \
+        -e "s|{{AGENT_LANGUAGE}}|${AGENT_LANGUAGE:-korean}|g" "$src" > "$dest"
 }
 
 # 함수: 지정 디렉토리 내의 .md.tmpl 파일을 모두 찾아 .md로 렌더링 (원본 .tmpl 삭제)
@@ -587,8 +589,7 @@ fi
 # the dispatcher at its default and skips writing settings.json.
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/install-prompts.sh"
-prompt_content_language
-prompt_agent_language
+prompt_language_profile
 
 # Legacy settings.json migration warning (informational only).
 # If the existing settings.json holds a CLAUDE_CONTENT_LANGUAGE value the
