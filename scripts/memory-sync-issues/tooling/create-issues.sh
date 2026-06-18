@@ -61,7 +61,7 @@ EOF
 done
 
 # Default to dry-run if no flag given (safety)
-if [[ "$RESUME" -eq 0 ]] && ! grep -qE -- '--execute|--dry-run' <<<"$@$0"; then
+if [[ "$RESUME" -eq 0 ]] && ! grep -qE -- '--execute|--dry-run' <<<"$* $0"; then
   : # already defaulted
 fi
 

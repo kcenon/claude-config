@@ -163,17 +163,27 @@ jobs:
             brew install shellcheck
           fi
 
-      - name: Run shellcheck on hook scripts
+      - name: Run shellcheck on shell scripts
         run: |
           failed=0
+          # Broad loop: every tracked .sh, gated at error severity. Self-tracking
+          # — new scripts are covered automatically with no workflow change.
+          mapfile -t scripts < <(git ls-files '*.sh')
+          for f in "${scripts[@]}"; do
+            echo "Checking (error) $f..."
+            if ! shellcheck --severity=error -e SC2086 "$f"; then
+              failed=1
+            fi
+          done
+          # Strict loop: hook + benchmark scripts held to the stricter warning bar.
           for script in global/hooks/*.sh tests/batch_drift_benchmark/*.sh; do
-            echo "Checking $script..."
+            echo "Checking (warning) $script..."
             if ! shellcheck -S warning -e SC2086 "$script"; then
               failed=1
             fi
           done
-          if [ $failed -eq 1 ]; then
-            echo "Shellcheck found issues in hook scripts"
+          if [ "$failed" -ne 0 ]; then
+            echo "Shellcheck found issues"
             exit 1
           fi
-          echo "All hook scripts passed shellcheck!"
+          echo "All shell scripts passed shellcheck!"
