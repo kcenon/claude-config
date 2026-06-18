@@ -386,12 +386,30 @@ install_project() {
 
     info "프로젝트 설정 설치 중: $PROJECT_DIR"
 
+    # 정책 템플릿 렌더링 준비 (issue #760)
+    # install-prompts.sh는 render_policy_tmpls_in_dir와 언어 프로파일 프롬프트를
+    # 제공한다. 프로젝트-단독 설치(타입 2)에서는 install_global이 호출되지 않으므로
+    # 이 시점에 lib 소싱과 언어 프로파일 해소가 모두 필요하다. 둘 다 멱등:
+    #   - lib는 INSTALL_PROMPTS_SH_LOADED 가드로 재소싱이 no-op
+    #   - 언어 변수가 이미 설정된 경우(타입 3에서 install_global이 프롬프트함)
+    #     재프롬프트하지 않도록 미설정일 때만 prompt_language_profile 호출
+    # shellcheck disable=SC1091
+    source "$INSTALL_DIR/scripts/lib/install-prompts.sh"
+    if [ -z "${AGENT_LANGUAGE:-}" ] || [ -z "${CONTENT_LANGUAGE:-}" ]; then
+        prompt_language_profile
+    fi
+
     # 파일 복사
     cp "$INSTALL_DIR/project/CLAUDE.md" "$PROJECT_DIR/"
 
     # .claude 디렉토리 설치
     mkdir -p "$PROJECT_DIR/.claude"
-    [ -d "$INSTALL_DIR/project/.claude/rules" ] && cp -r "$INSTALL_DIR/project/.claude/rules" "$PROJECT_DIR/.claude/"
+    if [ -d "$INSTALL_DIR/project/.claude/rules" ]; then
+        cp -r "$INSTALL_DIR/project/.claude/rules" "$PROJECT_DIR/.claude/"
+        # issue #760: 복사된 rules/ 안의 .md.tmpl을 정책 phrase로 치환
+        # (install.sh와 동일한 single-source 렌더 함수)
+        render_policy_tmpls_in_dir "$PROJECT_DIR/.claude/rules"
+    fi
     [ -d "$INSTALL_DIR/project/.claude/skills" ] && cp -r "$INSTALL_DIR/project/.claude/skills" "$PROJECT_DIR/.claude/"
     [ -d "$INSTALL_DIR/project/.claude/commands" ] && cp -r "$INSTALL_DIR/project/.claude/commands" "$PROJECT_DIR/.claude/"
     [ -d "$INSTALL_DIR/project/.claude/agents" ] && cp -r "$INSTALL_DIR/project/.claude/agents" "$PROJECT_DIR/.claude/"

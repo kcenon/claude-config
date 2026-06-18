@@ -242,36 +242,12 @@ create_local_claude() {
     fi
 }
 
-# Note: get_policy_phrase is provided by scripts/lib/install-prompts.sh,
-# which is sourced before any callers (the prompt section sources it
-# explicitly; render_policy_tmpl below depends on it). Kept centralized
-# in the lib so the bash, PowerShell, and drift-test definitions stay
-# in lockstep.
-
-# 함수: .tmpl 파일을 읽어 {{CONTENT_LANGUAGE_POLICY}}를 phrase로 치환한 뒤 대상에 기록
-# 사용법: render_policy_tmpl <src.tmpl> <dest.md>
-render_policy_tmpl() {
-    local src="$1"
-    local dest="$2"
-    local phrase
-    phrase="$(get_policy_phrase)"
-    # sed 구분자를 |로 사용해 경로/phrase 충돌 회피
-    sed -e "s|{{CONTENT_LANGUAGE_POLICY}}|${phrase}|g" \
-        -e "s|{{AGENT_LANGUAGE_POLICY}}|${AGENT_DISPLAY_LANG:-Korean}|g" \
-        -e "s|{{AGENT_LANGUAGE}}|${AGENT_LANGUAGE:-korean}|g" "$src" > "$dest"
-}
-
-# 함수: 지정 디렉토리 내의 .md.tmpl 파일을 모두 찾아 .md로 렌더링 (원본 .tmpl 삭제)
-# 사용법: render_policy_tmpls_in_dir <dir>
-render_policy_tmpls_in_dir() {
-    local dir="$1"
-    local tmpl md
-    while IFS= read -r tmpl; do
-        md="${tmpl%.tmpl}"
-        render_policy_tmpl "$tmpl" "$md"
-        rm -f "$tmpl"
-    done < <(find "$dir" -type f -name '*.md.tmpl' 2>/dev/null)
-}
+# Note: get_policy_phrase, render_policy_tmpl, and render_policy_tmpls_in_dir
+# are provided by scripts/lib/install-prompts.sh, which is sourced before any
+# callers (the prompt section sources it explicitly). The render helpers were
+# moved into the lib (issue #760) so the bootstrap install path can render the
+# copied rules too; both install.sh and bootstrap.sh now call the same single
+# source. The bash, PowerShell, and drift-test definitions stay in lockstep.
 
 # 함수: Enterprise 경로 감지
 get_enterprise_dir() {

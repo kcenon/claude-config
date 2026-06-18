@@ -82,40 +82,14 @@ function New-LocalClaude {
     }
 }
 
-# Note: Get-PolicyPhrase is provided by scripts/lib/InstallPrompts.psm1
-# which is imported in the language-prompt section below. The local
-# definition was removed to keep the bash, PowerShell, and drift-test
-# tables in lockstep.
-
-function Invoke-PolicyTemplate {
-    # Renders a .md.tmpl file by replacing {{CONTENT_LANGUAGE_POLICY}},
-    # {{AGENT_LANGUAGE_POLICY}}, and {{AGENT_LANGUAGE}} with their resolved values
-    # and writes the result to $Destination as UTF-8.
-    param(
-        [Parameter(Mandatory)][string]$Source,
-        [Parameter(Mandatory)][string]$Destination
-    )
-    $phrase = Get-PolicyPhrase -Policy $script:contentLanguage
-
-    $content = [System.IO.File]::ReadAllText($Source)
-    $rendered = $content -replace '\{\{CONTENT_LANGUAGE_POLICY\}\}', $phrase
-    $rendered = $rendered -replace '\{\{AGENT_LANGUAGE_POLICY\}\}', $script:agentDisplayLang
-    $rendered = $rendered -replace '\{\{AGENT_LANGUAGE\}\}', $script:agentLanguage
-    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-    [System.IO.File]::WriteAllText($Destination, $rendered, $utf8NoBom)
-}
-
-function Invoke-PolicyTemplatesInDir {
-    # Walks a directory, renders every *.md.tmpl to its *.md sibling,
-    # then deletes the .tmpl source. Used after bulk copy of rules/.
-    param([Parameter(Mandatory)][string]$Path)
-    if (-not (Test-Path -LiteralPath $Path)) { return }
-    Get-ChildItem -Path $Path -Filter '*.md.tmpl' -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
-        $dest = $_.FullName.Substring(0, $_.FullName.Length - '.tmpl'.Length)
-        Invoke-PolicyTemplate -Source $_.FullName -Destination $dest
-        Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
-    }
-}
+# Note: Get-PolicyPhrase, Invoke-PolicyTemplate, and Invoke-PolicyTemplatesInDir
+# are provided by scripts/lib/InstallPrompts.psm1, imported in the language-prompt
+# section below. The render helpers were moved into the module (issue #760) so
+# the bootstrap install path can render the copied rules too; both install.ps1
+# and bootstrap.ps1 now call the same single source. Because PowerShell modules
+# have their own $script: scope, callers pass the three language values
+# explicitly (-ContentLanguage/-AgentDisplay/-AgentLanguage). The bash,
+# PowerShell, and drift-test tables stay in lockstep.
 
 function Get-EnterpriseDir {
     if ($IsWindows -or ($env:OS -eq 'Windows_NT')) {
@@ -401,7 +375,8 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         if (Test-Path $srcTmpl) {
             # Render to a temporary file using the existing policy substitution
             $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "policy_$([guid]::NewGuid()).md"
-            Invoke-PolicyTemplate -Source $srcTmpl -Destination $tmpFile
+            Invoke-PolicyTemplate -Source $srcTmpl -Destination $tmpFile `
+                -ContentLanguage $script:contentLanguage -AgentDisplay $script:agentDisplayLang -AgentLanguage $script:agentLanguage
             if (Invoke-GuardedCopy -Src $tmpFile -Dest (Join-Path $claudeDir $gf) -Key $gf) {
                 Write-Success "$gf installed (policy phrase: $(Get-PolicyPhrase -Policy $script:contentLanguage))"
             } else {
@@ -729,7 +704,8 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
     if (Test-Path $sourceRules) {
         Copy-Item -Path $sourceRules -Destination $projectClaudeDir -Recurse -Force
         # Issue #411: render any .md.tmpl found under rules/ with the chosen policy phrase.
-        Invoke-PolicyTemplatesInDir -Path (Join-Path $projectClaudeDir 'rules')
+        Invoke-PolicyTemplatesInDir -Path (Join-Path $projectClaudeDir 'rules') `
+            -ContentLanguage $script:contentLanguage -AgentDisplay $script:agentDisplayLang -AgentLanguage $script:agentLanguage
         Write-Success "Rules directory installed! (policy phrase: $(Get-PolicyPhrase -Policy $script:contentLanguage))"
     }
 
