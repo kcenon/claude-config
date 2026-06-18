@@ -24,6 +24,7 @@ on:
       - 'tests/scripts/test-install-permissions-policy.sh'
       - 'tests/scripts/test-language-policy-drift.sh'
       - 'tests/scripts/test-installer-prompt-drift.sh'
+      - 'tests/scripts/test-language-override-contract.sh'
       - 'scripts/lib/**'
       - 'global/settings.json'
       - 'global/settings.windows.json'
@@ -117,6 +118,13 @@ jobs:
         # scripts/lib/InstallPrompts.psm1 (PowerShell) - the single source
         # of truth for installer prompts and the policy phrase table.
         run: bash tests/scripts/test-installer-prompt-drift.sh
+
+      - name: Run language override contract test
+        # Locks the independent non-interactive env-override contract
+        # (issue #762): presetting only AGENT_LANGUAGE or only
+        # CONTENT_LANGUAGE must be honored, not clobbered to the Hybrid
+        # default. Guards against the AND-gate regression from #757.
+        run: bash tests/scripts/test-language-override-contract.sh
 
       - name: Run installer robustness test
         # Guards the per-platform settings-source parity (PowerShell
