@@ -228,10 +228,14 @@ function Install-GlobalSettings {
     }
 
     # Language policy selection (Unified Language Profile)
+    # Stored at script scope so the project-install path (Install-ProjectSettings)
+    # can reuse the resolved values for rule-template rendering (issue #760).
     $profileChoice = Show-LanguageProfilePrompt
     $script:agentLanguage = $profileChoice.AgentLanguage
-    $displayLang = $profileChoice.AgentDisplay
-    $contentLanguage = $profileChoice.ContentLanguage
+    $script:displayLang = $profileChoice.AgentDisplay
+    $script:contentLanguage = $profileChoice.ContentLanguage
+    $displayLang = $script:displayLang
+    $contentLanguage = $script:contentLanguage
 
     # conversation-language.md 템플릿 처리
     $tmplPath = Join-Path $InstallDir 'global' 'conversation-language.md.tmpl'
@@ -420,6 +424,27 @@ function Install-ProjectSettings {
 
     Write-Info "프로젝트 설정 설치 중: $projDir"
 
+    # Policy-template render prerequisites (issue #760).
+    # InstallPrompts.psm1 provides Invoke-PolicyTemplatesInDir and the language
+    # profile prompt. On the project-only path (install type 2) Install-GlobalSettings
+    # is not called, so the module import and language resolution must happen here.
+    # Both are idempotent / guarded:
+    #   - Import-Module -Force is safe to repeat.
+    #   - Resolve the profile only when the script-scoped values are not already
+    #     set (type 3 resolved them in Install-GlobalSettings), to avoid a second prompt.
+    $promptsModule = Join-Path $InstallDir 'scripts' 'lib' 'InstallPrompts.psm1'
+    if (Test-Path -LiteralPath $promptsModule) {
+        Import-Module $promptsModule -Force -DisableNameChecking
+    }
+    if (-not $script:contentLanguage -or -not $script:agentLanguage) {
+        if (Get-Command Show-LanguageProfilePrompt -ErrorAction SilentlyContinue) {
+            $profileChoice = Show-LanguageProfilePrompt
+            $script:agentLanguage = $profileChoice.AgentLanguage
+            $script:displayLang = $profileChoice.AgentDisplay
+            $script:contentLanguage = $profileChoice.ContentLanguage
+        }
+    }
+
     # Copy files
     Copy-Item -Path (Join-Path $InstallDir 'project' 'CLAUDE.md') -Destination $projDir -Force
 
@@ -432,6 +457,13 @@ function Install-ProjectSettings {
     $rulesDir = Join-Path $InstallDir 'project' '.claude' 'rules'
     if (Test-Path $rulesDir) {
         Copy-Item -Path $rulesDir -Destination $projClaudeDir -Recurse -Force
+        # issue #760: render any .md.tmpl under the copied rules/ via the same
+        # single-source function install.ps1 uses. Unset language values fall
+        # back to safe defaults inside Invoke-PolicyTemplate.
+        if (Get-Command Invoke-PolicyTemplatesInDir -ErrorAction SilentlyContinue) {
+            Invoke-PolicyTemplatesInDir -Path (Join-Path $projClaudeDir 'rules') `
+                -ContentLanguage $script:contentLanguage -AgentDisplay $script:displayLang -AgentLanguage $script:agentLanguage
+        }
     }
 
     $skillsDir = Join-Path $InstallDir 'project' '.claude' 'skills'

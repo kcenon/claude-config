@@ -123,6 +123,34 @@ get_policy_phrase() {
     esac
 }
 
+# 함수: .tmpl 파일을 읽어 {{CONTENT_LANGUAGE_POLICY}}를 phrase로 치환한 뒤 대상에 기록
+# 사용법: render_policy_tmpl <src.tmpl> <dest.md>
+# get_policy_phrase에 의존하며 ambient CONTENT_LANGUAGE/AGENT_DISPLAY_LANG/
+# AGENT_LANGUAGE를 읽는다(미설정 시 안전 기본값). install.sh와 bootstrap.sh
+# 양쪽이 동일하게 호출하도록 단일 출처(이 lib)에 둔다 (issue #760).
+render_policy_tmpl() {
+    local src="$1"
+    local dest="$2"
+    local phrase
+    phrase="$(get_policy_phrase)"
+    # sed 구분자를 |로 사용해 경로/phrase 충돌 회피
+    sed -e "s|{{CONTENT_LANGUAGE_POLICY}}|${phrase}|g" \
+        -e "s|{{AGENT_LANGUAGE_POLICY}}|${AGENT_DISPLAY_LANG:-Korean}|g" \
+        -e "s|{{AGENT_LANGUAGE}}|${AGENT_LANGUAGE:-korean}|g" "$src" > "$dest"
+}
+
+# 함수: 지정 디렉토리 내의 .md.tmpl 파일을 모두 찾아 .md로 렌더링 (원본 .tmpl 삭제)
+# 사용법: render_policy_tmpls_in_dir <dir>
+render_policy_tmpls_in_dir() {
+    local dir="$1"
+    local tmpl md
+    while IFS= read -r tmpl; do
+        md="${tmpl%.tmpl}"
+        render_policy_tmpl "$tmpl" "$md"
+        rm -f "$tmpl"
+    done < <(find "$dir" -type f -name '*.md.tmpl' 2>/dev/null)
+}
+
 # all_policy_values
 # Emits the four canonical CLAUDE_CONTENT_LANGUAGE values, one per line.
 # Used by the drift test to iterate without hard-coding the list.

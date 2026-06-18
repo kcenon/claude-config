@@ -95,6 +95,58 @@ function Get-PolicyPhrase {
     }
 }
 
+function Invoke-PolicyTemplate {
+    # Renders a .md.tmpl file by replacing {{CONTENT_LANGUAGE_POLICY}},
+    # {{AGENT_LANGUAGE_POLICY}}, and {{AGENT_LANGUAGE}} with their resolved
+    # values and writes the result to $Destination as UTF-8 (no BOM).
+    #
+    # The three language values are passed explicitly: PowerShell modules
+    # have their own $script: scope, so the importer's $script:contentLanguage
+    # etc. are not visible here (mirrors Get-PolicyPhrase's -Policy contract).
+    # Unset values fall back to safe defaults (issue #760), matching the bash
+    # render_policy_tmpl ambient-default behavior.
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Source,
+        [Parameter(Mandatory)][string]$Destination,
+        [string]$ContentLanguage = 'english',
+        [string]$AgentDisplay = 'Korean',
+        [string]$AgentLanguage = 'korean'
+    )
+    if (-not $AgentDisplay)  { $AgentDisplay = 'Korean' }
+    if (-not $AgentLanguage) { $AgentLanguage = 'korean' }
+    $phrase = Get-PolicyPhrase -Policy $ContentLanguage
+
+    $content = [System.IO.File]::ReadAllText($Source)
+    $rendered = $content -replace '\{\{CONTENT_LANGUAGE_POLICY\}\}', $phrase
+    $rendered = $rendered -replace '\{\{AGENT_LANGUAGE_POLICY\}\}', $AgentDisplay
+    $rendered = $rendered -replace '\{\{AGENT_LANGUAGE\}\}', $AgentLanguage
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($Destination, $rendered, $utf8NoBom)
+}
+
+function Invoke-PolicyTemplatesInDir {
+    # Walks a directory, renders every *.md.tmpl to its *.md sibling,
+    # then deletes the .tmpl source. Used after bulk copy of rules/.
+    # Forwards the three language values to Invoke-PolicyTemplate so both
+    # install.ps1 and bootstrap.ps1 render through this single source
+    # (issue #760).
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [string]$ContentLanguage = 'english',
+        [string]$AgentDisplay = 'Korean',
+        [string]$AgentLanguage = 'korean'
+    )
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    Get-ChildItem -Path $Path -Filter '*.md.tmpl' -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+        $dest = $_.FullName.Substring(0, $_.FullName.Length - '.tmpl'.Length)
+        Invoke-PolicyTemplate -Source $_.FullName -Destination $dest `
+            -ContentLanguage $ContentLanguage -AgentDisplay $AgentDisplay -AgentLanguage $AgentLanguage
+        Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Get-AllPolicyValues {
     # Emits the four canonical CLAUDE_CONTENT_LANGUAGE values.
     # Used by the drift test to iterate without hard-coding the list.
@@ -155,4 +207,4 @@ function Show-LegacySettingsWarning {
     return $true
 }
 
-Export-ModuleMember -Function Show-LanguageProfilePrompt, Get-PolicyPhrase, Get-AllPolicyValues, Test-LegacyContentLanguage, Read-SettingsContentLanguage, Show-LegacySettingsWarning
+Export-ModuleMember -Function Show-LanguageProfilePrompt, Get-PolicyPhrase, Invoke-PolicyTemplate, Invoke-PolicyTemplatesInDir, Get-AllPolicyValues, Test-LegacyContentLanguage, Read-SettingsContentLanguage, Show-LegacySettingsWarning
