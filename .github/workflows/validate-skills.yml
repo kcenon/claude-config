@@ -2,7 +2,7 @@ name: Validate Skills
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - 'project/.claude/skills/**'
       - 'project/.claude/rules/workflow/**'
@@ -46,6 +46,12 @@ on:
       - '.github/workflows/validate-skills.yml'
       - 'README.md'
       - 'README.ko.md'
+
+# Cancel in-progress runs of the same PR / schedule so a fast follow-up commit
+# does not pile up.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
