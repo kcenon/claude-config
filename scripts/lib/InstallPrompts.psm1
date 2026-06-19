@@ -143,6 +143,12 @@ function Invoke-PolicyTemplate {
     $rendered = $content -replace '\{\{CONTENT_LANGUAGE_POLICY\}\}', $phrase
     $rendered = $rendered -replace '\{\{AGENT_LANGUAGE_POLICY\}\}', $AgentDisplay
     $rendered = $rendered -replace '\{\{AGENT_LANGUAGE\}\}', $AgentLanguage
+    # Strip the developer-only tmpl-contract comment line so it never leaks
+    # into the rendered .md, with parity to bash render_policy_tmpl's
+    # `sed -e '/tmpl-contract/d'` (issue #771). The comment stays in the .tmpl.
+    # `-notmatch` drops every line containing the marker; -join keeps LF endings
+    # to match the bash renderer's line-oriented output.
+    $rendered = (($rendered -split "`n") | Where-Object { $_ -notmatch 'tmpl-contract' }) -join "`n"
     $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
     [System.IO.File]::WriteAllText($Destination, $rendered, $utf8NoBom)
 }
