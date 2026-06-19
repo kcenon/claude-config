@@ -135,8 +135,11 @@ render_policy_tmpl() {
     local dest="$2"
     local phrase
     phrase="$(get_policy_phrase)"
-    # sed 구분자를 |로 사용해 경로/phrase 충돌 회피
-    sed -e "s|{{CONTENT_LANGUAGE_POLICY}}|${phrase}|g" \
+    # sed 구분자를 |로 사용해 경로/phrase 충돌 회피.
+    # tmpl-contract 주석 줄은 개발자 전용 가이드이므로 .tmpl에는 남기되
+    # 렌더된 .md로는 새어 나가지 않도록 삭제한다 (issue #771).
+    sed -e "/tmpl-contract/d" \
+        -e "s|{{CONTENT_LANGUAGE_POLICY}}|${phrase}|g" \
         -e "s|{{AGENT_LANGUAGE_POLICY}}|${AGENT_DISPLAY_LANG:-Korean}|g" \
         -e "s|{{AGENT_LANGUAGE}}|${AGENT_LANGUAGE:-korean}|g" "$src" > "$dest"
 }

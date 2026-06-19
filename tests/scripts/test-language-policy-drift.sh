@@ -20,8 +20,14 @@
 #      the english-preset render must equal that canonical .md. Editing the
 #      .md without the .tmpl (or vice versa) would let the installer overwrite
 #      the doc with a stale phrase on a non-english policy; this catches it.
-#      The template-only canonical-contract comment line is stripped before
-#      comparison (it ships in the .tmpl, never in the rendered .md).
+#      The renderer now strips the template-only tmpl-contract comment line
+#      during render (issue #771), so the rendered output already equals the
+#      committed .md with no test-side workaround — only CRLF is normalized.
+#
+#   2b. No-marker gate — for every template and preset, the rendered output
+#      must contain ZERO tmpl-contract markers. This is the regression guard
+#      for #771: the renderer, not the test, is responsible for stripping the
+#      developer-only comment so it never leaks into the installed .md.
 #
 #   3. Directory render — copy project/.claude/rules to a tempdir, run
 #      render_policy_tmpls_in_dir over it, and assert no {{...}} residue and
@@ -48,10 +54,10 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # shellcheck disable=SC1091
 source "$REPO_ROOT/scripts/lib/install-prompts.sh"
 
-# Marker prefix for the template-only canonical-contract comment. Stripped
-# before the canonical .md == rendered .tmpl comparison so the comment can
-# live in the .tmpl without being mirrored into the committed .md.
-CONTRACT_MARKER='tmpl-contract:'
+# Marker substring for the template-only canonical-contract comment. The
+# renderer strips any line containing it (issue #771); the test asserts the
+# rendered output carries none, rather than stripping it before comparison.
+CONTRACT_MARKER='tmpl-contract'
 
 # All shipped templates. The .md column is the committed canonical twin, or
 # "-" for bootstrap-only templates that render straight into ~/.claude with no
@@ -77,10 +83,11 @@ FAIL=0
 pass() { PASS=$((PASS + 1)); echo "  PASS: $1"; }
 fail() { FAIL=$((FAIL + 1)); echo "  FAIL: $1"; }
 
-# strip_contract <file>  — emit file with the contract-comment line removed
-# and CR stripped (repo carries mixed CRLF/LF on Windows clones).
-strip_contract() {
-    grep -v "$CONTRACT_MARKER" "$1" | tr -d '\r'
+# normalize_lf <file>  — emit file with CR stripped (the repo carries mixed
+# CRLF/LF on Windows clones). The contract comment is no longer stripped here:
+# the renderer removes it, so the rendered output must already match the .md.
+normalize_lf() {
+    tr -d '\r' < "$1"
 }
 
 echo "=== Content-language policy drift test (#411, #761) ==="
@@ -154,21 +161,31 @@ for entry in "${TEMPLATES[@]}"; do
             pass "${pname}: no leftover {{...}} placeholders"
         fi
 
+        # 2b: no-marker gate (#771) — the tmpl-contract comment must never
+        # leak into the rendered output for any preset.
+        if grep -qF "$CONTRACT_MARKER" "$rendered"; then
+            fail "${pname}: tmpl-contract marker leaked into render"
+        else
+            pass "${pname}: no tmpl-contract marker in render"
+        fi
+
         # 2: canonical drift — english preset must equal the committed .md.
+        # The renderer strips the contract comment, so the rendered output
+        # must match the .md verbatim (only CRLF normalized).
         if [ "$pname" = "english" ] && [ "$md_rel" != "-" ]; then
             md="$REPO_ROOT/$md_rel"
             if [ ! -f "$md" ]; then
                 fail "canonical .md missing: $md_rel"
             elif diff -q \
-                <(strip_contract "$rendered") \
-                <(strip_contract "$md") >/dev/null 2>&1; then
+                <(normalize_lf "$rendered") \
+                <(normalize_lf "$md") >/dev/null 2>&1; then
                 pass "canonical .md matches english render"
             else
                 fail "canonical .md drifted from english render"
-                echo "  --- diff (rendered vs canonical, contract-stripped, LF-normalized) ---"
-                diff <(strip_contract "$rendered") <(strip_contract "$md") \
+                echo "  --- diff (rendered vs canonical, LF-normalized) ---"
+                diff <(normalize_lf "$rendered") <(normalize_lf "$md") \
                     | head -20 | sed 's/^/      /'
-                echo "  ---------------------------------------------------------------------"
+                echo "  ---------------------------------------------------"
             fi
         fi
 
@@ -220,6 +237,14 @@ else
             grep -rnE '\{\{[A-Z_]+\}\}' "$work/rules" | head -10 | sed 's/^/      /'
         else
             pass "no leftover {{...}} placeholders in rendered rules tree"
+        fi
+
+        # No tmpl-contract marker may survive in any rendered .md (#771).
+        if grep -rqF "$CONTRACT_MARKER" "$work/rules"; then
+            fail "tmpl-contract marker survives in rendered rules tree"
+            grep -rnF "$CONTRACT_MARKER" "$work/rules" | head -10 | sed 's/^/      /'
+        else
+            pass "no tmpl-contract marker in rendered rules tree"
         fi
     fi
 
