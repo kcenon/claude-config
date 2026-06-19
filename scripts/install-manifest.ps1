@@ -150,6 +150,8 @@ function Invoke-GuardedTemplateCopy {
     $tmpLang = Join-Path ([System.IO.Path]::GetTempPath()) "conversation-language_$([guid]::NewGuid()).md"
     $tmplContent = [System.IO.File]::ReadAllText($SrcTmpl)
     $rendered = $tmplContent -replace '\{\{AGENT_LANGUAGE_POLICY\}\}', $DisplayLang
+    # Strip the developer-only tmpl-contract comment line so it does not leak into the rendered .md (issue #773, parity with #771).
+    $rendered = (($rendered -split "`n") | Where-Object { $_ -notmatch 'tmpl-contract' }) -join "`n"
     $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
     [System.IO.File]::WriteAllText($tmpLang, $rendered, $utf8NoBom)
     
