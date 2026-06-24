@@ -1084,6 +1084,7 @@ this catalog for the canonical hook inventory.
 | [`prompt-validator.sh`](#prompt-validator) | UserPromptSubmit | yes |
 | [`sensitive-file-guard.sh`](#sensitive-file-guard) | PreToolUse (Edit|Write|Read) | yes |
 | [`session-logger.sh`](#session-logger) | SessionStart, SessionEnd, Stop, TeammateIdle | yes |
+| [`shell-env-secret-guard.sh`](#shell-env-secret-guard) | PreToolUse (Bash) | yes |
 | [`subagent-logger.sh`](#subagent-logger) | SubagentStart, SubagentStop | yes |
 | [`task-completed-logger.sh`](#task-completed-logger) | TaskCompleted | yes |
 | [`task-created-validator.sh`](#task-created-validator) | TaskCreated (sync, blocking) | yes |
@@ -1094,7 +1095,7 @@ this catalog for the canonical hook inventory.
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
 | [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 36 bash hooks, 36 with PowerShell counterparts._
+_Total: 37 bash hooks, 37 with PowerShell counterparts._
 
 ### Hook Details
 
@@ -1559,6 +1560,23 @@ Logs session start/end events
 | Response format | none (lifecycle event, no JSON output needed) |
 | PowerShell counterpart | present (`session-logger.ps1`) |
 | Source | `global/hooks/session-logger.sh` |
+
+### shell-env-secret-guard
+
+_File:_ `shell-env-secret-guard.sh`
+
+_Anchor:_ `#shell-env-secret-guard`
+
+Blocks bash commands that would print or dump secret-bearing environment variables into the transcript.
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | hookSpecificOutput with hookEventName |
+| PowerShell counterpart | present (`shell-env-secret-guard.ps1`) |
+| Source | `global/hooks/shell-env-secret-guard.sh` |
 
 ### subagent-logger
 

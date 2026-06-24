@@ -175,6 +175,11 @@
           },
           {
             "type": "command",
+            "command": "~/.claude/hooks/shell-env-secret-guard.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "~/.claude/hooks/bash-write-guard.sh",
             "timeout": 5
           },
