@@ -70,20 +70,20 @@ INPUT=$(cat)
 # chain is fail-closed, so this guard stays quiet to avoid double-denial noise.
 if [ -z "$INPUT" ]; then
     CMD=""
-    allow_response
+    allow_response "fail-open: empty hook input"
 fi
 
 JQ_RC=0
 CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || JQ_RC=$?
 if [ "$JQ_RC" -ne 0 ]; then
     CMD=""
-    allow_response
+    allow_response "fail-open: unparseable hook input"
 fi
 if [ -z "$CMD" ]; then
     CMD="${CLAUDE_TOOL_INPUT:-}"
 fi
 if [ -z "$CMD" ]; then
-    allow_response
+    allow_response "no command to inspect"
 fi
 
 # Secret keyword as an underscore-delimited segment/suffix of an UPPER_SNAKE
