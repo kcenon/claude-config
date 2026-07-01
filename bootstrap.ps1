@@ -227,6 +227,17 @@ function Install-GlobalSettings {
         }
     }
 
+    # Auto-seed git identity from `git config --global` (issue #777). Shared
+    # with scripts/install.ps1 via Set-GitIdentitySeed in InstallPrompts.psm1,
+    # so the later Invoke-PersonalizeGitIdentity step becomes confirm-only when
+    # the user already has a global git identity configured.
+    if (Get-Command Set-GitIdentitySeed -ErrorAction SilentlyContinue) {
+        $gitIdTarget = Join-Path $ClaudeDir 'git-identity.md'
+        if (Set-GitIdentitySeed -Path $gitIdTarget) {
+            Write-Ok "git-identity.md: git config로 자동 채우기 완료 ($($script:SeededGitName) <$($script:SeededGitEmail)>)"
+        }
+    }
+
     # Language policy selection (Unified Language Profile)
     # Stored at script scope so the project-install path (Install-ProjectSettings)
     # can reuse the resolved values for rule-template rendering (issue #760).

@@ -635,38 +635,25 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         fi
     done
 
-    # Git identity auto-fill (issue #748).
-    # When git config --global user.name and user.email are both present,
-    # pre-fill ~/.claude/git-identity.md with those values so non-interactive
-    # installs produce a usable file without manual editing.
-    # Idempotent: only fills placeholder lines (YOUR NAME / YOUR EMAIL pattern)
-    # and only when the file exists — never overwrites a user-customized file.
+    # Git identity auto-fill (issue #748; extracted to shared lib in #777).
+    # seed_git_identity() lives in scripts/lib/install-prompts.sh so bootstrap.sh
+    # and install.sh share one implementation. It only patches placeholder
+    # lines and only when both git config values are present, never overwriting
+    # a user-customized file.
     _git_identity_target="$HOME/.claude/git-identity.md"
-    if [ -f "$_git_identity_target" ]; then
-        _git_name="$(git config --global user.name 2>/dev/null || true)"
-        _git_email="$(git config --global user.email 2>/dev/null || true)"
-        if [ -n "$_git_name" ] && [ -n "$_git_email" ]; then
-            # Only patch lines that still contain placeholder tokens.
-            # The heuristic: lines with "YOUR NAME" or "YOUR EMAIL" (case-insensitive)
-            # are treated as unfilled placeholders; lines with actual values are left alone.
-            if grep -qi "YOUR NAME\|YOUR EMAIL\|<your" "$_git_identity_target" 2>/dev/null; then
-                sed -i.bak \
-                    -e "s/YOUR NAME/$_git_name/g" \
-                    -e "s/YOUR EMAIL/$_git_email/g" \
-                    -e "s/<your[^>]*name[^>]*>/$_git_name/gi" \
-                    -e "s/<your[^>]*email[^>]*>/$_git_email/gi" \
-                    "$_git_identity_target" 2>/dev/null && \
-                    rm -f "$_git_identity_target.bak" && \
-                    success "git-identity.md: git global config로 자동 채우기 완료 (${_git_name} <${_git_email}>)" || \
-                    mv "$_git_identity_target.bak" "$_git_identity_target" 2>/dev/null || true
-            else
-                info "git-identity.md: 이미 사용자 정의 값 유지"
-            fi
+    if seed_git_identity "$_git_identity_target"; then
+        success "git-identity.md: git global config로 자동 채우기 완료 (${SEED_GIT_IDENTITY_NAME} <${SEED_GIT_IDENTITY_EMAIL}>)"
+    elif [ -f "$_git_identity_target" ]; then
+        # Not seeded: either the file was already customized, or git config is
+        # missing. Preserve the pre-extraction messaging for both cases.
+        if git config --global user.name >/dev/null 2>&1 \
+            && git config --global user.email >/dev/null 2>&1; then
+            info "git-identity.md: 이미 사용자 정의 값 유지"
         else
             warning "git config --global user.name / user.email 미설정 — git-identity.md를 수동으로 편집하세요"
         fi
     fi
-    unset _git_identity_target _git_name _git_email
+    unset _git_identity_target
 
     # conversation-language.md 템플릿 렌더링
     # AGENT_DISPLAY_LANG is populated by prompt_language_profile() in

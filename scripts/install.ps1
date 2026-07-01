@@ -392,6 +392,16 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         }
     }
 
+    # Auto-seed git identity from `git config --global` (issue #777). Shared
+    # with bootstrap.ps1 via Set-GitIdentitySeed in InstallPrompts.psm1, so a
+    # fresh install produces a usable git-identity.md without manual editing.
+    if (Get-Command Set-GitIdentitySeed -ErrorAction SilentlyContinue) {
+        $gitIdTarget = Join-Path $claudeDir 'git-identity.md'
+        if (Set-GitIdentitySeed -Path $gitIdTarget) {
+            Write-Success "git-identity.md auto-filled from git config ($($script:SeededGitName) <$($script:SeededGitEmail)>)"
+        }
+    }
+
     # conversation-language.md template rendering.
     # $agentDisplayLang is populated by Show-LanguageProfilePrompt (derived
     # from $profileChoice); fall back to deriving from $agentLanguage if the

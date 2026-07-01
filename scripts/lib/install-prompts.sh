@@ -215,3 +215,49 @@ detect_legacy_content_language() {
         *)                       return 1 ;;
     esac
 }
+
+# seed_git_identity <deployed_git_identity_md>
+# Auto-fill the name/email placeholders in a deployed git-identity.md from
+# `git config --global user.name` / `user.email`. Extracted from the #748
+# auto-fill block in scripts/install.sh so bootstrap.sh and install.sh share
+# one implementation (issue #777).
+#
+# Contract (idempotent, never destructive):
+#   - no-op (return 1) when the target file is absent,
+#   - no-op when git config lacks either user.name or user.email,
+#   - only rewrites lines that still hold the YOUR NAME / YOUR EMAIL
+#     placeholder tokens, so a user-customized file is left untouched.
+# On success, exports SEED_GIT_IDENTITY_NAME / SEED_GIT_IDENTITY_EMAIL so the
+# caller can print a confirmation, and returns 0.
+seed_git_identity() {
+    local target="${1:-}"
+    [ -f "$target" ] || return 1
+
+    local name email
+    name="$(git config --global user.name 2>/dev/null || true)"
+    email="$(git config --global user.email 2>/dev/null || true)"
+    [ -n "$name" ] && [ -n "$email" ] || return 1
+
+    # Only touch the file while placeholders remain — never clobber real values.
+    grep -q "YOUR NAME\|YOUR EMAIL" "$target" 2>/dev/null || return 1
+
+    # Escape sed replacement metacharacters (\ & and the | delimiter) so a
+    # name/email containing them cannot corrupt the substitution.
+    local esc_name esc_email
+    esc_name="$(printf '%s' "$name" | sed -e 's/[\\&|]/\\&/g')"
+    esc_email="$(printf '%s' "$email" | sed -e 's/[\\&|]/\\&/g')"
+
+    if sed -i.bak \
+        -e "s|YOUR NAME|${esc_name}|g" \
+        -e "s|YOUR EMAIL|${esc_email}|g" \
+        "$target" 2>/dev/null; then
+        rm -f "$target.bak"
+        SEED_GIT_IDENTITY_NAME="$name"
+        SEED_GIT_IDENTITY_EMAIL="$email"
+        return 0
+    fi
+
+    # Restore on failure so a partial write never leaves a corrupt file.
+    mv "$target.bak" "$target" 2>/dev/null || true
+    return 1
+}

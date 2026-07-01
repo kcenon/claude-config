@@ -250,6 +250,14 @@ install_global() {
         fi
     done
 
+    # Auto-seed git identity from `git config --global` (issue #777). Shared
+    # with scripts/install.sh via seed_git_identity() in install-prompts.sh, so
+    # the later personalize_git_identity step becomes confirm-only whenever the
+    # user already has a global git identity configured.
+    if seed_git_identity "$CLAUDE_DIR/git-identity.md"; then
+        success "git-identity.md: git config로 자동 채우기 완료 (${SEED_GIT_IDENTITY_NAME} <${SEED_GIT_IDENTITY_EMAIL}>)"
+    fi
+
     # Language policy selection (Unified Language Profile)
     prompt_language_profile
 
