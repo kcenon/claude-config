@@ -235,4 +235,37 @@ function Show-LegacySettingsWarning {
     return $true
 }
 
-Export-ModuleMember -Function Show-LanguageProfilePrompt, Get-PolicyPhrase, Invoke-PolicyTemplate, Invoke-PolicyTemplatesInDir, Get-AllPolicyValues, Test-LegacyContentLanguage, Read-SettingsContentLanguage, Show-LegacySettingsWarning
+function Set-GitIdentitySeed {
+    # Auto-fill the name/email placeholders in a deployed git-identity.md from
+    # `git config --global user.name` / `user.email`. PowerShell mirror of
+    # seed_git_identity() in scripts/lib/install-prompts.sh (issue #777).
+    #
+    # Idempotent and non-destructive: no-op when the file is absent, when git
+    # config lacks either value, or when no placeholder tokens remain. Uses
+    # literal String.Replace (not regex), so names/emails with special
+    # characters are substituted safely. Returns $true and sets
+    # $script:SeededGitName / $script:SeededGitEmail when values were seeded.
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+
+    $name  = (git config --global user.name  2>$null)
+    $email = (git config --global user.email 2>$null)
+    if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($email)) {
+        return $false
+    }
+    $name  = $name.Trim()
+    $email = $email.Trim()
+
+    $content = Get-Content -Raw -LiteralPath $Path
+    if ($content -notmatch 'YOUR NAME|YOUR EMAIL') { return $false }
+
+    $seeded = $content.Replace('YOUR NAME', $name).Replace('YOUR EMAIL', $email)
+    Set-Content -LiteralPath $Path -Value $seeded -NoNewline
+    $script:SeededGitName  = $name
+    $script:SeededGitEmail = $email
+    return $true
+}
+
+Export-ModuleMember -Function Show-LanguageProfilePrompt, Get-PolicyPhrase, Invoke-PolicyTemplate, Invoke-PolicyTemplatesInDir, Get-AllPolicyValues, Test-LegacyContentLanguage, Read-SettingsContentLanguage, Show-LegacySettingsWarning, Set-GitIdentitySeed
