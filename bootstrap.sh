@@ -350,6 +350,31 @@ install_global() {
         fi
     fi
 
+    # hooks 디렉토리 설치 (settings.json이 참조하는 런타임 가드) — issue #779.
+    # settings.json은 ~/.claude/hooks/*.sh 가드 다수를 참조하므로, 설정 복사와
+    # 훅 배포를 한 트랜잭션으로 처리해 "설정은 있는데 훅이 없는" 조용한 보안
+    # 공백을 막는다. scripts/install.sh의 hooks + hooks/lib 배포 블록과 동일.
+    if [ -d "$INSTALL_DIR/global/hooks" ]; then
+        mkdir -p "$CLAUDE_DIR/hooks"
+        cp "$INSTALL_DIR/global/hooks"/*.sh "$CLAUDE_DIR/hooks/" 2>/dev/null || true
+        chmod +x "$CLAUDE_DIR/hooks/"*.sh 2>/dev/null || true
+
+        # global/hooks/lib/*.sh 배포 (issue #586). 위 *.sh glob은 비재귀적이라
+        # tokenize-shell.sh 등 공유 라이브러리는 별도 복사 없이는 누락된다.
+        # dangerous-command-guard 등 4개 Bash 가드가 런타임에 이를 source한다.
+        if [ -d "$INSTALL_DIR/global/hooks/lib" ]; then
+            mkdir -p "$CLAUDE_DIR/hooks/lib"
+            cp "$INSTALL_DIR/global/hooks/lib"/*.sh "$CLAUDE_DIR/hooks/lib/" 2>/dev/null || true
+            chmod +x "$CLAUDE_DIR/hooks/lib/"*.sh 2>/dev/null || true
+
+            if [ ! -f "$CLAUDE_DIR/hooks/lib/tokenize-shell.sh" ]; then
+                warning "hooks/lib/tokenize-shell.sh 미설치 - Bash 가드가 약화됩니다 (issue #586)"
+            fi
+        fi
+
+        success "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
+    fi
+
     # 글로벌 skills 및 commands 설치
     # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
     # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의

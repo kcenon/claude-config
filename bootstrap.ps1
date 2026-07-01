@@ -365,6 +365,39 @@ function Install-GlobalSettings {
         }
     }
 
+    # hooks 디렉토리 설치 (settings.json이 참조하는 런타임 가드) — issue #779.
+    # settings.windows.json은 `pwsh -File ...ps1` 훅 다수를 참조하므로, 설정 복사와
+    # 훅 배포를 한 트랜잭션으로 처리해 "설정은 있는데 훅이 없는" 조용한 보안 공백을
+    # 막는다. scripts/install.ps1의 hooks + hooks/lib 배포 블록과 동일.
+    $hooksSrc = Join-Path $InstallDir 'global' 'hooks'
+    if (Test-Path -LiteralPath $hooksSrc -PathType Container) {
+        $hooksDst = Join-Path $ClaudeDir 'hooks'
+        if (-not (Test-Path $hooksDst)) {
+            New-Item -ItemType Directory -Path $hooksDst -Force | Out-Null
+        }
+        # Windows 훅은 `pwsh -File ...ps1`; .sh/.json은 WSL/parity 목적으로 함께 복사.
+        Copy-Item -Path "$hooksSrc\*.ps1"  -Destination $hooksDst -Force -ErrorAction SilentlyContinue
+        Copy-Item -Path "$hooksSrc\*.sh"   -Destination $hooksDst -Force -ErrorAction SilentlyContinue
+        Copy-Item -Path "$hooksSrc\*.json" -Destination $hooksDst -Force -ErrorAction SilentlyContinue
+
+        # global/hooks/lib/* 배포 (issue #586): 공유 라이브러리는 top-level glob에
+        # 잡히지 않으므로 별도 복사한다. 없으면 4개 Bash 가드가 약화된다.
+        $hooksLibSrc = Join-Path $hooksSrc 'lib'
+        if (Test-Path -LiteralPath $hooksLibSrc -PathType Container) {
+            $hooksLibDst = Join-Path $hooksDst 'lib'
+            if (-not (Test-Path $hooksLibDst)) {
+                New-Item -ItemType Directory -Path $hooksLibDst -Force | Out-Null
+            }
+            Copy-Item -Path "$hooksLibSrc\*" -Destination $hooksLibDst -Recurse -Force -ErrorAction SilentlyContinue
+
+            if (-not (Test-Path (Join-Path $hooksLibDst 'tokenize-shell.sh'))) {
+                Write-Warn "hooks/lib/tokenize-shell.sh 미설치 - Bash 가드가 약화됩니다 (issue #586)"
+            }
+        }
+
+        Write-Ok "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
+    }
+
     # npm package installation (statusline dependencies)
     if (Get-Command npm -ErrorAction SilentlyContinue) {
         $installNpm = Read-BootstrapValue -EnvName 'INSTALL_NPM' -Prompt "Statusline npm 패키지를 설치하시겠습니까? (y/n) [기본값: y]" -Default 'y'
