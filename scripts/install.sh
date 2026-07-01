@@ -565,6 +565,9 @@ fi
 # the dispatcher at its default and skips writing settings.json.
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/install-prompts.sh"
+# Reinstall: seed the prior language policy from an existing settings.json so a
+# re-run keeps the previous choice instead of resetting to Hybrid (issue #780).
+seed_language_from_settings "$HOME/.claude/settings.json"
 prompt_language_profile
 
 # Legacy settings.json migration warning (informational only).

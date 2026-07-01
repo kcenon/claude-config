@@ -67,6 +67,10 @@ _prompts_warn() {
 # (AGENT_LANGUAGE=korean / CONTENT_LANGUAGE=english) rather than being clobbered.
 prompt_language_profile() {
     # Capture which vars the caller preset BEFORE the prompt may overwrite them.
+    # Installers call seed_language_from_settings() just before this to keep a
+    # prior policy on reinstall (issue #780); that seeding stays out of this
+    # function so the pure prompt contract (tested by
+    # test-language-override-contract.sh) is unchanged.
     local _agent_preset="" _content_preset=""
     [ -n "${AGENT_LANGUAGE:-}" ]   && _agent_preset="$AGENT_LANGUAGE"
     [ -n "${CONTENT_LANGUAGE:-}" ] && _content_preset="$CONTENT_LANGUAGE"
@@ -182,6 +186,49 @@ read_settings_content_language() {
             | sed -E 's/.*"CLAUDE_CONTENT_LANGUAGE"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/' \
             | head -1
     fi
+}
+
+# read_settings_agent_language <settings_json_path>
+# Echoes the current top-level ".language" value (agent conversation language)
+# stored in settings.json, or empty string when absent / unparseable. Mirrors
+# read_settings_content_language. The grep fallback anchors on the quoted key so
+# it does not collide with "CLAUDE_CONTENT_LANGUAGE".
+read_settings_agent_language() {
+    local file="${1:-}"
+    [ -f "$file" ] || { echo ""; return 0; }
+    if command -v jq >/dev/null 2>&1; then
+        jq -r '.language // empty' "$file" 2>/dev/null
+    else
+        grep -oE '"language"[[:space:]]*:[[:space:]]*"[^"]*"' "$file" 2>/dev/null \
+            | sed -E 's/.*"language"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/' \
+            | head -1
+    fi
+}
+
+# seed_language_from_settings <settings_json_path>
+# Reinstall helper (issue #780). Fills AGENT_LANGUAGE / CONTENT_LANGUAGE from an
+# existing settings.json when they are unset, so prompt_language_profile keeps
+# the previously chosen policy instead of resetting to the Hybrid default.
+# Each variable is seeded independently (they are orthogonal per #762); there is
+# no reverse-map to a preset menu number. An explicit env override wins because
+# only unset variables are filled. Emits one info line when it seeds so the
+# behavior is discoverable, not silent.
+seed_language_from_settings() {
+    local file="${1:-}"
+    [ -f "$file" ] || return 0
+    local seeded=0 a c
+    if [ -z "${AGENT_LANGUAGE:-}" ]; then
+        a="$(read_settings_agent_language "$file")"
+        [ -n "$a" ] && { AGENT_LANGUAGE="$a"; seeded=1; }
+    fi
+    if [ -z "${CONTENT_LANGUAGE:-}" ]; then
+        c="$(read_settings_content_language "$file")"
+        [ -n "$c" ] && { CONTENT_LANGUAGE="$c"; seeded=1; }
+    fi
+    if [ "$seeded" = "1" ]; then
+        _prompts_info "Existing language policy kept from settings.json (agent=${AGENT_LANGUAGE:-?}, content=${CONTENT_LANGUAGE:-?}). Override with AGENT_LANGUAGE/CONTENT_LANGUAGE env or edit ~/.claude/settings.json."
+    fi
+    return 0
 }
 
 # warn_legacy_settings_value <settings_json_path>
