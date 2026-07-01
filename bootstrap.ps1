@@ -39,6 +39,29 @@ $AnthropicInstallerSha256 = if ($env:ANTHROPIC_INSTALLER_SHA256) { $env:ANTHROPI
 $InstallDir = if ($env:INSTALL_DIR) { $env:INSTALL_DIR } else { Join-Path $HOME 'claude_config_backup' }
 $ClaudeDir  = Join-Path $HOME '.claude'
 
+# ── Non-interactive prompt helper (issue #778) ───────────────────────────────
+# Parity with bootstrap.sh: resolve a prompt value by honoring, in order,
+#   1. a pre-set env override of the same name (install.sh vocabulary:
+#      INSTALL_TYPE / PROJECT_DIR / INSTALL_NPM / OVERWRITE / ...),
+#   2. $env:FORCE_MODE = '1' (unattended) -> the default with no prompt,
+#   3. an interactive Read-Host.
+# PowerShell's Read-Host reads the host console directly, so the bash /dev/tty
+# concern does not apply; env overrides are the unattended path for `irm | iex`.
+function Read-BootstrapValue {
+    param(
+        [Parameter(Mandatory)][string]$EnvName,
+        [Parameter(Mandatory)][string]$Prompt,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Default
+    )
+    $preset = [Environment]::GetEnvironmentVariable($EnvName)
+    if (-not [string]::IsNullOrEmpty($preset)) { return $preset }
+    if ($env:FORCE_MODE -eq '1') { return $Default }
+    $reply = Read-Host $Prompt
+    if ([string]::IsNullOrEmpty($reply)) { return $Default }
+    return $reply
+}
+# ─────────────────────────────────────────────────────────────────────────────
+
 # ── Inline helpers (module not yet available during bootstrap) ─
 
 function Write-Info    { param([string]$M) Write-Host "  $M" -ForegroundColor Cyan }
@@ -94,8 +117,7 @@ function Confirm-ClaudeCli {
     Write-Host "  의존하는 핵심 도구입니다. 미설치 상태에서는 일부 기능이 동작하지 않습니다."
     Write-Host ""
 
-    $installClaude = Read-Host "Claude Code CLI를 지금 설치하시겠습니까? (y/n) [기본값: y]"
-    if ([string]::IsNullOrEmpty($installClaude)) { $installClaude = 'y' }
+    $installClaude = Read-BootstrapValue -EnvName 'INSTALL_CLAUDE' -Prompt "Claude Code CLI를 지금 설치하시겠습니까? (y/n) [기본값: y]" -Default 'y'
 
     if ($installClaude -ne 'y') {
         Write-Warn "Claude Code CLI 설치 건너뜀. 추후 수동 설치:"
@@ -160,8 +182,7 @@ function Invoke-CloneRepository {
 
     if (Test-Path -LiteralPath $InstallDir -PathType Container) {
         Write-Warn "기존 설치 디렉토리가 존재합니다: $InstallDir"
-        $overwrite = Read-Host "덮어쓰시겠습니까? (y/n) [기본값: n]"
-        if ([string]::IsNullOrEmpty($overwrite)) { $overwrite = 'n' }
+        $overwrite = Read-BootstrapValue -EnvName 'OVERWRITE' -Prompt "덮어쓰시겠습니까? (y/n) [기본값: n]" -Default 'n'
 
         if ($overwrite -eq 'y') {
             Remove-Item -LiteralPath $InstallDir -Recurse -Force
@@ -346,8 +367,7 @@ function Install-GlobalSettings {
 
     # npm package installation (statusline dependencies)
     if (Get-Command npm -ErrorAction SilentlyContinue) {
-        $installNpm = Read-Host "Statusline npm 패키지를 설치하시겠습니까? (y/n) [기본값: y]"
-        if ([string]::IsNullOrEmpty($installNpm)) { $installNpm = 'y' }
+        $installNpm = Read-BootstrapValue -EnvName 'INSTALL_NPM' -Prompt "Statusline npm 패키지를 설치하시겠습니까? (y/n) [기본값: y]" -Default 'y'
         if ($installNpm -eq 'y') {
             try {
                 $null = & npm install -g ccstatusline claude-limitline 2>&1
@@ -393,8 +413,7 @@ function Invoke-PersonalizeGitIdentity {
     }
     Write-Host ""
 
-    $editNow = Read-Host "지금 수정하시겠습니까? (y/n) [기본값: n]"
-    if ([string]::IsNullOrEmpty($editNow)) { $editNow = 'n' }
+    $editNow = Read-BootstrapValue -EnvName 'EDIT_NOW' -Prompt "지금 수정하시겠습니까? (y/n) [기본값: n]" -Default 'n'
 
     if ($editNow -eq 'y') {
         $editor = $env:EDITOR
@@ -416,8 +435,7 @@ function Select-InstallType {
     Write-Host "  3) 둘 다 설치 (권장)"
     Write-Host "  4) 저장소만 클론 (수동 설치)"
     Write-Host ""
-    $selection = Read-Host "선택 (1-4) [기본값: 1]"
-    if ([string]::IsNullOrEmpty($selection)) { $selection = '1' }
+    $selection = Read-BootstrapValue -EnvName 'INSTALL_TYPE' -Prompt "선택 (1-4) [기본값: 1]" -Default '1'
     return $selection
 }
 
@@ -426,8 +444,7 @@ function Select-InstallType {
 function Install-ProjectSettings {
     Write-Host ""
     $defaultDir = (Get-Location).Path
-    $projDir = Read-Host "프로젝트 디렉토리 경로 [기본값: $defaultDir]"
-    if ([string]::IsNullOrEmpty($projDir)) { $projDir = $defaultDir }
+    $projDir = Read-BootstrapValue -EnvName 'PROJECT_DIR' -Prompt "프로젝트 디렉토리 경로 [기본값: $defaultDir]" -Default $defaultDir
 
     if (-not (Test-Path -LiteralPath $projDir -PathType Container)) {
         Write-Fail "디렉토리가 존재하지 않습니다: $projDir"

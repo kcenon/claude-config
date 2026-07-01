@@ -84,6 +84,23 @@ curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.
 
 > **bootstrap이 자동으로 처리하는 것.** Claude Code CLI 미설치 시 사용자 동의 후 Anthropic 공식 native installer(`https://claude.ai/install.sh`)를 실행해 `claude` 바이너리를 `~/.local/bin/`에 배치하고 백그라운드 자동 업데이트를 활성화합니다. npm 패키지 `@anthropic-ai/claude-code`는 더 이상 사용되지 않습니다. PowerShell은 `claude.ai/install.ps1`로 동일하게 동작합니다. 자세한 내용은 [PREREQUISITES.md → Auto-installed by bootstrap](PREREQUISITES.md#auto-installed-by-bootstrap).
 
+### 비대화형 설치
+
+CI·무인 설치 환경에서는 `scripts/install.sh`와 동일한 환경 변수로 응답을 미리
+지정하거나(프롬프트 없음), `--yes`로 모든 기본값을 강제할 수 있습니다:
+
+```bash
+# 무인 설치: 설치 타입만 env로 지정하고 나머지는 기본값 사용
+curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | INSTALL_TYPE=3 bash
+
+# 모든 프롬프트를 기본값으로 강제
+curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash -s -- --yes
+```
+
+인식되는 오버라이드: `INSTALL_TYPE`, `PROJECT_DIR`, `INSTALL_NPM`, `OVERWRITE`,
+`AGENT_LANGUAGE`, `CONTENT_LANGUAGE`. `curl | bash`로 대화형 실행 시, bootstrap은
+스크립트 본문 대신 `/dev/tty`에서 응답을 읽습니다.
+
 ### Private Repository
 
 ```bash

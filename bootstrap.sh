@@ -43,6 +43,58 @@ ANTHROPIC_INSTALLER_SHA256="${ANTHROPIC_INSTALLER_SHA256:-b315b46925a9bfb9422f25
 
 # 설치 디렉토리
 INSTALL_DIR="${INSTALL_DIR:-$HOME/claude_config_backup}"
+
+# ── Argument parsing + non-interactive prompt helper (issue #778) ─────────────
+# Mirrors the scripts/install.sh FORCE_MODE / --type contract so the advertised
+# `curl ... | bash` one-liner keeps working: env overrides and --yes enable
+# fully unattended installs, and a /dev/tty fallback restores real prompts when
+# stdin is the piped script body rather than a keyboard.
+FORCE_MODE="${FORCE_MODE:-0}"
+_PENDING_TYPE=""
+_arg_prev=""
+for _arg in "$@"; do
+    if [ "$_arg_prev" = "--type" ]; then
+        _PENDING_TYPE="$_arg"; _arg_prev=""; continue
+    fi
+    case "$_arg" in
+        --yes|-y) FORCE_MODE=1 ;;
+        --type)   ;;  # value consumed on the next iteration via _arg_prev
+        -h|--help)
+            sed -n '3,12p' "${BASH_SOURCE[0]}" 2>/dev/null | sed 's/^# \{0,1\}//'
+            exit 0 ;;
+        *)
+            echo "bootstrap.sh: unknown argument '$_arg'" >&2
+            echo "Run with --help for usage." >&2
+            exit 2 ;;
+    esac
+    _arg_prev="$_arg"
+done
+[ -n "$_PENDING_TYPE" ] && INSTALL_TYPE="${INSTALL_TYPE:-$_PENDING_TYPE}"
+unset _arg _arg_prev _PENDING_TYPE
+
+# bootstrap_read <varname> <prompt> <default>
+# Resolve a prompt value, in priority order:
+#   1. a pre-set non-empty env var of the same name (install.sh vocabulary:
+#      INSTALL_TYPE / PROJECT_DIR / INSTALL_NPM / OVERWRITE / ...),
+#   2. under FORCE_MODE (--yes/-y): the default, with no prompt,
+#   3. an interactive prompt, read from /dev/tty when stdin is not a terminal
+#      (the `curl | bash` case where stdin is the script body),
+#   4. the default when no terminal is available at all (CI / non-tty).
+# The `|| true` keeps an EOF read from aborting under `set -euo pipefail`.
+bootstrap_read() {
+    local __var="$1" __prompt="$2" __default="$3" __reply=""
+    if [ -n "${!__var:-}" ]; then return 0; fi
+    if [ "${FORCE_MODE:-0}" = "1" ]; then
+        printf -v "$__var" '%s' "$__default"; return 0
+    fi
+    if [ -t 0 ]; then
+        read -r -p "$__prompt" __reply || true
+    elif [ -r /dev/tty ]; then
+        read -r -p "$__prompt" __reply < /dev/tty || true
+    fi
+    printf -v "$__var" '%s' "${__reply:-$__default}"
+}
+# ──────────────────────────────────────────────────────────────────────────────
 CLAUDE_DIR="$HOME/.claude"
 
 echo -e "${BLUE}"
@@ -144,8 +196,7 @@ ensure_claude_cli() {
     echo "  의존하는 핵심 도구입니다. 미설치 상태에서는 일부 기능이 동작하지 않습니다."
     echo ""
 
-    read -p "Claude Code CLI를 지금 설치하시겠습니까? (y/n) [기본값: y]: " INSTALL_CLAUDE
-    INSTALL_CLAUDE=${INSTALL_CLAUDE:-y}
+    bootstrap_read INSTALL_CLAUDE "Claude Code CLI를 지금 설치하시겠습니까? (y/n) [기본값: y]: " "y"
 
     if [ "$INSTALL_CLAUDE" != "y" ]; then
         warning "Claude Code CLI 설치 건너뜀. 추후 수동 설치 가이드:"
@@ -207,8 +258,7 @@ clone_repository() {
 
     if [ -d "$INSTALL_DIR" ]; then
         warning "기존 설치 디렉토리가 존재합니다: $INSTALL_DIR"
-        read -p "덮어쓰시겠습니까? (y/n) [기본값: n]: " OVERWRITE
-        OVERWRITE=${OVERWRITE:-n}
+        bootstrap_read OVERWRITE "덮어쓰시겠습니까? (y/n) [기본값: n]: " "n"
 
         if [ "$OVERWRITE" = "y" ]; then
             safe_rm_rf "$INSTALL_DIR"
@@ -332,8 +382,7 @@ install_global() {
 
     # npm 패키지 설치 (statusline 의존성)
     if command -v npm &> /dev/null; then
-        read -p "Statusline npm 패키지를 설치하시겠습니까? (y/n) [기본값: y]: " INSTALL_NPM
-        INSTALL_NPM=${INSTALL_NPM:-y}
+        bootstrap_read INSTALL_NPM "Statusline npm 패키지를 설치하시겠습니까? (y/n) [기본값: y]: " "y"
         if [ "$INSTALL_NPM" = "y" ]; then
             if npm install -g ccstatusline claude-limitline 2>/dev/null; then
                 success "npm 패키지 설치 완료 (ccstatusline, claude-limitline)"
@@ -360,8 +409,7 @@ personalize_git_identity() {
     echo "    vi ~/.claude/git-identity.md"
     echo ""
 
-    read -p "지금 수정하시겠습니까? (y/n) [기본값: n]: " EDIT_NOW
-    EDIT_NOW=${EDIT_NOW:-n}
+    bootstrap_read EDIT_NOW "지금 수정하시겠습니까? (y/n) [기본값: n]: " "n"
 
     if [ "$EDIT_NOW" = "y" ]; then
         ${EDITOR:-vi} "$CLAUDE_DIR/git-identity.md"
@@ -378,15 +426,13 @@ select_install_type() {
     echo "  3) 둘 다 설치 (권장)"
     echo "  4) 저장소만 클론 (수동 설치)"
     echo ""
-    read -p "선택 (1-4) [기본값: 1]: " INSTALL_TYPE
-    INSTALL_TYPE=${INSTALL_TYPE:-1}
+    bootstrap_read INSTALL_TYPE "선택 (1-4) [기본값: 1]: " "1"
 }
 
 # 프로젝트 설정 설치
 install_project() {
     echo ""
-    read -p "프로젝트 디렉토리 경로 [기본값: $(pwd)]: " PROJECT_DIR
-    PROJECT_DIR=${PROJECT_DIR:-$(pwd)}
+    bootstrap_read PROJECT_DIR "프로젝트 디렉토리 경로 [기본값: $(pwd)]: " "$(pwd)"
 
     if [ ! -d "$PROJECT_DIR" ]; then
         error "디렉토리가 존재하지 않습니다: $PROJECT_DIR"

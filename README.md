@@ -88,6 +88,25 @@ curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.
 
 > **What bootstrap does for you.** It checks for the Claude Code CLI and, on consent, runs Anthropic's native installer (`https://claude.ai/install.sh`) so the `claude` binary lands in `~/.local/bin/` and supports background auto-update. The npm package `@anthropic-ai/claude-code` is no longer used. PowerShell uses the parallel `claude.ai/install.ps1`. See [PREREQUISITES.md → Auto-installed by bootstrap](https://github.com/kcenon/claude-config/blob/develop/PREREQUISITES.md#auto-installed-by-bootstrap).
 
+### Non-interactive install
+
+For CI or unattended setups, pre-select answers with the same environment
+variables `scripts/install.sh` uses (no prompts), or force every default with
+`--yes`:
+
+```bash
+# Unattended: pick the install type via env, accept every other default
+curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | INSTALL_TYPE=3 bash
+
+# Force defaults for every prompt
+curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash -s -- --yes
+```
+
+Recognized overrides: `INSTALL_TYPE`, `PROJECT_DIR`, `INSTALL_NPM`, `OVERWRITE`,
+`AGENT_LANGUAGE`, `CONTENT_LANGUAGE`. When a prompt is reached interactively over
+`curl | bash`, bootstrap reads your answer from `/dev/tty` instead of consuming
+the piped script body.
+
 ### Private Repository
 
 ```bash
