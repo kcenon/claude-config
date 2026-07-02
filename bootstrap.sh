@@ -94,6 +94,22 @@ bootstrap_read() {
     fi
     printf -v "$__var" '%s' "${__reply:-$__default}"
 }
+
+# Test-only prompt-resolution mode for CI smoke tests. It runs after argument
+# parsing and bootstrap_read are loaded, but before dependency checks, cloning,
+# or filesystem installation, so tests can exercise the piped non-tty entry
+# point hermetically.
+if [ "${CLAUDE_CONFIG_BOOTSTRAP_TEST_MODE:-}" = "prompt-resolution" ]; then
+    bootstrap_read INSTALL_TYPE "선택 (1-4) [기본값: 1]: " "1"
+    printf 'FORCE_MODE=%s\n' "${FORCE_MODE:-0}"
+    printf 'INSTALL_TYPE=%s\n' "${INSTALL_TYPE:-}"
+    if [ -t 0 ]; then
+        printf 'STDIN_TTY=1\n'
+    else
+        printf 'STDIN_TTY=0\n'
+    fi
+    exit 0
+fi
 # ──────────────────────────────────────────────────────────────────────────────
 CLAUDE_DIR="$HOME/.claude"
 
