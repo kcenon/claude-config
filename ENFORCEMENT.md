@@ -41,14 +41,14 @@ These run on GitHub Actions and gate the PR independently of the local hooks abo
 
 ## Fail-policy quick reference
 
-- **Fail-closed**: `pr-target-guard`, `commit-message-guard`, `pre-push`, `dangerous-command-guard`, `bash-sensitive-read-guard`, `bash-write-guard`, `pre-edit-read-guard`, `attribution-guard` (on extracted bodies).
+- **Fail-closed**: `pr-target-guard`, `push-target-guard`, `commit-message-guard`, `pre-push`, `dangerous-command-guard`, `bash-sensitive-read-guard`, `bash-write-guard`, `pre-edit-read-guard`, `attribution-guard` (on extracted bodies).
 - **Fail-open** (gate is best-effort; transient tooling failures should not block legit work): `merge-gate-guard`, `pr-language-guard` (on heredoc/file-based bodies), `task-created-validator` (on missing parser), `conflict-guard` (when `git` is missing).
 - **Non-blocking** (informational / lifecycle): `session-logger`, `cleanup`, `version-check`, `subagent-logger`, `tool-failure-logger`, `pre-compact-snapshot`, `post-compact-restore`, `instructions-loaded-reinforcer`, `post-task-checkpoint`.
 
 ## Bypass
 
-- `git commit --no-verify` bypasses the `commit-msg` git hook only — the `commit-message-guard` PreToolUse hook still gates Claude's tool calls.
-- `git push --no-verify` bypasses `pre-push` — forbidden by project policy.
+- `git commit --no-verify` (and its short form `-n`) is denied at the PreToolUse layer by `commit-message-guard` (issue #782), so a Claude-driven commit cannot reach the point of skipping the `commit-msg` git hook. The git hook remains the second, terminal layer for commits made outside Claude.
+- `git push --no-verify` is denied at the PreToolUse layer by `push-target-guard` (issue #782), which also blocks direct pushes to `main`/`develop` (explicit target or resolved upstream). `git push -n`/`--dry-run` is allowed — it performs no real push. The terminal-side `pre-push` hook remains the second layer.
 - `GH_WRITE_VERB_GUARD_AUDIT_ONLY=1` downgrades all `deny` decisions to `allow` (telemetry-only mode for rollout).
 
 ## See also

@@ -147,6 +147,11 @@
           },
           {
             "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/push-target-guard.ps1",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/pr-language-guard.ps1",
             "timeout": 5
           },

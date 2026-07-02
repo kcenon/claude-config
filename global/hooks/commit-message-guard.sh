@@ -83,6 +83,21 @@ if ! echo "$CMD" | grep -qE 'git[[:space:]]+commit'; then
     allow_response
 fi
 
+# --- Deny --no-verify / -n (issue #782) ---
+# `git commit --no-verify` (and its short form `-n`) skips the commit-msg git
+# hook, the terminal-side half of the attribution/format defense. Deny both so
+# the PreToolUse layer cannot be bypassed on the way to the git hook. Strip
+# quoted substrings first so a flag inside the message (e.g. -m "fix -n bug")
+# cannot false-trigger. Short-flag cluster: for git commit only `-n` carries an
+# 'n', so any single-dash cluster containing 'n' is --no-verify.
+_DEQUOTED=$(printf '%s' "$CMD" | sed -E "s/\"[^\"]*\"//g; s/'[^']*'//g")
+if printf '%s' "$_DEQUOTED" | grep -qE '(^|[[:space:]])--no-verify([[:space:]]|$)'; then
+    deny_response "git commit --no-verify is blocked: it skips the commit-msg hook that enforces the commit-message policy (no attribution, Conventional Commits). Commit without --no-verify."
+fi
+if printf '%s' "$_DEQUOTED" | grep -qE '(^|[[:space:]])-[A-Za-z]*n[A-Za-z]*([[:space:]]|$)'; then
+    deny_response "git commit -n (--no-verify) is blocked: it skips the commit-msg hook that enforces the commit-message policy. Commit without -n."
+fi
+
 # --- Skip command substitution cases ---
 # Example: git commit -m "$(cat <<'EOF' ... EOF\n)"
 # These cannot be parsed reliably with regex — defer to commit-msg hook (#242).
@@ -98,6 +113,18 @@ if [ -z "$MSG" ]; then
 fi
 if [ -z "$MSG" ]; then
     MSG=$(printf '%s' "$CMD" | sed -nE 's/.*--message[[:space:]=]+"([^"]*)".*/\1/p' | head -n1)
+fi
+# Single-quoted forms (issue #782): -m '...', -am '...', --message='...'.
+# Single quotes suppress shell expansion, so there is no command-substitution
+# case to skip here — the content is literal and safe to validate.
+if [ -z "$MSG" ]; then
+    MSG=$(printf '%s' "$CMD" | sed -nE "s/.*[[:space:]]-m[[:space:]]+'([^']*)'.*/\1/p" | head -n1)
+fi
+if [ -z "$MSG" ]; then
+    MSG=$(printf '%s' "$CMD" | sed -nE "s/.*[[:space:]]-am[[:space:]]+'([^']*)'.*/\1/p" | head -n1)
+fi
+if [ -z "$MSG" ]; then
+    MSG=$(printf '%s' "$CMD" | sed -nE "s/.*--message[[:space:]=]+'([^']*)'.*/\1/p" | head -n1)
 fi
 
 # If no -m argument found, git will open $EDITOR — nothing to validate here.

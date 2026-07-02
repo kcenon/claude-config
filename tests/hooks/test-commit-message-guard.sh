@@ -117,6 +117,21 @@ assert_allow '{"tool_input":{"command":"git commit -m \"$(cat <<EOF\nfeat: multi
 assert_allow '' "empty input → allow"
 
 echo ""
+echo "[--no-verify / -n bypass blocked (issue #782)]"
+assert_deny '{"tool_input":{"command":"git commit --no-verify -m \"feat: x\""}}' "commit --no-verify → deny"
+assert_deny '{"tool_input":{"command":"git commit -n -m \"feat: x\""}}' "commit -n → deny"
+assert_deny '{"tool_input":{"command":"git commit -nm \"feat: x\""}}' "commit -nm (bundled short flags) → deny"
+assert_allow '{"tool_input":{"command":"git commit -m \"fix: handle -n flag parsing\""}}' "-n inside message text → allow (not a flag)"
+assert_allow '{"tool_input":{"command":"git commit --amend --no-edit -m \"feat: x\""}}' "--no-edit → allow (not --no-verify)"
+
+echo ""
+echo "[single-quoted -m extraction reaches validator (issue #782)]"
+assert_allow "{\"tool_input\":{\"command\":\"git commit -m 'feat: valid single-quoted'\"}}" "single-quote valid → allow"
+assert_deny "{\"tool_input\":{\"command\":\"git commit -m 'added no type prefix'\"}}" "single-quote no-type → deny"
+assert_deny "{\"tool_input\":{\"command\":\"git commit -am 'update: bad type'\"}}" "single-quote -am bad type → deny"
+assert_deny "{\"tool_input\":{\"command\":\"git commit --message='feat: Uppercase First'\"}}" "single-quote --message= uppercase → deny"
+
+echo ""
 echo "[determinism — same input yields same output across 3 runs]"
 TEST_INPUT='{"tool_input":{"command":"git commit -m \"feat: deterministic check\""}}'
 R1=$(echo "$TEST_INPUT" | bash "$HOOK" 2>/dev/null)

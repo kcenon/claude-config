@@ -40,19 +40,42 @@ if ($CMD -notmatch 'git\s+commit') {
     exit 0
 }
 
+# Deny --no-verify / -n (issue #782). `git commit --no-verify` (short form -n)
+# skips the commit-msg hook, the terminal-side half of the defense. Strip
+# quoted substrings first so a flag inside the message (e.g. -m "fix -n bug")
+# cannot false-trigger. For git commit only `-n` carries an 'n', so any
+# single-dash cluster containing 'n' is --no-verify.
+$dequoted = $CMD -replace '"[^"]*"', '' -replace "'[^']*'", ''
+if ($dequoted -match '(?:^|\s)--no-verify(?:\s|$)') {
+    New-HookDenyResponse -Reason "git commit --no-verify is blocked: it skips the commit-msg hook that enforces the commit-message policy (no attribution, Conventional Commits). Commit without --no-verify."
+    exit 0
+}
+if ($dequoted -match '(?:^|\s)-[A-Za-z]*n[A-Za-z]*(?:\s|$)') {
+    New-HookDenyResponse -Reason "git commit -n (--no-verify) is blocked: it skips the commit-msg hook that enforces the commit-message policy. Commit without -n."
+    exit 0
+}
+
 # Skip command substitution cases — cannot parse reliably
 if ($CMD -match '-a?m\s+"\$\(') {
     New-HookAllowResponse
     exit 0
 }
 
-# Extract message from -m "...", -am "...", or --message="..."
+# Extract message from -m "...", -am "...", or --message="..." (double-quoted),
+# then the single-quoted forms (issue #782). Single quotes suppress shell
+# expansion, so there is no command-substitution case to skip for them.
 $msg = $null
 if ($CMD -match '(?:^|\s)-m\s+"([^"]*)"') {
     $msg = $Matches[1]
 } elseif ($CMD -match '(?:^|\s)-am\s+"([^"]*)"') {
     $msg = $Matches[1]
 } elseif ($CMD -match '--message[=\s]+"([^"]*)"') {
+    $msg = $Matches[1]
+} elseif ($CMD -match "(?:^|\s)-m\s+'([^']*)'") {
+    $msg = $Matches[1]
+} elseif ($CMD -match "(?:^|\s)-am\s+'([^']*)'") {
+    $msg = $Matches[1]
+} elseif ($CMD -match "--message[=\s]+'([^']*)'") {
     $msg = $Matches[1]
 }
 
