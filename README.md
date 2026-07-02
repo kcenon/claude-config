@@ -252,7 +252,7 @@ claude_config_backup/
 │   │   └── settings.json      # Status line display settings
 │   ├── commands/               # Global command policies
 │   │   └── _policy.md         # Shared policies for all commands
-│   ├── hooks/                  # 35 hook scripts, each in .sh + .ps1 — see HOOKS.md for the full catalog
+│   ├── hooks/                  # Hook scripts, each in .sh + .ps1 — authoritative catalog: HOOKS.md
 │   │   └── lib/               # Shared libraries
 │   │       ├── AttributionValidator.psm1
 │   │       ├── CommonHelpers.psm1  # PowerShell shared module
