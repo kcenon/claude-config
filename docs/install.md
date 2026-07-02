@@ -113,6 +113,15 @@ entirely so policy attributes (`.language`,
 the values and removes them when the policy returns to the default
 ("english"), keeping the file idempotent.
 
+Bootstrap publishes `settings.json` together with the runtime hooks it
+references. `bootstrap.sh` stages `global/settings.json` in a temp file
+and `bootstrap.ps1` stages `global/settings.windows.json`; both apply the
+language policy to the staged file, deploy the required hook scripts and
+hook libraries, and only then replace `~/.claude/settings.json`. If hook
+deployment or required runtime-library validation fails, the staged
+settings file is removed and the existing `settings.json` is left
+unchanged.
+
 ## Tracked Files
 
 The manifest currently tracks these entries (see `bootstrap.sh`

@@ -223,6 +223,113 @@ function Invoke-CloneRepository {
     Write-Ok "저장소 클론 완료: $InstallDir (ref: $GitHubRef)"
 }
 
+function Copy-BootstrapHookFiles {
+    param(
+        [Parameter(Mandatory)][string]$SourceDir,
+        [Parameter(Mandatory)][string]$DestinationDir,
+        [Parameter(Mandatory)][string[]]$Filters
+    )
+
+    if (-not (Test-Path -LiteralPath $DestinationDir -PathType Container)) {
+        New-Item -ItemType Directory -Path $DestinationDir -Force -ErrorAction Stop | Out-Null
+    }
+
+    foreach ($filter in $Filters) {
+        $items = @(Get-ChildItem -LiteralPath $SourceDir -Filter $filter -File -ErrorAction Stop)
+        foreach ($item in $items) {
+            Copy-Item -LiteralPath $item.FullName -Destination (Join-Path $DestinationDir $item.Name) -Force -ErrorAction Stop
+        }
+    }
+}
+
+function Deploy-BootstrapHooks {
+    $hooksSrc = Join-Path $InstallDir 'global' 'hooks'
+    if (-not (Test-Path -LiteralPath $hooksSrc -PathType Container)) {
+        throw "hook source directory missing: $hooksSrc"
+    }
+
+    $hooksDst = Join-Path $ClaudeDir 'hooks'
+    # Windows 훅은 `pwsh -File ...ps1`; .sh/.json은 WSL/parity 목적으로 함께 복사.
+    Copy-BootstrapHookFiles -SourceDir $hooksSrc -DestinationDir $hooksDst -Filters @('*.ps1', '*.sh', '*.json')
+
+    # global/hooks/lib/* 배포 (issue #586): 공유 라이브러리는 top-level glob에
+    # 잡히지 않으므로 별도 복사한다. 없으면 4개 Bash 가드가 약화된다.
+    $hooksLibSrc = Join-Path $hooksSrc 'lib'
+    if (Test-Path -LiteralPath $hooksLibSrc -PathType Container) {
+        $hooksLibDst = Join-Path $hooksDst 'lib'
+        Copy-BootstrapHookFiles -SourceDir $hooksLibSrc -DestinationDir $hooksLibDst -Filters @('*.ps1', '*.psm1', '*.sh')
+    }
+
+    # Shared bash validator libraries used by the deployed Bash hook variants.
+    # Mirrors scripts/install.sh so native Windows and WSL/container mounts get
+    # the same runtime library set before settings.json is published.
+    $sharedLibSrc = Join-Path $InstallDir 'hooks' 'lib'
+    if (Test-Path -LiteralPath $sharedLibSrc -PathType Container) {
+        $hooksLibDst = Join-Path $hooksDst 'lib'
+        Copy-BootstrapHookFiles -SourceDir $sharedLibSrc -DestinationDir $hooksLibDst -Filters @(
+            'validate-commit-message.sh',
+            'validate-language.sh',
+            'validate-traceability.sh'
+        )
+    }
+
+    $requiredLibs = @(
+        'tokenize-shell.sh',
+        'path-utils.sh',
+        'timeout-wrapper.sh',
+        'rotate.sh',
+        'validate-commit-message.sh',
+        'validate-language.sh',
+        'validate-traceability.sh'
+    )
+    foreach ($lib in $requiredLibs) {
+        if (-not (Test-Path -LiteralPath (Join-Path $hooksDst 'lib' $lib) -PathType Leaf)) {
+            throw "required hook runtime library missing after deploy: hooks/lib/$lib"
+        }
+    }
+}
+
+function Install-BootstrapSettingsAndHooks {
+    # Intentionally bypasses Invoke-GuardedCopy: policy attributes (.language,
+    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
+    # Update-ClaudeSettingsJson injects them into a staged file first; the
+    # final settings.json is published only after hook deployment succeeds.
+    # PARITY: scripts/install.ps1 selects global/settings.windows.json on this
+    # PowerShell installer — its hooks invoke `pwsh -File ...ps1`. Using
+    # global/settings.json here would ship bare `.sh` hook commands that native
+    # Windows cannot execute. Destination filename stays settings.json.
+    $settingsSrc = Join-Path $InstallDir 'global' 'settings.windows.json'
+    if (-not (Test-Path -LiteralPath $settingsSrc)) { return }
+
+    $settingsDst = Join-Path $ClaudeDir 'settings.json'
+    $settingsTmp = Join-Path $ClaudeDir ".settings.json.tmp.$PID"
+    $agentLanguage = if ($script:agentLanguage) { $script:agentLanguage } else { 'korean' }
+    $contentLanguage = if ($script:contentLanguage) { $script:contentLanguage } else { 'english' }
+    $settingsUpdated = $false
+
+    try {
+        Remove-Item -LiteralPath $settingsTmp -Force -ErrorAction SilentlyContinue
+        Copy-Item -LiteralPath $settingsSrc -Destination $settingsTmp -Force -ErrorAction Stop
+
+        $settingsUpdated = Update-ClaudeSettingsJson -SettingsPath $settingsTmp -AgentLang $agentLanguage -ContentLang $contentLanguage
+
+        Deploy-BootstrapHooks
+
+        Move-Item -LiteralPath $settingsTmp -Destination $settingsDst -Force -ErrorAction Stop
+    }
+    catch {
+        Remove-Item -LiteralPath $settingsTmp -Force -ErrorAction SilentlyContinue
+        Write-Fail "Hook 스크립트 배포 실패. settings.json을 변경하지 않았습니다. $_"
+    }
+
+    if ($settingsUpdated) {
+        Write-Ok "settings.json (에이전트: $agentLanguage, 컨텐츠: $contentLanguage) 설치 완료"
+    } else {
+        Write-Ok "settings.json 설치 완료 (기본값)"
+    }
+    Write-Ok "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
+}
+
 # ── Install global settings ──────────────────────────────────
 
 function Install-GlobalSettings {
@@ -372,59 +479,11 @@ function Install-GlobalSettings {
         Write-Ok "ccstatusline 설정 설치 완료"
     }
 
-    # settings.json (Claude Code)
-    # Intentionally bypasses Invoke-GuardedCopy: policy attributes (.language,
-    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
-    # Update-ClaudeSettingsJson (below) injects them and is responsible
-    # for idempotent reset when the policy returns to default ("english").
-    # PARITY: scripts/install.ps1 selects global/settings.windows.json on this
-    # PowerShell installer — its hooks invoke `pwsh -File ...ps1`. Using
-    # global/settings.json here would ship bare `.sh` hook commands that native
-    # Windows cannot execute. Destination filename stays settings.json.
-    $settingsSrc = Join-Path $InstallDir 'global' 'settings.windows.json'
-    if (Test-Path -LiteralPath $settingsSrc) {
-        $settingsDst = Join-Path $ClaudeDir 'settings.json'
-        Copy-Item -Path $settingsSrc -Destination $settingsDst -Force
-
-        if (Update-ClaudeSettingsJson -SettingsPath $settingsDst -AgentLang $script:agentLanguage -ContentLang $contentLanguage) {
-            Write-Ok "settings.json (에이전트: $($script:agentLanguage), 컨텐츠: $contentLanguage) 설치 완료"
-        } else {
-            Write-Ok "settings.json 설치 완료 (기본값)"
-        }
-    }
-
-    # hooks 디렉토리 설치 (settings.json이 참조하는 런타임 가드) — issue #779.
+    # settings.json + hooks 디렉토리 설치 (settings.json이 참조하는 런타임 가드)
     # settings.windows.json은 `pwsh -File ...ps1` 훅 다수를 참조하므로, 설정 복사와
     # 훅 배포를 한 트랜잭션으로 처리해 "설정은 있는데 훅이 없는" 조용한 보안 공백을
-    # 막는다. scripts/install.ps1의 hooks + hooks/lib 배포 블록과 동일.
-    $hooksSrc = Join-Path $InstallDir 'global' 'hooks'
-    if (Test-Path -LiteralPath $hooksSrc -PathType Container) {
-        $hooksDst = Join-Path $ClaudeDir 'hooks'
-        if (-not (Test-Path $hooksDst)) {
-            New-Item -ItemType Directory -Path $hooksDst -Force | Out-Null
-        }
-        # Windows 훅은 `pwsh -File ...ps1`; .sh/.json은 WSL/parity 목적으로 함께 복사.
-        Copy-Item -Path "$hooksSrc\*.ps1"  -Destination $hooksDst -Force -ErrorAction SilentlyContinue
-        Copy-Item -Path "$hooksSrc\*.sh"   -Destination $hooksDst -Force -ErrorAction SilentlyContinue
-        Copy-Item -Path "$hooksSrc\*.json" -Destination $hooksDst -Force -ErrorAction SilentlyContinue
-
-        # global/hooks/lib/* 배포 (issue #586): 공유 라이브러리는 top-level glob에
-        # 잡히지 않으므로 별도 복사한다. 없으면 4개 Bash 가드가 약화된다.
-        $hooksLibSrc = Join-Path $hooksSrc 'lib'
-        if (Test-Path -LiteralPath $hooksLibSrc -PathType Container) {
-            $hooksLibDst = Join-Path $hooksDst 'lib'
-            if (-not (Test-Path $hooksLibDst)) {
-                New-Item -ItemType Directory -Path $hooksLibDst -Force | Out-Null
-            }
-            Copy-Item -Path "$hooksLibSrc\*" -Destination $hooksLibDst -Recurse -Force -ErrorAction SilentlyContinue
-
-            if (-not (Test-Path (Join-Path $hooksLibDst 'tokenize-shell.sh'))) {
-                Write-Warn "hooks/lib/tokenize-shell.sh 미설치 - Bash 가드가 약화됩니다 (issue #586)"
-            }
-        }
-
-        Write-Ok "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
-    }
+    # 막는다. Hook 배포 실패 시 settings.json은 게시하지 않는다.
+    Install-BootstrapSettingsAndHooks
 
     # npm package installation (statusline dependencies)
     if (Get-Command npm -ErrorAction SilentlyContinue) {
@@ -662,4 +721,17 @@ function Invoke-Main {
 }
 
 # Execute
+if ($env:CLAUDE_CONFIG_BOOTSTRAP_TEST_MODE -eq 'atomic-deploy') {
+    if (-not (Test-Path $ClaudeDir)) {
+        New-Item -ItemType Directory -Path $ClaudeDir -Force | Out-Null
+    }
+    $manifestHelper = Join-Path $InstallDir 'scripts' 'install-manifest.ps1'
+    if (-not (Test-Path -LiteralPath $manifestHelper)) {
+        Write-Fail "install-manifest.ps1 not found for atomic-deploy test mode"
+    }
+    . $manifestHelper
+    Install-BootstrapSettingsAndHooks
+    exit 0
+}
+
 Invoke-Main
