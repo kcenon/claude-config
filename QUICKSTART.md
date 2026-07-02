@@ -53,6 +53,14 @@ cd ~\claude_config_backup
 .\scripts\install.ps1
 ```
 
+**Windows one-line alternative:**
+```powershell
+irm https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.ps1 | iex
+
+# Unattended defaults
+$env:FORCE_MODE = '1'; irm https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.ps1 | iex
+```
+
 > **Note**: If the `claude` CLI is missing, the installer offers (with consent) to run Anthropic's native installer (`https://claude.ai/install.{sh,ps1}`). Decline to install manually later. See [PREREQUISITES.md → Auto-installed by bootstrap](PREREQUISITES.md#auto-installed-by-bootstrap).
 
 **Selection:**

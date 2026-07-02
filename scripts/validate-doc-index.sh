@@ -5,6 +5,7 @@
 #   - every manifest document path exists
 #   - every recorded `size` equals the checked-in entry's byte length
 #   - every checked-in docs/.index/*.yaml file has the same generated date
+#   - every recorded manifest section heading matches the checked-in file
 #
 # Usage:
 #   scripts/validate-doc-index.sh [repo-root] [manifest-path]
@@ -30,6 +31,7 @@ fi
 
 "$PYTHON" - "$ROOT_DIR" "$MANIFEST" <<'PY'
 from pathlib import Path
+import re
 import sys
 
 try:
@@ -77,6 +79,30 @@ def generated_value(path, loaded):
         return None
 
     return generated
+
+
+def normalize_heading(value):
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def live_sections(path):
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except UnicodeDecodeError as exc:
+        errors.append(f"{rel(path)}: cannot read markdown as UTF-8: {exc}")
+        return {}
+
+    sections = {}
+
+    for lineno, line in enumerate(lines, 1):
+        match = re.match(r"^(#{1,6})\s+(.+?)\s*$", line)
+        if not match:
+            continue
+
+        heading = re.sub(r"\s+#+\s*$", "", match.group(2)).strip()
+        sections[lineno] = normalize_heading(heading)
+
+    return sections
 
 
 data = load_yaml(manifest)
@@ -138,6 +164,56 @@ for idx, entry in enumerate(documents, 1):
         errors.append(
             f"{rel}: size mismatch manifest={expected_size} actual={actual_size}"
         )
+
+    sections = entry.get("sections")
+    if sections is None:
+        continue
+    if not isinstance(sections, list):
+        errors.append(f"{rel}: sections is not a list")
+        continue
+    if not sections:
+        continue
+
+    current_sections = live_sections(target)
+    current_by_heading = {}
+    for lineno, heading in current_sections.items():
+        current_by_heading.setdefault(heading, []).append(lineno)
+
+    for section_idx, section in enumerate(sections, 1):
+        if not isinstance(section, dict):
+            errors.append(f"{rel}: section {section_idx}: expected mapping")
+            continue
+
+        heading = section.get("h")
+        line_no = section.get("l")
+        if not isinstance(heading, str) or not heading:
+            errors.append(f"{rel}: section {section_idx}: missing h")
+            continue
+        if not isinstance(line_no, int) or line_no < 1:
+            errors.append(f"{rel}: section {section_idx}: missing l")
+            continue
+
+        expected_heading = normalize_heading(heading)
+        actual_heading = current_sections.get(line_no)
+        if actual_heading == expected_heading:
+            continue
+
+        alternate_lines = current_by_heading.get(expected_heading, [])
+        if alternate_lines:
+            rendered_lines = ",".join(str(line) for line in alternate_lines)
+            errors.append(
+                f"{rel}: section '{heading}' line mismatch "
+                f"manifest={line_no} actual={rendered_lines}"
+            )
+        elif actual_heading:
+            errors.append(
+                f"{rel}: section line {line_no} heading mismatch "
+                f"manifest='{heading}' actual='{actual_heading}'"
+            )
+        else:
+            errors.append(
+                f"{rel}: section '{heading}' missing at manifest line {line_no}"
+            )
 
 if errors:
     for error in errors:
