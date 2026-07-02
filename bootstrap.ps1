@@ -84,8 +84,26 @@ Write-Host ""
 function Test-Dependencies {
     Write-Info "의존성 확인 중..."
 
-    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-        Write-Fail "git이 설치되어 있지 않습니다. 먼저 git을 설치하세요."
+    # Hard requirements: parity with bootstrap.sh (git + gh). gh backs the
+    # PreToolUse merge/attribution guards and the batch issue/pr scripts, so a
+    # missing gh is a silent-failure trap on Windows just as on Unix (#781).
+    $missing = @()
+    foreach ($cmd in @('git', 'gh')) {
+        if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) {
+            $missing += $cmd
+        }
+    }
+    if ($missing.Count -gt 0) {
+        Write-Fail "필수 도구가 설치되어 있지 않습니다: $($missing -join ', '). 설치 안내는 PREREQUISITES.md를 참고하세요."
+    }
+
+    # Soft requirements: jq / perl are used by bash-channel tooling. The native
+    # PowerShell hooks do not shell out to them, so warn rather than hard-fail
+    # (verifier-refined in #781).
+    foreach ($cmd in @('jq', 'perl')) {
+        if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) {
+            Write-Warn "$cmd 미설치 — 일부 bash 계열 도구가 제한될 수 있습니다 (PREREQUISITES.md)."
+        }
     }
 
     Write-Ok "의존성 확인 완료"

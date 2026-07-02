@@ -162,6 +162,15 @@ jobs:
         # Validates code-review skill frontmatter severity/finding_levels enums.
         run: bash tests/scripts/test-severity-enum.sh
 
+      - name: Run PowerShell hook behavior tests (pwsh)
+        # CI parity (#781): the .ps1 hook behavior tests under
+        # tests/hooks/test-runner.ps1 previously ran in no workflow, so the
+        # PowerShell guards had zero behavioral coverage and Windows users acted
+        # as the test runner. pwsh is preinstalled on the ubuntu/macos runners
+        # (already used by the install-manifest step above), so this is zero
+        # extra infra.
+        run: pwsh tests/hooks/test-runner.ps1
+
   shellcheck:
     runs-on: ${{ matrix.os }}
     strategy:
