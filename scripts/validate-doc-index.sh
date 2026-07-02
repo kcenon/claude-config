@@ -4,6 +4,7 @@
 # Checks intentionally stay narrow:
 #   - every manifest document path exists
 #   - every recorded `size` equals the checked-in entry's byte length
+#   - every checked-in docs/.index/*.yaml file has the same generated date
 #
 # Usage:
 #   scripts/validate-doc-index.sh [repo-root] [manifest-path]
@@ -44,15 +45,61 @@ if not manifest.is_file():
     print(f"validate-doc-index: manifest not found: {manifest}", file=sys.stderr)
     sys.exit(2)
 
-with manifest.open("r", encoding="utf-8") as fh:
-    data = yaml.safe_load(fh) or {}
+errors = []
+
+
+def rel(path):
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def load_yaml(path):
+    try:
+        with path.open("r", encoding="utf-8") as fh:
+            loaded = yaml.safe_load(fh) or {}
+    except yaml.YAMLError as exc:
+        errors.append(f"{rel(path)}: invalid YAML: {exc}")
+        return {}
+    return loaded
+
+
+def generated_value(path, loaded):
+    meta = loaded.get("_meta")
+    if not isinstance(meta, dict):
+        errors.append(f"{rel(path)}: missing _meta mapping")
+        return None
+
+    generated = meta.get("generated")
+    if not isinstance(generated, str) or not generated:
+        errors.append(f"{rel(path)}: missing _meta.generated")
+        return None
+
+    return generated
+
+
+data = load_yaml(manifest)
+
+manifest_generated = generated_value(manifest, data)
+for index_file in sorted(manifest.parent.glob("*.yaml")):
+    index_data = data if index_file == manifest else load_yaml(index_file)
+    index_generated = generated_value(index_file, index_data)
+    if (
+        manifest_generated
+        and index_generated
+        and index_generated != manifest_generated
+    ):
+        errors.append(
+            f"{rel(index_file)}: generated mismatch "
+            f"manifest={manifest_generated} actual={index_generated}"
+        )
 
 documents = data.get("documents")
 if not isinstance(documents, list):
     print("validate-doc-index: manifest has no documents list", file=sys.stderr)
     sys.exit(1)
 
-errors = []
 seen = set()
 
 for idx, entry in enumerate(documents, 1):

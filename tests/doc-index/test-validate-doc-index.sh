@@ -51,6 +51,17 @@ documents:
 EOF
 }
 
+write_index_meta() {
+    local repo="$1"
+    local file="$2"
+    local generated="$3"
+    mkdir -p "$repo/docs/.index"
+    cat > "$repo/docs/.index/$file" <<EOF
+_meta: {schema: "1.0.0", generated: "$generated"}
+routes: []
+EOF
+}
+
 assert_exit() {
     local expected="$1" actual="$2" label="$3"
     if [ "$actual" -eq "$expected" ]; then
@@ -99,6 +110,15 @@ write_manifest "$REPO_MISSING" "docs/missing.md" 1
 out=$(bash "$VALIDATOR" "$REPO_MISSING" 2>&1); rc=$?
 assert_exit 1 "$rc" "missing path fails"
 assert_contains "missing file" "$out" "missing path message"
+
+REPO_STALE_INDEX="$WORK/stale-index"
+mkdir -p "$REPO_STALE_INDEX/docs"
+printf 'hello' > "$REPO_STALE_INDEX/docs/a.md"
+write_manifest "$REPO_STALE_INDEX" "docs/a.md" 5
+write_index_meta "$REPO_STALE_INDEX" "router.yaml" "2026-04-10"
+out=$(bash "$VALIDATOR" "$REPO_STALE_INDEX" 2>&1); rc=$?
+assert_exit 1 "$rc" "stale non-manifest index date fails"
+assert_contains "generated mismatch" "$out" "stale index date message"
 
 REPO_SYMLINK="$WORK/symlink"
 mkdir -p "$REPO_SYMLINK/docs"

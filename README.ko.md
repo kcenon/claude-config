@@ -740,15 +740,22 @@ SKILL.md 파일을 커밋 전 자동으로 검증하려면 git hook을 설치하
 ./hooks/install-hooks.sh
 ```
 
+설치 스크립트는 `pre-commit`, `commit-msg`, `pre-push`를 `.git/hooks/`에 배포합니다.
+
 ### Pre-commit Hook
 - SKILL.md 파일 변경 감지
 - `validate_skills.sh` 자동 실행
 - 유효하지 않은 SKILL.md 파일이 있으면 커밋 차단
 
+### Commit-msg Hook
+- Conventional Commits 형식 검증
+- attribution trailer/prose 및 emoji 차단
+- 공유 검증기 `hooks/lib/validate-commit-message.sh` 사용
+
 ### Pre-push Hook
 - 보호 브랜치(`main`, `develop`)로의 직접 push 차단
 - 보호 브랜치는 pull request 워크플로 필요
-- 크로스 플랫폼: `pre-push`(bash)와 `pre-push.ps1`(PowerShell)
+- `.git/hooks/pre-push`로 설치되며, `pre-push.ps1`은 PowerShell 동등 구현입니다
 
 ---
 

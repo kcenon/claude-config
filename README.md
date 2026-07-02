@@ -764,17 +764,26 @@ Install git hooks to enforce commit and push policies:
 ./hooks/install-hooks.sh
 ```
 
+The installer deploys `pre-commit`, `commit-msg`, and `pre-push` into
+`.git/hooks/`.
+
 ### Pre-commit Hook
 
 - Detects changes to SKILL.md files
 - Runs `validate_skills.sh` automatically
 - Blocks commits with invalid SKILL.md files
 
+### Commit-msg Hook
+
+- Validates Conventional Commits format
+- Blocks attribution trailers/prose and emojis
+- Uses the shared `hooks/lib/validate-commit-message.sh` validator
+
 ### Pre-push Hook
 
 - Blocks direct pushes to protected branches (`main`, `develop`)
 - Requires pull request workflow for protected branches
-- Cross-platform: `pre-push` (bash) and `pre-push.ps1` (PowerShell)
+- Installed as `.git/hooks/pre-push`; `pre-push.ps1` is the PowerShell parity implementation
 
 ---
 
