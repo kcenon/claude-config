@@ -1585,11 +1585,11 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 4945
+    size: 7472
     tags: [docs,hook,hooks]
     sections:
-      - {h: "Ownership Table", l: 13, e: 56}
-      - {h: "Adding a new hook", l: 57, e: 66}
+      - {h: "Ownership Table", l: 13, e: 78}
+      - {h: "Adding a new hook", l: 79, e: 88}
   - path: "docs/install.md"
     title: "Install Behavior"
     description: ""
