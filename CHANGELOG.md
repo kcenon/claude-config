@@ -175,4 +175,108 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     and added to the `/release` skill checklist between the version
     drift check and the staging step.
 
+## 1.9.0 - 2026-04-13
+
+- **Multi-layered branch defense**: Four enforcement layers to prevent non-release merges to `main`
+  - PreToolUse hook (`pr-target-guard`): blocks `gh pr create --base main` unless `--head develop`
+  - GitHub Actions (`validate-pr-target.yml`): auto-closes PRs targeting `main` from non-develop branches
+  - Release skill integrity check: detects main/develop divergence before release
+  - Documentation: enforcement layers table in `branching-strategy.md`
+- **CI fix**: Removed invalid inline Python heredoc blocks from `validate-skills.yml` that caused every workflow run to fail with YAML parse errors.
+- **README updates**: Added "When you create PRs" section and updated the directory tree with missing hooks and workflows.
+
+## 1.8.0 - 2026-04-13
+
+- **Simplified git-flow branching strategy**: `develop` is the default branch, and CI runs only on PRs targeting `main`.
+- **Pre-push hook**: Blocks direct pushes to protected branches (`main`, `develop`).
+- **Branching documentation**: Added a comprehensive branch model, CI policy, and release workflow guide.
+
+## 1.7.0 - 2026-04-06
+
+- **Windows PowerShell coverage**: Added substantial PowerShell (`.ps1`) parity for utility, hook, and helper scripts. The earlier "All 42 bash scripts now have PowerShell counterparts" wording was inaccurate; see [COMPATIBILITY.md > PowerShell parity status](COMPATIBILITY.md#powershell-parity-status) for the live count and the list of bash hooks without `.ps1` counterparts.
+  - Most utility scripts: `install`, `verify`, `sync`, `backup`, `validate_skills`, `bootstrap`
+  - Most hook scripts with identical security behavior
+  - All 8 GitHub CLI helper scripts (`scripts/gh/`)
+  - All 3 global scripts (`statusline-command`, `team-report`, `weekly-usage`)
+  - All 7 test scripts for hook validation
+  - Git hooks installer (`hooks/install-hooks.ps1`)
+- **Shared PowerShell module**: Added `CommonHelpers.psm1` with 20 exported functions.
+  - Message helpers, hook response builders, stdin JSON reader
+  - Platform detection, version comparison, log rotation
+  - Eliminates `jq` dependency on Windows by using native `ConvertFrom-Json`
+  - Uses .NET `GZipStream` for log compression
+
+## 1.6.0 - 2026-04-03
+
+- **Harness meta-skill**: Added `/harness` for designing domain-specific agent team architectures.
+  - 6 architecture patterns: Pipeline, Fan-out/Fan-in, Expert Pool, Producer-Reviewer, Supervisor, Hierarchical
+  - Generates `.claude/agents/` and `.claude/skills/` with orchestration
+  - Reference docs: agent design patterns, orchestrator templates, skill writing/testing guides, QA agent guide
+- **QA reviewer agent**: Added `qa-reviewer` agent for integration coherence verification.
+- **Version check hook**: Added SessionStart hook to warn about known Claude Code cache bugs.
+- **Batch processing**: Added batch mode to `/issue-work` and `/pr-work` skills.
+- **CI validation**: Extended skill validation with description quality and global skills checks.
+- **Skill descriptions**: Enhanced trigger accuracy across all skills.
+- **Third-party notices**: Added `THIRD_PARTY_NOTICES.md` for harness content attribution.
+
+## 1.5.0 - 2026-03-21
+
+- **Skills migration**: Migrated all global commands to Skills format for context isolation and model override support.
+  - `/branch-cleanup`, `/release`, `/issue-create`, `/issue-work`, `/pr-work` are now skills
+  - Added new global skills: `/doc-review`, `/implement-all-levels`
+  - Added new project skills: `ci-debugging`, `code-quality`, `git-status`, `pr-review`
+  - Skills support `argument-hint`, `model`, `allowed-tools`, and adaptive execution frontmatter
+- **Agent Teams**: Added experimental multi-agent collaboration framework.
+  - Shared task lists, direct messaging, and team coordination
+  - Teammates modes: `auto`, `in-process`, `tmux`
+  - Team hooks: `TeammateIdle`, `TaskCompleted`
+- **Windows PowerShell support**: Added Windows installer, hook script variants, and Windows-specific settings.
+- **New hooks**: Added GitHub API preflight, markdown anchor validation, prompt validation, logging, config-change, pre-compact, and worktree lifecycle hooks.
+- **tmux auto-logging**: Added `tmux.conf` for automatic session logging.
+- **Plugin enhancements**: Bundled agent definitions and updated manifests.
+- **GitHub helper scripts**: Added `scripts/gh/` with 8 helper scripts for issues and PRs.
+- **Rule files restructured**: Updated `coding/`, `core/`, `operations/`, and `tools/` rules to match current best practices.
+- **Context optimization**: Reduced always-on context by 77% via SSOT refactoring.
+
+## 1.4.0 - 2026-01-22
+
+- Adopted Import syntax (`@path/to/file`) for modular references.
+- Updated all `CLAUDE.md` files to use Import syntax.
+- Updated all `SKILL.md` files to use Import syntax for reference documents.
+
+## 1.3.0 - 2026-01-15
+
+- Added `/release` command for automated changelog generation.
+- Added `/branch-cleanup` command for merged and stale branches.
+- Added `/issue-create` command with 5W1H framework.
+- Added `/issue-work` and `/pr-work` commands for GitHub workflow automation.
+- Added common policy files (`_policy.md`) for shared command rules.
+- Updated all global commands to reference shared policy.
+
+## 1.2.0 - 2026-01-15
+
+- Optimized `CLAUDE.md` for official best practices compliance.
+- Simplified `project/CLAUDE.md`.
+- Added emphasis expressions for key rules.
+- Created `common-commands.md`.
+- Optimized `conditional-loading.md`.
+- Split `github-issue-5w1h.md` with Progressive Disclosure.
+
+## 1.1.0 - 2025-01-15
+
+- Added `.claude/rules/` directory with path-based conditional loading.
+- Added `.claude/commands/` for custom slash commands.
+- Added `.claude/agents/` for specialized agent configurations.
+- Added MCP configuration template (`.mcp.json`).
+- Added local settings templates (`CLAUDE.local.md.template`, `settings.local.json.template`).
+- Extended hooks with `UserPromptSubmit` and `Stop` events.
+- Added `alwaysThinkingEnabled` setting to all settings.json files.
+- Enhanced all `SKILL.md` files with `allowed-tools` and `model` options.
+
+## 1.0.0 - 2025-12-03
+
+- Initial release with global and project configurations.
+- Added Claude Code Skills with progressive disclosure pattern.
+- Added hook settings for security and auto-formatting.
+
 [Unreleased]: https://github.com/kcenon/claude-config/compare/v1.10.0...HEAD

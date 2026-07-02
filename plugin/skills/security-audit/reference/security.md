@@ -2,9 +2,16 @@
 
 ## Input Validation
 
+**YOU MUST** validate all user input before processing.
+
+- Validate all external inputs
+- Use allowlist validation over blocklist
+- Sanitize data before use
+- Validate on the server, not just client
+
 ### Validate All External Input
 
-Never trust data from external sources. Always validate and sanitize:
+**NEVER** trust data from external sources. **ALWAYS** validate and sanitize:
 
 ```cpp
 // ❌ Vulnerable to SQL injection
@@ -57,7 +64,7 @@ def validate_type(value: any, expected_type: Type[T]) -> T:
 
 **SQL Injection Prevention**:
 ```cpp
-// Always use parameterized queries
+// ALWAYS use parameterized queries
 class UserRepository {
 public:
     User findByEmail(const std::string& email) {
@@ -153,9 +160,48 @@ try {
 }
 ```
 
+## Authentication
+
+- Use established libraries (never roll your own)
+- Implement proper session management
+- Use secure password hashing (bcrypt, argon2)
+- Support multi-factor authentication
+
+## Authorization
+
+- Implement principle of least privilege
+- Check authorization at every layer
+- Use role-based access control (RBAC)
+- Never expose internal IDs in URLs without validation
+
+## Sensitive Data
+
+- Never log sensitive information
+- Use environment variables for secrets
+- Encrypt data at rest and in transit
+- Implement proper key management
+
+## Common Vulnerabilities
+
+### SQL Injection
+- Use parameterized queries
+- Never concatenate user input into queries
+
+### XSS (Cross-Site Scripting)
+- Escape output in HTML context
+- Use Content Security Policy headers
+- Sanitize HTML input
+
+### CSRF
+- Implement anti-CSRF tokens
+- Verify Origin/Referer headers
+- Use SameSite cookie attribute
+
 ## Secure Storage
 
 ### Never Hard-Code Credentials
+
+**NEVER** hard-code credentials in source code:
 
 ❌ **Never do this**:
 ```cpp
@@ -214,6 +260,8 @@ std::string password = config["database"]["password"];
 ```
 
 ### Mask Sensitive Data in Logs
+
+**NEVER** log passwords, tokens, or API keys in plain text.
 
 ```cpp
 class Logger {
@@ -343,7 +391,7 @@ npm update package-name
 
 ### Pin Versions
 
-Always pin dependency versions to prevent supply chain attacks:
+**RECOMMENDED**: Pin dependency versions to prevent supply chain attacks:
 
 ```json
 // package.json - Use exact versions
@@ -398,6 +446,8 @@ jobs:
 ```
 
 ## Security Best Practices
+
+**IMPORTANT**: Follow these security best practices for all code.
 
 ### Principle of Least Privilege
 

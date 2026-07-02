@@ -74,7 +74,7 @@ Install claude-config and Claude Code immediately gains these capabilities:
 
 **Agent team design** — `/harness` designs multi-agent architectures tailored to your project, with 6 architecture patterns and orchestrator templates.
 
-**Cross-platform** — Everything works on macOS, Linux, and Windows (PowerShell).
+**Cross-platform** — Everything works on macOS, Linux, and Windows (PowerShell). The memory sync scheduler is the Unix-only exception; see [`COMPATIBILITY.md`](COMPATIBILITY.md#cross-platform-notes).
 
 ---
 
@@ -1017,6 +1017,8 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 Memory sync keeps Claude Code's auto-memory consistent across all your machines via a private git store. See:
 
+Scheduler automation is Unix-only: macOS uses `launchd`, Linux uses a `systemd` user timer, and Windows users should run the Linux path through WSL. Native PowerShell scheduling is not supported for memory sync.
+
 - [Operations guide](docs/MEMORY_SYNC.md) - Daily ops, troubleshooting, rollback, conflict resolution
 - [Threat model](docs/THREAT_MODEL.md) - Security analysis, 7 threat categories, 5-layer defense
 - [Validation spec](docs/MEMORY_VALIDATION_SPEC.md) - Validator contract and frontmatter schema
@@ -1040,118 +1042,7 @@ Memory sync keeps Claude Code's auto-memory consistent across all your machines 
 
 **Current**: tracked in [`VERSION_MAP.yml`](VERSION_MAP.yml) (single source of truth — `suite` field). The shields.io badge at the top of this README is generated from the same field by `scripts/sync_versions.sh`. Do not hardcode version numbers in this document; bump them with `/release <field> <new-version>` instead.
 
-<details>
-<summary>Changelog</summary>
-
-#### v1.9.0 (2026-04-13)
-- **Multi-layered branch defense**: Four enforcement layers to prevent non-release merges to `main`
-  - PreToolUse hook (`pr-target-guard`): blocks `gh pr create --base main` unless `--head develop`
-  - GitHub Actions (`validate-pr-target.yml`): auto-closes PRs targeting `main` from non-develop branches
-  - Release skill integrity check: detects main/develop divergence before release
-  - Documentation: enforcement layers table in branching-strategy.md
-- **CI fix**: Removed invalid inline Python heredoc blocks from `validate-skills.yml` that caused every workflow run to fail with YAML parse errors
-- **README updates**: Added "When you create PRs" section, updated directory tree with missing hooks and workflows
-
-#### v1.8.0 (2026-04-13)
-- **Simplified git-flow branching strategy**: develop as default branch, CI on main-targeting PRs only
-- **Pre-push hook**: blocks direct pushes to protected branches (main, develop)
-- **Branching documentation**: comprehensive branch model, CI policy, and release workflow guide
-
-#### v1.7.0 (2026-04-06)
-- **Windows PowerShell coverage**: substantial PowerShell (`.ps1`) parity for utility, hook, and helper scripts. The earlier "All 42 bash scripts now have PowerShell counterparts" wording was inaccurate — see [COMPATIBILITY.md › PowerShell parity status](https://github.com/kcenon/claude-config/blob/develop/COMPATIBILITY.md#powershell-parity-status) for the live count and the list of bash hooks without `.ps1` counterparts. Tracked for restoration in a follow-up issue.
-  - Most utility scripts: `install`, `verify`, `sync`, `backup`, `validate_skills`, `bootstrap`
-  - Most hook scripts with identical security behavior (fail-closed model preserved)
-  - All 8 GitHub CLI helper scripts (`scripts/gh/`)
-  - All 3 global scripts (`statusline-command`, `team-report`, `weekly-usage`)
-  - All 7 test scripts for hook validation
-  - Git hooks installer (`hooks/install-hooks.ps1`)
-- **Shared PowerShell module**: Added `CommonHelpers.psm1` with 20 exported functions
-  - Message helpers, hook response builders, stdin JSON reader
-  - Platform detection, version comparison, log rotation
-  - Eliminates `jq` dependency on Windows (uses native `ConvertFrom-Json`)
-  - Uses .NET `GZipStream` for log compression (no external `gzip` needed)
-
-#### v1.6.0 (2026-04-03)
-- **Harness meta-skill**: Added `/harness` for designing domain-specific agent team architectures
-  - 6 architecture patterns: Pipeline, Fan-out/Fan-in, Expert Pool, Producer-Reviewer, Supervisor, Hierarchical
-  - Generates `.claude/agents/` and `.claude/skills/` with orchestration
-  - Reference docs: agent design patterns, orchestrator templates, skill writing/testing guides, QA agent guide
-- **QA reviewer agent**: Added `qa-reviewer` agent for integration coherence verification
-- **Version check hook**: Added SessionStart hook to warn about known Claude Code cache bugs
-- **Batch processing**: Added batch mode to `/issue-work` and `/pr-work` skills (single-repo, cross-repo)
-- **CI validation**: Extended skill validation with description quality and global skills checks
-- **Skill descriptions**: Enhanced trigger accuracy across all skills
-- **Third-party notices**: Added `THIRD_PARTY_NOTICES.md` for harness content attribution (Apache 2.0)
-
-#### v1.5.0 (2026-03-21)
-- **Skills migration**: Migrated all global commands to Skills format for context isolation and model override support
-  - `/branch-cleanup`, `/release`, `/issue-create`, `/issue-work`, `/pr-work` are now skills
-  - Added new global skills: `/doc-review`, `/implement-all-levels`
-  - Added new project skills: `ci-debugging`, `code-quality`, `git-status`, `pr-review`
-  - Skills support `argument-hint`, `model`, `allowed-tools`, and adaptive execution frontmatter
-- **Agent Teams**: Added experimental multi-agent collaboration framework
-  - Shared task lists, direct messaging, and team coordination
-  - Teammates modes: `auto`, `in-process`, `tmux`
-  - Team hooks: `TeammateIdle`, `TaskCompleted`
-- **Windows PowerShell support**: Full cross-platform parity
-  - Added `install.ps1` for Windows installation
-  - All 16 hook scripts have `.ps1` variants
-  - Added `settings.windows.json` for Windows-specific hook paths
-- **New hooks** (8 new types):
-  - `github-api-preflight`: GitHub API call validation
-  - `markdown-anchor-validator`: Markdown anchor validation
-  - `prompt-validator`: Commit message validation via LLM
-  - `tool-failure-logger`: Tool execution failure tracking
-  - `subagent-logger`: Subagent lifecycle tracking
-  - `task-completed-logger`: Task completion tracking
-  - `config-change-logger`: Configuration change tracking
-  - `pre-compact-snapshot`: Context preservation before auto-compaction
-  - `worktree-create`/`worktree-remove`: Worktree lifecycle hooks
-- **tmux auto-logging**: Added `tmux.conf` for automatic session logging
-- **Plugin enhancements**: Bundled agent definitions, updated manifests
-- **GitHub helper scripts**: Added `scripts/gh/` with 8 helper scripts for issues and PRs
-- **Rule files restructured**: Updated `coding/`, `core/`, `operations/`, `tools/` rules to match current best practices
-- **Context optimization**: Reduced always-on context by 77% (485 → 112 lines) via SSOT refactoring
-
-#### v1.4.0 (2026-01-22)
-- Adopted Import syntax (`@path/to/file`) for modular references
-  - Replaced markdown links with Import syntax for better token efficiency
-  - Supports recursive imports up to 5 levels deep
-- Updated all CLAUDE.md files (global and project) to use Import syntax
-- Updated all SKILL.md files to use Import syntax for reference documents
-
-#### v1.3.0 (2026-01-15)
-- Added `/release` command for automated changelog generation
-- Added `/branch-cleanup` command for merged and stale branches
-- Added `/issue-create` command with 5W1H framework
-- Added `/issue-work` and `/pr-work` commands for GitHub workflow automation
-- Added common policy files (`_policy.md`) for shared command rules
-- Updated all global commands to reference shared policy
-
-#### v1.2.0 (2026-01-15)
-- CLAUDE.md optimization for official best practices compliance
-- Simplified project/CLAUDE.md (212 → ~85 lines)
-- Added emphasis expressions for key rules
-- Created common-commands.md
-- Optimized conditional-loading.md
-- Split github-issue-5w1h.md with Progressive Disclosure
-
-#### v1.1.0 (2025-01-15)
-- Added `.claude/rules/` directory with path-based conditional loading
-- Added `.claude/commands/` for custom slash commands
-- Added `.claude/agents/` for specialized agent configurations
-- Added MCP configuration template (`.mcp.json`)
-- Added local settings templates (`CLAUDE.local.md.template`, `settings.local.json.template`)
-- Extended hooks with `UserPromptSubmit` and `Stop` events
-- Added `alwaysThinkingEnabled` setting to all settings.json files
-- Enhanced all SKILL.md files with `allowed-tools` and `model` options
-
-#### v1.0.0 (2025-12-03)
-- Initial release with global and project configurations
-- Claude Code Skills with progressive disclosure pattern
-- Hook settings for security and auto-formatting
-
-</details>
+Historical release notes now live in [`CHANGELOG.md`](CHANGELOG.md).
 
 ---
 

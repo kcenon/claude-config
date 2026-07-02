@@ -6,6 +6,10 @@ HOOK="global/hooks/commit-message-guard.sh"
 PASS=0
 FAIL=0
 ERRORS=()
+SCRATCH_ROOT="${TMPDIR:-/tmp}"
+WORK=$(mktemp -d "$SCRATCH_ROOT/cmg-test.XXXXXX" 2>/dev/null) || WORK="$SCRATCH_ROOT/cmg-test.$$"
+mkdir -p "$WORK"
+trap 'rm -rf "$WORK"' EXIT
 
 cd "$(dirname "$0")/../.." || exit 1
 
@@ -45,6 +49,23 @@ assert_allow '{"tool_input":{"command":"ls -la"}}' "ls -la → allow"
 assert_allow '{"tool_input":{"command":"git status"}}' "git status → allow"
 assert_allow '{"tool_input":{"command":"git log --oneline"}}' "git log → allow"
 assert_allow '{"tool_input":{"command":"gh issue view 123"}}' "gh issue view → allow"
+
+echo ""
+echo "[non-commit prefilter does not require validator]"
+TEMP_HOOK_DIR="$WORK/global/hooks"
+TEMP_VALIDATOR_DIR="$WORK/hooks/lib"
+mkdir -p "$TEMP_HOOK_DIR" "$TEMP_VALIDATOR_DIR"
+cp "$HOOK" "$TEMP_HOOK_DIR/commit-message-guard.sh"
+printf 'exit 97\n' > "$TEMP_VALIDATOR_DIR/validate-commit-message.sh"
+result=$(printf '%s' '{"tool_input":{"command":"git status"}}' | bash "$TEMP_HOOK_DIR/commit-message-guard.sh" 2>/dev/null)
+if echo "$result" | grep -q '"allow"'; then
+    PASS=$((PASS + 1))
+    echo "  PASS: out-of-scope command allows before validator source"
+else
+    FAIL=$((FAIL + 1))
+    ERRORS+=("FAIL: out-of-scope command should allow before validator source, got: $result")
+    echo "  FAIL: out-of-scope command allows before validator source"
+fi
 
 echo ""
 echo "[valid conventional commits]"
