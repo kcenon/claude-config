@@ -213,6 +213,76 @@ function Read-SettingsContentLanguage {
     }
 }
 
+function Read-SettingsAgentLanguage {
+    # Reads the current top-level ".language" value from a settings.json file.
+    # Returns empty string when missing or unparseable. Mirrors
+    # Read-SettingsContentLanguage for PowerShell reinstall parity with bash
+    # read_settings_agent_language (issue #780).
+    [CmdletBinding()]
+    param([string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) { return '' }
+    try {
+        $json = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json -ErrorAction Stop
+        if ($json.language) {
+            return [string]$json.language
+        }
+        return ''
+    } catch {
+        $line = (Select-String -LiteralPath $Path -Pattern '"language"\s*:\s*"([^"]*)"' -List).Matches
+        if ($line) { return $line[0].Groups[1].Value }
+        return ''
+    }
+}
+
+function Seed-LanguageFromSettings {
+    # Reinstall helper (issue #780). Fills AGENT_LANGUAGE / CONTENT_LANGUAGE
+    # equivalents from an existing settings.json when they are unset, so a
+    # PowerShell reinstall keeps the previously chosen policy instead of
+    # resetting to the Hybrid default. Explicit env overrides win because only
+    # unset values are filled. Returns the resolved values for callers to pass
+    # to Show-LanguageProfilePrompt.
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$SettingsPath,
+        [string]$AgentLanguage = $env:AGENT_LANGUAGE,
+        [string]$ContentLanguage = $env:CONTENT_LANGUAGE
+    )
+
+    $resolvedAgent = $AgentLanguage
+    $resolvedContent = $ContentLanguage
+    $seeded = $false
+
+    if (Test-Path -LiteralPath $SettingsPath) {
+        if ([string]::IsNullOrEmpty($resolvedAgent)) {
+            $existingAgent = Read-SettingsAgentLanguage -Path $SettingsPath
+            if (-not [string]::IsNullOrEmpty($existingAgent)) {
+                $resolvedAgent = $existingAgent
+                $seeded = $true
+            }
+        }
+        if ([string]::IsNullOrEmpty($resolvedContent)) {
+            $existingContent = Read-SettingsContentLanguage -Path $SettingsPath
+            if (-not [string]::IsNullOrEmpty($existingContent)) {
+                $resolvedContent = $existingContent
+                $seeded = $true
+            }
+        }
+    }
+
+    if ($seeded) {
+        $agentMsg = if ([string]::IsNullOrEmpty($resolvedAgent)) { '?' } else { $resolvedAgent }
+        $contentMsg = if ([string]::IsNullOrEmpty($resolvedContent)) { '?' } else { $resolvedContent }
+        Script:Write-PromptInfo "Existing language policy kept from settings.json (agent=$agentMsg, content=$contentMsg). Override with AGENT_LANGUAGE/CONTENT_LANGUAGE env or edit ~/.claude/settings.json."
+    }
+
+    return [pscustomobject]@{
+        AgentLanguage = $resolvedAgent
+        ContentLanguage = $resolvedContent
+        Seeded = $seeded
+    }
+}
+
 function Show-LegacySettingsWarning {
     # Prints a warning when settings.json holds a legacy CLAUDE_CONTENT_LANGUAGE
     # value the simplified UI no longer surfaces. Returns $true when warned.
@@ -268,4 +338,4 @@ function Set-GitIdentitySeed {
     return $true
 }
 
-Export-ModuleMember -Function Show-LanguageProfilePrompt, Get-PolicyPhrase, Invoke-PolicyTemplate, Invoke-PolicyTemplatesInDir, Get-AllPolicyValues, Test-LegacyContentLanguage, Read-SettingsContentLanguage, Show-LegacySettingsWarning, Set-GitIdentitySeed
+Export-ModuleMember -Function Show-LanguageProfilePrompt, Get-PolicyPhrase, Invoke-PolicyTemplate, Invoke-PolicyTemplatesInDir, Get-AllPolicyValues, Test-LegacyContentLanguage, Read-SettingsContentLanguage, Read-SettingsAgentLanguage, Seed-LanguageFromSettings, Show-LegacySettingsWarning, Set-GitIdentitySeed

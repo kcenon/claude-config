@@ -280,7 +280,17 @@ function Install-GlobalSettings {
     # Language policy selection (Unified Language Profile)
     # Stored at script scope so the project-install path (Install-ProjectSettings)
     # can reuse the resolved values for rule-template rendering (issue #760).
-    $profileChoice = Show-LanguageProfilePrompt
+    $settingsPath = Join-Path $ClaudeDir 'settings.json'
+    $seededPolicy = $null
+    if (Get-Command Seed-LanguageFromSettings -ErrorAction SilentlyContinue) {
+        $seededPolicy = Seed-LanguageFromSettings -SettingsPath $settingsPath
+    }
+    if ($seededPolicy) {
+        $profileChoice = Show-LanguageProfilePrompt -AgentLanguage $seededPolicy.AgentLanguage -ContentLanguage $seededPolicy.ContentLanguage
+    }
+    else {
+        $profileChoice = Show-LanguageProfilePrompt
+    }
     $script:agentLanguage = $profileChoice.AgentLanguage
     $script:displayLang = $profileChoice.AgentDisplay
     $script:contentLanguage = $profileChoice.ContentLanguage
@@ -445,10 +455,19 @@ function Install-GlobalSettings {
 
 function Invoke-PersonalizeGitIdentity {
     Write-Host ""
-    Write-Warn "중요: Git Identity를 개인 정보로 수정해야 합니다!"
+    $gitIdFile = Join-Path $ClaudeDir 'git-identity.md'
+    $needsGitIdentityEdit = $false
+    if (Test-Path $gitIdFile) {
+        $needsGitIdentityEdit = [bool](Select-String -Path $gitIdFile -Pattern 'YOUR NAME|YOUR EMAIL' -Quiet)
+    }
+    if ($needsGitIdentityEdit) {
+        Write-Warn "Git Identity에 기본 placeholder가 남아 있습니다. 개인 정보로 수정하세요."
+    }
+    else {
+        Write-Info "Git Identity가 준비되었습니다. 필요하면 값을 확인하거나 수정하세요."
+    }
     Write-Host ""
     Write-Host "  현재 설정:"
-    $gitIdFile = Join-Path $ClaudeDir 'git-identity.md'
     if (Test-Path $gitIdFile) {
         Get-Content $gitIdFile | Where-Object { $_ -match '^(name|email):' } | ForEach-Object {
             Write-Host "    $_"

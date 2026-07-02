@@ -63,9 +63,18 @@ if (-not $dryRun) {
         # `src:dst` -> dst; a bare `branch` -> branch.
         $dst = @($positionals[1] -split ':')[-1]
     } else {
-        # No refspec: the push targets the current branch's upstream (the
-        # current branch). Resolve it; fail open if git cannot (not a repo).
-        try { $dst = (& git rev-parse --abbrev-ref HEAD 2>$null) } catch {}
+        # No refspec: bare `git push` targets the current branch's upstream
+        # when one exists. Resolve that destination first, then fall back to the
+        # current branch for repos without an upstream.
+        $upstream = $null
+        try { $upstream = (& git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>$null) } catch {}
+        if ($upstream) {
+            $upstreamText = "$upstream".Trim()
+            $dst = @($upstreamText -split '/', 2)[-1]
+        }
+        else {
+            try { $dst = (& git rev-parse --abbrev-ref HEAD 2>$null) } catch {}
+        }
         if ($dst) { $dst = ("$dst").Trim() }
     }
 

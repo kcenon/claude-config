@@ -35,8 +35,8 @@ Get up and running in 3 minutes:
 # 1. One-line installation
 curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash
 
-# 2. Personalize Git identity (Required!)
-vi ~/.claude/git-identity.md
+# 2. Verify Git identity (auto-filled from git config when available)
+grep -E "^(name|email):" ~/.claude/git-identity.md
 
 # 3. Restart Claude Code - Done!
 ```
@@ -125,8 +125,8 @@ git clone https://github.com/kcenon/claude-config.git ~/claude_config_backup
 cd ~/claude_config_backup
 ./scripts/install.sh
 
-# 3. Personalize Git identity (Required!)
-vi ~/.claude/git-identity.md
+# 3. Verify Git identity (edit only if missing or wrong)
+grep -E "^(name|email):" ~/.claude/git-identity.md
 ```
 
 ### Windows (PowerShell)
@@ -139,8 +139,8 @@ git clone https://github.com/kcenon/claude-config.git ~\claude_config_backup
 cd ~\claude_config_backup
 .\scripts\install.ps1
 
-# 3. Personalize Git identity (Required!)
-notepad $HOME\.claude\git-identity.md
+# 3. Verify Git identity (edit only if missing or wrong)
+Get-Content $HOME\.claude\git-identity.md | Select-String '^(name|email):'
 ```
 
 > **Note**: Requires PowerShell 7+ (`pwsh`). Install via `winget install Microsoft.PowerShell`.
@@ -751,7 +751,7 @@ The `.mcp.json` template provides common MCP server configurations.
 | `verify.sh` / `.ps1` | Check backup integrity and completeness | `./scripts/verify.sh` |
 | `validate_skills.sh` / `.ps1` | Validate SKILL.md format compliance | `./scripts/validate_skills.sh` |
 
-After installation, you **must** edit `~/.claude/git-identity.md` with your personal info.
+After installation, `~/.claude/git-identity.md` is auto-filled from `git config --global user.name` and `git config --global user.email` when both values exist. Edit it only if the values are missing or wrong.
 Existing files are automatically backed up with `.backup_YYYYMMDD_HHMMSS` format.
 
 ---
@@ -829,8 +829,8 @@ cd ~/claude_config_backup
 ./scripts/install.sh
 # Type: 3 (Both)
 
-# Modify Git identity
-vi ~/.claude/git-identity.md
+# Verify Git identity; edit only if missing or wrong
+grep -E "^(name|email):" ~/.claude/git-identity.md
 ```
 
 ---
@@ -948,11 +948,11 @@ bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main
 
 ### Q1: Why do I need to personalize Git identity?
 
-**A:** `git-identity.md` contains personal information (name, email), so each user must modify it with their own information.
+**A:** `git-identity.md` contains personal information (name, email), so each installation must use the operator's own values. The installer auto-fills it from `git config --global user.name` and `git config --global user.email` when both values exist; edit the file only if those values are missing or wrong.
 
 ```bash
 vi ~/.claude/git-identity.md
-# Change name and email to your information
+# Change name and email only when the installed values are missing or wrong
 ```
 
 ---

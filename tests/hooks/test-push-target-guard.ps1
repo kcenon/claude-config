@@ -62,6 +62,30 @@ Assert-Allow 'git push origin feature/x'     'push feature/x -> allow'
 Assert-Allow 'git push origin main:feature'  'push main:feature (dst feature) -> allow'
 
 Write-Host ''
+Write-Host '[bare push resolves configured upstream]'
+$tmpRepo = Join-Path ([System.IO.Path]::GetTempPath()) "push-target-guard-$([guid]::NewGuid().ToString('N'))"
+New-Item -ItemType Directory -Path $tmpRepo | Out-Null
+try {
+    Push-Location $tmpRepo
+    & git init -q
+    & git checkout -q -b feature/upstream-main
+    & git config user.email 'test@example.com'
+    & git config user.name 'Test'
+    Set-Content -LiteralPath (Join-Path $tmpRepo 'seed.txt') -Value 'seed' -NoNewline
+    & git add seed.txt
+    & git commit -q -m 'test: seed'
+    & git remote add origin https://example.invalid/repo.git
+    & git update-ref refs/remotes/origin/main HEAD
+    & git config branch.feature/upstream-main.remote origin
+    & git config branch.feature/upstream-main.merge refs/heads/main
+    Assert-Deny 'git push' 'bare push to upstream main -> deny'
+}
+finally {
+    Pop-Location
+    Remove-Item -LiteralPath $tmpRepo -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host ''
 Write-Host '[--no-verify -> deny; dry-run -> allow]'
 Assert-Deny  'git push --no-verify origin feature/x' 'push --no-verify -> deny'
 Assert-Allow 'git push -n origin main'               'push -n (dry-run) main -> allow'

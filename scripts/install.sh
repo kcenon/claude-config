@@ -891,8 +891,13 @@ PY
 
     # Git identity 개인화 안내
     echo ""
-    warning "중요: git-identity.md를 개인 정보로 수정하세요!"
-    echo "  편집: vi ~/.claude/git-identity.md"
+    if grep -qE "YOUR NAME|YOUR EMAIL" "$HOME/.claude/git-identity.md" 2>/dev/null; then
+        warning "git-identity.md에 기본 placeholder가 남아 있습니다. 개인 정보로 수정하세요."
+        echo "  편집: vi ~/.claude/git-identity.md"
+    else
+        info "git-identity.md가 준비되었습니다. 필요하면 값을 확인하거나 수정하세요."
+        echo "  확인: grep -E \"^(name|email):\" ~/.claude/git-identity.md"
+    fi
 fi
 
 # 프로젝트 설정 설치
@@ -1050,8 +1055,9 @@ echo "======================================================"
 info "다음 단계"
 echo "======================================================"
 echo ""
-echo "1. ⚙️  Git identity 개인화 (필수!):"
-echo "     vi ~/.claude/git-identity.md"
+echo "1. ⚙️  Git identity 확인:"
+echo "     grep -E \"^(name|email):\" ~/.claude/git-identity.md"
+echo "     # placeholder가 남으면 vi ~/.claude/git-identity.md"
 echo ""
 echo "2. 🔄 Claude Code 재시작:"
 echo "     새 터미널을 열거나 현재 세션 종료 후 재시작"

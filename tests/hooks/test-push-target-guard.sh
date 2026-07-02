@@ -3,6 +3,7 @@
 # Run: bash tests/hooks/test-push-target-guard.sh
 
 HOOK="global/hooks/push-target-guard.sh"
+HOOK_ABS="$(pwd)/$HOOK"
 PASS=0
 FAIL=0
 ERRORS=()
@@ -53,6 +54,31 @@ echo "[non-protected targets → allow]"
 assert_allow '{"tool_input":{"command":"git push origin feature/x"}}' "push feature/x → allow"
 assert_allow '{"tool_input":{"command":"git push -u origin fix/issue-1"}}' "push fix/issue-1 → allow"
 assert_allow '{"tool_input":{"command":"git push origin main:feature"}}' "push main:feature (dst feature) → allow"
+
+echo ""
+echo "[bare push resolves configured upstream]"
+TMP_REPO="$(mktemp -d)"
+trap 'rm -rf "$TMP_REPO"' EXIT
+(
+    cd "$TMP_REPO" || exit 1
+    git init -q
+    git checkout -q -b feature/upstream-main
+    git config user.email "test@example.com"
+    git config user.name "Test"
+    echo seed > seed.txt
+    git add seed.txt
+    git commit -q -m "test: seed"
+    git remote add origin https://example.invalid/repo.git
+    git update-ref refs/remotes/origin/main HEAD
+    git config branch.feature/upstream-main.remote origin
+    git config branch.feature/upstream-main.merge refs/heads/main
+    result=$(echo '{"tool_input":{"command":"git push"}}' | bash "$HOOK_ABS" 2>/dev/null)
+    if echo "$result" | grep -q '"deny"'; then
+        PASS=$((PASS + 1)); echo "  PASS: bare push to upstream main → deny"
+    else
+        FAIL=$((FAIL + 1)); ERRORS+=("FAIL: bare push to upstream main — expected deny, got: $result"); echo "  FAIL: bare push to upstream main"
+    fi
+)
 
 echo ""
 echo "[--no-verify defeats pre-push hook → deny]"

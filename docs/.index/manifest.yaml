@@ -191,33 +191,33 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 4750
+    size: 5170
     tags: []
     sections:
       - {h: "Contents", l: 7, e: 23}
       - {h: "3-Minute Installation", l: 24, e: 25}
       - {h: "Step 1: Copy (30 seconds)", l: 26, e: 41}
       - {h: "Step 2: Install (1 minute)", l: 42, e: 69}
-      - {h: "Step 3: Personalize (1 minute)", l: 70, e: 88}
-      - {h: "Step 4: Restart (30 seconds)", l: 89, e: 97}
-      - {h: "Verification", l: 98, e: 109}
-      - {h: "Daily Usage", l: 110, e: 111}
-      - {h: "Backup (after settings change)", l: 112, e: 119}
-      - {h: "Sync (between multiple systems)", l: 120, e: 130}
-      - {h: "Troubleshooting", l: 131, e: 132}
-      - {h: "Scripts won't run", l: 133, e: 144}
-      - {h: "File not found", l: 145, e: 152}
-      - {h: "Worried about overwriting", l: 153, e: 162}
-      - {h: "Learn More", l: 163, e: 171}
-      - {h: "What's Next", l: 172, e: 173}
-      - {h: "Try a skill", l: 174, e: 187}
-      - {h: "Choose your path", l: 188, e: 201}
+      - {h: "Step 3: Verify Git Identity (30 seconds)", l: 70, e: 101}
+      - {h: "Step 4: Restart (30 seconds)", l: 102, e: 110}
+      - {h: "Verification", l: 111, e: 122}
+      - {h: "Daily Usage", l: 123, e: 124}
+      - {h: "Backup (after settings change)", l: 125, e: 132}
+      - {h: "Sync (between multiple systems)", l: 133, e: 143}
+      - {h: "Troubleshooting", l: 144, e: 145}
+      - {h: "Scripts won't run", l: 146, e: 157}
+      - {h: "File not found", l: 158, e: 165}
+      - {h: "Worried about overwriting", l: 166, e: 175}
+      - {h: "Learn More", l: 176, e: 184}
+      - {h: "What's Next", l: 185, e: 186}
+      - {h: "Try a skill", l: 187, e: 200}
+      - {h: "Choose your path", l: 201, e: 214}
   - path: "README.ko.md"
     title: "Claude Configuration Backup & Deployment System"
     description: ""
     category: root
     scope: root
-    size: 45694
+    size: 46262
     tags: [config,readme]
     sections:
       - {h: "빠른 시작", l: 30, e: 58}
@@ -296,7 +296,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 43957
+    size: 44484
     tags: [config,readme]
     sections:
       - {h: "Quick Start", l: 30, e: 58}

@@ -35,8 +35,8 @@
 # 1. 원라인 설치
 curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash
 
-# 2. Git identity 개인화 (필수!)
-vi ~/.claude/git-identity.md
+# 2. Git identity 확인 (가능하면 git config에서 자동 입력)
+grep -E "^(name|email):" ~/.claude/git-identity.md
 
 # 3. Claude Code 재시작 - 완료!
 ```
@@ -123,8 +123,8 @@ git clone https://github.com/kcenon/claude-config.git ~/claude_config_backup
 cd ~/claude_config_backup
 ./scripts/install.sh
 
-# 3. Git identity 개인화 (필수!)
-vi ~/.claude/git-identity.md
+# 3. Git identity 확인 (누락되었거나 틀린 경우에만 수정)
+grep -E "^(name|email):" ~/.claude/git-identity.md
 ```
 
 ### Plugin 설치 (Beta)
@@ -727,7 +727,7 @@ Create a team to implement the notification system:
 | `verify.sh` / `.ps1` | 백업 무결성과 완전성 확인 | `./scripts/verify.sh` |
 | `validate_skills.sh` / `.ps1` | SKILL.md 형식 준수 여부 검증 | `./scripts/validate_skills.sh` |
 
-설치 후, 반드시 `~/.claude/git-identity.md`를 개인 정보로 수정**해야** 합니다.
+설치 후 `~/.claude/git-identity.md`는 `git config --global user.name` 및 `git config --global user.email` 값이 모두 있으면 자동으로 채워집니다. 값이 누락되었거나 틀린 경우에만 수정하세요.
 기존 파일은 `.backup_YYYYMMDD_HHMMSS` 형식으로 자동 백업됩니다.
 
 ---
@@ -803,8 +803,8 @@ cd ~/claude_config_backup
 ./scripts/install.sh
 # 타입: 3 (둘 다)
 
-# Git identity 수정
-vi ~/.claude/git-identity.md
+# Git identity 확인; 누락되었거나 틀린 경우에만 수정
+grep -E "^(name|email):" ~/.claude/git-identity.md
 ```
 
 ---
@@ -911,11 +911,11 @@ bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main
 
 ### Q1: Git identity를 왜 개인화해야 하나요?
 
-**A:** `git-identity.md`는 개인 정보(이름, 이메일)를 포함하므로, 각 사용자가 자신의 정보로 수정해야 합니다.
+**A:** `git-identity.md`는 개인 정보(이름, 이메일)를 포함하므로, 각 설치는 사용자 본인의 값을 사용해야 합니다. 설치 프로그램은 `git config --global user.name` 및 `git config --global user.email` 값이 모두 있으면 자동으로 채우며, 값이 누락되었거나 틀린 경우에만 파일을 수정하면 됩니다.
 
 ```bash
 vi ~/.claude/git-identity.md
-# name과 email을 자신의 정보로 변경
+# 설치된 값이 누락되었거나 틀린 경우에만 name과 email 변경
 ```
 
 ---
