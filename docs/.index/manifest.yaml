@@ -73,7 +73,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 72017
+    size: 72675
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
@@ -217,7 +217,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 46258
+    size: 46549
     tags: [config,readme]
     sections:
       - {h: "빠른 시작", l: 30, e: 58}
@@ -296,7 +296,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 44479
+    size: 44766
     tags: [config,readme]
     sections:
       - {h: "Quick Start", l: 30, e: 58}

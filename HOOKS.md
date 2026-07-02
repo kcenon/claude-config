@@ -1002,13 +1002,21 @@ which clang-format
 
 ## Git Hooks: Pre-push Protected Branch Guard
 
-*Prevent accidental pushes to main or develop — requires pull request workflow for protected branches.*
+*Prevent invalid commits and accidental pushes to main or develop — requires pull request workflow for protected branches.*
 
-> **Note**: This is a standard git hook (`.git/hooks/pre-push`), not a Claude Code event hook. It runs whenever `git push` is executed, regardless of whether Claude Code is active.
-
-**Purpose**: Block direct pushes to protected branches (`main`, `develop`)
+> **Note**: These are standard git hooks under `.git/hooks/`, not Claude Code event hooks. They run from git itself, regardless of whether Claude Code is active.
 
 **Install**: `./hooks/install-hooks.sh` (or `.\hooks\install-hooks.ps1` on Windows)
+
+**Installed inventory**:
+
+| Hook | Source | Purpose |
+|------|--------|---------|
+| `pre-commit` | `hooks/pre-commit` | Runs `scripts/validate_skills.sh` when staged `SKILL.md` files change |
+| `commit-msg` | `hooks/commit-msg` | Validates Conventional Commits format, attribution bans, and emoji bans through `hooks/lib/validate-commit-message.sh` |
+| `pre-push` | `hooks/pre-push` | Blocks protected-branch direct pushes and optional preflight/traceability checks |
+
+**Purpose**: Block direct pushes to protected branches (`main`, `develop`)
 
 **Protected branches**: `main`, `develop`
 
@@ -1025,10 +1033,10 @@ which clang-format
 
 **Cross-platform**:
 
-| File | Runtime |
-|------|---------|
-| `hooks/pre-push` | bash |
-| `hooks/pre-push.ps1` | PowerShell 7+ |
+| File | Runtime | Install behavior |
+|------|---------|------------------|
+| `hooks/pre-push` | bash / Git Bash | Installed as `.git/hooks/pre-push` by both installers |
+| `hooks/pre-push.ps1` | PowerShell 7+ | PowerShell parity implementation; not copied directly into `.git/hooks/pre-push` |
 
 ---
 
