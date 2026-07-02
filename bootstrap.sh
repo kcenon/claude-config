@@ -291,6 +291,110 @@ clone_repository() {
     success "저장소 클론 완료: $INSTALL_DIR (ref: $GITHUB_REF)"
 }
 
+# copy_bootstrap_files <source_dir> <dest_dir> <glob> <executable:0|1>
+copy_bootstrap_files() {
+    local src_dir="$1" dest_dir="$2" pattern="$3" executable="$4"
+    local src dest
+
+    mkdir -p "$dest_dir" || return 1
+
+    for src in "$src_dir"/$pattern; do
+        [ -f "$src" ] || continue
+        dest="$dest_dir/$(basename "$src")"
+        cp "$src" "$dest" || return 1
+        if [ "$executable" = "1" ]; then
+            chmod +x "$dest" || return 1
+        fi
+    done
+
+    return 0
+}
+
+deploy_bootstrap_hooks() {
+    local hooks_src="$INSTALL_DIR/global/hooks"
+    local hooks_dst="$CLAUDE_DIR/hooks"
+    local hooks_lib_src="$hooks_src/lib"
+    local shared_lib_src="$INSTALL_DIR/hooks/lib"
+    local lib
+
+    if [ ! -d "$hooks_src" ]; then
+        echo "hook source directory missing: $hooks_src" >&2
+        return 1
+    fi
+
+    copy_bootstrap_files "$hooks_src" "$hooks_dst" "*.sh" 1 || return 1
+
+    # global/hooks/lib/*.sh 배포 (issue #586). 위 *.sh glob은 비재귀적이라
+    # tokenize-shell.sh 등 공유 라이브러리는 별도 복사 없이는 누락된다.
+    # dangerous-command-guard 등 4개 Bash 가드가 런타임에 이를 source한다.
+    if [ -d "$hooks_lib_src" ]; then
+        copy_bootstrap_files "$hooks_lib_src" "$hooks_dst/lib" "*.sh" 1 || return 1
+    fi
+
+    # 공유 검증 라이브러리 설치 (commit-message-guard.sh, pr-language-guard.sh,
+    # traceability-guard.sh가 사용). scripts/install.sh와 같은 런타임 계약.
+    if [ -d "$shared_lib_src" ]; then
+        for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
+            if [ -f "$shared_lib_src/$lib" ]; then
+                copy_bootstrap_files "$shared_lib_src" "$hooks_dst/lib" "$lib" 1 || return 1
+            fi
+        done
+    fi
+
+    for lib in \
+        tokenize-shell.sh \
+        path-utils.sh \
+        timeout-wrapper.sh \
+        rotate.sh \
+        validate-commit-message.sh \
+        validate-language.sh \
+        validate-traceability.sh; do
+        if [ ! -f "$hooks_dst/lib/$lib" ]; then
+            echo "required hook runtime library missing after deploy: hooks/lib/$lib" >&2
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+install_bootstrap_settings_and_hooks() {
+    local settings_src="$INSTALL_DIR/global/settings.json"
+    local settings_dst="$CLAUDE_DIR/settings.json"
+    local settings_tmp="$CLAUDE_DIR/.settings.json.tmp.$$"
+    local agent_language="${AGENT_LANGUAGE:-korean}"
+    local content_language="${CONTENT_LANGUAGE:-english}"
+    local settings_updated=0
+
+    [ -f "$settings_src" ] || return 0
+
+    # Stage settings first, then publish only after hook deployment succeeds.
+    # This keeps ~/.claude/settings.json from pointing at missing runtime hooks.
+    rm -f "$settings_tmp"
+    cp "$settings_src" "$settings_tmp" || error "settings.json 스테이징 실패"
+
+    if update_claude_settings_json "$settings_tmp" "$agent_language" "$content_language"; then
+        settings_updated=1
+    fi
+
+    if ! deploy_bootstrap_hooks; then
+        rm -f "$settings_tmp"
+        error "Hook 스크립트 배포 실패. settings.json을 변경하지 않았습니다."
+    fi
+
+    mv -f "$settings_tmp" "$settings_dst" || {
+        rm -f "$settings_tmp"
+        error "settings.json 게시 실패"
+    }
+
+    if [ "$settings_updated" = "1" ]; then
+        success "settings.json (에이전트: $agent_language, 컨텐츠: $content_language) 설치 완료"
+    else
+        success "settings.json 설치 완료 (기본값)"
+    fi
+    success "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
+}
+
 # 글로벌 설정 설치
 install_global() {
     info "글로벌 설정 설치 중..."
@@ -354,45 +458,11 @@ install_global() {
     # Legacy settings.json migration warning (informational only).
     warn_legacy_settings_value "$HOME/.claude/settings.json" || true
 
-    # settings.json install (Claude Code settings)
-    # Intentionally bypasses guarded_copy: policy attributes (.language,
-    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
-    # update_claude_settings_json (below) injects them and is responsible
-    # for idempotent reset when the policy returns to default ("english").
-    if [ -f "$INSTALL_DIR/global/settings.json" ]; then
-        cp "$INSTALL_DIR/global/settings.json" "$HOME/.claude/settings.json"
-
-        if update_claude_settings_json "$HOME/.claude/settings.json" "${AGENT_LANGUAGE:-korean}" "$CONTENT_LANGUAGE"; then
-            success "settings.json (에이전트: ${AGENT_LANGUAGE:-korean}, 컨텐츠: $CONTENT_LANGUAGE) 설치 완료"
-        else
-            success "settings.json 설치 완료 (기본값)"
-        fi
-    fi
-
-    # hooks 디렉토리 설치 (settings.json이 참조하는 런타임 가드) — issue #779.
+    # settings.json + hooks 디렉토리 설치 (settings.json이 참조하는 런타임 가드)
     # settings.json은 ~/.claude/hooks/*.sh 가드 다수를 참조하므로, 설정 복사와
     # 훅 배포를 한 트랜잭션으로 처리해 "설정은 있는데 훅이 없는" 조용한 보안
-    # 공백을 막는다. scripts/install.sh의 hooks + hooks/lib 배포 블록과 동일.
-    if [ -d "$INSTALL_DIR/global/hooks" ]; then
-        mkdir -p "$CLAUDE_DIR/hooks"
-        cp "$INSTALL_DIR/global/hooks"/*.sh "$CLAUDE_DIR/hooks/" 2>/dev/null || true
-        chmod +x "$CLAUDE_DIR/hooks/"*.sh 2>/dev/null || true
-
-        # global/hooks/lib/*.sh 배포 (issue #586). 위 *.sh glob은 비재귀적이라
-        # tokenize-shell.sh 등 공유 라이브러리는 별도 복사 없이는 누락된다.
-        # dangerous-command-guard 등 4개 Bash 가드가 런타임에 이를 source한다.
-        if [ -d "$INSTALL_DIR/global/hooks/lib" ]; then
-            mkdir -p "$CLAUDE_DIR/hooks/lib"
-            cp "$INSTALL_DIR/global/hooks/lib"/*.sh "$CLAUDE_DIR/hooks/lib/" 2>/dev/null || true
-            chmod +x "$CLAUDE_DIR/hooks/lib/"*.sh 2>/dev/null || true
-
-            if [ ! -f "$CLAUDE_DIR/hooks/lib/tokenize-shell.sh" ]; then
-                warning "hooks/lib/tokenize-shell.sh 미설치 - Bash 가드가 약화됩니다 (issue #586)"
-            fi
-        fi
-
-        success "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
-    fi
+    # 공백을 막는다. Hook 배포 실패 시 settings.json은 게시하지 않는다.
+    install_bootstrap_settings_and_hooks
 
     # 글로벌 skills 및 commands 설치
     # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
@@ -576,6 +646,14 @@ main() {
 
     success "Happy Coding with Claude! 🎉"
 }
+
+if [ "${CLAUDE_CONFIG_BOOTSTRAP_TEST_MODE:-}" = "atomic-deploy" ]; then
+    mkdir -p "$CLAUDE_DIR"
+    # shellcheck disable=SC1091
+    source "$INSTALL_DIR/scripts/install-manifest.sh"
+    install_bootstrap_settings_and_hooks
+    exit 0
+fi
 
 # 스크립트 실행
 main "$@"

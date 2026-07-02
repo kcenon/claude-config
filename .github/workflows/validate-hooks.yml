@@ -20,6 +20,7 @@ on:
       - 'bootstrap.sh'
       - 'bootstrap.ps1'
       - 'tests/scripts/test-bootstrap-non-tty-smoke.sh'
+      - 'tests/scripts/test-bootstrap-atomic-deploy.*'
       - 'tests/scripts/test-plugin-*.sh'
       - 'tests/scripts/test-install-manifest-helpers.*'
       - 'tests/scripts/test-install-permissions-policy.sh'
@@ -153,6 +154,17 @@ jobs:
         # Exercises the advertised `curl ... | INSTALL_TYPE=3 bash` entrypoint
         # shape without network access or a real install.
         run: bash tests/scripts/test-bootstrap-non-tty-smoke.sh
+
+      - name: Run bootstrap atomic deploy test
+        # Proves settings.json is published only after runtime hook deployment
+        # succeeds, so a failed hook copy cannot leave settings pointing at
+        # missing hooks.
+        run: bash tests/scripts/test-bootstrap-atomic-deploy.sh
+
+      - name: Run bootstrap atomic deploy test (PowerShell)
+        # Mirrors the Bash atomic settings/hooks deployment contract for
+        # bootstrap.ps1 using an isolated fake INSTALL_DIR and HOME.
+        run: pwsh tests/scripts/test-bootstrap-atomic-deploy.ps1
 
       - name: Run hook-wiring parity test (settings.json <-> settings.windows.json)
         # Catches dormant guards: a .ps1 hook present in global/hooks/ but not

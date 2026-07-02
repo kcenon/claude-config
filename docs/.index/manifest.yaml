@@ -1595,16 +1595,16 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 4881
+    size: 5390
     tags: [docs]
     sections:
       - {h: "Manifest", l: 7, e: 29}
       - {h: "Copy Decision", l: 30, e: 57}
       - {h: "Non-Interactive Override", l: 58, e: 72}
       - {h: "Toolchain Fallback", l: 73, e: 83}
-      - {h: "Template Files", l: 84, e: 115}
-      - {h: "Tracked Files", l: 116, e: 131}
-      - {h: "Regression Test", l: 132, e: 143}
+      - {h: "Template Files", l: 84, e: 124}
+      - {h: "Tracked Files", l: 125, e: 140}
+      - {h: "Regression Test", l: 141, e: 152}
   - path: "docs/loop-patterns.md"
     title: "Loop-Safety Patterns for Skills"
     description: ""
