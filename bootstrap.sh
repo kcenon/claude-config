@@ -308,6 +308,9 @@ install_global() {
         success "git-identity.md: git config로 자동 채우기 완료 (${SEED_GIT_IDENTITY_NAME} <${SEED_GIT_IDENTITY_EMAIL}>)"
     fi
 
+    # Reinstall: keep the previously chosen language policy (issue #780).
+    seed_language_from_settings "$HOME/.claude/settings.json"
+
     # Language policy selection (Unified Language Profile)
     prompt_language_profile
 
@@ -474,6 +477,8 @@ install_project() {
     #     재프롬프트하지 않도록 미설정일 때만 prompt_language_profile 호출
     # shellcheck disable=SC1091
     source "$INSTALL_DIR/scripts/lib/install-prompts.sh"
+    # Reinstall: keep the previously chosen language policy (issue #780).
+    seed_language_from_settings "$HOME/.claude/settings.json"
     if [ -z "${AGENT_LANGUAGE:-}" ] || [ -z "${CONTENT_LANGUAGE:-}" ]; then
         prompt_language_profile
     fi
