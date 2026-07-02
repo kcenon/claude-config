@@ -52,7 +52,7 @@ done
 # before pushing. Skipped silently by default to preserve prior behaviour.
 if [ "${CLAUDE_PREFLIGHT:-0}" = "1" ]; then
     REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-    PREFLIGHT="$REPO_ROOT/global/skills/preflight/scripts/run-all.sh"
+    PREFLIGHT="$REPO_ROOT/global/skills/_internal/preflight/scripts/run-all.sh"
     if [ -x "$PREFLIGHT" ] || [ -f "$PREFLIGHT" ]; then
         echo "pre-push: CLAUDE_PREFLIGHT=1 — running preflight checks" >&2
         if ! bash "$PREFLIGHT"; then
@@ -63,7 +63,10 @@ if [ "${CLAUDE_PREFLIGHT:-0}" = "1" ]; then
             exit 1
         fi
     else
-        echo "pre-push: CLAUDE_PREFLIGHT=1 but $PREFLIGHT is missing — skipping preflight." >&2
+        echo "pre-push: WARNING — CLAUDE_PREFLIGHT=1 but the preflight runner is missing:" >&2
+        echo "  $PREFLIGHT" >&2
+        echo "  Preflight is NOT running for this push. Verify your claude-config install" >&2
+        echo "  (the runner lives under global/skills/_internal/preflight/). CI still runs." >&2
     fi
 fi
 

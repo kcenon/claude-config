@@ -125,6 +125,17 @@ $validatorSrc = Join-Path $ScriptDir 'lib' 'validate-commit-message.sh'
 $validatorDst = Join-Path $libDstDir 'validate-commit-message.sh'
 Copy-Item -LiteralPath $validatorSrc -Destination $validatorDst -Force
 if (-not $IsWindows) { & chmod +x $validatorDst 2>$null }
+
+# Traceability cascade validator (issue #590). Sourced by the pre-push hook;
+# opt-in (no-op when docs/.index/graph.yaml is absent). Parity with
+# install-hooks.sh, which already copies it (#781).
+$traceSrc = Join-Path $ScriptDir 'lib' 'validate-traceability.sh'
+if (Test-Path -LiteralPath $traceSrc) {
+    $traceDst = Join-Path $libDstDir 'validate-traceability.sh'
+    Copy-Item -LiteralPath $traceSrc -Destination $traceDst -Force
+    if (-not $IsWindows) { & chmod +x $traceDst 2>$null }
+}
+
 Write-SuccessMessage "검증 라이브러리 설치 완료!"
 
 Write-Host ""
