@@ -217,7 +217,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 46262
+    size: 46258
     tags: [config,readme]
     sections:
       - {h: "빠른 시작", l: 30, e: 58}
@@ -296,7 +296,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 44484
+    size: 44479
     tags: [config,readme]
     sections:
       - {h: "Quick Start", l: 30, e: 58}
