@@ -11,9 +11,9 @@
 #      file.
 #   2. Compare per-level counts. A divergence means a section was added or
 #      removed in one file but not mirrored in the other.
-#   3. Diff the ordered title sequences after stripping leading hash marks
-#      and whitespace; matching translations are not validated, only the
-#      structural skeleton is.
+#   3. Compare narrow contract tokens from inline code spans. This catches
+#      drift in commands, paths, config files, and environment variables without
+#      requiring translated prose to share the same wording.
 #
 # Exit codes:
 #   0  shape match
@@ -83,5 +83,48 @@ if (( mismatch )); then
     exit 1
 fi
 
-echo "diff-readme: OK ($EN and $KO have matching heading counts at every level)"
+# Capture inline-code tokens outside fenced code blocks, then keep only tokens
+# that represent operational contracts rather than translated prose.
+extract_contract_tokens() {
+    awk '
+        /^```/ { in_fence = !in_fence; next }
+        in_fence { next }
+        {
+            line = $0
+            while (match(line, /`[^`]+`/)) {
+                token = substr(line, RSTART + 1, RLENGTH - 2)
+                line = substr(line, RSTART + RLENGTH)
+                if (is_contract_token(token)) {
+                    print token
+                }
+            }
+        }
+        function is_contract_token(token, ok) {
+            ok = 0
+            if (token ~ /^\/[A-Za-z0-9_-]+([[:space:]].*)?$/) ok = 1
+            if (token ~ /^(\.\/|\.\.\/|~\/|\/|[A-Za-z]:[\/\\])/) ok = 1
+            if (token ~ /[\/\\]/) ok = 1
+            if (token ~ /\.(sh|ps1|psm1|md|json|yml|yaml|toml|plist|service|timer|py|txt)(#[A-Za-z0-9_-]+)?$/) ok = 1
+            if (token ~ /^\$?[A-Z][A-Z0-9_]{2,}$/) ok = 1
+            if (token ~ /^(gh|git|bash|pwsh|powershell|curl|claude|python|python3|pip|npm)([[:space:]].*)?$/) ok = 1
+            return ok
+        }
+    ' "$1" | LC_ALL=C sort -u
+}
+
+en_tokens="$(extract_contract_tokens "$EN")"
+ko_tokens="$(extract_contract_tokens "$KO")"
+
+if [[ "$en_tokens" != "$ko_tokens" ]]; then
+    tmp_dir="$(mktemp -d)"
+    trap 'rm -rf "$tmp_dir"' EXIT
+    printf '%s\n' "$en_tokens" > "$tmp_dir/en.tokens"
+    printf '%s\n' "$ko_tokens" > "$tmp_dir/ko.tokens"
+    echo "diff-readme: contract token drift between $EN and $KO."
+    echo "Tokens represent inline-code commands, paths, config files, and env vars."
+    diff -u "$tmp_dir/en.tokens" "$tmp_dir/ko.tokens" || true
+    exit 1
+fi
+
+echo "diff-readme: OK ($EN and $KO have matching heading counts and contract tokens)"
 exit 0

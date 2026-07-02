@@ -385,22 +385,40 @@ inspect_write_subcommand() {
             ;;
         awk|gawk|mawk)
             # awk script bodies can write via `print > FILE`, `print >> FILE`,
-            # or `print | "cmd"` — and the target may be a bare word or a
-            # variable (`print > f`), which leaves the shell-level
-            # $redirect_target empty and would slip past a quote-anchored regex
-            # (even reaching sensitive files like `/etc/passwd`). So allow ONLY
-            # when the invocation has NO write target whatsoever: no shell-level
-            # `>`/`>>` redirect (reuse $redirect_target) AND the awk program text
-            # contains no `>` or `|` output operator at all. This conservatively
-            # over-denies comparison/field-separator awk (`$1>5`, `-F'|'`) — the
-            # same as the historical deny-all behavior — but never lets a write
-            # through. Read-only field extraction / aggregation still passes.
-            if [ -z "$redirect_target" ] \
-                && ! printf '%s' "$sub" | grep -qE '[>|]'; then
-                return 0
+            # or `print | "cmd"`. Inspect only the awk program token; skip flag
+            # values such as `-F'|'`, `-F '|'`, and `-v sep='a|b'` so field
+            # separators do not false-positive as write operators.
+            local awk_program=""
+            local i=1
+            while [ "$i" -lt "${#argv[@]}" ]; do
+                local arg="${argv[$i]}"
+                case "$arg" in
+                    -F|-v|-f|--file)
+                        i=$((i + 2))
+                        continue
+                        ;;
+                    -F*|-v*|-f*)
+                        i=$((i + 1))
+                        continue
+                        ;;
+                    --*)
+                        i=$((i + 1))
+                        continue
+                        ;;
+                    -*)
+                        i=$((i + 1))
+                        continue
+                        ;;
+                esac
+                awk_program="$arg"
+                break
+            done
+            if [ -z "$awk_program" ] || ! printf '%s' "$awk_program" | grep -qE '[>|]'; then
+                :
+            else
+                echo "Uninspectable file mutation pattern (awk script may write via redirection); use Edit/Write tool instead"
+                return 1
             fi
-            echo "Uninspectable file mutation pattern (awk script may write via redirection); use Edit/Write tool instead"
-            return 1
             ;;
     esac
 
@@ -470,6 +488,39 @@ command -v jq >/dev/null 2>&1 || allow_response
 
 CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 [ -z "$CMD" ] && allow_response
+# Normalize CRLF input from Windows jq/PowerShell wrappers before path parsing.
+CMD="${CMD//$'\r'/}"
+
+# Heredoc bodies contain newlines that the subcommand splitter treats
+# conservatively as separate records. Check a first-line redirect target before
+# splitting so `cat <<EOF > .env` cannot lose its destination path.
+IFS=$'\n' read -r FIRST_LINE _ <<EOF
+$CMD
+EOF
+if printf '%s' "$FIRST_LINE" | grep -qE '<<-?[[:space:]]*[^[:space:]]+' \
+    && printf '%s' "$FIRST_LINE" | grep -qE '(^|[^0-9&|<])>+([^|]|$)'; then
+    HEREDOC_TARGET=$(extract_redirect_target "$FIRST_LINE" || true)
+    if [ -n "$HEREDOC_TARGET" ]; then
+        case "$HEREDOC_TARGET" in
+            /dev/null|/dev/stderr|/dev/stdout|/dev/tty)
+                HEREDOC_TARGET="" ;;
+        esac
+    fi
+    if [ -n "$HEREDOC_TARGET" ]; then
+        RESOLVED_HEREDOC_TARGET=$(resolve_path "$HEREDOC_TARGET")
+        if is_sensitive_target "$RESOLVED_HEREDOC_TARGET"; then
+            deny_response "Bash write to sensitive file blocked: $HEREDOC_TARGET (resolved: $RESOLVED_HEREDOC_TARGET)"
+        fi
+        if [ -e "$RESOLVED_HEREDOC_TARGET" ] && [ ! -d "$RESOLVED_HEREDOC_TARGET" ]; then
+            tracker_dir="${TMPDIR:-/tmp}"
+            session_id="${CLAUDE_SESSION_ID:-unknown}"
+            tracker="${tracker_dir%/}/claude-read-set-${session_id}"
+            if [ -f "$tracker" ] && ! tracker_has "$RESOLVED_HEREDOC_TARGET"; then
+                deny_response "Cannot Bash-write '$HEREDOC_TARGET' without reading it first in this session. Call Read on '$HEREDOC_TARGET' and retry."
+            fi
+        fi
+    fi
+fi
 
 # Performance bound.
 BWG_TOKENIZER_MAX_BYTES="${BWG_TOKENIZER_MAX_BYTES:-16384}"

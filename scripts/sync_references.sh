@@ -1,47 +1,96 @@
 #!/usr/bin/env bash
-# Sync canonical workflow reference files to mirror locations.
-# Canonical: project/.claude/rules/workflow/
-# Mirrors:   project/.claude/skills/project-workflow/reference/
-#            plugin/skills/project-workflow/reference/
+# Sync mapped canonical reference files to mirror locations.
 #
-# See docs/CUSTOM_EXTENSIONS.md for the SSOT design rationale.
-#
-# Usage: scripts/sync_references.sh
+# Usage: scripts/sync_references.sh [repo-root] [reference-map.yml]
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+ROOT_DIR="${1:-$(dirname "$SCRIPT_DIR")}"
+MAP_FILE="${2:-$ROOT_DIR/reference-map.yml}"
 
-CANONICAL="project/.claude/rules/workflow"
-MIRRORS=(
-    "project/.claude/skills/project-workflow/reference"
-    "plugin/skills/project-workflow/reference"
-)
-FILES=(
-    "git-commit-format.md"
-    "github-issue-5w1h.md"
-    "github-pr-5w1h.md"
-    "performance-analysis.md"
-)
-
-missing=0
-for file in "${FILES[@]}"; do
-    if [ ! -f "$ROOT_DIR/$CANONICAL/$file" ]; then
-        echo "ERROR: canonical file missing: $CANONICAL/$file" >&2
-        missing=1
-    fi
-done
-if [ "$missing" -ne 0 ]; then
+if [ ! -f "$MAP_FILE" ]; then
+    echo "ERROR: reference map missing: $MAP_FILE" >&2
     exit 1
 fi
 
-for mirror in "${MIRRORS[@]}"; do
-    mkdir -p "$ROOT_DIR/$mirror"
-    for file in "${FILES[@]}"; do
-        cp "$ROOT_DIR/$CANONICAL/$file" "$ROOT_DIR/$mirror/$file"
-        echo "synced: $CANONICAL/$file -> $mirror/$file"
-    done
-done
+strip_frontmatter() {
+    local file="$1"
+    awk '
+        NR == 1 && $0 == "---" { in_fm = 1; next }
+        in_fm && $0 == "---" { in_fm = 0; skip_blank = 1; next }
+        in_fm { next }
+        skip_blank && $0 == "" { skip_blank = 0; next }
+        { skip_blank = 0; print }
+    ' "$file"
+}
 
-echo "sync_references: done (${#FILES[@]} files x ${#MIRRORS[@]} mirrors)"
+read_map_entries() {
+    awk '
+        function trim(s) {
+            sub(/^[[:space:]]+/, "", s)
+            sub(/[[:space:]]+$/, "", s)
+            gsub(/^"|"$/, "", s)
+            return s
+        }
+        function emit() {
+            if (source != "" || target != "" || mode != "") {
+                if (source == "" || target == "" || mode == "") {
+                    print "ERROR: malformed reference-map.yml entry" > "/dev/stderr"
+                    exit 1
+                }
+                print source "|" target "|" mode
+            }
+            source = ""; target = ""; mode = ""
+        }
+        /^[[:space:]]*-[[:space:]]+source:[[:space:]]*/ {
+            emit()
+            source = $0
+            sub(/^[[:space:]]*-[[:space:]]+source:[[:space:]]*/, "", source)
+            source = trim(source)
+            next
+        }
+        /^[[:space:]]+target:[[:space:]]*/ {
+            target = $0
+            sub(/^[[:space:]]+target:[[:space:]]*/, "", target)
+            target = trim(target)
+            next
+        }
+        /^[[:space:]]+mode:[[:space:]]*/ {
+            mode = $0
+            sub(/^[[:space:]]+mode:[[:space:]]*/, "", mode)
+            mode = trim(mode)
+            next
+        }
+        END { emit() }
+    ' "$MAP_FILE"
+}
+
+count=0
+while IFS='|' read -r source target mode; do
+    [ -n "$source" ] || continue
+    count=$((count + 1))
+    src="$ROOT_DIR/$source"
+    dst="$ROOT_DIR/$target"
+    if [ ! -f "$src" ]; then
+        echo "ERROR: canonical file missing: $source" >&2
+        exit 1
+    fi
+    mkdir -p "$(dirname "$dst")"
+    case "$mode" in
+        exact) cp "$src" "$dst" ;;
+        strip-source-frontmatter) strip_frontmatter "$src" > "$dst" ;;
+        *)
+            echo "ERROR: unsupported reference sync mode: $mode" >&2
+            exit 1
+            ;;
+    esac
+    echo "synced: $source -> $target ($mode)"
+done < <(read_map_entries)
+
+if [ "$count" -eq 0 ]; then
+    echo "ERROR: no references declared in $MAP_FILE" >&2
+    exit 1
+fi
+
+echo "sync_references: done ($count mapped mirrors)"

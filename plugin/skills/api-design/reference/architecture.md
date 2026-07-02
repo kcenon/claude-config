@@ -4,6 +4,9 @@ This guideline establishes architectural patterns and SOLID design principles.
 
 ## SOLID Principles
 
+> **Scope**: SOLID principles in API/service architecture context.
+> For core SRP and modularity guidelines, see [`coding/standards.md`](../coding/standards.md#single-responsibility).
+
 Follow SOLID principles for object-oriented design: Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion.
 
 ## Layered Architecture

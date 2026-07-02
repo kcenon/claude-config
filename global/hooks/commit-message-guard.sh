@@ -37,6 +37,27 @@ allow_response() {
     exit 0
 }
 
+# --- Read input and prefilter scope before loading validators ---
+INPUT=$(cat)
+
+# Empty input: fail open (other guards fail closed, but message guard has
+# nothing to validate without a message, and the commit-msg git hook is the
+# authoritative gate).
+if [ -z "$INPUT" ]; then
+    allow_response
+fi
+
+CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || CMD=""
+if [ -z "$CMD" ]; then
+    CMD="${CLAUDE_TOOL_INPUT:-}"
+fi
+
+# Only git commit commands need the canonical validator. Let unrelated Bash
+# commands pass without requiring the validator file to exist in the install.
+if ! echo "$CMD" | grep -qE 'git[[:space:]]+commit'; then
+    allow_response
+fi
+
 # --- Source shared validation library (fail-closed) ---
 # All install paths (development checkout, terminal install, plugin marketplace,
 # plugin-lite) MUST bundle the canonical validator. If it cannot be sourced the
@@ -62,26 +83,6 @@ fi
 
 # shellcheck source=../../hooks/lib/validate-commit-message.sh
 . "$VALIDATOR"
-
-# --- Read input from stdin ---
-INPUT=$(cat)
-
-# Empty input: fail open (other guards fail closed, but message guard has
-# nothing to validate without a message, and the commit-msg git hook is the
-# authoritative gate).
-if [ -z "$INPUT" ]; then
-    allow_response
-fi
-
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || CMD=""
-if [ -z "$CMD" ]; then
-    CMD="${CLAUDE_TOOL_INPUT:-}"
-fi
-
-# --- Scope: only validate git commit commands ---
-if ! echo "$CMD" | grep -qE 'git[[:space:]]+commit'; then
-    allow_response
-fi
 
 # --- Deny --no-verify / -n (issue #782) ---
 # `git commit --no-verify` (and its short form `-n`) skips the commit-msg git

@@ -80,6 +80,7 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | Team limit guard | TeamCreate PreToolUse matcher |
 | Version check hook | SessionStart hook event, `claude --version` |
 | Auto-formatting hooks | PostToolUse hook event (project settings) |
+| Memory sync scheduler | Unix scheduler only: `launchd` on macOS or `systemd` user timer on Linux/WSL |
 
 ---
 
@@ -221,6 +222,7 @@ When upgrading Claude Code itself:
 - The `settings.windows.json` maps hooks to PowerShell equivalents
 - Use `install.ps1` on Windows instead of `install.sh`
 - PowerShell 7+ (`pwsh`) is required for Windows support
+- Memory sync scheduler automation is Unix-only: macOS uses `launchd`, Linux uses a `systemd` user timer, and Windows users should run the Linux path through WSL. Native PowerShell scheduling is not supported for memory sync.
 
 ### PowerShell parity status
 

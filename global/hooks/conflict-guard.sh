@@ -86,7 +86,7 @@ DIRTY=$(git status --porcelain 2>/dev/null) || allow_response
 if [ -n "$DIRTY" ]; then
     DIRTY_TRACKED=$(printf '%s\n' "$DIRTY" | grep -v '^??' || true)
     if [ -n "$DIRTY_TRACKED" ]; then
-        deny_response "Uncommitted changes detected. Commit or stash changes before running git $SUBCMD to prevent data loss."
+        deny_response "Uncommitted changes detected. Commit or stash changes before running git $SUBCMD to prevent data loss. One-line retry: git stash && git $SUBCMD && git stash pop"
     fi
 fi
 

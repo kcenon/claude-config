@@ -48,6 +48,17 @@ assert_deny() {
     fi
 }
 
+assert_deny_contains() {
+    local input="$1" needle="$2" label="$3"
+    local result
+    result=$(run_in_repo "$input")
+    if echo "$result" | grep -q '"deny"' && echo "$result" | grep -Fq "$needle"; then
+        ((PASS++)); echo "  PASS: $label"
+    else
+        ((FAIL++)); ERRORS+=("FAIL: $label — expected deny containing '$needle', got: $result"); echo "  FAIL: $label"
+    fi
+}
+
 assert_allow() {
     local input="$1" label="$2"
     local result
@@ -97,7 +108,7 @@ clean_state
 # not an untracked entry ('??').
 echo "modified" >> "$REPO/seed.txt"
 assert_deny '{"tool_input":{"command":"git merge feature"}}' "merge with tracked modification -> deny"
-assert_deny '{"tool_input":{"command":"git pull"}}' "pull with tracked modification -> deny"
+assert_deny_contains '{"tool_input":{"command":"git pull"}}' "git stash && git pull && git stash pop" "pull with tracked modification includes stash retry"
 
 echo ""
 echo "[Untracked-only working tree -> allow (#747)]"
