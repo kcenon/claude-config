@@ -45,6 +45,7 @@ fi
 if [ -z "$CMD" ]; then
     CMD="${CLAUDE_TOOL_INPUT:-}"
 fi
+CMD="${CMD//$'\r'/}"
 
 # --- Scope gate: only inspect `git push` commands ---
 if ! echo "$CMD" | grep -qE 'git[[:space:]]+push'; then
@@ -92,9 +93,15 @@ if [ "$DRY_RUN" -eq 0 ]; then
         # `src:dst` -> dst; a bare `branch` -> branch.
         DST="${REFSPEC##*:}"
     else
-        # No refspec: the push targets the current branch's upstream, which is
-        # the current branch. Resolve it; fail open if git cannot (not a repo).
-        DST=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+        # No refspec: bare `git push` targets the current branch's upstream
+        # when one exists. Resolve that destination first, then fall back to the
+        # current branch for repos without an upstream.
+        UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)
+        if [ -n "$UPSTREAM" ]; then
+            DST="${UPSTREAM#*/}"
+        else
+            DST=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+        fi
     fi
 
     # Normalize: strip a leading '+' (force refspec) and a refs/heads/ prefix.

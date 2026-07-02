@@ -428,7 +428,11 @@ install_global() {
 # Git identity 개인화 안내
 personalize_git_identity() {
     echo ""
-    warning "중요: Git Identity를 개인 정보로 수정해야 합니다!"
+    if grep -qE "YOUR NAME|YOUR EMAIL" "$CLAUDE_DIR/git-identity.md" 2>/dev/null; then
+        warning "Git Identity에 기본 placeholder가 남아 있습니다. 개인 정보로 수정하세요."
+    else
+        info "Git Identity가 준비되었습니다. 필요하면 값을 확인하거나 수정하세요."
+    fi
     echo ""
     echo "  현재 설정:"
     grep -E "^(name|email):" "$CLAUDE_DIR/git-identity.md" 2>/dev/null || true

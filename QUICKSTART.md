@@ -67,7 +67,21 @@ Select installation type:
 Selection (1-5) [default: 3]: 3
 ```
 
-### Step 3: Personalize (1 minute)
+### Step 3: Verify Git Identity (30 seconds)
+
+Installers auto-fill `~/.claude/git-identity.md` from `git config --global user.name` and `git config --global user.email` when both values exist. Check the installed values:
+
+**macOS/Linux:**
+```bash
+grep -E "^(name|email):" ~/.claude/git-identity.md
+```
+
+**Windows:**
+```powershell
+Get-Content $HOME\.claude\git-identity.md | Select-String '^(name|email):'
+```
+
+If the file still contains placeholders, edit it:
 
 **macOS/Linux:**
 ```bash
@@ -79,9 +93,8 @@ vi ~/.claude/git-identity.md
 notepad $HOME\.claude\git-identity.md
 ```
 
-**Example changes:**
+**Placeholder example:**
 ```yaml
-# Before
 name: "Your Name"      # <- Change this
 email: "you@email.com" # <- Change this
 ```

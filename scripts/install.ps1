@@ -308,13 +308,15 @@ if ([string]::IsNullOrEmpty($installType)) { $installType = '3' }
 $promptsModule = Join-Path $ScriptDir 'lib' 'InstallPrompts.psm1'
 Import-Module $promptsModule -Force -DisableNameChecking
 
-$profileChoice = Show-LanguageProfilePrompt
+$settingsPath = Join-Path $HOME '.claude/settings.json'
+$seededPolicy = Seed-LanguageFromSettings -SettingsPath $settingsPath
+$profileChoice = Show-LanguageProfilePrompt -AgentLanguage $seededPolicy.AgentLanguage -ContentLanguage $seededPolicy.ContentLanguage
 $agentLanguage = $profileChoice.AgentLanguage
 $agentDisplayLang = $profileChoice.AgentDisplay
 $contentLanguage = $profileChoice.ContentLanguage
 
 # Legacy settings.json migration warning (informational only).
-$null = Show-LegacySettingsWarning -SettingsPath (Join-Path $HOME '.claude/settings.json') -NewSelection $contentLanguage
+$null = Show-LegacySettingsWarning -SettingsPath $settingsPath -NewSelection $contentLanguage
 
 # ── Enterprise CLAUDE.md conflict detection (issue #411) ───────
 # Enterprise policy takes the highest precedence; warn when the chosen
@@ -670,8 +672,19 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
 
     # Git identity personalization notice
     Write-Host ""
-    Write-Warn "Important: Modify git-identity.md with your personal info!"
-    Write-Host "  Edit: notepad `$HOME\.claude\git-identity.md"
+    $gitIdentityPath = Join-Path $claudeDir 'git-identity.md'
+    $needsGitIdentityEdit = $false
+    if (Test-Path $gitIdentityPath) {
+        $needsGitIdentityEdit = [bool](Select-String -Path $gitIdentityPath -Pattern 'YOUR NAME|YOUR EMAIL' -Quiet)
+    }
+    if ($needsGitIdentityEdit) {
+        Write-Warn "git-identity.md still contains default placeholders. Edit it with your personal info."
+        Write-Host "  Edit: notepad `$HOME\.claude\git-identity.md"
+    }
+    else {
+        Write-Info "git-identity.md is ready. Review or edit it only if needed."
+        Write-Host "  Check: Get-Content `$HOME\.claude\git-identity.md | Select-String '^(name|email):'"
+    }
 }
 
 # ── Project settings installation ─────────────────────────────
@@ -835,8 +848,9 @@ Write-Host "======================================================"
 Write-Info "Next steps"
 Write-Host "======================================================"
 Write-Host ""
-Write-Host "1. Personalize Git identity (Required!):"
-Write-Host "     notepad `$HOME\.claude\git-identity.md"
+Write-Host "1. Verify Git identity:"
+Write-Host "     Get-Content `$HOME\.claude\git-identity.md | Select-String '^(name|email):'"
+Write-Host "     # Edit with notepad `$HOME\.claude\git-identity.md if placeholders remain"
 Write-Host ""
 Write-Host "2. Set PowerShell execution policy (if needed):"
 Write-Host "     Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser"
