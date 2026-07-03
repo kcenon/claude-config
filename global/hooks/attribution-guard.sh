@@ -45,6 +45,36 @@ allow_response() {
     exit 0
 }
 
+# --- Read input and prefilter scope before loading validators ---
+INPUT=$(cat)
+
+# Empty input: fail open
+if [ -z "$INPUT" ]; then
+    allow_response
+fi
+
+CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || CMD=""
+if [ -z "$CMD" ]; then
+    CMD="${CLAUDE_TOOL_INPUT:-}"
+fi
+
+# Issue #480 extended scope to cover gh pr review (review body) and
+# gh release create|edit (release notes). Out-of-scope commands fall through
+# to allow without loading the attribution validator.
+if ! echo "$CMD" | grep -qE 'gh[[:space:]]+(pr[[:space:]]+(create|edit|comment|review)|issue[[:space:]]+(create|edit|comment)|release[[:space:]]+(create|edit))'; then
+    allow_response
+fi
+
+# These channels feed the body from another process or file, where the
+# attribution check belongs upstream. Let them through before sourcing
+# validators so opaque body paths do not pay the validator load cost.
+if echo "$CMD" | grep -qE -- '(--body|-b|--title|-t|--notes|-n)[[:space:]=]+"\$\('; then
+    allow_response
+fi
+if echo "$CMD" | grep -qE -- '(--body-file|--notes-file|-F)[[:space:]=]+'; then
+    allow_response
+fi
+
 # --- Source shared validation library ---
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VALIDATOR=""
@@ -88,40 +118,6 @@ if ! command -v validate_no_attribution >/dev/null 2>&1; then
         fi
         return 0
     }
-fi
-
-# --- Read input from stdin ---
-INPUT=$(cat)
-
-# Empty input: fail open
-if [ -z "$INPUT" ]; then
-    allow_response
-fi
-
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || CMD=""
-if [ -z "$CMD" ]; then
-    CMD="${CLAUDE_TOOL_INPUT:-}"
-fi
-
-# --- Scope: gh pr|issue|release commands that emit human-authored text ---
-# Issue #480 extended scope to cover gh pr review (review body) and
-# gh release create|edit (release notes). Out-of-scope commands fall through
-# to allow without inspection — server-side trailers and CI verification
-# handle anything not gated here.
-if ! echo "$CMD" | grep -qE 'gh[[:space:]]+(pr[[:space:]]+(create|edit|comment|review)|issue[[:space:]]+(create|edit|comment)|release[[:space:]]+(create|edit))'; then
-    allow_response
-fi
-
-# --- Skip command-substitution / heredoc / file-based bodies ---
-# These channels feed the body from another process or file, where the
-# attribution check belongs to the upstream (commit-msg hook for files,
-# command substitution opaque to us). Letting them through avoids false
-# rejections while preserving the static-string gate.
-if echo "$CMD" | grep -qE -- '(--body|-b|--title|-t|--notes|-n)[[:space:]=]+"\$\('; then
-    allow_response
-fi
-if echo "$CMD" | grep -qE -- '(--body-file|--notes-file|-F)[[:space:]=]+'; then
-    allow_response
 fi
 
 # --- Extract a quoted argument value ---

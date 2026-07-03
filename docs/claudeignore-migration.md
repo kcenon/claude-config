@@ -4,6 +4,12 @@
 > **Created**: 2026-03-04
 > **Related Issue**: #170
 > **Purpose**: Migration plan from `.claudeignore` to official Claude Code alternatives
+>
+> **Update (issue #714)**: the rules-tree reference docs discussed below were found to be
+> auto-injected every session despite `alwaysApply: false` and `.claudeignore` — the context
+> loader physically scans `.claude/rules/`. They now live in `project/.claude/reference/`
+> (`coding/`, `workflow/`), outside the scanned tree, which is the effective blocking
+> mechanism. Old `rules/*/reference/` paths in this document are kept as historical record.
 
 ## Overview
 

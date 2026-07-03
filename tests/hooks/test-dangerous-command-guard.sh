@@ -97,17 +97,31 @@ assert_allow '{"tool_input":{"command":"gh pr checks 123 | cat"}}' "gh pr checks
 assert_allow '{"tool_input":{"command":"git diff >/dev/null 2>&1"}}' "git diff >/dev/null → allow"
 
 echo ""
-echo "[allow response shape]"
+echo "[allow response shape — issue #715: plain allow is silent]"
 allow_sample=$(echo '{"tool_input":{"command":"git status 2>&1 | head -20"}}' | bash "$HOOK" 2>/dev/null)
 if echo "$allow_sample" | grep -q '"additionalContext"'; then
-    ((PASS++)); echo "  PASS: allow response includes additionalContext"
+    ((FAIL++)); ERRORS+=("FAIL: compound allow must not carry additionalContext — got: $allow_sample"); echo "  FAIL: compound allow carries additionalContext"
 else
-    ((FAIL++)); ERRORS+=("FAIL: allow response missing additionalContext — got: $allow_sample"); echo "  FAIL: allow response missing additionalContext"
+    ((PASS++)); echo "  PASS: compound allow has no additionalContext"
 fi
-if echo "$allow_sample" | grep -q 'Safe read-only compound command'; then
-    ((PASS++)); echo "  PASS: compound pattern emits dedicated reason"
+plain_sample=$(echo '{"tool_input":{"command":"ls -la"}}' | bash "$HOOK" 2>/dev/null)
+if echo "$plain_sample" | grep -q '"additionalContext"'; then
+    ((FAIL++)); ERRORS+=("FAIL: plain allow must not carry additionalContext — got: $plain_sample"); echo "  FAIL: plain allow carries additionalContext"
 else
-    ((FAIL++)); ERRORS+=("FAIL: compound pattern reason missing — got: $allow_sample"); echo "  FAIL: compound pattern reason missing"
+    ((PASS++)); echo "  PASS: plain allow has no additionalContext"
+fi
+# The dedicated compound reason now lands in the file log, not stdout.
+if grep -q 'Safe read-only compound command' "$LOG_FILE"; then
+    ((PASS++)); echo "  PASS: compound pattern reason recorded in log"
+else
+    ((FAIL++)); ERRORS+=("FAIL: compound pattern reason missing from log: $(cat "$LOG_FILE")"); echo "  FAIL: compound pattern reason missing from log"
+fi
+# Warning-class allow (coarse-scan fallback) must keep additionalContext.
+coarse_sample=$(echo '{"tool_input":{"command":"echo aaaaaaaaaaaaaaaaaaaaaaaa"}}' | DCG_TOKENIZER_MAX_BYTES=10 bash "$HOOK" 2>/dev/null)
+if echo "$coarse_sample" | grep -q '"additionalContext"' && echo "$coarse_sample" | grep -q 'Coarse-scan allow'; then
+    ((PASS++)); echo "  PASS: coarse-scan warning keeps additionalContext"
+else
+    ((FAIL++)); ERRORS+=("FAIL: coarse-scan warning lost additionalContext — got: $coarse_sample"); echo "  FAIL: coarse-scan warning lost additionalContext"
 fi
 
 echo ""

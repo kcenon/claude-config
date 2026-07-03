@@ -247,6 +247,30 @@ if ($checkProject -eq 'y') {
             }
         }
 
+        # reference directory comparison
+        $backupReferenceDir = Join-Path $BackupDir 'project' '.claude' 'reference'
+        $projReferenceDir   = Join-Path $projectDir '.claude' 'reference'
+        if ((Test-Path $backupReferenceDir) -and (Test-Path $projReferenceDir)) {
+            Write-Host "  reference 디렉토리 비교:" -ForegroundColor Cyan
+            $srcFiles = Get-ChildItem -LiteralPath $backupReferenceDir -Recurse -File -ErrorAction SilentlyContinue |
+                Select-Object -First 10
+            foreach ($sf in $srcFiles) {
+                $relPath = $sf.FullName.Substring($backupReferenceDir.Length)
+                $targetFile = Join-Path $projReferenceDir $relPath
+                if (-not (Test-Path $targetFile)) {
+                    Write-Host "    Only in backup: $relPath"
+                    $projectDiff = 1
+                }
+                else {
+                    $diff = Compare-Object (Get-Content $sf.FullName) (Get-Content $targetFile) -ErrorAction SilentlyContinue
+                    if ($diff) {
+                        Write-Host "    Differs: $relPath"
+                        $projectDiff = 1
+                    }
+                }
+            }
+        }
+
         # skills directory comparison
         $backupSkillsDir = Join-Path $BackupDir 'project' '.claude' 'skills'
         $projSkillsDir   = Join-Path $projectDir '.claude' 'skills'
@@ -402,6 +426,14 @@ if ($syncDirection -eq '1') {
             Write-SuccessMessage "rules -> 시스템"
         }
 
+        $backupReferenceDir = Join-Path $BackupDir 'project' '.claude' 'reference'
+        if (Test-Path $backupReferenceDir) {
+            $destReference = Join-Path $projectDir '.claude' 'reference'
+            Ensure-Directory $destReference | Out-Null
+            Copy-Item -Path (Join-Path $backupReferenceDir '*') -Destination $destReference -Recurse -Force
+            Write-SuccessMessage "reference -> 시스템"
+        }
+
         $backupSkillsDir = Join-Path $BackupDir 'project' '.claude' 'skills'
         if (Test-Path $backupSkillsDir) {
             $destSkills = Join-Path $projectDir '.claude' 'skills'
@@ -467,6 +499,14 @@ else {
             Ensure-Directory $destRules | Out-Null
             Copy-Item -Path (Join-Path $projRulesDir '*') -Destination $destRules -Recurse -Force
             Write-SuccessMessage "rules -> 백업"
+        }
+
+        $projReferenceDir = Join-Path $projectDir '.claude' 'reference'
+        if (Test-Path $projReferenceDir) {
+            $destReference = Join-Path $BackupDir 'project' '.claude' 'reference'
+            Ensure-Directory $destReference | Out-Null
+            Copy-Item -Path (Join-Path $projReferenceDir '*') -Destination $destReference -Recurse -Force
+            Write-SuccessMessage "reference -> 백업"
         }
 
         $projSkillsDir = Join-Path $projectDir '.claude' 'skills'

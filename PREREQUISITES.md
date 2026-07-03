@@ -124,15 +124,32 @@ The table below shows which hook needs which tool, so an operator can decide whe
 | `task-created-validator.sh` | `jq` or `python3` | Hook fails open |
 | `pre-edit-read-guard.sh` | `jq` | Hook fails open |
 | `instructions-loaded-reinforcer.sh` | `jq` (preferred), falls back to hand-escape | Hook still emits JSON, with reduced robustness |
-| `post-compact-restore.sh` | `jq` (preferred) | Same as above |
+| `post-compact-restore.sh` | `jq` (preferred) or `python3` | No parser: silent no-op; no `jq`: hand-escaped JSON |
 
 ## Verifying After Install
 
-After installing the prerequisites, run:
+After installing the prerequisites, run the installer for your platform:
 
 ```bash
 bash bootstrap.sh         # refuses to continue if any required tool is missing
 bash scripts/install.sh   # installs hooks; verifies via `scripts/check_versions.sh`
+```
+
+```powershell
+pwsh -File .\bootstrap.ps1
+pwsh -File .\scripts\install.ps1
+```
+
+For unattended verification, pre-select answers instead of relying on
+interactive prompts:
+
+```bash
+INSTALL_TYPE=3 bash bootstrap.sh
+```
+
+```powershell
+$env:INSTALL_TYPE = '3'; pwsh -File .\bootstrap.ps1
+$env:FORCE_MODE = '1'; pwsh -File .\bootstrap.ps1
 ```
 
 If `bootstrap.sh` reports a missing tool, install it from the table above and re-run. The list is intentionally short so a fresh contributor can be productive in under five minutes.

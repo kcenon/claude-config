@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "description": "Claude Code Global Settings (Windows) - Applied to all projects (permissions.deny for security)",
+  "description": "Claude Code Global Settings (Windows) - Applied to all projects (permissions.deny for security). NOTE: the sandbox block below (sandbox.network.allowedDomains, sandbox.excludedCommands) is inert on Windows - the sandbox does not run on this platform (see core/environment.md), so permissions.allow/deny matching is the only active command gate; the env-secret leak channel is covered by hooks/shell-env-secret-guard.ps1.",
   "version": "1.17.0",
 
   "respectGitignore": true,
@@ -102,6 +102,11 @@
           },
           {
             "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/shell-env-secret-guard.ps1",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/bash-write-guard.ps1",
             "timeout": 5
           },
@@ -138,6 +143,11 @@
           {
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/pr-target-guard.ps1",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/push-target-guard.ps1",
             "timeout": 5
           },
           {
@@ -185,6 +195,16 @@
           {
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/memory-integrity-check.ps1",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/post-compact-restore.ps1",
             "timeout": 5
           }
         ]
@@ -300,17 +320,6 @@
             "command": "pwsh -NoProfile -File ~/.claude/hooks/pre-compact-snapshot.ps1",
             "timeout": 10,
             "async": true
-          }
-        ]
-      }
-    ],
-    "PostCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/post-compact-restore.ps1",
-            "timeout": 5
           }
         ]
       }
@@ -500,7 +509,48 @@
       "Bash(gh api users/*:*)",
       "Bash(gh api user:*)",
       "Bash(gh api rate_limit:*)",
-      "Bash(gh api graphql:*)"
+      "Bash(gh api graphql:*)",
+      "PowerShell(Get-ChildItem:*)",
+      "PowerShell(Test-Path:*)",
+      "PowerShell(Select-Object:*)",
+      "PowerShell(Select-String:*)",
+      "PowerShell(Write-Output:*)",
+      "PowerShell(git status:*)",
+      "PowerShell(git log:*)",
+      "PowerShell(git diff:*)",
+      "PowerShell(git show:*)",
+      "PowerShell(git branch:*)",
+      "PowerShell(git tag:*)",
+      "PowerShell(git remote:*)",
+      "PowerShell(git ls-files:*)",
+      "PowerShell(git rev-parse:*)",
+      "PowerShell(git describe:*)",
+      "PowerShell(git for-each-ref:*)",
+      "PowerShell(git worktree list:*)",
+      "PowerShell(gh pr view:*)",
+      "PowerShell(gh pr list:*)",
+      "PowerShell(gh pr diff:*)",
+      "PowerShell(gh pr checks:*)",
+      "PowerShell(gh pr status:*)",
+      "PowerShell(gh issue view:*)",
+      "PowerShell(gh issue list:*)",
+      "PowerShell(gh issue status:*)",
+      "PowerShell(gh run view:*)",
+      "PowerShell(gh run list:*)",
+      "PowerShell(gh workflow list:*)",
+      "PowerShell(gh workflow view:*)",
+      "PowerShell(gh repo view:*)",
+      "PowerShell(gh release view:*)",
+      "PowerShell(gh release list:*)",
+      "PowerShell(gh auth status:*)",
+      "PowerShell(gh api -X GET:*)",
+      "PowerShell(gh api -H *:*)",
+      "PowerShell(gh api repos/*:*)",
+      "PowerShell(gh api orgs/*:*)",
+      "PowerShell(gh api users/*:*)",
+      "PowerShell(gh api user:*)",
+      "PowerShell(gh api rate_limit:*)",
+      "PowerShell(gh api graphql:*)"
     ],
     "deny": [
       "Read(.env)",

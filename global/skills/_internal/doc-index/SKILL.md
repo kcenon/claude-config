@@ -69,6 +69,12 @@ grep -rl "^doc_id:" --include="*.md" . | wc -l
 find . -name "*.md" -not -path "*/.git/*" -type f | wc -l
 ```
 
+Treat this as the candidate set, not an unconditional manifest contract.
+Repository policy may intentionally exclude archival issue drafts,
+generated fixtures, scratch reports, or other Markdown that is not part
+of the maintained documentation surface. When excluding candidates,
+state the excluded categories in the report.
+
 ### Phase 2: Mode Detection
 
 Calculate: `doc_id_count / total_count`
@@ -283,7 +289,8 @@ _meta: {schema: "1.0.0", generated: "YYYY-MM-DD"}
 
 After generating all files:
 1. Verify all 4 files exist in `docs/.index/`
-2. Check that manifest covers all discovered documents
+2. Check that manifest covers all discovered documents in the intended
+   index scope, and report any excluded candidate categories
 3. Check that each SI bundle has ≥3 files (SDS + SRS + at least 1 reference)
 4. Check that cross-cutting bundles have reasonable sizes (5-15 files each)
 

@@ -63,6 +63,38 @@ Assert-Deny 'Feat: capitalized conventional type' 'capitalized type -> deny (cas
 Assert-Deny 'FIX: uppercase type'                 'uppercase type -> deny (case-sensitive)'
 Assert-Deny 'feat: trailing period.'            'trailing period -> deny'
 
+function Invoke-Raw {
+    param([string]$Cmd)
+    $json = (@{ tool_input = @{ command = $Cmd } } | ConvertTo-Json -Compress)
+    return ($json | & pwsh -NoProfile -File $script:HookPath 2>$null)
+}
+function Assert-RawDeny {
+    param([string]$Cmd, [string]$Label)
+    $r = Invoke-Raw $Cmd
+    if ($r -match '"deny"') {
+        $script:Passed++; Write-Host "  PASS: $Label" -ForegroundColor Green
+    } else {
+        $script:Failed++; $script:Errors.Add("FAIL: $Label - got: $r"); Write-Host "  FAIL: $Label" -ForegroundColor Red
+    }
+}
+function Assert-RawAllow {
+    param([string]$Cmd, [string]$Label)
+    $r = Invoke-Raw $Cmd
+    if ($r -match '"allow"' -or [string]::IsNullOrEmpty($r)) {
+        $script:Passed++; Write-Host "  PASS: $Label" -ForegroundColor Green
+    } else {
+        $script:Failed++; $script:Errors.Add("FAIL: $Label - got: $r"); Write-Host "  FAIL: $Label" -ForegroundColor Red
+    }
+}
+
+Write-Host ''
+Write-Host '[--no-verify / -n and single-quote extraction (issue #782)]'
+Assert-RawDeny  'git commit --no-verify -m "feat: x"'          'commit --no-verify -> deny'
+Assert-RawDeny  'git commit -n -m "feat: x"'                   'commit -n -> deny'
+Assert-RawDeny  "git commit -m 'added no type prefix'"         'single-quote no-type -> deny'
+Assert-RawAllow "git commit -m 'feat: valid single-quoted'"    'single-quote valid -> allow'
+Assert-RawAllow 'git commit -m "fix: handle -n flag parsing"'  '-n inside message text -> allow'
+
 Write-Host ''
 Write-Host "=== Results: $($script:Passed) passed, $($script:Failed) failed ==="
 if ($script:Errors.Count -gt 0) {

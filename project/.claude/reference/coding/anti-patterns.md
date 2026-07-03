@@ -6,7 +6,7 @@ alwaysApply: false
 
 Concrete before/after examples of common LLM coding mistakes. Each example maps to a principle in `core/principles.md`.
 
-> **Loading**: Excluded from default context via `.claudeignore`. Load with `@load: reference/anti-patterns`.
+> **Loading**: Lives in `.claude/reference/`, outside the auto-loaded `.claude/rules/` tree, so it is never injected automatically. Load with `@load: reference/anti-patterns`.
 >
 > Inspired by [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876)
 > and [forrestchang/andrej-karpathy-skills EXAMPLES.md](https://github.com/forrestchang/andrej-karpathy-skills/blob/main/EXAMPLES.md).

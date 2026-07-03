@@ -2,10 +2,11 @@ name: Validate Skills
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - 'project/.claude/skills/**'
       - 'project/.claude/rules/workflow/**'
+      - 'project/.claude/rules/**'
       - 'plugin/skills/**'
       - 'plugin-lite/skills/**'
       - 'global/skills/**'
@@ -14,16 +15,24 @@ on:
       - 'enterprise/CLAUDE.md'
       - 'scripts/validate_skills.sh'
       - 'scripts/check_references.sh'
+      - 'scripts/check_references.ps1'
       - 'scripts/sync_references.sh'
+      - 'scripts/sync_references.ps1'
+      - 'reference-map.yml'
+      - 'scripts/validate-doc-index.sh'
       - 'scripts/check_agents.sh'
       - 'scripts/check_agents.ps1'
       - 'tests/scripts/test-check-agents.sh'
+      - 'tests/scripts/test-check-references.sh'
+      - 'tests/scripts/test-check-references.ps1'
       - 'plugin/agents/**'
       - 'project/.claude/agents/**'
       - 'scripts/spec_lint.sh'
       - 'scripts/spec_lint.ps1'
       - 'scripts/spec_lint.py'
       - 'scripts/schemas/**'
+      - 'tests/scripts/test-spec-lint.sh'
+      - 'tests/scripts/test-spec-lint.ps1'
       - 'scripts/fleet_orchestrator/**'
       - 'tests/fleet_orchestrator/**'
       - 'docs/design/**'
@@ -31,8 +40,10 @@ on:
       - 'docs/batch-drift-regression.md'
       - 'scripts/validate-adr-headers.sh'
       - 'scripts/extract-doc-description.sh'
+      - 'scripts/diff-readme.sh'
       - 'tests/doc-index/**'
-      - 'docs/.index/manifest.yaml'
+      - 'tests/scripts/test-diff-readme.sh'
+      - 'docs/.index/*.yaml'
       - 'VERSION_MAP.yml'
       - 'scripts/check_versions.sh'
       - 'scripts/sync_versions.sh'
@@ -41,8 +52,15 @@ on:
       - 'global/settings.json'
       - 'global/settings.windows.json'
       - 'project/.claude/settings.json'
+      - '.github/workflows/validate-skills.yml'
       - 'README.md'
       - 'README.ko.md'
+
+# Cancel in-progress runs of the same PR / schedule so a fast follow-up commit
+# does not pile up.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
@@ -68,6 +86,12 @@ jobs:
       - name: Check workflow reference mirrors match canonical
         run: ./scripts/check_references.sh
 
+      - name: Run reference drift guard test suite
+        run: bash tests/scripts/test-check-references.sh
+
+      - name: Run reference drift guard test suite (PowerShell)
+        run: pwsh -NoProfile -File tests/scripts/test-check-references.ps1
+
       - name: Check plugin/project agent bodies in sync
         # plugin/agents and project/.claude/agents are near-duplicate copies;
         # this guard strips per-layer frontmatter and the one genericized
@@ -83,6 +107,9 @@ jobs:
       - name: Run spec linter test suite
         run: bash tests/scripts/test-spec-lint.sh
 
+      - name: Run spec linter test suite (PowerShell)
+        run: pwsh -NoProfile -File tests/scripts/test-spec-lint.ps1
+
       - name: Install pytest for fleet_orchestrator tests
         # pytest is already a transitive dep of jsonschema in some envs; pin
         # explicitly so the runner does not silently fall back to unittest.
@@ -96,9 +123,13 @@ jobs:
 
       - name: Verify README.md / README.ko.md heading skeleton (#623)
         # Bilingual contract: the two READMEs must share the same heading
-        # counts at every level. Catches "added a section in English, forgot
-        # to translate" drift before it accrues into multi-version debt.
+        # counts and operational inline-code token sets. Catches "added a
+        # command/path/env var in English, forgot to translate" drift before it
+        # accrues into multi-version debt.
         run: bash scripts/diff-readme.sh
+
+      - name: Run README parity guard test suite
+        run: bash tests/scripts/test-diff-readme.sh
 
       - name: Verify ADR frontmatter on docs/design (#624)
         # docs/design/*.md (plus tier2-benchmark-results.md and
@@ -112,3 +143,9 @@ jobs:
         # heuristic took the first non-empty line, producing literal
         # '<p align="center">' descriptions for HTML-headed READMEs.
         run: bash tests/doc-index/test-extract-doc-description.sh
+
+      - name: Run doc-index manifest validator tests
+        run: bash tests/doc-index/test-validate-doc-index.sh
+
+      - name: Validate generated doc index manifest
+        run: bash scripts/validate-doc-index.sh

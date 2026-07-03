@@ -143,6 +143,7 @@ copy_standard() {
     copy_minimal
     copy_item "$PROJECT_TEMPLATE/.claude/rules/coding" "$TARGET/.claude/rules/coding"
     copy_item "$PROJECT_TEMPLATE/.claude/rules/workflow" "$TARGET/.claude/rules/workflow"
+    copy_item "$PROJECT_TEMPLATE/.claude/reference" "$TARGET/.claude/reference"
     copy_item "$PROJECT_TEMPLATE/.claude/rules/project-management" "$TARGET/.claude/rules/project-management"
     copy_item "$PROJECT_TEMPLATE/.claude/rules/tools" "$TARGET/.claude/rules/tools"
     copy_item "$PROJECT_TEMPLATE/.claude/commands" "$TARGET/.claude/commands"

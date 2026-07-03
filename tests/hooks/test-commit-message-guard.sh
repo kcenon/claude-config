@@ -6,6 +6,10 @@ HOOK="global/hooks/commit-message-guard.sh"
 PASS=0
 FAIL=0
 ERRORS=()
+SCRATCH_ROOT="${TMPDIR:-/tmp}"
+WORK=$(mktemp -d "$SCRATCH_ROOT/cmg-test.XXXXXX" 2>/dev/null) || WORK="$SCRATCH_ROOT/cmg-test.$$"
+mkdir -p "$WORK"
+trap 'rm -rf "$WORK"' EXIT
 
 cd "$(dirname "$0")/../.." || exit 1
 
@@ -45,6 +49,23 @@ assert_allow '{"tool_input":{"command":"ls -la"}}' "ls -la → allow"
 assert_allow '{"tool_input":{"command":"git status"}}' "git status → allow"
 assert_allow '{"tool_input":{"command":"git log --oneline"}}' "git log → allow"
 assert_allow '{"tool_input":{"command":"gh issue view 123"}}' "gh issue view → allow"
+
+echo ""
+echo "[non-commit prefilter does not require validator]"
+TEMP_HOOK_DIR="$WORK/global/hooks"
+TEMP_VALIDATOR_DIR="$WORK/hooks/lib"
+mkdir -p "$TEMP_HOOK_DIR" "$TEMP_VALIDATOR_DIR"
+cp "$HOOK" "$TEMP_HOOK_DIR/commit-message-guard.sh"
+printf 'exit 97\n' > "$TEMP_VALIDATOR_DIR/validate-commit-message.sh"
+result=$(printf '%s' '{"tool_input":{"command":"git status"}}' | bash "$TEMP_HOOK_DIR/commit-message-guard.sh" 2>/dev/null)
+if echo "$result" | grep -q '"allow"'; then
+    PASS=$((PASS + 1))
+    echo "  PASS: out-of-scope command allows before validator source"
+else
+    FAIL=$((FAIL + 1))
+    ERRORS+=("FAIL: out-of-scope command should allow before validator source, got: $result")
+    echo "  FAIL: out-of-scope command allows before validator source"
+fi
 
 echo ""
 echo "[valid conventional commits]"
@@ -115,6 +136,21 @@ echo "[edge cases]"
 assert_allow '{"tool_input":{"command":"git commit"}}' "git commit without -m → allow (opens editor)"
 assert_allow '{"tool_input":{"command":"git commit -m \"$(cat <<EOF\nfeat: multi-line\nEOF\n)\""}}' "command substitution → allow (defer to commit-msg)"
 assert_allow '' "empty input → allow"
+
+echo ""
+echo "[--no-verify / -n bypass blocked (issue #782)]"
+assert_deny '{"tool_input":{"command":"git commit --no-verify -m \"feat: x\""}}' "commit --no-verify → deny"
+assert_deny '{"tool_input":{"command":"git commit -n -m \"feat: x\""}}' "commit -n → deny"
+assert_deny '{"tool_input":{"command":"git commit -nm \"feat: x\""}}' "commit -nm (bundled short flags) → deny"
+assert_allow '{"tool_input":{"command":"git commit -m \"fix: handle -n flag parsing\""}}' "-n inside message text → allow (not a flag)"
+assert_allow '{"tool_input":{"command":"git commit --amend --no-edit -m \"feat: x\""}}' "--no-edit → allow (not --no-verify)"
+
+echo ""
+echo "[single-quoted -m extraction reaches validator (issue #782)]"
+assert_allow "{\"tool_input\":{\"command\":\"git commit -m 'feat: valid single-quoted'\"}}" "single-quote valid → allow"
+assert_deny "{\"tool_input\":{\"command\":\"git commit -m 'added no type prefix'\"}}" "single-quote no-type → deny"
+assert_deny "{\"tool_input\":{\"command\":\"git commit -am 'update: bad type'\"}}" "single-quote -am bad type → deny"
+assert_deny "{\"tool_input\":{\"command\":\"git commit --message='feat: Uppercase First'\"}}" "single-quote --message= uppercase → deny"
 
 echo ""
 echo "[determinism — same input yields same output across 3 runs]"

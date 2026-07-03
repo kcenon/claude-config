@@ -25,6 +25,7 @@
     "disableBypassPermissionsMode": "disable",
     "disableAutoMode": "disable",
     "allow": [
+      "Bash(git add:*)",
       "Bash(git status:*)",
       "Bash(git log:*)",
       "Bash(git diff:*)",
@@ -36,7 +37,18 @@
       "Bash(git rev-parse:*)",
       "Bash(git describe:*)",
       "Bash(git for-each-ref:*)",
-      "Bash(git worktree list:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Bash(git switch:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(git restore:*)",
+      "Bash(git reset:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git merge-base:*)",
+      "Bash(git show-ref:*)",
+      "Bash(git worktree:*)",
       "Bash(git fetch origin:*)",
       "Bash(git fetch upstream:*)",
       "Bash(gh pr view:*)",
@@ -92,7 +104,17 @@
       "Bash(gh api users/*:*)",
       "Bash(gh api user:*)",
       "Bash(gh api rate_limit:*)",
-      "Bash(gh api graphql:*)"
+      "Bash(gh api graphql:*)",
+      "Bash(act:*)",
+      "Bash(cmake:*)",
+      "Bash(flock:*)",
+      "Bash(jq:*)",
+      "Bash(make:*)",
+      "Bash(docker build:*)",
+      "Bash(docker images:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker run:*)"
     ],
     "deny": [
       "Read(.env)",
@@ -153,6 +175,11 @@
           },
           {
             "type": "command",
+            "command": "~/.claude/hooks/shell-env-secret-guard.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "~/.claude/hooks/bash-write-guard.sh",
             "timeout": 5
           },
@@ -185,6 +212,11 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/pr-target-guard.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/push-target-guard.sh",
             "timeout": 5
           },
           {
@@ -232,6 +264,16 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/memory-integrity-check.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/post-compact-restore.sh",
             "timeout": 5
           }
         ]
@@ -347,17 +389,6 @@
             "command": "~/.claude/hooks/pre-compact-snapshot.sh",
             "timeout": 10,
             "async": true
-          }
-        ]
-      }
-    ],
-    "PostCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/post-compact-restore.sh",
-            "timeout": 5
           }
         ]
       }

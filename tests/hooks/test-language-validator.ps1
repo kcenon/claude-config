@@ -91,7 +91,7 @@ Invoke-LangCase -Name "martian accepts ASCII"               -ExpectedValid $true
 Write-Host ""
 Write-Host "=== Test-CommitDescriptionFirstChar ==="
 Write-Host ""
-Write-Host "[english policy — lowercase ASCII only]"
+Write-Host "[english policy - lowercase English description]"
 Invoke-LangCase -Name "english accepts 'add feature'"       -ExpectedValid $true  -Policy 'english'  -Text "add feature" -Commit
 Invoke-LangCase -Name "english rejects 'Add feature'"       -ExpectedValid $false -Policy 'english'  -Text "Add feature" -Commit
 Invoke-LangCase -Name "english rejects '기능 추가'"           -ExpectedValid $false -Policy 'english'  -Text "기능 추가" -Commit

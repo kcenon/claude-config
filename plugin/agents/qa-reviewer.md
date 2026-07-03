@@ -148,21 +148,10 @@ Provide findings in the following structure:
 
 Always provide specific file paths and line numbers for any issues found. Be precise about what mismatches exist and how they manifest at runtime.
 
-## Team Communication Protocol
+## Tool Constraints
 
-### Receives From
-- **team-lead**: Verification scope (module boundaries, integration points to check)
-- **code-reviewer**: Boundary mismatches discovered during code review
+Bash is restricted to read-only diagnostic commands — for example `git diff`, `git log`, repository linters, and type checks such as `tsc --noEmit`. Do not use Bash to write or modify files, install packages, or make network calls. This agent reports findings and never mutates the working tree.
 
-### Sends To
-- **team-lead**: QA verification report (passed/failed/unverified counts, blocker status)
-- **code-reviewer**: Boundary mismatch findings requiring code-level verification
+## Reporting
 
-### Handoff Triggers
-- Finding a Failed boundary with data loss risk → notify team-lead immediately
-- Discovering type casting bypass (`as any`) hiding shape mismatch → notify code-reviewer
-- Finding orphaned API endpoints or hooks → create TaskCreate entry for team-lead
-
-### Task Management
-- Create TaskCreate entry for each Failed boundary (enables tracking)
-- Mark own verification task as completed only after full report is delivered
+Return your findings to the calling session as your final message. This agent runs as a single-return node; the calling session decides any follow-up. A multi-agent `team-lead` handoff topology is not wired in this configuration.

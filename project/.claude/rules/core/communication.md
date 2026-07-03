@@ -16,7 +16,7 @@ Code identifiers (variables, functions, classes, files) always use **English** d
 
 ## Relationship with Conversation Language
 
-Claude responds to users in Korean (via `settings.json` `language: "korean"`).
+Claude responds to users in English (via `settings.json` `language: "english"`).
 Prose content remains in English regardless of conversation language.
 
 ## Special Cases

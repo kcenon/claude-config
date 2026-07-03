@@ -4,7 +4,7 @@ alwaysApply: false
 
 # 5W1H Examples and Templates
 
-> **Loading**: Excluded from default context via `.claudeignore`. Load with `@load: reference/5w1h-examples`.
+> **Loading**: Lives in `.claude/reference/`, outside the auto-loaded `.claude/rules/` tree, so it is never injected automatically. Load with `@load: reference/5w1h-examples`.
 
 ## Issue Examples
 

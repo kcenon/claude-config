@@ -56,6 +56,170 @@ function Install-BashScript {
     [System.IO.File]::WriteAllText($DestinationPath, $content, $utf8NoBom)
 }
 
+function Ensure-InstallDirectory {
+    param([Parameter(Mandatory)][string]$Dir)
+
+    if (Test-Path -LiteralPath $Dir -PathType Container) { return }
+    if (Test-Path -LiteralPath $Dir) {
+        throw "path exists but is not a directory: $Dir"
+    }
+    New-Item -ItemType Directory -Path $Dir -Force -ErrorAction Stop | Out-Null
+}
+
+function Copy-InstallHookFiles {
+    param(
+        [Parameter(Mandatory)][string]$SourceDir,
+        [Parameter(Mandatory)][string]$DestinationDir,
+        [Parameter(Mandatory)][string[]]$Filters
+    )
+
+    if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) { return }
+    Ensure-InstallDirectory -Dir $DestinationDir
+
+    foreach ($filter in $Filters) {
+        Get-ChildItem -LiteralPath $SourceDir -Filter $filter -File -ErrorAction SilentlyContinue | ForEach-Object {
+            $dest = Join-Path $DestinationDir $_.Name
+            if ($_.Extension -eq '.sh') {
+                Install-BashScript -SourcePath $_.FullName -DestinationPath $dest
+            } else {
+                Copy-Item -LiteralPath $_.FullName -Destination $dest -Force -ErrorAction Stop
+            }
+        }
+    }
+}
+
+function Deploy-InstallHooks {
+    param([Parameter(Mandatory)][string]$ClaudeDir)
+
+    $hooksSource = Join-Path $BackupDir "global/hooks"
+    if (-not (Test-Path -LiteralPath $hooksSource -PathType Container)) {
+        throw "hook source directory missing: $hooksSource"
+    }
+
+    $hooksDir = Join-Path $ClaudeDir "hooks"
+    # Windows hooks use `pwsh -File ...ps1`; .sh/.json are deployed for WSL and
+    # parity with container-side command rewriting.
+    Copy-InstallHookFiles -SourceDir $hooksSource -DestinationDir $hooksDir -Filters @('*.ps1', '*.sh', '*.json')
+
+    # Deploy global/hooks/lib/ shared libraries. The top-level hook copy is
+    # non-recursive, and several runtime guards source these libraries.
+    $hooksLibSource = Join-Path $hooksSource 'lib'
+    if (Test-Path -LiteralPath $hooksLibSource -PathType Container) {
+        $hooksLibDir = Join-Path $hooksDir 'lib'
+        Copy-InstallHookFiles -SourceDir $hooksLibSource -DestinationDir $hooksLibDir -Filters @('*.ps1', '*.psm1', '*.sh')
+    }
+
+    # Shared bash validator libraries used by deployed bash hook variants.
+    $sharedLibSource = Join-Path $BackupDir 'hooks/lib'
+    if (Test-Path -LiteralPath $sharedLibSource -PathType Container) {
+        $hooksLibDir = Join-Path $hooksDir 'lib'
+        Copy-InstallHookFiles -SourceDir $sharedLibSource -DestinationDir $hooksLibDir -Filters @(
+            'validate-commit-message.sh',
+            'validate-language.sh',
+            'validate-traceability.sh'
+        )
+    }
+
+    $requiredLibs = @(
+        'tokenize-shell.sh',
+        'path-utils.sh',
+        'timeout-wrapper.sh',
+        'rotate.sh',
+        'CommonHelpers.psm1',
+        'LanguageValidator.psm1',
+        'AttributionValidator.psm1',
+        'validate-commit-message.sh',
+        'validate-language.sh',
+        'validate-traceability.sh'
+    )
+    foreach ($lib in $requiredLibs) {
+        if (-not (Test-Path -LiteralPath (Join-Path $hooksDir 'lib' $lib) -PathType Leaf)) {
+            throw "required hook runtime library missing after deploy: hooks/lib/$lib"
+        }
+    }
+}
+
+function Write-FullSuiteProbe {
+    param([Parameter(Mandatory)][string]$ClaudeDir)
+
+    $hooksDir = Join-Path $ClaudeDir "hooks"
+    $probeFile = Join-Path $ClaudeDir ".full-suite-active"
+    $probeTmp  = Join-Path $ClaudeDir ".full-suite-active.tmp"
+    $probeDoc  = [ordered]@{
+        schema = 1
+        hooks  = [ordered]@{
+            'sensitive-file-guard'    = (Test-Path (Join-Path $hooksDir 'sensitive-file-guard.sh'))
+            'dangerous-command-guard' = (Test-Path (Join-Path $hooksDir 'dangerous-command-guard.sh'))
+        }
+    }
+
+    try {
+        ($probeDoc | ConvertTo-Json -Depth 4) | Set-Content -LiteralPath $probeTmp -Encoding UTF8
+        Move-Item -LiteralPath $probeTmp -Destination $probeFile -Force
+        Write-Success "Full-suite probe written (.full-suite-active)"
+    }
+    catch {
+        Write-Warn "Failed to write full-suite probe: $_"
+        if (Test-Path $probeTmp) { Remove-Item -LiteralPath $probeTmp -Force -ErrorAction SilentlyContinue }
+    }
+}
+
+function Install-GlobalSettingsAndHooks {
+    param([Parameter(Mandatory)][string]$ClaudeDir)
+
+    # Intentionally bypasses Invoke-GuardedCopy: policy attributes (.language,
+    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
+    # Update-ClaudeSettingsJson injects them into a staged file first; the
+    # final settings.json is published only after hook deployment succeeds.
+    $settingsSource = Join-Path $BackupDir "global/settings.windows.json"
+    if (-not (Test-Path -LiteralPath $settingsSource)) {
+        $hooksSource = Join-Path $BackupDir "global/hooks"
+        if (Test-Path -LiteralPath $hooksSource -PathType Container) {
+            try {
+                Deploy-InstallHooks -ClaudeDir $ClaudeDir
+                Write-Success "Hook scripts installed (hooks/*.ps1 + *.sh + lib/ + *.json)!"
+                Write-FullSuiteProbe -ClaudeDir $ClaudeDir
+            }
+            catch {
+                Write-Err "Hook scripts deployment failed. $_"
+                exit 1
+            }
+        }
+        return
+    }
+
+    $destSettings = Join-Path $ClaudeDir "settings.json"
+    $settingsTmp = Join-Path $ClaudeDir ".settings.json.tmp.$PID"
+    $settingsUpdated = $false
+
+    try {
+        Remove-Item -LiteralPath $settingsTmp -Force -ErrorAction SilentlyContinue
+        Copy-Item -LiteralPath $settingsSource -Destination $settingsTmp -Force -ErrorAction Stop
+
+        $settingsUpdated = Update-ClaudeSettingsJson -SettingsPath $settingsTmp -AgentLang $agentLanguage -ContentLang $contentLanguage
+
+        Deploy-InstallHooks -ClaudeDir $ClaudeDir
+
+        Move-Item -LiteralPath $settingsTmp -Destination $destSettings -Force -ErrorAction Stop
+    }
+    catch {
+        Remove-Item -LiteralPath $settingsTmp -Force -ErrorAction SilentlyContinue
+        Write-Err "Hook scripts deployment or settings publish failed. settings.json을 변경하지 않았습니다. $_"
+        exit 1
+    }
+
+    Write-Success "Hook settings (settings.json) installed! [Windows version]"
+    if ($settingsUpdated) {
+        Write-Success "settings.json updated with language=$agentLanguage and CLAUDE_CONTENT_LANGUAGE=$contentLanguage"
+    } else {
+        Write-Warn "Failed to automatically update settings.json"
+        Write-Host "  Please update ~/.claude/settings.json manually with language settings."
+    }
+
+    Write-Success "Hook scripts installed (hooks/*.ps1 + *.sh + lib/ + *.json)!"
+    Write-FullSuiteProbe -ClaudeDir $ClaudeDir
+}
+
 function New-LocalClaude {
     param([string]$ProjectDir)
     $localFile = Join-Path $ProjectDir "CLAUDE.local.md"
@@ -82,39 +246,14 @@ function New-LocalClaude {
     }
 }
 
-# Note: Get-PolicyPhrase is provided by scripts/lib/InstallPrompts.psm1
-# which is imported in the language-prompt section below. The local
-# definition was removed to keep the bash, PowerShell, and drift-test
-# tables in lockstep.
-
-function Invoke-PolicyTemplate {
-    # Renders a .md.tmpl file by replacing {{CONTENT_LANGUAGE_POLICY}}
-    # with the resolved phrase and writes the result to $Destination as UTF-8.
-    param(
-        [Parameter(Mandatory)][string]$Source,
-        [Parameter(Mandatory)][string]$Destination
-    )
-    $phrase = Get-PolicyPhrase -Policy $script:contentLanguage
-
-    # Note: Agent language substitution is handled by Invoke-GuardedTemplateCopy.
-
-    $content = [System.IO.File]::ReadAllText($Source)
-    $rendered = $content -replace '\{\{CONTENT_LANGUAGE_POLICY\}\}', $phrase
-    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-    [System.IO.File]::WriteAllText($Destination, $rendered, $utf8NoBom)
-}
-
-function Invoke-PolicyTemplatesInDir {
-    # Walks a directory, renders every *.md.tmpl to its *.md sibling,
-    # then deletes the .tmpl source. Used after bulk copy of rules/.
-    param([Parameter(Mandatory)][string]$Path)
-    if (-not (Test-Path -LiteralPath $Path)) { return }
-    Get-ChildItem -Path $Path -Filter '*.md.tmpl' -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
-        $dest = $_.FullName.Substring(0, $_.FullName.Length - '.tmpl'.Length)
-        Invoke-PolicyTemplate -Source $_.FullName -Destination $dest
-        Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
-    }
-}
+# Note: Get-PolicyPhrase, Invoke-PolicyTemplate, and Invoke-PolicyTemplatesInDir
+# are provided by scripts/lib/InstallPrompts.psm1, imported in the language-prompt
+# section below. The render helpers were moved into the module (issue #760) so
+# the bootstrap install path can render the copied rules too; both install.ps1
+# and bootstrap.ps1 now call the same single source. Because PowerShell modules
+# have their own $script: scope, callers pass the three language values
+# explicitly (-ContentLanguage/-AgentDisplay/-AgentLanguage). The bash,
+# PowerShell, and drift-test tables stay in lockstep.
 
 function Get-EnterpriseDir {
     if ($IsWindows -or ($env:OS -eq 'Windows_NT')) {
@@ -333,13 +472,15 @@ if ([string]::IsNullOrEmpty($installType)) { $installType = '3' }
 $promptsModule = Join-Path $ScriptDir 'lib' 'InstallPrompts.psm1'
 Import-Module $promptsModule -Force -DisableNameChecking
 
-$contentLanguage = Show-ContentLanguagePrompt
-$agentChoice = Show-AgentLanguagePrompt
-$agentLanguage = $agentChoice.Language
-$agentDisplayLang = $agentChoice.Display
+$settingsPath = Join-Path $HOME '.claude/settings.json'
+$seededPolicy = Seed-LanguageFromSettings -SettingsPath $settingsPath
+$profileChoice = Show-LanguageProfilePrompt -AgentLanguage $seededPolicy.AgentLanguage -ContentLanguage $seededPolicy.ContentLanguage
+$agentLanguage = $profileChoice.AgentLanguage
+$agentDisplayLang = $profileChoice.AgentDisplay
+$contentLanguage = $profileChoice.ContentLanguage
 
 # Legacy settings.json migration warning (informational only).
-$null = Show-LegacySettingsWarning -SettingsPath (Join-Path $HOME '.claude/settings.json') -NewSelection $contentLanguage
+$null = Show-LegacySettingsWarning -SettingsPath $settingsPath -NewSelection $contentLanguage
 
 # ── Enterprise CLAUDE.md conflict detection (issue #411) ───────
 # Enterprise policy takes the highest precedence; warn when the chosen
@@ -400,7 +541,8 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         if (Test-Path $srcTmpl) {
             # Render to a temporary file using the existing policy substitution
             $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "policy_$([guid]::NewGuid()).md"
-            Invoke-PolicyTemplate -Source $srcTmpl -Destination $tmpFile
+            Invoke-PolicyTemplate -Source $srcTmpl -Destination $tmpFile `
+                -ContentLanguage $script:contentLanguage -AgentDisplay $script:agentDisplayLang -AgentLanguage $script:agentLanguage
             if (Invoke-GuardedCopy -Src $tmpFile -Dest (Join-Path $claudeDir $gf) -Key $gf) {
                 Write-Success "$gf installed (policy phrase: $(Get-PolicyPhrase -Policy $script:contentLanguage))"
             } else {
@@ -416,10 +558,20 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         }
     }
 
+    # Auto-seed git identity from `git config --global` (issue #777). Shared
+    # with bootstrap.ps1 via Set-GitIdentitySeed in InstallPrompts.psm1, so a
+    # fresh install produces a usable git-identity.md without manual editing.
+    if (Get-Command Set-GitIdentitySeed -ErrorAction SilentlyContinue) {
+        $gitIdTarget = Join-Path $claudeDir 'git-identity.md'
+        if (Set-GitIdentitySeed -Path $gitIdTarget) {
+            Write-Success "git-identity.md auto-filled from git config ($($script:SeededGitName) <$($script:SeededGitEmail)>)"
+        }
+    }
+
     # conversation-language.md template rendering.
-    # $agentDisplayLang is populated by Show-AgentLanguagePrompt; fall
-    # back to deriving from $agentLanguage if the prompt was skipped
-    # (e.g. project-only install path).
+    # $agentDisplayLang is populated by Show-LanguageProfilePrompt (derived
+    # from $profileChoice); fall back to deriving from $agentLanguage if the
+    # prompt was skipped (e.g. project-only install path).
     $tmplPath = Join-Path $BackupDir "global/conversation-language.md.tmpl"
     if (Test-Path $tmplPath) {
         if (-not $agentDisplayLang) {
@@ -433,128 +585,9 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         }
     }
 
-    # Install settings.windows.json as settings.json
-    # Intentionally bypasses Invoke-GuardedCopy: policy attributes (.language,
-    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
-    # Update-ClaudeSettingsJson (below) injects them and is responsible
-    # for idempotent reset when the policy returns to default ("english").
-    $settingsSource = Join-Path $BackupDir "global/settings.windows.json"
-    if (Test-Path $settingsSource) {
-        $destSettings = Join-Path $claudeDir "settings.json"
-        Copy-Item -Path $settingsSource -Destination $destSettings -Force
-        Write-Success "Hook settings (settings.json) installed! [Windows version]"
-
-        # Write CLAUDE_CONTENT_LANGUAGE under env, and update agent language
-        if (Update-ClaudeSettingsJson -SettingsPath $destSettings -AgentLang $agentLanguage -ContentLang $contentLanguage) {
-            Write-Success "settings.json updated with language=$agentLanguage and CLAUDE_CONTENT_LANGUAGE=$contentLanguage"
-        } else {
-            Write-Warn "Failed to automatically update settings.json"
-            Write-Host "  Please update ~/.claude/settings.json manually with language settings."
-        }
-    }
-
-    # Install hook scripts — dual-variant deployment.
-    #
-    # Why both .ps1 and .sh (Issue #407): When the Windows host's ~/.claude is
-    # bind-mounted into a Linux Claude Code container (claude-docker), the
-    # container entrypoint rewrites every `pwsh ... -File foo.ps1` command to
-    # `foo.sh`. The rewrite only works when the matching .sh file is present.
-    # Shipping .ps1 alone leaves every hook reporting "not found" inside the
-    # container even though the host works correctly.
-    $hooksSource = Join-Path $BackupDir "global/hooks"
-    if (Test-Path $hooksSource) {
-        $hooksDir = Join-Path $claudeDir "hooks"
-        Ensure-Directory $hooksDir
-
-        try {
-            $ps1Items = Get-ChildItem -Path $hooksSource -Filter '*.ps1' -File
-            if ($ps1Items.Count -gt 0) {
-                Copy-Item -Path "$hooksSource\*.ps1" -Destination $hooksDir -Force -ErrorAction Stop
-            }
-        } catch {
-            Write-Err "Failed to copy hook scripts: $_"
-        }
-        Get-ChildItem -Path $hooksSource -Filter '*.sh' -File -ErrorAction SilentlyContinue | ForEach-Object {
-            Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $hooksDir $_.Name)
-        }
-
-        # Deploy global/hooks/lib/ shared libraries (.sh, .ps1, .psm1).
-        # PARITY: install.sh:617-627 must mirror this block. Both installers
-        # share the same destination ~/.claude/hooks/lib/. See issue #586 —
-        # install.sh previously skipped this directory because its top-level
-        # *.sh glob is non-recursive. Do not remove either side without a
-        # cross-platform regression check (see scripts/verify.{sh,ps1}).
-        $hooksLibSource = Join-Path $hooksSource 'lib'
-        if (Test-Path $hooksLibSource) {
-            $hooksLibDir = Join-Path $hooksDir 'lib'
-            Ensure-Directory $hooksLibDir
-            try {
-                $ps1Items = Get-ChildItem -Path $hooksLibSource -Filter '*.ps1' -File
-                if ($ps1Items.Count -gt 0) {
-                    Copy-Item -Path "$hooksLibSource\*.ps1" -Destination $hooksLibDir -Force -ErrorAction Stop
-                }
-                $psm1Items = Get-ChildItem -Path $hooksLibSource -Filter '*.psm1' -File
-                if ($psm1Items.Count -gt 0) {
-                    Copy-Item -Path "$hooksLibSource\*.psm1" -Destination $hooksLibDir -Force -ErrorAction Stop
-                }
-            } catch {
-                Write-Err "Failed to copy hook lib scripts: $_"
-            }
-            Get-ChildItem -Path $hooksLibSource -Filter '*.sh' -File -ErrorAction SilentlyContinue | ForEach-Object {
-                Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $hooksLibDir $_.Name)
-            }
-        }
-
-        # Shared bash validator library (issue #447 Phase 1). Mirrors the
-        # install.sh block that copies repo-root hooks/lib/*.sh into
-        # ~/.claude/hooks/lib/. pr-language-guard.sh and commit-message-guard.sh
-        # source this library at runtime; without it the hooks fall back to the
-        # inline english-only dispatcher regardless of CLAUDE_CONTENT_LANGUAGE.
-        $sharedLibSource = Join-Path $BackupDir 'hooks/lib'
-        if (Test-Path $sharedLibSource) {
-            $hooksLibDir = Join-Path $hooksDir 'lib'
-            Ensure-Directory $hooksLibDir
-            foreach ($lib in @('validate-commit-message.sh', 'validate-language.sh')) {
-                $libSrc = Join-Path $sharedLibSource $lib
-                if (Test-Path $libSrc) {
-                    Install-BashScript -SourcePath $libSrc -DestinationPath (Join-Path $hooksLibDir $lib)
-                }
-            }
-        }
-
-        try {
-            $jsonItems = Get-ChildItem -Path $hooksSource -Filter '*.json' -File
-            if ($jsonItems.Count -gt 0) {
-                Copy-Item -Path "$hooksSource\*.json" -Destination $hooksDir -Force -ErrorAction Stop
-            }
-        } catch {
-            Write-Err "Failed to copy json configurations: $_"
-        }
-
-        Write-Success "Hook scripts installed (hooks/*.ps1 + *.sh + lib/ + *.json)!"
-
-        # Full-suite probe (issue #423): advertise which canonical guards the
-        # plugin surface should stand down for. Written atomically via
-        # Move-Item so a partial write cannot produce a half-valid probe.
-        $probeFile = Join-Path $claudeDir ".full-suite-active"
-        $probeTmp  = Join-Path $claudeDir ".full-suite-active.tmp"
-        $probeDoc  = [ordered]@{
-            schema = 1
-            hooks  = [ordered]@{
-                'sensitive-file-guard'    = (Test-Path (Join-Path $hooksDir 'sensitive-file-guard.sh'))
-                'dangerous-command-guard' = (Test-Path (Join-Path $hooksDir 'dangerous-command-guard.sh'))
-            }
-        }
-        try {
-            ($probeDoc | ConvertTo-Json -Depth 4) | Set-Content -LiteralPath $probeTmp -Encoding UTF8
-            Move-Item -LiteralPath $probeTmp -Destination $probeFile -Force
-            Write-Success "Full-suite probe written (.full-suite-active)"
-        }
-        catch {
-            Write-Warn "Failed to write full-suite probe: $_"
-            if (Test-Path $probeTmp) { Remove-Item -LiteralPath $probeTmp -Force -ErrorAction SilentlyContinue }
-        }
-    }
+    # settings.json + hooks directory install. The Windows settings file points
+    # at runtime hooks, so publish settings only after hook deployment succeeds.
+    Install-GlobalSettingsAndHooks -ClaudeDir $claudeDir
 
     # Install utility scripts — dual-variant, same rationale as hooks.
     $scriptsSource = Join-Path $BackupDir "global/scripts"
@@ -684,8 +717,19 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
 
     # Git identity personalization notice
     Write-Host ""
-    Write-Warn "Important: Modify git-identity.md with your personal info!"
-    Write-Host "  Edit: notepad `$HOME\.claude\git-identity.md"
+    $gitIdentityPath = Join-Path $claudeDir 'git-identity.md'
+    $needsGitIdentityEdit = $false
+    if (Test-Path $gitIdentityPath) {
+        $needsGitIdentityEdit = [bool](Select-String -Path $gitIdentityPath -Pattern 'YOUR NAME|YOUR EMAIL' -Quiet)
+    }
+    if ($needsGitIdentityEdit) {
+        Write-Warn "git-identity.md still contains default placeholders. Edit it with your personal info."
+        Write-Host "  Edit: notepad `$HOME\.claude\git-identity.md"
+    }
+    else {
+        Write-Info "git-identity.md is ready. Review or edit it only if needed."
+        Write-Host "  Check: Get-Content `$HOME\.claude\git-identity.md | Select-String '^(name|email):'"
+    }
 }
 
 # ── Project settings installation ─────────────────────────────
@@ -728,8 +772,16 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
     if (Test-Path $sourceRules) {
         Copy-Item -Path $sourceRules -Destination $projectClaudeDir -Recurse -Force
         # Issue #411: render any .md.tmpl found under rules/ with the chosen policy phrase.
-        Invoke-PolicyTemplatesInDir -Path (Join-Path $projectClaudeDir 'rules')
+        Invoke-PolicyTemplatesInDir -Path (Join-Path $projectClaudeDir 'rules') `
+            -ContentLanguage $script:contentLanguage -AgentDisplay $script:agentDisplayLang -AgentLanguage $script:agentLanguage
         Write-Success "Rules directory installed! (policy phrase: $(Get-PolicyPhrase -Policy $script:contentLanguage))"
+    }
+
+    # reference directory (on-demand docs relocated out of rules/ -- issue #714)
+    $sourceReference = Join-Path $BackupDir "project/.claude/reference"
+    if (Test-Path $sourceReference) {
+        Copy-Item -Path $sourceReference -Destination $projectClaudeDir -Recurse -Force
+        Write-Success "Reference directory installed!"
     }
 
     # Skills directory
@@ -820,6 +872,7 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
     Write-Host "  Project settings:"
     Write-Host "    - $projectDir\CLAUDE.md"
     Write-Host "    - $projectDir\.claude\rules\ (Guidelines)"
+    Write-Host "    - $projectDir\.claude\reference\ (On-demand reference docs)"
     Write-Host "    - $projectDir\.claude\settings.json (Hook settings)"
     $sourceSkills = Join-Path $BackupDir "project/.claude/skills"
     if (Test-Path $sourceSkills) {
@@ -840,8 +893,9 @@ Write-Host "======================================================"
 Write-Info "Next steps"
 Write-Host "======================================================"
 Write-Host ""
-Write-Host "1. Personalize Git identity (Required!):"
-Write-Host "     notepad `$HOME\.claude\git-identity.md"
+Write-Host "1. Verify Git identity:"
+Write-Host "     Get-Content `$HOME\.claude\git-identity.md | Select-String '^(name|email):'"
+Write-Host "     # Edit with notepad `$HOME\.claude\git-identity.md if placeholders remain"
 Write-Host ""
 Write-Host "2. Set PowerShell execution policy (if needed):"
 Write-Host "     Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser"

@@ -4,7 +4,7 @@ alwaysApply: false
 
 # Session Resume Templates
 
-> **Loading**: Excluded from default context via `.claudeignore`. Load with `@load: reference/session-resume-templates`.
+> **Loading**: Lives in `.claude/reference/`, outside the auto-loaded `.claude/rules/` tree, so it is never injected automatically. Load with `@load: reference/session-resume-templates`.
 
 ## Single Workflow Resume Format
 

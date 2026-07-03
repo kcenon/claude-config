@@ -53,9 +53,17 @@ cd ~\claude_config_backup
 .\scripts\install.ps1
 ```
 
+**Windows one-line alternative:**
+```powershell
+irm https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.ps1 | iex
+
+# Unattended defaults
+$env:FORCE_MODE = '1'; irm https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.ps1 | iex
+```
+
 > **Note**: If the `claude` CLI is missing, the installer offers (with consent) to run Anthropic's native installer (`https://claude.ai/install.{sh,ps1}`). Decline to install manually later. See [PREREQUISITES.md → Auto-installed by bootstrap](PREREQUISITES.md#auto-installed-by-bootstrap).
 
-**Selection:**
+**Clone installer selection (`scripts/install.*`):**
 ```
 Select installation type:
   1) Global settings only (~/.claude/)
@@ -67,7 +75,32 @@ Select installation type:
 Selection (1-5) [default: 3]: 3
 ```
 
-### Step 3: Personalize (1 minute)
+**Bootstrap one-line selection (`bootstrap.*`):**
+```
+Select installation type:
+  1) Global settings only (~/.claude/)
+  2) Project settings only (current directory)
+  3) Both (recommended)
+  4) Clone repository only (manual install)
+
+Selection (1-4) [default: 1]: 1
+```
+
+### Step 3: Verify Git Identity (30 seconds)
+
+Installers auto-fill `~/.claude/git-identity.md` from `git config --global user.name` and `git config --global user.email` when both values exist. Check the installed values:
+
+**macOS/Linux:**
+```bash
+grep -E "^(name|email):" ~/.claude/git-identity.md
+```
+
+**Windows:**
+```powershell
+Get-Content $HOME\.claude\git-identity.md | Select-String '^(name|email):'
+```
+
+If the file still contains placeholders, edit it:
 
 **macOS/Linux:**
 ```bash
@@ -79,9 +112,8 @@ vi ~/.claude/git-identity.md
 notepad $HOME\.claude\git-identity.md
 ```
 
-**Example changes:**
+**Placeholder example:**
 ```yaml
-# Before
 name: "Your Name"      # <- Change this
 email: "you@email.com" # <- Change this
 ```

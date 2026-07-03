@@ -115,25 +115,13 @@ Detect the primary language and apply matching analysis:
 
 If language-specific rules exist in the project's rules directory, read them before starting.
 
-## Team Communication Protocol
+## Escalation
 
-### Receives From
-- **team-lead**: Analysis target (repository path, scope, specific questions)
-- **structure-explorer**: Project structure map and file classification
+For large monorepos or deep structural reasoning — for example cyclic-dependency tracing across many modules — the caller may override `model: opus` if the default tier misses subtle relationships. Always report findings with confidence scores so the caller can decide whether to escalate.
 
-### Sends To
-- **team-lead**: Architecture analysis report (patterns, conventions, quality indicators)
-- **documentation-writer**: Architecture findings for documentation updates
-- **code-reviewer**: Detected conventions and patterns for review context
+## Reporting
 
-### Handoff Triggers
-- Identifying circular dependencies → notify team-lead with affected modules
-- Detecting undocumented architecture patterns → delegate to documentation-writer
-- Finding convention violations across multiple files → notify code-reviewer
-
-### Task Management
-- Create TaskCreate entry for each architectural concern found
-- Mark own analysis task as completed only after full report is delivered
+Return your findings to the calling session as your final message. This agent runs as a single-return node; the calling session decides any follow-up. A multi-agent `team-lead` handoff topology is not wired in this configuration.
 
 ## Process
 

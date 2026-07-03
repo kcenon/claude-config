@@ -4,6 +4,10 @@
 # Hook Type: PreToolUse (Bash)
 # Exit codes: 0 (always — decision is in JSON, warning only)
 # Response format: hookSpecificOutput with hookEventName
+#
+# Allow-path output (issue #715 audit): plain passes already emit the minimal
+# allow JSON with no additionalContext; only connectivity/auth warnings
+# intentionally attach context (actionable degraded-environment signals).
 
 set -euo pipefail
 

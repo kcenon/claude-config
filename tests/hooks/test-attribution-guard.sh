@@ -16,6 +16,10 @@ HOOK="global/hooks/attribution-guard.sh"
 PASS=0
 FAIL=0
 ERRORS=()
+SCRATCH_ROOT="${TMPDIR:-/tmp}"
+WORK=$(mktemp -d "$SCRATCH_ROOT/ag-test.XXXXXX" 2>/dev/null) || WORK="$SCRATCH_ROOT/ag-test.$$"
+mkdir -p "$WORK"
+trap 'rm -rf "$WORK"' EXIT
 
 cd "$(dirname "$0")/../.." || exit 1
 
@@ -149,6 +153,34 @@ assert_decision "out-of-scope (gh repo view) → allow" "allow" \
 
 assert_decision "out-of-scope (gh release upload) → allow" "allow" \
     'gh release upload v1.0 binary.zip'
+
+echo ""
+echo "[allow: prefilter does not source validator for out-of-scope/opaque bodies]"
+TEMP_HOOK_DIR="$WORK/global/hooks"
+TEMP_VALIDATOR_DIR="$WORK/hooks/lib"
+mkdir -p "$TEMP_HOOK_DIR" "$TEMP_VALIDATOR_DIR"
+cp "$HOOK" "$TEMP_HOOK_DIR/attribution-guard.sh"
+printf 'exit 97\n' > "$TEMP_VALIDATOR_DIR/validate-commit-message.sh"
+payload=$(jq -cn --arg c 'gh repo view --json name' '{tool_input:{command:$c}}')
+result=$(printf '%s' "$payload" | bash "$TEMP_HOOK_DIR/attribution-guard.sh" 2>/dev/null)
+if echo "$result" | grep -q '"allow"'; then
+    PASS=$((PASS + 1))
+    echo "  PASS: out-of-scope command allows before validator source"
+else
+    FAIL=$((FAIL + 1))
+    ERRORS+=("FAIL: out-of-scope command should allow before validator source, got: $result")
+    echo "  FAIL: out-of-scope command allows before validator source"
+fi
+payload=$(jq -cn --arg c 'gh pr create --title "feat: x" --body-file body.md' '{tool_input:{command:$c}}')
+result=$(printf '%s' "$payload" | bash "$TEMP_HOOK_DIR/attribution-guard.sh" 2>/dev/null)
+if echo "$result" | grep -q '"allow"'; then
+    PASS=$((PASS + 1))
+    echo "  PASS: body-file deferral allows before validator source"
+else
+    FAIL=$((FAIL + 1))
+    ERRORS+=("FAIL: body-file deferral should allow before validator source, got: $result")
+    echo "  FAIL: body-file deferral allows before validator source"
+fi
 
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="

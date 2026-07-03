@@ -5,6 +5,7 @@ model: sonnet
 tools: Read, Write, Edit, Glob
 maxTurns: 30
 effort: high
+permissionMode: acceptEdits
 memory: project
 initialPrompt: "Check your memory for established documentation patterns and style conventions in this project."
 applies_to:
@@ -89,19 +90,6 @@ Before producing output, verify:
 - Provide table of contents for long documents
 - Match existing documentation style and structure
 
-## Team Communication Protocol
+## Reporting
 
-### Receives From
-- **team-lead**: Documentation update scope (affected files, feature description)
-- **codebase-analyzer**: Architecture findings and convention descriptions for documentation
-
-### Sends To
-- **team-lead**: Documentation update completion report (files updated, coverage status)
-
-### Handoff Triggers
-- Finding undocumented public APIs during doc review → create TaskCreate entry for team-lead
-- Discovering stale documentation that contradicts current code → notify team-lead
-
-### Task Management
-- Create TaskCreate entry for documentation gaps discovered during update
-- Mark own documentation task as completed only after all updates are committed
+Return your findings to the calling session as your final message. This agent runs as a single-return node; the calling session decides any follow-up. A multi-agent `team-lead` handoff topology is not wired in this configuration.

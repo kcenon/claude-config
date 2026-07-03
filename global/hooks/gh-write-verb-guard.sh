@@ -20,6 +20,10 @@
 # Hook Type: PreToolUse (Bash)
 # Exit codes: 0 (always — decision is in JSON)
 #
+# Allow-path output (issue #715 audit): plain passes already emit the minimal
+# allow JSON with no additionalContext; the state-change warning (point 3)
+# intentionally keeps additionalContext because it carries decision value.
+#
 # Reuses lib/tokenize-shell.sh so quote/substitution-aware sub-command
 # splitting matches the rest of the Bash hook chain (PR #483 / #484).
 #

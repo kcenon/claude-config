@@ -13,13 +13,16 @@ the three rule documents that describe the rule to humans and to Claude.
 ## Installer UI (simplified)
 
 Both `bootstrap.{sh,ps1}` and `scripts/install.{sh,ps1}` present a
-two-option prompt that maps directly to a fixed-language guarantee for
-artifacts (commits, PRs, issues, comments, generated documents):
+single three-option preset prompt (Language Profile Preset) that selects
+both the agent conversation language and the artifact content language in
+one keystroke. The artifact half (commits, PRs, issues, comments,
+generated documents) is guaranteed as follows:
 
-| UI choice | `CLAUDE_CONTENT_LANGUAGE` value | Guarantee |
-|-----------|----------------------------------|-----------|
-| English | `english` | All artifacts in English (ASCII only, Hangul rejected) |
-| Korean  | `exclusive_bilingual` | Each artifact is either English-only or Korean-only — no inline mixing |
+| Preset | `AGENT_LANGUAGE` | `CLAUDE_CONTENT_LANGUAGE` | Artifact guarantee |
+|--------|------------------|----------------------------|--------------------|
+| 1) English Unified | `english` | `english` | All artifacts in English (ASCII plus allowlisted English typography; Hangul rejected) |
+| 2) Korean Unified  | `korean`  | `exclusive_bilingual` | Each artifact is either English-only or Korean-only — no inline mixing |
+| 3) Hybrid Mode (default) | `korean` | `english` | Dialogue in Korean, artifacts in English (ASCII plus allowlisted English typography) |
 
 The simplified UI lives in a single source of truth at
 `scripts/lib/install-prompts.sh` (bash) and
@@ -29,21 +32,21 @@ installers and both PowerShell installers `source` / `Import-Module`
 this single library, so prompt edits cannot drift between the four
 entry points.
 
-### Asymmetric defaults
+### Default preset
 
-The Content Language prompt defaults to **English** (option 1), while the
-Agent Conversation Language prompt defaults to **Korean** (option 2).
-This asymmetry is intentional: the most common configuration for Korean
-operators in this codebase is "Claude responds in Korean, but artifacts
-ship in English." With these defaults, pressing Enter twice during a
-fresh install lands directly on that combination, requiring no extra
-keystrokes for the common case while still letting English-only
-operators take the same path with two `1` keystrokes.
+The single Language Profile Preset prompt defaults to **option 3, Hybrid
+Mode** (`AGENT_LANGUAGE=korean` / `CONTENT_LANGUAGE=english`). This is the
+most common configuration for Korean operators in this codebase: "Claude
+responds in Korean, but artifacts ship in English." With this default,
+pressing Enter once during a fresh install lands directly on that
+combination, requiring no extra keystrokes for the common case while
+still letting operators pick option 1 (English Unified) or option 2
+(Korean Unified) with a single key.
 
 ### Drift guards
 
-Two regression tests enforce that the installer prompts and the policy
-phrase table never drift:
+Three regression tests enforce that the installer prompts, the policy
+phrase table, and the docs that describe them never drift:
 
 - `tests/scripts/test-installer-prompt-drift.sh` — compares the bash lib
   and the PowerShell module on canonical policy values, the
@@ -54,6 +57,13 @@ phrase table never drift:
   phrase, and that every CLAUDE_CONTENT_LANGUAGE value renders
   deterministically. Sources `install-prompts.sh` so it cannot drift
   from the installer phrase table.
+- `tests/scripts/test-doc-prompt-lockstep.sh` — pins the live 3-option
+  preset prompt as the single source of truth: it fails if any tracked
+  file reintroduces a removed prompt-function identifier or a stale
+  description of the old two-prompt flow, and asserts the preset header,
+  the three option labels, and the `[default: 3]` line are still present
+  in `install-prompts.sh`. Wired into
+  `.github/workflows/validate-hooks.yml`.
 
 ### Legacy migration warning
 
@@ -109,7 +119,7 @@ and must be set by editing `~/.claude/settings.json` directly.
 
 | Value | Surfaced in UI | Validator behavior | Rule document phrase |
 |-------|----------------|--------------------|----------------------|
-| `english` (default, unset, empty) | yes | ASCII printable + whitespace only | `English` |
+| `english` (default, unset, empty) | yes | ASCII printable + whitespace, plus allowlisted English typographic punctuation | `English` |
 | `exclusive_bilingual` | yes (Korean) | Per-document mode: English-only (if no Hangul) or Korean-only with ASCII permitted inside four allowed containers (if any Hangul syllable present) | `English or Korean (document-exclusive)` |
 | `korean_plus_english` | no (advanced) | ASCII + Hangul Syllables / Jamo / Compat Jamo, inline mixing permitted | `English or Korean` |
 | `any` | no (advanced) | Skip language validation entirely | `any language` |
@@ -137,8 +147,10 @@ Mode is chosen per document, automatically:
 
 - **English mode** — the text contains zero Hangul syllable characters
   (U+AC00 to U+D7A3). Validation is identical to the `english` policy:
-  ASCII printable (0x20 to 0x7E) and whitespace only. Any accented
-  Latin, CJK, or emoji is rejected.
+  ASCII printable (0x20 to 0x7E), whitespace, and the English
+  typographic punctuation allowlist: em dash, en dash, curly quotes,
+  ellipsis, and non-breaking space. Any accented Latin, CJK, or emoji
+  is rejected.
 - **Korean mode** — the text contains at least one Hangul syllable.
   After stripping the four allowed ASCII containers below, the residual
   text must contain zero `[A-Za-z]` characters.

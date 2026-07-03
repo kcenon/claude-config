@@ -31,14 +31,13 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | `PreToolUse` | sensitive-file-guard, dangerous-command-guard, github-api-preflight, markdown-anchor-validator, prompt-validator (LLM), team-limit-guard | Block or allow tool calls before execution |
 | `PostToolUse` | post-task-checkpoint, pre-edit-read-guard, memory-access-logger | Run after a tool call completes (checkpointing, read-tracking, memory-access logging) |
 | `PostToolUseFailure` | tool-failure-logger | Log failed tool executions |
-| `SessionStart` | session-logger, version-check | Session lifecycle logging, version warnings |
+| `SessionStart` | session-logger, version-check, post-compact-restore (matcher: `compact`) | Session lifecycle logging, version warnings, post-compaction principles restore |
 | `SessionEnd` | session-logger, cleanup | Session logging, temp file cleanup |
 | `Stop` | session-logger | Log when Claude stops generating |
 | `UserPromptSubmit` | prompt-validator | Validate user prompts before processing |
 | `SubagentStart` | subagent-logger | Track subagent lifecycle |
 | `SubagentStop` | subagent-logger | Track subagent lifecycle |
 | `PreCompact` | pre-compact-snapshot | Snapshot context before auto-compaction |
-| `PostCompact` | post-compact-restore | Re-assert core principles after context compaction |
 | `WorktreeCreate` | worktree-create | Custom worktree initialization |
 | `WorktreeRemove` | worktree-remove | Custom worktree cleanup |
 | `TaskCreated` | task-created-validator | Validate newly created tasks (Agent Teams) |
@@ -81,6 +80,7 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | Team limit guard | TeamCreate PreToolUse matcher |
 | Version check hook | SessionStart hook event, `claude --version` |
 | Auto-formatting hooks | PostToolUse hook event (project settings) |
+| Memory sync scheduler | Unix scheduler only: `launchd` on macOS or `systemd` user timer on Linux/WSL |
 
 ---
 
@@ -222,6 +222,7 @@ When upgrading Claude Code itself:
 - The `settings.windows.json` maps hooks to PowerShell equivalents
 - Use `install.ps1` on Windows instead of `install.sh`
 - PowerShell 7+ (`pwsh`) is required for Windows support
+- Memory sync scheduler automation is Unix-only: macOS uses `launchd`, Linux uses a `systemd` user timer, and Windows users should run the Linux path through WSL. Native PowerShell scheduling is not supported for memory sync.
 
 ### PowerShell parity status
 
@@ -229,9 +230,9 @@ The README v1.7.0 changelog originally claimed "All 42 bash scripts now have Pow
 
 | Surface | Bash count | PowerShell count | Coverage |
 |---|---:|---:|---:|
-| `global/hooks/*.sh` | 36 | 36 | 36/36 (100%) |
+| `global/hooks/*.sh` | 38 | 38 | 38/38 (100%) |
 
-The `*.sh` ↔ `*.ps1` mapping is 1:1; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if the counts diverge. (The count dropped from 37 to 35 when the expired P4 rollout-timeline hooks — `p4-timeline-guard` and `p4-timeline-reminder` — were retired; see the strict-schema kill-switch note above. It rose to 36 when `permission-denial-logger` was added for the `PermissionDenied` audit event.)
+The `*.sh` ↔ `*.ps1` mapping is 1:1; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if the counts diverge. The same job also compares this hardcoded table against the live hook count so the documented coverage cannot drift silently.
 
 The script that produces the live count: `bash -c 'b=$(ls global/hooks/*.sh | wc -l); p=$(ls global/hooks/*.ps1 | wc -l); echo "$p/$b"'`.
 

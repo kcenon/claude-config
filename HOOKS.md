@@ -22,11 +22,11 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Validate commit messages before git commit | [Commit Message Guard](#10-commit-message-guard-pretooluse) |
 | Prevent git merge/rebase on dirty trees | [Conflict Guard](#11-conflict-guard-pretooluse) |
 | Block PRs targeting main from non-develop branches | [PR Target Guard](#12-pr-target-guard-pretooluse) |
-| Block non-English titles/bodies in gh PR/issue commands | [PR Language Guard](#13-pr-language-guard-pretooluse) |
+| Enforce the active content-language policy for gh PR/issue commands | [PR Language Guard](#13-pr-language-guard-pretooluse) |
 | Block gh pr merge when any check is non-passing | [Merge Gate Guard](#14-merge-gate-guard-pretooluse) |
 | Block AI/Claude attribution in gh PR/issue commands | [Attribution Guard](#15-attribution-guard-pretooluse) |
 | Re-inject critical policy after instruction load | [Instructions Loaded Reinforcer](#16-instructions-loaded-reinforcer-instructionsloaded) |
-| Restore core principles after context compaction | [Post-Compact Restore](#17-post-compact-restore-postcompact) |
+| Restore core principles after context compaction | [Post-Compact Restore](#17-post-compact-restore-sessionstart) |
 | Validate task descriptions at creation time | [Task Created Validator](#18-task-created-validator-taskcreated) |
 | Auto-commit working tree after Task/Agent runs | [Post Task/Agent Checkpoint](#19-post-taskagent-checkpoint-posttooluse) |
 | Block Edit/Write on files that weren't Read first | [Pre-edit Read Guard](#20-pre-edit-read-guard-pretooluseposttooluse) |
@@ -470,16 +470,15 @@ Issue #480 extended scope from `gh (pr|issue) (create|edit|comment)` to include 
 
 *Re-asserts critical policy (commit-settings, branching, conventional commits) immediately after `CLAUDE.md` and `.claude/rules/*.md` are loaded — closes the gap where long sessions drift away from policy that lives only in the system prompt.*
 
-**Purpose**: Inject a policy-reinforcement block right after Claude finishes loading instruction files. The block restates AI-attribution prohibition, the active `CLAUDE_CONTENT_LANGUAGE` PR/issue rule (resolved from `commit-settings.md`), branching policy, and Conventional Commits format so they remain in active context even when the original instruction files scroll out.
+**Purpose**: Inject a short, fixed policy digest right after Claude finishes loading instruction files. The digest restates the AI-attribution prohibition, the `CLAUDE_CONTENT_LANGUAGE` policy pointer (full rules stay in `commit-settings.md`), protected-branch policy, and Conventional Commits format so they remain in active context even when the original instruction files scroll out. The full `commit-settings.md` text already reaches context via the `CLAUDE.md` @import chain, so the hook never re-injects it verbatim (issue #716); the payload is capped at ~10 lines / ~500 bytes.
 
 **Trigger**: `InstructionsLoaded` event — fires once per session, after `CLAUDE.md` / `.claude/rules/*.md` have been ingested.
 
 **Files**: `global/hooks/instructions-loaded-reinforcer.sh`, `global/hooks/instructions-loaded-reinforcer.ps1`
 
 **Logic**:
-1. Locate `commit-settings.md` in `~/.claude/commit-settings.md` (falls back to `${CLAUDE_HOME}/commit-settings.md`, then to an inline minimal policy if neither file exists).
-2. Compose a reinforcement block containing the located policy text plus branching and commit-format reminders.
-3. Emit JSON via `jq` if available; otherwise hand-escape and print the JSON literal.
+1. Compose a fixed four-item digest (attribution ban, content-language pointer, protected-branch rules, Conventional Commits format). No file is read into the payload.
+2. Emit JSON via `jq` if available; otherwise hand-escape and print the JSON literal.
 
 **Behavior**:
 - Returns JSON with `hookSpecificOutput.additionalContext` carrying the reinforcement text
@@ -509,39 +508,44 @@ Issue #480 extended scope from `gh (pr|issue) (create|edit|comment)` to include 
 {
   "hookSpecificOutput": {
     "hookEventName": "InstructionsLoaded",
-    "additionalContext": "## Critical Policy Reinforcement (auto-injected after instruction load)\n\n# Commit, Issue, and PR Settings\n\nNo AI/Claude attribution in commits, issues, or PRs.\nAll GitHub Issues and Pull Requests follow the active CLAUDE_CONTENT_LANGUAGE policy (values: english | korean_plus_english | exclusive_bilingual | any; default: english). See commit-settings.md for the per-policy artifact rule.\n\n## Branching\n\n- Default working branch: `develop`. Never push directly to `main` or `develop`.\n..."
+    "additionalContext": "## Critical Policy Reinforcement (digest)\n\n- No AI/Claude attribution in commits, issues, or PRs.\n- Issue/PR/commit prose: follow the CLAUDE_CONTENT_LANGUAGE policy (see commit-settings.md).\n- Branches: work branches from develop; never push directly to main or develop; squash merge only.\n- Commits: Conventional Commits `type(scope): description`; lowercase first char, no trailing period."
   }
 }
 ```
 
-### 17. Post-Compact Restore (PostCompact)
+### 17. Post-Compact Restore (SessionStart)
 
-*Re-injects `core/principles.md` immediately after Claude Code automatically compacts the conversation — pairs with `pre-compact-snapshot` to keep the four core principles in context across long sessions.*
+*Re-asserts the four core principles immediately after Claude Code automatically compacts the conversation - pairs with `pre-compact-snapshot` to keep the principles in context across long sessions.*
 
-**Purpose**: When automatic context compaction discards the original `CLAUDE.md` and rule files, this hook re-asserts the four core principles (Think, Minimize, Surgical, Verify) plus behavioral guardrails so the model does not regress to pre-policy defaults after compaction.
+**Purpose**: When automatic context compaction discards the original `CLAUDE.md` and rule files, this hook re-asserts the four core principles (Think, Minimize, Surgical, Verify) plus the senior-engineer self-check so the model does not regress to pre-policy defaults after compaction.
 
-**Trigger**: `PostCompact` event — fires once whenever the harness completes an automatic compaction cycle. Pairs with the existing `pre-compact-snapshot` hook (PreCompact event) which captures pre-compact state.
+**Trigger**: `SessionStart` event with matcher `compact` - fires once when the harness starts the fresh post-compaction context. The `PostCompact` event does NOT support `hookSpecificOutput` (Claude Code rejects such output with "Hook JSON output validation failed"); `SessionStart` with `source == "compact"` is the official channel for injecting context after compaction (issue #720). Pairs with the existing `pre-compact-snapshot` hook (PreCompact event) which captures pre-compact state.
 
 **Files**: `global/hooks/post-compact-restore.sh`, `global/hooks/post-compact-restore.ps1`
 
 **Logic**:
-1. Append a restore record (timestamp, session id, working directory) to `~/.claude/logs/compact-snapshots.log` — the same log written by `pre-compact-snapshot.sh` so PreCompact / PostCompact pairs can be correlated.
-2. Locate `core/principles.md` from one of: `${CLAUDE_PROJECT_DIR}/.claude/rules/core/principles.md`, `~/.claude/rules/core/principles.md`, or the current working directory tree (falls back to an inline minimal principles block if no file is found).
-3. Wrap the located text in a "Post-Compaction Restore" section explaining why it is being re-asserted.
-4. Emit JSON via `jq` if available; otherwise hand-escape and print the JSON literal.
+1. Parse stdin JSON and exit 0 silently (no output) unless `source` is `"compact"` - defense in depth in case the hook is ever wired without a matcher, so startup/resume/clear sessions are never spammed.
+2. Append a restore record (timestamp, session id, working directory) to `~/.claude/logs/compact-snapshots.log` - the same log written by `pre-compact-snapshot.sh` so snapshot / restore pairs can be correlated.
+3. Emit a fixed short digest (~500 bytes) of the four core principles plus the self-check line. The hook never reads rule files into the payload; `.sh` and `.ps1` emit byte-equivalent `additionalContext`.
 
 **Behavior**:
-- Returns JSON with `hookSpecificOutput.additionalContext` carrying the principles re-assertion
-- Always exits 0 — the hook never blocks compaction; it only augments the post-compact context
+- Returns JSON with `hookSpecificOutput.{hookEventName: "SessionStart", additionalContext}` carrying the principles digest
+- Always exits 0 - the hook never blocks session start; it only augments the post-compact context
+- Silent no-op (no output) for any `source` other than `"compact"`, for empty stdin, and when no JSON parser is available
 - Writes to `~/.claude/logs/compact-snapshots.log` (created on demand)
 - Cross-platform: `post-compact-restore.sh` and `post-compact-restore.ps1`
 
 **Configuration**:
 ```json
 {
-  "type": "command",
-  "command": "~/.claude/hooks/post-compact-restore.sh",
-  "timeout": 5
+  "matcher": "compact",
+  "hooks": [
+    {
+      "type": "command",
+      "command": "~/.claude/hooks/post-compact-restore.sh",
+      "timeout": 5
+    }
+  ]
 }
 ```
 
@@ -549,7 +553,8 @@ Issue #480 extended scope from `gh (pr|issue) (create|edit|comment)` to include 
 ```json
 {
   "session_id": "abc123",
-  "hook_event_name": "PostCompact",
+  "hook_event_name": "SessionStart",
+  "source": "compact",
   "cwd": "/path/to/project"
 }
 ```
@@ -558,8 +563,8 @@ Issue #480 extended scope from `gh (pr|issue) (create|edit|comment)` to include 
 ```json
 {
   "hookSpecificOutput": {
-    "hookEventName": "PostCompact",
-    "additionalContext": "## Post-Compaction Restore (auto-injected)\n\nContext was just compacted. Re-asserting core principles to prevent drift:\n\n# Core Principles\n\n1. **Think Before Acting** — State assumptions explicitly. If uncertain, ask.\n..."
+    "hookEventName": "SessionStart",
+    "additionalContext": "## Post-Compaction Restore (digest)\n\nContext was just compacted. Re-asserting the four core principles:\n\n1. Think Before Acting - state assumptions explicitly; if uncertain, ask.\n..."
   }
 }
 ```
@@ -647,7 +652,7 @@ TaskCreated rejected: description must contain at least one '- [ ]' checkbox mar
 
 **Commit message format**: `wip(agent): <sanitized-agent-name> checkpoint YYYY-MM-DD HH:MM:SS`. Agent name is extracted from `tool_input.subagent_type` (preferred) or `tool_input.name` (fallback); only `[A-Za-z0-9_-]` characters survive sanitization, clipped to 64 chars.
 
-**Why `--no-verify`**: `wip(agent):` is not in the Conventional Commits type list that `commit-msg` accepts, so the validator would reject it. Checkpoint commits are throwaway and expected to be squashed at PR merge.
+**Why `--no-verify`**: This is an internal lifecycle-hook exception. User-initiated `git commit --no-verify` is blocked by `commit-message-guard`, but checkpoint commits use `wip(agent):`, which is not in the Conventional Commits type list that `commit-msg` accepts. Checkpoint commits are throwaway and expected to be squashed at PR merge.
 
 **Why `--allow-empty`**: Defensive — satisfies the acceptance criterion that "hook succeeds on empty tree" even if the no-op check is skipped for some reason (e.g., staged/unstaged boundary edge cases).
 
@@ -791,9 +796,10 @@ through the `permissionDecision` field, not through the exit code.
 - Skips if tool is not installed (no error)
 - Timeout: 30 seconds
 
-## Permission Settings (permissions.deny)
+## Permission Settings
 
-Deny rules defined in `global/settings.json`:
+Deny rules defined in `global/settings.json` and `global/settings.windows.json`
+block direct tool access to sensitive files:
 
 ```json
 {
@@ -811,6 +817,49 @@ Deny rules defined in `global/settings.json`:
   }
 }
 ```
+
+The Windows profile also carries a narrow `permissions.allow` list for native
+`PowerShell(...)` read-only discovery commands. It covers common inspection
+verbs such as `Get-ChildItem`, `Test-Path`, `Select-Object`, `Select-String`,
+and `Write-Output`, plus read-only `git` and `gh` commands. The allowlist is
+intended to reduce repeated confirmation prompts for routine local inspection;
+it is not a general bypass profile.
+
+The Windows profile intentionally keeps these guardrails:
+
+- `permissions.defaultMode` remains `default`.
+- `disableBypassPermissionsMode` and `disableAutoMode` remain `disable`.
+- No broad `PowerShell(*)` rule is allowed.
+- Direct content reads such as `Get-Content`, file mutation cmdlets, remote
+  execution cmdlets, and state-changing `gh` commands are not allowlisted.
+- Sensitive-file deny rules stay in place.
+
+`skipDangerousModePermissionPrompt` only suppresses the extra dangerous-mode
+launch warning. It does not widen `permissions.allow`, and it does not override
+the installed profile's bypass/auto-mode disable settings.
+
+### Over-length commands and the parse limit
+
+A single Bash/PowerShell command that exceeds the harness command-parser limit
+(observed at ~965 bytes; harness-internal and not configurable here) cannot be
+parsed, so it cannot match any `permissions.allow` rule and falls back to a
+manual prompt. This is distinct from the hooks' own 16384-byte tokenizer budget
+(`DCG_TOKENIZER_MAX_BYTES`), which is a downstream performance guard, not the
+cause of the prompt.
+
+Decisions for this repo:
+
+- **Do not widen the allow-list to escape the prompt.** A rule like
+  `Bash(pwsh -File:*)` would auto-approve execution of *any* script file — the
+  allow-list grammar cannot scope by path
+  (`scripts/schemas/settings-json.schema.json`) — which would defeat the narrow
+  Windows profile above. Accept a one-time prompt for the wrapper invocation
+  instead.
+- **No hook mitigation.** The parse limit is upstream of the hook layer; a hook
+  cannot pre-empt or override the harness fallback, so this is out of scope.
+- **Prevention is the lever.** Keep single commands short and extract long logic
+  to a script — see `project/.claude/rules/core/environment.md`
+  (Command Construction).
 
 ## Windows Support (PowerShell)
 
@@ -953,13 +1002,21 @@ which clang-format
 
 ## Git Hooks: Pre-push Protected Branch Guard
 
-*Prevent accidental pushes to main or develop — requires pull request workflow for protected branches.*
+*Prevent invalid commits and accidental pushes to main or develop — requires pull request workflow for protected branches.*
 
-> **Note**: This is a standard git hook (`.git/hooks/pre-push`), not a Claude Code event hook. It runs whenever `git push` is executed, regardless of whether Claude Code is active.
-
-**Purpose**: Block direct pushes to protected branches (`main`, `develop`)
+> **Note**: These are standard git hooks under `.git/hooks/`, not Claude Code event hooks. They run from git itself, regardless of whether Claude Code is active.
 
 **Install**: `./hooks/install-hooks.sh` (or `.\hooks\install-hooks.ps1` on Windows)
+
+**Installed inventory**:
+
+| Hook | Source | Purpose |
+|------|--------|---------|
+| `pre-commit` | `hooks/pre-commit` | Runs `scripts/validate_skills.sh` when staged `SKILL.md` files change |
+| `commit-msg` | `hooks/commit-msg` | Validates Conventional Commits format, attribution bans, and emoji bans through `hooks/lib/validate-commit-message.sh` |
+| `pre-push` | `hooks/pre-push` | Blocks protected-branch direct pushes and optional preflight/traceability checks |
+
+**Purpose**: Block direct pushes to protected branches (`main`, `develop`)
 
 **Protected branches**: `main`, `develop`
 
@@ -972,14 +1029,14 @@ which clang-format
 **Behavior**:
 - Exits with code 1 to block the push when targeting a protected branch
 - Exits with code 0 to allow the push for non-protected branches
-- Bypass: `git push --no-verify` (forbidden by project policy)
+- Bypass attempt: `git push --no-verify` is denied by `push-target-guard` in Claude Code before the terminal-side hook can be skipped.
 
 **Cross-platform**:
 
-| File | Runtime |
-|------|---------|
-| `hooks/pre-push` | bash |
-| `hooks/pre-push.ps1` | PowerShell 7+ |
+| File | Runtime | Install behavior |
+|------|---------|------------------|
+| `hooks/pre-push` | bash / Git Bash | Installed as `.git/hooks/pre-push` by both installers |
+| `hooks/pre-push.ps1` | PowerShell 7+ | PowerShell parity implementation; not copied directly into `.git/hooks/pre-push` |
 
 ---
 
@@ -1026,15 +1083,17 @@ this catalog for the canonical hook inventory.
 | [`memory-write-guard.sh`](#memory-write-guard) | PreToolUse (Edit|Write) | yes |
 | [`merge-gate-guard.sh`](#merge-gate-guard) | PreToolUse (Bash) | yes |
 | [`permission-denial-logger.sh`](#permission-denial-logger) | PermissionDenied | yes |
-| [`post-compact-restore.sh`](#post-compact-restore) | PostCompact (sync) | yes |
+| [`post-compact-restore.sh`](#post-compact-restore) | SessionStart (matcher: compact, sync) | yes |
 | [`post-task-checkpoint.sh`](#post-task-checkpoint) | PostToolUse | yes |
 | [`pr-language-guard.sh`](#pr-language-guard) | PreToolUse (Bash) | yes |
 | [`pr-target-guard.sh`](#pr-target-guard) | PreToolUse (Bash) | yes |
 | [`pre-compact-snapshot.sh`](#pre-compact-snapshot) | PreCompact (async) | yes |
 | [`pre-edit-read-guard.sh`](#pre-edit-read-guard) | PreToolUse (Edit|Write) + PostToolUse (Read) | yes |
 | [`prompt-validator.sh`](#prompt-validator) | UserPromptSubmit | yes |
+| [`push-target-guard.sh`](#push-target-guard) | PreToolUse (Bash) | yes |
 | [`sensitive-file-guard.sh`](#sensitive-file-guard) | PreToolUse (Edit|Write|Read) | yes |
 | [`session-logger.sh`](#session-logger) | SessionStart, SessionEnd, Stop, TeammateIdle | yes |
+| [`shell-env-secret-guard.sh`](#shell-env-secret-guard) | PreToolUse (Bash) | yes |
 | [`subagent-logger.sh`](#subagent-logger) | SubagentStart, SubagentStop | yes |
 | [`task-completed-logger.sh`](#task-completed-logger) | TaskCompleted | yes |
 | [`task-created-validator.sh`](#task-created-validator) | TaskCreated (sync, blocking) | yes |
@@ -1045,7 +1104,7 @@ this catalog for the canonical hook inventory.
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
 | [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 36 bash hooks, 36 with PowerShell counterparts._
+_Total: 38 bash hooks, 38 with PowerShell counterparts._
 
 ### Hook Details
 
@@ -1363,14 +1422,15 @@ _File:_ `post-compact-restore.sh`
 
 _Anchor:_ `#post-compact-restore`
 
-Re-injects core/principles.md after automatic context compaction. Pairs with pre-compact-snapshot.sh (PreCompact event).
+Re-asserts the four core principles after automatic context compaction. Pairs with pre-compact-snapshot.sh (PreCompact event).
 
 | Field | Value |
 |---|---|
-| Hook Type | PostCompact (sync) |
-| Trigger / Matcher | sync |
-| Exit codes | 0 (always — context delivered via JSON) |
+| Hook Type | SessionStart (matcher: compact, sync) |
+| Trigger / Matcher | matcher: compact, sync |
+| Exit codes | 0 (always - silent no-op unless stdin source is "compact") |
 | Response format | hookSpecificOutput.additionalContext |
+| Fail policy | fails quiet - no JSON parser or non-compact source means no output |
 | PowerShell counterpart | present (`post-compact-restore.ps1`) |
 | Source | `global/hooks/post-compact-restore.sh` |
 
@@ -1476,6 +1536,23 @@ Validates user prompts for dangerous operations
 | PowerShell counterpart | present (`prompt-validator.ps1`) |
 | Source | `global/hooks/prompt-validator.sh` |
 
+### push-target-guard
+
+_File:_ `push-target-guard.sh`
+
+_Anchor:_ `#push-target-guard`
+
+Blocks git pushes that bypass the two-layer defense (issue #782): 1. `git push --no-verify ...` — defeats the terminal-side pre-push hook. 2. Direct push to a protected branch (main / master / develop) — whether the target is explicit (`git push origin main`, `... HEAD:main`) or the resolved upstream of the current branch (`git push` while on main).
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | — |
+| PowerShell counterpart | present (`push-target-guard.ps1`) |
+| Source | `global/hooks/push-target-guard.sh` |
+
 ### sensitive-file-guard
 
 _File:_ `sensitive-file-guard.sh`
@@ -1509,6 +1586,23 @@ Logs session start/end events
 | Response format | none (lifecycle event, no JSON output needed) |
 | PowerShell counterpart | present (`session-logger.ps1`) |
 | Source | `global/hooks/session-logger.sh` |
+
+### shell-env-secret-guard
+
+_File:_ `shell-env-secret-guard.sh`
+
+_Anchor:_ `#shell-env-secret-guard`
+
+Blocks bash commands that would print or dump secret-bearing environment variables into the transcript.
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always — decision is in JSON) |
+| Response format | hookSpecificOutput with hookEventName |
+| PowerShell counterpart | present (`shell-env-secret-guard.ps1`) |
+| Source | `global/hooks/shell-env-secret-guard.sh` |
 
 ### subagent-logger
 

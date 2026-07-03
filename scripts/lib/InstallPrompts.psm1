@@ -29,50 +29,72 @@ function Script:Write-PromptWarn {
     Write-Host "  $Message" -ForegroundColor Yellow
 }
 
-function Show-AgentLanguagePrompt {
+function Show-LanguageProfilePrompt {
+    # Non-interactive override mirrors the bash prompt_language_profile contract
+    # (issue #762): AGENT_LANGUAGE / CONTENT_LANGUAGE are honored INDEPENDENTLY.
+    # The -AgentLanguage / -ContentLanguage params default to the ambient env
+    # vars (bash reads $AGENT_LANGUAGE / $CONTENT_LANGUAGE; the PowerShell twin
+    # reads $env:AGENT_LANGUAGE / $env:CONTENT_LANGUAGE). The interactive block
+    # runs only when BOTH are unset; presets are then re-applied over whatever
+    # the prompt set, and the still-unset half falls back to the Hybrid default
+    # (AGENT=korean / CONTENT=english) rather than being clobbered.
     [CmdletBinding()]
-    param()
+    param(
+        [string]$AgentLanguage = $env:AGENT_LANGUAGE,
+        [string]$ContentLanguage = $env:CONTENT_LANGUAGE
+    )
 
-    Write-Host ""
-    Script:Write-PromptInfo "Select Agent Conversation Language:"
-    Write-Host "  1) English"
-    Write-Host "  2) Korean"
-    Write-Host ""
+    # Capture which values the caller preset before the prompt may overwrite.
+    $agentPreset = if ([string]::IsNullOrEmpty($AgentLanguage)) { $null } else { $AgentLanguage }
+    $contentPreset = if ([string]::IsNullOrEmpty($ContentLanguage)) { $null } else { $ContentLanguage }
 
-    $sel = Read-Host "Selection (1-2) [default: 2]"
-    if ([string]::IsNullOrEmpty($sel)) { $sel = '2' }
+    $resolvedAgent = $null
+    $resolvedContent = $null
 
-    switch ($sel) {
-        '1'     { return [pscustomobject]@{ Language = 'english'; Display = 'English' } }
-        '2'     { return [pscustomobject]@{ Language = 'korean';  Display = 'Korean'  } }
-        default {
-            Script:Write-PromptWarn "Unknown selection: $sel. Falling back to korean."
-            return [pscustomobject]@{ Language = 'korean'; Display = 'Korean' }
+    # Run the interactive block only when BOTH are unset.
+    if ($null -eq $agentPreset -and $null -eq $contentPreset) {
+        Write-Host ""
+        Script:Write-PromptInfo "Select Language Profile Preset:"
+        Write-Host "  1) English Unified (Dialogue & Documents both in English)"
+        Write-Host "  2) Korean Unified  (Each artifact Korean-only or English-only; no inline mix)"
+        Write-Host "  3) Hybrid Mode     (Dialogue in Korean, Documents in English - default)"
+        Write-Host ""
+
+        $sel = Read-Host "Selection (1-3) [default: 3]"
+        if ([string]::IsNullOrEmpty($sel)) { $sel = '3' }
+
+        switch ($sel) {
+            '1' { $resolvedAgent = 'english'; $resolvedContent = 'english' }
+            '2' { $resolvedAgent = 'korean';  $resolvedContent = 'exclusive_bilingual' }
+            '3' { $resolvedAgent = 'korean';  $resolvedContent = 'english' }
+            default {
+                Script:Write-PromptWarn "Unknown selection: $sel. Falling back to Hybrid Mode."
+                $resolvedAgent = 'korean'; $resolvedContent = 'english'
+            }
         }
     }
-}
 
-function Show-ContentLanguagePrompt {
-    [CmdletBinding()]
-    param()
+    # Re-apply presets over whatever the prompt set, then fill the still-unset
+    # half from the Hybrid default. Each var is honored independently.
+    if ($null -ne $agentPreset)   { $resolvedAgent = $agentPreset }
+    if ($null -ne $contentPreset) { $resolvedContent = $contentPreset }
+    if ([string]::IsNullOrEmpty($resolvedAgent))   { $resolvedAgent = 'korean' }
+    if ([string]::IsNullOrEmpty($resolvedContent)) { $resolvedContent = 'english' }
 
-    Write-Host ""
-    Script:Write-PromptInfo "Select Content Language (artifact validation scope):"
-    Script:Write-PromptInfo "  Locks the language of generated documents, commits, PRs, issues, and comments."
-    Write-Host "  1) English (ASCII only - no Hangul allowed in artifacts)"
-    Write-Host "  2) Korean  (per-artifact strict - Hangul or English document, no inline mixing)"
-    Write-Host ""
+    # Derive Display from the final AGENT_LANGUAGE. An if/elseif (not a switch
+    # with quoted-literal arms) is used deliberately so this block does not
+    # collide with the installer-prompt-drift test's static phrase extractor,
+    # which scans for `'<policy>' { return '<phrase>' }` lines in this module.
+    if ($resolvedAgent -eq 'english') {
+        $agentDisplay = 'English'
+    } else {
+        $agentDisplay = 'Korean'
+    }
 
-    $sel = Read-Host "Selection (1-2) [default: 1]"
-    if ([string]::IsNullOrEmpty($sel)) { $sel = '1' }
-
-    switch ($sel) {
-        '1'     { return 'english' }
-        '2'     { return 'exclusive_bilingual' }
-        default {
-            Script:Write-PromptWarn "Unknown selection: $sel. Falling back to english."
-            return 'english'
-        }
+    return [pscustomobject]@{
+        AgentLanguage = $resolvedAgent
+        AgentDisplay = $agentDisplay
+        ContentLanguage = $resolvedContent
     }
 }
 
@@ -92,6 +114,64 @@ function Get-PolicyPhrase {
         'exclusive_bilingual' { return 'English or Korean (document-exclusive)' }
         'any'                 { return 'any language' }
         default               { return 'English' }
+    }
+}
+
+function Invoke-PolicyTemplate {
+    # Renders a .md.tmpl file by replacing {{CONTENT_LANGUAGE_POLICY}},
+    # {{AGENT_LANGUAGE_POLICY}}, and {{AGENT_LANGUAGE}} with their resolved
+    # values and writes the result to $Destination as UTF-8 (no BOM).
+    #
+    # The three language values are passed explicitly: PowerShell modules
+    # have their own $script: scope, so the importer's $script:contentLanguage
+    # etc. are not visible here (mirrors Get-PolicyPhrase's -Policy contract).
+    # Unset values fall back to safe defaults (issue #760), matching the bash
+    # render_policy_tmpl ambient-default behavior.
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Source,
+        [Parameter(Mandatory)][string]$Destination,
+        [string]$ContentLanguage = 'english',
+        [string]$AgentDisplay = 'Korean',
+        [string]$AgentLanguage = 'korean'
+    )
+    if (-not $AgentDisplay)  { $AgentDisplay = 'Korean' }
+    if (-not $AgentLanguage) { $AgentLanguage = 'korean' }
+    $phrase = Get-PolicyPhrase -Policy $ContentLanguage
+
+    $content = [System.IO.File]::ReadAllText($Source)
+    $rendered = $content -replace '\{\{CONTENT_LANGUAGE_POLICY\}\}', $phrase
+    $rendered = $rendered -replace '\{\{AGENT_LANGUAGE_POLICY\}\}', $AgentDisplay
+    $rendered = $rendered -replace '\{\{AGENT_LANGUAGE\}\}', $AgentLanguage
+    # Strip the developer-only tmpl-contract comment line so it never leaks
+    # into the rendered .md, with parity to bash render_policy_tmpl's
+    # `sed -e '/tmpl-contract/d'` (issue #771). The comment stays in the .tmpl.
+    # `-notmatch` drops every line containing the marker; -join keeps LF endings
+    # to match the bash renderer's line-oriented output.
+    $rendered = (($rendered -split "`n") | Where-Object { $_ -notmatch 'tmpl-contract' }) -join "`n"
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($Destination, $rendered, $utf8NoBom)
+}
+
+function Invoke-PolicyTemplatesInDir {
+    # Walks a directory, renders every *.md.tmpl to its *.md sibling,
+    # then deletes the .tmpl source. Used after bulk copy of rules/.
+    # Forwards the three language values to Invoke-PolicyTemplate so both
+    # install.ps1 and bootstrap.ps1 render through this single source
+    # (issue #760).
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [string]$ContentLanguage = 'english',
+        [string]$AgentDisplay = 'Korean',
+        [string]$AgentLanguage = 'korean'
+    )
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    Get-ChildItem -Path $Path -Filter '*.md.tmpl' -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+        $dest = $_.FullName.Substring(0, $_.FullName.Length - '.tmpl'.Length)
+        Invoke-PolicyTemplate -Source $_.FullName -Destination $dest `
+            -ContentLanguage $ContentLanguage -AgentDisplay $AgentDisplay -AgentLanguage $AgentLanguage
+        Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -133,6 +213,76 @@ function Read-SettingsContentLanguage {
     }
 }
 
+function Read-SettingsAgentLanguage {
+    # Reads the current top-level ".language" value from a settings.json file.
+    # Returns empty string when missing or unparseable. Mirrors
+    # Read-SettingsContentLanguage for PowerShell reinstall parity with bash
+    # read_settings_agent_language (issue #780).
+    [CmdletBinding()]
+    param([string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) { return '' }
+    try {
+        $json = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json -ErrorAction Stop
+        if ($json.language) {
+            return [string]$json.language
+        }
+        return ''
+    } catch {
+        $line = (Select-String -LiteralPath $Path -Pattern '"language"\s*:\s*"([^"]*)"' -List).Matches
+        if ($line) { return $line[0].Groups[1].Value }
+        return ''
+    }
+}
+
+function Seed-LanguageFromSettings {
+    # Reinstall helper (issue #780). Fills AGENT_LANGUAGE / CONTENT_LANGUAGE
+    # equivalents from an existing settings.json when they are unset, so a
+    # PowerShell reinstall keeps the previously chosen policy instead of
+    # resetting to the Hybrid default. Explicit env overrides win because only
+    # unset values are filled. Returns the resolved values for callers to pass
+    # to Show-LanguageProfilePrompt.
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$SettingsPath,
+        [string]$AgentLanguage = $env:AGENT_LANGUAGE,
+        [string]$ContentLanguage = $env:CONTENT_LANGUAGE
+    )
+
+    $resolvedAgent = $AgentLanguage
+    $resolvedContent = $ContentLanguage
+    $seeded = $false
+
+    if (Test-Path -LiteralPath $SettingsPath) {
+        if ([string]::IsNullOrEmpty($resolvedAgent)) {
+            $existingAgent = Read-SettingsAgentLanguage -Path $SettingsPath
+            if (-not [string]::IsNullOrEmpty($existingAgent)) {
+                $resolvedAgent = $existingAgent
+                $seeded = $true
+            }
+        }
+        if ([string]::IsNullOrEmpty($resolvedContent)) {
+            $existingContent = Read-SettingsContentLanguage -Path $SettingsPath
+            if (-not [string]::IsNullOrEmpty($existingContent)) {
+                $resolvedContent = $existingContent
+                $seeded = $true
+            }
+        }
+    }
+
+    if ($seeded) {
+        $agentMsg = if ([string]::IsNullOrEmpty($resolvedAgent)) { '?' } else { $resolvedAgent }
+        $contentMsg = if ([string]::IsNullOrEmpty($resolvedContent)) { '?' } else { $resolvedContent }
+        Script:Write-PromptInfo "Existing language policy kept from settings.json (agent=$agentMsg, content=$contentMsg). Override with AGENT_LANGUAGE/CONTENT_LANGUAGE env or edit ~/.claude/settings.json."
+    }
+
+    return [pscustomobject]@{
+        AgentLanguage = $resolvedAgent
+        ContentLanguage = $resolvedContent
+        Seeded = $seeded
+    }
+}
+
 function Show-LegacySettingsWarning {
     # Prints a warning when settings.json holds a legacy CLAUDE_CONTENT_LANGUAGE
     # value the simplified UI no longer surfaces. Returns $true when warned.
@@ -155,4 +305,37 @@ function Show-LegacySettingsWarning {
     return $true
 }
 
-Export-ModuleMember -Function Show-AgentLanguagePrompt, Show-ContentLanguagePrompt, Get-PolicyPhrase, Get-AllPolicyValues, Test-LegacyContentLanguage, Read-SettingsContentLanguage, Show-LegacySettingsWarning
+function Set-GitIdentitySeed {
+    # Auto-fill the name/email placeholders in a deployed git-identity.md from
+    # `git config --global user.name` / `user.email`. PowerShell mirror of
+    # seed_git_identity() in scripts/lib/install-prompts.sh (issue #777).
+    #
+    # Idempotent and non-destructive: no-op when the file is absent, when git
+    # config lacks either value, or when no placeholder tokens remain. Uses
+    # literal String.Replace (not regex), so names/emails with special
+    # characters are substituted safely. Returns $true and sets
+    # $script:SeededGitName / $script:SeededGitEmail when values were seeded.
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+
+    $name  = (git config --global user.name  2>$null)
+    $email = (git config --global user.email 2>$null)
+    if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($email)) {
+        return $false
+    }
+    $name  = $name.Trim()
+    $email = $email.Trim()
+
+    $content = Get-Content -Raw -LiteralPath $Path
+    if ($content -notmatch 'YOUR NAME|YOUR EMAIL') { return $false }
+
+    $seeded = $content.Replace('YOUR NAME', $name).Replace('YOUR EMAIL', $email)
+    Set-Content -LiteralPath $Path -Value $seeded -NoNewline
+    $script:SeededGitName  = $name
+    $script:SeededGitEmail = $email
+    return $true
+}
+
+Export-ModuleMember -Function Show-LanguageProfilePrompt, Get-PolicyPhrase, Invoke-PolicyTemplate, Invoke-PolicyTemplatesInDir, Get-AllPolicyValues, Test-LegacyContentLanguage, Read-SettingsContentLanguage, Read-SettingsAgentLanguage, Seed-LanguageFromSettings, Show-LegacySettingsWarning, Set-GitIdentitySeed

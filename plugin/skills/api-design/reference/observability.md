@@ -1,6 +1,17 @@
 # Observability
 
-This guideline establishes observability practices using metrics, logs, and traces (the three pillars of observability).
+> **Scope**: API and microservice observability (Node.js, Python, web services).
+> For infrastructure/system-level metrics (C/C++), see [`operations/ops.md`](../operations/ops.md).
+> Incorporates logging standards (formerly `logging.md`).
+
+Observability practices using the three pillars: **metrics, logs, and traces**.
+
+## Structured Logging
+
+- Use structured (JSON) logging for easier parsing and analysis
+- Use appropriate log levels (DEBUG, INFO, WARN, ERROR, FATAL) based on severity
+- Include contextual information (request ID, user ID) to trace requests across services
+- **Never log sensitive information** such as passwords, tokens, or personal data
 
 ## Metrics Collection
 

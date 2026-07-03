@@ -39,6 +39,29 @@ $AnthropicInstallerSha256 = if ($env:ANTHROPIC_INSTALLER_SHA256) { $env:ANTHROPI
 $InstallDir = if ($env:INSTALL_DIR) { $env:INSTALL_DIR } else { Join-Path $HOME 'claude_config_backup' }
 $ClaudeDir  = Join-Path $HOME '.claude'
 
+# ── Non-interactive prompt helper (issue #778) ───────────────────────────────
+# Parity with bootstrap.sh: resolve a prompt value by honoring, in order,
+#   1. a pre-set env override of the same name (install.sh vocabulary:
+#      INSTALL_TYPE / PROJECT_DIR / INSTALL_NPM / OVERWRITE / ...),
+#   2. $env:FORCE_MODE = '1' (unattended) -> the default with no prompt,
+#   3. an interactive Read-Host.
+# PowerShell's Read-Host reads the host console directly, so the bash /dev/tty
+# concern does not apply; env overrides are the unattended path for `irm | iex`.
+function Read-BootstrapValue {
+    param(
+        [Parameter(Mandatory)][string]$EnvName,
+        [Parameter(Mandatory)][string]$Prompt,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Default
+    )
+    $preset = [Environment]::GetEnvironmentVariable($EnvName)
+    if (-not [string]::IsNullOrEmpty($preset)) { return $preset }
+    if ($env:FORCE_MODE -eq '1') { return $Default }
+    $reply = Read-Host $Prompt
+    if ([string]::IsNullOrEmpty($reply)) { return $Default }
+    return $reply
+}
+# ─────────────────────────────────────────────────────────────────────────────
+
 # ── Inline helpers (module not yet available during bootstrap) ─
 
 function Write-Info    { param([string]$M) Write-Host "  $M" -ForegroundColor Cyan }
@@ -61,8 +84,26 @@ Write-Host ""
 function Test-Dependencies {
     Write-Info "의존성 확인 중..."
 
-    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-        Write-Fail "git이 설치되어 있지 않습니다. 먼저 git을 설치하세요."
+    # Hard requirements: parity with bootstrap.sh (git + gh). gh backs the
+    # PreToolUse merge/attribution guards and the batch issue/pr scripts, so a
+    # missing gh is a silent-failure trap on Windows just as on Unix (#781).
+    $missing = @()
+    foreach ($cmd in @('git', 'gh')) {
+        if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) {
+            $missing += $cmd
+        }
+    }
+    if ($missing.Count -gt 0) {
+        Write-Fail "필수 도구가 설치되어 있지 않습니다: $($missing -join ', '). 설치 안내는 PREREQUISITES.md를 참고하세요."
+    }
+
+    # Soft requirements: jq / perl are used by bash-channel tooling. The native
+    # PowerShell hooks do not shell out to them, so warn rather than hard-fail
+    # (verifier-refined in #781).
+    foreach ($cmd in @('jq', 'perl')) {
+        if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) {
+            Write-Warn "$cmd 미설치 — 일부 bash 계열 도구가 제한될 수 있습니다 (PREREQUISITES.md)."
+        }
     }
 
     Write-Ok "의존성 확인 완료"
@@ -94,8 +135,7 @@ function Confirm-ClaudeCli {
     Write-Host "  의존하는 핵심 도구입니다. 미설치 상태에서는 일부 기능이 동작하지 않습니다."
     Write-Host ""
 
-    $installClaude = Read-Host "Claude Code CLI를 지금 설치하시겠습니까? (y/n) [기본값: y]"
-    if ([string]::IsNullOrEmpty($installClaude)) { $installClaude = 'y' }
+    $installClaude = Read-BootstrapValue -EnvName 'INSTALL_CLAUDE' -Prompt "Claude Code CLI를 지금 설치하시겠습니까? (y/n) [기본값: y]" -Default 'y'
 
     if ($installClaude -ne 'y') {
         Write-Warn "Claude Code CLI 설치 건너뜀. 추후 수동 설치:"
@@ -160,8 +200,7 @@ function Invoke-CloneRepository {
 
     if (Test-Path -LiteralPath $InstallDir -PathType Container) {
         Write-Warn "기존 설치 디렉토리가 존재합니다: $InstallDir"
-        $overwrite = Read-Host "덮어쓰시겠습니까? (y/n) [기본값: n]"
-        if ([string]::IsNullOrEmpty($overwrite)) { $overwrite = 'n' }
+        $overwrite = Read-BootstrapValue -EnvName 'OVERWRITE' -Prompt "덮어쓰시겠습니까? (y/n) [기본값: n]" -Default 'n'
 
         if ($overwrite -eq 'y') {
             Remove-Item -LiteralPath $InstallDir -Recurse -Force
@@ -182,6 +221,113 @@ function Invoke-CloneRepository {
     # Pinned to GITHUB_REF tag with --depth 1 for bandwidth efficiency.
     & git clone --branch $GitHubRef --depth 1 "https://github.com/$GitHubUser/$GitHubRepo.git" $InstallDir
     Write-Ok "저장소 클론 완료: $InstallDir (ref: $GitHubRef)"
+}
+
+function Copy-BootstrapHookFiles {
+    param(
+        [Parameter(Mandatory)][string]$SourceDir,
+        [Parameter(Mandatory)][string]$DestinationDir,
+        [Parameter(Mandatory)][string[]]$Filters
+    )
+
+    if (-not (Test-Path -LiteralPath $DestinationDir -PathType Container)) {
+        New-Item -ItemType Directory -Path $DestinationDir -Force -ErrorAction Stop | Out-Null
+    }
+
+    foreach ($filter in $Filters) {
+        $items = @(Get-ChildItem -LiteralPath $SourceDir -Filter $filter -File -ErrorAction Stop)
+        foreach ($item in $items) {
+            Copy-Item -LiteralPath $item.FullName -Destination (Join-Path $DestinationDir $item.Name) -Force -ErrorAction Stop
+        }
+    }
+}
+
+function Deploy-BootstrapHooks {
+    $hooksSrc = Join-Path $InstallDir 'global' 'hooks'
+    if (-not (Test-Path -LiteralPath $hooksSrc -PathType Container)) {
+        throw "hook source directory missing: $hooksSrc"
+    }
+
+    $hooksDst = Join-Path $ClaudeDir 'hooks'
+    # Windows 훅은 `pwsh -File ...ps1`; .sh/.json은 WSL/parity 목적으로 함께 복사.
+    Copy-BootstrapHookFiles -SourceDir $hooksSrc -DestinationDir $hooksDst -Filters @('*.ps1', '*.sh', '*.json')
+
+    # global/hooks/lib/* 배포 (issue #586): 공유 라이브러리는 top-level glob에
+    # 잡히지 않으므로 별도 복사한다. 없으면 4개 Bash 가드가 약화된다.
+    $hooksLibSrc = Join-Path $hooksSrc 'lib'
+    if (Test-Path -LiteralPath $hooksLibSrc -PathType Container) {
+        $hooksLibDst = Join-Path $hooksDst 'lib'
+        Copy-BootstrapHookFiles -SourceDir $hooksLibSrc -DestinationDir $hooksLibDst -Filters @('*.ps1', '*.psm1', '*.sh')
+    }
+
+    # Shared bash validator libraries used by the deployed Bash hook variants.
+    # Mirrors scripts/install.sh so native Windows and WSL/container mounts get
+    # the same runtime library set before settings.json is published.
+    $sharedLibSrc = Join-Path $InstallDir 'hooks' 'lib'
+    if (Test-Path -LiteralPath $sharedLibSrc -PathType Container) {
+        $hooksLibDst = Join-Path $hooksDst 'lib'
+        Copy-BootstrapHookFiles -SourceDir $sharedLibSrc -DestinationDir $hooksLibDst -Filters @(
+            'validate-commit-message.sh',
+            'validate-language.sh',
+            'validate-traceability.sh'
+        )
+    }
+
+    $requiredLibs = @(
+        'tokenize-shell.sh',
+        'path-utils.sh',
+        'timeout-wrapper.sh',
+        'rotate.sh',
+        'validate-commit-message.sh',
+        'validate-language.sh',
+        'validate-traceability.sh'
+    )
+    foreach ($lib in $requiredLibs) {
+        if (-not (Test-Path -LiteralPath (Join-Path $hooksDst 'lib' $lib) -PathType Leaf)) {
+            throw "required hook runtime library missing after deploy: hooks/lib/$lib"
+        }
+    }
+}
+
+function Install-BootstrapSettingsAndHooks {
+    # Intentionally bypasses Invoke-GuardedCopy: policy attributes (.language,
+    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
+    # Update-ClaudeSettingsJson injects them into a staged file first; the
+    # final settings.json is published only after hook deployment succeeds.
+    # PARITY: scripts/install.ps1 selects global/settings.windows.json on this
+    # PowerShell installer — its hooks invoke `pwsh -File ...ps1`. Using
+    # global/settings.json here would ship bare `.sh` hook commands that native
+    # Windows cannot execute. Destination filename stays settings.json.
+    $settingsSrc = Join-Path $InstallDir 'global' 'settings.windows.json'
+    if (-not (Test-Path -LiteralPath $settingsSrc)) { return }
+
+    $settingsDst = Join-Path $ClaudeDir 'settings.json'
+    $settingsTmp = Join-Path $ClaudeDir ".settings.json.tmp.$PID"
+    $agentLanguage = if ($script:agentLanguage) { $script:agentLanguage } else { 'korean' }
+    $contentLanguage = if ($script:contentLanguage) { $script:contentLanguage } else { 'english' }
+    $settingsUpdated = $false
+
+    try {
+        Remove-Item -LiteralPath $settingsTmp -Force -ErrorAction SilentlyContinue
+        Copy-Item -LiteralPath $settingsSrc -Destination $settingsTmp -Force -ErrorAction Stop
+
+        $settingsUpdated = Update-ClaudeSettingsJson -SettingsPath $settingsTmp -AgentLang $agentLanguage -ContentLang $contentLanguage
+
+        Deploy-BootstrapHooks
+
+        Move-Item -LiteralPath $settingsTmp -Destination $settingsDst -Force -ErrorAction Stop
+    }
+    catch {
+        Remove-Item -LiteralPath $settingsTmp -Force -ErrorAction SilentlyContinue
+        Write-Fail "Hook 스크립트 배포 실패. settings.json을 변경하지 않았습니다. $_"
+    }
+
+    if ($settingsUpdated) {
+        Write-Ok "settings.json (에이전트: $agentLanguage, 컨텐츠: $contentLanguage) 설치 완료"
+    } else {
+        Write-Ok "settings.json 설치 완료 (기본값)"
+    }
+    Write-Ok "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
 }
 
 # ── Install global settings ──────────────────────────────────
@@ -227,13 +373,40 @@ function Install-GlobalSettings {
         }
     }
 
+    # Auto-seed git identity from `git config --global` (issue #777). Shared
+    # with scripts/install.ps1 via Set-GitIdentitySeed in InstallPrompts.psm1,
+    # so the later Invoke-PersonalizeGitIdentity step becomes confirm-only when
+    # the user already has a global git identity configured.
+    if (Get-Command Set-GitIdentitySeed -ErrorAction SilentlyContinue) {
+        $gitIdTarget = Join-Path $ClaudeDir 'git-identity.md'
+        if (Set-GitIdentitySeed -Path $gitIdTarget) {
+            Write-Ok "git-identity.md: git config로 자동 채우기 완료 ($($script:SeededGitName) <$($script:SeededGitEmail)>)"
+        }
+    }
+
+    # Language policy selection (Unified Language Profile)
+    # Stored at script scope so the project-install path (Install-ProjectSettings)
+    # can reuse the resolved values for rule-template rendering (issue #760).
+    $settingsPath = Join-Path $ClaudeDir 'settings.json'
+    $seededPolicy = $null
+    if (Get-Command Seed-LanguageFromSettings -ErrorAction SilentlyContinue) {
+        $seededPolicy = Seed-LanguageFromSettings -SettingsPath $settingsPath
+    }
+    if ($seededPolicy) {
+        $profileChoice = Show-LanguageProfilePrompt -AgentLanguage $seededPolicy.AgentLanguage -ContentLanguage $seededPolicy.ContentLanguage
+    }
+    else {
+        $profileChoice = Show-LanguageProfilePrompt
+    }
+    $script:agentLanguage = $profileChoice.AgentLanguage
+    $script:displayLang = $profileChoice.AgentDisplay
+    $script:contentLanguage = $profileChoice.ContentLanguage
+    $displayLang = $script:displayLang
+    $contentLanguage = $script:contentLanguage
+
     # conversation-language.md 템플릿 처리
     $tmplPath = Join-Path $InstallDir 'global' 'conversation-language.md.tmpl'
     if (Test-Path -LiteralPath $tmplPath) {
-        $agentChoice = Show-AgentLanguagePrompt
-        $script:agentLanguage = $agentChoice.Language
-        $displayLang = $agentChoice.Display
-
         $dest = Join-Path $ClaudeDir "conversation-language.md"
         if (Invoke-GuardedTemplateCopy -SrcTmpl $tmplPath -Dest $dest -Key "conversation-language.md" -DisplayLang $displayLang) {
             Write-Ok "conversation-language.md 설치됨 (언어: $displayLang)"
@@ -241,7 +414,6 @@ function Install-GlobalSettings {
             Write-Info "conversation-language.md 로컬 변경 유지"
         }
     } else {
-        $script:agentLanguage = "korean"
         # Static-file fallback. The default repo ships only the .tmpl, so this
         # branch is unreachable in normal use. It exists to support fork users
         # who replace the .tmpl with a hand-edited static .md — preserving
@@ -256,9 +428,6 @@ function Install-GlobalSettings {
             }
         }
     }
-
-    # Content language policy selection (CLAUDE_CONTENT_LANGUAGE)
-    $contentLanguage = Show-ContentLanguagePrompt
 
     # Legacy settings.json migration warning (informational only).
     $null = Show-LegacySettingsWarning -SettingsPath (Join-Path $HOME '.claude/settings.json') -NewSelection $contentLanguage
@@ -310,31 +479,15 @@ function Install-GlobalSettings {
         Write-Ok "ccstatusline 설정 설치 완료"
     }
 
-    # settings.json (Claude Code)
-    # Intentionally bypasses Invoke-GuardedCopy: policy attributes (.language,
-    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
-    # Update-ClaudeSettingsJson (below) injects them and is responsible
-    # for idempotent reset when the policy returns to default ("english").
-    # PARITY: scripts/install.ps1 selects global/settings.windows.json on this
-    # PowerShell installer — its hooks invoke `pwsh -File ...ps1`. Using
-    # global/settings.json here would ship bare `.sh` hook commands that native
-    # Windows cannot execute. Destination filename stays settings.json.
-    $settingsSrc = Join-Path $InstallDir 'global' 'settings.windows.json'
-    if (Test-Path -LiteralPath $settingsSrc) {
-        $settingsDst = Join-Path $ClaudeDir 'settings.json'
-        Copy-Item -Path $settingsSrc -Destination $settingsDst -Force
-
-        if (Update-ClaudeSettingsJson -SettingsPath $settingsDst -AgentLang $script:agentLanguage -ContentLang $contentLanguage) {
-            Write-Ok "settings.json (에이전트: $($script:agentLanguage), 컨텐츠: $contentLanguage) 설치 완료"
-        } else {
-            Write-Ok "settings.json 설치 완료 (기본값)"
-        }
-    }
+    # settings.json + hooks 디렉토리 설치 (settings.json이 참조하는 런타임 가드)
+    # settings.windows.json은 `pwsh -File ...ps1` 훅 다수를 참조하므로, 설정 복사와
+    # 훅 배포를 한 트랜잭션으로 처리해 "설정은 있는데 훅이 없는" 조용한 보안 공백을
+    # 막는다. Hook 배포 실패 시 settings.json은 게시하지 않는다.
+    Install-BootstrapSettingsAndHooks
 
     # npm package installation (statusline dependencies)
     if (Get-Command npm -ErrorAction SilentlyContinue) {
-        $installNpm = Read-Host "Statusline npm 패키지를 설치하시겠습니까? (y/n) [기본값: y]"
-        if ([string]::IsNullOrEmpty($installNpm)) { $installNpm = 'y' }
+        $installNpm = Read-BootstrapValue -EnvName 'INSTALL_NPM' -Prompt "Statusline npm 패키지를 설치하시겠습니까? (y/n) [기본값: y]" -Default 'y'
         if ($installNpm -eq 'y') {
             try {
                 $null = & npm install -g ccstatusline claude-limitline 2>&1
@@ -361,10 +514,19 @@ function Install-GlobalSettings {
 
 function Invoke-PersonalizeGitIdentity {
     Write-Host ""
-    Write-Warn "중요: Git Identity를 개인 정보로 수정해야 합니다!"
+    $gitIdFile = Join-Path $ClaudeDir 'git-identity.md'
+    $needsGitIdentityEdit = $false
+    if (Test-Path $gitIdFile) {
+        $needsGitIdentityEdit = [bool](Select-String -Path $gitIdFile -Pattern 'YOUR NAME|YOUR EMAIL' -Quiet)
+    }
+    if ($needsGitIdentityEdit) {
+        Write-Warn "Git Identity에 기본 placeholder가 남아 있습니다. 개인 정보로 수정하세요."
+    }
+    else {
+        Write-Info "Git Identity가 준비되었습니다. 필요하면 값을 확인하거나 수정하세요."
+    }
     Write-Host ""
     Write-Host "  현재 설정:"
-    $gitIdFile = Join-Path $ClaudeDir 'git-identity.md'
     if (Test-Path $gitIdFile) {
         Get-Content $gitIdFile | Where-Object { $_ -match '^(name|email):' } | ForEach-Object {
             Write-Host "    $_"
@@ -380,8 +542,7 @@ function Invoke-PersonalizeGitIdentity {
     }
     Write-Host ""
 
-    $editNow = Read-Host "지금 수정하시겠습니까? (y/n) [기본값: n]"
-    if ([string]::IsNullOrEmpty($editNow)) { $editNow = 'n' }
+    $editNow = Read-BootstrapValue -EnvName 'EDIT_NOW' -Prompt "지금 수정하시겠습니까? (y/n) [기본값: n]" -Default 'n'
 
     if ($editNow -eq 'y') {
         $editor = $env:EDITOR
@@ -403,8 +564,7 @@ function Select-InstallType {
     Write-Host "  3) 둘 다 설치 (권장)"
     Write-Host "  4) 저장소만 클론 (수동 설치)"
     Write-Host ""
-    $selection = Read-Host "선택 (1-4) [기본값: 1]"
-    if ([string]::IsNullOrEmpty($selection)) { $selection = '1' }
+    $selection = Read-BootstrapValue -EnvName 'INSTALL_TYPE' -Prompt "선택 (1-4) [기본값: 1]" -Default '1'
     return $selection
 }
 
@@ -413,14 +573,34 @@ function Select-InstallType {
 function Install-ProjectSettings {
     Write-Host ""
     $defaultDir = (Get-Location).Path
-    $projDir = Read-Host "프로젝트 디렉토리 경로 [기본값: $defaultDir]"
-    if ([string]::IsNullOrEmpty($projDir)) { $projDir = $defaultDir }
+    $projDir = Read-BootstrapValue -EnvName 'PROJECT_DIR' -Prompt "프로젝트 디렉토리 경로 [기본값: $defaultDir]" -Default $defaultDir
 
     if (-not (Test-Path -LiteralPath $projDir -PathType Container)) {
         Write-Fail "디렉토리가 존재하지 않습니다: $projDir"
     }
 
     Write-Info "프로젝트 설정 설치 중: $projDir"
+
+    # Policy-template render prerequisites (issue #760).
+    # InstallPrompts.psm1 provides Invoke-PolicyTemplatesInDir and the language
+    # profile prompt. On the project-only path (install type 2) Install-GlobalSettings
+    # is not called, so the module import and language resolution must happen here.
+    # Both are idempotent / guarded:
+    #   - Import-Module -Force is safe to repeat.
+    #   - Resolve the profile only when the script-scoped values are not already
+    #     set (type 3 resolved them in Install-GlobalSettings), to avoid a second prompt.
+    $promptsModule = Join-Path $InstallDir 'scripts' 'lib' 'InstallPrompts.psm1'
+    if (Test-Path -LiteralPath $promptsModule) {
+        Import-Module $promptsModule -Force -DisableNameChecking
+    }
+    if (-not $script:contentLanguage -or -not $script:agentLanguage) {
+        if (Get-Command Show-LanguageProfilePrompt -ErrorAction SilentlyContinue) {
+            $profileChoice = Show-LanguageProfilePrompt
+            $script:agentLanguage = $profileChoice.AgentLanguage
+            $script:displayLang = $profileChoice.AgentDisplay
+            $script:contentLanguage = $profileChoice.ContentLanguage
+        }
+    }
 
     # Copy files
     Copy-Item -Path (Join-Path $InstallDir 'project' 'CLAUDE.md') -Destination $projDir -Force
@@ -434,6 +614,13 @@ function Install-ProjectSettings {
     $rulesDir = Join-Path $InstallDir 'project' '.claude' 'rules'
     if (Test-Path $rulesDir) {
         Copy-Item -Path $rulesDir -Destination $projClaudeDir -Recurse -Force
+        # issue #760: render any .md.tmpl under the copied rules/ via the same
+        # single-source function install.ps1 uses. Unset language values fall
+        # back to safe defaults inside Invoke-PolicyTemplate.
+        if (Get-Command Invoke-PolicyTemplatesInDir -ErrorAction SilentlyContinue) {
+            Invoke-PolicyTemplatesInDir -Path (Join-Path $projClaudeDir 'rules') `
+                -ContentLanguage $script:contentLanguage -AgentDisplay $script:displayLang -AgentLanguage $script:agentLanguage
+        }
     }
 
     $skillsDir = Join-Path $InstallDir 'project' '.claude' 'skills'
@@ -534,4 +721,17 @@ function Invoke-Main {
 }
 
 # Execute
+if ($env:CLAUDE_CONFIG_BOOTSTRAP_TEST_MODE -eq 'atomic-deploy') {
+    if (-not (Test-Path $ClaudeDir)) {
+        New-Item -ItemType Directory -Path $ClaudeDir -Force | Out-Null
+    }
+    $manifestHelper = Join-Path $InstallDir 'scripts' 'install-manifest.ps1'
+    if (-not (Test-Path -LiteralPath $manifestHelper)) {
+        Write-Fail "install-manifest.ps1 not found for atomic-deploy test mode"
+    }
+    . $manifestHelper
+    Install-BootstrapSettingsAndHooks
+    exit 0
+}
+
 Invoke-Main

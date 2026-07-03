@@ -71,6 +71,8 @@ echo "[Scope: non-gh commands always pass without warnings]"
 result=$(run_hook "$INPUT_NONGH" "")
 assert_contains "$result" '"allow"' "ls -la → allow"
 assert_not_contains "$result" "not authenticated" "ls -la → no auth warning"
+# Issue #715: plain pass must not carry additionalContext at all.
+assert_not_contains "$result" "additionalContext" "ls -la → no additionalContext on plain pass"
 
 echo ""
 echo "[gh command without GH_TOKEN: keyring check runs]"

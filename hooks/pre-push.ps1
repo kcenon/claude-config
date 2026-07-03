@@ -7,7 +7,8 @@
 # Protected branches: main, develop
 # Bypass:  git push --no-verify (forbidden by global CLAUDE.md policy)
 #
-# Install: hooks/install-hooks.ps1 copies this to .git/hooks/pre-push
+# Install: hooks/install-hooks.ps1 installs hooks/pre-push as .git/hooks/pre-push.
+# This file is the PowerShell parity implementation.
 
 $ErrorActionPreference = 'Stop'
 

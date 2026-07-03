@@ -111,6 +111,7 @@ function Copy-Standard {
     Copy-Minimal
     Copy-Item-Safe "$ProjectTemplate\.claude\rules\coding" "$Target\.claude\rules\coding"
     Copy-Item-Safe "$ProjectTemplate\.claude\rules\workflow" "$Target\.claude\rules\workflow"
+    Copy-Item-Safe "$ProjectTemplate\.claude\reference" "$Target\.claude\reference"
     Copy-Item-Safe "$ProjectTemplate\.claude\rules\project-management" "$Target\.claude\rules\project-management"
     Copy-Item-Safe "$ProjectTemplate\.claude\rules\tools" "$Target\.claude\rules\tools"
     Copy-Item-Safe "$ProjectTemplate\.claude\commands" "$Target\.claude\commands"

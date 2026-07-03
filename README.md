@@ -35,8 +35,8 @@ Get up and running in 3 minutes:
 # 1. One-line installation
 curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash
 
-# 2. Personalize Git identity (Required!)
-vi ~/.claude/git-identity.md
+# 2. Verify Git identity (auto-filled from git config when available)
+grep -E "^(name|email):" ~/.claude/git-identity.md
 
 # 3. Restart Claude Code - Done!
 ```
@@ -68,13 +68,13 @@ Install claude-config and Claude Code immediately gains these capabilities:
 
 **Commit quality** — Broken markdown links, AI attribution, and non-conventional commit messages are caught before they reach your repository.
 
-**Configurable content language** — Pick at install time whether commit messages, PR bodies, and documentation are written in English (ASCII only) or Korean (per-artifact strict, no inline mixing). The two-option installer prompt maps to `CLAUDE_CONTENT_LANGUAGE=english|exclusive_bilingual`; advanced legacy values (`korean_plus_english`, `any`) remain available via direct `settings.json` edit.
+**Configurable content language** — Pick at install time whether commit messages, PR bodies, and documentation are written in English (ASCII plus allowlisted English typography) or Korean (per-artifact strict, no inline mixing). The three-option preset installer prompt maps to `CLAUDE_CONTENT_LANGUAGE=english|exclusive_bilingual`; advanced legacy values (`korean_plus_english`, `any`) remain available via direct `settings.json` edit.
 
 **Code quality on demand** — `/security-audit`, `/performance-review`, `/code-quality`, and `/pr-review` provide specialized analysis when you need it.
 
 **Agent team design** — `/harness` designs multi-agent architectures tailored to your project, with 6 architecture patterns and orchestrator templates.
 
-**Cross-platform** — Everything works on macOS, Linux, and Windows (PowerShell).
+**Cross-platform** — Everything works on macOS, Linux, and Windows (PowerShell). The memory sync scheduler is the Unix-only exception; see [`COMPATIBILITY.md`](COMPATIBILITY.md#cross-platform-notes).
 
 ---
 
@@ -86,7 +86,39 @@ Install claude-config and Claude Code immediately gains these capabilities:
 curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash
 ```
 
+```powershell
+irm https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.ps1 | iex
+```
+
 > **What bootstrap does for you.** It checks for the Claude Code CLI and, on consent, runs Anthropic's native installer (`https://claude.ai/install.sh`) so the `claude` binary lands in `~/.local/bin/` and supports background auto-update. The npm package `@anthropic-ai/claude-code` is no longer used. PowerShell uses the parallel `claude.ai/install.ps1`. See [PREREQUISITES.md → Auto-installed by bootstrap](https://github.com/kcenon/claude-config/blob/develop/PREREQUISITES.md#auto-installed-by-bootstrap).
+
+### Non-interactive install
+
+For CI or unattended setups, pre-select answers with the same environment
+variables `scripts/install.sh` uses (no prompts), or force every default with
+`--yes`:
+
+```bash
+# Unattended: pick the install type via env, accept every other default
+curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | INSTALL_TYPE=3 bash
+
+# Force defaults for every prompt
+curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash -s -- --yes
+```
+
+```powershell
+# Unattended: pick the install type via env, accept every other default
+$env:INSTALL_TYPE = '3'; irm https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.ps1 | iex
+
+# Force defaults for every prompt
+$env:FORCE_MODE = '1'; irm https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.ps1 | iex
+```
+
+Recognized overrides: `INSTALL_TYPE`, `PROJECT_DIR`, `INSTALL_NPM`, `OVERWRITE`,
+`AGENT_LANGUAGE`, `CONTENT_LANGUAGE`. PowerShell also accepts `FORCE_MODE=1`
+for the same default-accepting unattended path that Bash exposes as `--yes`.
+When a prompt is reached interactively over `curl | bash`, bootstrap reads your
+answer from `/dev/tty` instead of consuming the piped script body.
 
 ### Private Repository
 
@@ -106,8 +138,8 @@ git clone https://github.com/kcenon/claude-config.git ~/claude_config_backup
 cd ~/claude_config_backup
 ./scripts/install.sh
 
-# 3. Personalize Git identity (Required!)
-vi ~/.claude/git-identity.md
+# 3. Verify Git identity (edit only if missing or wrong)
+grep -E "^(name|email):" ~/.claude/git-identity.md
 ```
 
 ### Windows (PowerShell)
@@ -120,8 +152,8 @@ git clone https://github.com/kcenon/claude-config.git ~\claude_config_backup
 cd ~\claude_config_backup
 .\scripts\install.ps1
 
-# 3. Personalize Git identity (Required!)
-notepad $HOME\.claude\git-identity.md
+# 3. Verify Git identity (edit only if missing or wrong)
+Get-Content $HOME\.claude\git-identity.md | Select-String '^(name|email):'
 ```
 
 > **Note**: Requires PowerShell 7+ (`pwsh`). Install via `winget install Microsoft.PowerShell`.
@@ -195,14 +227,14 @@ Rules and skills load on demand — only what's relevant to your current task is
 
 ### Loading reference documents
 
-Some detailed reference documents are excluded from initial context for efficiency. Load them when needed:
+Detailed reference documents live in `.claude/reference/`, outside the auto-loaded `.claude/rules/` tree, so they never enter initial context. Load them when needed:
 
 ```markdown
 # Ask Claude to load a specific reference
 @load: reference/agent-teams
 
 # Or reference the file directly
-Can you review rules/workflow/reference/label-definitions.md?
+Can you review .claude/reference/workflow/label-definitions.md?
 ```
 
 For advanced customization, see [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md).
@@ -233,7 +265,7 @@ claude_config_backup/
 │   │   └── settings.json      # Status line display settings
 │   ├── commands/               # Global command policies
 │   │   └── _policy.md         # Shared policies for all commands
-│   ├── hooks/                  # 35 hook scripts, each in .sh + .ps1 — see HOOKS.md for the full catalog
+│   ├── hooks/                  # Hook scripts, each in .sh + .ps1 — authoritative catalog: HOOKS.md
 │   │   └── lib/               # Shared libraries
 │   │       ├── AttributionValidator.psm1
 │   │       ├── CommonHelpers.psm1  # PowerShell shared module
@@ -286,8 +318,7 @@ claude_config_backup/
 │       │   │   ├── error-handling.md
 │       │   │   ├── safety.md
 │       │   │   ├── performance.md
-│       │   │   ├── cpp-specifics.md
-│       │   │   └── reference/anti-patterns.md
+│       │   │   └── cpp-specifics.md
 │       │   ├── api/            # API & Architecture
 │       │   │   ├── api-design.md
 │       │   │   ├── architecture.md
@@ -300,8 +331,7 @@ claude_config_backup/
 │       │   │   ├── build-verification.md
 │       │   │   ├── ci-resilience.md
 │       │   │   ├── performance-analysis.md
-│       │   │   ├── session-resume.md
-│       │   │   └── reference/  # Label definitions, automation, agent teams
+│       │   │   └── session-resume.md
 │       │   ├── core/           # Core settings
 │       │   │   ├── environment.md
 │       │   │   ├── communication.md
@@ -315,6 +345,9 @@ claude_config_backup/
 │       │   ├── tools/
 │       │   │   └── gh-cli-scripts.md
 │       │   └── security.md     # Security guidelines
+│       ├── reference/          # On-demand reference docs (outside rules/, never auto-loaded)
+│       │   ├── coding/         # anti-patterns.md
+│       │   └── workflow/       # 5W1H examples, labels, automation, agent teams
 │       ├── skills/             # 11 project skills (migrated from slash commands) — e.g. pr-review, code-quality, git-status, security-audit
 │       ├── agents/             # Specialized agent configurations
 │       │   ├── code-reviewer.md
@@ -474,11 +507,11 @@ These behaviors activate immediately after installation — no configuration nee
 
 ### Content Language Policy
 
-Both installers (`install.sh` and `install.ps1`) prompt for a content-language policy after the installation-type selection. The simplified UI offers two choices that map to fixed-language guarantees for artifacts:
+Both installers (`install.sh` and `install.ps1`) prompt for a three-option Language Profile Preset after the installation-type selection. The artifact half maps to these fixed-language guarantees:
 
 | UI choice | `CLAUDE_CONTENT_LANGUAGE` value | Validator accepts | Rule-document phrase |
 |-----------|----------------------------------|-------------------|----------------------|
-| English (default) | `english` | ASCII printable + whitespace only | `English` |
+| English (default) | `english` | ASCII printable + whitespace, plus allowlisted English typographic punctuation | `English` |
 | Korean | `exclusive_bilingual` | Per-artifact: English-only OR Korean-only with limited ASCII containers, no inline mixing | `English or Korean (document-exclusive)` |
 
 The validator additionally accepts two legacy values that are **not surfaced in the UI** — set them via direct `settings.json` edit if needed:
@@ -489,6 +522,8 @@ The validator additionally accepts two legacy values that are **not surfaced in 
 | `any` | OSS repositories accepting any language | Skip language validation entirely |
 
 The installer substitutes the chosen phrase into three rule-document templates (`global/commit-settings.md.tmpl`, `project/.claude/rules/core/communication.md.tmpl`, `project/.claude/rules/workflow/git-commit-format.md.tmpl`) so the documented rule matches the validator behavior.
+
+On reinstall, the prompt defaults are seeded from the existing `settings.json` so the prior `.language` and `CLAUDE_CONTENT_LANGUAGE` choices are preserved. Explicit `AGENT_LANGUAGE` and `CONTENT_LANGUAGE` environment overrides still win.
 
 **Scope boundary**: AI/Claude attribution enforcement is **not** governed by this env var — `attribution-guard` and the attribution checks in `commit-message-guard` remain active for every policy.
 
@@ -662,7 +697,6 @@ name: agent-name
 description: What the agent does
 model: sonnet
 tools: Read, Edit
-temperature: 0.3
 ---
 ```
 
@@ -696,7 +730,7 @@ Create a team to implement the notification system:
 
 Keep teams to 2-3 teammates for optimal coordination. Assign distinct file sets to avoid conflicts.
 
-For architecture patterns, display modes, hooks, and advanced configuration, see `rules/workflow/reference/agent-teams.md`.
+For architecture patterns, display modes, hooks, and advanced configuration, see `.claude/reference/workflow/agent-teams.md`.
 
 ---
 
@@ -732,7 +766,8 @@ The `.mcp.json` template provides common MCP server configurations.
 | `verify.sh` / `.ps1` | Check backup integrity and completeness | `./scripts/verify.sh` |
 | `validate_skills.sh` / `.ps1` | Validate SKILL.md format compliance | `./scripts/validate_skills.sh` |
 
-After installation, you **must** edit `~/.claude/git-identity.md` with your personal info.
+After installation, `~/.claude/git-identity.md` is auto-filled from `git config --global user.name` and `git config --global user.email` when both values exist. Edit it only if the values are missing or wrong.
+On reinstall, the installer keeps the existing language policy defaults from `~/.claude/settings.json` unless `AGENT_LANGUAGE` or `CONTENT_LANGUAGE` is explicitly set.
 Existing files are automatically backed up with `.backup_YYYYMMDD_HHMMSS` format.
 
 ---
@@ -745,17 +780,26 @@ Install git hooks to enforce commit and push policies:
 ./hooks/install-hooks.sh
 ```
 
+The installer deploys `pre-commit`, `commit-msg`, and `pre-push` into
+`.git/hooks/`.
+
 ### Pre-commit Hook
 
 - Detects changes to SKILL.md files
 - Runs `validate_skills.sh` automatically
 - Blocks commits with invalid SKILL.md files
 
+### Commit-msg Hook
+
+- Validates Conventional Commits format
+- Blocks attribution trailers/prose and emojis
+- Uses the shared `hooks/lib/validate-commit-message.sh` validator
+
 ### Pre-push Hook
 
 - Blocks direct pushes to protected branches (`main`, `develop`)
 - Requires pull request workflow for protected branches
-- Cross-platform: `pre-push` (bash) and `pre-push.ps1` (PowerShell)
+- Installed as `.git/hooks/pre-push`; `pre-push.ps1` is the PowerShell parity implementation
 
 ---
 
@@ -810,8 +854,8 @@ cd ~/claude_config_backup
 ./scripts/install.sh
 # Type: 3 (Both)
 
-# Modify Git identity
-vi ~/.claude/git-identity.md
+# Verify Git identity; edit only if missing or wrong
+grep -E "^(name|email):" ~/.claude/git-identity.md
 ```
 
 ---
@@ -929,11 +973,11 @@ bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main
 
 ### Q1: Why do I need to personalize Git identity?
 
-**A:** `git-identity.md` contains personal information (name, email), so each user must modify it with their own information.
+**A:** `git-identity.md` contains personal information (name, email), so each installation must use the operator's own values. The installer auto-fills it from `git config --global user.name` and `git config --global user.email` when both values exist; edit the file only if those values are missing or wrong.
 
 ```bash
 vi ~/.claude/git-identity.md
-# Change name and email to your information
+# Change name and email only when the installed values are missing or wrong
 ```
 
 ---
@@ -998,6 +1042,8 @@ curl -sSL -H "Authorization: token YOUR_TOKEN" \
 
 Memory sync keeps Claude Code's auto-memory consistent across all your machines via a private git store. See:
 
+Scheduler automation is Unix-only: macOS uses `launchd`, Linux uses a `systemd` user timer, and Windows users should run the Linux path through WSL. Native PowerShell scheduling is not supported for memory sync.
+
 - [Operations guide](docs/MEMORY_SYNC.md) - Daily ops, troubleshooting, rollback, conflict resolution
 - [Threat model](docs/THREAT_MODEL.md) - Security analysis, 7 threat categories, 5-layer defense
 - [Validation spec](docs/MEMORY_VALIDATION_SPEC.md) - Validator contract and frontmatter schema
@@ -1021,118 +1067,7 @@ Memory sync keeps Claude Code's auto-memory consistent across all your machines 
 
 **Current**: tracked in [`VERSION_MAP.yml`](VERSION_MAP.yml) (single source of truth — `suite` field). The shields.io badge at the top of this README is generated from the same field by `scripts/sync_versions.sh`. Do not hardcode version numbers in this document; bump them with `/release <field> <new-version>` instead.
 
-<details>
-<summary>Changelog</summary>
-
-#### v1.9.0 (2026-04-13)
-- **Multi-layered branch defense**: Four enforcement layers to prevent non-release merges to `main`
-  - PreToolUse hook (`pr-target-guard`): blocks `gh pr create --base main` unless `--head develop`
-  - GitHub Actions (`validate-pr-target.yml`): auto-closes PRs targeting `main` from non-develop branches
-  - Release skill integrity check: detects main/develop divergence before release
-  - Documentation: enforcement layers table in branching-strategy.md
-- **CI fix**: Removed invalid inline Python heredoc blocks from `validate-skills.yml` that caused every workflow run to fail with YAML parse errors
-- **README updates**: Added "When you create PRs" section, updated directory tree with missing hooks and workflows
-
-#### v1.8.0 (2026-04-13)
-- **Simplified git-flow branching strategy**: develop as default branch, CI on main-targeting PRs only
-- **Pre-push hook**: blocks direct pushes to protected branches (main, develop)
-- **Branching documentation**: comprehensive branch model, CI policy, and release workflow guide
-
-#### v1.7.0 (2026-04-06)
-- **Windows PowerShell coverage**: substantial PowerShell (`.ps1`) parity for utility, hook, and helper scripts. The earlier "All 42 bash scripts now have PowerShell counterparts" wording was inaccurate — see [COMPATIBILITY.md › PowerShell parity status](https://github.com/kcenon/claude-config/blob/develop/COMPATIBILITY.md#powershell-parity-status) for the live count and the list of bash hooks without `.ps1` counterparts. Tracked for restoration in a follow-up issue.
-  - Most utility scripts: `install`, `verify`, `sync`, `backup`, `validate_skills`, `bootstrap`
-  - Most hook scripts with identical security behavior (fail-closed model preserved)
-  - All 8 GitHub CLI helper scripts (`scripts/gh/`)
-  - All 3 global scripts (`statusline-command`, `team-report`, `weekly-usage`)
-  - All 7 test scripts for hook validation
-  - Git hooks installer (`hooks/install-hooks.ps1`)
-- **Shared PowerShell module**: Added `CommonHelpers.psm1` with 20 exported functions
-  - Message helpers, hook response builders, stdin JSON reader
-  - Platform detection, version comparison, log rotation
-  - Eliminates `jq` dependency on Windows (uses native `ConvertFrom-Json`)
-  - Uses .NET `GZipStream` for log compression (no external `gzip` needed)
-
-#### v1.6.0 (2026-04-03)
-- **Harness meta-skill**: Added `/harness` for designing domain-specific agent team architectures
-  - 6 architecture patterns: Pipeline, Fan-out/Fan-in, Expert Pool, Producer-Reviewer, Supervisor, Hierarchical
-  - Generates `.claude/agents/` and `.claude/skills/` with orchestration
-  - Reference docs: agent design patterns, orchestrator templates, skill writing/testing guides, QA agent guide
-- **QA reviewer agent**: Added `qa-reviewer` agent for integration coherence verification
-- **Version check hook**: Added SessionStart hook to warn about known Claude Code cache bugs
-- **Batch processing**: Added batch mode to `/issue-work` and `/pr-work` skills (single-repo, cross-repo)
-- **CI validation**: Extended skill validation with description quality and global skills checks
-- **Skill descriptions**: Enhanced trigger accuracy across all skills
-- **Third-party notices**: Added `THIRD_PARTY_NOTICES.md` for harness content attribution (Apache 2.0)
-
-#### v1.5.0 (2026-03-21)
-- **Skills migration**: Migrated all global commands to Skills format for context isolation and model override support
-  - `/branch-cleanup`, `/release`, `/issue-create`, `/issue-work`, `/pr-work` are now skills
-  - Added new global skills: `/doc-review`, `/implement-all-levels`
-  - Added new project skills: `ci-debugging`, `code-quality`, `git-status`, `pr-review`
-  - Skills support `argument-hint`, `model`, `allowed-tools`, and adaptive execution frontmatter
-- **Agent Teams**: Added experimental multi-agent collaboration framework
-  - Shared task lists, direct messaging, and team coordination
-  - Teammates modes: `auto`, `in-process`, `tmux`
-  - Team hooks: `TeammateIdle`, `TaskCompleted`
-- **Windows PowerShell support**: Full cross-platform parity
-  - Added `install.ps1` for Windows installation
-  - All 16 hook scripts have `.ps1` variants
-  - Added `settings.windows.json` for Windows-specific hook paths
-- **New hooks** (8 new types):
-  - `github-api-preflight`: GitHub API call validation
-  - `markdown-anchor-validator`: Markdown anchor validation
-  - `prompt-validator`: Commit message validation via LLM
-  - `tool-failure-logger`: Tool execution failure tracking
-  - `subagent-logger`: Subagent lifecycle tracking
-  - `task-completed-logger`: Task completion tracking
-  - `config-change-logger`: Configuration change tracking
-  - `pre-compact-snapshot`: Context preservation before auto-compaction
-  - `worktree-create`/`worktree-remove`: Worktree lifecycle hooks
-- **tmux auto-logging**: Added `tmux.conf` for automatic session logging
-- **Plugin enhancements**: Bundled agent definitions, updated manifests
-- **GitHub helper scripts**: Added `scripts/gh/` with 8 helper scripts for issues and PRs
-- **Rule files restructured**: Updated `coding/`, `core/`, `operations/`, `tools/` rules to match current best practices
-- **Context optimization**: Reduced always-on context by 77% (485 → 112 lines) via SSOT refactoring
-
-#### v1.4.0 (2026-01-22)
-- Adopted Import syntax (`@path/to/file`) for modular references
-  - Replaced markdown links with Import syntax for better token efficiency
-  - Supports recursive imports up to 5 levels deep
-- Updated all CLAUDE.md files (global and project) to use Import syntax
-- Updated all SKILL.md files to use Import syntax for reference documents
-
-#### v1.3.0 (2026-01-15)
-- Added `/release` command for automated changelog generation
-- Added `/branch-cleanup` command for merged and stale branches
-- Added `/issue-create` command with 5W1H framework
-- Added `/issue-work` and `/pr-work` commands for GitHub workflow automation
-- Added common policy files (`_policy.md`) for shared command rules
-- Updated all global commands to reference shared policy
-
-#### v1.2.0 (2026-01-15)
-- CLAUDE.md optimization for official best practices compliance
-- Simplified project/CLAUDE.md (212 → ~85 lines)
-- Added emphasis expressions for key rules
-- Created common-commands.md
-- Optimized conditional-loading.md
-- Split github-issue-5w1h.md with Progressive Disclosure
-
-#### v1.1.0 (2025-01-15)
-- Added `.claude/rules/` directory with path-based conditional loading
-- Added `.claude/commands/` for custom slash commands
-- Added `.claude/agents/` for specialized agent configurations
-- Added MCP configuration template (`.mcp.json`)
-- Added local settings templates (`CLAUDE.local.md.template`, `settings.local.json.template`)
-- Extended hooks with `UserPromptSubmit` and `Stop` events
-- Added `alwaysThinkingEnabled` setting to all settings.json files
-- Enhanced all SKILL.md files with `allowed-tools` and `model` options
-
-#### v1.0.0 (2025-12-03)
-- Initial release with global and project configurations
-- Claude Code Skills with progressive disclosure pattern
-- Hook settings for security and auto-formatting
-
-</details>
+Historical release notes now live in [`CHANGELOG.md`](CHANGELOG.md).
 
 ---
 

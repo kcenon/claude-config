@@ -1,7 +1,7 @@
 #!/bin/bash
 # Regression test for issue #447 Phase 1 / #448.
 #
-# Asserts that the shared bash validator library (hooks/lib/validate-*.sh)
+# Asserts that the shared bash validator libraries (hooks/lib/validate-*.sh)
 # is deployed to ~/.claude/hooks/lib/ by both installers. Without this,
 # pr-language-guard.sh falls through to its inline english-only fallback
 # regardless of CLAUDE_CONTENT_LANGUAGE.
@@ -16,7 +16,7 @@
 #                         using Install-BashScript for CRLF/exec-bit
 #                         normalization (regression guard for the #448 fix).
 #   4. Functional:        replay the install.sh block against a temp HOME
-#                         and verify both libs land, are non-empty, and
+#                         and verify the libs land, are non-empty, and
 #                         the dispatcher is defined when sourced.
 #
 # Run: bash tests/scripts/test-install-deploys-bash-lib.sh
@@ -47,7 +47,7 @@ fail() {
 # ---------------------------------------------------------------------------
 echo "=== Source libs in repo-root hooks/lib/ ==="
 
-for lib in validate-commit-message.sh validate-language.sh; do
+for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
     src="$REPO_ROOT/hooks/lib/$lib"
     if [ ! -f "$src" ]; then
         fail "$lib missing from repo hooks/lib/"
@@ -83,11 +83,13 @@ else
     pass "install.sh references \$BACKUP_DIR/hooks/lib"
 fi
 
-if grep -q 'validate-commit-message.sh validate-language.sh' "$INSTALL_SH"; then
-    pass "install.sh iterates both shared libs"
-else
-    fail "install.sh shared-lib loop does not cover both libs"
-fi
+for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
+    if grep -q "$lib" "$INSTALL_SH"; then
+        pass "install.sh deploys $lib"
+    else
+        fail "install.sh shared-lib loop does not cover $lib"
+    fi
+done
 
 # ---------------------------------------------------------------------------
 # 3. install.ps1: deployment block present (regression guard for #448)
@@ -104,16 +106,19 @@ else
     pass "install.ps1 references repo-root hooks/lib"
 fi
 
-if grep -q "validate-commit-message.sh.*validate-language.sh\|'validate-commit-message.sh', 'validate-language.sh'" "$INSTALL_PS1"; then
-    pass "install.ps1 iterates both shared libs"
-else
-    fail "install.ps1 shared-lib list does not cover both libs"
-fi
+for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
+    if grep -q "$lib" "$INSTALL_PS1"; then
+        pass "install.ps1 deploys $lib"
+    else
+        fail "install.ps1 shared-lib list does not cover $lib"
+    fi
+done
 
-if grep -q 'Install-BashScript.*sharedLibSource\|Install-BashScript -SourcePath \$libSrc' "$INSTALL_PS1"; then
-    pass "install.ps1 uses Install-BashScript for CRLF normalization"
+if grep -q 'Copy-InstallHookFiles -SourceDir \$sharedLibSource' "$INSTALL_PS1" \
+    && grep -q 'Install-BashScript -SourcePath' "$INSTALL_PS1"; then
+    pass "install.ps1 routes shared libs through Install-BashScript normalization"
 else
-    fail "install.ps1 does not use Install-BashScript for shared-lib copy"
+    fail "install.ps1 does not route shared libs through Install-BashScript"
 fi
 
 # ---------------------------------------------------------------------------
@@ -143,7 +148,7 @@ BACKUP_DIR="$REPO_ROOT"
 HOME="$HOME_TMP"
 if [ -d "$BACKUP_DIR/hooks/lib" ]; then
     ensure_dir "$HOME/.claude/hooks/lib"
-    for lib in validate-commit-message.sh validate-language.sh; do
+    for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
         if [ -f "$BACKUP_DIR/hooks/lib/$lib" ]; then
             cp "$BACKUP_DIR/hooks/lib/$lib" "$HOME/.claude/hooks/lib/"
             chmod +x "$HOME/.claude/hooks/lib/$lib"
@@ -151,7 +156,7 @@ if [ -d "$BACKUP_DIR/hooks/lib" ]; then
     done
 fi
 
-for lib in validate-commit-message.sh validate-language.sh; do
+for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
     deployed="$HOME/.claude/hooks/lib/$lib"
     if [ ! -f "$deployed" ]; then
         fail "$lib not deployed to temp \$HOME"

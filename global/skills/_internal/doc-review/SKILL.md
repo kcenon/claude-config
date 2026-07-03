@@ -124,9 +124,11 @@ Auto-recommend based on file count, then ask the user:
 | 1-10 | Solo | Low coordination overhead |
 | 11+ | Team | Benefit from shared findings and coordinated review |
 
-Use `AskUserQuestion` to present the choice:
+**Decisive count → apply silently.** The file count is a single unambiguous signal: when it is clear of the boundary (1-10 → solo, 11+ → team), set `$EXEC_MODE` to the recommended mode WITHOUT asking and print a one-line notice, e.g. `[Mode: solo — $FILE_COUNT files; pass --team to override]` (or `[Mode: team — $FILE_COUNT files; pass --solo to override]`). The user can still override with the `--solo`/`--team` flags handled in 0-2.
 
-- **Question**: "Review $FILE_COUNT files in `$DOCS_DIR`. Which execution mode?"
+**Borderline only → ask.** Only when the count sits right on the boundary (9-12 files, where coordination overhead vs. benefit is genuinely close) use `AskUserQuestion` to present the choice:
+
+- **Question**: "Review $FILE_COUNT files in `$DOCS_DIR` (borderline). Which execution mode?"
 - **Header**: "Mode"
 - **Options**:
   1. Recommended mode with "(Recommended)" suffix

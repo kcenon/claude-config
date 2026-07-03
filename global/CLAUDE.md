@@ -14,6 +14,7 @@ Global settings applied every session. Routing index only — procedural detail 
 - Protected branches: never direct-push to `main` or `develop`; PR + squash merge only
 - Read-before-Edit: Read any file before Edit/Write
 - Conflicts: never auto-resolve source code; `git merge --abort` if intractable
+- Command length: keep each Bash/PowerShell call short enough to parse (target <~900 bytes); extract longer logic to a `.ps1`/`.sh` file and invoke by path
 
 ## Routing
 
@@ -53,6 +54,7 @@ When the user types one of the keywords below as a leading command (with or with
 | `evidence-pack`        | `~/.claude/skills/_internal/evidence-pack/SKILL.md`         |
 | `risk-control`         | `~/.claude/skills/_internal/risk-control/SKILL.md`          |
 | `soup-inventory`       | `~/.claude/skills/_internal/soup-inventory/SKILL.md`        |
+| `memory-review`        | `~/.claude/skills/_internal/memory-review/SKILL.md`         |
 
 Ambiguity rule: if a keyword appears mid-sentence (not as a leading command) or inside quotes, ask whether the user meant the skill or a literal mention before invoking.
 

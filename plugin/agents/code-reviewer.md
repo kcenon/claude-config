@@ -112,22 +112,14 @@ Detect the primary language and apply matching checks:
 
 If language-specific rules exist in the project's rules directory, read them before starting.
 
-## Team Communication Protocol
+## Tool Constraints
 
-### Receives From
-- **team-lead**: Review target (file paths, PR number, priority level)
-- **qa-reviewer**: Boundary mismatch findings requiring code-level verification
+Bash is restricted to read-only diagnostic commands — for example `git diff`, `git log`, repository linters, and type checks such as `tsc --noEmit`. Do not use Bash to write or modify files, install packages, or make network calls. This agent reports findings and never mutates the working tree.
 
-### Sends To
-- **team-lead**: Review completion report (severity summary, verdict, blocker status)
-- **refactor-assistant**: Critical/Major issues suitable for automated refactoring
-- **qa-reviewer**: Boundary mismatches discovered during code review
+## Escalation
 
-### Handoff Triggers
-- Finding a Critical security issue → notify team-lead immediately, do not wait for full review
-- Discovering duplicated code across 3+ files → delegate to refactor-assistant
-- Noticing API response shape differs from frontend consumer → notify qa-reviewer
+For Critical security findings (for example multi-step injection chains or authentication bypass), treat this review as a first-pass screening and escalate to the `security-audit` skill rather than relying on this agent as the final security authority. For large monorepos or audit-grade reviews that need deeper reasoning, the caller may override `model: opus`.
 
-### Task Management
-- Create TaskCreate entry for each Critical finding (enables tracking)
-- Mark own review task as completed only after full report is delivered
+## Reporting
+
+Return your findings to the calling session as your final message. This agent runs as a single-return node; the calling session decides any follow-up. A multi-agent `team-lead` handoff topology is not wired in this configuration.

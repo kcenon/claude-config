@@ -157,7 +157,9 @@ guarded_template_copy() {
 
     local tmp_lang
     tmp_lang=$(mktemp)
-    sed "s/{{AGENT_LANGUAGE_POLICY}}/$display_lang/g" "$src_tmpl" > "$tmp_lang"
+    # Strip the developer-only tmpl-contract comment line so it does not leak
+    # into the rendered .md (issue #773, parity with the #771 render_policy_tmpl fix).
+    sed -e "/tmpl-contract/d" -e "s/{{AGENT_LANGUAGE_POLICY}}/$display_lang/g" "$src_tmpl" > "$tmp_lang"
     
     local result
     if guarded_copy "$tmp_lang" "$dest" "$key"; then

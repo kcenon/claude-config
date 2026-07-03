@@ -1,7 +1,7 @@
 # Orchestrator Pattern Templates
 
 > **Loading**: Excluded from default context via `.claudeignore`. Load with `@load: reference/orchestrator-patterns`.
-> **Architecture patterns**: See `rules/workflow/reference/agent-teams.md` for the 6 architecture patterns these templates implement.
+> **Architecture patterns**: See `.claude/reference/workflow/agent-teams.md` for the 6 architecture patterns these templates implement.
 
 ## Table of Contents
 

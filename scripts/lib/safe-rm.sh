@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # scripts/lib/safe-rm.sh
 # =====================================================================
 # Sourced library: no shebang, no `set -e`. The caller is responsible

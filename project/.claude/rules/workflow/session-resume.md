@@ -14,12 +14,18 @@ Write `.claude/resume.md` in the project directory when:
 - A long-running CI check is pending and the session may end
 - A batch workflow is running under `--auto-restart` and has reached a `CONFIRM_INTERVAL` boundary — the skill writes `resume.md` automatically and exits, so the next `claude` session resumes the batch from the next item (see `global/skills/_internal/issue-work/reference/batch-mode.md` B-4.1)
 
-> Templates (single + batch format): see `reference/session-resume-templates.md`
+> Templates (single + batch format): see `.claude/reference/workflow/session-resume-templates.md`
 
 ## How to Resume
 
-At session start, if `.claude/resume.md` exists:
-1. Read and present the saved state to the user
+At session start, use the **Read tool** on `.claude/resume.md` to check for and
+load saved state. A not-found error means there is no resume file — proceed
+normally. Do **not** wrap the check in an `if`/`Test-Path` compound shell command:
+it erodes the matchable command prefix and triggers a permission prompt (see
+`core/environment.md`, "Compound commands erode the matchable prefix").
+
+When the file is present:
+1. Present the saved state to the user
 2. If user confirms, proceed from the documented "Next Action"
 3. After completing the workflow, delete the resume file
 

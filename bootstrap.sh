@@ -43,6 +43,74 @@ ANTHROPIC_INSTALLER_SHA256="${ANTHROPIC_INSTALLER_SHA256:-b315b46925a9bfb9422f25
 
 # 설치 디렉토리
 INSTALL_DIR="${INSTALL_DIR:-$HOME/claude_config_backup}"
+
+# ── Argument parsing + non-interactive prompt helper (issue #778) ─────────────
+# Mirrors the scripts/install.sh FORCE_MODE / --type contract so the advertised
+# `curl ... | bash` one-liner keeps working: env overrides and --yes enable
+# fully unattended installs, and a /dev/tty fallback restores real prompts when
+# stdin is the piped script body rather than a keyboard.
+FORCE_MODE="${FORCE_MODE:-0}"
+_PENDING_TYPE=""
+_arg_prev=""
+for _arg in "$@"; do
+    if [ "$_arg_prev" = "--type" ]; then
+        _PENDING_TYPE="$_arg"; _arg_prev=""; continue
+    fi
+    case "$_arg" in
+        --yes|-y) FORCE_MODE=1 ;;
+        --type)   ;;  # value consumed on the next iteration via _arg_prev
+        -h|--help)
+            sed -n '3,12p' "${BASH_SOURCE[0]}" 2>/dev/null | sed 's/^# \{0,1\}//'
+            exit 0 ;;
+        *)
+            echo "bootstrap.sh: unknown argument '$_arg'" >&2
+            echo "Run with --help for usage." >&2
+            exit 2 ;;
+    esac
+    _arg_prev="$_arg"
+done
+[ -n "$_PENDING_TYPE" ] && INSTALL_TYPE="${INSTALL_TYPE:-$_PENDING_TYPE}"
+unset _arg _arg_prev _PENDING_TYPE
+
+# bootstrap_read <varname> <prompt> <default>
+# Resolve a prompt value, in priority order:
+#   1. a pre-set non-empty env var of the same name (install.sh vocabulary:
+#      INSTALL_TYPE / PROJECT_DIR / INSTALL_NPM / OVERWRITE / ...),
+#   2. under FORCE_MODE (--yes/-y): the default, with no prompt,
+#   3. an interactive prompt, read from /dev/tty when stdin is not a terminal
+#      (the `curl | bash` case where stdin is the script body),
+#   4. the default when no terminal is available at all (CI / non-tty).
+# The `|| true` keeps an EOF read from aborting under `set -euo pipefail`.
+bootstrap_read() {
+    local __var="$1" __prompt="$2" __default="$3" __reply=""
+    if [ -n "${!__var:-}" ]; then return 0; fi
+    if [ "${FORCE_MODE:-0}" = "1" ]; then
+        printf -v "$__var" '%s' "$__default"; return 0
+    fi
+    if [ -t 0 ]; then
+        read -r -p "$__prompt" __reply || true
+    elif [ -r /dev/tty ]; then
+        read -r -p "$__prompt" __reply < /dev/tty || true
+    fi
+    printf -v "$__var" '%s' "${__reply:-$__default}"
+}
+
+# Test-only prompt-resolution mode for CI smoke tests. It runs after argument
+# parsing and bootstrap_read are loaded, but before dependency checks, cloning,
+# or filesystem installation, so tests can exercise the piped non-tty entry
+# point hermetically.
+if [ "${CLAUDE_CONFIG_BOOTSTRAP_TEST_MODE:-}" = "prompt-resolution" ]; then
+    bootstrap_read INSTALL_TYPE "선택 (1-4) [기본값: 1]: " "1"
+    printf 'FORCE_MODE=%s\n' "${FORCE_MODE:-0}"
+    printf 'INSTALL_TYPE=%s\n' "${INSTALL_TYPE:-}"
+    if [ -t 0 ]; then
+        printf 'STDIN_TTY=1\n'
+    else
+        printf 'STDIN_TTY=0\n'
+    fi
+    exit 0
+fi
+# ──────────────────────────────────────────────────────────────────────────────
 CLAUDE_DIR="$HOME/.claude"
 
 echo -e "${BLUE}"
@@ -144,8 +212,7 @@ ensure_claude_cli() {
     echo "  의존하는 핵심 도구입니다. 미설치 상태에서는 일부 기능이 동작하지 않습니다."
     echo ""
 
-    read -p "Claude Code CLI를 지금 설치하시겠습니까? (y/n) [기본값: y]: " INSTALL_CLAUDE
-    INSTALL_CLAUDE=${INSTALL_CLAUDE:-y}
+    bootstrap_read INSTALL_CLAUDE "Claude Code CLI를 지금 설치하시겠습니까? (y/n) [기본값: y]: " "y"
 
     if [ "$INSTALL_CLAUDE" != "y" ]; then
         warning "Claude Code CLI 설치 건너뜀. 추후 수동 설치 가이드:"
@@ -207,8 +274,7 @@ clone_repository() {
 
     if [ -d "$INSTALL_DIR" ]; then
         warning "기존 설치 디렉토리가 존재합니다: $INSTALL_DIR"
-        read -p "덮어쓰시겠습니까? (y/n) [기본값: n]: " OVERWRITE
-        OVERWRITE=${OVERWRITE:-n}
+        bootstrap_read OVERWRITE "덮어쓰시겠습니까? (y/n) [기본값: n]: " "n"
 
         if [ "$OVERWRITE" = "y" ]; then
             safe_rm_rf "$INSTALL_DIR"
@@ -223,6 +289,110 @@ clone_repository() {
     # GitHub에서 클론 (pinned to GITHUB_REF, --depth 1 for bandwidth efficiency)
     git clone --branch "$GITHUB_REF" --depth 1 "https://github.com/$GITHUB_USER/$GITHUB_REPO.git" "$INSTALL_DIR"
     success "저장소 클론 완료: $INSTALL_DIR (ref: $GITHUB_REF)"
+}
+
+# copy_bootstrap_files <source_dir> <dest_dir> <glob> <executable:0|1>
+copy_bootstrap_files() {
+    local src_dir="$1" dest_dir="$2" pattern="$3" executable="$4"
+    local src dest
+
+    mkdir -p "$dest_dir" || return 1
+
+    for src in "$src_dir"/$pattern; do
+        [ -f "$src" ] || continue
+        dest="$dest_dir/$(basename "$src")"
+        cp "$src" "$dest" || return 1
+        if [ "$executable" = "1" ]; then
+            chmod +x "$dest" || return 1
+        fi
+    done
+
+    return 0
+}
+
+deploy_bootstrap_hooks() {
+    local hooks_src="$INSTALL_DIR/global/hooks"
+    local hooks_dst="$CLAUDE_DIR/hooks"
+    local hooks_lib_src="$hooks_src/lib"
+    local shared_lib_src="$INSTALL_DIR/hooks/lib"
+    local lib
+
+    if [ ! -d "$hooks_src" ]; then
+        echo "hook source directory missing: $hooks_src" >&2
+        return 1
+    fi
+
+    copy_bootstrap_files "$hooks_src" "$hooks_dst" "*.sh" 1 || return 1
+
+    # global/hooks/lib/*.sh 배포 (issue #586). 위 *.sh glob은 비재귀적이라
+    # tokenize-shell.sh 등 공유 라이브러리는 별도 복사 없이는 누락된다.
+    # dangerous-command-guard 등 4개 Bash 가드가 런타임에 이를 source한다.
+    if [ -d "$hooks_lib_src" ]; then
+        copy_bootstrap_files "$hooks_lib_src" "$hooks_dst/lib" "*.sh" 1 || return 1
+    fi
+
+    # 공유 검증 라이브러리 설치 (commit-message-guard.sh, pr-language-guard.sh,
+    # traceability-guard.sh가 사용). scripts/install.sh와 같은 런타임 계약.
+    if [ -d "$shared_lib_src" ]; then
+        for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
+            if [ -f "$shared_lib_src/$lib" ]; then
+                copy_bootstrap_files "$shared_lib_src" "$hooks_dst/lib" "$lib" 1 || return 1
+            fi
+        done
+    fi
+
+    for lib in \
+        tokenize-shell.sh \
+        path-utils.sh \
+        timeout-wrapper.sh \
+        rotate.sh \
+        validate-commit-message.sh \
+        validate-language.sh \
+        validate-traceability.sh; do
+        if [ ! -f "$hooks_dst/lib/$lib" ]; then
+            echo "required hook runtime library missing after deploy: hooks/lib/$lib" >&2
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+install_bootstrap_settings_and_hooks() {
+    local settings_src="$INSTALL_DIR/global/settings.json"
+    local settings_dst="$CLAUDE_DIR/settings.json"
+    local settings_tmp="$CLAUDE_DIR/.settings.json.tmp.$$"
+    local agent_language="${AGENT_LANGUAGE:-korean}"
+    local content_language="${CONTENT_LANGUAGE:-english}"
+    local settings_updated=0
+
+    [ -f "$settings_src" ] || return 0
+
+    # Stage settings first, then publish only after hook deployment succeeds.
+    # This keeps ~/.claude/settings.json from pointing at missing runtime hooks.
+    rm -f "$settings_tmp"
+    cp "$settings_src" "$settings_tmp" || error "settings.json 스테이징 실패"
+
+    if update_claude_settings_json "$settings_tmp" "$agent_language" "$content_language"; then
+        settings_updated=1
+    fi
+
+    if ! deploy_bootstrap_hooks; then
+        rm -f "$settings_tmp"
+        error "Hook 스크립트 배포 실패. settings.json을 변경하지 않았습니다."
+    fi
+
+    mv -f "$settings_tmp" "$settings_dst" || {
+        rm -f "$settings_tmp"
+        error "settings.json 게시 실패"
+    }
+
+    if [ "$settings_updated" = "1" ]; then
+        success "settings.json (에이전트: $agent_language, 컨텐츠: $content_language) 설치 완료"
+    else
+        success "settings.json 설치 완료 (기본값)"
+    fi
+    success "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
 }
 
 # 글로벌 설정 설치
@@ -250,17 +420,28 @@ install_global() {
         fi
     done
 
+    # Auto-seed git identity from `git config --global` (issue #777). Shared
+    # with scripts/install.sh via seed_git_identity() in install-prompts.sh, so
+    # the later personalize_git_identity step becomes confirm-only whenever the
+    # user already has a global git identity configured.
+    if seed_git_identity "$CLAUDE_DIR/git-identity.md"; then
+        success "git-identity.md: git config로 자동 채우기 완료 (${SEED_GIT_IDENTITY_NAME} <${SEED_GIT_IDENTITY_EMAIL}>)"
+    fi
+
+    # Reinstall: keep the previously chosen language policy (issue #780).
+    seed_language_from_settings "$HOME/.claude/settings.json"
+
+    # Language policy selection (Unified Language Profile)
+    prompt_language_profile
+
     # conversation-language.md 템플릿 처리
     if [ -f "$INSTALL_DIR/global/conversation-language.md.tmpl" ]; then
-        prompt_agent_language
-
         if guarded_template_copy "$INSTALL_DIR/global/conversation-language.md.tmpl" "$CLAUDE_DIR/conversation-language.md" "conversation-language.md" "$AGENT_DISPLAY_LANG"; then
             success "conversation-language.md 설치됨 (언어: $AGENT_DISPLAY_LANG)"
         else
             info "conversation-language.md 로컬 변경 유지"
         fi
     else
-        AGENT_LANGUAGE="korean"
         # Static-file fallback. The default repo ships only the .tmpl, so this
         # branch is unreachable in normal use. It exists to support fork users
         # who replace the .tmpl with a hand-edited static .md — preserving
@@ -274,26 +455,14 @@ install_global() {
         fi
     fi
 
-    # Content language policy selection (CLAUDE_CONTENT_LANGUAGE)
-    prompt_content_language
-
     # Legacy settings.json migration warning (informational only).
     warn_legacy_settings_value "$HOME/.claude/settings.json" || true
 
-    # settings.json install (Claude Code settings)
-    # Intentionally bypasses guarded_copy: policy attributes (.language,
-    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
-    # update_claude_settings_json (below) injects them and is responsible
-    # for idempotent reset when the policy returns to default ("english").
-    if [ -f "$INSTALL_DIR/global/settings.json" ]; then
-        cp "$INSTALL_DIR/global/settings.json" "$HOME/.claude/settings.json"
-
-        if update_claude_settings_json "$HOME/.claude/settings.json" "${AGENT_LANGUAGE:-korean}" "$CONTENT_LANGUAGE"; then
-            success "settings.json (에이전트: ${AGENT_LANGUAGE:-korean}, 컨텐츠: $CONTENT_LANGUAGE) 설치 완료"
-        else
-            success "settings.json 설치 완료 (기본값)"
-        fi
-    fi
+    # settings.json + hooks 디렉토리 설치 (settings.json이 참조하는 런타임 가드)
+    # settings.json은 ~/.claude/hooks/*.sh 가드 다수를 참조하므로, 설정 복사와
+    # 훅 배포를 한 트랜잭션으로 처리해 "설정은 있는데 훅이 없는" 조용한 보안
+    # 공백을 막는다. Hook 배포 실패 시 settings.json은 게시하지 않는다.
+    install_bootstrap_settings_and_hooks
 
     # 글로벌 skills 및 commands 설치
     # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
@@ -327,8 +496,7 @@ install_global() {
 
     # npm 패키지 설치 (statusline 의존성)
     if command -v npm &> /dev/null; then
-        read -p "Statusline npm 패키지를 설치하시겠습니까? (y/n) [기본값: y]: " INSTALL_NPM
-        INSTALL_NPM=${INSTALL_NPM:-y}
+        bootstrap_read INSTALL_NPM "Statusline npm 패키지를 설치하시겠습니까? (y/n) [기본값: y]: " "y"
         if [ "$INSTALL_NPM" = "y" ]; then
             if npm install -g ccstatusline claude-limitline 2>/dev/null; then
                 success "npm 패키지 설치 완료 (ccstatusline, claude-limitline)"
@@ -346,7 +514,11 @@ install_global() {
 # Git identity 개인화 안내
 personalize_git_identity() {
     echo ""
-    warning "중요: Git Identity를 개인 정보로 수정해야 합니다!"
+    if grep -qE "YOUR NAME|YOUR EMAIL" "$CLAUDE_DIR/git-identity.md" 2>/dev/null; then
+        warning "Git Identity에 기본 placeholder가 남아 있습니다. 개인 정보로 수정하세요."
+    else
+        info "Git Identity가 준비되었습니다. 필요하면 값을 확인하거나 수정하세요."
+    fi
     echo ""
     echo "  현재 설정:"
     grep -E "^(name|email):" "$CLAUDE_DIR/git-identity.md" 2>/dev/null || true
@@ -355,8 +527,7 @@ personalize_git_identity() {
     echo "    vi ~/.claude/git-identity.md"
     echo ""
 
-    read -p "지금 수정하시겠습니까? (y/n) [기본값: n]: " EDIT_NOW
-    EDIT_NOW=${EDIT_NOW:-n}
+    bootstrap_read EDIT_NOW "지금 수정하시겠습니까? (y/n) [기본값: n]: " "n"
 
     if [ "$EDIT_NOW" = "y" ]; then
         ${EDITOR:-vi} "$CLAUDE_DIR/git-identity.md"
@@ -373,15 +544,13 @@ select_install_type() {
     echo "  3) 둘 다 설치 (권장)"
     echo "  4) 저장소만 클론 (수동 설치)"
     echo ""
-    read -p "선택 (1-4) [기본값: 1]: " INSTALL_TYPE
-    INSTALL_TYPE=${INSTALL_TYPE:-1}
+    bootstrap_read INSTALL_TYPE "선택 (1-4) [기본값: 1]: " "1"
 }
 
 # 프로젝트 설정 설치
 install_project() {
     echo ""
-    read -p "프로젝트 디렉토리 경로 [기본값: $(pwd)]: " PROJECT_DIR
-    PROJECT_DIR=${PROJECT_DIR:-$(pwd)}
+    bootstrap_read PROJECT_DIR "프로젝트 디렉토리 경로 [기본값: $(pwd)]: " "$(pwd)"
 
     if [ ! -d "$PROJECT_DIR" ]; then
         error "디렉토리가 존재하지 않습니다: $PROJECT_DIR"
@@ -389,12 +558,32 @@ install_project() {
 
     info "프로젝트 설정 설치 중: $PROJECT_DIR"
 
+    # 정책 템플릿 렌더링 준비 (issue #760)
+    # install-prompts.sh는 render_policy_tmpls_in_dir와 언어 프로파일 프롬프트를
+    # 제공한다. 프로젝트-단독 설치(타입 2)에서는 install_global이 호출되지 않으므로
+    # 이 시점에 lib 소싱과 언어 프로파일 해소가 모두 필요하다. 둘 다 멱등:
+    #   - lib는 INSTALL_PROMPTS_SH_LOADED 가드로 재소싱이 no-op
+    #   - 언어 변수가 이미 설정된 경우(타입 3에서 install_global이 프롬프트함)
+    #     재프롬프트하지 않도록 미설정일 때만 prompt_language_profile 호출
+    # shellcheck disable=SC1091
+    source "$INSTALL_DIR/scripts/lib/install-prompts.sh"
+    # Reinstall: keep the previously chosen language policy (issue #780).
+    seed_language_from_settings "$HOME/.claude/settings.json"
+    if [ -z "${AGENT_LANGUAGE:-}" ] || [ -z "${CONTENT_LANGUAGE:-}" ]; then
+        prompt_language_profile
+    fi
+
     # 파일 복사
     cp "$INSTALL_DIR/project/CLAUDE.md" "$PROJECT_DIR/"
 
     # .claude 디렉토리 설치
     mkdir -p "$PROJECT_DIR/.claude"
-    [ -d "$INSTALL_DIR/project/.claude/rules" ] && cp -r "$INSTALL_DIR/project/.claude/rules" "$PROJECT_DIR/.claude/"
+    if [ -d "$INSTALL_DIR/project/.claude/rules" ]; then
+        cp -r "$INSTALL_DIR/project/.claude/rules" "$PROJECT_DIR/.claude/"
+        # issue #760: 복사된 rules/ 안의 .md.tmpl을 정책 phrase로 치환
+        # (install.sh와 동일한 single-source 렌더 함수)
+        render_policy_tmpls_in_dir "$PROJECT_DIR/.claude/rules"
+    fi
     [ -d "$INSTALL_DIR/project/.claude/skills" ] && cp -r "$INSTALL_DIR/project/.claude/skills" "$PROJECT_DIR/.claude/"
     [ -d "$INSTALL_DIR/project/.claude/commands" ] && cp -r "$INSTALL_DIR/project/.claude/commands" "$PROJECT_DIR/.claude/"
     [ -d "$INSTALL_DIR/project/.claude/agents" ] && cp -r "$INSTALL_DIR/project/.claude/agents" "$PROJECT_DIR/.claude/"
@@ -457,6 +646,14 @@ main() {
 
     success "Happy Coding with Claude! 🎉"
 }
+
+if [ "${CLAUDE_CONFIG_BOOTSTRAP_TEST_MODE:-}" = "atomic-deploy" ]; then
+    mkdir -p "$CLAUDE_DIR"
+    # shellcheck disable=SC1091
+    source "$INSTALL_DIR/scripts/install-manifest.sh"
+    install_bootstrap_settings_and_hooks
+    exit 0
+fi
 
 # 스크립트 실행
 main "$@"

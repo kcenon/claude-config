@@ -54,56 +54,61 @@ _prompts_warn() {
     fi
 }
 
-# prompt_agent_language
+# prompt_language_profile
 # Sets:
 #   AGENT_LANGUAGE      english | korean
 #   AGENT_DISPLAY_LANG  English | Korean
-prompt_agent_language() {
-    echo ""
-    _prompts_info "Select Agent Conversation Language:"
-    echo "  1) English"
-    echo "  2) Korean"
-    echo ""
-    read -r -p "Selection (1-2) [default: 2]: " _agent_lang_type
-    _agent_lang_type=${_agent_lang_type:-2}
+#   CONTENT_LANGUAGE    english | exclusive_bilingual
+#
+# Non-interactive override: set AGENT_LANGUAGE and/or CONTENT_LANGUAGE before
+# calling to skip or partially skip the prompt. Each var is honored
+# INDEPENDENTLY (issue #762): presetting only one still suppresses the prompt
+# only when both are set; the still-unset half falls back to the Hybrid default
+# (AGENT_LANGUAGE=korean / CONTENT_LANGUAGE=english) rather than being clobbered.
+prompt_language_profile() {
+    # Capture which vars the caller preset BEFORE the prompt may overwrite them.
+    # Installers call seed_language_from_settings() just before this to keep a
+    # prior policy on reinstall (issue #780); that seeding stays out of this
+    # function so the pure prompt contract (tested by
+    # test-language-override-contract.sh) is unchanged.
+    local _agent_preset="" _content_preset=""
+    [ -n "${AGENT_LANGUAGE:-}" ]   && _agent_preset="$AGENT_LANGUAGE"
+    [ -n "${CONTENT_LANGUAGE:-}" ] && _content_preset="$CONTENT_LANGUAGE"
 
-    case "$_agent_lang_type" in
-        1)
-            AGENT_LANGUAGE="english"
-            AGENT_DISPLAY_LANG="English"
-            ;;
-        2)
-            AGENT_LANGUAGE="korean"
-            AGENT_DISPLAY_LANG="Korean"
-            ;;
-        *)
-            _prompts_warn "Unknown selection: $_agent_lang_type. Falling back to korean."
-            AGENT_LANGUAGE="korean"
-            AGENT_DISPLAY_LANG="Korean"
-            ;;
-    esac
-}
+    # Run the interactive block only when BOTH are unset.
+    if [ -z "$_agent_preset" ] && [ -z "$_content_preset" ]; then
+        echo ""
+        _prompts_info "Select Language Profile Preset:"
+        echo "  1) English Unified (Dialogue & Documents both in English)"
+        echo "  2) Korean Unified  (Each artifact Korean-only or English-only; no inline mix)"
+        echo "  3) Hybrid Mode     (Dialogue in Korean, Documents in English - default)"
+        echo ""
+        read -r -p "Selection (1-3) [default: 3]: " _profile_type
+        _profile_type=${_profile_type:-3}
 
-# prompt_content_language
-# Sets:
-#   CONTENT_LANGUAGE  english | exclusive_bilingual
-prompt_content_language() {
-    echo ""
-    _prompts_info "Select Content Language (artifact validation scope):"
-    _prompts_info "  Locks the language of generated documents, commits, PRs, issues, and comments."
-    echo "  1) English (ASCII only - no Hangul allowed in artifacts)"
-    echo "  2) Korean  (per-artifact strict - Hangul or English document, no inline mixing)"
-    echo ""
-    read -r -p "Selection (1-2) [default: 1]: " _content_lang_type
-    _content_lang_type=${_content_lang_type:-1}
+        case "$_profile_type" in
+            1) AGENT_LANGUAGE="english"; CONTENT_LANGUAGE="english" ;;
+            2) AGENT_LANGUAGE="korean";  CONTENT_LANGUAGE="exclusive_bilingual" ;;
+            3) AGENT_LANGUAGE="korean";  CONTENT_LANGUAGE="english" ;;
+            *)
+                _prompts_warn "Unknown selection: $_profile_type. Falling back to Hybrid Mode."
+                AGENT_LANGUAGE="korean"; CONTENT_LANGUAGE="english"
+                ;;
+        esac
+    fi
 
-    case "$_content_lang_type" in
-        1) CONTENT_LANGUAGE="english" ;;
-        2) CONTENT_LANGUAGE="exclusive_bilingual" ;;
-        *)
-            _prompts_warn "Unknown selection: $_content_lang_type. Falling back to english."
-            CONTENT_LANGUAGE="english"
-            ;;
+    # Re-apply presets over whatever the prompt set, then fill the still-unset
+    # half from the Hybrid default. Each var is honored independently.
+    [ -n "$_agent_preset" ]   && AGENT_LANGUAGE="$_agent_preset"
+    [ -n "$_content_preset" ] && CONTENT_LANGUAGE="$_content_preset"
+    AGENT_LANGUAGE="${AGENT_LANGUAGE:-korean}"
+    CONTENT_LANGUAGE="${CONTENT_LANGUAGE:-english}"
+
+    # Derive Display from the final AGENT_LANGUAGE via the single existing case.
+    case "$AGENT_LANGUAGE" in
+        english) AGENT_DISPLAY_LANG="English" ;;
+        korean)  AGENT_DISPLAY_LANG="Korean"  ;;
+        *)       AGENT_DISPLAY_LANG="Korean"  ;;
     esac
 }
 
@@ -122,6 +127,37 @@ get_policy_phrase() {
         any)                 echo "any language" ;;
         *)                   echo "English" ;;
     esac
+}
+
+# 함수: .tmpl 파일을 읽어 {{CONTENT_LANGUAGE_POLICY}}를 phrase로 치환한 뒤 대상에 기록
+# 사용법: render_policy_tmpl <src.tmpl> <dest.md>
+# get_policy_phrase에 의존하며 ambient CONTENT_LANGUAGE/AGENT_DISPLAY_LANG/
+# AGENT_LANGUAGE를 읽는다(미설정 시 안전 기본값). install.sh와 bootstrap.sh
+# 양쪽이 동일하게 호출하도록 단일 출처(이 lib)에 둔다 (issue #760).
+render_policy_tmpl() {
+    local src="$1"
+    local dest="$2"
+    local phrase
+    phrase="$(get_policy_phrase)"
+    # sed 구분자를 |로 사용해 경로/phrase 충돌 회피.
+    # tmpl-contract 주석 줄은 개발자 전용 가이드이므로 .tmpl에는 남기되
+    # 렌더된 .md로는 새어 나가지 않도록 삭제한다 (issue #771).
+    sed -e "/tmpl-contract/d" \
+        -e "s|{{CONTENT_LANGUAGE_POLICY}}|${phrase}|g" \
+        -e "s|{{AGENT_LANGUAGE_POLICY}}|${AGENT_DISPLAY_LANG:-Korean}|g" \
+        -e "s|{{AGENT_LANGUAGE}}|${AGENT_LANGUAGE:-korean}|g" "$src" > "$dest"
+}
+
+# 함수: 지정 디렉토리 내의 .md.tmpl 파일을 모두 찾아 .md로 렌더링 (원본 .tmpl 삭제)
+# 사용법: render_policy_tmpls_in_dir <dir>
+render_policy_tmpls_in_dir() {
+    local dir="$1"
+    local tmpl md
+    while IFS= read -r tmpl; do
+        md="${tmpl%.tmpl}"
+        render_policy_tmpl "$tmpl" "$md"
+        rm -f "$tmpl"
+    done < <(find "$dir" -type f -name '*.md.tmpl' 2>/dev/null)
 }
 
 # all_policy_values
@@ -150,6 +186,49 @@ read_settings_content_language() {
             | sed -E 's/.*"CLAUDE_CONTENT_LANGUAGE"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/' \
             | head -1
     fi
+}
+
+# read_settings_agent_language <settings_json_path>
+# Echoes the current top-level ".language" value (agent conversation language)
+# stored in settings.json, or empty string when absent / unparseable. Mirrors
+# read_settings_content_language. The grep fallback anchors on the quoted key so
+# it does not collide with "CLAUDE_CONTENT_LANGUAGE".
+read_settings_agent_language() {
+    local file="${1:-}"
+    [ -f "$file" ] || { echo ""; return 0; }
+    if command -v jq >/dev/null 2>&1; then
+        jq -r '.language // empty' "$file" 2>/dev/null
+    else
+        grep -oE '"language"[[:space:]]*:[[:space:]]*"[^"]*"' "$file" 2>/dev/null \
+            | sed -E 's/.*"language"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/' \
+            | head -1
+    fi
+}
+
+# seed_language_from_settings <settings_json_path>
+# Reinstall helper (issue #780). Fills AGENT_LANGUAGE / CONTENT_LANGUAGE from an
+# existing settings.json when they are unset, so prompt_language_profile keeps
+# the previously chosen policy instead of resetting to the Hybrid default.
+# Each variable is seeded independently (they are orthogonal per #762); there is
+# no reverse-map to a preset menu number. An explicit env override wins because
+# only unset variables are filled. Emits one info line when it seeds so the
+# behavior is discoverable, not silent.
+seed_language_from_settings() {
+    local file="${1:-}"
+    [ -f "$file" ] || return 0
+    local seeded=0 a c
+    if [ -z "${AGENT_LANGUAGE:-}" ]; then
+        a="$(read_settings_agent_language "$file")"
+        [ -n "$a" ] && { AGENT_LANGUAGE="$a"; seeded=1; }
+    fi
+    if [ -z "${CONTENT_LANGUAGE:-}" ]; then
+        c="$(read_settings_content_language "$file")"
+        [ -n "$c" ] && { CONTENT_LANGUAGE="$c"; seeded=1; }
+    fi
+    if [ "$seeded" = "1" ]; then
+        _prompts_info "Existing language policy kept from settings.json (agent=${AGENT_LANGUAGE:-?}, content=${CONTENT_LANGUAGE:-?}). Override with AGENT_LANGUAGE/CONTENT_LANGUAGE env or edit ~/.claude/settings.json."
+    fi
+    return 0
 }
 
 # warn_legacy_settings_value <settings_json_path>
@@ -182,4 +261,50 @@ detect_legacy_content_language() {
         korean_plus_english|any) return 0 ;;
         *)                       return 1 ;;
     esac
+}
+
+# seed_git_identity <deployed_git_identity_md>
+# Auto-fill the name/email placeholders in a deployed git-identity.md from
+# `git config --global user.name` / `user.email`. Extracted from the #748
+# auto-fill block in scripts/install.sh so bootstrap.sh and install.sh share
+# one implementation (issue #777).
+#
+# Contract (idempotent, never destructive):
+#   - no-op (return 1) when the target file is absent,
+#   - no-op when git config lacks either user.name or user.email,
+#   - only rewrites lines that still hold the YOUR NAME / YOUR EMAIL
+#     placeholder tokens, so a user-customized file is left untouched.
+# On success, exports SEED_GIT_IDENTITY_NAME / SEED_GIT_IDENTITY_EMAIL so the
+# caller can print a confirmation, and returns 0.
+seed_git_identity() {
+    local target="${1:-}"
+    [ -f "$target" ] || return 1
+
+    local name email
+    name="$(git config --global user.name 2>/dev/null || true)"
+    email="$(git config --global user.email 2>/dev/null || true)"
+    [ -n "$name" ] && [ -n "$email" ] || return 1
+
+    # Only touch the file while placeholders remain — never clobber real values.
+    grep -q "YOUR NAME\|YOUR EMAIL" "$target" 2>/dev/null || return 1
+
+    # Escape sed replacement metacharacters (\ & and the | delimiter) so a
+    # name/email containing them cannot corrupt the substitution.
+    local esc_name esc_email
+    esc_name="$(printf '%s' "$name" | sed -e 's/[\\&|]/\\&/g')"
+    esc_email="$(printf '%s' "$email" | sed -e 's/[\\&|]/\\&/g')"
+
+    if sed -i.bak \
+        -e "s|YOUR NAME|${esc_name}|g" \
+        -e "s|YOUR EMAIL|${esc_email}|g" \
+        "$target" 2>/dev/null; then
+        rm -f "$target.bak"
+        SEED_GIT_IDENTITY_NAME="$name"
+        SEED_GIT_IDENTITY_EMAIL="$email"
+        return 0
+    fi
+
+    # Restore on failure so a partial write never leaves a corrupt file.
+    mv "$target.bak" "$target" 2>/dev/null || true
+    return 1
 }

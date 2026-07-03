@@ -34,7 +34,7 @@ fi
 if ! validate_commit_message "$MSG"; then
     echo "" >&2
     echo "commit-msg hook rejected the commit." >&2
-    echo "Fix the message and try again, or use --no-verify to bypass (not recommended)." >&2
+    echo "Fix the message and try again. Project policy blocks --no-verify bypasses." >&2
     exit 1
 fi
 

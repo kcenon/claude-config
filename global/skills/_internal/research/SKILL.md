@@ -17,8 +17,8 @@ allowed-tools:
 max_iterations: 5
 halt_conditions:
   - { type: limit, expr: "Depth target reached (shallow=1 round, standard=3, deep=5)" }
-  - { type: user,  expr: "user confirms sufficient findings" }
   - { type: limit, expr: "no new sources surface for 2 consecutive rounds" }
+  - { type: user,  expr: "deep depth only: after max_iterations is reached, ask the user to confirm sufficient findings (fallback). shallow/standard terminate on their count-based exits without asking." }
 on_halt: "Write report with partial findings and explicit coverage-gap section"
 loop_safe: true
 iso_class: none

@@ -280,9 +280,11 @@ Auto-recommend based on failure complexity:
 | Error categories | Single (build OR test OR lint) | Multiple (build AND test) |
 | Previous fix attempts | 0 | 1+ (already tried, recurring) |
 
-Use `AskUserQuestion` to present the choice:
+**Decisive signals → apply silently.** When the signals are unambiguous (all point the same direction — e.g. 1 failed workflow in a single error category → solo, 2+ failed workflows across multiple categories → team), set `$EXEC_MODE` to the recommended mode WITHOUT asking and print a one-line notice, e.g. `[Mode: solo — 1 failed workflow; pass --team to override]` (or `[Mode: team — 3 failed workflows; pass --solo to override]`). The user can still override with the `--solo`/`--team` flags handled in 0-2.
 
-- **Question**: "PR #$PR_NUMBER has $FAILED_RUNS failed workflow(s). Which execution mode?"
+**Conflicting signals → ask.** Only when signals genuinely point in different directions (e.g. 1 failed workflow but multiple error categories and a prior failed fix attempt) use `AskUserQuestion` to present the choice:
+
+- **Question**: "PR #$PR_NUMBER has $FAILED_RUNS failed workflow(s) (mixed signals). Which execution mode?"
 - **Header**: "Mode"
 - **Options**:
   1. Recommended mode with "(Recommended)" suffix

@@ -2,7 +2,7 @@ name: Validate Hooks
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - 'global/hooks/**'
       - 'hooks/**'
@@ -19,20 +19,34 @@ on:
       - 'scripts/install-manifest.ps1'
       - 'bootstrap.sh'
       - 'bootstrap.ps1'
+      - 'tests/scripts/test-bootstrap-non-tty-smoke.sh'
+      - 'tests/scripts/test-bootstrap-atomic-deploy.*'
+      - 'tests/scripts/test-install-atomic-deploy.*'
       - 'tests/scripts/test-plugin-*.sh'
       - 'tests/scripts/test-install-manifest-helpers.*'
       - 'tests/scripts/test-install-permissions-policy.sh'
+      - 'tests/scripts/test-global-files-referenced-exist.sh'
       - 'tests/scripts/test-language-policy-drift.sh'
       - 'tests/scripts/test-installer-prompt-drift.sh'
+      - 'tests/scripts/test-install-prompts-ps1.ps1'
+      - 'tests/scripts/test-doc-prompt-lockstep.sh'
+      - 'tests/scripts/test-language-override-contract.sh'
       - 'scripts/lib/**'
       - 'global/settings.json'
       - 'global/settings.windows.json'
       - 'tests/scripts/test-windows-hooks-parity.sh'
+      - 'tests/scripts/test-windows-powershell-permissions.sh'
       - 'tests/scripts/test-hook-ordering.sh'
       - 'tests/scripts/test-severity-enum.sh'
       - 'scripts/backup.sh'
       - 'scripts/backup.ps1'
       - 'tests/scripts/test-installer-robustness.sh'
+
+# Cancel in-progress runs of the same PR / schedule so a fast follow-up commit
+# does not pile up.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -100,6 +114,11 @@ jobs:
         # Lint test: install.sh must enforce 700 / 600 / 644 on tracked files.
         run: bash tests/scripts/test-install-permissions-policy.sh
 
+      - name: Run global referenced-file existence test
+        # Regression guard for #777: every global/*.md file referenced by
+        # bootstrap/install copy loops must exist as a static file or template.
+        run: bash tests/scripts/test-global-files-referenced-exist.sh
+
       - name: Run content-language policy drift test
         # Verifies (a) canonical .md == .tmpl rendered with english phrase,
         # (b) every CLAUDE_CONTENT_LANGUAGE value renders deterministically.
@@ -111,6 +130,26 @@ jobs:
         # of truth for installer prompts and the policy phrase table.
         run: bash tests/scripts/test-installer-prompt-drift.sh
 
+      - name: Run PowerShell installer prompt tests
+        # Covers runtime PowerShell prompt-helper behavior that static drift
+        # extraction cannot validate, including reinstall language seeding.
+        run: pwsh -NoProfile -File tests/scripts/test-install-prompts-ps1.ps1
+
+      - name: Run doc/prompt lockstep test
+        # Pins the live 3-option Language Profile Preset prompt as the
+        # single source of truth (#763): fails if any tracked file
+        # reintroduces a removed prompt-function identifier or a stale
+        # two-prompt description, and asserts the preset header, the three
+        # option labels, and the [default: 3] line are still present.
+        run: bash tests/scripts/test-doc-prompt-lockstep.sh
+
+      - name: Run language override contract test
+        # Locks the independent non-interactive env-override contract
+        # (issue #762): presetting only AGENT_LANGUAGE or only
+        # CONTENT_LANGUAGE must be honored, not clobbered to the Hybrid
+        # default. Guards against the AND-gate regression from #757.
+        run: bash tests/scripts/test-language-override-contract.sh
+
       - name: Run installer robustness test
         # Guards the per-platform settings-source parity (PowerShell
         # installers ship settings.windows.json, bash installers ship
@@ -118,11 +157,42 @@ jobs:
         # backup.sh/.ps1 copy-then-swap staging (silent-data-loss fix).
         run: bash tests/scripts/test-installer-robustness.sh
 
+      - name: Run bootstrap non-tty smoke test
+        # Exercises the advertised `curl ... | INSTALL_TYPE=3 bash` entrypoint
+        # shape without network access or a real install.
+        run: bash tests/scripts/test-bootstrap-non-tty-smoke.sh
+
+      - name: Run bootstrap atomic deploy test
+        # Proves settings.json is published only after runtime hook deployment
+        # succeeds, so a failed hook copy cannot leave settings pointing at
+        # missing hooks.
+        run: bash tests/scripts/test-bootstrap-atomic-deploy.sh
+
+      - name: Run bootstrap atomic deploy test (PowerShell)
+        # Mirrors the Bash atomic settings/hooks deployment contract for
+        # bootstrap.ps1 using an isolated fake INSTALL_DIR and HOME.
+        run: pwsh tests/scripts/test-bootstrap-atomic-deploy.ps1
+
+      - name: Run clone installer atomic deploy test
+        # Proves scripts/install.sh publishes settings.json only after
+        # runtime hook deployment succeeds.
+        run: bash tests/scripts/test-install-atomic-deploy.sh
+
+      - name: Run clone installer atomic deploy test (PowerShell)
+        # Mirrors the Bash clone installer settings/hooks deployment contract
+        # for scripts/install.ps1 using an isolated fixture and HOME.
+        run: pwsh tests/scripts/test-install-atomic-deploy.ps1
+
       - name: Run hook-wiring parity test (settings.json <-> settings.windows.json)
         # Catches dormant guards: a .ps1 hook present in global/hooks/ but not
         # wired into settings.windows.json (or POSIX-only drift). This is the
         # gate the 7 unwired Windows security guards (#655) would have tripped.
         run: bash tests/scripts/test-windows-hooks-parity.sh
+
+      - name: Run Windows PowerShell permissions policy test
+        # Ensures Windows gets narrow read-only PowerShell discovery allowances
+        # without broad PowerShell(*) or state-changing gh grants.
+        run: bash tests/scripts/test-windows-powershell-permissions.sh
 
       - name: Run hook ordering test
         # Asserts the load-bearing PreToolUse hook order (sensitive-file-guard
@@ -132,6 +202,15 @@ jobs:
       - name: Run skill severity enum test
         # Validates code-review skill frontmatter severity/finding_levels enums.
         run: bash tests/scripts/test-severity-enum.sh
+
+      - name: Run PowerShell hook behavior tests (pwsh)
+        # CI parity (#781): the .ps1 hook behavior tests under
+        # tests/hooks/test-runner.ps1 previously ran in no workflow, so the
+        # PowerShell guards had zero behavioral coverage and Windows users acted
+        # as the test runner. pwsh is preinstalled on the ubuntu/macos runners
+        # (already used by the install-manifest step above), so this is zero
+        # extra infra.
+        run: pwsh tests/hooks/test-runner.ps1
 
   shellcheck:
     runs-on: ${{ matrix.os }}
@@ -151,17 +230,29 @@ jobs:
             brew install shellcheck
           fi
 
-      - name: Run shellcheck on hook scripts
+      - name: Run shellcheck on shell scripts
         run: |
           failed=0
+          # Broad loop: every tracked .sh, gated at error severity. Self-tracking
+          # — new scripts are covered automatically with no workflow change.
+          # while-read over process substitution (not `... | while`) keeps the
+          # failed flag in the current shell and stays bash 3.2 compatible
+          # (macOS runners lack the bash 4+ `mapfile`).
+          while IFS= read -r f; do
+            echo "Checking (error) $f..."
+            if ! shellcheck --severity=error -e SC2086 "$f"; then
+              failed=1
+            fi
+          done < <(git ls-files '*.sh')
+          # Strict loop: hook + benchmark scripts held to the stricter warning bar.
           for script in global/hooks/*.sh tests/batch_drift_benchmark/*.sh; do
-            echo "Checking $script..."
+            echo "Checking (warning) $script..."
             if ! shellcheck -S warning -e SC2086 "$script"; then
               failed=1
             fi
           done
-          if [ $failed -eq 1 ]; then
-            echo "Shellcheck found issues in hook scripts"
+          if [ "$failed" -ne 0 ]; then
+            echo "Shellcheck found issues"
             exit 1
           fi
-          echo "All hook scripts passed shellcheck!"
+          echo "All shell scripts passed shellcheck!"

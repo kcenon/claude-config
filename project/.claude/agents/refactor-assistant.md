@@ -74,25 +74,29 @@ Before producing output, verify:
 
 ## Safety Verification Protocol
 
+This agent applies edits but does not run tests, commits, or reverts itself — its
+tool set is read-and-edit only by design. Test execution, commits, and rollback are
+the calling session's responsibility. Preserve behavior as follows:
+
 ### Before Refactoring
-1. Run existing test suite — record baseline pass count and test names
+1. Confirm the test baseline with the calling session (pass count and test names), or record the exact test command to run — do not assume tests pass
 2. Identify all callers of the code being refactored (grep for usages)
-3. Confirm no untested code will be refactored (hard stop if tests are missing)
+3. Confirm no untested code will be refactored — if coverage is unknown, raise it as a hard stop for the caller
 
 ### During Refactoring
-1. One refactoring at a time — commit each independently
-2. Re-run tests after each change — revert immediately on any failure
+1. One refactoring at a time — keep each change a self-contained logical unit the caller can review and verify independently
+2. After each change, report the exact test command for the caller to run; if the caller reports a failure, revert that change before proceeding
 3. Never change public API signatures without updating all callers first
 
 ### After Refactoring
-1. Run full test suite — compare pass count against baseline
-2. Verify no new warnings or deprecation notices
-3. Confirm all callers still compile and pass tests
+1. Report the full test command and the expected pass count against baseline for the caller to verify
+2. Verify by inspection that no new warnings or deprecation notices are introduced
+3. List every caller that the calling session must re-compile and re-test
 
 ### Hard Stops
-- **No refactoring of untested code** — add tests first, then refactor
+- **No refactoring of untested code** — request tests from the caller first, then refactor
 - **No public API changes without caller updates** — find all consumers before changing signatures
-- **Revert on any test failure** — do not attempt to fix tests to match refactored code
+- **Recommend revert on any reported test failure** — never edit tests to match refactored code
 
 ## Refactoring Techniques
 
@@ -137,27 +141,12 @@ If `rules/coding/cpp-specifics.md` or similar language-specific rules exist in t
 
 ## Process
 
-1. Understand current code and run baseline tests
+1. Understand current code and confirm the test baseline with the calling session
 2. Identify refactoring opportunities
 3. Plan the change (one technique at a time)
 4. Apply incrementally with test verification
 5. Report before/after comparison
 
-## Team Communication Protocol
+## Reporting
 
-### Receives From
-- **team-lead**: Refactoring target (files, scope, specific technique to apply)
-- **code-reviewer**: Critical/Major issues suitable for automated refactoring
-
-### Sends To
-- **team-lead**: Refactoring completion report (before/after summary, test verification results)
-- **code-reviewer**: Notification when refactoring changes public interfaces
-
-### Handoff Triggers
-- Discovering untested code in refactoring scope → notify team-lead (hard stop)
-- Refactoring reveals a deeper architectural issue → create TaskCreate for codebase-analyzer
-- Test failure during refactoring → revert and notify team-lead with failure details
-
-### Task Management
-- Create TaskCreate entry for each discovered issue outside refactoring scope
-- Mark own refactoring task as completed only after test verification passes
+Return your findings to the calling session as your final message. This agent runs as a single-return node; the calling session decides any follow-up. A multi-agent `team-lead` handoff topology is not wired in this configuration.
