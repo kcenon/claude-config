@@ -21,6 +21,7 @@ on:
       - 'bootstrap.ps1'
       - 'tests/scripts/test-bootstrap-non-tty-smoke.sh'
       - 'tests/scripts/test-bootstrap-atomic-deploy.*'
+      - 'tests/scripts/test-install-atomic-deploy.*'
       - 'tests/scripts/test-plugin-*.sh'
       - 'tests/scripts/test-install-manifest-helpers.*'
       - 'tests/scripts/test-install-permissions-policy.sh'
@@ -171,6 +172,16 @@ jobs:
         # Mirrors the Bash atomic settings/hooks deployment contract for
         # bootstrap.ps1 using an isolated fake INSTALL_DIR and HOME.
         run: pwsh tests/scripts/test-bootstrap-atomic-deploy.ps1
+
+      - name: Run clone installer atomic deploy test
+        # Proves scripts/install.sh publishes settings.json only after
+        # runtime hook deployment succeeds.
+        run: bash tests/scripts/test-install-atomic-deploy.sh
+
+      - name: Run clone installer atomic deploy test (PowerShell)
+        # Mirrors the Bash clone installer settings/hooks deployment contract
+        # for scripts/install.ps1 using an isolated fixture and HOME.
+        run: pwsh tests/scripts/test-install-atomic-deploy.ps1
 
       - name: Run hook-wiring parity test (settings.json <-> settings.windows.json)
         # Catches dormant guards: a .ps1 hook present in global/hooks/ but not

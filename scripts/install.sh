@@ -242,6 +242,169 @@ create_local_claude() {
     fi
 }
 
+ensure_install_dir() {
+    local dir="$1"
+    [ -d "$dir" ] && return 0
+    mkdir -p "$dir"
+}
+
+copy_install_files() {
+    local src_dir="$1" dest_dir="$2" pattern="$3" executable="${4:-0}"
+    local src dest
+
+    [ -d "$src_dir" ] || return 0
+    ensure_install_dir "$dest_dir" || return 1
+
+    for src in "$src_dir"/$pattern; do
+        [ -f "$src" ] || continue
+        dest="$dest_dir/$(basename "$src")"
+        cp "$src" "$dest" || return 1
+        if [ "$executable" = "1" ]; then
+            chmod +x "$dest" || return 1
+        fi
+    done
+
+    return 0
+}
+
+deploy_install_hooks() {
+    local hooks_src="$BACKUP_DIR/global/hooks"
+    local hooks_dst="$HOME/.claude/hooks"
+    local hooks_lib_src="$hooks_src/lib"
+    local shared_lib_src="$BACKUP_DIR/hooks/lib"
+    local lib
+
+    if [ ! -d "$hooks_src" ]; then
+        echo "hook source directory missing: $hooks_src" >&2
+        return 1
+    fi
+
+    copy_install_files "$hooks_src" "$hooks_dst" "*.sh" 1 || return 1
+
+    # Deploy global/hooks/lib/*.sh. The top-level *.sh copy is non-recursive,
+    # and several runtime guards source these libraries.
+    if [ -d "$hooks_lib_src" ]; then
+        copy_install_files "$hooks_lib_src" "$hooks_dst/lib" "*.sh" 1 || return 1
+    fi
+
+    # Shared validator libraries used by commit/language/traceability guards.
+    if [ -d "$shared_lib_src" ]; then
+        for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
+            if [ -f "$shared_lib_src/$lib" ]; then
+                copy_install_files "$shared_lib_src" "$hooks_dst/lib" "$lib" 1 || return 1
+            fi
+        done
+    fi
+
+    for lib in \
+        tokenize-shell.sh \
+        path-utils.sh \
+        timeout-wrapper.sh \
+        rotate.sh \
+        validate-commit-message.sh \
+        validate-language.sh \
+        validate-traceability.sh; do
+        if [ ! -f "$hooks_dst/lib/$lib" ]; then
+            echo "required hook runtime library missing after deploy: hooks/lib/$lib" >&2
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+write_full_suite_probe() {
+    local probe_dir="$HOME/.claude"
+    local probe_file="$probe_dir/.full-suite-active"
+    local tmp_probe sens_guard=false dang_guard=false
+
+    [ -f "$HOME/.claude/hooks/sensitive-file-guard.sh" ] && sens_guard=true
+    [ -f "$HOME/.claude/hooks/dangerous-command-guard.sh" ] && dang_guard=true
+
+    if command -v python3 >/dev/null 2>&1; then
+        tmp_probe="$(mktemp "${TMPDIR:-/tmp}/claude-probe.XXXXXX")"
+        if SENS="$sens_guard" DANG="$dang_guard" python3 - "$tmp_probe" <<'PY' 2>/dev/null
+import json, os, sys
+path = sys.argv[1]
+def flag(name):
+    return os.environ.get(name, "false").lower() == "true"
+doc = {
+    "schema": 1,
+    "hooks": {
+        "sensitive-file-guard": flag("SENS"),
+        "dangerous-command-guard": flag("DANG"),
+    },
+}
+with open(path, "w") as f:
+    json.dump(doc, f)
+    f.write("\n")
+PY
+        then
+            if mv "$tmp_probe" "$probe_file"; then
+                chmod 644 "$probe_file" 2>/dev/null || true
+                success "Full-suite probe 작성됨 (.full-suite-active)"
+            fi
+        else
+            rm -f "$tmp_probe"
+            warning "Full-suite probe 작성 실패 (python3 JSON 직렬화 오류)"
+        fi
+    else
+        warning "python3 부재로 Full-suite probe 건너뜀 (플러그인 가드는 계속 활성화됨)"
+    fi
+}
+
+install_global_settings_and_hooks() {
+    local settings_src="$BACKUP_DIR/global/settings.json"
+    local settings_dst="$HOME/.claude/settings.json"
+    local settings_tmp="$HOME/.claude/.settings.json.tmp.$$"
+    local settings_updated=0
+
+    if [ ! -f "$settings_src" ]; then
+        if [ -d "$BACKUP_DIR/global/hooks" ]; then
+            deploy_install_hooks || error "Hook 스크립트 배포 실패."
+            success "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
+            write_full_suite_probe
+        fi
+        return 0
+    fi
+
+    # Stage settings first, then publish only after hook deployment succeeds.
+    # This prevents settings.json from pointing at missing runtime hooks.
+    rm -f "$settings_tmp"
+    cp "$settings_src" "$settings_tmp" || error "settings.json 스테이징 실패"
+
+    # CLAUDE_CONTENT_LANGUAGE env 주입 및 Agent Language 속성 업데이트
+    if update_claude_settings_json "$settings_tmp" "$AGENT_LANGUAGE" "$CONTENT_LANGUAGE"; then
+        settings_updated=1
+    fi
+
+    if ! deploy_install_hooks; then
+        rm -f "$settings_tmp"
+        error "Hook 스크립트 배포 실패. settings.json을 변경하지 않았습니다."
+    fi
+
+    mv -f "$settings_tmp" "$settings_dst" || {
+        rm -f "$settings_tmp"
+        error "settings.json 게시 실패"
+    }
+
+    success "Hook 설정 (settings.json) 설치 완료!"
+    if [ "$settings_updated" = "1" ]; then
+        success "settings.json: language=$AGENT_LANGUAGE, CLAUDE_CONTENT_LANGUAGE=$CONTENT_LANGUAGE 업데이트 완료."
+    else
+        warning "jq가 설치되어 있지 않아 settings.json을 자동 업데이트할 수 없습니다."
+        if [ "$CONTENT_LANGUAGE" != "english" ]; then
+            echo "  수동으로 ~/.claude/settings.json 의 env 섹션에 다음을 추가하세요:"
+            echo "    \"CLAUDE_CONTENT_LANGUAGE\": \"$CONTENT_LANGUAGE\""
+        fi
+        echo "  그리고 루트 레벨에 다음을 추가/수정하세요:"
+        echo "    \"language\": \"$AGENT_LANGUAGE\""
+    fi
+
+    success "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
+    write_full_suite_probe
+}
+
 # Note: get_policy_phrase, render_policy_tmpl, and render_policy_tmpls_in_dir
 # are provided by scripts/lib/install-prompts.sh, which is sourced before any
 # callers (the prompt section sources it explicitly). The render helpers were
@@ -679,113 +842,11 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         fi
     fi
 
-    # settings.json install (Hook configuration)
-    # Intentionally bypasses guarded_copy: policy attributes (.language,
-    # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
-    # update_claude_settings_json (below) injects them and is responsible
-    # for idempotent reset when the policy returns to default ("english").
-    if [ -f "$BACKUP_DIR/global/settings.json" ]; then
-        cp "$BACKUP_DIR/global/settings.json" "$HOME/.claude/"
-        success "Hook 설정 (settings.json) 설치 완료!"
-
-        # CLAUDE_CONTENT_LANGUAGE env 주입 및 Agent Language 속성 업데이트
-        if update_claude_settings_json "$HOME/.claude/settings.json" "$AGENT_LANGUAGE" "$CONTENT_LANGUAGE"; then
-            success "settings.json: language=$AGENT_LANGUAGE, CLAUDE_CONTENT_LANGUAGE=$CONTENT_LANGUAGE 업데이트 완료."
-        else
-            warning "jq가 설치되어 있지 않아 settings.json을 자동 업데이트할 수 없습니다."
-            if [ "$CONTENT_LANGUAGE" != "english" ]; then
-                echo "  수동으로 ~/.claude/settings.json 의 env 섹션에 다음을 추가하세요:"
-                echo "    \"CLAUDE_CONTENT_LANGUAGE\": \"$CONTENT_LANGUAGE\""
-            fi
-            echo "  그리고 루트 레벨에 다음을 추가/수정하세요:"
-            echo "    \"language\": \"$AGENT_LANGUAGE\""
-        fi
-    fi
-
-    # hooks 디렉토리 설치 (외부 스크립트)
-    if [ -d "$BACKUP_DIR/global/hooks" ]; then
-        ensure_dir "$HOME/.claude/hooks"
-        cp "$BACKUP_DIR/global/hooks"/*.sh "$HOME/.claude/hooks/" 2>/dev/null || true
-        chmod +x "$HOME/.claude/hooks/"*.sh 2>/dev/null || true
-
-        # Deploy global/hooks/lib/*.sh (issue #586). Mirrors install.ps1:481-500.
-        # The *.sh glob above is non-recursive, so without this block the four
-        # shared libraries (tokenize-shell.sh, path-utils.sh, timeout-wrapper.sh,
-        # rotate.sh) are silently dropped. dangerous-command-guard.sh,
-        # gh-write-verb-guard.sh, bash-write-guard.sh, and
-        # bash-sensitive-read-guard.sh source tokenize-shell.sh at runtime.
-        if [ -d "$BACKUP_DIR/global/hooks/lib" ]; then
-            ensure_dir "$HOME/.claude/hooks/lib"
-            cp "$BACKUP_DIR/global/hooks/lib"/*.sh "$HOME/.claude/hooks/lib/" 2>/dev/null || true
-            chmod +x "$HOME/.claude/hooks/lib/"*.sh 2>/dev/null || true
-
-            # Post-copy regression guard for #586. tokenize-shell.sh is the
-            # canonical sub-command splitter (see #476); its absence weakens
-            # four Bash-channel guards. Surface a loud warning at install time
-            # so the regression cannot reach a user session silently.
-            if [ ! -f "$HOME/.claude/hooks/lib/tokenize-shell.sh" ]; then
-                warning "hooks/lib/tokenize-shell.sh 미설치 - Bash 가드가 약화됩니다 (issue #586)"
-            fi
-        fi
-
-        success "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
-
-        # Full-suite probe (issue #423): advertise which canonical guards the
-        # plugin surface should stand down for. Plugin/hooks.json inspects this
-        # file at runtime so its inline guards only activate in standalone
-        # deployments. Listed hooks reflect the ones that overlap with plugin
-        # inline guards. Atomic write (tmp + mv) so a partial write cannot
-        # produce a half-valid probe.
-        PROBE_DIR="$HOME/.claude"
-        PROBE_FILE="$PROBE_DIR/.full-suite-active"
-        SENS_GUARD=false
-        DANG_GUARD=false
-        [ -f "$HOME/.claude/hooks/sensitive-file-guard.sh" ] && SENS_GUARD=true
-        [ -f "$HOME/.claude/hooks/dangerous-command-guard.sh" ] && DANG_GUARD=true
-        if command -v python3 >/dev/null 2>&1; then
-            TMP_PROBE="$(mktemp "${TMPDIR:-/tmp}/claude-probe.XXXXXX")"
-            if SENS="$SENS_GUARD" DANG="$DANG_GUARD" python3 - "$TMP_PROBE" <<'PY' 2>/dev/null
-import json, os, sys
-path = sys.argv[1]
-def flag(name):
-    return os.environ.get(name, "false").lower() == "true"
-doc = {
-    "schema": 1,
-    "hooks": {
-        "sensitive-file-guard": flag("SENS"),
-        "dangerous-command-guard": flag("DANG"),
-    },
-}
-with open(path, "w") as f:
-    json.dump(doc, f)
-    f.write("\n")
-PY
-            then
-                if mv "$TMP_PROBE" "$PROBE_FILE"; then
-                    chmod 644 "$PROBE_FILE" 2>/dev/null || true
-                    success "Full-suite probe 작성됨 (.full-suite-active)"
-                fi
-            else
-                rm -f "$TMP_PROBE"
-                warning "Full-suite probe 작성 실패 (python3 JSON 직렬화 오류)"
-            fi
-        else
-            warning "python3 부재로 Full-suite probe 건너뜀 (플러그인 가드는 계속 활성화됨)"
-        fi
-    fi
-
-    # 공유 검증 라이브러리 설치 (commit-message-guard.sh, pr-language-guard.sh,
-    # traceability-guard.sh가 사용)
-    if [ -d "$BACKUP_DIR/hooks/lib" ]; then
-        ensure_dir "$HOME/.claude/hooks/lib"
-        for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
-            if [ -f "$BACKUP_DIR/hooks/lib/$lib" ]; then
-                cp "$BACKUP_DIR/hooks/lib/$lib" "$HOME/.claude/hooks/lib/"
-                chmod +x "$HOME/.claude/hooks/lib/$lib"
-            fi
-        done
-        success "공유 검증 라이브러리 설치 완료!"
-    fi
+    # settings.json + hooks 디렉토리 설치 (settings.json이 참조하는 런타임 가드)
+    # settings.json은 ~/.claude/hooks/*.sh 가드 다수를 참조하므로, 설정 게시와
+    # 훅/라이브러리 배포 사이의 실패 공백을 막는다. Hook 배포 실패 시
+    # settings.json은 게시하지 않는다.
+    install_global_settings_and_hooks
 
     # scripts 디렉토리 설치 (statusline 등)
     if [ -d "$BACKUP_DIR/global/scripts" ]; then
