@@ -15,6 +15,7 @@ on:
     paths:
       - 'global/hooks/**'
       - 'HOOKS.md'
+      - 'COMPATIBILITY.md'
       - 'scripts/gen-hooks-md.sh'
       - '.github/workflows/validate-hooks-doc.yml'
 
@@ -78,3 +79,15 @@ jobs:
             exit 1
           fi
           echo "Parity audit PASSED: $sh_count/$sh_count counterparts present"
+
+      - name: Verify COMPATIBILITY.md parity count
+        run: |
+          sh_count=$(find global/hooks -maxdepth 1 -type f -name '*.sh' | wc -l | tr -d ' ')
+          ps_count=$(find global/hooks -maxdepth 1 -type f -name '*.ps1' | wc -l | tr -d ' ')
+          expected="| \`global/hooks/*.sh\` | ${sh_count} | ${ps_count} | ${ps_count}/${sh_count} (100%) |"
+          if ! grep -Fqx "$expected" COMPATIBILITY.md; then
+            echo "COMPATIBILITY.md hook parity row is stale." >&2
+            echo "Expected row:" >&2
+            echo "$expected" >&2
+            exit 1
+          fi

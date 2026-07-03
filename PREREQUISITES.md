@@ -128,11 +128,28 @@ The table below shows which hook needs which tool, so an operator can decide whe
 
 ## Verifying After Install
 
-After installing the prerequisites, run:
+After installing the prerequisites, run the installer for your platform:
 
 ```bash
 bash bootstrap.sh         # refuses to continue if any required tool is missing
 bash scripts/install.sh   # installs hooks; verifies via `scripts/check_versions.sh`
+```
+
+```powershell
+pwsh -File .\bootstrap.ps1
+pwsh -File .\scripts\install.ps1
+```
+
+For unattended verification, pre-select answers instead of relying on
+interactive prompts:
+
+```bash
+INSTALL_TYPE=3 bash bootstrap.sh
+```
+
+```powershell
+$env:INSTALL_TYPE = '3'; pwsh -File .\bootstrap.ps1
+$env:FORCE_MODE = '1'; pwsh -File .\bootstrap.ps1
 ```
 
 If `bootstrap.sh` reports a missing tool, install it from the table above and re-run. The list is intentionally short so a fresh contributor can be productive in under five minutes.

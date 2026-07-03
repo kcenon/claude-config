@@ -33,7 +33,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 15953
+    size: 15791
     tags: [compatibility,config]
     sections:
       - {h: "Minimum Requirements", l: 7, e: 22}
@@ -60,7 +60,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 7011
+    size: 7237
     tags: [config]
     sections:
       - {h: "At-a-glance", l: 5, e: 28}
@@ -73,7 +73,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 72675
+    size: 72883
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
@@ -171,7 +171,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 6355
+    size: 6725
     tags: [config]
     sections:
       - {h: "Quick Check", l: 5, e: 16}
@@ -185,39 +185,39 @@ documents:
       - {h: "Windows (winget — preferred)", l: 92, e: 105}
       - {h: "Windows (Chocolatey — alternative)", l: 106, e: 112}
       - {h: "Per-Hook Tool Map", l: 113, e: 128}
-      - {h: "Verifying After Install", l: 129, e: 138}
+      - {h: "Verifying After Install", l: 129, e: 155}
   - path: "QUICKSTART.md"
     title: "Quick Start Guide"
     description: ""
     category: root
     scope: root
-    size: 5437
+    size: 5747
     tags: []
     sections:
       - {h: "Contents", l: 7, e: 23}
       - {h: "3-Minute Installation", l: 24, e: 25}
       - {h: "Step 1: Copy (30 seconds)", l: 26, e: 41}
-      - {h: "Step 2: Install (1 minute)", l: 42, e: 77}
-      - {h: "Step 3: Verify Git Identity (30 seconds)", l: 78, e: 109}
-      - {h: "Step 4: Restart (30 seconds)", l: 110, e: 118}
-      - {h: "Verification", l: 119, e: 130}
-      - {h: "Daily Usage", l: 131, e: 132}
-      - {h: "Backup (after settings change)", l: 133, e: 140}
-      - {h: "Sync (between multiple systems)", l: 141, e: 151}
-      - {h: "Troubleshooting", l: 152, e: 153}
-      - {h: "Scripts won't run", l: 154, e: 165}
-      - {h: "File not found", l: 166, e: 173}
-      - {h: "Worried about overwriting", l: 174, e: 183}
-      - {h: "Learn More", l: 184, e: 192}
-      - {h: "What's Next", l: 193, e: 194}
-      - {h: "Try a skill", l: 195, e: 208}
-      - {h: "Choose your path", l: 209, e: 222}
+      - {h: "Step 2: Install (1 minute)", l: 42, e: 88}
+      - {h: "Step 3: Verify Git Identity (30 seconds)", l: 89, e: 120}
+      - {h: "Step 4: Restart (30 seconds)", l: 121, e: 129}
+      - {h: "Verification", l: 130, e: 141}
+      - {h: "Daily Usage", l: 142, e: 143}
+      - {h: "Backup (after settings change)", l: 144, e: 151}
+      - {h: "Sync (between multiple systems)", l: 152, e: 162}
+      - {h: "Troubleshooting", l: 163, e: 164}
+      - {h: "Scripts won't run", l: 165, e: 176}
+      - {h: "File not found", l: 177, e: 184}
+      - {h: "Worried about overwriting", l: 185, e: 194}
+      - {h: "Learn More", l: 195, e: 203}
+      - {h: "What's Next", l: 204, e: 205}
+      - {h: "Try a skill", l: 206, e: 219}
+      - {h: "Choose your path", l: 220, e: 233}
   - path: "README.ko.md"
     title: "Claude Configuration Backup & Deployment System"
     description: ""
     category: root
     scope: root
-    size: 47129
+    size: 47626
     tags: [config,readme]
     sections:
       - {h: "빠른 시작", l: 30, e: 58}
@@ -242,62 +242,62 @@ documents:
       - {h: "세션이 실행될 때", l: 465, e: 470}
       - {h: "PR을 생성할 때", l: 471, e: 475}
       - {h: "Agent Teams 사용 시", l: 476, e: 482}
-      - {h: "컨텐츠 언어 정책", l: 483, e: 508}
-      - {h: "Enterprise 설정", l: 509, e: 512}
-      - {h: "메모리 계층", l: 513, e: 522}
-      - {h: "OS별 Enterprise 경로", l: 523, e: 530}
-      - {h: "Enterprise 설정 설치", l: 531, e: 542}
-      - {h: "Enterprise 템플릿 내용", l: 543, e: 554}
-      - {h: "개인 설정 (CLAUDE.local.md)", l: 555, e: 569}
-      - {h: "Rules", l: 570, e: 573}
-      - {h: "사용 가능한 Rules", l: 574, e: 583}
-      - {h: "Rules 작동 방식", l: 584, e: 602}
-      - {h: "스킬 — 무엇을 할 수 있나요", l: 603, e: 611}
-      - {h: "워크플로우 자동화", l: 612, e: 623}
-      - {h: "코드 분석", l: 624, e: 632}
-      - {h: "설계 및 문서화", l: 633, e: 646}
-      - {h: "Agents", l: 647, e: 650}
-      - {h: "사용 가능한 Agents", l: 651, e: 663}
-      - {h: "Agent 설정", l: 664, e: 678}
-      - {h: "Agent Teams", l: 679, e: 684}
-      - {h: "빠른 시작", l: 685, e: 695}
-      - {h: "주요 조작법", l: 696, e: 710}
-      - {h: "MCP 설정", l: 711, e: 714}
-      - {h: "사용 가능한 서버", l: 715, e: 724}
-      - {h: "설정 방법", l: 725, e: 732}
-      - {h: "스크립트 설명", l: 733, e: 747}
-      - {h: "Git Hooks", l: 748, e: 757}
-      - {h: "Pre-commit Hook", l: 758, e: 762}
-      - {h: "Commit-msg Hook", l: 763, e: 767}
-      - {h: "Pre-push Hook", l: 768, e: 774}
-      - {h: "사용 시나리오", l: 775, e: 776}
-      - {h: "시나리오 A: 회사 + 집 컴퓨터 동기화", l: 777, e: 794}
-      - {h: "시나리오 B: 팀 프로젝트 설정 공유", l: 795, e: 813}
-      - {h: "시나리오 C: 새 개발 머신 설정", l: 814, e: 831}
-      - {h: "시나리오 D: 열린 이슈 또는 실패 PR 일괄 처리", l: 832, e: 871}
-      - {h: "고급 사용법", l: 872, e: 873}
-      - {h: "GitHub Actions 자동 동기화", l: 874, e: 895}
-      - {h: "특정 파일만 백업", l: 896, e: 905}
-      - {h: "환경 변수로 커스터마이즈", l: 906, e: 929}
-      - {h: "FAQ", l: 930, e: 931}
-      - {h: "Q1: Git identity를 왜 개인화해야 하나요?", l: 932, e: 942}
-      - {h: "Q2: 백업을 여러 곳에서 관리하면?", l: 943, e: 955}
-      - {h: "Q3: 프로젝트마다 다른 설정을 쓰고 싶어요", l: 956, e: 971}
-      - {h: "Q4: 스크립트가 실행 안 돼요", l: 972, e: 984}
-      - {h: "Q5: Private repo로 사용하고 싶어요", l: 985, e: 998}
-      - {h: "Memory sync (다중 머신)", l: 999, e: 1011}
-      - {h: "추가 리소스", l: 1012, e: 1023}
-      - {h: "버전", l: 1024, e: 1031}
-      - {h: "기여", l: 1032, e: 1043}
-      - {h: "Related Projects", l: 1044, e: 1045}
-      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1046, e: 1054}
-      - {h: "License", l: 1055, e: 1063}
+      - {h: "컨텐츠 언어 정책", l: 483, e: 510}
+      - {h: "Enterprise 설정", l: 511, e: 514}
+      - {h: "메모리 계층", l: 515, e: 524}
+      - {h: "OS별 Enterprise 경로", l: 525, e: 532}
+      - {h: "Enterprise 설정 설치", l: 533, e: 544}
+      - {h: "Enterprise 템플릿 내용", l: 545, e: 556}
+      - {h: "개인 설정 (CLAUDE.local.md)", l: 557, e: 571}
+      - {h: "Rules", l: 572, e: 575}
+      - {h: "사용 가능한 Rules", l: 576, e: 585}
+      - {h: "Rules 작동 방식", l: 586, e: 604}
+      - {h: "스킬 — 무엇을 할 수 있나요", l: 605, e: 613}
+      - {h: "워크플로우 자동화", l: 614, e: 625}
+      - {h: "코드 분석", l: 626, e: 634}
+      - {h: "설계 및 문서화", l: 635, e: 648}
+      - {h: "Agents", l: 649, e: 652}
+      - {h: "사용 가능한 Agents", l: 653, e: 665}
+      - {h: "Agent 설정", l: 666, e: 680}
+      - {h: "Agent Teams", l: 681, e: 686}
+      - {h: "빠른 시작", l: 687, e: 697}
+      - {h: "주요 조작법", l: 698, e: 712}
+      - {h: "MCP 설정", l: 713, e: 716}
+      - {h: "사용 가능한 서버", l: 717, e: 726}
+      - {h: "설정 방법", l: 727, e: 734}
+      - {h: "스크립트 설명", l: 735, e: 750}
+      - {h: "Git Hooks", l: 751, e: 760}
+      - {h: "Pre-commit Hook", l: 761, e: 765}
+      - {h: "Commit-msg Hook", l: 766, e: 770}
+      - {h: "Pre-push Hook", l: 771, e: 777}
+      - {h: "사용 시나리오", l: 778, e: 779}
+      - {h: "시나리오 A: 회사 + 집 컴퓨터 동기화", l: 780, e: 797}
+      - {h: "시나리오 B: 팀 프로젝트 설정 공유", l: 798, e: 816}
+      - {h: "시나리오 C: 새 개발 머신 설정", l: 817, e: 834}
+      - {h: "시나리오 D: 열린 이슈 또는 실패 PR 일괄 처리", l: 835, e: 874}
+      - {h: "고급 사용법", l: 875, e: 876}
+      - {h: "GitHub Actions 자동 동기화", l: 877, e: 898}
+      - {h: "특정 파일만 백업", l: 899, e: 908}
+      - {h: "환경 변수로 커스터마이즈", l: 909, e: 932}
+      - {h: "FAQ", l: 933, e: 934}
+      - {h: "Q1: Git identity를 왜 개인화해야 하나요?", l: 935, e: 945}
+      - {h: "Q2: 백업을 여러 곳에서 관리하면?", l: 946, e: 958}
+      - {h: "Q3: 프로젝트마다 다른 설정을 쓰고 싶어요", l: 959, e: 974}
+      - {h: "Q4: 스크립트가 실행 안 돼요", l: 975, e: 987}
+      - {h: "Q5: Private repo로 사용하고 싶어요", l: 988, e: 1001}
+      - {h: "Memory sync (다중 머신)", l: 1002, e: 1014}
+      - {h: "추가 리소스", l: 1015, e: 1026}
+      - {h: "버전", l: 1027, e: 1034}
+      - {h: "기여", l: 1035, e: 1046}
+      - {h: "Related Projects", l: 1047, e: 1048}
+      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1049, e: 1057}
+      - {h: "License", l: 1058, e: 1066}
   - path: "README.md"
     title: "Claude Configuration Backup & Deployment System"
     description: ""
     category: root
     scope: root
-    size: 45327
+    size: 45793
     tags: [config,readme]
     sections:
       - {h: "Quick Start", l: 30, e: 58}
@@ -322,56 +322,56 @@ documents:
       - {h: "When a session runs", l: 490, e: 495}
       - {h: "When you create PRs", l: 496, e: 500}
       - {h: "When using Agent Teams", l: 501, e: 507}
-      - {h: "Content Language Policy", l: 508, e: 533}
-      - {h: "Enterprise Settings", l: 534, e: 537}
-      - {h: "Memory Hierarchy", l: 538, e: 547}
-      - {h: "Enterprise Paths by OS", l: 548, e: 555}
-      - {h: "Installing Enterprise Settings", l: 556, e: 567}
-      - {h: "Enterprise Template Contents", l: 568, e: 579}
-      - {h: "Personal Settings (CLAUDE.local.md)", l: 580, e: 594}
-      - {h: "Rules", l: 595, e: 598}
-      - {h: "Available Rules", l: 599, e: 608}
-      - {h: "How Rules Work", l: 609, e: 626}
-      - {h: "Skills — What You Can Do", l: 627, e: 635}
-      - {h: "Workflow Automation", l: 636, e: 647}
-      - {h: "Code Analysis", l: 648, e: 656}
-      - {h: "Design and Documentation", l: 657, e: 670}
-      - {h: "Agents", l: 671, e: 674}
-      - {h: "Available Agents", l: 675, e: 687}
-      - {h: "Agent Configuration", l: 688, e: 702}
-      - {h: "Agent Teams", l: 703, e: 708}
-      - {h: "Quick Start", l: 709, e: 719}
-      - {h: "Key Controls", l: 720, e: 734}
-      - {h: "MCP Configuration", l: 735, e: 738}
-      - {h: "Available Servers", l: 739, e: 748}
-      - {h: "Setup", l: 749, e: 756}
-      - {h: "Scripts", l: 757, e: 771}
-      - {h: "Git Hooks", l: 772, e: 782}
-      - {h: "Pre-commit Hook", l: 783, e: 788}
-      - {h: "Commit-msg Hook", l: 789, e: 794}
-      - {h: "Pre-push Hook", l: 795, e: 802}
-      - {h: "Use Cases", l: 803, e: 804}
-      - {h: "Use Case A: Sync Work + Home Computers", l: 805, e: 822}
-      - {h: "Use Case B: Share Team Project Settings", l: 823, e: 841}
-      - {h: "Use Case C: New Development Machine Setup", l: 842, e: 859}
-      - {h: "Use Case D: Batch-Process Open Issues or Failing PRs", l: 860, e: 910}
-      - {h: "Advanced Usage", l: 911, e: 912}
-      - {h: "GitHub Actions Auto-Sync", l: 913, e: 934}
-      - {h: "Backup Specific Files Only", l: 935, e: 944}
-      - {h: "Customize with Environment Variables", l: 945, e: 968}
-      - {h: "FAQ", l: 969, e: 970}
-      - {h: "Q1: Why do I need to personalize Git identity?", l: 971, e: 981}
-      - {h: "Q2: How to manage backups across multiple locations?", l: 982, e: 994}
-      - {h: "Q3: I want different settings for each project", l: 995, e: 1010}
-      - {h: "Q4: Scripts won't run", l: 1011, e: 1023}
-      - {h: "Q5: I want to use a private repo", l: 1024, e: 1037}
-      - {h: "Memory sync (multi-machine)", l: 1038, e: 1050}
-      - {h: "Additional Resources", l: 1051, e: 1062}
-      - {h: "Version", l: 1063, e: 1070}
-      - {h: "Contributing", l: 1071, e: 1082}
-      - {h: "Related Projects", l: 1083, e: 1084}
-      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1085, e: 1093}
-      - {h: "License", l: 1094, e: 1102}
+      - {h: "Content Language Policy", l: 508, e: 535}
+      - {h: "Enterprise Settings", l: 536, e: 539}
+      - {h: "Memory Hierarchy", l: 540, e: 549}
+      - {h: "Enterprise Paths by OS", l: 550, e: 557}
+      - {h: "Installing Enterprise Settings", l: 558, e: 569}
+      - {h: "Enterprise Template Contents", l: 570, e: 581}
+      - {h: "Personal Settings (CLAUDE.local.md)", l: 582, e: 596}
+      - {h: "Rules", l: 597, e: 600}
+      - {h: "Available Rules", l: 601, e: 610}
+      - {h: "How Rules Work", l: 611, e: 628}
+      - {h: "Skills — What You Can Do", l: 629, e: 637}
+      - {h: "Workflow Automation", l: 638, e: 649}
+      - {h: "Code Analysis", l: 650, e: 658}
+      - {h: "Design and Documentation", l: 659, e: 672}
+      - {h: "Agents", l: 673, e: 676}
+      - {h: "Available Agents", l: 677, e: 689}
+      - {h: "Agent Configuration", l: 690, e: 704}
+      - {h: "Agent Teams", l: 705, e: 710}
+      - {h: "Quick Start", l: 711, e: 721}
+      - {h: "Key Controls", l: 722, e: 736}
+      - {h: "MCP Configuration", l: 737, e: 740}
+      - {h: "Available Servers", l: 741, e: 750}
+      - {h: "Setup", l: 751, e: 758}
+      - {h: "Scripts", l: 759, e: 774}
+      - {h: "Git Hooks", l: 775, e: 785}
+      - {h: "Pre-commit Hook", l: 786, e: 791}
+      - {h: "Commit-msg Hook", l: 792, e: 797}
+      - {h: "Pre-push Hook", l: 798, e: 805}
+      - {h: "Use Cases", l: 806, e: 807}
+      - {h: "Use Case A: Sync Work + Home Computers", l: 808, e: 825}
+      - {h: "Use Case B: Share Team Project Settings", l: 826, e: 844}
+      - {h: "Use Case C: New Development Machine Setup", l: 845, e: 862}
+      - {h: "Use Case D: Batch-Process Open Issues or Failing PRs", l: 863, e: 913}
+      - {h: "Advanced Usage", l: 914, e: 915}
+      - {h: "GitHub Actions Auto-Sync", l: 916, e: 937}
+      - {h: "Backup Specific Files Only", l: 938, e: 947}
+      - {h: "Customize with Environment Variables", l: 948, e: 971}
+      - {h: "FAQ", l: 972, e: 973}
+      - {h: "Q1: Why do I need to personalize Git identity?", l: 974, e: 984}
+      - {h: "Q2: How to manage backups across multiple locations?", l: 985, e: 997}
+      - {h: "Q3: I want different settings for each project", l: 998, e: 1013}
+      - {h: "Q4: Scripts won't run", l: 1014, e: 1026}
+      - {h: "Q5: I want to use a private repo", l: 1027, e: 1040}
+      - {h: "Memory sync (multi-machine)", l: 1041, e: 1053}
+      - {h: "Additional Resources", l: 1054, e: 1065}
+      - {h: "Version", l: 1066, e: 1073}
+      - {h: "Contributing", l: 1074, e: 1085}
+      - {h: "Related Projects", l: 1086, e: 1087}
+      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1088, e: 1096}
+      - {h: "License", l: 1097, e: 1105}
   - path: "THIRD_PARTY_NOTICES.md"
     title: "Third-Party Notices"
     description: ""
@@ -405,7 +405,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 23594
+    size: 23822
     tags: [docs,documentation]
     sections:
       - {h: "Quick Reference", l: 11, e: 18}
@@ -421,18 +421,18 @@ documents:
       - {h: "Token Optimization Design", l: 160, e: 171}
       - {h: "5W1H Issue Framework", l: 172, e: 179}
       - {h: "Shared Skill References (SSOT)", l: 180, e: 203}
-      - {h: "Doc-Index Drift Guard", l: 204, e: 219}
-      - {h: "Agent Definitions (drift guard)", l: 220, e: 233}
-      - {h: "Version Declarations (VERSION_MAP SSOT)", l: 234, e: 261}
-      - {h: "Spec Linter (Official-Spec SSOT)", l: 262, e: 309}
-      - {h: "Skill Context Isolation (`context: fork`)", l: 310, e: 323}
-      - {h: "Using This Configuration Elsewhere", l: 324, e: 325}
-      - {h: "What Works Out of the Box", l: 326, e: 334}
-      - {h: "What Requires Adaptation", l: 335, e: 341}
-      - {h: "Migration Checklist", l: 342, e: 352}
-      - {h: "Official Documentation References", l: 353, e: 363}
-      - {h: "ADR / Design Doc Frontmatter (#624)", l: 364, e: 407}
-      - {h: "Reporting Issues", l: 408, e: 418}
+      - {h: "Doc-Index Drift Guard", l: 204, e: 226}
+      - {h: "Agent Definitions (drift guard)", l: 227, e: 240}
+      - {h: "Version Declarations (VERSION_MAP SSOT)", l: 241, e: 268}
+      - {h: "Spec Linter (Official-Spec SSOT)", l: 269, e: 316}
+      - {h: "Skill Context Isolation (`context: fork`)", l: 317, e: 330}
+      - {h: "Using This Configuration Elsewhere", l: 331, e: 332}
+      - {h: "What Works Out of the Box", l: 333, e: 341}
+      - {h: "What Requires Adaptation", l: 342, e: 348}
+      - {h: "Migration Checklist", l: 349, e: 359}
+      - {h: "Official Documentation References", l: 360, e: 370}
+      - {h: "ADR / Design Doc Frontmatter (#624)", l: 371, e: 414}
+      - {h: "Reporting Issues", l: 415, e: 425}
   - path: "docs/MEMORY_MIGRATION.md"
     title: "Memory Sync — Single-Machine Migration Runbook"
     description: ""
@@ -1137,7 +1137,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 12926
+    size: 13146
     tags: [docs]
     sections:
       - {h: "Installer UI (simplified)", l: 13, e: 34}
@@ -1149,15 +1149,15 @@ documents:
       - {h: "Direct API bypass", l: 106, e: 112}
       - {h: "Policies (full validator surface)", l: 113, e: 136}
       - {h: "The `exclusive_bilingual` Policy (issue #447)", l: 137, e: 143}
-      - {h: "Mode selection", l: 144, e: 155}
-      - {h: "Allowed ASCII containers in Korean mode", l: 156, e: 171}
-      - {h: "Accept / reject matrix", l: 172, e: 189}
-      - {h: "When to choose this policy", l: 190, e: 206}
-      - {h: "Install-time Substitution", l: 207, e: 225}
-      - {h: "Enterprise Conflict Detection", l: 226, e: 234}
-      - {h: "Drift Test", l: 235, e: 246}
-      - {h: "Changing Policy After Install", l: 247, e: 262}
-      - {h: "Sources of Truth", l: 263, e: 275}
+      - {h: "Mode selection", l: 144, e: 157}
+      - {h: "Allowed ASCII containers in Korean mode", l: 158, e: 173}
+      - {h: "Accept / reject matrix", l: 174, e: 191}
+      - {h: "When to choose this policy", l: 192, e: 208}
+      - {h: "Install-time Substitution", l: 209, e: 227}
+      - {h: "Enterprise Conflict Detection", l: 228, e: 236}
+      - {h: "Drift Test", l: 237, e: 248}
+      - {h: "Changing Policy After Install", l: 249, e: 264}
+      - {h: "Sources of Truth", l: 265, e: 277}
   - path: "docs/deep-audit-2026-05-29.md"
     title: "Deep Audit — claude-config (2026-05-29)"
     description: ""
@@ -1597,16 +1597,16 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 5390
+    size: 6605
     tags: [docs]
     sections:
       - {h: "Manifest", l: 7, e: 29}
       - {h: "Copy Decision", l: 30, e: 57}
-      - {h: "Non-Interactive Override", l: 58, e: 72}
-      - {h: "Toolchain Fallback", l: 73, e: 83}
-      - {h: "Template Files", l: 84, e: 124}
-      - {h: "Tracked Files", l: 125, e: 140}
-      - {h: "Regression Test", l: 141, e: 152}
+      - {h: "Non-Interactive Override", l: 58, e: 98}
+      - {h: "Toolchain Fallback", l: 99, e: 109}
+      - {h: "Template Files", l: 110, e: 155}
+      - {h: "Tracked Files", l: 156, e: 171}
+      - {h: "Regression Test", l: 172, e: 183}
   - path: "docs/loop-patterns.md"
     title: "Loop-Safety Patterns for Skills"
     description: ""
@@ -1902,7 +1902,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 12916
+    size: 13319
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 24, e: 31}
@@ -1910,22 +1910,22 @@ documents:
       - {h: "Architecture", l: 41, e: 47}
       - {h: "Instructions", l: 48, e: 49}
       - {h: "Phase 0: Validate Environment", l: 50, e: 56}
-      - {h: "Phase 1: Document Discovery", l: 57, e: 71}
-      - {h: "Phase 2: Mode Detection", l: 72, e: 78}
-      - {h: "Phase 3F: Flat Mode (Path-Based)", l: 79, e: 90}
-      - {h: "Phase 3G: Grouped Mode (Claude-Curated)", l: 91, e: 94}
-      - {h: "Step 3G.1: Collect Structural Data", l: 95, e: 112}
-      - {h: "Step 3G.2: Read Key Documents", l: 113, e: 130}
-      - {h: "Step 3G.3: Generate manifest.yaml", l: 131, e: 179}
-      - {h: "Step 3G.4: Generate bundles.yaml", l: 180, e: 226}
-      - {h: "Step 3G.5: Generate graph.yaml", l: 227, e: 254}
-      - {h: "Step 3G.6: Generate router.yaml", l: 255, e: 281}
-      - {h: "Phase 4: Validate Output", l: 282, e: 289}
-      - {h: "Phase 5: Report", l: 290, e: 294}
-      - {h: "Document Index Generated", l: 295, e: 308}
-      - {h: "Policies", l: 309, e: 310}
-      - {h: "Command-Specific Rules", l: 311, e: 320}
-      - {h: "How Claude Uses the Index Files", l: 321, e: 329}
+      - {h: "Phase 1: Document Discovery", l: 57, e: 77}
+      - {h: "Phase 2: Mode Detection", l: 78, e: 84}
+      - {h: "Phase 3F: Flat Mode (Path-Based)", l: 85, e: 96}
+      - {h: "Phase 3G: Grouped Mode (Claude-Curated)", l: 97, e: 100}
+      - {h: "Step 3G.1: Collect Structural Data", l: 101, e: 118}
+      - {h: "Step 3G.2: Read Key Documents", l: 119, e: 136}
+      - {h: "Step 3G.3: Generate manifest.yaml", l: 137, e: 185}
+      - {h: "Step 3G.4: Generate bundles.yaml", l: 186, e: 232}
+      - {h: "Step 3G.5: Generate graph.yaml", l: 233, e: 260}
+      - {h: "Step 3G.6: Generate router.yaml", l: 261, e: 287}
+      - {h: "Phase 4: Validate Output", l: 288, e: 296}
+      - {h: "Phase 5: Report", l: 297, e: 301}
+      - {h: "Document Index Generated", l: 302, e: 315}
+      - {h: "Policies", l: 316, e: 317}
+      - {h: "Command-Specific Rules", l: 318, e: 327}
+      - {h: "How Claude Uses the Index Files", l: 328, e: 336}
   - path: "global/skills/_internal/doc-review/SKILL.md"
     title: "Document Review Command"
     description: ""

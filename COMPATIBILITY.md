@@ -230,9 +230,9 @@ The README v1.7.0 changelog originally claimed "All 42 bash scripts now have Pow
 
 | Surface | Bash count | PowerShell count | Coverage |
 |---|---:|---:|---:|
-| `global/hooks/*.sh` | 36 | 36 | 36/36 (100%) |
+| `global/hooks/*.sh` | 38 | 38 | 38/38 (100%) |
 
-The `*.sh` ↔ `*.ps1` mapping is 1:1; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if the counts diverge. (The count dropped from 37 to 35 when the expired P4 rollout-timeline hooks — `p4-timeline-guard` and `p4-timeline-reminder` — were retired; see the strict-schema kill-switch note above. It rose to 36 when `permission-denial-logger` was added for the `PermissionDenied` audit event.)
+The `*.sh` ↔ `*.ps1` mapping is 1:1; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if the counts diverge. The same job also compares this hardcoded table against the live hook count so the documented coverage cannot drift silently.
 
 The script that produces the live count: `bash -c 'b=$(ls global/hooks/*.sh | wc -l); p=$(ls global/hooks/*.ps1 | wc -l); echo "$p/$b"'`.
 

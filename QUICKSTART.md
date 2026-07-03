@@ -63,7 +63,7 @@ $env:FORCE_MODE = '1'; irm https://raw.githubusercontent.com/kcenon/claude-confi
 
 > **Note**: If the `claude` CLI is missing, the installer offers (with consent) to run Anthropic's native installer (`https://claude.ai/install.{sh,ps1}`). Decline to install manually later. See [PREREQUISITES.md → Auto-installed by bootstrap](PREREQUISITES.md#auto-installed-by-bootstrap).
 
-**Selection:**
+**Clone installer selection (`scripts/install.*`):**
 ```
 Select installation type:
   1) Global settings only (~/.claude/)
@@ -73,6 +73,17 @@ Select installation type:
   5) All (Enterprise + Global + Project)
 
 Selection (1-5) [default: 3]: 3
+```
+
+**Bootstrap one-line selection (`bootstrap.*`):**
+```
+Select installation type:
+  1) Global settings only (~/.claude/)
+  2) Project settings only (current directory)
+  3) Both (recommended)
+  4) Clone repository only (manual install)
+
+Selection (1-4) [default: 1]: 1
 ```
 
 ### Step 3: Verify Git Identity (30 seconds)

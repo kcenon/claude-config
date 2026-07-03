@@ -68,7 +68,7 @@ Install claude-config and Claude Code immediately gains these capabilities:
 
 **Commit quality** — Broken markdown links, AI attribution, and non-conventional commit messages are caught before they reach your repository.
 
-**Configurable content language** — Pick at install time whether commit messages, PR bodies, and documentation are written in English (ASCII only) or Korean (per-artifact strict, no inline mixing). The three-option preset installer prompt maps to `CLAUDE_CONTENT_LANGUAGE=english|exclusive_bilingual`; advanced legacy values (`korean_plus_english`, `any`) remain available via direct `settings.json` edit.
+**Configurable content language** — Pick at install time whether commit messages, PR bodies, and documentation are written in English (ASCII plus allowlisted English typography) or Korean (per-artifact strict, no inline mixing). The three-option preset installer prompt maps to `CLAUDE_CONTENT_LANGUAGE=english|exclusive_bilingual`; advanced legacy values (`korean_plus_english`, `any`) remain available via direct `settings.json` edit.
 
 **Code quality on demand** — `/security-audit`, `/performance-review`, `/code-quality`, and `/pr-review` provide specialized analysis when you need it.
 
@@ -507,11 +507,11 @@ These behaviors activate immediately after installation — no configuration nee
 
 ### Content Language Policy
 
-Both installers (`install.sh` and `install.ps1`) prompt for a content-language policy after the installation-type selection. The simplified UI offers two choices that map to fixed-language guarantees for artifacts:
+Both installers (`install.sh` and `install.ps1`) prompt for a three-option Language Profile Preset after the installation-type selection. The artifact half maps to these fixed-language guarantees:
 
 | UI choice | `CLAUDE_CONTENT_LANGUAGE` value | Validator accepts | Rule-document phrase |
 |-----------|----------------------------------|-------------------|----------------------|
-| English (default) | `english` | ASCII printable + whitespace only | `English` |
+| English (default) | `english` | ASCII printable + whitespace, plus allowlisted English typographic punctuation | `English` |
 | Korean | `exclusive_bilingual` | Per-artifact: English-only OR Korean-only with limited ASCII containers, no inline mixing | `English or Korean (document-exclusive)` |
 
 The validator additionally accepts two legacy values that are **not surfaced in the UI** — set them via direct `settings.json` edit if needed:
@@ -522,6 +522,8 @@ The validator additionally accepts two legacy values that are **not surfaced in 
 | `any` | OSS repositories accepting any language | Skip language validation entirely |
 
 The installer substitutes the chosen phrase into three rule-document templates (`global/commit-settings.md.tmpl`, `project/.claude/rules/core/communication.md.tmpl`, `project/.claude/rules/workflow/git-commit-format.md.tmpl`) so the documented rule matches the validator behavior.
+
+On reinstall, the prompt defaults are seeded from the existing `settings.json` so the prior `.language` and `CLAUDE_CONTENT_LANGUAGE` choices are preserved. Explicit `AGENT_LANGUAGE` and `CONTENT_LANGUAGE` environment overrides still win.
 
 **Scope boundary**: AI/Claude attribution enforcement is **not** governed by this env var — `attribution-guard` and the attribution checks in `commit-message-guard` remain active for every policy.
 
@@ -765,6 +767,7 @@ The `.mcp.json` template provides common MCP server configurations.
 | `validate_skills.sh` / `.ps1` | Validate SKILL.md format compliance | `./scripts/validate_skills.sh` |
 
 After installation, `~/.claude/git-identity.md` is auto-filled from `git config --global user.name` and `git config --global user.email` when both values exist. Edit it only if the values are missing or wrong.
+On reinstall, the installer keeps the existing language policy defaults from `~/.claude/settings.json` unless `AGENT_LANGUAGE` or `CONTENT_LANGUAGE` is explicitly set.
 Existing files are automatically backed up with `.backup_YYYYMMDD_HHMMSS` format.
 
 ---

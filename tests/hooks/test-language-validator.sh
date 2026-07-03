@@ -109,7 +109,7 @@ echo ""
 echo "=== validate-commit-message.sh (Rule 2 branching) ==="
 
 echo ""
-echo "[english policy — Rule 2 enforces lowercase ASCII]"
+echo "[english policy — Rule 2 enforces lowercase English description]"
 run_case "english accepts lowercase ASCII commit"  0 "english" validate_commit_message "feat: add feature"
 run_case "english rejects uppercase first char"    1 "english" validate_commit_message "feat: Add feature"
 run_case "english rejects Hangul first char"       1 "english" validate_commit_message "feat: 기능 추가"

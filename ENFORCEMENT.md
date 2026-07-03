@@ -7,7 +7,7 @@ What gets blocked, by which layer, and how to unblock it. Read in five minutes. 
 | When you do this | Hook / Layer | What gets blocked | How to fix |
 |------------------|-------------|-------------------|------------|
 | `git commit -m "..."` | `commit-message-guard` (PreToolUse) + `commit-msg` git hook | Non-Conventional-Commits format, AI/Claude attribution, emojis | Rewrite to `type(scope): description`, drop attribution |
-| `git push origin main` or `git push origin develop` | `hooks/pre-push` (git hook, terminal) | Direct push to protected branch | Open a PR instead; squash-merge |
+| `git push origin main` or `git push origin develop` | `push-target-guard` (PreToolUse) + `hooks/pre-push` (git hook, terminal) | Direct push to protected branch | Open a PR instead; squash-merge |
 | `git merge`, `git rebase`, `git cherry-pick`, `git pull` on dirty tree | `conflict-guard` (PreToolUse) | Operation blocked when working tree is dirty or another op is in progress | `git stash` or commit first |
 | `gh pr create --base main` (head ≠ develop) | `pr-target-guard` (PreToolUse) + `validate-pr-target.yml` | PR blocked from non-develop branch to main | Target `develop` instead |
 | `gh pr create --title "<non-English text>"` under `CLAUDE_CONTENT_LANGUAGE=english`, or mixed-language text under `exclusive_bilingual` | `pr-language-guard` (PreToolUse) | Title/body text that violates the active `CLAUDE_CONTENT_LANGUAGE` policy | Use English for `english`; under `exclusive_bilingual`, make each artifact English-only or Korean-only |
@@ -47,7 +47,7 @@ These run on GitHub Actions and gate the PR independently of the local hooks abo
 
 ## Bypass
 
-- `git commit --no-verify` (and its short form `-n`) is denied at the PreToolUse layer by `commit-message-guard` (issue #782), so a Claude-driven commit cannot reach the point of skipping the `commit-msg` git hook. The git hook remains the second, terminal layer for commits made outside Claude.
+- User-initiated `git commit --no-verify` (and its short form `-n`) is denied at the PreToolUse layer by `commit-message-guard` (issue #782), so a Claude-driven commit cannot reach the point of skipping the `commit-msg` git hook. The git hook remains the second, terminal layer for commits made outside Claude. The internal `post-task-checkpoint` lifecycle hook is the only documented exception; it uses `--no-verify` for throwaway `wip(agent): ...` checkpoints that are squashed later.
 - `git push --no-verify` is denied at the PreToolUse layer by `push-target-guard` (issue #782), which also blocks direct pushes to `main`/`develop` (explicit target or resolved upstream). `git push -n`/`--dry-run` is allowed — it performs no real push. The terminal-side `pre-push` hook remains the second layer.
 - `GH_WRITE_VERB_GUARD_AUDIT_ONLY=1` downgrades all `deny` decisions to `allow` (telemetry-only mode for rollout).
 

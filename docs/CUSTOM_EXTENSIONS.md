@@ -213,7 +213,14 @@ pwsh scripts/sync_references.ps1   # Windows
 - duplicate paths are rejected
 - every checked-in `docs/.index/*.yaml` file must share the same `_meta.generated` value
 
-The guard intentionally stays narrow. It does not replace `/doc-index`; it fails when the checked-in manifest is no longer a faithful index of the files it claims to cover, or when non-manifest index outputs still carry stale generated metadata after the manifest has been refreshed.
+The guard intentionally stays narrow. It does not replace `/doc-index`;
+it fails when the checked-in manifest is no longer a faithful index of
+the files it claims to cover, or when non-manifest index outputs still
+carry stale generated metadata after the manifest has been refreshed.
+It does not require every tracked Markdown file to appear in the
+manifest: archival issue drafts, generated fixtures, scratch reports,
+and other out-of-scope Markdown may be intentionally omitted by the
+index-generation policy.
 
 **CI enforcement**: `.github/workflows/validate-skills.yml` runs the validator tests and then `scripts/validate-doc-index.sh` for every relevant PR. When documentation changes legitimately alter sizes, covered paths, or index generation metadata, regenerate the `docs/.index/*.yaml` outputs with `/doc-index` before opening the PR.
 
