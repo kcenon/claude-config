@@ -60,7 +60,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 6833
+    size: 7011
     tags: [config]
     sections:
       - {h: "At-a-glance", l: 5, e: 28}
@@ -123,49 +123,49 @@ documents:
       - {h: "Hook is not executing", l: 984, e: 989}
       - {h: "Timeout occurring", l: 990, e: 993}
       - {h: "Formatter not working", l: 994, e: 1002}
-      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 1003, e: 1034}
-      - {h: "References", l: 1035, e: 1047}
-      - {h: "Auto-Generated Hook Catalog", l: 1048, e: 1055}
-      - {h: "Index", l: 1056, e: 1100}
-      - {h: "Hook Details", l: 1101, e: 1102}
-      - {h: "attribution-guard", l: 1103, e: 1119}
-      - {h: "bash-sensitive-read-guard", l: 1120, e: 1136}
-      - {h: "bash-write-guard", l: 1137, e: 1153}
-      - {h: "cleanup", l: 1154, e: 1170}
-      - {h: "commit-message-guard", l: 1171, e: 1187}
-      - {h: "config-change-logger", l: 1188, e: 1204}
-      - {h: "conflict-guard", l: 1205, e: 1221}
-      - {h: "cwd-change-logger", l: 1222, e: 1238}
-      - {h: "dangerous-command-guard", l: 1239, e: 1255}
-      - {h: "gh-write-verb-guard", l: 1256, e: 1272}
-      - {h: "github-api-preflight", l: 1273, e: 1289}
-      - {h: "instructions-loaded-reinforcer", l: 1290, e: 1306}
-      - {h: "markdown-anchor-validator", l: 1307, e: 1323}
-      - {h: "memory-access-logger", l: 1324, e: 1340}
-      - {h: "memory-integrity-check", l: 1341, e: 1357}
-      - {h: "memory-write-guard", l: 1358, e: 1374}
-      - {h: "merge-gate-guard", l: 1375, e: 1392}
-      - {h: "permission-denial-logger", l: 1393, e: 1410}
-      - {h: "post-compact-restore", l: 1411, e: 1428}
-      - {h: "post-task-checkpoint", l: 1429, e: 1445}
-      - {h: "pr-language-guard", l: 1446, e: 1462}
-      - {h: "pr-target-guard", l: 1463, e: 1479}
-      - {h: "pre-compact-snapshot", l: 1480, e: 1496}
-      - {h: "pre-edit-read-guard", l: 1497, e: 1513}
-      - {h: "prompt-validator", l: 1514, e: 1530}
-      - {h: "push-target-guard", l: 1531, e: 1547}
-      - {h: "sensitive-file-guard", l: 1548, e: 1564}
-      - {h: "session-logger", l: 1565, e: 1581}
-      - {h: "shell-env-secret-guard", l: 1582, e: 1598}
-      - {h: "subagent-logger", l: 1599, e: 1615}
-      - {h: "task-completed-logger", l: 1616, e: 1632}
-      - {h: "task-created-validator", l: 1633, e: 1649}
-      - {h: "team-limit-guard", l: 1650, e: 1666}
-      - {h: "tool-failure-logger", l: 1667, e: 1683}
-      - {h: "traceability-guard", l: 1684, e: 1700}
-      - {h: "version-check", l: 1701, e: 1717}
-      - {h: "worktree-create", l: 1718, e: 1734}
-      - {h: "worktree-remove", l: 1735, e: 1752}
+      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 1003, e: 1042}
+      - {h: "References", l: 1043, e: 1055}
+      - {h: "Auto-Generated Hook Catalog", l: 1056, e: 1063}
+      - {h: "Index", l: 1064, e: 1108}
+      - {h: "Hook Details", l: 1109, e: 1110}
+      - {h: "attribution-guard", l: 1111, e: 1127}
+      - {h: "bash-sensitive-read-guard", l: 1128, e: 1144}
+      - {h: "bash-write-guard", l: 1145, e: 1161}
+      - {h: "cleanup", l: 1162, e: 1178}
+      - {h: "commit-message-guard", l: 1179, e: 1195}
+      - {h: "config-change-logger", l: 1196, e: 1212}
+      - {h: "conflict-guard", l: 1213, e: 1229}
+      - {h: "cwd-change-logger", l: 1230, e: 1246}
+      - {h: "dangerous-command-guard", l: 1247, e: 1263}
+      - {h: "gh-write-verb-guard", l: 1264, e: 1280}
+      - {h: "github-api-preflight", l: 1281, e: 1297}
+      - {h: "instructions-loaded-reinforcer", l: 1298, e: 1314}
+      - {h: "markdown-anchor-validator", l: 1315, e: 1331}
+      - {h: "memory-access-logger", l: 1332, e: 1348}
+      - {h: "memory-integrity-check", l: 1349, e: 1365}
+      - {h: "memory-write-guard", l: 1366, e: 1382}
+      - {h: "merge-gate-guard", l: 1383, e: 1400}
+      - {h: "permission-denial-logger", l: 1401, e: 1418}
+      - {h: "post-compact-restore", l: 1419, e: 1436}
+      - {h: "post-task-checkpoint", l: 1437, e: 1453}
+      - {h: "pr-language-guard", l: 1454, e: 1470}
+      - {h: "pr-target-guard", l: 1471, e: 1487}
+      - {h: "pre-compact-snapshot", l: 1488, e: 1504}
+      - {h: "pre-edit-read-guard", l: 1505, e: 1521}
+      - {h: "prompt-validator", l: 1522, e: 1538}
+      - {h: "push-target-guard", l: 1539, e: 1555}
+      - {h: "sensitive-file-guard", l: 1556, e: 1572}
+      - {h: "session-logger", l: 1573, e: 1589}
+      - {h: "shell-env-secret-guard", l: 1590, e: 1606}
+      - {h: "subagent-logger", l: 1607, e: 1623}
+      - {h: "task-completed-logger", l: 1624, e: 1640}
+      - {h: "task-created-validator", l: 1641, e: 1657}
+      - {h: "team-limit-guard", l: 1658, e: 1674}
+      - {h: "tool-failure-logger", l: 1675, e: 1691}
+      - {h: "traceability-guard", l: 1692, e: 1708}
+      - {h: "version-check", l: 1709, e: 1725}
+      - {h: "worktree-create", l: 1726, e: 1742}
+      - {h: "worktree-remove", l: 1743, e: 1760}
   - path: "PREREQUISITES.md"
     title: "Prerequisites"
     description: ""
@@ -191,185 +191,187 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 5170
+    size: 5437
     tags: []
     sections:
       - {h: "Contents", l: 7, e: 23}
       - {h: "3-Minute Installation", l: 24, e: 25}
       - {h: "Step 1: Copy (30 seconds)", l: 26, e: 41}
-      - {h: "Step 2: Install (1 minute)", l: 42, e: 69}
-      - {h: "Step 3: Verify Git Identity (30 seconds)", l: 70, e: 101}
-      - {h: "Step 4: Restart (30 seconds)", l: 102, e: 110}
-      - {h: "Verification", l: 111, e: 122}
-      - {h: "Daily Usage", l: 123, e: 124}
-      - {h: "Backup (after settings change)", l: 125, e: 132}
-      - {h: "Sync (between multiple systems)", l: 133, e: 143}
-      - {h: "Troubleshooting", l: 144, e: 145}
-      - {h: "Scripts won't run", l: 146, e: 157}
-      - {h: "File not found", l: 158, e: 165}
-      - {h: "Worried about overwriting", l: 166, e: 175}
-      - {h: "Learn More", l: 176, e: 184}
-      - {h: "What's Next", l: 185, e: 186}
-      - {h: "Try a skill", l: 187, e: 200}
-      - {h: "Choose your path", l: 201, e: 214}
+      - {h: "Step 2: Install (1 minute)", l: 42, e: 77}
+      - {h: "Step 3: Verify Git Identity (30 seconds)", l: 78, e: 109}
+      - {h: "Step 4: Restart (30 seconds)", l: 110, e: 118}
+      - {h: "Verification", l: 119, e: 130}
+      - {h: "Daily Usage", l: 131, e: 132}
+      - {h: "Backup (after settings change)", l: 133, e: 140}
+      - {h: "Sync (between multiple systems)", l: 141, e: 151}
+      - {h: "Troubleshooting", l: 152, e: 153}
+      - {h: "Scripts won't run", l: 154, e: 165}
+      - {h: "File not found", l: 166, e: 173}
+      - {h: "Worried about overwriting", l: 174, e: 183}
+      - {h: "Learn More", l: 184, e: 192}
+      - {h: "What's Next", l: 193, e: 194}
+      - {h: "Try a skill", l: 195, e: 208}
+      - {h: "Choose your path", l: 209, e: 222}
   - path: "README.ko.md"
     title: "Claude Configuration Backup & Deployment System"
     description: ""
     category: root
     scope: root
-    size: 46549
+    size: 47129
     tags: [config,readme]
     sections:
       - {h: "빠른 시작", l: 30, e: 58}
       - {h: "설치하면 무엇이 달라지나요", l: 59, e: 80}
       - {h: "원라인 설치", l: 81, e: 82}
-      - {h: "Public Repository", l: 83, e: 90}
-      - {h: "비대화형 설치", l: 91, e: 107}
-      - {h: "Private Repository", l: 108, e: 115}
-      - {h: "Git Clone 방식", l: 116, e: 129}
-      - {h: "Plugin 설치 (Beta)", l: 130, e: 150}
-      - {h: "Windows (PowerShell)", l: 151, e: 164}
-      - {h: "Docker 호환 dual-variant 설치", l: 165, e: 170}
-      - {h: "경량 Plugin (Behavioral Guardrails Only)", l: 171, e: 192}
-      - {h: "토큰 최적화", l: 193, e: 196}
-      - {h: "레퍼런스 문서 로드", l: 197, e: 212}
-      - {h: "구조", l: 213, e: 416}
-      - {h: "버전 관리", l: 417, e: 432}
-      - {h: "자동으로 적용되는 동작", l: 433, e: 436}
-      - {h: "코드를 편집할 때", l: 437, e: 440}
-      - {h: "커밋할 때", l: 441, e: 446}
-      - {h: "Claude가 파일에 접근할 때", l: 447, e: 451}
-      - {h: "세션이 실행될 때", l: 452, e: 457}
-      - {h: "PR을 생성할 때", l: 458, e: 462}
-      - {h: "Agent Teams 사용 시", l: 463, e: 469}
-      - {h: "컨텐츠 언어 정책", l: 470, e: 495}
-      - {h: "Enterprise 설정", l: 496, e: 499}
-      - {h: "메모리 계층", l: 500, e: 509}
-      - {h: "OS별 Enterprise 경로", l: 510, e: 517}
-      - {h: "Enterprise 설정 설치", l: 518, e: 529}
-      - {h: "Enterprise 템플릿 내용", l: 530, e: 541}
-      - {h: "개인 설정 (CLAUDE.local.md)", l: 542, e: 556}
-      - {h: "Rules", l: 557, e: 560}
-      - {h: "사용 가능한 Rules", l: 561, e: 570}
-      - {h: "Rules 작동 방식", l: 571, e: 589}
-      - {h: "스킬 — 무엇을 할 수 있나요", l: 590, e: 598}
-      - {h: "워크플로우 자동화", l: 599, e: 610}
-      - {h: "코드 분석", l: 611, e: 619}
-      - {h: "설계 및 문서화", l: 620, e: 633}
-      - {h: "Agents", l: 634, e: 637}
-      - {h: "사용 가능한 Agents", l: 638, e: 650}
-      - {h: "Agent 설정", l: 651, e: 665}
-      - {h: "Agent Teams", l: 666, e: 671}
-      - {h: "빠른 시작", l: 672, e: 682}
-      - {h: "주요 조작법", l: 683, e: 697}
-      - {h: "MCP 설정", l: 698, e: 701}
-      - {h: "사용 가능한 서버", l: 702, e: 711}
-      - {h: "설정 방법", l: 712, e: 719}
-      - {h: "스크립트 설명", l: 720, e: 734}
-      - {h: "Git Hooks", l: 735, e: 742}
-      - {h: "Pre-commit Hook", l: 743, e: 747}
-      - {h: "Pre-push Hook", l: 748, e: 754}
-      - {h: "사용 시나리오", l: 755, e: 756}
-      - {h: "시나리오 A: 회사 + 집 컴퓨터 동기화", l: 757, e: 774}
-      - {h: "시나리오 B: 팀 프로젝트 설정 공유", l: 775, e: 793}
-      - {h: "시나리오 C: 새 개발 머신 설정", l: 794, e: 811}
-      - {h: "시나리오 D: 열린 이슈 또는 실패 PR 일괄 처리", l: 812, e: 851}
-      - {h: "고급 사용법", l: 852, e: 853}
-      - {h: "GitHub Actions 자동 동기화", l: 854, e: 875}
-      - {h: "특정 파일만 백업", l: 876, e: 885}
-      - {h: "환경 변수로 커스터마이즈", l: 886, e: 909}
-      - {h: "FAQ", l: 910, e: 911}
-      - {h: "Q1: Git identity를 왜 개인화해야 하나요?", l: 912, e: 922}
-      - {h: "Q2: 백업을 여러 곳에서 관리하면?", l: 923, e: 935}
-      - {h: "Q3: 프로젝트마다 다른 설정을 쓰고 싶어요", l: 936, e: 951}
-      - {h: "Q4: 스크립트가 실행 안 돼요", l: 952, e: 964}
-      - {h: "Q5: Private repo로 사용하고 싶어요", l: 965, e: 978}
-      - {h: "Memory sync (다중 머신)", l: 979, e: 991}
-      - {h: "추가 리소스", l: 992, e: 1003}
-      - {h: "버전", l: 1004, e: 1011}
-      - {h: "기여", l: 1012, e: 1023}
-      - {h: "Related Projects", l: 1024, e: 1025}
-      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1026, e: 1034}
-      - {h: "License", l: 1035, e: 1043}
+      - {h: "Public Repository", l: 83, e: 94}
+      - {h: "비대화형 설치", l: 95, e: 120}
+      - {h: "Private Repository", l: 121, e: 128}
+      - {h: "Git Clone 방식", l: 129, e: 142}
+      - {h: "Plugin 설치 (Beta)", l: 143, e: 163}
+      - {h: "Windows (PowerShell)", l: 164, e: 177}
+      - {h: "Docker 호환 dual-variant 설치", l: 178, e: 183}
+      - {h: "경량 Plugin (Behavioral Guardrails Only)", l: 184, e: 205}
+      - {h: "토큰 최적화", l: 206, e: 209}
+      - {h: "레퍼런스 문서 로드", l: 210, e: 225}
+      - {h: "구조", l: 226, e: 429}
+      - {h: "버전 관리", l: 430, e: 445}
+      - {h: "자동으로 적용되는 동작", l: 446, e: 449}
+      - {h: "코드를 편집할 때", l: 450, e: 453}
+      - {h: "커밋할 때", l: 454, e: 459}
+      - {h: "Claude가 파일에 접근할 때", l: 460, e: 464}
+      - {h: "세션이 실행될 때", l: 465, e: 470}
+      - {h: "PR을 생성할 때", l: 471, e: 475}
+      - {h: "Agent Teams 사용 시", l: 476, e: 482}
+      - {h: "컨텐츠 언어 정책", l: 483, e: 508}
+      - {h: "Enterprise 설정", l: 509, e: 512}
+      - {h: "메모리 계층", l: 513, e: 522}
+      - {h: "OS별 Enterprise 경로", l: 523, e: 530}
+      - {h: "Enterprise 설정 설치", l: 531, e: 542}
+      - {h: "Enterprise 템플릿 내용", l: 543, e: 554}
+      - {h: "개인 설정 (CLAUDE.local.md)", l: 555, e: 569}
+      - {h: "Rules", l: 570, e: 573}
+      - {h: "사용 가능한 Rules", l: 574, e: 583}
+      - {h: "Rules 작동 방식", l: 584, e: 602}
+      - {h: "스킬 — 무엇을 할 수 있나요", l: 603, e: 611}
+      - {h: "워크플로우 자동화", l: 612, e: 623}
+      - {h: "코드 분석", l: 624, e: 632}
+      - {h: "설계 및 문서화", l: 633, e: 646}
+      - {h: "Agents", l: 647, e: 650}
+      - {h: "사용 가능한 Agents", l: 651, e: 663}
+      - {h: "Agent 설정", l: 664, e: 678}
+      - {h: "Agent Teams", l: 679, e: 684}
+      - {h: "빠른 시작", l: 685, e: 695}
+      - {h: "주요 조작법", l: 696, e: 710}
+      - {h: "MCP 설정", l: 711, e: 714}
+      - {h: "사용 가능한 서버", l: 715, e: 724}
+      - {h: "설정 방법", l: 725, e: 732}
+      - {h: "스크립트 설명", l: 733, e: 747}
+      - {h: "Git Hooks", l: 748, e: 757}
+      - {h: "Pre-commit Hook", l: 758, e: 762}
+      - {h: "Commit-msg Hook", l: 763, e: 767}
+      - {h: "Pre-push Hook", l: 768, e: 774}
+      - {h: "사용 시나리오", l: 775, e: 776}
+      - {h: "시나리오 A: 회사 + 집 컴퓨터 동기화", l: 777, e: 794}
+      - {h: "시나리오 B: 팀 프로젝트 설정 공유", l: 795, e: 813}
+      - {h: "시나리오 C: 새 개발 머신 설정", l: 814, e: 831}
+      - {h: "시나리오 D: 열린 이슈 또는 실패 PR 일괄 처리", l: 832, e: 871}
+      - {h: "고급 사용법", l: 872, e: 873}
+      - {h: "GitHub Actions 자동 동기화", l: 874, e: 895}
+      - {h: "특정 파일만 백업", l: 896, e: 905}
+      - {h: "환경 변수로 커스터마이즈", l: 906, e: 929}
+      - {h: "FAQ", l: 930, e: 931}
+      - {h: "Q1: Git identity를 왜 개인화해야 하나요?", l: 932, e: 942}
+      - {h: "Q2: 백업을 여러 곳에서 관리하면?", l: 943, e: 955}
+      - {h: "Q3: 프로젝트마다 다른 설정을 쓰고 싶어요", l: 956, e: 971}
+      - {h: "Q4: 스크립트가 실행 안 돼요", l: 972, e: 984}
+      - {h: "Q5: Private repo로 사용하고 싶어요", l: 985, e: 998}
+      - {h: "Memory sync (다중 머신)", l: 999, e: 1011}
+      - {h: "추가 리소스", l: 1012, e: 1023}
+      - {h: "버전", l: 1024, e: 1031}
+      - {h: "기여", l: 1032, e: 1043}
+      - {h: "Related Projects", l: 1044, e: 1045}
+      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1046, e: 1054}
+      - {h: "License", l: 1055, e: 1063}
   - path: "README.md"
     title: "Claude Configuration Backup & Deployment System"
     description: ""
     category: root
     scope: root
-    size: 44766
+    size: 45327
     tags: [config,readme]
     sections:
       - {h: "Quick Start", l: 30, e: 58}
       - {h: "What You Get", l: 59, e: 80}
       - {h: "One-Line Installation", l: 81, e: 82}
-      - {h: "Public Repository", l: 83, e: 90}
-      - {h: "Non-interactive install", l: 91, e: 109}
-      - {h: "Private Repository", l: 110, e: 117}
-      - {h: "Git Clone Method", l: 118, e: 131}
-      - {h: "Windows (PowerShell)", l: 132, e: 148}
-      - {h: "Docker-compatible dual-variant install", l: 149, e: 167}
-      - {h: "Plugin Installation (Beta)", l: 168, e: 188}
-      - {h: "Lightweight Plugin (Behavioral Guardrails Only)", l: 189, e: 210}
-      - {h: "Token Optimization", l: 211, e: 214}
-      - {h: "Loading reference documents", l: 215, e: 230}
-      - {h: "Structure", l: 231, e: 441}
-      - {h: "Versioning", l: 442, e: 457}
-      - {h: "What Happens Automatically", l: 458, e: 461}
-      - {h: "When you edit code", l: 462, e: 465}
-      - {h: "When you commit", l: 466, e: 471}
-      - {h: "When Claude accesses files", l: 472, e: 476}
-      - {h: "When a session runs", l: 477, e: 482}
-      - {h: "When you create PRs", l: 483, e: 487}
-      - {h: "When using Agent Teams", l: 488, e: 494}
-      - {h: "Content Language Policy", l: 495, e: 520}
-      - {h: "Enterprise Settings", l: 521, e: 524}
-      - {h: "Memory Hierarchy", l: 525, e: 534}
-      - {h: "Enterprise Paths by OS", l: 535, e: 542}
-      - {h: "Installing Enterprise Settings", l: 543, e: 554}
-      - {h: "Enterprise Template Contents", l: 555, e: 566}
-      - {h: "Personal Settings (CLAUDE.local.md)", l: 567, e: 581}
-      - {h: "Rules", l: 582, e: 585}
-      - {h: "Available Rules", l: 586, e: 595}
-      - {h: "How Rules Work", l: 596, e: 613}
-      - {h: "Skills — What You Can Do", l: 614, e: 622}
-      - {h: "Workflow Automation", l: 623, e: 634}
-      - {h: "Code Analysis", l: 635, e: 643}
-      - {h: "Design and Documentation", l: 644, e: 657}
-      - {h: "Agents", l: 658, e: 661}
-      - {h: "Available Agents", l: 662, e: 674}
-      - {h: "Agent Configuration", l: 675, e: 689}
-      - {h: "Agent Teams", l: 690, e: 695}
-      - {h: "Quick Start", l: 696, e: 706}
-      - {h: "Key Controls", l: 707, e: 721}
-      - {h: "MCP Configuration", l: 722, e: 725}
-      - {h: "Available Servers", l: 726, e: 735}
-      - {h: "Setup", l: 736, e: 743}
-      - {h: "Scripts", l: 744, e: 758}
-      - {h: "Git Hooks", l: 759, e: 766}
-      - {h: "Pre-commit Hook", l: 767, e: 772}
-      - {h: "Pre-push Hook", l: 773, e: 780}
-      - {h: "Use Cases", l: 781, e: 782}
-      - {h: "Use Case A: Sync Work + Home Computers", l: 783, e: 800}
-      - {h: "Use Case B: Share Team Project Settings", l: 801, e: 819}
-      - {h: "Use Case C: New Development Machine Setup", l: 820, e: 837}
-      - {h: "Use Case D: Batch-Process Open Issues or Failing PRs", l: 838, e: 888}
-      - {h: "Advanced Usage", l: 889, e: 890}
-      - {h: "GitHub Actions Auto-Sync", l: 891, e: 912}
-      - {h: "Backup Specific Files Only", l: 913, e: 922}
-      - {h: "Customize with Environment Variables", l: 923, e: 946}
-      - {h: "FAQ", l: 947, e: 948}
-      - {h: "Q1: Why do I need to personalize Git identity?", l: 949, e: 959}
-      - {h: "Q2: How to manage backups across multiple locations?", l: 960, e: 972}
-      - {h: "Q3: I want different settings for each project", l: 973, e: 988}
-      - {h: "Q4: Scripts won't run", l: 989, e: 1001}
-      - {h: "Q5: I want to use a private repo", l: 1002, e: 1015}
-      - {h: "Memory sync (multi-machine)", l: 1016, e: 1028}
-      - {h: "Additional Resources", l: 1029, e: 1040}
-      - {h: "Version", l: 1041, e: 1048}
-      - {h: "Contributing", l: 1049, e: 1060}
-      - {h: "Related Projects", l: 1061, e: 1062}
-      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1063, e: 1071}
-      - {h: "License", l: 1072, e: 1080}
+      - {h: "Public Repository", l: 83, e: 94}
+      - {h: "Non-interactive install", l: 95, e: 122}
+      - {h: "Private Repository", l: 123, e: 130}
+      - {h: "Git Clone Method", l: 131, e: 144}
+      - {h: "Windows (PowerShell)", l: 145, e: 161}
+      - {h: "Docker-compatible dual-variant install", l: 162, e: 180}
+      - {h: "Plugin Installation (Beta)", l: 181, e: 201}
+      - {h: "Lightweight Plugin (Behavioral Guardrails Only)", l: 202, e: 223}
+      - {h: "Token Optimization", l: 224, e: 227}
+      - {h: "Loading reference documents", l: 228, e: 243}
+      - {h: "Structure", l: 244, e: 454}
+      - {h: "Versioning", l: 455, e: 470}
+      - {h: "What Happens Automatically", l: 471, e: 474}
+      - {h: "When you edit code", l: 475, e: 478}
+      - {h: "When you commit", l: 479, e: 484}
+      - {h: "When Claude accesses files", l: 485, e: 489}
+      - {h: "When a session runs", l: 490, e: 495}
+      - {h: "When you create PRs", l: 496, e: 500}
+      - {h: "When using Agent Teams", l: 501, e: 507}
+      - {h: "Content Language Policy", l: 508, e: 533}
+      - {h: "Enterprise Settings", l: 534, e: 537}
+      - {h: "Memory Hierarchy", l: 538, e: 547}
+      - {h: "Enterprise Paths by OS", l: 548, e: 555}
+      - {h: "Installing Enterprise Settings", l: 556, e: 567}
+      - {h: "Enterprise Template Contents", l: 568, e: 579}
+      - {h: "Personal Settings (CLAUDE.local.md)", l: 580, e: 594}
+      - {h: "Rules", l: 595, e: 598}
+      - {h: "Available Rules", l: 599, e: 608}
+      - {h: "How Rules Work", l: 609, e: 626}
+      - {h: "Skills — What You Can Do", l: 627, e: 635}
+      - {h: "Workflow Automation", l: 636, e: 647}
+      - {h: "Code Analysis", l: 648, e: 656}
+      - {h: "Design and Documentation", l: 657, e: 670}
+      - {h: "Agents", l: 671, e: 674}
+      - {h: "Available Agents", l: 675, e: 687}
+      - {h: "Agent Configuration", l: 688, e: 702}
+      - {h: "Agent Teams", l: 703, e: 708}
+      - {h: "Quick Start", l: 709, e: 719}
+      - {h: "Key Controls", l: 720, e: 734}
+      - {h: "MCP Configuration", l: 735, e: 738}
+      - {h: "Available Servers", l: 739, e: 748}
+      - {h: "Setup", l: 749, e: 756}
+      - {h: "Scripts", l: 757, e: 771}
+      - {h: "Git Hooks", l: 772, e: 782}
+      - {h: "Pre-commit Hook", l: 783, e: 788}
+      - {h: "Commit-msg Hook", l: 789, e: 794}
+      - {h: "Pre-push Hook", l: 795, e: 802}
+      - {h: "Use Cases", l: 803, e: 804}
+      - {h: "Use Case A: Sync Work + Home Computers", l: 805, e: 822}
+      - {h: "Use Case B: Share Team Project Settings", l: 823, e: 841}
+      - {h: "Use Case C: New Development Machine Setup", l: 842, e: 859}
+      - {h: "Use Case D: Batch-Process Open Issues or Failing PRs", l: 860, e: 910}
+      - {h: "Advanced Usage", l: 911, e: 912}
+      - {h: "GitHub Actions Auto-Sync", l: 913, e: 934}
+      - {h: "Backup Specific Files Only", l: 935, e: 944}
+      - {h: "Customize with Environment Variables", l: 945, e: 968}
+      - {h: "FAQ", l: 969, e: 970}
+      - {h: "Q1: Why do I need to personalize Git identity?", l: 971, e: 981}
+      - {h: "Q2: How to manage backups across multiple locations?", l: 982, e: 994}
+      - {h: "Q3: I want different settings for each project", l: 995, e: 1010}
+      - {h: "Q4: Scripts won't run", l: 1011, e: 1023}
+      - {h: "Q5: I want to use a private repo", l: 1024, e: 1037}
+      - {h: "Memory sync (multi-machine)", l: 1038, e: 1050}
+      - {h: "Additional Resources", l: 1051, e: 1062}
+      - {h: "Version", l: 1063, e: 1070}
+      - {h: "Contributing", l: 1071, e: 1082}
+      - {h: "Related Projects", l: 1083, e: 1084}
+      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1085, e: 1093}
+      - {h: "License", l: 1094, e: 1102}
   - path: "THIRD_PARTY_NOTICES.md"
     title: "Third-Party Notices"
     description: ""
@@ -403,7 +405,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 23230
+    size: 23594
     tags: [docs,documentation]
     sections:
       - {h: "Quick Reference", l: 11, e: 18}
@@ -419,18 +421,18 @@ documents:
       - {h: "Token Optimization Design", l: 160, e: 171}
       - {h: "5W1H Issue Framework", l: 172, e: 179}
       - {h: "Shared Skill References (SSOT)", l: 180, e: 203}
-      - {h: "Doc-Index Manifest Drift Guard", l: 204, e: 217}
-      - {h: "Agent Definitions (drift guard)", l: 218, e: 231}
-      - {h: "Version Declarations (VERSION_MAP SSOT)", l: 232, e: 259}
-      - {h: "Spec Linter (Official-Spec SSOT)", l: 260, e: 307}
-      - {h: "Skill Context Isolation (`context: fork`)", l: 308, e: 321}
-      - {h: "Using This Configuration Elsewhere", l: 322, e: 323}
-      - {h: "What Works Out of the Box", l: 324, e: 332}
-      - {h: "What Requires Adaptation", l: 333, e: 339}
-      - {h: "Migration Checklist", l: 340, e: 350}
-      - {h: "Official Documentation References", l: 351, e: 361}
-      - {h: "ADR / Design Doc Frontmatter (#624)", l: 362, e: 405}
-      - {h: "Reporting Issues", l: 406, e: 416}
+      - {h: "Doc-Index Drift Guard", l: 204, e: 219}
+      - {h: "Agent Definitions (drift guard)", l: 220, e: 233}
+      - {h: "Version Declarations (VERSION_MAP SSOT)", l: 234, e: 261}
+      - {h: "Spec Linter (Official-Spec SSOT)", l: 262, e: 309}
+      - {h: "Skill Context Isolation (`context: fork`)", l: 310, e: 323}
+      - {h: "Using This Configuration Elsewhere", l: 324, e: 325}
+      - {h: "What Works Out of the Box", l: 326, e: 334}
+      - {h: "What Requires Adaptation", l: 335, e: 341}
+      - {h: "Migration Checklist", l: 342, e: 352}
+      - {h: "Official Documentation References", l: 353, e: 363}
+      - {h: "ADR / Design Doc Frontmatter (#624)", l: 364, e: 407}
+      - {h: "Reporting Issues", l: 408, e: 418}
   - path: "docs/MEMORY_MIGRATION.md"
     title: "Memory Sync — Single-Machine Migration Runbook"
     description: ""

@@ -51,6 +51,28 @@ documents:
 EOF
 }
 
+write_manifest_section() {
+    local repo="$1"
+    local path="$2"
+    local size="$3"
+    local heading="$4"
+    local line_no="$5"
+    mkdir -p "$repo/docs/.index"
+    cat > "$repo/docs/.index/manifest.yaml" <<EOF
+_meta: {schema: "1.0.0", generated: "2026-07-02", docs: 1, size_mb: 0.00}
+documents:
+  - path: "$path"
+    title: "Fixture"
+    description: "Fixture"
+    category: docs
+    scope: docs
+    size: $size
+    tags: [documentation]
+    sections:
+      - {h: "$heading", l: $line_no, e: $line_no}
+EOF
+}
+
 write_index_meta() {
     local repo="$1"
     local file="$2"
@@ -119,6 +141,29 @@ write_index_meta "$REPO_STALE_INDEX" "router.yaml" "2026-04-10"
 out=$(bash "$VALIDATOR" "$REPO_STALE_INDEX" 2>&1); rc=$?
 assert_exit 1 "$rc" "stale non-manifest index date fails"
 assert_contains "generated mismatch" "$out" "stale index date message"
+
+REPO_SECTION_OK="$WORK/section-ok"
+mkdir -p "$REPO_SECTION_OK/docs"
+printf '## Intro\nbody\n' > "$REPO_SECTION_OK/docs/a.md"
+write_manifest_section "$REPO_SECTION_OK" "docs/a.md" 14 "Intro" 1
+out=$(bash "$VALIDATOR" "$REPO_SECTION_OK" 2>&1); rc=$?
+assert_exit 0 "$rc" "valid section metadata passes"
+
+REPO_SECTION_LINE="$WORK/section-line"
+mkdir -p "$REPO_SECTION_LINE/docs"
+printf 'preface\n## Intro\n' > "$REPO_SECTION_LINE/docs/a.md"
+write_manifest_section "$REPO_SECTION_LINE" "docs/a.md" 17 "Intro" 1
+out=$(bash "$VALIDATOR" "$REPO_SECTION_LINE" 2>&1); rc=$?
+assert_exit 1 "$rc" "stale section line fails"
+assert_contains "line mismatch" "$out" "stale section line message"
+
+REPO_SECTION_HEADING="$WORK/section-heading"
+mkdir -p "$REPO_SECTION_HEADING/docs"
+printf '## Current\n' > "$REPO_SECTION_HEADING/docs/a.md"
+write_manifest_section "$REPO_SECTION_HEADING" "docs/a.md" 11 "Missing" 1
+out=$(bash "$VALIDATOR" "$REPO_SECTION_HEADING" 2>&1); rc=$?
+assert_exit 1 "$rc" "stale section heading fails"
+assert_contains "heading mismatch" "$out" "stale section heading message"
 
 REPO_SYMLINK="$WORK/symlink"
 mkdir -p "$REPO_SYMLINK/docs"

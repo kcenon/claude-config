@@ -10,7 +10,7 @@ What gets blocked, by which layer, and how to unblock it. Read in five minutes. 
 | `git push origin main` or `git push origin develop` | `hooks/pre-push` (git hook, terminal) | Direct push to protected branch | Open a PR instead; squash-merge |
 | `git merge`, `git rebase`, `git cherry-pick`, `git pull` on dirty tree | `conflict-guard` (PreToolUse) | Operation blocked when working tree is dirty or another op is in progress | `git stash` or commit first |
 | `gh pr create --base main` (head ≠ develop) | `pr-target-guard` (PreToolUse) + `validate-pr-target.yml` | PR blocked from non-develop branch to main | Target `develop` instead |
-| `gh pr create --title "한글…"` (or any non-ASCII PR/issue text) | `pr-language-guard` (PreToolUse) | Non-English title/body in `gh pr|issue|release` | Rewrite in English |
+| `gh pr create --title "<non-English text>"` under `CLAUDE_CONTENT_LANGUAGE=english`, or mixed-language text under `exclusive_bilingual` | `pr-language-guard` (PreToolUse) | Title/body text that violates the active `CLAUDE_CONTENT_LANGUAGE` policy | Use English for `english`; under `exclusive_bilingual`, make each artifact English-only or Korean-only |
 | `gh pr create --body "Co-Authored-By: Claude"` (or `🤖 Claude`, "Generated with Claude") | `attribution-guard` (PreToolUse) | AI/Claude attribution in PR/issue/release artifacts | Remove the trailer/marker; write the change in your own voice |
 | `gh pr merge <N>` while any check is pending/failing | `merge-gate-guard` (PreToolUse) | Merge blocked until every `gh pr checks <N>` bucket is `pass` or `skipping` | Wait for CI; fix failures; never rationalize |
 | `gh pr merge` without `--squash` (where allowed) | `merge-gate-guard` + `gh-write-verb-guard` | Merge style enforcement | Use `--squash` |
