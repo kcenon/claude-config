@@ -289,6 +289,17 @@ function Deploy-BootstrapHooks {
     }
 }
 
+function Deploy-BootstrapUtilityScripts {
+    $scriptsSrc = Join-Path $InstallDir 'global' 'scripts'
+    if (-not (Test-Path -LiteralPath $scriptsSrc -PathType Container)) { return }
+
+    $scriptsDst = Join-Path $ClaudeDir 'scripts'
+    if (-not (Test-Path -LiteralPath $scriptsDst -PathType Container)) {
+        New-Item -ItemType Directory -Path $scriptsDst -Force -ErrorAction Stop | Out-Null
+    }
+    Copy-Item -Path (Join-Path $scriptsSrc '*') -Destination $scriptsDst -Force -ErrorAction Stop
+}
+
 function Install-BootstrapSettingsAndHooks {
     # Intentionally bypasses Invoke-GuardedCopy: policy attributes (.language,
     # .env.CLAUDE_CONTENT_LANGUAGE) must be enforced on every install.
@@ -314,6 +325,7 @@ function Install-BootstrapSettingsAndHooks {
         $settingsUpdated = Update-ClaudeSettingsJson -SettingsPath $settingsTmp -AgentLang $agentLanguage -ContentLang $contentLanguage
 
         Deploy-BootstrapHooks
+        Deploy-BootstrapUtilityScripts
 
         Move-Item -LiteralPath $settingsTmp -Destination $settingsDst -Force -ErrorAction Stop
     }
