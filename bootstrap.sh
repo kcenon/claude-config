@@ -358,6 +358,16 @@ deploy_bootstrap_hooks() {
     return 0
 }
 
+deploy_bootstrap_scripts() {
+    local scripts_src="$INSTALL_DIR/global/scripts"
+    local scripts_dst="$CLAUDE_DIR/scripts"
+
+    [ -d "$scripts_src" ] || return 0
+    copy_bootstrap_files "$scripts_src" "$scripts_dst" "*.sh" 1 || return 1
+
+    return 0
+}
+
 install_bootstrap_settings_and_hooks() {
     local settings_src="$INSTALL_DIR/global/settings.json"
     local settings_dst="$CLAUDE_DIR/settings.json"
@@ -380,6 +390,11 @@ install_bootstrap_settings_and_hooks() {
     if ! deploy_bootstrap_hooks; then
         rm -f "$settings_tmp"
         error "Hook 스크립트 배포 실패. settings.json을 변경하지 않았습니다."
+    fi
+
+    if ! deploy_bootstrap_scripts; then
+        rm -f "$settings_tmp"
+        error "Utility 스크립트 배포 실패. settings.json을 변경하지 않았습니다."
     fi
 
     mv -f "$settings_tmp" "$settings_dst" || {
