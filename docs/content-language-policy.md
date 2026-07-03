@@ -20,9 +20,9 @@ generated documents) is guaranteed as follows:
 
 | Preset | `AGENT_LANGUAGE` | `CLAUDE_CONTENT_LANGUAGE` | Artifact guarantee |
 |--------|------------------|----------------------------|--------------------|
-| 1) English Unified | `english` | `english` | All artifacts in English (ASCII only, Hangul rejected) |
+| 1) English Unified | `english` | `english` | All artifacts in English (ASCII plus allowlisted English typography; Hangul rejected) |
 | 2) Korean Unified  | `korean`  | `exclusive_bilingual` | Each artifact is either English-only or Korean-only — no inline mixing |
-| 3) Hybrid Mode (default) | `korean` | `english` | Dialogue in Korean, artifacts in English (ASCII only) |
+| 3) Hybrid Mode (default) | `korean` | `english` | Dialogue in Korean, artifacts in English (ASCII plus allowlisted English typography) |
 
 The simplified UI lives in a single source of truth at
 `scripts/lib/install-prompts.sh` (bash) and
@@ -119,7 +119,7 @@ and must be set by editing `~/.claude/settings.json` directly.
 
 | Value | Surfaced in UI | Validator behavior | Rule document phrase |
 |-------|----------------|--------------------|----------------------|
-| `english` (default, unset, empty) | yes | ASCII printable + whitespace only | `English` |
+| `english` (default, unset, empty) | yes | ASCII printable + whitespace, plus allowlisted English typographic punctuation | `English` |
 | `exclusive_bilingual` | yes (Korean) | Per-document mode: English-only (if no Hangul) or Korean-only with ASCII permitted inside four allowed containers (if any Hangul syllable present) | `English or Korean (document-exclusive)` |
 | `korean_plus_english` | no (advanced) | ASCII + Hangul Syllables / Jamo / Compat Jamo, inline mixing permitted | `English or Korean` |
 | `any` | no (advanced) | Skip language validation entirely | `any language` |
@@ -147,8 +147,10 @@ Mode is chosen per document, automatically:
 
 - **English mode** — the text contains zero Hangul syllable characters
   (U+AC00 to U+D7A3). Validation is identical to the `english` policy:
-  ASCII printable (0x20 to 0x7E) and whitespace only. Any accented
-  Latin, CJK, or emoji is rejected.
+  ASCII printable (0x20 to 0x7E), whitespace, and the English
+  typographic punctuation allowlist: em dash, en dash, curly quotes,
+  ellipsis, and non-breaking space. Any accented Latin, CJK, or emoji
+  is rejected.
 - **Korean mode** — the text contains at least one Hangul syllable.
   After stripping the four allowed ASCII containers below, the residual
   text must contain zero `[A-Za-z]` characters.

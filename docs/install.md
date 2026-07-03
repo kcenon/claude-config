@@ -57,7 +57,32 @@ version.
 
 ## Non-Interactive Override
 
-For CI or unattended installs, bypass the prompt with either:
+For CI or unattended installs, the bootstrap entrypoints accept the same
+prompt overrides as the clone installers. Use env vars when you want a
+specific answer, or force every prompt's documented default:
+
+```bash
+# Pick the install type and accept every other default.
+INSTALL_TYPE=3 bash bootstrap.sh
+
+# Force bootstrap defaults. The bootstrap default install type is 1.
+bash bootstrap.sh --yes
+```
+
+```powershell
+# Pick the install type and accept every other default.
+$env:INSTALL_TYPE = '3'; pwsh -File bootstrap.ps1
+
+# Force bootstrap defaults. The bootstrap default install type is 1.
+$env:FORCE_MODE = '1'; pwsh -File bootstrap.ps1
+```
+
+Recognized prompt overrides: `INSTALL_TYPE`, `PROJECT_DIR`,
+`INSTALL_NPM`, `OVERWRITE`, `AGENT_LANGUAGE`, and `CONTENT_LANGUAGE`.
+PowerShell also accepts `FORCE_MODE=1`, which is the `bootstrap.ps1`
+equivalent of Bash `--yes`.
+
+Manifest conflict resolution has a separate override:
 
 ```bash
 BOOTSTRAP_FORCE=1 bash bootstrap.sh
@@ -67,8 +92,9 @@ BOOTSTRAP_FORCE=1 bash bootstrap.sh
 $env:BOOTSTRAP_FORCE = '1'; pwsh -File bootstrap.ps1
 ```
 
-With `BOOTSTRAP_FORCE=1`, divergent files are overwritten and the
-manifest is refreshed.
+With `BOOTSTRAP_FORCE=1`, divergent manifest-tracked files are
+overwritten and the manifest is refreshed. This flag does not select
+answers for unrelated installer prompts.
 
 ## Toolchain Fallback
 
@@ -105,6 +131,11 @@ Render pipeline (`guarded_template_copy` in
 Selecting a different policy on re-install produces a different
 `src_hash`, which triggers a silent upgrade if the user has not
 locally edited the file, or a "diverges from both" prompt otherwise.
+
+On re-install, the language prompt seeds its defaults from the existing
+`settings.json`: `.language` seeds `AGENT_LANGUAGE`, and
+`.env.CLAUDE_CONTENT_LANGUAGE` seeds `CONTENT_LANGUAGE`. Explicit env
+overrides still win, and the two values are seeded independently.
 
 `settings.json` follows a different rule: it bypasses the manifest
 entirely so policy attributes (`.language`,

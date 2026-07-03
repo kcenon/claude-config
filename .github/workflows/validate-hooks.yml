@@ -24,6 +24,7 @@ on:
       - 'tests/scripts/test-plugin-*.sh'
       - 'tests/scripts/test-install-manifest-helpers.*'
       - 'tests/scripts/test-install-permissions-policy.sh'
+      - 'tests/scripts/test-global-files-referenced-exist.sh'
       - 'tests/scripts/test-language-policy-drift.sh'
       - 'tests/scripts/test-installer-prompt-drift.sh'
       - 'tests/scripts/test-install-prompts-ps1.ps1'
@@ -111,6 +112,11 @@ jobs:
       - name: Run install permissions policy lint
         # Lint test: install.sh must enforce 700 / 600 / 644 on tracked files.
         run: bash tests/scripts/test-install-permissions-policy.sh
+
+      - name: Run global referenced-file existence test
+        # Regression guard for #777: every global/*.md file referenced by
+        # bootstrap/install copy loops must exist as a static file or template.
+        run: bash tests/scripts/test-global-files-referenced-exist.sh
 
       - name: Run content-language policy drift test
         # Verifies (a) canonical .md == .tmpl rendered with english phrase,

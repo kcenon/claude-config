@@ -81,6 +81,19 @@ assert_reject "feat(BadScope): desc" "uppercase scope"
 assert_reject "update: things" "invalid type 'update'"
 
 echo ""
+echo "[failure guidance]"
+GUIDANCE=$(run_hook "bad message" 2>&1)
+if echo "$GUIDANCE" | grep -qF "Project policy blocks --no-verify bypasses" \
+   && ! echo "$GUIDANCE" | grep -qF "or use --no-verify"; then
+    PASS=$((PASS + 1))
+    echo "  PASS: failure guidance does not suggest --no-verify bypass"
+else
+    FAIL=$((FAIL + 1))
+    ERRORS+=("FAIL: failure guidance should point to policy, not --no-verify bypass")
+    echo "  FAIL: failure guidance"
+fi
+
+echo ""
 echo "[description rules]"
 assert_reject "feat: Added new feature" "uppercase first char"
 assert_reject "fix: resolve issue." "trailing period"

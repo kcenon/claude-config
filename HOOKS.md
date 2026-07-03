@@ -22,7 +22,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Validate commit messages before git commit | [Commit Message Guard](#10-commit-message-guard-pretooluse) |
 | Prevent git merge/rebase on dirty trees | [Conflict Guard](#11-conflict-guard-pretooluse) |
 | Block PRs targeting main from non-develop branches | [PR Target Guard](#12-pr-target-guard-pretooluse) |
-| Block non-English titles/bodies in gh PR/issue commands | [PR Language Guard](#13-pr-language-guard-pretooluse) |
+| Enforce the active content-language policy for gh PR/issue commands | [PR Language Guard](#13-pr-language-guard-pretooluse) |
 | Block gh pr merge when any check is non-passing | [Merge Gate Guard](#14-merge-gate-guard-pretooluse) |
 | Block AI/Claude attribution in gh PR/issue commands | [Attribution Guard](#15-attribution-guard-pretooluse) |
 | Re-inject critical policy after instruction load | [Instructions Loaded Reinforcer](#16-instructions-loaded-reinforcer-instructionsloaded) |
@@ -652,7 +652,7 @@ TaskCreated rejected: description must contain at least one '- [ ]' checkbox mar
 
 **Commit message format**: `wip(agent): <sanitized-agent-name> checkpoint YYYY-MM-DD HH:MM:SS`. Agent name is extracted from `tool_input.subagent_type` (preferred) or `tool_input.name` (fallback); only `[A-Za-z0-9_-]` characters survive sanitization, clipped to 64 chars.
 
-**Why `--no-verify`**: `wip(agent):` is not in the Conventional Commits type list that `commit-msg` accepts, so the validator would reject it. Checkpoint commits are throwaway and expected to be squashed at PR merge.
+**Why `--no-verify`**: This is an internal lifecycle-hook exception. User-initiated `git commit --no-verify` is blocked by `commit-message-guard`, but checkpoint commits use `wip(agent):`, which is not in the Conventional Commits type list that `commit-msg` accepts. Checkpoint commits are throwaway and expected to be squashed at PR merge.
 
 **Why `--allow-empty`**: Defensive — satisfies the acceptance criterion that "hook succeeds on empty tree" even if the no-op check is skipped for some reason (e.g., staged/unstaged boundary edge cases).
 
@@ -1029,7 +1029,7 @@ which clang-format
 **Behavior**:
 - Exits with code 1 to block the push when targeting a protected branch
 - Exits with code 0 to allow the push for non-protected branches
-- Bypass: `git push --no-verify` (forbidden by project policy)
+- Bypass attempt: `git push --no-verify` is denied by `push-target-guard` in Claude Code before the terminal-side hook can be skipped.
 
 **Cross-platform**:
 
