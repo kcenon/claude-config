@@ -99,7 +99,18 @@ function Read-HookInput {
     for ($attempt = 0; $attempt -lt 10; $attempt++) {
         try {
             if ([Console]::IsInputRedirected) {
-                $raw = [Console]::In.ReadToEnd()
+                $utf8 = [System.Text.UTF8Encoding]::new($false, $true)
+                $reader = [System.IO.StreamReader]::new(
+                    [Console]::OpenStandardInput(),
+                    $utf8,
+                    $false
+                )
+                try {
+                    $raw = $reader.ReadToEnd()
+                }
+                finally {
+                    $reader.Dispose()
+                }
                 if ([string]::IsNullOrWhiteSpace($raw)) {
                     return $null
                 }
