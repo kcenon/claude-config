@@ -10,24 +10,28 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 16944
+    size: 17612
     tags: []
     sections:
+      - {h: "Changelog", l: 1, e: 7}
       - {h: "[Unreleased]", l: 8, e: 9}
-      - {h: "Fixed", l: 10, e: 23}
-      - {h: "Security", l: 24, e: 101}
-      - {h: "Added", l: 102, e: 130}
-      - {h: "Changed", l: 131, e: 177}
-      - {h: "1.9.0 - 2026-04-13", l: 178, e: 187}
-      - {h: "1.8.0 - 2026-04-13", l: 188, e: 193}
-      - {h: "1.7.0 - 2026-04-06", l: 194, e: 208}
-      - {h: "1.6.0 - 2026-04-03", l: 209, e: 221}
-      - {h: "1.5.0 - 2026-03-21", l: 222, e: 240}
-      - {h: "1.4.0 - 2026-01-22", l: 241, e: 246}
-      - {h: "1.3.0 - 2026-01-15", l: 247, e: 255}
-      - {h: "1.2.0 - 2026-01-15", l: 256, e: 264}
-      - {h: "1.1.0 - 2025-01-15", l: 265, e: 275}
-      - {h: "1.0.0 - 2025-12-03", l: 276, e: 282}
+      - {h: "Fixed", l: 10, e: 15}
+      - {h: "1.11.0 - 2026-07-03", l: 16, e: 17}
+      - {h: "Fixed", l: 18, e: 31}
+      - {h: "Security", l: 32, e: 109}
+      - {h: "Added", l: 110, e: 138}
+      - {h: "Changed", l: 139, e: 185}
+      - {h: "1.10.0 - 2026-04-20", l: 186, e: 194}
+      - {h: "1.9.0 - 2026-04-13", l: 195, e: 204}
+      - {h: "1.8.0 - 2026-04-13", l: 205, e: 210}
+      - {h: "1.7.0 - 2026-04-06", l: 211, e: 225}
+      - {h: "1.6.0 - 2026-04-03", l: 226, e: 238}
+      - {h: "1.5.0 - 2026-03-21", l: 239, e: 257}
+      - {h: "1.4.0 - 2026-01-22", l: 258, e: 263}
+      - {h: "1.3.0 - 2026-01-15", l: 264, e: 272}
+      - {h: "1.2.0 - 2026-01-15", l: 273, e: 281}
+      - {h: "1.1.0 - 2025-01-15", l: 282, e: 292}
+      - {h: "1.0.0 - 2025-12-03", l: 293, e: 299}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -217,22 +221,43 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 47626
+    size: 47744
     tags: [config,readme]
     sections:
-      - {h: "빠른 시작", l: 30, e: 58}
+      - {h: "Claude Configuration Backup & Deployment System", l: 1, e: 29}
+      - {h: "빠른 시작", l: 30, e: 34}
+      - {h: "1. 원라인 설치", l: 35, e: 37}
+      - {h: "2. Git identity 확인 (가능하면 git config에서 자동 입력)", l: 38, e: 40}
+      - {h: "3. Claude Code 재시작 - 완료!", l: 41, e: 58}
       - {h: "설치하면 무엇이 달라지나요", l: 59, e: 80}
       - {h: "원라인 설치", l: 81, e: 82}
       - {h: "Public Repository", l: 83, e: 94}
-      - {h: "비대화형 설치", l: 95, e: 120}
-      - {h: "Private Repository", l: 121, e: 128}
-      - {h: "Git Clone 방식", l: 129, e: 142}
-      - {h: "Plugin 설치 (Beta)", l: 143, e: 163}
-      - {h: "Windows (PowerShell)", l: 164, e: 177}
+      - {h: "비대화형 설치", l: 95, e: 100}
+      - {h: "무인 설치: 설치 타입만 env로 지정하고 나머지는 기본값 사용", l: 101, e: 103}
+      - {h: "모든 프롬프트를 기본값으로 강제", l: 104, e: 108}
+      - {h: "무인 설치: 설치 타입만 env로 지정하고 나머지는 기본값 사용", l: 109, e: 111}
+      - {h: "모든 프롬프트를 기본값으로 강제", l: 112, e: 120}
+      - {h: "Private Repository", l: 121, e: 123}
+      - {h: "GitHub Personal Access Token 사용", l: 124, e: 128}
+      - {h: "Git Clone 방식", l: 129, e: 131}
+      - {h: "1. 저장소 클론", l: 132, e: 134}
+      - {h: "2. 설치 스크립트 실행", l: 135, e: 138}
+      - {h: "3. Git identity 확인 (누락되었거나 틀린 경우에만 수정)", l: 139, e: 142}
+      - {h: "Plugin 설치 (Beta)", l: 143, e: 147}
+      - {h: "마켓플레이스 추가", l: 148, e: 150}
+      - {h: "플러그인 설치", l: 151, e: 157}
+      - {h: "플러그인 직접 로드 (개발/테스트용)", l: 158, e: 163}
+      - {h: "Windows (PowerShell)", l: 164, e: 166}
+      - {h: "1. 저장소 클론", l: 167, e: 169}
+      - {h: "2. 설치 스크립트 실행 (PowerShell 7+ 권장)", l: 170, e: 177}
       - {h: "Docker 호환 dual-variant 설치", l: 178, e: 183}
-      - {h: "경량 Plugin (Behavioral Guardrails Only)", l: 184, e: 205}
+      - {h: "경량 Plugin (Behavioral Guardrails Only)", l: 184, e: 188}
+      - {h: "lite plugin 설치", l: 189, e: 191}
+      - {h: "또는 로컬 테스트", l: 192, e: 205}
       - {h: "토큰 최적화", l: 206, e: 209}
-      - {h: "레퍼런스 문서 로드", l: 210, e: 225}
+      - {h: "레퍼런스 문서 로드", l: 210, e: 214}
+      - {h: "특정 레퍼런스 로드 요청", l: 215, e: 217}
+      - {h: "또는 파일을 직접 참조", l: 218, e: 225}
       - {h: "구조", l: 226, e: 429}
       - {h: "버전 관리", l: 430, e: 445}
       - {h: "자동으로 적용되는 동작", l: 446, e: 449}
@@ -246,12 +271,17 @@ documents:
       - {h: "Enterprise 설정", l: 511, e: 514}
       - {h: "메모리 계층", l: 515, e: 524}
       - {h: "OS별 Enterprise 경로", l: 525, e: 532}
-      - {h: "Enterprise 설정 설치", l: 533, e: 544}
+      - {h: "Enterprise 설정 설치", l: 533, e: 537}
+      - {h: "옵션 선택:", l: 538, e: 538}
+      - {h: "4) Enterprise 설정만 설치 (관리자 권한 필요)", l: 539, e: 539}
+      - {h: "5) 전체 설치 (Enterprise + Global + Project)", l: 540, e: 544}
       - {h: "Enterprise 템플릿 내용", l: 545, e: 556}
-      - {h: "개인 설정 (CLAUDE.local.md)", l: 557, e: 571}
+      - {h: "개인 설정 (CLAUDE.local.md)", l: 557, e: 561}
+      - {h: "템플릿 복사", l: 562, e: 571}
       - {h: "Rules", l: 572, e: 575}
       - {h: "사용 가능한 Rules", l: 576, e: 585}
-      - {h: "Rules 작동 방식", l: 586, e: 604}
+      - {h: "Rules 작동 방식", l: 586, e: 597}
+      - {h: "Rule 내용", l: 598, e: 604}
       - {h: "스킬 — 무엇을 할 수 있나요", l: 605, e: 613}
       - {h: "워크플로우 자동화", l: 614, e: 625}
       - {h: "코드 분석", l: 626, e: 634}
@@ -271,20 +301,44 @@ documents:
       - {h: "Commit-msg Hook", l: 766, e: 770}
       - {h: "Pre-push Hook", l: 771, e: 777}
       - {h: "사용 시나리오", l: 778, e: 779}
-      - {h: "시나리오 A: 회사 + 집 컴퓨터 동기화", l: 780, e: 797}
-      - {h: "시나리오 B: 팀 프로젝트 설정 공유", l: 798, e: 816}
-      - {h: "시나리오 C: 새 개발 머신 설정", l: 817, e: 834}
-      - {h: "시나리오 D: 열린 이슈 또는 실패 PR 일괄 처리", l: 835, e: 874}
+      - {h: "시나리오 A: 회사 + 집 컴퓨터 동기화", l: 780, e: 782}
+      - {h: "회사에서 (초기 설정)", l: 783, e: 788}
+      - {h: "집에서", l: 789, e: 792}
+      - {h: "선택: 1 (백업 → 시스템)", l: 793, e: 797}
+      - {h: "시나리오 B: 팀 프로젝트 설정 공유", l: 798, e: 800}
+      - {h: "프로젝트 리더", l: 801, e: 805}
+      - {h: "타입: 2 (프로젝트만)", l: 806, e: 807}
+      - {h: "팀 멤버", l: 808, e: 811}
+      - {h: "타입: 2 (프로젝트만)", l: 812, e: 816}
+      - {h: "시나리오 C: 새 개발 머신 설정", l: 817, e: 819}
+      - {h: "원라인 설치", l: 820, e: 822}
+      - {h: "또는 수동 설치", l: 823, e: 826}
+      - {h: "타입: 3 (둘 다)", l: 827, e: 828}
+      - {h: "Git identity 확인; 누락되었거나 틀린 경우에만 수정", l: 829, e: 834}
+      - {h: "시나리오 D: 열린 이슈 또는 실패 PR 일괄 처리", l: 835, e: 845}
+      - {h: "저장소에서 최대 5개의 열린 이슈 처리 (기본 limit)", l: 846, e: 848}
+      - {h: "최대 3개 이슈 처리", l: 849, e: 851}
+      - {h: "실패한 PR을 대신 처리", l: 852, e: 856}
+      - {h: "PowerShell 동등 명령", l: 857, e: 874}
       - {h: "고급 사용법", l: 875, e: 876}
       - {h: "GitHub Actions 자동 동기화", l: 877, e: 898}
-      - {h: "특정 파일만 백업", l: 899, e: 908}
-      - {h: "환경 변수로 커스터마이즈", l: 909, e: 932}
+      - {h: "특정 파일만 백업", l: 899, e: 901}
+      - {h: "글로벌 CLAUDE.md만 백업", l: 902, e: 904}
+      - {h: "프로젝트 설정만 백업", l: 905, e: 908}
+      - {h: "환경 변수로 커스터마이즈", l: 909, e: 911}
+      - {h: "bootstrap.sh 사용 시", l: 912, e: 932}
       - {h: "FAQ", l: 933, e: 934}
-      - {h: "Q1: Git identity를 왜 개인화해야 하나요?", l: 935, e: 945}
+      - {h: "Q1: Git identity를 왜 개인화해야 하나요?", l: 935, e: 940}
+      - {h: "설치된 값이 누락되었거나 틀린 경우에만 name과 email 변경", l: 941, e: 945}
       - {h: "Q2: 백업을 여러 곳에서 관리하면?", l: 946, e: 958}
-      - {h: "Q3: 프로젝트마다 다른 설정을 쓰고 싶어요", l: 959, e: 974}
-      - {h: "Q4: 스크립트가 실행 안 돼요", l: 975, e: 987}
-      - {h: "Q5: Private repo로 사용하고 싶어요", l: 988, e: 1001}
+      - {h: "Q3: 프로젝트마다 다른 설정을 쓰고 싶어요", l: 959, e: 964}
+      - {h: "프로젝트 A 설정 수정", l: 965, e: 968}
+      - {h: "프로젝트 B 설정 수정", l: 969, e: 974}
+      - {h: "Q4: 스크립트가 실행 안 돼요", l: 975, e: 981}
+      - {h: "또는 직접 실행", l: 982, e: 987}
+      - {h: "Q5: Private repo로 사용하고 싶어요", l: 988, e: 992}
+      - {h: "Token 생성: GitHub Settings > Developer settings > Personal access tokens", l: 993, e: 994}
+      - {h: "설치", l: 995, e: 1001}
       - {h: "Memory sync (다중 머신)", l: 1002, e: 1014}
       - {h: "추가 리소스", l: 1015, e: 1026}
       - {h: "버전", l: 1027, e: 1034}
@@ -297,22 +351,44 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 45793
+    size: 45917
     tags: [config,readme]
     sections:
-      - {h: "Quick Start", l: 30, e: 58}
+      - {h: "Claude Configuration Backup & Deployment System", l: 1, e: 29}
+      - {h: "Quick Start", l: 30, e: 34}
+      - {h: "1. One-line installation", l: 35, e: 37}
+      - {h: "2. Verify Git identity (auto-filled from git config when available)", l: 38, e: 40}
+      - {h: "3. Restart Claude Code - Done!", l: 41, e: 58}
       - {h: "What You Get", l: 59, e: 80}
       - {h: "One-Line Installation", l: 81, e: 82}
       - {h: "Public Repository", l: 83, e: 94}
-      - {h: "Non-interactive install", l: 95, e: 122}
-      - {h: "Private Repository", l: 123, e: 130}
-      - {h: "Git Clone Method", l: 131, e: 144}
-      - {h: "Windows (PowerShell)", l: 145, e: 161}
+      - {h: "Non-interactive install", l: 95, e: 101}
+      - {h: "Unattended: pick the install type via env, accept every other default", l: 102, e: 104}
+      - {h: "Force defaults for every prompt", l: 105, e: 109}
+      - {h: "Unattended: pick the install type via env, accept every other default", l: 110, e: 112}
+      - {h: "Force defaults for every prompt", l: 113, e: 122}
+      - {h: "Private Repository", l: 123, e: 125}
+      - {h: "Using GitHub Personal Access Token", l: 126, e: 130}
+      - {h: "Git Clone Method", l: 131, e: 133}
+      - {h: "1. Clone repository", l: 134, e: 136}
+      - {h: "2. Run install script", l: 137, e: 140}
+      - {h: "3. Verify Git identity (edit only if missing or wrong)", l: 141, e: 144}
+      - {h: "Windows (PowerShell)", l: 145, e: 147}
+      - {h: "1. Clone repository", l: 148, e: 150}
+      - {h: "2. Run install script (PowerShell 7+ recommended)", l: 151, e: 154}
+      - {h: "3. Verify Git identity (edit only if missing or wrong)", l: 155, e: 161}
       - {h: "Docker-compatible dual-variant install", l: 162, e: 180}
-      - {h: "Plugin Installation (Beta)", l: 181, e: 201}
-      - {h: "Lightweight Plugin (Behavioral Guardrails Only)", l: 202, e: 223}
+      - {h: "Plugin Installation (Beta)", l: 181, e: 185}
+      - {h: "Add marketplace", l: 186, e: 188}
+      - {h: "Install plugin", l: 189, e: 195}
+      - {h: "Load plugin directly (for development/testing)", l: 196, e: 201}
+      - {h: "Lightweight Plugin (Behavioral Guardrails Only)", l: 202, e: 206}
+      - {h: "Install lite plugin", l: 207, e: 209}
+      - {h: "Or test locally", l: 210, e: 223}
       - {h: "Token Optimization", l: 224, e: 227}
-      - {h: "Loading reference documents", l: 228, e: 243}
+      - {h: "Loading reference documents", l: 228, e: 232}
+      - {h: "Ask Claude to load a specific reference", l: 233, e: 235}
+      - {h: "Or reference the file directly", l: 236, e: 243}
       - {h: "Structure", l: 244, e: 454}
       - {h: "Versioning", l: 455, e: 470}
       - {h: "What Happens Automatically", l: 471, e: 474}
@@ -326,12 +402,17 @@ documents:
       - {h: "Enterprise Settings", l: 536, e: 539}
       - {h: "Memory Hierarchy", l: 540, e: 549}
       - {h: "Enterprise Paths by OS", l: 550, e: 557}
-      - {h: "Installing Enterprise Settings", l: 558, e: 569}
+      - {h: "Installing Enterprise Settings", l: 558, e: 562}
+      - {h: "Select option:", l: 563, e: 563}
+      - {h: "4) Enterprise settings only (admin required)", l: 564, e: 564}
+      - {h: "5) All (Enterprise + Global + Project)", l: 565, e: 569}
       - {h: "Enterprise Template Contents", l: 570, e: 581}
-      - {h: "Personal Settings (CLAUDE.local.md)", l: 582, e: 596}
+      - {h: "Personal Settings (CLAUDE.local.md)", l: 582, e: 586}
+      - {h: "Copy the template", l: 587, e: 596}
       - {h: "Rules", l: 597, e: 600}
       - {h: "Available Rules", l: 601, e: 610}
-      - {h: "How Rules Work", l: 611, e: 628}
+      - {h: "How Rules Work", l: 611, e: 621}
+      - {h: "Rule content here", l: 622, e: 628}
       - {h: "Skills — What You Can Do", l: 629, e: 637}
       - {h: "Workflow Automation", l: 638, e: 649}
       - {h: "Code Analysis", l: 650, e: 658}
@@ -351,20 +432,44 @@ documents:
       - {h: "Commit-msg Hook", l: 792, e: 797}
       - {h: "Pre-push Hook", l: 798, e: 805}
       - {h: "Use Cases", l: 806, e: 807}
-      - {h: "Use Case A: Sync Work + Home Computers", l: 808, e: 825}
-      - {h: "Use Case B: Share Team Project Settings", l: 826, e: 844}
-      - {h: "Use Case C: New Development Machine Setup", l: 845, e: 862}
-      - {h: "Use Case D: Batch-Process Open Issues or Failing PRs", l: 863, e: 913}
+      - {h: "Use Case A: Sync Work + Home Computers", l: 808, e: 810}
+      - {h: "At work (initial setup)", l: 811, e: 816}
+      - {h: "At home", l: 817, e: 820}
+      - {h: "Select: 1 (Backup → System)", l: 821, e: 825}
+      - {h: "Use Case B: Share Team Project Settings", l: 826, e: 828}
+      - {h: "Project leader", l: 829, e: 833}
+      - {h: "Type: 2 (Project only)", l: 834, e: 835}
+      - {h: "Team member", l: 836, e: 839}
+      - {h: "Type: 2 (Project only)", l: 840, e: 844}
+      - {h: "Use Case C: New Development Machine Setup", l: 845, e: 847}
+      - {h: "One-line installation", l: 848, e: 850}
+      - {h: "Or manual installation", l: 851, e: 854}
+      - {h: "Type: 3 (Both)", l: 855, e: 856}
+      - {h: "Verify Git identity; edit only if missing or wrong", l: 857, e: 862}
+      - {h: "Use Case D: Batch-Process Open Issues or Failing PRs", l: 863, e: 881}
+      - {h: "Process up to 5 open issues in a repo (default limit)", l: 882, e: 884}
+      - {h: "Process up to 3 open issues", l: 885, e: 887}
+      - {h: "Process failing PRs instead", l: 888, e: 892}
+      - {h: "PowerShell equivalents", l: 893, e: 913}
       - {h: "Advanced Usage", l: 914, e: 915}
       - {h: "GitHub Actions Auto-Sync", l: 916, e: 937}
-      - {h: "Backup Specific Files Only", l: 938, e: 947}
-      - {h: "Customize with Environment Variables", l: 948, e: 971}
+      - {h: "Backup Specific Files Only", l: 938, e: 940}
+      - {h: "Backup global CLAUDE.md only", l: 941, e: 943}
+      - {h: "Backup project settings only", l: 944, e: 947}
+      - {h: "Customize with Environment Variables", l: 948, e: 950}
+      - {h: "When using bootstrap.sh", l: 951, e: 971}
       - {h: "FAQ", l: 972, e: 973}
-      - {h: "Q1: Why do I need to personalize Git identity?", l: 974, e: 984}
+      - {h: "Q1: Why do I need to personalize Git identity?", l: 974, e: 979}
+      - {h: "Change name and email only when the installed values are missing or wrong", l: 980, e: 984}
       - {h: "Q2: How to manage backups across multiple locations?", l: 985, e: 997}
-      - {h: "Q3: I want different settings for each project", l: 998, e: 1013}
-      - {h: "Q4: Scripts won't run", l: 1014, e: 1026}
-      - {h: "Q5: I want to use a private repo", l: 1027, e: 1040}
+      - {h: "Q3: I want different settings for each project", l: 998, e: 1003}
+      - {h: "Modify project A settings", l: 1004, e: 1007}
+      - {h: "Modify project B settings", l: 1008, e: 1013}
+      - {h: "Q4: Scripts won't run", l: 1014, e: 1020}
+      - {h: "Or run directly", l: 1021, e: 1026}
+      - {h: "Q5: I want to use a private repo", l: 1027, e: 1031}
+      - {h: "Create token: GitHub Settings > Developer settings > Personal access tokens", l: 1032, e: 1033}
+      - {h: "Installation", l: 1034, e: 1040}
       - {h: "Memory sync (multi-machine)", l: 1041, e: 1053}
       - {h: "Additional Resources", l: 1054, e: 1065}
       - {h: "Version", l: 1066, e: 1073}
@@ -405,9 +510,10 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 23822
+    size: 24127
     tags: [docs,documentation]
     sections:
+      - {h: "Custom Extensions vs Official Features", l: 1, e: 10}
       - {h: "Quick Reference", l: 11, e: 18}
       - {h: "Why This Matters", l: 19, e: 25}
       - {h: "Feature Classification", l: 26, e: 27}
@@ -416,23 +522,29 @@ documents:
       - {h: "⚠️ Design Concepts (Not Implemented)", l: 63, e: 74}
       - {h: "Detailed Breakdown", l: 75, e: 76}
       - {h: "Hook Types and Async Execution (Official)", l: 77, e: 133}
-      - {h: "Import Syntax (`@path/to/file`)", l: 134, e: 148}
+      - {h: "Import Syntax (`@path/to/file`)", l: 134, e: 139}
+      - {h: "My CLAUDE.md", l: 140, e: 148}
       - {h: "`@load:`, `@skip:`, `@focus:` Directives", l: 149, e: 159}
       - {h: "Token Optimization Design", l: 160, e: 171}
       - {h: "5W1H Issue Framework", l: 172, e: 179}
       - {h: "Shared Skill References (SSOT)", l: 180, e: 203}
       - {h: "Doc-Index Drift Guard", l: 204, e: 226}
       - {h: "Agent Definitions (drift guard)", l: 227, e: 240}
-      - {h: "Version Declarations (VERSION_MAP SSOT)", l: 241, e: 268}
-      - {h: "Spec Linter (Official-Spec SSOT)", l: 269, e: 316}
-      - {h: "Skill Context Isolation (`context: fork`)", l: 317, e: 330}
-      - {h: "Using This Configuration Elsewhere", l: 331, e: 332}
-      - {h: "What Works Out of the Box", l: 333, e: 341}
-      - {h: "What Requires Adaptation", l: 342, e: 348}
-      - {h: "Migration Checklist", l: 349, e: 359}
-      - {h: "Official Documentation References", l: 360, e: 370}
-      - {h: "ADR / Design Doc Frontmatter (#624)", l: 371, e: 414}
-      - {h: "Reporting Issues", l: 415, e: 425}
+      - {h: "Version Declarations (VERSION_MAP SSOT)", l: 241, e: 259}
+      - {h: "or, via sync.sh fast path:", l: 260, e: 269}
+      - {h: "Spec Linter (Official-Spec SSOT)", l: 270, e: 286}
+      - {h: "Repo-wide lint (advisory; reports without blocking)", l: 287, e: 289}
+      - {h: "Repo-wide lint (strict; same flag CI uses)", l: 290, e: 292}
+      - {h: "Single file or mode-specific", l: 293, e: 295}
+      - {h: "Fast path via sync.sh", l: 296, e: 317}
+      - {h: "Skill Context Isolation (`context: fork`)", l: 318, e: 331}
+      - {h: "Using This Configuration Elsewhere", l: 332, e: 333}
+      - {h: "What Works Out of the Box", l: 334, e: 342}
+      - {h: "What Requires Adaptation", l: 343, e: 349}
+      - {h: "Migration Checklist", l: 350, e: 360}
+      - {h: "Official Documentation References", l: 361, e: 371}
+      - {h: "ADR / Design Doc Frontmatter (#624)", l: 372, e: 415}
+      - {h: "Reporting Issues", l: 416, e: 426}
   - path: "docs/MEMORY_MIGRATION.md"
     title: "Memory Sync — Single-Machine Migration Runbook"
     description: ""
@@ -3004,13 +3116,20 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 19069
+    size: 19182
     tags: [global,release,skill]
     sections:
+      - {h: "ref_docs keys:", l: 29, e: 29}
+      - {h: "core -> reference/error-handling.md", l: 30, e: 30}
+      - {h: "advanced -> reference/team-mode.md", l: 31, e: 33}
+      - {h: "Release Command", l: 34, e: 37}
       - {h: "Usage", l: 38, e: 54}
       - {h: "Arguments", l: 55, e: 67}
       - {h: "Version Source", l: 68, e: 92}
-      - {h: "Organization Detection", l: 93, e: 120}
+      - {h: "Organization Detection", l: 93, e: 97}
+      - {h: "Check if --org flag is provided", l: 98, e: 102}
+      - {h: "Check if first argument contains / (full path format)", l: 103, e: 108}
+      - {h: "Auto-detect from git remote", l: 109, e: 120}
       - {h: "Options", l: 121, e: 129}
       - {h: "Instructions", l: 130, e: 131}
       - {h: "Phase 0: Execution Mode Selection", l: 132, e: 133}
@@ -3018,11 +3137,18 @@ documents:
       - {h: "0-2. If no flag was provided (interactive selection)", l: 138, e: 170}
       - {h: "0-3. Mode Routing", l: 171, e: 177}
       - {h: "Solo Mode", l: 178, e: 179}
-      - {h: "0. Branch Integrity Check", l: 180, e: 202}
-      - {h: "1. Validate Version Format", l: 203, e: 220}
+      - {h: "0. Branch Integrity Check", l: 180, e: 187}
+      - {h: "Verify all commits on main are ancestors of develop", l: 188, e: 202}
+      - {h: "1. Validate Version Format", l: 203, e: 207}
+      - {h: "Validate semver format", l: 208, e: 213}
+      - {h: "Check if tag already exists", l: 214, e: 220}
       - {h: "1.5. Update VERSION_MAP and Sync Consumers (when VERSION_MAP.yml exists)", l: 221, e: 269}
-      - {h: "2. Get Previous Release Tag", l: 270, e: 284}
-      - {h: "3. Generate Changelog", l: 285, e: 324}
+      - {h: "2. Get Previous Release Tag", l: 270, e: 272}
+      - {h: "Get the most recent tag", l: 273, e: 284}
+      - {h: "3. Generate Changelog", l: 285, e: 289}
+      - {h: "Get commits since last release", l: 290, e: 292}
+      - {h: "Initialize category arrays", l: 293, e: 299}
+      - {h: "Categorize commits by type prefix", l: 300, e: 324}
       - {h: "4. Format Changelog", l: 325, e: 329}
       - {h: "[VERSION] - YYYY-MM-DD", l: 330, e: 331}
       - {h: "Added", l: 332, e: 335}
@@ -3030,12 +3156,33 @@ documents:
       - {h: "Changed", l: 339, e: 342}
       - {h: "Documentation", l: 343, e: 345}
       - {h: "Other", l: 346, e: 349}
-      - {h: "5. Create Release PR (develop -> main)", l: 350, e: 368}
-      - {h: "6. Monitor CI and Merge", l: 369, e: 386}
+      - {h: "5. Create Release PR (develop -> main)", l: 350, e: 354}
+      - {h: "Ensure we are on the develop branch with latest changes", l: 355, e: 358}
+      - {h: "Create release PR targeting main", l: 359, e: 368}
+      - {h: "6. Monitor CI and Merge", l: 369, e: 373}
+      - {h: "Wait briefly for workflows to register", l: 374, e: 376}
+      - {h: "Poll CI checks (30s intervals, 10min max)", l: 377, e: 377}
+      - {h: "See issue-work reference for full CI monitoring protocol", l: 378, e: 380}
+      - {h: "ALL checks must pass before proceeding", l: 381, e: 386}
       - {h: "Sonar Gate on Release PR", l: 387, e: 398}
-      - {h: "7. Create Git Tag on main", l: 399, e: 418}
-      - {h: "7.5. Recreate develop from main", l: 419, e: 449}
-      - {h: "8. Create GitHub Release", l: 450, e: 478}
+      - {h: "7. Create Git Tag on main", l: 399, e: 401}
+      - {h: "Switch to main and pull the merged commit", l: 402, e: 405}
+      - {h: "Determine tag name based on --target (default: suite -> v$VERSION)", l: 406, e: 411}
+      - {h: "Create annotated tag on main", l: 412, e: 414}
+      - {h: "Push tag to remote", l: 415, e: 418}
+      - {h: "7.5. Recreate develop from main", l: 419, e: 424}
+      - {h: "Delete old develop (remote + local)", l: 425, e: 428}
+      - {h: "Recreate from main", l: 429, e: 432}
+      - {h: "Restore default branch setting", l: 433, e: 435}
+      - {h: "Restore branch protection on develop", l: 436, e: 449}
+      - {h: "8. Create GitHub Release", l: 450, e: 452}
+      - {h: "Build release command. Re-derive TAG_NAME here (Step 7 may run in a", l: 453, e: 453}
+      - {h: "separate shell) so non-suite tracks publish against the tag that was", l: 454, e: 454}
+      - {h: "actually pushed (<target>-v$VERSION), not a mismatched v$VERSION.", l: 455, e: 461}
+      - {h: "Add draft flag if specified", l: 462, e: 466}
+      - {h: "Add prerelease flag if specified", l: 467, e: 471}
+      - {h: "Add changelog as release notes", l: 472, e: 474}
+      - {h: "Execute release creation", l: 475, e: 478}
       - {h: "Changelog Categories", l: 479, e: 497}
       - {h: "Team Mode Instructions", l: 498, e: 501}
       - {h: "Policies", l: 502, e: 505}
@@ -5733,29 +5880,93 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 32
+    size: 14717
     tags: [api,project,reference,skill]
+    sections:
+      - {h: "API Design", l: 15, e: 18}
+      - {h: "RESTful Principles", l: 19, e: 22}
+      - {h: "Versioning Strategy", l: 23, e: 26}
+      - {h: "Consistent Responses", l: 27, e: 30}
+      - {h: "Rate Limiting and Pagination", l: 31, e: 36}
+      - {h: "Detailed Examples", l: 37, e: 38}
+      - {h: "RESTful API Design", l: 39, e: 64}
+      - {h: "Flask RESTful API example", l: 65, e: 232}
+      - {h: "GraphQL API Design", l: 233, e: 238}
+      - {h: "schema.graphql", l: 239, e: 267}
+      - {h: "Pagination types", l: 268, e: 286}
+      - {h: "Input types for mutations", l: 287, e: 298}
+      - {h: "Query root", l: 299, e: 306}
+      - {h: "Mutation root", l: 307, e: 316}
+      - {h: "Subscription root", l: 317, e: 322}
+      - {h: "Custom scalars", l: 323, e: 420}
+      - {h: "Rate Limiting", l: 421, e: 487}
+      - {h: "Flask rate limiting with Flask-Limiter", l: 488, e: 508}
+      - {h: "Exempt specific routes", l: 509, e: 516}
+      - {h: "Error Handling", l: 517, e: 600}
   - path: "project/.claude/skills/api-design/reference/architecture.md"
     title: "architecture"
     description: ""
     category: reference
     scope: project
-    size: 34
+    size: 14146
     tags: [api,architecture,project,reference,skill]
+    sections:
+      - {h: "Architecture and Design Principles", l: 15, e: 18}
+      - {h: "SOLID Principles", l: 19, e: 25}
+      - {h: "Layered Architecture", l: 26, e: 29}
+      - {h: "Design Patterns", l: 30, e: 33}
+      - {h: "Microservices Considerations", l: 34, e: 39}
+      - {h: "Detailed Examples", l: 40, e: 41}
+      - {h: "SOLID Principles", l: 42, e: 155}
+      - {h: "BAD: High-level module depends on low-level module", l: 156, e: 169}
+      - {h: "GOOD: Both depend on abstractions", l: 170, e: 206}
+      - {h: "Usage with dependency injection", l: 207, e: 210}
+      - {h: "Easy to swap implementations", l: 211, e: 216}
+      - {h: "Layered Architecture", l: 217, e: 334}
+      - {h: "Design Patterns", l: 335, e: 457}
+      - {h: "Microservices Best Practices", l: 458, e: 555}
   - path: "project/.claude/skills/api-design/reference/logging.md"
     title: "logging"
     description: ""
     category: reference
     scope: project
-    size: 35
+    size: 10746
     tags: [api,project,reference,skill]
+    sections:
+      - {h: "Observability", l: 15, e: 22}
+      - {h: "Structured Logging", l: 23, e: 29}
+      - {h: "Metrics Collection", l: 30, e: 33}
+      - {h: "Distributed Tracing", l: 34, e: 37}
+      - {h: "Health Checks", l: 38, e: 41}
+      - {h: "Service Level Objectives (SLO)", l: 42, e: 47}
+      - {h: "Detailed Examples", l: 48, e: 49}
+      - {h: "Metrics with Prometheus", l: 50, e: 138}
+      - {h: "Define metrics", l: 139, e: 185}
+      - {h: "Distributed Tracing with OpenTelemetry", l: 186, e: 249}
+      - {h: "Health Checks", l: 250, e: 302}
+      - {h: "Kubernetes deployment with health checks", l: 303, e: 334}
+      - {h: "Service Level Objectives", l: 335, e: 410}
   - path: "project/.claude/skills/api-design/reference/observability.md"
     title: "observability"
     description: ""
     category: reference
     scope: project
-    size: 35
+    size: 10746
     tags: [api,project,reference,skill]
+    sections:
+      - {h: "Observability", l: 15, e: 22}
+      - {h: "Structured Logging", l: 23, e: 29}
+      - {h: "Metrics Collection", l: 30, e: 33}
+      - {h: "Distributed Tracing", l: 34, e: 37}
+      - {h: "Health Checks", l: 38, e: 41}
+      - {h: "Service Level Objectives (SLO)", l: 42, e: 47}
+      - {h: "Detailed Examples", l: 48, e: 49}
+      - {h: "Metrics with Prometheus", l: 50, e: 138}
+      - {h: "Define metrics", l: 139, e: 185}
+      - {h: "Distributed Tracing with OpenTelemetry", l: 186, e: 249}
+      - {h: "Health Checks", l: 250, e: 302}
+      - {h: "Kubernetes deployment with health checks", l: 303, e: 334}
+      - {h: "Service Level Objectives", l: 335, e: 410}
   - path: "project/.claude/skills/ci-debugging/SKILL.md"
     title: "CI/CD Debugging Skill"
     description: ""
@@ -5851,43 +6062,172 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 31
+    size: 4603
     tags: [coding,project,reference,skill]
+    sections:
+      - {h: "Memory & Concurrency Safety", l: 6, e: 9}
+      - {h: "Memory Management", l: 10, e: 11}
+      - {h: "Smart Pointers (C++)", l: 12, e: 26}
+      - {h: "RAII Prevents Leaks", l: 27, e: 43}
+      - {h: "Ownership Semantics", l: 44, e: 64}
+      - {h: "Lifetime Guidelines", l: 65, e: 71}
+      - {h: "Memory Safety Tools", l: 72, e: 74}
+      - {h: "Address Sanitizer (leaks, use-after-free, buffer overflows)", l: 75, e: 77}
+      - {h: "Memory Sanitizer (uninitialized reads)", l: 78, e: 80}
+      - {h: "Valgrind (comprehensive)", l: 81, e: 86}
+      - {h: "Concurrency", l: 87, e: 88}
+      - {h: "Avoiding Data Races", l: 89, e: 122}
+      - {h: "Choosing Concurrency Model", l: 123, e: 131}
+      - {h: "Common Patterns", l: 132, e: 179}
+      - {h: "Deadlock Prevention", l: 180, e: 186}
+      - {h: "Testing Concurrent Code", l: 187, e: 191}
   - path: "project/.claude/skills/coding-guidelines/reference/error-handling.md"
     title: "error handling"
     description: ""
     category: reference
     scope: project
-    size: 39
+    size: 7583
     tags: [coding,project,reference,skill]
+    sections:
+      - {h: "Exception and Error Handling", l: 6, e: 9}
+      - {h: "General Principles", l: 10, e: 11}
+      - {h: "Anticipate and Handle Errors", l: 12, e: 20}
+      - {h: "Language-Specific Patterns", l: 21, e: 48}
+      - {h: "Use exceptions (Python's idiomatic approach)", l: 49, e: 51}
+      - {h: "Use Optional for \"no value\" cases", l: 52, e: 57}
+      - {h: "Resource Management", l: 58, e: 59}
+      - {h: "Ensure Cleanup", l: 60, e: 75}
+      - {h: "File automatically closed here", l: 76, e: 85}
+      - {h: "Custom Resource Management", l: 86, e: 105}
+      - {h: "Input Validation", l: 106, e: 110}
+      - {h: "Validate Early", l: 111, e: 132}
+      - {h: "Validation Checklist", l: 133, e: 140}
+      - {h: "Security Implications", l: 141, e: 149}
+      - {h: "Error Handling Patterns", l: 150, e: 151}
+      - {h: "Try-Catch Best Practices", l: 152, e: 175}
+      - {h: "Don't Swallow Exceptions", l: 176, e: 201}
+      - {h: "Error Context Propagation", l: 202, e: 223}
+      - {h: "Error Recovery Strategies", l: 224, e: 225}
+      - {h: "Retry with Backoff", l: 226, e: 252}
+      - {h: "Fallback Mechanisms", l: 253, e: 268}
+      - {h: "Circuit Breaker", l: 269, e: 300}
   - path: "project/.claude/skills/coding-guidelines/reference/general.md"
     title: "general"
     description: ""
     category: reference
     scope: project
-    size: 34
+    size: 3901
     tags: [coding,project,reference,skill]
+    sections:
+      - {h: "Coding Standards", l: 6, e: 10}
+      - {h: "Naming Conventions", l: 11, e: 12}
+      - {h: "Descriptive Names", l: 13, e: 19}
+      - {h: "Consistent Casing", l: 20, e: 26}
+      - {h: "File Organization", l: 27, e: 35}
+      - {h: "Single Responsibility", l: 36, e: 42}
+      - {h: "Complexity Management", l: 43, e: 44}
+      - {h: "Reduce Nesting", l: 45, e: 63}
+      - {h: "Extract Helper Functions", l: 64, e: 73}
+      - {h: "Avoid Magic Numbers", l: 74, e: 87}
+      - {h: "Error Logging", l: 88, e: 101}
+      - {h: "Prefer Immutability", l: 102, e: 109}
+      - {h: "Comments and Documentation", l: 110, e: 111}
+      - {h: "Public API Documentation", l: 112, e: 119}
+      - {h: "Comment Guidelines", l: 120, e: 125}
+      - {h: "Code Style", l: 126, e: 130}
   - path: "project/.claude/skills/coding-guidelines/reference/memory.md"
     title: "memory"
     description: ""
     category: reference
     scope: project
-    size: 31
+    size: 4603
     tags: [coding,memory,project,reference,skill]
+    sections:
+      - {h: "Memory & Concurrency Safety", l: 6, e: 9}
+      - {h: "Memory Management", l: 10, e: 11}
+      - {h: "Smart Pointers (C++)", l: 12, e: 26}
+      - {h: "RAII Prevents Leaks", l: 27, e: 43}
+      - {h: "Ownership Semantics", l: 44, e: 64}
+      - {h: "Lifetime Guidelines", l: 65, e: 71}
+      - {h: "Memory Safety Tools", l: 72, e: 74}
+      - {h: "Address Sanitizer (leaks, use-after-free, buffer overflows)", l: 75, e: 77}
+      - {h: "Memory Sanitizer (uninitialized reads)", l: 78, e: 80}
+      - {h: "Valgrind (comprehensive)", l: 81, e: 86}
+      - {h: "Concurrency", l: 87, e: 88}
+      - {h: "Avoiding Data Races", l: 89, e: 122}
+      - {h: "Choosing Concurrency Model", l: 123, e: 131}
+      - {h: "Common Patterns", l: 132, e: 179}
+      - {h: "Deadlock Prevention", l: 180, e: 186}
+      - {h: "Testing Concurrent Code", l: 187, e: 191}
   - path: "project/.claude/skills/coding-guidelines/reference/performance.md"
     title: "performance"
     description: ""
     category: reference
     scope: project
-    size: 36
+    size: 8637
     tags: [coding,performance,project,reference,skill]
+    sections:
+      - {h: "Performance Optimization", l: 6, e: 7}
+      - {h: "Profile Before Optimizing", l: 8, e: 11}
+      - {h: "The Optimization Workflow", l: 12, e: 19}
+      - {h: "Profiling Tools", l: 20, e: 23}
+      - {h: "CPU profiling with perf (Linux)", l: 24, e: 27}
+      - {h: "CPU profiling with Instruments (macOS)", l: 28, e: 30}
+      - {h: "Valgrind callgrind", l: 31, e: 40}
+      - {h: "Profile a function", l: 41, e: 43}
+      - {h: "Analyze results", l: 44, e: 50}
+      - {h: "Line-by-line profiling", l: 51, e: 57}
+      - {h: "JProfiler, YourKit, VisualVM", l: 58, e: 58}
+      - {h: "Or use built-in JFR (Java Flight Recorder)", l: 59, e: 62}
+      - {h: "Identify Bottlenecks", l: 63, e: 64}
+      - {h: "Common Performance Issues", l: 65, e: 73}
+      - {h: "Performance Hotspots", l: 74, e: 81}
+      - {h: "Reduce Overhead", l: 82, e: 83}
+      - {h: "Minimize Allocations", l: 84, e: 117}
+      - {h: "Avoid Unnecessary Copies", l: 118, e: 158}
+      - {h: "Efficient Data Structures", l: 159, e: 185}
+      - {h: "Efficient Algorithms", l: 186, e: 212}
+      - {h: "Cache Optimization", l: 213, e: 214}
+      - {h: "Data Locality", l: 215, e: 236}
+      - {h: "Structure Packing", l: 237, e: 258}
+      - {h: "I/O Optimization", l: 259, e: 260}
+      - {h: "Buffered I/O", l: 261, e: 276}
+      - {h: "Asynchronous I/O", l: 277, e: 290}
+      - {h: "Compiler Optimizations", l: 291, e: 292}
+      - {h: "Enable Optimization Flags", l: 293, e: 295}
+      - {h: "C++ - Release build", l: 296, e: 298}
+      - {h: "C++ - Link-Time Optimization", l: 299, e: 301}
+      - {h: "Disable debug assertions in release", l: 302, e: 305}
+      - {h: "Help the Compiler", l: 306, e: 331}
+      - {h: "Performance Testing", l: 332, e: 333}
+      - {h: "Benchmarking", l: 334, e: 356}
+      - {h: "Quick benchmark", l: 357, e: 360}
+      - {h: "Compare implementations", l: 361, e: 367}
+      - {h: "Performance Regression Testing", l: 368, e: 382}
   - path: "project/.claude/skills/coding-guidelines/reference/quality.md"
     title: "quality"
     description: ""
     category: reference
     scope: project
-    size: 34
+    size: 3901
     tags: [coding,project,reference,skill]
+    sections:
+      - {h: "Coding Standards", l: 6, e: 10}
+      - {h: "Naming Conventions", l: 11, e: 12}
+      - {h: "Descriptive Names", l: 13, e: 19}
+      - {h: "Consistent Casing", l: 20, e: 26}
+      - {h: "File Organization", l: 27, e: 35}
+      - {h: "Single Responsibility", l: 36, e: 42}
+      - {h: "Complexity Management", l: 43, e: 44}
+      - {h: "Reduce Nesting", l: 45, e: 63}
+      - {h: "Extract Helper Functions", l: 64, e: 73}
+      - {h: "Avoid Magic Numbers", l: 74, e: 87}
+      - {h: "Error Logging", l: 88, e: 101}
+      - {h: "Prefer Immutability", l: 102, e: 109}
+      - {h: "Comments and Documentation", l: 110, e: 111}
+      - {h: "Public API Documentation", l: 112, e: 119}
+      - {h: "Comment Guidelines", l: 120, e: 125}
+      - {h: "Code Style", l: 126, e: 130}
   - path: "project/.claude/skills/doc-update/SKILL.md"
     title: "Document Update Command"
     description: ""
@@ -5926,22 +6266,115 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 32
+    size: 3714
     tags: [documentation,project,reference,skill]
+    sections:
+      - {h: "Operations: Cleanup & Monitoring", l: 14, e: 17}
+      - {h: "Cleanup and Finalization", l: 18, e: 19}
+      - {h: "Temporary File Removal", l: 20, e: 27}
+      - {h: ".gitignore Essentials", l: 28, e: 32}
+      - {h: "Build", l: 33, e: 35}
+      - {h: "Language-specific", l: 36, e: 38}
+      - {h: "IDE", l: 39, e: 41}
+      - {h: "Test coverage", l: 42, e: 44}
+      - {h: "Secrets", l: 45, e: 48}
+      - {h: "Code Formatting & Linting", l: 49, e: 57}
+      - {h: "Pre-Commit Hooks", l: 58, e: 60}
+      - {h: ".pre-commit-config.yaml", l: 61, e: 71}
+      - {h: "Documentation Deviations", l: 72, e: 82}
+      - {h: "Performance Monitoring", l: 83, e: 84}
+      - {h: "Common Metrics and Targets", l: 85, e: 95}
+      - {h: "Response Time Tracking (C++)", l: 96, e: 116}
+      - {h: "Memory Monitoring", l: 117, e: 131}
+      - {h: "Integration with Monitoring Tools", l: 132, e: 149}
+      - {h: "Alerting on Regressions", l: 150, e: 157}
   - path: "project/.claude/skills/documentation/reference/communication.md"
     title: "communication"
     description: ""
     category: reference
     scope: project
-    size: 36
+    size: 944
     tags: [documentation,project,reference,skill]
+    sections:
+      - {h: "Code and Documentation Language", l: 5, e: 9}
+      - {h: "Scope", l: 10, e: 16}
+      - {h: "Relationship with Conversation Language", l: 17, e: 21}
+      - {h: "Special Cases", l: 22, e: 26}
   - path: "project/.claude/skills/documentation/reference/documentation.md"
     title: "documentation"
     description: ""
     category: reference
     scope: project
-    size: 50
+    size: 14127
     tags: [documentation,project,reference,skill]
+    sections:
+      - {h: "Documentation Standards", l: 10, e: 11}
+      - {h: "API Documentation", l: 12, e: 15}
+      - {h: "C++ Documentation (Doxygen)", l: 16, e: 75}
+      - {h: "Kotlin Documentation (KDoc)", l: 76, e: 123}
+      - {h: "Python Documentation (Docstrings)", l: 124, e: 190}
+      - {h: "TypeScript Documentation (TSDoc)", l: 191, e: 250}
+      - {h: "README Files", l: 251, e: 254}
+      - {h: "Template", l: 255, e: 257}
+      - {h: "Project Name", l: 258, e: 261}
+      - {h: "Features", l: 262, e: 267}
+      - {h: "Prerequisites", l: 268, e: 273}
+      - {h: "Installation", l: 274, e: 275}
+      - {h: "Quick Start", l: 276, e: 278}
+      - {h: "Clone the repository", l: 279, e: 282}
+      - {h: "Install dependencies", l: 283, e: 285}
+      - {h: "Build", l: 286, e: 289}
+      - {h: "Run tests", l: 290, e: 293}
+      - {h: "Detailed Installation", l: 294, e: 297}
+      - {h: "Usage", l: 298, e: 299}
+      - {h: "Basic Example", l: 300, e: 312}
+      - {h: "Advanced Usage", l: 313, e: 316}
+      - {h: "Configuration", l: 317, e: 329}
+      - {h: "API Documentation", l: 330, e: 335}
+      - {h: "Documentation in docs/html/index.html", l: 336, e: 338}
+      - {h: "Development", l: 339, e: 340}
+      - {h: "Building from Source", l: 341, e: 344}
+      - {h: "Running Tests", l: 345, e: 350}
+      - {h: "Code Style", l: 351, e: 360}
+      - {h: "Contributing", l: 361, e: 364}
+      - {h: "Architecture", l: 365, e: 368}
+      - {h: "License", l: 369, e: 372}
+      - {h: "Authors", l: 373, e: 376}
+      - {h: "Acknowledgments", l: 377, e: 382}
+      - {h: "Support", l: 383, e: 389}
+      - {h: "CHANGELOG", l: 390, e: 393}
+      - {h: "Format", l: 394, e: 396}
+      - {h: "Changelog", l: 397, e: 403}
+      - {h: "[Unreleased]", l: 404, e: 405}
+      - {h: "Added", l: 406, e: 408}
+      - {h: "Changed", l: 409, e: 411}
+      - {h: "Deprecated", l: 412, e: 414}
+      - {h: "Removed", l: 415, e: 417}
+      - {h: "Fixed", l: 418, e: 420}
+      - {h: "Security", l: 421, e: 423}
+      - {h: "[1.2.0] - 2025-11-02", l: 424, e: 425}
+      - {h: "Added", l: 426, e: 430}
+      - {h: "Changed", l: 431, e: 434}
+      - {h: "Fixed", l: 435, e: 438}
+      - {h: "[1.1.0] - 2025-10-15", l: 439, e: 440}
+      - {h: "Added", l: 441, e: 444}
+      - {h: "Changed", l: 445, e: 447}
+      - {h: "Deprecated", l: 448, e: 450}
+      - {h: "Fixed", l: 451, e: 453}
+      - {h: "[1.0.0] - 2025-09-01", l: 454, e: 455}
+      - {h: "Added", l: 456, e: 467}
+      - {h: "Version Number Guidelines", l: 468, e: 475}
+      - {h: "Architecture Documentation", l: 476, e: 477}
+      - {h: "High-Level Architecture", l: 478, e: 480}
+      - {h: "Architecture Overview", l: 481, e: 482}
+      - {h: "System Architecture", l: 483, e: 507}
+      - {h: "Component Descriptions", l: 508, e: 509}
+      - {h: "API Layer", l: 510, e: 514}
+      - {h: "Business Logic", l: 515, e: 519}
+      - {h: "Database", l: 520, e: 525}
+      - {h: "Inline Documentation", l: 526, e: 527}
+      - {h: "When to Write Comments", l: 528, e: 540}
+      - {h: "Example", l: 541, e: 566}
   - path: "project/.claude/skills/git-status/SKILL.md"
     title: "Git Status Command"
     description: ""
@@ -5992,29 +6425,121 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 31
+    size: 4603
     tags: [performance,project,reference,skill]
+    sections:
+      - {h: "Memory & Concurrency Safety", l: 6, e: 9}
+      - {h: "Memory Management", l: 10, e: 11}
+      - {h: "Smart Pointers (C++)", l: 12, e: 26}
+      - {h: "RAII Prevents Leaks", l: 27, e: 43}
+      - {h: "Ownership Semantics", l: 44, e: 64}
+      - {h: "Lifetime Guidelines", l: 65, e: 71}
+      - {h: "Memory Safety Tools", l: 72, e: 74}
+      - {h: "Address Sanitizer (leaks, use-after-free, buffer overflows)", l: 75, e: 77}
+      - {h: "Memory Sanitizer (uninitialized reads)", l: 78, e: 80}
+      - {h: "Valgrind (comprehensive)", l: 81, e: 86}
+      - {h: "Concurrency", l: 87, e: 88}
+      - {h: "Avoiding Data Races", l: 89, e: 122}
+      - {h: "Choosing Concurrency Model", l: 123, e: 131}
+      - {h: "Common Patterns", l: 132, e: 179}
+      - {h: "Deadlock Prevention", l: 180, e: 186}
+      - {h: "Testing Concurrent Code", l: 187, e: 191}
   - path: "project/.claude/skills/performance-review/reference/memory.md"
     title: "memory"
     description: ""
     category: reference
     scope: project
-    size: 31
+    size: 4603
     tags: [memory,performance,project,reference,skill]
+    sections:
+      - {h: "Memory & Concurrency Safety", l: 6, e: 9}
+      - {h: "Memory Management", l: 10, e: 11}
+      - {h: "Smart Pointers (C++)", l: 12, e: 26}
+      - {h: "RAII Prevents Leaks", l: 27, e: 43}
+      - {h: "Ownership Semantics", l: 44, e: 64}
+      - {h: "Lifetime Guidelines", l: 65, e: 71}
+      - {h: "Memory Safety Tools", l: 72, e: 74}
+      - {h: "Address Sanitizer (leaks, use-after-free, buffer overflows)", l: 75, e: 77}
+      - {h: "Memory Sanitizer (uninitialized reads)", l: 78, e: 80}
+      - {h: "Valgrind (comprehensive)", l: 81, e: 86}
+      - {h: "Concurrency", l: 87, e: 88}
+      - {h: "Avoiding Data Races", l: 89, e: 122}
+      - {h: "Choosing Concurrency Model", l: 123, e: 131}
+      - {h: "Common Patterns", l: 132, e: 179}
+      - {h: "Deadlock Prevention", l: 180, e: 186}
+      - {h: "Testing Concurrent Code", l: 187, e: 191}
   - path: "project/.claude/skills/performance-review/reference/monitoring.md"
     title: "monitoring"
     description: ""
     category: reference
     scope: project
-    size: 32
+    size: 3714
     tags: [performance,project,reference,skill]
+    sections:
+      - {h: "Operations: Cleanup & Monitoring", l: 14, e: 17}
+      - {h: "Cleanup and Finalization", l: 18, e: 19}
+      - {h: "Temporary File Removal", l: 20, e: 27}
+      - {h: ".gitignore Essentials", l: 28, e: 32}
+      - {h: "Build", l: 33, e: 35}
+      - {h: "Language-specific", l: 36, e: 38}
+      - {h: "IDE", l: 39, e: 41}
+      - {h: "Test coverage", l: 42, e: 44}
+      - {h: "Secrets", l: 45, e: 48}
+      - {h: "Code Formatting & Linting", l: 49, e: 57}
+      - {h: "Pre-Commit Hooks", l: 58, e: 60}
+      - {h: ".pre-commit-config.yaml", l: 61, e: 71}
+      - {h: "Documentation Deviations", l: 72, e: 82}
+      - {h: "Performance Monitoring", l: 83, e: 84}
+      - {h: "Common Metrics and Targets", l: 85, e: 95}
+      - {h: "Response Time Tracking (C++)", l: 96, e: 116}
+      - {h: "Memory Monitoring", l: 117, e: 131}
+      - {h: "Integration with Monitoring Tools", l: 132, e: 149}
+      - {h: "Alerting on Regressions", l: 150, e: 157}
   - path: "project/.claude/skills/performance-review/reference/performance.md"
     title: "performance"
     description: ""
     category: reference
     scope: project
-    size: 36
+    size: 8637
     tags: [performance,project,reference,skill]
+    sections:
+      - {h: "Performance Optimization", l: 6, e: 7}
+      - {h: "Profile Before Optimizing", l: 8, e: 11}
+      - {h: "The Optimization Workflow", l: 12, e: 19}
+      - {h: "Profiling Tools", l: 20, e: 23}
+      - {h: "CPU profiling with perf (Linux)", l: 24, e: 27}
+      - {h: "CPU profiling with Instruments (macOS)", l: 28, e: 30}
+      - {h: "Valgrind callgrind", l: 31, e: 40}
+      - {h: "Profile a function", l: 41, e: 43}
+      - {h: "Analyze results", l: 44, e: 50}
+      - {h: "Line-by-line profiling", l: 51, e: 57}
+      - {h: "JProfiler, YourKit, VisualVM", l: 58, e: 58}
+      - {h: "Or use built-in JFR (Java Flight Recorder)", l: 59, e: 62}
+      - {h: "Identify Bottlenecks", l: 63, e: 64}
+      - {h: "Common Performance Issues", l: 65, e: 73}
+      - {h: "Performance Hotspots", l: 74, e: 81}
+      - {h: "Reduce Overhead", l: 82, e: 83}
+      - {h: "Minimize Allocations", l: 84, e: 117}
+      - {h: "Avoid Unnecessary Copies", l: 118, e: 158}
+      - {h: "Efficient Data Structures", l: 159, e: 185}
+      - {h: "Efficient Algorithms", l: 186, e: 212}
+      - {h: "Cache Optimization", l: 213, e: 214}
+      - {h: "Data Locality", l: 215, e: 236}
+      - {h: "Structure Packing", l: 237, e: 258}
+      - {h: "I/O Optimization", l: 259, e: 260}
+      - {h: "Buffered I/O", l: 261, e: 276}
+      - {h: "Asynchronous I/O", l: 277, e: 290}
+      - {h: "Compiler Optimizations", l: 291, e: 292}
+      - {h: "Enable Optimization Flags", l: 293, e: 295}
+      - {h: "C++ - Release build", l: 296, e: 298}
+      - {h: "C++ - Link-Time Optimization", l: 299, e: 301}
+      - {h: "Disable debug assertions in release", l: 302, e: 305}
+      - {h: "Help the Compiler", l: 306, e: 331}
+      - {h: "Performance Testing", l: 332, e: 333}
+      - {h: "Benchmarking", l: 334, e: 356}
+      - {h: "Quick benchmark", l: 357, e: 360}
+      - {h: "Compare implementations", l: 361, e: 367}
+      - {h: "Performance Regression Testing", l: 368, e: 382}
   - path: "project/.claude/skills/pr-review/SKILL.md"
     title: "PR Review Command"
     description: ""
@@ -6064,8 +6589,64 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 42
+    size: 8615
     tags: [build,project,reference,skill,workflow]
+    sections:
+      - {h: "Build and Dependency Management", l: 46, e: 47}
+      - {h: "Use Appropriate Tools", l: 48, e: 51}
+      - {h: "C/C++", l: 52, e: 58}
+      - {h: "C++ standard", l: 59, e: 62}
+      - {h: "Dependencies", l: 63, e: 65}
+      - {h: "Executable", l: 66, e: 76}
+      - {h: "Install rules", l: 77, e: 82}
+      - {h: "Install dependencies", l: 83, e: 85}
+      - {h: "Use in CMakeLists.txt", l: 86, e: 92}
+      - {h: "conanfile.txt", l: 93, e: 102}
+      - {h: "Kotlin/Java", l: 103, e: 143}
+      - {h: "TypeScript/JavaScript", l: 144, e: 168}
+      - {h: "Install dependencies", l: 169, e: 172}
+      - {h: "Scripts", l: 173, e: 177}
+      - {h: "Python", l: 178, e: 181}
+      - {h: "pyproject.toml", l: 182, e: 199}
+      - {h: "Commands", l: 200, e: 207}
+      - {h: "requirements.txt", l: 208, e: 212}
+      - {h: "requirements-dev.txt", l: 213, e: 223}
+      - {h: "Separate Environments", l: 224, e: 225}
+      - {h: "Development vs Production", l: 226, e: 237}
+      - {h: "C++ Build Types", l: 238, e: 240}
+      - {h: "CMakeLists.txt", l: 241, e: 251}
+      - {h: "Build commands", l: 252, e: 256}
+      - {h: "Python Virtual Environments", l: 257, e: 259}
+      - {h: "Create virtual environment", l: 260, e: 262}
+      - {h: "Activate", l: 263, e: 266}
+      - {h: "Install dependencies", l: 267, e: 269}
+      - {h: "Deactivate", l: 270, e: 273}
+      - {h: "Node.js Environments", l: 274, e: 285}
+      - {h: "Pin Dependency Versions", l: 286, e: 287}
+      - {h: "Why Pin Versions?", l: 288, e: 293}
+      - {h: "Version Pinning Strategies", l: 294, e: 316}
+      - {h: "Lock Files", l: 317, e: 326}
+      - {h: "Example: Python with Poetry", l: 327, e: 333}
+      - {h: "For production-critical dependencies, use exact versions", l: 334, e: 338}
+      - {h: "Generate lock file", l: 339, e: 341}
+      - {h: "Install from lock file", l: 342, e: 345}
+      - {h: "Build Reproducibility", l: 346, e: 347}
+      - {h: "Dockerfile Example", l: 348, e: 350}
+      - {h: "Pin base image version", l: 351, e: 355}
+      - {h: "Copy dependency files", l: 356, e: 358}
+      - {h: "Install exact versions from lock file", l: 359, e: 363}
+      - {h: "Copy application", l: 364, e: 369}
+      - {h: "CI/CD Configuration", l: 370, e: 372}
+      - {h: ".github/workflows/build.yml", l: 373, e: 401}
+      - {h: "Dependency Updates", l: 402, e: 403}
+      - {h: "Regular Update Strategy", l: 404, e: 411}
+      - {h: "Automated Dependency Updates", l: 412, e: 415}
+      - {h: ".github/dependabot.yml", l: 416, e: 438}
+      - {h: "Build Optimization", l: 439, e: 440}
+      - {h: "Incremental Builds", l: 441, e: 444}
+      - {h: "Use ccache for faster rebuilds", l: 445, e: 460}
+      - {h: "Dependency Caching", l: 461, e: 464}
+      - {h: "GitHub Actions", l: 465, e: 473}
   - path: "project/.claude/skills/project-workflow/reference/git-commit-format.md"
     title: "Git Commit Message Format"
     description: ""
@@ -6164,8 +6745,11 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 33
+    size: 1054
     tags: [project,reference,skill,workflow]
+    sections:
+      - {h: "Core Principles", l: 5, e: 13}
+      - {h: "Behavioral Guardrails", l: 14, e: 20}
   - path: "project/.claude/skills/project-workflow/reference/skill-testing.md"
     title: "Skill Testing Checklist"
     description: ""
@@ -6190,15 +6774,50 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 44
+    size: 11511
     tags: [project,reference,skill,testing,workflow]
+    sections:
+      - {h: "Testing Strategy", l: 17, e: 18}
+      - {h: "Layered Testing", l: 19, e: 33}
+      - {h: "Unit Tests", l: 34, e: 116}
+      - {h: "Integration Tests", l: 117, e: 154}
+      - {h: "Performance Tests", l: 155, e: 174}
+      - {h: "Test Fixtures", l: 175, e: 178}
+      - {h: "C++ Fixtures", l: 179, e: 210}
+      - {h: "Python Fixtures", l: 211, e: 238}
+      - {h: "Kotlin Fixtures", l: 239, e: 264}
+      - {h: "Coverage Goals", l: 265, e: 266}
+      - {h: "Target: 80% Code Coverage", l: 267, e: 274}
+      - {h: "Compile with coverage flags", l: 275, e: 277}
+      - {h: "Run tests", l: 278, e: 280}
+      - {h: "Generate coverage report", l: 281, e: 287}
+      - {h: "Run tests with coverage", l: 288, e: 290}
+      - {h: "View report", l: 291, e: 291}
+      - {h: "HTML report in htmlcov/index.html", l: 292, e: 315}
+      - {h: "Report in build/reports/jacoco/test/html/index.html", l: 316, e: 318}
+      - {h: "What to Cover", l: 319, e: 335}
+      - {h: "Edge Cases and Failure Scenarios", l: 336, e: 337}
+      - {h: "Test Edge Cases", l: 338, e: 362}
+      - {h: "Test Failure Scenarios", l: 363, e: 386}
+      - {h: "Parameterized Tests", l: 387, e: 425}
+      - {h: "Test Organization", l: 426, e: 427}
+      - {h: "File Structure", l: 428, e: 444}
+      - {h: "Naming Conventions", l: 445, e: 451}
+      - {h: "Test Independence", l: 452, e: 479}
+      - {h: "Continuous Integration", l: 480, e: 481}
+      - {h: "Run Tests Automatically", l: 482, e: 484}
+      - {h: ".github/workflows/test.yml", l: 485, e: 508}
+      - {h: "Quality Gates", l: 509, e: 521}
   - path: "project/.claude/skills/project-workflow/reference/workflow-problem-solving.md"
     title: "workflow problem solving"
     description: ""
     category: reference
     scope: project
-    size: 33
+    size: 1054
     tags: [project,reference,skill,workflow]
+    sections:
+      - {h: "Core Principles", l: 5, e: 13}
+      - {h: "Behavioral Guardrails", l: 14, e: 20}
   - path: "project/.claude/skills/security-audit/SKILL.md"
     title: "Security Audit Skill"
     description: ""
@@ -6219,22 +6838,102 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 32
+    size: 14717
     tags: [api,audit,project,reference,security,skill]
+    sections:
+      - {h: "API Design", l: 15, e: 18}
+      - {h: "RESTful Principles", l: 19, e: 22}
+      - {h: "Versioning Strategy", l: 23, e: 26}
+      - {h: "Consistent Responses", l: 27, e: 30}
+      - {h: "Rate Limiting and Pagination", l: 31, e: 36}
+      - {h: "Detailed Examples", l: 37, e: 38}
+      - {h: "RESTful API Design", l: 39, e: 64}
+      - {h: "Flask RESTful API example", l: 65, e: 232}
+      - {h: "GraphQL API Design", l: 233, e: 238}
+      - {h: "schema.graphql", l: 239, e: 267}
+      - {h: "Pagination types", l: 268, e: 286}
+      - {h: "Input types for mutations", l: 287, e: 298}
+      - {h: "Query root", l: 299, e: 306}
+      - {h: "Mutation root", l: 307, e: 316}
+      - {h: "Subscription root", l: 317, e: 322}
+      - {h: "Custom scalars", l: 323, e: 420}
+      - {h: "Rate Limiting", l: 421, e: 487}
+      - {h: "Flask rate limiting with Flask-Limiter", l: 488, e: 508}
+      - {h: "Exempt specific routes", l: 509, e: 516}
+      - {h: "Error Handling", l: 517, e: 600}
   - path: "project/.claude/skills/security-audit/reference/error-handling.md"
     title: "error handling"
     description: ""
     category: reference
     scope: project
-    size: 39
+    size: 7583
     tags: [audit,project,reference,security,skill]
+    sections:
+      - {h: "Exception and Error Handling", l: 6, e: 9}
+      - {h: "General Principles", l: 10, e: 11}
+      - {h: "Anticipate and Handle Errors", l: 12, e: 20}
+      - {h: "Language-Specific Patterns", l: 21, e: 48}
+      - {h: "Use exceptions (Python's idiomatic approach)", l: 49, e: 51}
+      - {h: "Use Optional for \"no value\" cases", l: 52, e: 57}
+      - {h: "Resource Management", l: 58, e: 59}
+      - {h: "Ensure Cleanup", l: 60, e: 75}
+      - {h: "File automatically closed here", l: 76, e: 85}
+      - {h: "Custom Resource Management", l: 86, e: 105}
+      - {h: "Input Validation", l: 106, e: 110}
+      - {h: "Validate Early", l: 111, e: 132}
+      - {h: "Validation Checklist", l: 133, e: 140}
+      - {h: "Security Implications", l: 141, e: 149}
+      - {h: "Error Handling Patterns", l: 150, e: 151}
+      - {h: "Try-Catch Best Practices", l: 152, e: 175}
+      - {h: "Don't Swallow Exceptions", l: 176, e: 201}
+      - {h: "Error Context Propagation", l: 202, e: 223}
+      - {h: "Error Recovery Strategies", l: 224, e: 225}
+      - {h: "Retry with Backoff", l: 226, e: 252}
+      - {h: "Fallback Mechanisms", l: 253, e: 268}
+      - {h: "Circuit Breaker", l: 269, e: 300}
   - path: "project/.claude/skills/security-audit/reference/security.md"
     title: "security"
     description: ""
     category: reference
     scope: project
-    size: 26
+    size: 12394
     tags: [audit,project,reference,security,skill]
+    sections:
+      - {h: "Security and Sensitive Information", l: 14, e: 15}
+      - {h: "Input Validation", l: 16, e: 24}
+      - {h: "Validate All External Input", l: 25, e: 39}
+      - {h: "Common Validation Patterns", l: 40, e: 75}
+      - {h: "Prevent Injection Attacks", l: 76, e: 140}
+      - {h: "Path Traversal Prevention", l: 141, e: 175}
+      - {h: "Authentication", l: 176, e: 182}
+      - {h: "Authorization", l: 183, e: 189}
+      - {h: "Sensitive Data", l: 190, e: 196}
+      - {h: "Common Vulnerabilities", l: 197, e: 198}
+      - {h: "SQL Injection", l: 199, e: 202}
+      - {h: "XSS (Cross-Site Scripting)", l: 203, e: 207}
+      - {h: "CSRF", l: 208, e: 212}
+      - {h: "Secure Storage", l: 213, e: 214}
+      - {h: "Never Hard-Code Credentials", l: 215, e: 274}
+      - {h: "Mask Sensitive Data in Logs", l: 275, e: 313}
+      - {h: "Secure Password Handling", l: 314, e: 361}
+      - {h: "Dependency Scanning", l: 362, e: 363}
+      - {h: "Regular Vulnerability Checks", l: 364, e: 367}
+      - {h: "Check for known vulnerabilities", l: 368, e: 374}
+      - {h: "Check for vulnerabilities in dependencies", l: 375, e: 378}
+      - {h: "Update dependencies", l: 379, e: 385}
+      - {h: "Check for vulnerabilities", l: 386, e: 388}
+      - {h: "Fix vulnerabilities automatically", l: 389, e: 391}
+      - {h: "Update specific package", l: 392, e: 397}
+      - {h: "Use dependency-check plugin", l: 398, e: 400}
+      - {h: "Update dependencies", l: 401, e: 404}
+      - {h: "Pin Versions", l: 405, e: 419}
+      - {h: "pyproject.toml - Use exact versions for critical dependencies", l: 420, e: 426}
+      - {h: "Automated Scanning in CI/CD", l: 427, e: 429}
+      - {h: ".github/workflows/security.yml", l: 430, e: 460}
+      - {h: "Security Best Practices", l: 461, e: 464}
+      - {h: "Principle of Least Privilege", l: 465, e: 483}
+      - {h: "Secure Defaults", l: 484, e: 502}
+      - {h: "Rate Limiting", l: 503, e: 539}
   - path: "project/CLAUDE.md"
     title: "Universal Development Guidelines"
     description: ""
