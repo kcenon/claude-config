@@ -42,6 +42,10 @@ try {
     Write-Fixture (Join-Path $Repo 'target/exact.md') 'same'
     Write-Fixture (Join-Path $Repo 'source/fm.md') "---`ntitle: Source`n---`n`nbody`n"
     Write-Fixture (Join-Path $Repo 'target/fm.md') "body`n"
+    Write-Fixture (Join-Path $Repo 'source/crlf-exact.md') "same`r`nnext`r`n"
+    Write-Fixture (Join-Path $Repo 'target/crlf-exact.md') "same`nnext`n"
+    Write-Fixture (Join-Path $Repo 'source/crlf-fm.md') "---`r`ntitle: Source`r`n---`r`n`r`nbody`r`n"
+    Write-Fixture (Join-Path $Repo 'target/crlf-fm.md') "body`n"
     Write-Fixture (Join-Path $Repo 'reference-map.yml') @'
 version: 1
 references:
@@ -51,10 +55,16 @@ references:
   - source: source/fm.md
     target: target/fm.md
     mode: strip-source-frontmatter
+  - source: source/crlf-exact.md
+    target: target/crlf-exact.md
+    mode: exact
+  - source: source/crlf-fm.md
+    target: target/crlf-fm.md
+    mode: strip-source-frontmatter
 '@
 
     & pwsh -NoProfile -File $Check $Repo (Join-Path $Repo 'reference-map.yml') *> $null
-    Assert-Exit 0 $LASTEXITCODE 'exact and strip-source-frontmatter entries pass'
+    Assert-Exit 0 $LASTEXITCODE 'exact, CRLF, and strip-source-frontmatter entries pass'
 
     Write-Fixture (Join-Path $Repo 'target/exact.md') 'drift'
     & pwsh -NoProfile -File $Check $Repo (Join-Path $Repo 'reference-map.yml') *> $null
@@ -64,6 +74,23 @@ references:
     Assert-Exit 0 $LASTEXITCODE 'sync exits 0'
     & pwsh -NoProfile -File $Check $Repo (Join-Path $Repo 'reference-map.yml') *> $null
     Assert-Exit 0 $LASTEXITCODE 'sync restores drift'
+
+    $RepoGit = Join-Path $Work 'repo-git'
+    New-Item -ItemType Directory -Path $RepoGit | Out-Null
+    & git -C $RepoGit init -q
+    Write-Fixture (Join-Path $RepoGit 'source/exact.md') 'same'
+    Write-Fixture (Join-Path $RepoGit 'target/exact.md') 'same'
+    Write-Fixture (Join-Path $RepoGit 'reference-map.yml') @'
+version: 1
+references:
+  - source: source/exact.md
+    target: target/exact.md
+    mode: exact
+'@
+    $linkBlob = '../../../rules/demo.md' | & git -C $RepoGit hash-object -w --stdin
+    & git -C $RepoGit update-index --add --cacheinfo "120000,$linkBlob,project/.claude/skills/demo/reference/link.md"
+    & pwsh -NoProfile -File $Check $RepoGit (Join-Path $RepoGit 'reference-map.yml') *> $null
+    Assert-Exit 2 $LASTEXITCODE 'tracked project reference symlink exits 2'
 }
 finally {
     Remove-Item -LiteralPath $Work -Recurse -Force -ErrorAction SilentlyContinue

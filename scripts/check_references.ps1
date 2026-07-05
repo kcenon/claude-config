@@ -106,6 +106,38 @@ function Normalize-ReferenceText {
     return (($Text -replace "`r`n", "`n") -replace "`r", "`n")
 }
 
+function Get-TrackedProjectReferenceSymlinks {
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        return @()
+    }
+
+    $null = & git -C $RootDir rev-parse --is-inside-work-tree 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        return @()
+    }
+
+    $lines = & git -C $RootDir ls-files -s -- 'project/.claude/skills' 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        return @()
+    }
+
+    foreach ($line in $lines) {
+        if ($line -match '^120000\s+\S+\s+\d+\t(project/\.claude/skills/.*/reference/.*)$') {
+            $matches[1]
+        }
+    }
+}
+
+$trackedSymlinks = @(Get-TrackedProjectReferenceSymlinks)
+if ($trackedSymlinks.Count -gt 0) {
+    foreach ($path in $trackedSymlinks) {
+        Write-Host "FAIL: tracked symlink mode 120000: $path" -ForegroundColor Red
+    }
+    Write-Host ""
+    Write-Host "check_references: project skill reference files must be tracked as regular files." -ForegroundColor Yellow
+    exit 2
+}
+
 $entries = @(Read-ReferenceMap -Path $MapFile)
 if ($entries.Count -eq 0) {
     Write-Error "no references declared in $MapFile"
