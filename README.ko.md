@@ -912,7 +912,7 @@ cp -r ~/project/.claude ~/claude_config_backup/project/
 # bootstrap.sh 사용 시
 GITHUB_USER=your-username \
 GITHUB_REPO=your-repo \
-GITHUB_REF=v1.10.0 \
+GITHUB_REF=v1.11.0 \
 INSTALL_DIR=~/my-claude-config \
 bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh)"
 ```
@@ -921,7 +921,7 @@ bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main
 |------|--------|------|
 | `GITHUB_USER` | `kcenon` | 저장소를 소유한 GitHub user/org |
 | `GITHUB_REPO` | `claude-config` | 저장소 이름 |
-| `GITHUB_REF` | 최신 release tag (예: `v1.10.0`) | clone할 tag, branch, commit. tag pinning은 SLSA-aligned supply-chain hardening으로 설치를 재현 가능하게 하고 `main`의 일시적 손상에 덜 취약하게 만듭니다. 개발 테스트에만 `develop`으로 override하세요. |
+| `GITHUB_REF` | 최신 release tag (예: `v1.11.0`) | clone할 tag, branch, commit. tag pinning은 SLSA-aligned supply-chain hardening으로 설치를 재현 가능하게 하고 `main`의 일시적 손상에 덜 취약하게 만듭니다. 개발 테스트에만 `develop`으로 override하세요. |
 | `INSTALL_DIR` | `~/claude_config_backup` | 저장소를 clone할 위치 |
 
 > **Deprecated**: `GITHUB_BRANCH`는 `GITHUB_REF`의 한 release alias로 보존되며, 설정 시 stderr deprecation warning을 출력합니다. 다음 major release 전 `GITHUB_REF`로 이전하세요.

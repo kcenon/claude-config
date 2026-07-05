@@ -3,7 +3,8 @@
 # Exits non-zero on drift. Each field tracks an independent SemVer.
 #
 # Consumers:
-#   suite           -> README.md, README.ko.md (shields.io badge)
+#   suite           -> README.md, README.ko.md (shields.io badge and
+#                      GITHUB_REF pins), bootstrap.sh, bootstrap.ps1
 #   plugin          -> plugin/.claude-plugin/plugin.json
 #   plugin-lite     -> plugin-lite/.claude-plugin/plugin.json
 #   settings-schema -> global/settings.json, global/settings.windows.json
@@ -82,12 +83,87 @@ check_readme_badge() {
     fi
 }
 
+check_bootstrap_ref_sh() {
+    local file="$1"
+    local expected="$2"
+    local path="$ROOT_DIR/$file"
+    if [ ! -f "$path" ]; then
+        echo "FAIL: consumer missing: $file" >&2
+        drift=1
+        return
+    fi
+    local line actual
+    line=$(grep -E '^GITHUB_REF="\$\{GITHUB_REF:-v[0-9]+\.[0-9]+\.[0-9]+\}"' "$path" | head -1 || true)
+    if [ -z "$line" ]; then
+        echo "FAIL: $file has no default GITHUB_REF pin" >&2
+        drift=1
+        return
+    fi
+    actual=$(printf '%s' "$line" | sed -E 's/^GITHUB_REF="\$\{GITHUB_REF:-v([0-9]+\.[0-9]+\.[0-9]+)\}".*/\1/')
+    if [ "$actual" != "$expected" ]; then
+        echo "FAIL: $file GITHUB_REF=$actual, VERSION_MAP[suite]=$expected" >&2
+        drift=1
+    fi
+}
+
+check_bootstrap_ref_ps1() {
+    local file="$1"
+    local expected="$2"
+    local path="$ROOT_DIR/$file"
+    if [ ! -f "$path" ]; then
+        echo "FAIL: consumer missing: $file" >&2
+        drift=1
+        return
+    fi
+    local line actual
+    line=$(grep -E "else[[:space:]]*\{[[:space:]]*'v[0-9]+\.[0-9]+\.[0-9]+'[[:space:]]*\}" "$path" | head -1 || true)
+    if [ -z "$line" ]; then
+        echo "FAIL: $file has no default GITHUB_REF pin" >&2
+        drift=1
+        return
+    fi
+    actual=$(printf '%s' "$line" | sed -E "s/.*'v([0-9]+\.[0-9]+\.[0-9]+)'.*/\1/")
+    if [ "$actual" != "$expected" ]; then
+        echo "FAIL: $file GITHUB_REF=$actual, VERSION_MAP[suite]=$expected" >&2
+        drift=1
+    fi
+}
+
+check_readme_github_ref_pins() {
+    local file="$1"
+    local expected="$2"
+    local path="$ROOT_DIR/$file"
+    if [ ! -f "$path" ]; then
+        echo "FAIL: consumer missing: $file" >&2
+        drift=1
+        return
+    fi
+    local actuals
+    actuals=$(grep -E 'GITHUB_REF' "$path" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | sed 's/^v//' | sort -u || true)
+    if [ -z "$actuals" ]; then
+        echo "FAIL: $file has no GITHUB_REF version pin" >&2
+        drift=1
+        return
+    fi
+    local actual
+    for actual in $actuals; do
+        if [ "$actual" != "$expected" ]; then
+            echo "FAIL: $file GITHUB_REF pin=$actual, VERSION_MAP[suite]=$expected" >&2
+            drift=1
+        fi
+    done
+}
+
 check_json_version "plugin/.claude-plugin/plugin.json"       "$PLUGIN"          "plugin"
 check_json_version "plugin-lite/.claude-plugin/plugin.json"  "$PLUGIN_LITE"     "plugin-lite"
 check_json_version "global/settings.json"                    "$SETTINGS_SCHEMA" "settings-schema"
 check_json_version "global/settings.windows.json"            "$SETTINGS_SCHEMA" "settings-schema"
 check_readme_badge "README.md"    "$SUITE"
 check_readme_badge "README.ko.md" "$SUITE"
+check_bootstrap_ref_sh "bootstrap.sh"     "$SUITE"
+check_bootstrap_ref_ps1 "bootstrap.ps1"   "$SUITE"
+check_readme_github_ref_pins "README.md"    "$SUITE"
+check_readme_github_ref_pins "README.ko.md" "$SUITE"
 
 # hooks has no consumer file to mirror; validate only that the declared value
 # is well-formed SemVer so the field cannot silently rot (deep-audit P1).

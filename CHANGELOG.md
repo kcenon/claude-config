@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Default installer `GITHUB_REF` pins in `bootstrap.sh`, `bootstrap.ps1`, and
+  README one-line examples now track `VERSION_MAP.yml` `suite` (`v1.11.0`);
+  `check_versions` and `sync_versions` cover those pins.
+
+## 1.11.0 - 2026-07-03
+
+### Fixed
+
 - `markdown-anchor-validator` hook (both PowerShell and bash variants): cross-file
   anchor resolution now works against unstaged target files via lazy parsing with
   per-file caching (#646). Previously the anchor registry was built exclusively
@@ -175,6 +183,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     and added to the `/release` skill checklist between the version
     drift check and the staging step.
 
+## 1.10.0 - 2026-04-20
+
+- **Release scope**: Fleet-orchestrator, preflight, ci-fix, and research skills.
+- **Hooks**: Added pre-edit-read-guard, post-task-checkpoint,
+  pr-language-guard, merge-gate-guard, and an attribution-guard extension.
+- **Platform and release hardening**: Added the `SSL_CERT_FILE` sandbox TLS
+  fix, unified version declarations in `VERSION_MAP.yml`, and shipped
+  batch-mode drift mitigations.
+
 ## 1.9.0 - 2026-04-13
 
 - **Multi-layered branch defense**: Four enforcement layers to prevent non-release merges to `main`
@@ -279,4 +296,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Claude Code Skills with progressive disclosure pattern.
 - Added hook settings for security and auto-formatting.
 
-[Unreleased]: https://github.com/kcenon/claude-config/compare/v1.10.0...HEAD
+[Unreleased]: https://github.com/kcenon/claude-config/compare/v1.11.0...HEAD
