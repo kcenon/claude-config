@@ -458,7 +458,7 @@ claude-config does **not** carry a single repo-wide version. Each shipped artifa
 
 | Field | Tracked artifact | Consumer files |
 |-------|------------------|----------------|
-| `suite` | The end-user "release" identifier surfaced by the README badge | `README.md`, `README.ko.md` shields URL |
+| `suite` | The end-user "release" identifier surfaced by the README badge and one-line installer pins | `README.md`, `README.ko.md` shields URL and documented `GITHUB_REF` examples; `bootstrap.sh`, `bootstrap.ps1` default `GITHUB_REF` pins |
 | `plugin` | Marketplace plugin version | `plugin/.claude-plugin/plugin.json` |
 | `plugin-lite` | Lite plugin (behavioral guardrails) | `plugin-lite/.claude-plugin/plugin.json` |
 | `settings-schema` | Hook-emitting `settings.json` schema | `global/settings.json`, `global/settings.windows.json` |

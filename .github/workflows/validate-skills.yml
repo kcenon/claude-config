@@ -46,11 +46,17 @@ on:
       - 'docs/.index/*.yaml'
       - 'VERSION_MAP.yml'
       - 'scripts/check_versions.sh'
+      - 'scripts/check_versions.ps1'
       - 'scripts/sync_versions.sh'
+      - 'scripts/sync_versions.ps1'
+      - 'tests/scripts/test-check-versions.sh'
+      - 'tests/scripts/test-check-versions.ps1'
       - 'plugin/.claude-plugin/plugin.json'
       - 'plugin-lite/.claude-plugin/plugin.json'
       - 'global/settings.json'
       - 'global/settings.windows.json'
+      - 'bootstrap.sh'
+      - 'bootstrap.ps1'
       - 'project/.claude/settings.json'
       - '.github/workflows/validate-skills.yml'
       - 'README.md'
@@ -103,6 +109,15 @@ jobs:
 
       - name: Check VERSION_MAP consumers match declared values
         run: ./scripts/check_versions.sh
+
+      - name: Check VERSION_MAP consumers match declared values (PowerShell)
+        run: pwsh -NoProfile -File scripts/check_versions.ps1
+
+      - name: Run VERSION_MAP guard test suite
+        run: bash tests/scripts/test-check-versions.sh
+
+      - name: Run VERSION_MAP guard test suite (PowerShell)
+        run: pwsh -NoProfile -File tests/scripts/test-check-versions.ps1
 
       - name: Run spec linter test suite
         run: bash tests/scripts/test-spec-lint.sh
