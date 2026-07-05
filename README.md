@@ -458,7 +458,7 @@ claude-config does **not** carry a single repo-wide version. Each shipped artifa
 
 | Field | Tracked artifact | Consumer files |
 |-------|------------------|----------------|
-| `suite` | The end-user "release" identifier surfaced by the README badge | `README.md`, `README.ko.md` shields URL |
+| `suite` | The end-user "release" identifier surfaced by the README badge and one-line installer pins | `README.md`, `README.ko.md` shields URL and documented `GITHUB_REF` examples; `bootstrap.sh`, `bootstrap.ps1` default `GITHUB_REF` pins |
 | `plugin` | Marketplace plugin version | `plugin/.claude-plugin/plugin.json` |
 | `plugin-lite` | Lite plugin (behavioral guardrails) | `plugin-lite/.claude-plugin/plugin.json` |
 | `settings-schema` | Hook-emitting `settings.json` schema | `global/settings.json`, `global/settings.windows.json` |
@@ -951,7 +951,7 @@ cp -r ~/project/.claude ~/claude_config_backup/project/
 # When using bootstrap.sh
 GITHUB_USER=your-username \
 GITHUB_REPO=your-repo \
-GITHUB_REF=v1.10.0 \
+GITHUB_REF=v1.11.0 \
 INSTALL_DIR=~/my-claude-config \
 bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh)"
 ```
@@ -960,7 +960,7 @@ bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main
 |----------|---------|---------|
 | `GITHUB_USER` | `kcenon` | GitHub user/org owning the repo |
 | `GITHUB_REPO` | `claude-config` | Repository name |
-| `GITHUB_REF` | latest release tag (e.g. `v1.10.0`) | Tag, branch, or commit to clone. Pinning to a tag is SLSA-aligned supply-chain hardening — the install is reproducible and resistant to a transient compromise of `main`. Override with `develop` only for development testing. |
+| `GITHUB_REF` | latest release tag (e.g. `v1.11.0`) | Tag, branch, or commit to clone. Pinning to a tag is SLSA-aligned supply-chain hardening — the install is reproducible and resistant to a transient compromise of `main`. Override with `develop` only for development testing. |
 | `INSTALL_DIR` | `~/claude_config_backup` | Where to clone the repo |
 
 > **Deprecated**: `GITHUB_BRANCH` is preserved as a one-release alias for `GITHUB_REF` and emits a stderr deprecation warning when set. Migrate to `GITHUB_REF` before the next major release.

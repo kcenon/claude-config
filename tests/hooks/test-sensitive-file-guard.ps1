@@ -100,6 +100,13 @@ Assert-Allow -InputJson '{"tool_input":{"file_path":"README.md"}}' -Label 'READM
 Assert-Allow -InputJson '{"tool_input":{"file_path":"package.json"}}' -Label 'package.json -> allow'
 
 Write-Host ''
+Write-Host '[UTF-8 stdin]'
+$koreanText = -join ([char]0xD55C, [char]0xAE00)
+$emoji = [char]::ConvertFromUtf32(0x1F680)
+$utf8Json = '{"tool_input":{"file_path":"src/' + $koreanText + '-' + $emoji + '.txt"}}'
+Assert-Allow -InputJson $utf8Json -Label 'Korean and emoji JSON -> allow'
+
+Write-Host ''
 Write-Host '[Edge cases]'
 Assert-Allow -InputJson '{"tool_input":{"file_path":""}}' -Label 'Empty file path -> allow'
 Assert-Allow -InputJson '{"tool_input":{}}' -Label 'No file_path field -> allow'

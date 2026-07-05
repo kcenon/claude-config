@@ -31,7 +31,7 @@ if [ -n "${GITHUB_BRANCH:-}" ]; then
     echo "warning: GITHUB_BRANCH is deprecated, use GITHUB_REF" >&2
     GITHUB_REF="${GITHUB_REF:-$GITHUB_BRANCH}"
 fi
-GITHUB_REF="${GITHUB_REF:-v1.10.0}"
+GITHUB_REF="${GITHUB_REF:-v1.11.0}"
 
 # Anthropic Claude Code installer pin (M1.2b — supply-chain hardening, see #565).
 # The Anthropic-hosted install script is pinned by sha256 to prevent MITM
