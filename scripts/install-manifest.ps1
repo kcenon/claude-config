@@ -12,6 +12,7 @@
 #   BOOTSTRAP_FORCE  "1" bypasses the divergence prompt and overwrites
 
 $script:ManifestSchema = 1
+$script:ManifestManagedKeys = @()
 
 function Get-ManifestPath {
     if ($env:MANIFEST_PATH) { return $env:MANIFEST_PATH }
@@ -20,35 +21,52 @@ function Get-ManifestPath {
 
 function Get-FileSha256 {
     param([Parameter(Mandatory)][string]$Path)
-    if (-not (Test-Path -LiteralPath $Path)) { return $null }
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
     return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLower()
+}
+
+function Get-FileSha256LfNormalized {
+    param([Parameter(Mandatory)][string]$Path)
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
+    $content = [System.IO.File]::ReadAllText($Path)
+    $normalized = $content -replace "`r", ''
+    $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes($normalized)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return (($sha.ComputeHash($bytes) | ForEach-Object { $_.ToString('x2') }) -join '')
+    }
+    finally {
+        $sha.Dispose()
+    }
+}
+
+function Test-ManifestWindowsPlatform {
+    $isWindowsVariable = Get-Variable -Name IsWindows -Scope Global -ErrorAction SilentlyContinue
+    if ($isWindowsVariable) { return [bool]$isWindowsVariable.Value }
+    return ($env:OS -eq 'Windows_NT')
+}
+
+function Reset-ManifestManagedKeys {
+    $script:ManifestManagedKeys = @()
+}
+
+function Add-ManifestManagedKey {
+    param([Parameter(Mandatory)][string]$Key)
+    if (-not [string]::IsNullOrWhiteSpace($Key)) {
+        $script:ManifestManagedKeys += $Key
+    }
 }
 
 function Read-ManifestEntry {
     param([Parameter(Mandatory)][string]$Key)
-    $manifestPath = Get-ManifestPath
-    if (-not (Test-Path -LiteralPath $manifestPath)) { return '' }
-    try {
-        $m = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json -ErrorAction Stop
-        if ($m.files -and $m.files.PSObject.Properties.Name -contains $Key) {
-            return [string]$m.files.$Key
-        }
-    }
-    catch { }
+    $files = Get-ManifestFiles
+    if ($files.ContainsKey($Key)) { return [string]$files[$Key] }
     return ''
 }
 
-function Write-ManifestEntry {
-    param(
-        [Parameter(Mandatory)][string]$Key,
-        [Parameter(Mandatory)][string]$Sha
-    )
+function Get-ManifestFiles {
     $manifestPath = Get-ManifestPath
-    $dir = Split-Path -Parent $manifestPath
-    if (-not (Test-Path -LiteralPath $dir)) {
-        New-Item -ItemType Directory -Path $dir -Force | Out-Null
-    }
-
+    $files = @{}
     $manifest = $null
     if (Test-Path -LiteralPath $manifestPath) {
         try {
@@ -58,20 +76,274 @@ function Write-ManifestEntry {
         catch { $manifest = $null }
     }
 
-    # Rebuild into a hashtable so updates are deterministic.
-    $files = @{}
     if ($manifest -and $manifest.files) {
         foreach ($prop in $manifest.files.PSObject.Properties) {
             $files[$prop.Name] = [string]$prop.Value
         }
     }
-    $files[$Key] = $Sha
+    return $files
+}
+
+function Write-ManifestFiles {
+    param([Parameter(Mandatory)][hashtable]$Files)
+
+    $manifestPath = Get-ManifestPath
+    $dir = Split-Path -Parent $manifestPath
+    if (-not (Test-Path -LiteralPath $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
+
+    $orderedFiles = [ordered]@{}
+    foreach ($key in ($Files.Keys | Sort-Object)) {
+        $orderedFiles[$key] = [string]$Files[$key]
+    }
 
     $out = [ordered]@{
         schema = $script:ManifestSchema
-        files  = $files
+        files  = $orderedFiles
     }
     $out | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $manifestPath -Encoding utf8
+}
+
+function Write-ManifestEntry {
+    param(
+        [Parameter(Mandatory)][string]$Key,
+        [Parameter(Mandatory)][string]$Sha
+    )
+    $files = Get-ManifestFiles
+    $files[$Key] = $Sha
+    Write-ManifestFiles -Files $files
+}
+
+function Join-ManagedManifestPath {
+    param(
+        [Parameter(Mandatory)][string]$Root,
+        [Parameter(Mandatory)][string]$Key
+    )
+
+    if ([System.IO.Path]::IsPathRooted($Key)) { return $null }
+
+    $rootFull = [System.IO.Path]::GetFullPath($Root)
+    $candidate = [System.IO.Path]::GetFullPath((Join-Path $rootFull $Key))
+    $comparison = if (Test-ManifestWindowsPlatform) {
+        [System.StringComparison]::OrdinalIgnoreCase
+    } else {
+        [System.StringComparison]::Ordinal
+    }
+
+    if ([string]::Equals($candidate, $rootFull, $comparison)) { return $candidate }
+
+    $rootPrefix = $rootFull.TrimEnd(
+        [System.IO.Path]::DirectorySeparatorChar,
+        [System.IO.Path]::AltDirectorySeparatorChar
+    ) + [System.IO.Path]::DirectorySeparatorChar
+
+    if ($candidate.StartsWith($rootPrefix, $comparison)) { return $candidate }
+    return $null
+}
+
+function Invoke-ManifestPrune {
+    <#
+    .SYNOPSIS
+    Removes obsolete managed files when they are unchanged from the previous
+    manifest entry, preserving locally edited files.
+    .OUTPUTS
+    PSCustomObject with Deleted, Preserved, Missing, Unsafe, and RemovedEntries.
+    #>
+    [OutputType([pscustomobject])]
+    param(
+        [Parameter(Mandatory)][string]$Root,
+        [Parameter(Mandatory)][string[]]$ManagedKeys
+    )
+
+    if (-not $ManagedKeys -or $ManagedKeys.Count -eq 0) {
+        Write-Host 'Manifest prune: skipped; no current managed files'
+        return [pscustomobject]@{ Deleted = 0; Preserved = 0; Missing = 0; Unsafe = 0; RemovedEntries = 0 }
+    }
+
+    $manifestPath = Get-ManifestPath
+    if (-not (Test-Path -LiteralPath $manifestPath)) {
+        return [pscustomobject]@{ Deleted = 0; Preserved = 0; Missing = 0; Unsafe = 0; RemovedEntries = 0 }
+    }
+
+    $files = Get-ManifestFiles
+    if ($files.Count -eq 0) {
+        return [pscustomobject]@{ Deleted = 0; Preserved = 0; Missing = 0; Unsafe = 0; RemovedEntries = 0 }
+    }
+
+    $comparison = if (Test-ManifestWindowsPlatform) {
+        [System.StringComparer]::OrdinalIgnoreCase
+    } else {
+        [System.StringComparer]::Ordinal
+    }
+    $managed = [System.Collections.Generic.HashSet[string]]::new($comparison)
+    foreach ($key in $ManagedKeys) {
+        if (-not [string]::IsNullOrWhiteSpace($key)) { [void]$managed.Add($key) }
+    }
+
+    $deleted = 0
+    $preserved = 0
+    $missing = 0
+    $unsafe = 0
+    $removedEntries = 0
+    $changed = $false
+
+    foreach ($key in @($files.Keys | Sort-Object)) {
+        if ($managed.Contains($key)) { continue }
+
+        $path = Join-ManagedManifestPath -Root $Root -Key $key
+        if (-not $path) {
+            Write-Host "Manifest prune: skipped unsafe obsolete path: $key"
+            $unsafe++
+            continue
+        }
+
+        if (-not (Test-Path -LiteralPath $path)) {
+            Write-Host "Manifest prune: removed stale manifest entry for missing file: $key"
+            $files.Remove($key)
+            $missing++
+            $removedEntries++
+            $changed = $true
+            continue
+        }
+
+        $currentSha = Get-FileSha256 -Path $path
+        $storedSha = [string]$files[$key]
+        if ($currentSha -and $storedSha -and ($currentSha -eq $storedSha)) {
+            Remove-Item -LiteralPath $path -Force
+            Write-Host "Manifest prune: deleted obsolete managed file: $key"
+            $files.Remove($key)
+            $deleted++
+            $removedEntries++
+            $changed = $true
+        } else {
+            Write-Host "Manifest prune: preserved locally modified obsolete file: $key"
+            $preserved++
+        }
+    }
+
+    if ($changed) { Write-ManifestFiles -Files $files }
+
+    return [pscustomobject]@{
+        Deleted        = $deleted
+        Preserved      = $preserved
+        Missing        = $missing
+        Unsafe         = $unsafe
+        RemovedEntries = $removedEntries
+    }
+}
+
+function Invoke-ManifestPruneTracked {
+    param([Parameter(Mandatory)][string]$Root)
+    return Invoke-ManifestPrune -Root $Root -ManagedKeys $script:ManifestManagedKeys
+}
+
+function Invoke-ManifestTrackedCopy {
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][string]$Src,
+        [Parameter(Mandatory)][string]$Dest,
+        [Parameter(Mandatory)][string]$Key
+    )
+
+    if (-not (Test-Path -LiteralPath $Src -PathType Leaf)) { return $true }
+    $destDir = Split-Path -Parent $Dest
+    if ($destDir -and -not (Test-Path -LiteralPath $destDir -PathType Container)) {
+        New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+    }
+
+    $result = Invoke-GuardedCopy -Src $Src -Dest $Dest -Key $Key
+    Add-ManifestManagedKey -Key $Key
+    return $result
+}
+
+function Copy-ManifestFiles {
+    param(
+        [Parameter(Mandatory)][string]$SourceDir,
+        [Parameter(Mandatory)][string]$DestinationDir,
+        [Parameter(Mandatory)][string]$KeyPrefix,
+        [Parameter(Mandatory)][string[]]$Filters
+    )
+
+    if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) { return }
+    if (-not (Test-Path -LiteralPath $DestinationDir -PathType Container)) {
+        New-Item -ItemType Directory -Path $DestinationDir -Force | Out-Null
+    }
+
+    foreach ($filter in $Filters) {
+        Get-ChildItem -LiteralPath $SourceDir -Filter $filter -File -ErrorAction SilentlyContinue | ForEach-Object {
+            $key = if ([string]::IsNullOrEmpty($KeyPrefix)) {
+                $_.Name
+            } else {
+                (($KeyPrefix, $_.Name) -join '/') -replace '\\', '/'
+            }
+            $null = Invoke-ManifestTrackedCopy -Src $_.FullName -Dest (Join-Path $DestinationDir $_.Name) -Key $key
+        }
+    }
+}
+
+function Copy-ManifestTree {
+    param(
+        [Parameter(Mandatory)][string]$SourceDir,
+        [Parameter(Mandatory)][string]$DestinationDir,
+        [Parameter(Mandatory)][string]$KeyPrefix
+    )
+
+    if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) { return }
+    if (-not (Test-Path -LiteralPath $DestinationDir -PathType Container)) {
+        New-Item -ItemType Directory -Path $DestinationDir -Force | Out-Null
+    }
+
+    $sourceRoot = [System.IO.Path]::GetFullPath($SourceDir).TrimEnd(
+        [System.IO.Path]::DirectorySeparatorChar,
+        [System.IO.Path]::AltDirectorySeparatorChar
+    )
+    Get-ChildItem -LiteralPath $SourceDir -File -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+        $full = [System.IO.Path]::GetFullPath($_.FullName)
+        $rel = $full.Substring($sourceRoot.Length).TrimStart(
+            [System.IO.Path]::DirectorySeparatorChar,
+            [System.IO.Path]::AltDirectorySeparatorChar
+        )
+        $relKey = $rel -replace '\\', '/'
+        $key = if ([string]::IsNullOrEmpty($KeyPrefix)) {
+            $relKey
+        } else {
+            (($KeyPrefix, $relKey) -join '/') -replace '\\', '/'
+        }
+        $dest = Join-Path $DestinationDir $rel
+        $null = Invoke-ManifestTrackedCopy -Src $_.FullName -Dest $dest -Key $key
+    }
+}
+
+function Add-RetiredManagedManifestEntries {
+    param(
+        [Parameter(Mandatory)][string]$Root,
+        [Parameter(Mandatory)][hashtable]$Entries
+    )
+
+    foreach ($key in ($Entries.Keys | Sort-Object)) {
+        if (Read-ManifestEntry -Key $key) { continue }
+
+        $path = Join-ManagedManifestPath -Root $Root -Key $key
+        if (-not $path) {
+            Write-Host "Manifest prune: skipped unsafe retired path: $key"
+            continue
+        }
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { continue }
+
+        $currentSha = Get-FileSha256 -Path $path
+        $currentLfSha = Get-FileSha256LfNormalized -Path $path
+        $retiredSha = [string]$Entries[$key]
+        if ($currentSha -and ($currentSha -eq $retiredSha)) {
+            Write-ManifestEntry -Key $key -Sha $retiredSha
+            Write-Host "Manifest prune: matched retired managed file: $key"
+        } elseif ($currentSha -and $currentLfSha -and ($currentLfSha -eq $retiredSha)) {
+            Write-ManifestEntry -Key $key -Sha $currentSha
+            Write-Host "Manifest prune: matched retired managed file: $key"
+        } else {
+            Write-Host "Manifest prune: preserved locally edited retired file: $key"
+        }
+    }
 }
 
 function Invoke-GuardedCopy {

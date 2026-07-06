@@ -768,6 +768,7 @@ The `.mcp.json` template provides common MCP server configurations.
 
 After installation, `~/.claude/git-identity.md` is auto-filled from `git config --global user.name` and `git config --global user.email` when both values exist. Edit it only if the values are missing or wrong.
 On reinstall, the installer keeps the existing language policy defaults from `~/.claude/settings.json` unless `AGENT_LANGUAGE` or `CONTENT_LANGUAGE` is explicitly set.
+Reinstalls also prune removed managed files when their local hash still matches the install manifest; locally edited removed files are preserved and reported. See [docs/install.md](docs/install.md) for the manifest and prune rules.
 Existing files are automatically backed up with `.backup_YYYYMMDD_HHMMSS` format.
 
 ---

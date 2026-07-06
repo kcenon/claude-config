@@ -291,12 +291,17 @@ clone_repository() {
     success "저장소 클론 완료: $INSTALL_DIR (ref: $GITHUB_REF)"
 }
 
-# copy_bootstrap_files <source_dir> <dest_dir> <glob> <executable:0|1>
+# copy_bootstrap_files <source_dir> <dest_dir> <glob> <executable:0|1> [manifest_key_prefix]
 copy_bootstrap_files() {
-    local src_dir="$1" dest_dir="$2" pattern="$3" executable="$4"
+    local src_dir="$1" dest_dir="$2" pattern="$3" executable="$4" key_prefix="${5:-}"
     local src dest
 
     mkdir -p "$dest_dir" || return 1
+
+    if [ -n "$key_prefix" ] && type manifest_copy_files >/dev/null 2>&1; then
+        manifest_copy_files "$src_dir" "$dest_dir" "$key_prefix" "$pattern" "$executable"
+        return 0
+    fi
 
     for src in "$src_dir"/$pattern; do
         [ -f "$src" ] || continue
@@ -322,13 +327,13 @@ deploy_bootstrap_hooks() {
         return 1
     fi
 
-    copy_bootstrap_files "$hooks_src" "$hooks_dst" "*.sh" 1 || return 1
+    copy_bootstrap_files "$hooks_src" "$hooks_dst" "*.sh" 1 "hooks" || return 1
 
     # global/hooks/lib/*.sh 배포 (issue #586). 위 *.sh glob은 비재귀적이라
     # tokenize-shell.sh 등 공유 라이브러리는 별도 복사 없이는 누락된다.
     # dangerous-command-guard 등 4개 Bash 가드가 런타임에 이를 source한다.
     if [ -d "$hooks_lib_src" ]; then
-        copy_bootstrap_files "$hooks_lib_src" "$hooks_dst/lib" "*.sh" 1 || return 1
+        copy_bootstrap_files "$hooks_lib_src" "$hooks_dst/lib" "*.sh" 1 "hooks/lib" || return 1
     fi
 
     # 공유 검증 라이브러리 설치 (commit-message-guard.sh, pr-language-guard.sh,
@@ -336,7 +341,7 @@ deploy_bootstrap_hooks() {
     if [ -d "$shared_lib_src" ]; then
         for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
             if [ -f "$shared_lib_src/$lib" ]; then
-                copy_bootstrap_files "$shared_lib_src" "$hooks_dst/lib" "$lib" 1 || return 1
+                copy_bootstrap_files "$shared_lib_src" "$hooks_dst/lib" "$lib" 1 "hooks/lib" || return 1
             fi
         done
     fi
@@ -363,7 +368,7 @@ deploy_bootstrap_scripts() {
     local scripts_dst="$CLAUDE_DIR/scripts"
 
     [ -d "$scripts_src" ] || return 0
-    copy_bootstrap_files "$scripts_src" "$scripts_dst" "*.sh" 1 || return 1
+    copy_bootstrap_files "$scripts_src" "$scripts_dst" "*.sh" 1 "scripts" || return 1
 
     return 0
 }
@@ -420,6 +425,7 @@ install_global() {
     # 설치 매니페스트 헬퍼 로드 (SHA-256 해시 기반 로컬 변경 보존)
     # shellcheck disable=SC1091
     source "$INSTALL_DIR/scripts/install-manifest.sh"
+    manifest_reset_managed_keys
     # shellcheck disable=SC1091
     source "$INSTALL_DIR/scripts/lib/install-prompts.sh"
 
@@ -428,7 +434,7 @@ install_global() {
         src="$INSTALL_DIR/global/$gf"
         dest="$CLAUDE_DIR/$gf"
         [ -f "$src" ] || continue
-        if guarded_copy "$src" "$dest" "$gf"; then
+        if manifest_copy_file "$src" "$dest" "$gf"; then
             success "$gf 설치됨"
         else
             info "$gf 로컬 변경 유지"
@@ -452,8 +458,10 @@ install_global() {
     # conversation-language.md 템플릿 처리
     if [ -f "$INSTALL_DIR/global/conversation-language.md.tmpl" ]; then
         if guarded_template_copy "$INSTALL_DIR/global/conversation-language.md.tmpl" "$CLAUDE_DIR/conversation-language.md" "conversation-language.md" "$AGENT_DISPLAY_LANG"; then
+            manifest_track_key "conversation-language.md"
             success "conversation-language.md 설치됨 (언어: $AGENT_DISPLAY_LANG)"
         else
+            manifest_track_key "conversation-language.md"
             info "conversation-language.md 로컬 변경 유지"
         fi
     else
@@ -463,8 +471,10 @@ install_global() {
         # their file via guarded_copy instead of silently dropping it.
         if [ -f "$INSTALL_DIR/global/conversation-language.md" ]; then
             if guarded_copy "$INSTALL_DIR/global/conversation-language.md" "$CLAUDE_DIR/conversation-language.md" "conversation-language.md"; then
+                manifest_track_key "conversation-language.md"
                 success "conversation-language.md 설치됨"
             else
+                manifest_track_key "conversation-language.md"
                 info "conversation-language.md 로컬 변경 유지"
             fi
         fi
@@ -485,15 +495,25 @@ install_global() {
     # "Skill Aliases" 표에 따라 leading keyword 호출로만 실행된다.
     if [ -d "$INSTALL_DIR/global/skills" ]; then
         mkdir -p "$CLAUDE_DIR/skills"
-        cp -r "$INSTALL_DIR/global/skills"/. "$CLAUDE_DIR/skills/"
+        manifest_copy_tree "$INSTALL_DIR/global/skills" "$CLAUDE_DIR/skills" "skills"
         skill_count=$(find "$CLAUDE_DIR/skills" -name "SKILL.md" | wc -l | tr -d ' ')
         success "글로벌 skills 설치 완료 (${skill_count}개)"
     fi
     if [ -d "$INSTALL_DIR/global/commands" ]; then
         mkdir -p "$CLAUDE_DIR/commands"
-        cp -r "$INSTALL_DIR/global/commands"/. "$CLAUDE_DIR/commands/"
+        manifest_copy_tree "$INSTALL_DIR/global/commands" "$CLAUDE_DIR/commands" "commands"
         success "글로벌 commands 설치 완료"
     fi
+
+    manifest_seed_retired_managed "$CLAUDE_DIR" \
+        "commands/branch-cleanup.md" "3e7fc38c324cfc9cea639e95394d7819e7768364d12023ec0b36b91f9230b09d" \
+        "commands/doc-review.md" "be659114c43ef29423c74d7b33e0f594b80c134b38fb7c5b61e6935cae88c26f" \
+        "commands/implement-all-levels.md" "b675f8e689e8aca71eb67e8666acc98018ad70b746d16655476b5939380737be" \
+        "commands/issue-create.md" "c654ab412f320b9d97553f92a510cf5de13a5d0a7ed5e14212ca62534887ae71" \
+        "commands/issue-work.md" "048a26140b03862c5b10630853115ee656056f45cedfd0a0b6ec814bf7225684" \
+        "commands/pr-work.md" "2ecf1a78271c553e2310b57b2a1deb026a07ae01b84c1f856638293ab41f1199" \
+        "commands/release.md" "93fd6d2f7800deada2868b97b65ef486f42482b5e2f1224c35f732ebfeb1c013"
+    manifest_prune_tracked "$CLAUDE_DIR"
 
     # tmux 설정 설치
     if [ -f "$INSTALL_DIR/global/tmux.conf" ]; then
@@ -588,22 +608,49 @@ install_project() {
         prompt_language_profile
     fi
 
+    if ! type manifest_copy_file >/dev/null 2>&1; then
+        # shellcheck disable=SC1091
+        source "$INSTALL_DIR/scripts/install-manifest.sh"
+    fi
+
+    local previous_manifest_path="${MANIFEST_PATH:-}"
+
     # 파일 복사
-    cp "$INSTALL_DIR/project/CLAUDE.md" "$PROJECT_DIR/"
+    mkdir -p "$PROJECT_DIR/.claude"
+    MANIFEST_PATH="$PROJECT_DIR/.claude/.install-manifest.json"
+    manifest_reset_managed_keys
+
+    if manifest_copy_file "$INSTALL_DIR/project/CLAUDE.md" "$PROJECT_DIR/CLAUDE.md" "CLAUDE.md"; then
+        success "프로젝트 CLAUDE.md 설치 완료"
+    else
+        info "프로젝트 CLAUDE.md 로컬 변경 유지"
+    fi
 
     # .claude 디렉토리 설치
-    mkdir -p "$PROJECT_DIR/.claude"
     if [ -d "$INSTALL_DIR/project/.claude/rules" ]; then
-        cp -r "$INSTALL_DIR/project/.claude/rules" "$PROJECT_DIR/.claude/"
+        local rules_tmp
+        rules_tmp=$(mktemp -d)
+        cp -R "$INSTALL_DIR/project/.claude/rules"/. "$rules_tmp/"
         # issue #760: 복사된 rules/ 안의 .md.tmpl을 정책 phrase로 치환
         # (install.sh와 동일한 single-source 렌더 함수)
-        render_policy_tmpls_in_dir "$PROJECT_DIR/.claude/rules"
+        render_policy_tmpls_in_dir "$rules_tmp"
+        manifest_copy_tree "$rules_tmp" "$PROJECT_DIR/.claude/rules" ".claude/rules"
+        rm -rf "$rules_tmp"
     fi
-    [ -d "$INSTALL_DIR/project/.claude/skills" ] && cp -r "$INSTALL_DIR/project/.claude/skills" "$PROJECT_DIR/.claude/"
-    [ -d "$INSTALL_DIR/project/.claude/commands" ] && cp -r "$INSTALL_DIR/project/.claude/commands" "$PROJECT_DIR/.claude/"
-    [ -d "$INSTALL_DIR/project/.claude/agents" ] && cp -r "$INSTALL_DIR/project/.claude/agents" "$PROJECT_DIR/.claude/"
-    [ -f "$INSTALL_DIR/project/.claude/settings.json" ] && cp "$INSTALL_DIR/project/.claude/settings.json" "$PROJECT_DIR/.claude/"
-    [ -f "$INSTALL_DIR/project/.claudeignore" ] && cp "$INSTALL_DIR/project/.claudeignore" "$PROJECT_DIR/"
+    [ -d "$INSTALL_DIR/project/.claude/reference" ] && manifest_copy_tree "$INSTALL_DIR/project/.claude/reference" "$PROJECT_DIR/.claude/reference" ".claude/reference"
+    [ -d "$INSTALL_DIR/project/.claude/skills" ] && manifest_copy_tree "$INSTALL_DIR/project/.claude/skills" "$PROJECT_DIR/.claude/skills" ".claude/skills"
+    [ -d "$INSTALL_DIR/project/.claude/commands" ] && manifest_copy_tree "$INSTALL_DIR/project/.claude/commands" "$PROJECT_DIR/.claude/commands" ".claude/commands"
+    [ -d "$INSTALL_DIR/project/.claude/agents" ] && manifest_copy_tree "$INSTALL_DIR/project/.claude/agents" "$PROJECT_DIR/.claude/agents" ".claude/agents"
+    [ -f "$INSTALL_DIR/project/.claude/settings.json" ] && manifest_copy_file "$INSTALL_DIR/project/.claude/settings.json" "$PROJECT_DIR/.claude/settings.json" ".claude/settings.json" || true
+    [ -f "$INSTALL_DIR/project/.claudeignore" ] && manifest_copy_file "$INSTALL_DIR/project/.claudeignore" "$PROJECT_DIR/.claudeignore" ".claudeignore" || true
+
+    manifest_seed_retired_managed "$PROJECT_DIR" \
+        ".claude/commands/_policy.md" "7144bf54352362eb3d523d05a1712732aec8e82fc95ea9db0cbc79269e2bf9b1" \
+        ".claude/commands/code-quality.md" "8c1e6ca0470582936fb96491d4aff7e23706da45b96ba38c51d43ba255f8f544" \
+        ".claude/commands/git-status.md" "4602f6ea8ffb18b05d5698c85d060b3d6f01913a4258e778bd6b898611ca9d33" \
+        ".claude/commands/pr-review.md" "3dbd7d788b1e19b1d04654e03eaf8531c933e6b7462120ffdc03d5d7f9658711"
+    manifest_prune_tracked "$PROJECT_DIR"
+    MANIFEST_PATH="$previous_manifest_path"
 
     success "프로젝트 설정 설치 완료"
 }

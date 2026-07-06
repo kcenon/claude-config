@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Installers now record managed-file hashes for global and project install
+  trees and prune removed upstream files only when the deployed copy still
+  matches the managed hash. Locally edited removed files are preserved and
+  reported, and legacy command files removed before directory manifests are
+  pruned only when they match known upstream hashes (#820).
 - Default installer `GITHUB_REF` pins in `bootstrap.sh`, `bootstrap.ps1`, and
   README one-line examples now track `VERSION_MAP.yml` `suite` (`v1.11.0`);
   `check_versions` and `sync_versions` cover those pins.
