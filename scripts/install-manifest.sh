@@ -15,6 +15,7 @@ set -euo pipefail
 
 MANIFEST_PATH="${MANIFEST_PATH:-$HOME/.claude/.install-manifest.json}"
 MANIFEST_SCHEMA=1
+MANIFEST_MANAGED_KEYS=()
 
 # Detect an available JSON tool (python3 preferred, python fallback).
 _manifest_json_tool=""
@@ -26,6 +27,16 @@ fi
 
 manifest_available() {
     [ -n "$_manifest_json_tool" ]
+}
+
+manifest_reset_managed_keys() {
+    MANIFEST_MANAGED_KEYS=()
+}
+
+manifest_track_key() {
+    local key="$1"
+    [ -n "$key" ] || return 0
+    MANIFEST_MANAGED_KEYS+=("$key")
 }
 
 _manifest_hash() {
@@ -79,6 +90,208 @@ with open(p, "w") as f:
     json.dump(m, f, indent=2, sort_keys=True)
     f.write("\n")
 PY
+}
+
+# manifest_prune_removed <dest_root> <managed_key>...
+# Deletes files that were tracked by a previous manifest but are absent from
+# the current managed set, provided the deployed file still matches the stored
+# hash. Locally edited files are preserved.
+manifest_prune_removed() {
+    local dest_root="$1"
+    shift || true
+
+    [ -d "$dest_root" ] || return 0
+    [ -f "$MANIFEST_PATH" ] || return 0
+
+    if [ "$#" -eq 0 ]; then
+        echo "  Manifest prune skipped: no current managed files"
+        return 0
+    fi
+
+    if ! manifest_available; then
+        echo "  Manifest prune skipped: no JSON tool available"
+        return 0
+    fi
+
+    MANIFEST_PATH="$MANIFEST_PATH" DEST_ROOT="$dest_root" "$_manifest_json_tool" - "$@" <<'PY'
+import hashlib
+import json
+import os
+import sys
+
+manifest_path = os.environ["MANIFEST_PATH"]
+dest_root = os.path.realpath(os.environ["DEST_ROOT"])
+managed = set(sys.argv[1:])
+
+try:
+    with open(manifest_path) as f:
+        manifest = json.load(f)
+except Exception:
+    print("  Manifest prune skipped: manifest unreadable")
+    sys.exit(0)
+
+files = manifest.get("files")
+if not isinstance(files, dict):
+    sys.exit(0)
+
+changed = False
+for key, stored_sha in sorted(list(files.items())):
+    if key in managed:
+        continue
+
+    normalized = os.path.normpath(key)
+    if (
+        os.path.isabs(key)
+        or normalized == os.pardir
+        or normalized.startswith(os.pardir + os.sep)
+    ):
+        print("  Preserved removed managed entry with unsafe path: {}".format(key))
+        continue
+
+    dest = os.path.realpath(os.path.join(dest_root, normalized))
+    if dest != dest_root and not dest.startswith(dest_root + os.sep):
+        print("  Preserved removed managed entry outside install root: {}".format(key))
+        continue
+
+    if not os.path.exists(dest):
+        del files[key]
+        changed = True
+        print("  Removed stale manifest entry for missing file: {}".format(key))
+        continue
+
+    if not os.path.isfile(dest):
+        print("  Preserved removed managed path because it is not a file: {}".format(key))
+        continue
+
+    try:
+        with open(dest, "rb") as f:
+            current_sha = hashlib.sha256(f.read()).hexdigest()
+    except OSError:
+        print("  Preserved removed managed file; unable to read: {}".format(key))
+        continue
+
+    if current_sha == stored_sha:
+        try:
+            os.remove(dest)
+        except OSError:
+            print("  Preserved removed managed file; unable to delete: {}".format(key))
+            continue
+        del files[key]
+        changed = True
+        print("  Pruned removed managed file: {}".format(key))
+    else:
+        print("  Preserved locally edited removed managed file: {}".format(key))
+
+if changed:
+    with open(manifest_path, "w") as f:
+        json.dump(manifest, f, indent=2, sort_keys=True)
+        f.write("\n")
+PY
+}
+
+manifest_prune_tracked() {
+    local dest_root="$1"
+    manifest_prune_removed "$dest_root" "${MANIFEST_MANAGED_KEYS[@]}"
+}
+
+_manifest_safe_dest() {
+    local dest_root="$1" key="$2"
+    case "$key" in
+        /*|../*|*/../*|..)
+            return 1
+            ;;
+    esac
+    printf '%s/%s\n' "$dest_root" "$key"
+}
+
+# manifest_seed_retired_managed <dest_root> (<key> <sha256>)...
+# Adds manifest ownership for known retired files only when the deployed file
+# still byte-matches the historical upstream copy. The next prune pass can then
+# remove it while locally edited retired files remain untouched.
+manifest_seed_retired_managed() {
+    local dest_root="$1"
+    shift || true
+
+    [ -d "$dest_root" ] || return 0
+    manifest_available || return 0
+
+    while [ "$#" -ge 2 ]; do
+        local key="$1" retired_sha="$2" dest current_sha current_lf_sha stored_sha
+        shift 2
+
+        stored_sha=$(_manifest_read "$key")
+        [ -n "$stored_sha" ] && continue
+
+        dest=$(_manifest_safe_dest "$dest_root" "$key") || {
+            echo "  Manifest prune: skipped unsafe retired path: $key"
+            continue
+        }
+        [ -f "$dest" ] || continue
+
+        current_sha=$(_manifest_hash "$dest") || current_sha=""
+        current_lf_sha=""
+        if command -v shasum >/dev/null 2>&1; then
+            current_lf_sha=$(tr -d '\r' < "$dest" | shasum -a 256 2>/dev/null | awk '{print $1}')
+        elif command -v sha256sum >/dev/null 2>&1; then
+            current_lf_sha=$(tr -d '\r' < "$dest" | sha256sum 2>/dev/null | awk '{print $1}')
+        fi
+        if [ -n "$current_sha" ] && [ "$current_sha" = "$retired_sha" ]; then
+            _manifest_write "$key" "$retired_sha"
+            echo "  Manifest prune: matched retired managed file: $key"
+        elif [ -n "$current_lf_sha" ] && [ "$current_lf_sha" = "$retired_sha" ]; then
+            _manifest_write "$key" "$current_sha"
+            echo "  Manifest prune: matched retired managed file: $key"
+        else
+            echo "  Manifest prune: preserved locally edited retired file: $key"
+        fi
+    done
+}
+
+manifest_copy_file() {
+    local src="$1" dest="$2" key="$3" executable="${4:-0}"
+    [ -f "$src" ] || return 0
+    mkdir -p "$(dirname "$dest")"
+
+    if guarded_copy "$src" "$dest" "$key"; then
+        [ "$executable" = "1" ] && chmod +x "$dest"
+        manifest_track_key "$key"
+        return 0
+    fi
+
+    manifest_track_key "$key"
+    return 1
+}
+
+manifest_copy_files() {
+    local src_dir="$1" dest_dir="$2" key_prefix="$3" pattern="${4:-*}" executable="${5:-0}"
+    local src base key dest
+
+    [ -d "$src_dir" ] || return 0
+    mkdir -p "$dest_dir"
+
+    for src in "$src_dir"/$pattern; do
+        [ -f "$src" ] || continue
+        base="$(basename "$src")"
+        key="${key_prefix:+$key_prefix/}$base"
+        dest="$dest_dir/$base"
+        manifest_copy_file "$src" "$dest" "$key" "$executable" || true
+    done
+}
+
+manifest_copy_tree() {
+    local src_dir="$1" dest_dir="$2" key_prefix="$3" executable="${4:-0}"
+    local src rel key dest
+
+    [ -d "$src_dir" ] || return 0
+    mkdir -p "$dest_dir"
+
+    while IFS= read -r src; do
+        [ -f "$src" ] || continue
+        rel="${src#$src_dir/}"
+        key="${key_prefix:+$key_prefix/}$rel"
+        dest="$dest_dir/$rel"
+        manifest_copy_file "$src" "$dest" "$key" "$executable" || true
+    done < <(find "$src_dir" -type f 2>/dev/null)
 }
 
 # guarded_copy <src> <dest> <key>

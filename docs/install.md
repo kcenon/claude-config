@@ -1,12 +1,15 @@
 # Install Behavior
 
-`bootstrap.sh` (POSIX) and `bootstrap.ps1` (Windows) preserve local
-customizations of global rule files across re-installs by recording a
-SHA-256 manifest.
+`bootstrap.sh`, `bootstrap.ps1`, `scripts/install.sh`, and
+`scripts/install.ps1` preserve local customizations across re-installs by
+recording SHA-256 manifests for managed install trees.
 
 ## Manifest
 
-Location: `~/.claude/.install-manifest.json`
+Locations:
+
+- Global install tree: `~/.claude/.install-manifest.json`
+- Project install tree: `<project>/.claude/.install-manifest.json`
 
 Format:
 
@@ -18,21 +21,25 @@ Format:
     "commit-settings.md": "sha256-hex",
     "conversation-language.md": "sha256-hex",
     "git-identity.md": "sha256-hex",
-    "token-management.md": "sha256-hex"
+    "token-management.md": "sha256-hex",
+    "hooks/sensitive-file-guard.sh": "sha256-hex",
+    "skills/_internal/issue-work/SKILL.md": "sha256-hex"
   }
 }
 ```
 
-The manifest is written on successful copy and updated whenever the
-installer replaces a file. It is created on first install and survives
-across re-runs.
+The manifest is written on successful managed copies and updated whenever
+the installer replaces a file. It is created on first install and survives
+across re-runs. Project manifests use paths relative to the project root
+(`CLAUDE.md`, `.claude/rules/...`, `.claude/skills/...`), while global
+manifests use paths relative to `~/.claude`.
 
 ## Copy Decision
 
 On each run, the installer compares three hashes per tracked file:
 
-- `src_hash` — the hash of the incoming file under `$INSTALL_DIR/global/<file>` (if a `.tmpl` exists, this is the hash of the dynamically rendered output, e.g. for `conversation-language.md`)
-- `dest_hash` — the hash of the current `~/.claude/<file>`
+- `src_hash` — the hash of the incoming managed file or rendered output
+- `dest_hash` — the hash of the current deployed file
 - `stored_hash` — the hash recorded in `.install-manifest.json`
 
 | Condition | Outcome |
@@ -54,6 +61,26 @@ Pressing `Enter` keeps the local file unchanged. The manifest is not
 updated in this case, so subsequent re-installs will prompt again until
 the user either overwrites or aligns their local file with an upstream
 version.
+
+## Prune Decision
+
+After the current managed set is copied, installers compare the manifest
+against the current managed keys for that root.
+
+| Condition | Outcome |
+|-----------|---------|
+| key is still in the current managed set | keep |
+| key is absent, deployed file is missing | remove the stale manifest entry |
+| key is absent, `dest_hash == stored_hash` | delete the removed managed file and remove the manifest entry |
+| key is absent, `dest_hash != stored_hash` | preserve the local file and report it as locally edited |
+| key points outside the install root | preserve and report as unsafe |
+
+This is the deletion counterpart to guarded copy: repository removals are
+propagated only when the deployed file still matches the last managed hash.
+The installers also carry a small retired-file ownership table for legacy
+command files removed before directory manifests existed. Those files are
+seeded into the manifest only when their current bytes match a known
+upstream hash; edited copies are preserved.
 
 ## Non-Interactive Override
 
@@ -155,29 +182,44 @@ removed and the existing `settings.json` is left unchanged.
 
 ## Tracked Files
 
-The manifest currently tracks these entries (see `bootstrap.sh`
-`install_global` and `bootstrap.ps1` `Install-GlobalSettings`):
+The global manifest tracks guarded files under `~/.claude`, including:
 
-- `CLAUDE.md`
-- `commit-settings.md`
-- `conversation-language.md` *(rendered from `.tmpl` — see Template Files above)*
-- `git-identity.md`
-- `token-management.md`
+- Core markdown files: `CLAUDE.md`, `commit-settings.md`,
+  `conversation-language.md`, `git-identity.md`, `token-management.md`
+- Runtime trees: `hooks/`, `hooks/lib/`, `scripts/`
+- Catalog trees: `skills/`, `commands/`
+- Optional in-tree artifacts when present, such as `.claudeignore` and
+  `policies/`
 
-Other installed artifacts (`tmux.conf`, `ccstatusline/settings.json`,
-plugin resources, project templates) remain unconditional copies — add
-them to the manifest block in future issues if their customizations
-need to be preserved.
+The project manifest tracks files relative to the project root, including
+`CLAUDE.md`, `.claude/settings.json`, `.claude/rules/`,
+`.claude/reference/`, `.claude/skills/`, `.claude/commands/`,
+`.claude/agents/`, and `.claudeignore`.
+
+Artifacts deployed outside those roots, such as `~/.tmux.conf` and
+`~/.config/ccstatusline/settings.json`, remain outside manifest pruning.
 
 ## Regression Test
 
-`tests/scripts/test-install-preserves-customization.sh` covers the
-keep / overwrite / force-flag paths of the manifest helper directly.
-Run it from the repository root:
+`tests/scripts/test-install-preserves-customization.sh` covers keep,
+overwrite, force, prune, and retired-file seeding paths for the Bash
+helper. `tests/scripts/test-install-manifest-helpers.sh` and
+`tests/scripts/test-install-manifest-helpers.ps1` cover template copies,
+tree copies, tracked prune, and settings mutation helpers.
+
+Run the focused Bash tests from the repository root:
 
 ```bash
 bash tests/scripts/test-install-preserves-customization.sh
+bash tests/scripts/test-install-manifest-helpers.sh
 ```
 
-The test is skipped on systems without `python3`/`python` — on such
-systems the installer itself also falls back to unconditional copy.
+Run the PowerShell helper test where `pwsh` is available:
+
+```powershell
+pwsh -NoProfile -File tests/scripts/test-install-manifest-helpers.ps1
+```
+
+The Bash manifest tests are skipped on systems without `python3`/`python`;
+on such systems the POSIX installer itself also falls back to unconditional
+copy.

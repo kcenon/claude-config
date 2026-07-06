@@ -249,11 +249,16 @@ ensure_install_dir() {
 }
 
 copy_install_files() {
-    local src_dir="$1" dest_dir="$2" pattern="$3" executable="${4:-0}"
+    local src_dir="$1" dest_dir="$2" pattern="$3" executable="${4:-0}" key_prefix="${5:-}"
     local src dest
 
     [ -d "$src_dir" ] || return 0
     ensure_install_dir "$dest_dir" || return 1
+
+    if [ -n "$key_prefix" ] && type manifest_copy_files >/dev/null 2>&1; then
+        manifest_copy_files "$src_dir" "$dest_dir" "$key_prefix" "$pattern" "$executable"
+        return 0
+    fi
 
     for src in "$src_dir"/$pattern; do
         [ -f "$src" ] || continue
@@ -279,19 +284,19 @@ deploy_install_hooks() {
         return 1
     fi
 
-    copy_install_files "$hooks_src" "$hooks_dst" "*.sh" 1 || return 1
+    copy_install_files "$hooks_src" "$hooks_dst" "*.sh" 1 "hooks" || return 1
 
     # Deploy global/hooks/lib/*.sh. The top-level *.sh copy is non-recursive,
     # and several runtime guards source these libraries.
     if [ -d "$hooks_lib_src" ]; then
-        copy_install_files "$hooks_lib_src" "$hooks_dst/lib" "*.sh" 1 || return 1
+        copy_install_files "$hooks_lib_src" "$hooks_dst/lib" "*.sh" 1 "hooks/lib" || return 1
     fi
 
     # Shared validator libraries used by commit/language/traceability guards.
     if [ -d "$shared_lib_src" ]; then
         for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
             if [ -f "$shared_lib_src/$lib" ]; then
-                copy_install_files "$shared_lib_src" "$hooks_dst/lib" "$lib" 1 || return 1
+                copy_install_files "$shared_lib_src" "$hooks_dst/lib" "$lib" 1 "hooks/lib" || return 1
             fi
         done
     fi
@@ -784,11 +789,12 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     # 설치 매니페스트 헬퍼 로드
     # shellcheck disable=SC1091
     source "$BACKUP_DIR/scripts/install-manifest.sh"
+    manifest_reset_managed_keys
 
     # 파일 설치 (매니페스트 가드 사용)
     for gf in CLAUDE.md commit-settings.md git-identity.md token-management.md; do
         if [ -f "$BACKUP_DIR/global/$gf" ]; then
-            if guarded_copy "$BACKUP_DIR/global/$gf" "$HOME/.claude/$gf" "$gf"; then
+            if manifest_copy_file "$BACKUP_DIR/global/$gf" "$HOME/.claude/$gf" "$gf"; then
                 if [ "$gf" = "git-identity.md" ] || [ "$gf" = "token-management.md" ]; then
                     chmod 600 "$HOME/.claude/$gf"
                 else
@@ -835,9 +841,11 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         fi
 
         if guarded_template_copy "$BACKUP_DIR/global/conversation-language.md.tmpl" "$HOME/.claude/conversation-language.md" "conversation-language.md" "$AGENT_DISPLAY_LANG"; then
+            manifest_track_key "conversation-language.md"
             chmod 644 "$HOME/.claude/conversation-language.md"
             success "conversation-language.md 설치됨 (언어: $AGENT_DISPLAY_LANG)"
         else
+            manifest_track_key "conversation-language.md"
             info "conversation-language.md 로컬 변경 유지"
         fi
     fi
@@ -851,7 +859,7 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     # scripts 디렉토리 설치 (statusline 등)
     if [ -d "$BACKUP_DIR/global/scripts" ]; then
         ensure_dir "$HOME/.claude/scripts"
-        cp "$BACKUP_DIR/global/scripts"/*.sh "$HOME/.claude/scripts/" 2>/dev/null || true
+        manifest_copy_files "$BACKUP_DIR/global/scripts" "$HOME/.claude/scripts" "scripts" "*.sh" 1
         chmod +x "$HOME/.claude/scripts/"*.sh 2>/dev/null || true
         success "Statusline 스크립트 (scripts/) 설치 완료!"
     fi
@@ -859,16 +867,23 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     # commit-settings.md 설치 (CLAUDE.md에서 @./commit-settings.md로 참조)
     # issue #411: .tmpl이 있으면 정책 phrase를 치환해서 생성. 없으면 원본 복사.
     if [ -f "$BACKUP_DIR/global/commit-settings.md.tmpl" ]; then
-        render_policy_tmpl "$BACKUP_DIR/global/commit-settings.md.tmpl" "$HOME/.claude/commit-settings.md"
-        success "commit-settings.md 설치 완료 (policy phrase: $(get_policy_phrase))"
+        tmp_commit_settings=$(mktemp)
+        render_policy_tmpl "$BACKUP_DIR/global/commit-settings.md.tmpl" "$tmp_commit_settings"
+        if manifest_copy_file "$tmp_commit_settings" "$HOME/.claude/commit-settings.md" "commit-settings.md"; then
+            chmod 644 "$HOME/.claude/commit-settings.md"
+            success "commit-settings.md 설치 완료 (policy phrase: $(get_policy_phrase))"
+        else
+            info "commit-settings.md 로컬 변경 유지"
+        fi
+        rm -f "$tmp_commit_settings"
     elif [ -f "$BACKUP_DIR/global/commit-settings.md" ]; then
-        cp "$BACKUP_DIR/global/commit-settings.md" "$HOME/.claude/"
+        manifest_copy_file "$BACKUP_DIR/global/commit-settings.md" "$HOME/.claude/commit-settings.md" "commit-settings.md" || true
         success "commit-settings.md 설치 완료!"
     fi
 
     # .claudeignore 설치
     if [ -f "$BACKUP_DIR/global/.claudeignore" ]; then
-        cp "$BACKUP_DIR/global/.claudeignore" "$HOME/.claude/"
+        manifest_copy_file "$BACKUP_DIR/global/.claudeignore" "$HOME/.claude/.claudeignore" ".claudeignore" || true
         success ".claudeignore 설치 완료!"
     fi
 
@@ -881,7 +896,7 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     # policies 디렉토리 설치 (있는 경우 정책 JSON 파일 배포)
     if [ -d "$BACKUP_DIR/global/policies" ]; then
         ensure_dir "$HOME/.claude/policies"
-        cp "$BACKUP_DIR/global/policies"/*.json "$HOME/.claude/policies/" 2>/dev/null || true
+        manifest_copy_files "$BACKUP_DIR/global/policies" "$HOME/.claude/policies" "policies" "*.json" 0
         success "정책 파일 (policies/) 설치 완료!"
     fi
 
@@ -892,16 +907,27 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     # `cp -r src/. dst/` 점 트릭으로 _policy.md 같은 루트 레벨 파일까지 복사한다.
     if [ -d "$BACKUP_DIR/global/skills" ]; then
         mkdir -p "$HOME/.claude/skills"
-        cp -r "$BACKUP_DIR/global/skills"/. "$HOME/.claude/skills/"
+        manifest_copy_tree "$BACKUP_DIR/global/skills" "$HOME/.claude/skills" "skills"
         skill_count=$(find "$HOME/.claude/skills" -name "SKILL.md" | wc -l | tr -d ' ')
         success "Global Skills (${skill_count}개) 설치 완료!"
     fi
 
     # commands 디렉토리 설치
     if [ -d "$BACKUP_DIR/global/commands" ]; then
-        cp -r "$BACKUP_DIR/global/commands" "$HOME/.claude/"
+        mkdir -p "$HOME/.claude/commands"
+        manifest_copy_tree "$BACKUP_DIR/global/commands" "$HOME/.claude/commands" "commands"
         success "Commands 디렉토리 설치 완료!"
     fi
+
+    manifest_seed_retired_managed "$HOME/.claude" \
+        "commands/branch-cleanup.md" "3e7fc38c324cfc9cea639e95394d7819e7768364d12023ec0b36b91f9230b09d" \
+        "commands/doc-review.md" "be659114c43ef29423c74d7b33e0f594b80c134b38fb7c5b61e6935cae88c26f" \
+        "commands/implement-all-levels.md" "b675f8e689e8aca71eb67e8666acc98018ad70b746d16655476b5939380737be" \
+        "commands/issue-create.md" "c654ab412f320b9d97553f92a510cf5de13a5d0a7ed5e14212ca62534887ae71" \
+        "commands/issue-work.md" "048a26140b03862c5b10630853115ee656056f45cedfd0a0b6ec814bf7225684" \
+        "commands/pr-work.md" "2ecf1a78271c553e2310b57b2a1deb026a07ae01b84c1f856638293ab41f1199" \
+        "commands/release.md" "93fd6d2f7800deada2868b97b65ef486f42482b5e2f1224c35f732ebfeb1c013"
+    manifest_prune_tracked "$HOME/.claude"
 
     # ccstatusline 설정 복사 (~/.config/ccstatusline/ — ccstatusline의 기본 설정 경로)
     if [ -d "$BACKUP_DIR/global/ccstatusline" ]; then
@@ -988,55 +1014,78 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
 
     info "설치 경로: $PROJECT_DIR"
 
+    ensure_dir "$PROJECT_DIR/.claude"
+    if ! type manifest_copy_file >/dev/null 2>&1; then
+        # shellcheck disable=SC1091
+        source "$BACKUP_DIR/scripts/install-manifest.sh"
+    fi
+    previous_manifest_path="${MANIFEST_PATH:-}"
+    MANIFEST_PATH="$PROJECT_DIR/.claude/.install-manifest.json"
+    manifest_reset_managed_keys
+
     # 파일 복사
-    cp "$BACKUP_DIR/project/CLAUDE.md" "$PROJECT_DIR/"
+    if manifest_copy_file "$BACKUP_DIR/project/CLAUDE.md" "$PROJECT_DIR/CLAUDE.md" "CLAUDE.md"; then
+        success "프로젝트 CLAUDE.md 설치 완료!"
+    else
+        info "프로젝트 CLAUDE.md 로컬 변경 유지"
+    fi
 
     # .claude 디렉토리 설치
-    ensure_dir "$PROJECT_DIR/.claude"
 
     # settings.json 설치 (Hook 설정)
     if [ -f "$BACKUP_DIR/project/.claude/settings.json" ]; then
-        cp "$BACKUP_DIR/project/.claude/settings.json" "$PROJECT_DIR/.claude/"
+        manifest_copy_file "$BACKUP_DIR/project/.claude/settings.json" "$PROJECT_DIR/.claude/settings.json" ".claude/settings.json" || true
         success "프로젝트 Hook 설정 (.claude/settings.json) 설치 완료!"
     fi
 
     # rules 디렉토리 설치
     if [ -d "$BACKUP_DIR/project/.claude/rules" ]; then
-        cp -r "$BACKUP_DIR/project/.claude/rules" "$PROJECT_DIR/.claude/"
+        rules_tmp=$(mktemp -d)
+        cp -R "$BACKUP_DIR/project/.claude/rules"/. "$rules_tmp/"
         # issue #411: rules/ 안의 .md.tmpl을 정책 phrase로 치환
-        render_policy_tmpls_in_dir "$PROJECT_DIR/.claude/rules"
+        render_policy_tmpls_in_dir "$rules_tmp"
+        manifest_copy_tree "$rules_tmp" "$PROJECT_DIR/.claude/rules" ".claude/rules"
+        rm -rf "$rules_tmp"
         success "Rules 디렉토리 설치 완료! (policy phrase: $(get_policy_phrase))"
     fi
 
     # reference 디렉토리 설치 (on-demand docs, rules/ 밖으로 이전 — issue #714)
     if [ -d "$BACKUP_DIR/project/.claude/reference" ]; then
-        cp -r "$BACKUP_DIR/project/.claude/reference" "$PROJECT_DIR/.claude/"
+        manifest_copy_tree "$BACKUP_DIR/project/.claude/reference" "$PROJECT_DIR/.claude/reference" ".claude/reference"
         success "Reference 디렉토리 설치 완료!"
     fi
 
     # Skills 디렉토리 설치
     if [ -d "$BACKUP_DIR/project/.claude/skills" ]; then
-        cp -r "$BACKUP_DIR/project/.claude/skills" "$PROJECT_DIR/.claude/"
+        manifest_copy_tree "$BACKUP_DIR/project/.claude/skills" "$PROJECT_DIR/.claude/skills" ".claude/skills"
         success "Skills 디렉토리 설치 완료!"
     fi
 
     # commands 디렉토리 설치
     if [ -d "$BACKUP_DIR/project/.claude/commands" ]; then
-        cp -r "$BACKUP_DIR/project/.claude/commands" "$PROJECT_DIR/.claude/"
+        manifest_copy_tree "$BACKUP_DIR/project/.claude/commands" "$PROJECT_DIR/.claude/commands" ".claude/commands"
         success "Commands 디렉토리 설치 완료!"
     fi
 
     # agents 디렉토리 설치
     if [ -d "$BACKUP_DIR/project/.claude/agents" ]; then
-        cp -r "$BACKUP_DIR/project/.claude/agents" "$PROJECT_DIR/.claude/"
+        manifest_copy_tree "$BACKUP_DIR/project/.claude/agents" "$PROJECT_DIR/.claude/agents" ".claude/agents"
         success "Agents 디렉토리 설치 완료!"
     fi
 
     # .claudeignore 설치 (token optimization)
     if [ -f "$BACKUP_DIR/project/.claudeignore" ]; then
-        cp "$BACKUP_DIR/project/.claudeignore" "$PROJECT_DIR/"
+        manifest_copy_file "$BACKUP_DIR/project/.claudeignore" "$PROJECT_DIR/.claudeignore" ".claudeignore" || true
         success ".claudeignore 설치 완료!"
     fi
+
+    manifest_seed_retired_managed "$PROJECT_DIR" \
+        ".claude/commands/_policy.md" "7144bf54352362eb3d523d05a1712732aec8e82fc95ea9db0cbc79269e2bf9b1" \
+        ".claude/commands/code-quality.md" "8c1e6ca0470582936fb96491d4aff7e23706da45b96ba38c51d43ba255f8f544" \
+        ".claude/commands/git-status.md" "4602f6ea8ffb18b05d5698c85d060b3d6f01913a4258e778bd6b898611ca9d33" \
+        ".claude/commands/pr-review.md" "3dbd7d788b1e19b1d04654e03eaf8531c933e6b7462120ffdc03d5d7f9658711"
+    manifest_prune_tracked "$PROJECT_DIR"
+    MANIFEST_PATH="$previous_manifest_path"
 
     # CLAUDE.local.md 생성 (개인 설정용)
     echo ""

@@ -227,7 +227,8 @@ function Copy-BootstrapHookFiles {
     param(
         [Parameter(Mandatory)][string]$SourceDir,
         [Parameter(Mandatory)][string]$DestinationDir,
-        [Parameter(Mandatory)][string[]]$Filters
+        [Parameter(Mandatory)][string[]]$Filters,
+        [string]$KeyPrefix = ''
     )
 
     if (-not (Test-Path -LiteralPath $DestinationDir -PathType Container)) {
@@ -237,7 +238,13 @@ function Copy-BootstrapHookFiles {
     foreach ($filter in $Filters) {
         $items = @(Get-ChildItem -LiteralPath $SourceDir -Filter $filter -File -ErrorAction Stop)
         foreach ($item in $items) {
-            Copy-Item -LiteralPath $item.FullName -Destination (Join-Path $DestinationDir $item.Name) -Force -ErrorAction Stop
+            $dest = Join-Path $DestinationDir $item.Name
+            if ($KeyPrefix -and (Get-Command Invoke-ManifestTrackedCopy -ErrorAction SilentlyContinue)) {
+                $key = (($KeyPrefix, $item.Name) -join '/') -replace '\\', '/'
+                $null = Invoke-ManifestTrackedCopy -Src $item.FullName -Dest $dest -Key $key
+            } else {
+                Copy-Item -LiteralPath $item.FullName -Destination $dest -Force -ErrorAction Stop
+            }
         }
     }
 }
@@ -250,14 +257,14 @@ function Deploy-BootstrapHooks {
 
     $hooksDst = Join-Path $ClaudeDir 'hooks'
     # Windows 훅은 `pwsh -File ...ps1`; .sh/.json은 WSL/parity 목적으로 함께 복사.
-    Copy-BootstrapHookFiles -SourceDir $hooksSrc -DestinationDir $hooksDst -Filters @('*.ps1', '*.sh', '*.json')
+    Copy-BootstrapHookFiles -SourceDir $hooksSrc -DestinationDir $hooksDst -Filters @('*.ps1', '*.sh', '*.json') -KeyPrefix 'hooks'
 
     # global/hooks/lib/* 배포 (issue #586): 공유 라이브러리는 top-level glob에
     # 잡히지 않으므로 별도 복사한다. 없으면 4개 Bash 가드가 약화된다.
     $hooksLibSrc = Join-Path $hooksSrc 'lib'
     if (Test-Path -LiteralPath $hooksLibSrc -PathType Container) {
         $hooksLibDst = Join-Path $hooksDst 'lib'
-        Copy-BootstrapHookFiles -SourceDir $hooksLibSrc -DestinationDir $hooksLibDst -Filters @('*.ps1', '*.psm1', '*.sh')
+        Copy-BootstrapHookFiles -SourceDir $hooksLibSrc -DestinationDir $hooksLibDst -Filters @('*.ps1', '*.psm1', '*.sh') -KeyPrefix 'hooks/lib'
     }
 
     # Shared bash validator libraries used by the deployed Bash hook variants.
@@ -270,7 +277,7 @@ function Deploy-BootstrapHooks {
             'validate-commit-message.sh',
             'validate-language.sh',
             'validate-traceability.sh'
-        )
+        ) -KeyPrefix 'hooks/lib'
     }
 
     $requiredLibs = @(
@@ -297,7 +304,11 @@ function Deploy-BootstrapUtilityScripts {
     if (-not (Test-Path -LiteralPath $scriptsDst -PathType Container)) {
         New-Item -ItemType Directory -Path $scriptsDst -Force -ErrorAction Stop | Out-Null
     }
-    Copy-Item -Path (Join-Path $scriptsSrc '*') -Destination $scriptsDst -Force -ErrorAction Stop
+    if (Get-Command Copy-ManifestFiles -ErrorAction SilentlyContinue) {
+        Copy-ManifestFiles -SourceDir $scriptsSrc -DestinationDir $scriptsDst -KeyPrefix 'scripts' -Filters @('*.ps1', '*.sh')
+    } else {
+        Copy-Item -Path (Join-Path $scriptsSrc '*') -Destination $scriptsDst -Force -ErrorAction Stop
+    }
 }
 
 function Install-BootstrapSettingsAndHooks {
@@ -356,6 +367,7 @@ function Install-GlobalSettings {
     $manifestHelper = Join-Path $InstallDir 'scripts' 'install-manifest.ps1'
     if (Test-Path -LiteralPath $manifestHelper) {
         . $manifestHelper
+        Reset-ManifestManagedKeys
     }
 
     # Load shared installer prompts (single source of truth, mirrored at
@@ -372,8 +384,8 @@ function Install-GlobalSettings {
         $dest = Join-Path $ClaudeDir $gf
         if (-not (Test-Path -LiteralPath $src)) { continue }
 
-        if (Get-Command Invoke-GuardedCopy -ErrorAction SilentlyContinue) {
-            if (Invoke-GuardedCopy -Src $src -Dest $dest -Key $gf) {
+        if (Get-Command Invoke-ManifestTrackedCopy -ErrorAction SilentlyContinue) {
+            if (Invoke-ManifestTrackedCopy -Src $src -Dest $dest -Key $gf) {
                 Write-Ok "$gf 설치됨"
             }
             else {
@@ -421,8 +433,10 @@ function Install-GlobalSettings {
     if (Test-Path -LiteralPath $tmplPath) {
         $dest = Join-Path $ClaudeDir "conversation-language.md"
         if (Invoke-GuardedTemplateCopy -SrcTmpl $tmplPath -Dest $dest -Key "conversation-language.md" -DisplayLang $displayLang) {
+            Add-ManifestManagedKey -Key 'conversation-language.md'
             Write-Ok "conversation-language.md 설치됨 (언어: $displayLang)"
         } else {
+            Add-ManifestManagedKey -Key 'conversation-language.md'
             Write-Info "conversation-language.md 로컬 변경 유지"
         }
     } else {
@@ -434,8 +448,10 @@ function Install-GlobalSettings {
         if (Test-Path -LiteralPath $staticMd) {
             $dest = Join-Path $ClaudeDir 'conversation-language.md'
             if (Invoke-GuardedCopy -Src $staticMd -Dest $dest -Key "conversation-language.md") {
+                Add-ManifestManagedKey -Key 'conversation-language.md'
                 Write-Ok "conversation-language.md 설치됨"
             } else {
+                Add-ManifestManagedKey -Key 'conversation-language.md'
                 Write-Info "conversation-language.md 로컬 변경 유지"
             }
         }
@@ -454,7 +470,7 @@ function Install-GlobalSettings {
         if (-not (Test-Path $globalSkillsDst)) {
             New-Item -ItemType Directory -Path $globalSkillsDst -Force | Out-Null
         }
-        Copy-Item -Path "$globalSkillsSrc\*" -Destination $globalSkillsDst -Recurse -Force
+        Copy-ManifestTree -SourceDir $globalSkillsSrc -DestinationDir $globalSkillsDst -KeyPrefix 'skills'
         $skillCount = (Get-ChildItem -Path $globalSkillsDst -Filter SKILL.md -Recurse -ErrorAction SilentlyContinue).Count
         Write-Ok "글로벌 skills 설치 완료 ($skillCount 개)"
     }
@@ -464,7 +480,7 @@ function Install-GlobalSettings {
         if (-not (Test-Path $globalCommandsDst)) {
             New-Item -ItemType Directory -Path $globalCommandsDst -Force | Out-Null
         }
-        Copy-Item -Path "$globalCommandsSrc\*" -Destination $globalCommandsDst -Recurse -Force
+        Copy-ManifestTree -SourceDir $globalCommandsSrc -DestinationDir $globalCommandsDst -KeyPrefix 'commands'
         Write-Ok "글로벌 commands 설치 완료"
     }
 
@@ -496,6 +512,17 @@ function Install-GlobalSettings {
     # 훅 배포를 한 트랜잭션으로 처리해 "설정은 있는데 훅이 없는" 조용한 보안 공백을
     # 막는다. Hook 배포 실패 시 settings.json은 게시하지 않는다.
     Install-BootstrapSettingsAndHooks
+
+    Add-RetiredManagedManifestEntries -Root $ClaudeDir -Entries @{
+        'commands/branch-cleanup.md' = '3e7fc38c324cfc9cea639e95394d7819e7768364d12023ec0b36b91f9230b09d'
+        'commands/doc-review.md' = 'be659114c43ef29423c74d7b33e0f594b80c134b38fb7c5b61e6935cae88c26f'
+        'commands/implement-all-levels.md' = 'b675f8e689e8aca71eb67e8666acc98018ad70b746d16655476b5939380737be'
+        'commands/issue-create.md' = 'c654ab412f320b9d97553f92a510cf5de13a5d0a7ed5e14212ca62534887ae71'
+        'commands/issue-work.md' = '048a26140b03862c5b10630853115ee656056f45cedfd0a0b6ec814bf7225684'
+        'commands/pr-work.md' = '2ecf1a78271c553e2310b57b2a1deb026a07ae01b84c1f856638293ab41f1199'
+        'commands/release.md' = '93fd6d2f7800deada2868b97b65ef486f42482b5e2f1224c35f732ebfeb1c013'
+    }
+    $null = Invoke-ManifestPruneTracked -Root $ClaudeDir
 
     # npm package installation (statusline dependencies)
     if (Get-Command npm -ErrorAction SilentlyContinue) {
@@ -614,51 +641,76 @@ function Install-ProjectSettings {
         }
     }
 
-    # Copy files
-    Copy-Item -Path (Join-Path $InstallDir 'project' 'CLAUDE.md') -Destination $projDir -Force
-
     # .claude directory
     $projClaudeDir = Join-Path $projDir '.claude'
     if (-not (Test-Path $projClaudeDir)) {
         New-Item -ItemType Directory -Path $projClaudeDir -Force | Out-Null
     }
+    $manifestHelper = Join-Path $InstallDir 'scripts' 'install-manifest.ps1'
+    if (-not (Get-Command Invoke-ManifestTrackedCopy -ErrorAction SilentlyContinue) -and (Test-Path -LiteralPath $manifestHelper)) {
+        . $manifestHelper
+    }
+    $previousManifestPath = $env:MANIFEST_PATH
+    $env:MANIFEST_PATH = Join-Path $projClaudeDir '.install-manifest.json'
+    Reset-ManifestManagedKeys
+
+    # Copy files
+    $null = Invoke-ManifestTrackedCopy -Src (Join-Path $InstallDir 'project' 'CLAUDE.md') -Dest (Join-Path $projDir 'CLAUDE.md') -Key 'CLAUDE.md'
 
     $rulesDir = Join-Path $InstallDir 'project' '.claude' 'rules'
     if (Test-Path $rulesDir) {
-        Copy-Item -Path $rulesDir -Destination $projClaudeDir -Recurse -Force
+        $rulesTmp = Join-Path ([System.IO.Path]::GetTempPath()) "claude-rules-$([guid]::NewGuid())"
+        New-Item -ItemType Directory -Path $rulesTmp -Force | Out-Null
+        Copy-Item -Path (Join-Path $rulesDir '*') -Destination $rulesTmp -Recurse -Force
         # issue #760: render any .md.tmpl under the copied rules/ via the same
         # single-source function install.ps1 uses. Unset language values fall
         # back to safe defaults inside Invoke-PolicyTemplate.
         if (Get-Command Invoke-PolicyTemplatesInDir -ErrorAction SilentlyContinue) {
-            Invoke-PolicyTemplatesInDir -Path (Join-Path $projClaudeDir 'rules') `
+            Invoke-PolicyTemplatesInDir -Path $rulesTmp `
                 -ContentLanguage $script:contentLanguage -AgentDisplay $script:displayLang -AgentLanguage $script:agentLanguage
         }
+        Copy-ManifestTree -SourceDir $rulesTmp -DestinationDir (Join-Path $projClaudeDir 'rules') -KeyPrefix '.claude/rules'
+        Remove-Item -LiteralPath $rulesTmp -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    $referenceDir = Join-Path $InstallDir 'project' '.claude' 'reference'
+    if (Test-Path $referenceDir) {
+        Copy-ManifestTree -SourceDir $referenceDir -DestinationDir (Join-Path $projClaudeDir 'reference') -KeyPrefix '.claude/reference'
     }
 
     $skillsDir = Join-Path $InstallDir 'project' '.claude' 'skills'
     if (Test-Path $skillsDir) {
-        Copy-Item -Path $skillsDir -Destination $projClaudeDir -Recurse -Force
+        Copy-ManifestTree -SourceDir $skillsDir -DestinationDir (Join-Path $projClaudeDir 'skills') -KeyPrefix '.claude/skills'
     }
 
     $commandsDir = Join-Path $InstallDir 'project' '.claude' 'commands'
     if (Test-Path $commandsDir) {
-        Copy-Item -Path $commandsDir -Destination $projClaudeDir -Recurse -Force
+        Copy-ManifestTree -SourceDir $commandsDir -DestinationDir (Join-Path $projClaudeDir 'commands') -KeyPrefix '.claude/commands'
     }
 
     $agentsDir = Join-Path $InstallDir 'project' '.claude' 'agents'
     if (Test-Path $agentsDir) {
-        Copy-Item -Path $agentsDir -Destination $projClaudeDir -Recurse -Force
+        Copy-ManifestTree -SourceDir $agentsDir -DestinationDir (Join-Path $projClaudeDir 'agents') -KeyPrefix '.claude/agents'
     }
 
     $settingsJson = Join-Path $InstallDir 'project' '.claude' 'settings.json'
     if (Test-Path $settingsJson) {
-        Copy-Item -Path $settingsJson -Destination $projClaudeDir -Force
+        $null = Invoke-ManifestTrackedCopy -Src $settingsJson -Dest (Join-Path $projClaudeDir 'settings.json') -Key '.claude/settings.json'
     }
 
     $claudeIgnore = Join-Path $InstallDir 'project' '.claudeignore'
     if (Test-Path $claudeIgnore) {
-        Copy-Item -Path $claudeIgnore -Destination $projDir -Force
+        $null = Invoke-ManifestTrackedCopy -Src $claudeIgnore -Dest (Join-Path $projDir '.claudeignore') -Key '.claudeignore'
     }
+
+    Add-RetiredManagedManifestEntries -Root $projDir -Entries @{
+        '.claude/commands/_policy.md' = '7144bf54352362eb3d523d05a1712732aec8e82fc95ea9db0cbc79269e2bf9b1'
+        '.claude/commands/code-quality.md' = '8c1e6ca0470582936fb96491d4aff7e23706da45b96ba38c51d43ba255f8f544'
+        '.claude/commands/git-status.md' = '4602f6ea8ffb18b05d5698c85d060b3d6f01913a4258e778bd6b898611ca9d33'
+        '.claude/commands/pr-review.md' = '3dbd7d788b1e19b1d04654e03eaf8531c933e6b7462120ffdc03d5d7f9658711'
+    }
+    $null = Invoke-ManifestPruneTracked -Root $projDir
+    $env:MANIFEST_PATH = $previousManifestPath
 
     Write-Ok "프로젝트 설정 설치 완료"
 
