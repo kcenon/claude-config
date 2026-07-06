@@ -261,7 +261,7 @@ function Copy-ManifestFiles {
     param(
         [Parameter(Mandatory)][string]$SourceDir,
         [Parameter(Mandatory)][string]$DestinationDir,
-        [Parameter(Mandatory)][string]$KeyPrefix,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$KeyPrefix,
         [Parameter(Mandatory)][string[]]$Filters
     )
 
@@ -286,7 +286,7 @@ function Copy-ManifestTree {
     param(
         [Parameter(Mandatory)][string]$SourceDir,
         [Parameter(Mandatory)][string]$DestinationDir,
-        [Parameter(Mandatory)][string]$KeyPrefix
+        [Parameter(Mandatory)][AllowEmptyString()][string]$KeyPrefix
     )
 
     if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) { return }
