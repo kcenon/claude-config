@@ -16,15 +16,21 @@ on:
       - 'scripts/validate_skills.sh'
       - 'scripts/check_references.sh'
       - 'scripts/check_references.ps1'
+      - 'scripts/check_skill_drift.py'
+      - 'scripts/check_skill_drift.sh'
+      - 'scripts/check_skill_drift.ps1'
       - 'scripts/sync_references.sh'
       - 'scripts/sync_references.ps1'
       - 'reference-map.yml'
+      - 'skill-drift-contract.yml'
       - 'scripts/validate-doc-index.sh'
       - 'scripts/check_agents.sh'
       - 'scripts/check_agents.ps1'
       - 'tests/scripts/test-check-agents.sh'
       - 'tests/scripts/test-check-references.sh'
       - 'tests/scripts/test-check-references.ps1'
+      - 'tests/scripts/test-check-skill-drift.sh'
+      - 'tests/scripts/test-check-skill-drift.ps1'
       - 'plugin/agents/**'
       - 'project/.claude/agents/**'
       - 'scripts/spec_lint.sh'
@@ -97,6 +103,18 @@ jobs:
 
       - name: Run reference drift guard test suite (PowerShell)
         run: pwsh -NoProfile -File tests/scripts/test-check-references.ps1
+
+      - name: Check cross-layer SKILL.md drift contracts
+        run: ./scripts/check_skill_drift.sh
+
+      - name: Run skill drift guard test suite
+        run: bash tests/scripts/test-check-skill-drift.sh
+
+      - name: Check cross-layer SKILL.md drift contracts (PowerShell)
+        run: pwsh -NoProfile -File scripts/check_skill_drift.ps1
+
+      - name: Run skill drift guard test suite (PowerShell)
+        run: pwsh -NoProfile -File tests/scripts/test-check-skill-drift.ps1
 
       - name: Check plugin/project agent bodies in sync
         # plugin/agents and project/.claude/agents are near-duplicate copies;

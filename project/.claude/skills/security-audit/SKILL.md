@@ -7,7 +7,9 @@ allowed-tools:
   - Glob
 model: sonnet
 context: fork
+agent: Explore
 argument-hint: "<file-or-directory>"
+finding_levels: [S1, S2, S3]
 iso_class: none
 ---
 
@@ -58,3 +60,33 @@ iso_class: none
 8. Insecure Deserialization
 9. Using Components with Known Vulnerabilities
 10. Insufficient Logging & Monitoring
+
+## Output
+
+This skill runs in a forked context (`context: fork`) using the read-only `Explore` agent. It does not have access to the calling conversation's history — operate entirely from the supplied `<file-or-directory>` argument.
+
+Return a structured report at the end of analysis:
+
+```markdown
+## Security Audit Report
+
+| Severity | Findings |
+|----------|----------|
+| S1 (block-merge) | N items |
+| S2 (review-required) | N items |
+| S3 (advisory) | N items |
+
+### S1 Findings
+1. `file.ext:line` — severity: S1 — finding + recommended fix
+2. ...
+
+### S2 Findings
+1. `file.ext:line` — severity: S2 — finding + recommended fix
+
+### Coverage
+- Files inspected: N
+- OWASP categories evaluated: 1, 2, 3, ...
+- Categories not applicable: ...
+```
+
+Each finding MUST include a `severity:` field (`S1`, `S2`, or `S3`). When a finding's severity is ambiguous, default to `S3` (advisory) per the false-positive playbook.

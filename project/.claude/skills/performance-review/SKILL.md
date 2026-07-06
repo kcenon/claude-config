@@ -3,13 +3,13 @@ name: performance-review
 description: "Performance optimization analysis: CPU/memory profiling, caching strategies, database query optimization, connection pooling, concurrency patterns, memory leak detection, and throughput improvement. Use when code is slow, memory usage is high, latency needs reduction, or conducting performance reviews before release."
 allowed-tools:
   - Read
-  - Edit
-  - Glob
   - Grep
-  - Bash
+  - Glob
 model: sonnet
 context: fork
+agent: Explore
 argument-hint: "<file-or-directory>"
+finding_levels: [S1, S2, S3]
 iso_class: none
 ---
 
@@ -66,3 +66,36 @@ Profiling → Identify bottlenecks → Optimize → Verify
 > "Premature optimization is the root of all evil" - Donald Knuth
 >
 > Always confirm bottlenecks through profiling before optimizing.
+
+## Output
+
+This skill runs in a forked context (`context: fork`) using the read-only `Explore` agent. It does not have access to the calling conversation's history — operate entirely from the supplied `<file-or-directory>` argument.
+
+Return a structured report at the end of analysis:
+
+```markdown
+## Performance Review Report
+
+| Severity | Findings |
+|----------|----------|
+| S1 (block-merge: clear regression) | N items |
+| S2 (review-required: measured/suspected hotspot) | N items |
+| S3 (advisory: style/maintainability) | N items |
+
+### S1 Findings
+1. `file.ext:line` — severity: S1 — finding + recommended optimization + expected gain
+2. ...
+
+### Hotspot Map
+- Algorithm/data-structure issues: N
+- Memory issues: N
+- Concurrency issues: N
+- Caching opportunities: N
+
+### Coverage
+- Files inspected: N
+- Profiling data referenced: yes/no
+- Categories not evaluated (need runtime data): ...
+```
+
+Each finding MUST include a `severity:` field (`S1`, `S2`, or `S3`). When a finding's severity is ambiguous, default to `S3` (advisory) per the false-positive playbook.
