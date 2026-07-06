@@ -19,6 +19,7 @@ on:
       - 'scripts/install-manifest.ps1'
       - 'bootstrap.sh'
       - 'bootstrap.ps1'
+      - '.github/workflows/validate-hooks.yml'
       - 'tests/scripts/test-bootstrap-non-tty-smoke.sh'
       - 'tests/scripts/test-bootstrap-atomic-deploy.*'
       - 'tests/scripts/test-install-atomic-deploy.*'
@@ -35,6 +36,7 @@ on:
       - 'global/settings.json'
       - 'global/settings.windows.json'
       - 'tests/scripts/test-windows-hooks-parity.sh'
+      - 'tests/scripts/test-windows-settings-parity.sh'
       - 'tests/scripts/test-windows-powershell-permissions.sh'
       - 'tests/scripts/test-hook-ordering.sh'
       - 'tests/scripts/test-severity-enum.sh'
@@ -189,6 +191,13 @@ jobs:
         # gate the 7 unwired Windows security guards (#655) would have tripped.
         run: bash tests/scripts/test-windows-hooks-parity.sh
 
+      - name: Run Windows settings parity contract test
+        # #821: fail on unexpected top-level, env, permissions.allow, or
+        # permissions.deny drift between global/settings.json and
+        # global/settings.windows.json. Intentional platform exceptions live in
+        # the test's explicit allow-lists.
+        run: bash tests/scripts/test-windows-settings-parity.sh
+
       - name: Run Windows PowerShell permissions policy test
         # Ensures Windows gets narrow read-only PowerShell discovery allowances
         # without broad PowerShell(*) or state-changing gh grants.
@@ -203,14 +212,25 @@ jobs:
         # Validates code-review skill frontmatter severity/finding_levels enums.
         run: bash tests/scripts/test-severity-enum.sh
 
-      - name: Run PowerShell hook behavior tests (pwsh)
-        # CI parity (#781): the .ps1 hook behavior tests under
-        # tests/hooks/test-runner.ps1 previously ran in no workflow, so the
-        # PowerShell guards had zero behavioral coverage and Windows users acted
-        # as the test runner. pwsh is preinstalled on the ubuntu/macos runners
-        # (already used by the install-manifest step above), so this is zero
-        # extra infra.
+      - name: Run PowerShell hook behavior tests on non-Windows pwsh
+        # Cross-platform parity (#819/#821): keep the .ps1 hook behavior suite
+        # running under pwsh on Linux/macOS, while the windows-powershell-hooks
+        # job below covers native Windows console/path behavior.
         run: pwsh tests/hooks/test-runner.ps1
+
+  windows-powershell-hooks:
+    # Native Windows coverage for #819/#821. The Linux/macOS matrix above runs
+    # pwsh, but it cannot reproduce Windows console encoding, path, and shell
+    # behavior.
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run PowerShell hook behavior tests on native Windows
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File tests/hooks/test-runner.ps1
 
   shellcheck:
     runs-on: ${{ matrix.os }}

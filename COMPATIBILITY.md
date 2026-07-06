@@ -89,6 +89,12 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 Every non-schema field in `global/settings.json` and `global/settings.windows.json` is
 catalogued here with its status relative to the official Claude Code settings
 reference: [`code.claude.com/docs/en/settings`](https://code.claude.com/docs/en/settings).
+CI enforces the two global profiles as a parity contract: top-level keys,
+shared `env` values, `permissions.deny`, and the Bash `permissions.allow`
+surface must stay aligned. Intentional platform exceptions are explicit in
+`tests/scripts/test-windows-settings-parity.sh`: POSIX-only CA-bundle
+environment variables are omitted on Windows, and Windows carries a narrow
+PowerShell read-only discovery allowlist.
 
 **Status legend:**
 
@@ -97,6 +103,7 @@ reference: [`code.claude.com/docs/en/settings`](https://code.claude.com/docs/en/
 | **Stable** | Documented on `code.claude.com/docs/en/settings`. Changes follow deprecation policy. |
 | **Experimental** | Officially documented as experimental, opt-in, or subject to removal. |
 | **Undocumented** | Not listed on the official settings page. May be session-only, internal, or pending documentation. |
+| **POSIX-only** | Intentional macOS/Linux/WSL setting that is omitted from native Windows. |
 | **Misplaced** | Documented but belongs in a different file (e.g., `~/.claude.json`). May trigger a schema warning. |
 
 ### settings.json top-level fields
@@ -108,11 +115,15 @@ reference: [`code.claude.com/docs/en/settings`](https://code.claude.com/docs/en/
 | `version` | Undocumented | — | claude-config's own version string; not a Claude Code field. |
 | `respectGitignore` | Stable | 2.0.0+ | Controls `@` file picker. Default `true`. |
 | `cleanupPeriodDays` | Stable | 2.0.0+ | Session file retention. Minimum 1, rejected at 0. |
+| `minimumVersion` | Stable | 2.2.0+ | Hard minimum Claude Code version for settings features used by this profile. |
+| `worktree.baseRef` | Stable | 2.1.0+ | Worktree fan-out base policy. This repo uses `head` for same-branch task work. |
 | `language` | Stable | 2.0.0+ | Preferred response language. |
 | `outputStyle` | Stable | 2.0.0+ | Adjusts the system prompt (e.g. `"Explanatory"`). |
 | `attribution.commit` | Stable | 2.0.0+ | Empty string hides commit attribution. |
 | `attribution.pr` | Stable | 2.0.0+ | Empty string hides PR attribution. |
 | `attribution.issue` | Undocumented | — | Not on settings reference; used by claude-config's `attribution-guard` hook. Verify on each CC release. |
+| `enableAllProjectMcpServers` | Stable | 2.0.0+ | Keeps project `.mcp.json` servers opt-in by default. |
+| `enabledMcpjsonServers` | Stable | 2.0.0+ | Explicit allowlist of project `.mcp.json` servers. Empty by default. |
 | `permissions.defaultMode` | Stable | 2.0.0+ | Valid: `default`, `acceptEdits`, `plan`, `auto`, `dontAsk`, `bypassPermissions`. |
 | `permissions.deny` / `allow` / `ask` | Stable | 1.0.0+ | Permission rule arrays. |
 | `hooks` | Stable | 1.0.0+ | Lifecycle hook events. See [HOOKS.md](HOOKS.md). |
@@ -124,6 +135,9 @@ reference: [`code.claude.com/docs/en/settings`](https://code.claude.com/docs/en/
 | `effortLevel` | Stable | 2.0.0+ | Valid: `low`, `medium`, `high`, `xhigh`. **Note:** `max` is NOT officially supported despite our local schema permitting it ([tracked](https://github.com/kcenon/claude-config/issues/336)). |
 | `autoUpdatesChannel` | Stable | 2.1.0+ | `"stable"` or `"latest"`. |
 | `skipDangerousModePermissionPrompt` | Stable | 2.0.0+ | Ignored in project settings (security). |
+| `includeGitInstructions` | Stable | 2.0.0+ | Disables extra generated Git workflow guidance so repo rules remain authoritative. |
+| `skillListingBudgetFraction` | Stable | 2.1.0+ | Caps skill listing token budget. |
+| `disableSkillShellExecution` | Stable | 2.1.0+ | Prevents skill frontmatter shell execution. |
 | `showTurnDuration` | **Misplaced** | 2.1.0+ | Officially belongs in `~/.claude.json`, not `settings.json`. May trigger schema validation warning in future CC versions. Consider moving. |
 | `teammateMode` | **Misplaced** | 2.1.0+ | Same as above — belongs in `~/.claude.json`. Valid values: `auto`, `in-process`, `tmux`. |
 
@@ -137,6 +151,8 @@ reference: [`code.claude.com/docs/en/settings`](https://code.claude.com/docs/en/
 | `env.MAX_TEAMS` | Undocumented | 2.1.0+ | Paired with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`. Not on env-vars reference page. |
 | `env.ENABLE_TOOL_SEARCH` | Undocumented | 2.1.0+ | Deferred-tool schema loading. Mentioned indirectly on env-vars page but not formally documented. |
 | `env.MAX_MCP_OUTPUT_TOKENS` | Undocumented | 2.0.0+ | MCP output token cap. Not on env-vars reference page. |
+| `env.SSL_CERT_FILE` | POSIX-only | — | CA bundle path for POSIX HTTP/TLS tooling. Intentionally absent from the Windows profile. |
+| `env.SSL_CERT_DIR` | POSIX-only | — | CA directory for POSIX HTTP/TLS tooling. Intentionally absent from the Windows profile. |
 
 ### Operational guidance
 
@@ -233,6 +249,11 @@ The README v1.7.0 changelog originally claimed "All 42 bash scripts now have Pow
 | `global/hooks/*.sh` | 38 | 38 | 38/38 (100%) |
 
 The `*.sh` ↔ `*.ps1` mapping is 1:1; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if the counts diverge. The same job also compares this hardcoded table against the live hook count so the documented coverage cannot drift silently.
+
+Behavioral PowerShell hook coverage runs twice: the Linux/macOS hook workflow
+executes `tests/hooks/test-runner.ps1` under `pwsh`, and the native Windows job
+executes the same runner on `windows-latest` to catch Windows console encoding,
+path, and shell behavior differences.
 
 The script that produces the live count: `bash -c 'b=$(ls global/hooks/*.sh | wc -l); p=$(ls global/hooks/*.ps1 | wc -l); echo "$p/$b"'`.
 
