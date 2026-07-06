@@ -159,6 +159,9 @@ Get-Content $HOME\.claude\git-identity.md | Select-String '^(name|email):'
 > **Note**: Requires PowerShell 7+ (`pwsh`). Install via `winget install Microsoft.PowerShell`.
 > If you get an execution policy error, run: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
 
+Windows installs `global/settings.windows.json`; CI parity gates keep it aligned
+with the Unix profile except for documented Windows-only PowerShell allowances.
+
 #### Docker-compatible dual-variant install
 
 `install.ps1` deploys **both** PowerShell (`.ps1`) and bash (`.sh`) variants of
@@ -401,8 +404,8 @@ claude_config_backup/
 │
 ├── .github/
 │   └── workflows/
-│       ├── validate-skills.yml     # CI skill validation (main-targeting PRs only)
-│       ├── validate-hooks.yml      # CI hook validation (main-targeting PRs only)
+│       ├── validate-skills.yml     # CI skill validation (main/develop PRs)
+│       ├── validate-hooks.yml      # CI hook validation, including native Windows pwsh
 │       └── validate-pr-target.yml  # Enforce develop-only merges to main
 │
 ├── docs/                        # Design docs and guides

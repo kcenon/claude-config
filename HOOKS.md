@@ -834,6 +834,12 @@ The Windows profile intentionally keeps these guardrails:
   execution cmdlets, and state-changing `gh` commands are not allowlisted.
 - Sensitive-file deny rules stay in place.
 
+`tests/scripts/test-windows-settings-parity.sh` gates this contract in CI. It
+fails on unexpected drift in top-level settings keys, shared `env` values,
+`permissions.deny`, or the Bash `permissions.allow` surface, while keeping the
+Windows-only PowerShell allowlist and POSIX-only CA-bundle environment variables
+as explicit platform exceptions.
+
 `skipDangerousModePermissionPrompt` only suppresses the extra dangerous-mode
 launch warning. It does not widen `permissions.allow`, and it does not override
 the installed profile's bypass/auto-mode disable settings.

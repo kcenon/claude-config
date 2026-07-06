@@ -180,6 +180,13 @@ only then replaces `~/.claude/settings.json`. If hook deployment or
 required runtime-library validation fails, the staged settings file is
 removed and the existing `settings.json` is left unchanged.
 
+The platform settings profiles are parity-gated in CI. Bash installers stage
+`global/settings.json`; PowerShell installers stage `global/settings.windows.json`.
+`tests/scripts/test-windows-settings-parity.sh` fails if top-level keys,
+shared `env` values, `permissions.deny`, or the Bash `permissions.allow`
+surface drift unexpectedly. The only documented exceptions are POSIX CA-bundle
+environment variables and the Windows-only PowerShell read-only allowlist.
+
 ## Tracked Files
 
 The global manifest tracks guarded files under `~/.claude`, including:

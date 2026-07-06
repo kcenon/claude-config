@@ -140,20 +140,24 @@ main ← develop ← feature/*
 | Event | CI Triggered? |
 |-------|---------------|
 | Pull request to `main` | Yes — full validation (skills, hooks, shellcheck) |
-| Pull request to `develop` | No — code review only |
+| Pull request to `develop` | Yes — full validation when workflow path filters match |
 | Push to any branch | No |
 | Tag push (`v*`) | No (releases are created manually) |
 
 Both workflows use **path filters** — they only trigger when relevant files change:
-- `validate-skills.yml`: triggers on changes to `global/skills/**`, `project/.claude/skills/**`, `plugin/skills/**`
-- `validate-hooks.yml`: triggers on changes to `global/hooks/**`, `tests/hooks/**`
+- `validate-skills.yml`: triggers on skill trees, settings schema inputs, doc-index metadata, and validation scripts.
+- `validate-hooks.yml`: triggers on hook trees, hook tests and fixtures, installer/bootstrap scripts, settings profiles, plugin smoke tests, and hook-related regression scripts.
 
 ### CI Checks
 
 | Workflow | What It Validates | Path Filter |
 |----------|-------------------|-------------|
-| `validate-skills.yml` | SKILL.md frontmatter format, name, description length | `**/skills/**` |
-| `validate-hooks.yml` | Hook script correctness (test suite + shellcheck) | `global/hooks/**`, `tests/hooks/**` |
+| `validate-skills.yml` | SKILL.md frontmatter/schema, references, doc index, README parity | Skill trees, schema/reference scripts, docs index files |
+| `validate-hooks.yml` | Hook behavior, settings parity, installer regressions, plugin smoke tests, shellcheck | Hook trees, settings profiles, installer/bootstrap scripts, hook regression tests |
+
+`validate-hooks.yml` also runs the PowerShell hook behavior suite on
+`windows-latest` so Windows-native console encoding, path, and shell behavior
+are covered in addition to the Linux/macOS `pwsh` matrix.
 
 ### Merge Rules
 

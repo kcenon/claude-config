@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Native Windows hook CI now runs the PowerShell hook behavior suite on
+  `windows-latest`, and settings parity gates fail on unexpected top-level,
+  `env`, `permissions.allow`, or `permissions.deny` drift between
+  `global/settings.json` and `global/settings.windows.json`. The Windows Bash
+  allow-list now mirrors the Unix profile; only the Windows PowerShell
+  read-only allow-list and POSIX CA environment variables remain documented
+  exceptions (#821).
 - Installers now record managed-file hashes for global and project install
   trees and prune removed upstream files only when the deployed copy still
   matches the managed hash. Locally edited removed files are preserved and
