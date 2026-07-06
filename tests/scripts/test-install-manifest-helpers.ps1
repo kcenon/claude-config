@@ -57,6 +57,7 @@ try {
     # Test Invoke-ManifestPrune
     $pruneRoot = Join-Path $testDir "prune-root"
     New-Item -ItemType Directory -Path $pruneRoot | Out-Null
+    $env:MANIFEST_PATH = Join-Path $pruneRoot ".install-manifest.json"
 
     $obsoleteClean = Join-Path $pruneRoot "obsolete-clean.md"
     $obsoleteEdited = Join-Path $pruneRoot "obsolete-edited.md"
@@ -102,7 +103,7 @@ try {
         throw "FAIL: prune removed file outside managed root"
     }
 
-    $manifestAfterPrune = Get-Content -Raw -LiteralPath $manifestPath
+    $manifestAfterPrune = Get-Content -Raw -LiteralPath $env:MANIFEST_PATH
     if ($manifestAfterPrune -match "obsolete-clean.md") {
         throw "FAIL: prune left deleted obsolete file in manifest"
     }
@@ -120,6 +121,7 @@ try {
     # Test Copy-ManifestTree + Invoke-ManifestPruneTracked
     $treeRoot = Join-Path $testDir "tree-root"
     $treeSource = Join-Path $testDir "tree-source"
+    $env:MANIFEST_PATH = Join-Path $treeRoot ".install-manifest.json"
     New-Item -ItemType Directory -Path (Join-Path $treeSource "nested") -Force | Out-Null
     New-Item -ItemType Directory -Path $treeRoot -Force | Out-Null
     "active" | Set-Content -LiteralPath (Join-Path $treeSource "nested/active.md") -Encoding UTF8

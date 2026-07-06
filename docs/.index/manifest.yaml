@@ -10,28 +10,28 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 17612
+    size: 17973
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "[Unreleased]", l: 8, e: 9}
-      - {h: "Fixed", l: 10, e: 15}
-      - {h: "1.11.0 - 2026-07-03", l: 16, e: 17}
-      - {h: "Fixed", l: 18, e: 31}
-      - {h: "Security", l: 32, e: 109}
-      - {h: "Added", l: 110, e: 138}
-      - {h: "Changed", l: 139, e: 185}
-      - {h: "1.10.0 - 2026-04-20", l: 186, e: 194}
-      - {h: "1.9.0 - 2026-04-13", l: 195, e: 204}
-      - {h: "1.8.0 - 2026-04-13", l: 205, e: 210}
-      - {h: "1.7.0 - 2026-04-06", l: 211, e: 225}
-      - {h: "1.6.0 - 2026-04-03", l: 226, e: 238}
-      - {h: "1.5.0 - 2026-03-21", l: 239, e: 257}
-      - {h: "1.4.0 - 2026-01-22", l: 258, e: 263}
-      - {h: "1.3.0 - 2026-01-15", l: 264, e: 272}
-      - {h: "1.2.0 - 2026-01-15", l: 273, e: 281}
-      - {h: "1.1.0 - 2025-01-15", l: 282, e: 292}
-      - {h: "1.0.0 - 2025-12-03", l: 293, e: 299}
+      - {h: "Fixed", l: 10, e: 20}
+      - {h: "1.11.0 - 2026-07-03", l: 21, e: 22}
+      - {h: "Fixed", l: 23, e: 36}
+      - {h: "Security", l: 37, e: 114}
+      - {h: "Added", l: 115, e: 143}
+      - {h: "Changed", l: 144, e: 190}
+      - {h: "1.10.0 - 2026-04-20", l: 191, e: 199}
+      - {h: "1.9.0 - 2026-04-13", l: 200, e: 209}
+      - {h: "1.8.0 - 2026-04-13", l: 210, e: 215}
+      - {h: "1.7.0 - 2026-04-06", l: 216, e: 230}
+      - {h: "1.6.0 - 2026-04-03", l: 231, e: 243}
+      - {h: "1.5.0 - 2026-03-21", l: 244, e: 262}
+      - {h: "1.4.0 - 2026-01-22", l: 263, e: 268}
+      - {h: "1.3.0 - 2026-01-15", l: 269, e: 277}
+      - {h: "1.2.0 - 2026-01-15", l: 278, e: 286}
+      - {h: "1.1.0 - 2025-01-15", l: 287, e: 297}
+      - {h: "1.0.0 - 2025-12-03", l: 298, e: 304}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -351,7 +351,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 45917
+    size: 46149
     tags: [config,readme]
     sections:
       - {h: "Claude Configuration Backup & Deployment System", l: 1, e: 29}
@@ -426,57 +426,57 @@ documents:
       - {h: "MCP Configuration", l: 737, e: 740}
       - {h: "Available Servers", l: 741, e: 750}
       - {h: "Setup", l: 751, e: 758}
-      - {h: "Scripts", l: 759, e: 774}
-      - {h: "Git Hooks", l: 775, e: 785}
-      - {h: "Pre-commit Hook", l: 786, e: 791}
-      - {h: "Commit-msg Hook", l: 792, e: 797}
-      - {h: "Pre-push Hook", l: 798, e: 805}
-      - {h: "Use Cases", l: 806, e: 807}
-      - {h: "Use Case A: Sync Work + Home Computers", l: 808, e: 810}
-      - {h: "At work (initial setup)", l: 811, e: 816}
-      - {h: "At home", l: 817, e: 820}
-      - {h: "Select: 1 (Backup → System)", l: 821, e: 825}
-      - {h: "Use Case B: Share Team Project Settings", l: 826, e: 828}
-      - {h: "Project leader", l: 829, e: 833}
-      - {h: "Type: 2 (Project only)", l: 834, e: 835}
-      - {h: "Team member", l: 836, e: 839}
-      - {h: "Type: 2 (Project only)", l: 840, e: 844}
-      - {h: "Use Case C: New Development Machine Setup", l: 845, e: 847}
-      - {h: "One-line installation", l: 848, e: 850}
-      - {h: "Or manual installation", l: 851, e: 854}
-      - {h: "Type: 3 (Both)", l: 855, e: 856}
-      - {h: "Verify Git identity; edit only if missing or wrong", l: 857, e: 862}
-      - {h: "Use Case D: Batch-Process Open Issues or Failing PRs", l: 863, e: 881}
-      - {h: "Process up to 5 open issues in a repo (default limit)", l: 882, e: 884}
-      - {h: "Process up to 3 open issues", l: 885, e: 887}
-      - {h: "Process failing PRs instead", l: 888, e: 892}
-      - {h: "PowerShell equivalents", l: 893, e: 913}
-      - {h: "Advanced Usage", l: 914, e: 915}
-      - {h: "GitHub Actions Auto-Sync", l: 916, e: 937}
-      - {h: "Backup Specific Files Only", l: 938, e: 940}
-      - {h: "Backup global CLAUDE.md only", l: 941, e: 943}
-      - {h: "Backup project settings only", l: 944, e: 947}
-      - {h: "Customize with Environment Variables", l: 948, e: 950}
-      - {h: "When using bootstrap.sh", l: 951, e: 971}
-      - {h: "FAQ", l: 972, e: 973}
-      - {h: "Q1: Why do I need to personalize Git identity?", l: 974, e: 979}
-      - {h: "Change name and email only when the installed values are missing or wrong", l: 980, e: 984}
-      - {h: "Q2: How to manage backups across multiple locations?", l: 985, e: 997}
-      - {h: "Q3: I want different settings for each project", l: 998, e: 1003}
-      - {h: "Modify project A settings", l: 1004, e: 1007}
-      - {h: "Modify project B settings", l: 1008, e: 1013}
-      - {h: "Q4: Scripts won't run", l: 1014, e: 1020}
-      - {h: "Or run directly", l: 1021, e: 1026}
-      - {h: "Q5: I want to use a private repo", l: 1027, e: 1031}
-      - {h: "Create token: GitHub Settings > Developer settings > Personal access tokens", l: 1032, e: 1033}
-      - {h: "Installation", l: 1034, e: 1040}
-      - {h: "Memory sync (multi-machine)", l: 1041, e: 1053}
-      - {h: "Additional Resources", l: 1054, e: 1065}
-      - {h: "Version", l: 1066, e: 1073}
-      - {h: "Contributing", l: 1074, e: 1085}
-      - {h: "Related Projects", l: 1086, e: 1087}
-      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1088, e: 1096}
-      - {h: "License", l: 1097, e: 1105}
+      - {h: "Scripts", l: 759, e: 775}
+      - {h: "Git Hooks", l: 776, e: 786}
+      - {h: "Pre-commit Hook", l: 787, e: 792}
+      - {h: "Commit-msg Hook", l: 793, e: 798}
+      - {h: "Pre-push Hook", l: 799, e: 806}
+      - {h: "Use Cases", l: 807, e: 808}
+      - {h: "Use Case A: Sync Work + Home Computers", l: 809, e: 811}
+      - {h: "At work (initial setup)", l: 812, e: 817}
+      - {h: "At home", l: 818, e: 821}
+      - {h: "Select: 1 (Backup → System)", l: 822, e: 826}
+      - {h: "Use Case B: Share Team Project Settings", l: 827, e: 829}
+      - {h: "Project leader", l: 830, e: 834}
+      - {h: "Type: 2 (Project only)", l: 835, e: 836}
+      - {h: "Team member", l: 837, e: 840}
+      - {h: "Type: 2 (Project only)", l: 841, e: 845}
+      - {h: "Use Case C: New Development Machine Setup", l: 846, e: 848}
+      - {h: "One-line installation", l: 849, e: 851}
+      - {h: "Or manual installation", l: 852, e: 855}
+      - {h: "Type: 3 (Both)", l: 856, e: 857}
+      - {h: "Verify Git identity; edit only if missing or wrong", l: 858, e: 863}
+      - {h: "Use Case D: Batch-Process Open Issues or Failing PRs", l: 864, e: 882}
+      - {h: "Process up to 5 open issues in a repo (default limit)", l: 883, e: 885}
+      - {h: "Process up to 3 open issues", l: 886, e: 888}
+      - {h: "Process failing PRs instead", l: 889, e: 893}
+      - {h: "PowerShell equivalents", l: 894, e: 914}
+      - {h: "Advanced Usage", l: 915, e: 916}
+      - {h: "GitHub Actions Auto-Sync", l: 917, e: 938}
+      - {h: "Backup Specific Files Only", l: 939, e: 941}
+      - {h: "Backup global CLAUDE.md only", l: 942, e: 944}
+      - {h: "Backup project settings only", l: 945, e: 948}
+      - {h: "Customize with Environment Variables", l: 949, e: 951}
+      - {h: "When using bootstrap.sh", l: 952, e: 972}
+      - {h: "FAQ", l: 973, e: 974}
+      - {h: "Q1: Why do I need to personalize Git identity?", l: 975, e: 980}
+      - {h: "Change name and email only when the installed values are missing or wrong", l: 981, e: 985}
+      - {h: "Q2: How to manage backups across multiple locations?", l: 986, e: 998}
+      - {h: "Q3: I want different settings for each project", l: 999, e: 1004}
+      - {h: "Modify project A settings", l: 1005, e: 1008}
+      - {h: "Modify project B settings", l: 1009, e: 1014}
+      - {h: "Q4: Scripts won't run", l: 1015, e: 1021}
+      - {h: "Or run directly", l: 1022, e: 1027}
+      - {h: "Q5: I want to use a private repo", l: 1028, e: 1032}
+      - {h: "Create token: GitHub Settings > Developer settings > Personal access tokens", l: 1033, e: 1034}
+      - {h: "Installation", l: 1035, e: 1041}
+      - {h: "Memory sync (multi-machine)", l: 1042, e: 1054}
+      - {h: "Additional Resources", l: 1055, e: 1066}
+      - {h: "Version", l: 1067, e: 1074}
+      - {h: "Contributing", l: 1075, e: 1086}
+      - {h: "Related Projects", l: 1087, e: 1088}
+      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1089, e: 1097}
+      - {h: "License", l: 1098, e: 1106}
   - path: "THIRD_PARTY_NOTICES.md"
     title: "Third-Party Notices"
     description: ""
@@ -1709,16 +1709,22 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 6664
+    size: 8631
     tags: [docs]
     sections:
-      - {h: "Manifest", l: 7, e: 29}
-      - {h: "Copy Decision", l: 30, e: 57}
-      - {h: "Non-Interactive Override", l: 58, e: 98}
-      - {h: "Toolchain Fallback", l: 99, e: 109}
-      - {h: "Template Files", l: 110, e: 155}
-      - {h: "Tracked Files", l: 156, e: 171}
-      - {h: "Regression Test", l: 172, e: 183}
+      - {h: "Install Behavior", l: 1, e: 6}
+      - {h: "Manifest", l: 7, e: 36}
+      - {h: "Copy Decision", l: 37, e: 64}
+      - {h: "Prune Decision", l: 65, e: 84}
+      - {h: "Non-Interactive Override", l: 85, e: 91}
+      - {h: "Pick the install type and accept every other default.", l: 92, e: 94}
+      - {h: "Force bootstrap defaults. The bootstrap default install type is 1.", l: 95, e: 99}
+      - {h: "Pick the install type and accept every other default.", l: 100, e: 102}
+      - {h: "Force bootstrap defaults. The bootstrap default install type is 1.", l: 103, e: 125}
+      - {h: "Toolchain Fallback", l: 126, e: 136}
+      - {h: "Template Files", l: 137, e: 182}
+      - {h: "Tracked Files", l: 183, e: 201}
+      - {h: "Regression Test", l: 202, e: 225}
   - path: "docs/loop-patterns.md"
     title: "Loop-Safety Patterns for Skills"
     description: ""
