@@ -46,6 +46,38 @@ symlink: symlinks are not portable across the install paths the plugin supports
 only representation that survives every install transport, and a CI `diff -q` is
 the integrity check that compensates for the lack of a single filesystem inode.
 
+## Cross-Layer SKILL.md Drift Contract (#822)
+
+`skill-drift-contract.yml` declares the `SKILL.md` copies that must stay aligned
+across distribution layers. Today it covers the skills duplicated between
+`plugin/skills/` and `project/.claude/skills/`. CI runs
+`scripts/check_skill_drift.sh` and `scripts/check_skill_drift.ps1` from the
+`Validate Skills` workflow so unapproved drift fails before merge.
+
+The contract watches high-risk frontmatter fields that affect invocation,
+permissions, routing, and finding severity: tool grants, disallowed tools,
+model-invocation disablement, path routing, fork/agent routing, halt behavior,
+and severity/finding-level declarations. Most pairs also require exact body
+parity after frontmatter is stripped, because output contracts and reference
+imports are load-bearing behavior.
+
+When updating a duplicated skill:
+
+1. Edit both layer copies when the behavior is meant to stay aligned.
+2. If a layer difference is intentional, add or update an exception in
+   `skill-drift-contract.yml` with a specific reason and pinned `source` and
+   `target` values.
+3. Use `body.mode: ignore` only when the body intentionally routes to different
+   layer-local references, and include a reason.
+4. Run `bash scripts/check_skill_drift.sh` and
+   `pwsh -NoProfile -File scripts/check_skill_drift.ps1`.
+5. Run the matching test suites under `tests/scripts/` when changing the
+   checker or contract format.
+
+Exceptions are not blanket waivers. The checker verifies pinned exception
+values, so a later edit to either side must either restore parity or update the
+reviewed exception.
+
 ## Future Work
 
 A dedicated build script (`scripts/build-plugin.sh`) could automate copying any
