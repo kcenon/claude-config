@@ -133,7 +133,7 @@ entry points:
 The bash and PowerShell libs share the same exit-code semantics
 (`0=OK`, `10=DOWNLOAD`, `11=CHECKSUM`, `12=MISMATCH`, `13=RUN`,
 `64=usage`). Regression coverage lives at
-`tests/scripts/installer-fetch-tests.sh`.
+`tests/scripts/test-installer-fetch.sh`.
 
 Because `bootstrap.sh` and `bootstrap.ps1` run before the repo is cloned,
 both reorder their `main` to clone first, then source/import the lib from

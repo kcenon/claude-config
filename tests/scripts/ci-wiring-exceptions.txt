@@ -1,0 +1,4 @@
+# Manual-only tests under tests/scripts/test-*.
+#
+# Format: repository-relative path<TAB>reviewed reason
+# Keep this list empty when every test is executed by a workflow run command.

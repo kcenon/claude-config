@@ -15,6 +15,8 @@
          variants in the destination. Pre-existing source-level orphans (a
          .sh with no .ps1 pair, or vice versa) are reported but do not fail
          the test — fixing source orphans is out of scope for the installer.
+      7. Interactive setup remains hermetic: Claude CLI discovery is stubbed,
+         language selection is pinned, and npm must never be invoked.
 
     Uses plain PowerShell assertions — no Pester dependency.
 #>
@@ -60,16 +62,56 @@ Write-Host "Scratch HOME: $scratch"
 # before spawning the child.
 $origUserProfile = $env:USERPROFILE
 $origHome        = $env:HOME
+$origPath        = $env:PATH
+$origAgentLang   = $env:AGENT_LANGUAGE
+$origContentLang = $env:CONTENT_LANGUAGE
+$origNpmMarker   = $env:CI_NPM_MARKER
+
+$fakeBin = Join-Path $scratch 'bin'
+$npmMarker = Join-Path $scratch 'npm-invoked'
+New-Item -ItemType Directory -Path $fakeBin -Force | Out-Null
+
+if ($IsWindows) {
+    @(
+        '@echo off'
+        'echo 0.0.0-test (Claude Code)'
+        'exit /b 0'
+    ) | Set-Content -LiteralPath (Join-Path $fakeBin 'claude.cmd')
+    @(
+        '@echo off'
+        'echo invoked>>"%CI_NPM_MARKER%"'
+        'exit /b 99'
+    ) | Set-Content -LiteralPath (Join-Path $fakeBin 'npm.cmd')
+} else {
+    @'
+#!/bin/sh
+echo '0.0.0-test (Claude Code)'
+'@ | Set-Content -LiteralPath (Join-Path $fakeBin 'claude')
+    @'
+#!/bin/sh
+printf 'invoked\n' >> "$CI_NPM_MARKER"
+exit 99
+'@ | Set-Content -LiteralPath (Join-Path $fakeBin 'npm')
+    & chmod +x (Join-Path $fakeBin 'claude') (Join-Path $fakeBin 'npm')
+}
 
 try {
     $env:USERPROFILE = $scratch
     $env:HOME        = $scratch
+    $env:PATH        = "$fakeBin$([System.IO.Path]::PathSeparator)$origPath"
+    $env:AGENT_LANGUAGE = 'korean'
+    $env:CONTENT_LANGUAGE = 'english'
+    $env:CI_NPM_MARKER = $npmMarker
 
     # Inputs for install.ps1 prompts:
     #   "1" = global-only install type
     #   "n" = skip npm package install
     $inputs = "1`nn`n"
-    $inputs | pwsh -NoProfile -File $Installer 2>&1 | Out-String | Write-Host
+    $installerOutput = $inputs | pwsh -NoProfile -File $Installer 2>&1 | Out-String
+    $installerExit = $LASTEXITCODE
+    $installerOutput | Write-Host
+    Assert-True ($installerExit -eq 0) "installer exits successfully"
+    Assert-True (-not (Test-Path -LiteralPath $npmMarker)) "installer does not invoke npm"
 
     $claudeDir  = Join-Path $scratch  '.claude'
     $hooksDir   = Join-Path $claudeDir 'hooks'
@@ -133,6 +175,10 @@ try {
     # Restore parent env first so cleanup does not run against scratch
     $env:USERPROFILE = $origUserProfile
     $env:HOME        = $origHome
+    $env:PATH        = $origPath
+    $env:AGENT_LANGUAGE = $origAgentLang
+    $env:CONTENT_LANGUAGE = $origContentLang
+    $env:CI_NPM_MARKER = $origNpmMarker
 
     if (Test-Path $scratch) {
         Remove-Item -Path $scratch -Recurse -Force -ErrorAction SilentlyContinue
