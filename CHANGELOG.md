@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Every `tests/scripts/test-*` regression is now executed by an explicit CI
+  run command, and a meta-test fails when a new test is neither wired nor
+  recorded with a reviewed manual-only reason. The previously orphaned
+  installer-fetch test now follows the `test-*` naming contract, and the
+  full PowerShell installer test uses fake external tools to prevent network
+  or global package side effects in native Windows CI (#823).
 - Native Windows hook CI now runs the PowerShell hook behavior suite on
   `windows-latest`, and settings parity gates fail on unexpected top-level,
   `env`, `permissions.allow`, or `permissions.deny` drift between
@@ -113,7 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     remains a one-release deprecation alias.
   - `scripts/install.sh` `ensure_claude_cli` no longer pipes `curl | bash`;
     sources the shared lib and verifies sha256 before executing.
-  - Regression suite `tests/scripts/installer-fetch-tests.sh` covers
+  - Regression suite `tests/scripts/test-installer-fetch.sh` covers
     happy path, download failure, sha mismatch, run failure, and usage
     errors with local `file://` fixtures (no network dependency).
   - Windows runner CI for `bootstrap.ps1` and a TTY-aware non-interactive

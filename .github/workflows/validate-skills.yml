@@ -37,8 +37,14 @@ on:
       - 'scripts/spec_lint.ps1'
       - 'scripts/spec_lint.py'
       - 'scripts/schemas/**'
+      - 'scripts/migrate_halt_conditions.sh'
+      - 'scripts/check_workspace_prefix.sh'
       - 'tests/scripts/test-spec-lint.sh'
       - 'tests/scripts/test-spec-lint.ps1'
+      - 'tests/scripts/test-killswitch.sh'
+      - 'tests/scripts/test-migrate-halt-conditions.sh'
+      - 'tests/scripts/test-strict-lenient-dispatch.sh'
+      - 'tests/scripts/test-workspace-prefix.sh'
       - 'scripts/fleet_orchestrator/**'
       - 'tests/fleet_orchestrator/**'
       - 'docs/design/**'
@@ -142,6 +148,18 @@ jobs:
 
       - name: Run spec linter test suite (PowerShell)
         run: pwsh -NoProfile -File tests/scripts/test-spec-lint.ps1
+
+      - name: Run strict-schema kill switch tests
+        run: bash tests/scripts/test-killswitch.sh
+
+      - name: Run strict/lenient schema dispatch tests
+        run: bash tests/scripts/test-strict-lenient-dispatch.sh
+
+      - name: Run halt-condition migration tests
+        run: bash tests/scripts/test-migrate-halt-conditions.sh
+
+      - name: Run workspace prefix tests
+        run: bash tests/scripts/test-workspace-prefix.sh
 
       - name: Install pytest for fleet_orchestrator tests
         # pytest is already a transitive dep of jsonschema in some envs; pin

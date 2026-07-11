@@ -19,30 +19,15 @@ on:
       - 'scripts/install-manifest.ps1'
       - 'bootstrap.sh'
       - 'bootstrap.ps1'
-      - '.github/workflows/validate-hooks.yml'
-      - 'tests/scripts/test-bootstrap-non-tty-smoke.sh'
-      - 'tests/scripts/test-bootstrap-atomic-deploy.*'
-      - 'tests/scripts/test-install-atomic-deploy.*'
-      - 'tests/scripts/test-plugin-*.sh'
-      - 'tests/scripts/test-install-manifest-helpers.*'
-      - 'tests/scripts/test-install-permissions-policy.sh'
-      - 'tests/scripts/test-global-files-referenced-exist.sh'
-      - 'tests/scripts/test-language-policy-drift.sh'
-      - 'tests/scripts/test-installer-prompt-drift.sh'
-      - 'tests/scripts/test-install-prompts-ps1.ps1'
-      - 'tests/scripts/test-doc-prompt-lockstep.sh'
-      - 'tests/scripts/test-language-override-contract.sh'
+      - '.github/workflows/*.yml'
+      - '.github/workflows/*.yaml'
+      - 'tests/scripts/test-*'
+      - 'tests/scripts/ci-wiring-exceptions.txt'
       - 'scripts/lib/**'
       - 'global/settings.json'
       - 'global/settings.windows.json'
-      - 'tests/scripts/test-windows-hooks-parity.sh'
-      - 'tests/scripts/test-windows-settings-parity.sh'
-      - 'tests/scripts/test-windows-powershell-permissions.sh'
-      - 'tests/scripts/test-hook-ordering.sh'
-      - 'tests/scripts/test-severity-enum.sh'
       - 'scripts/backup.sh'
       - 'scripts/backup.ps1'
-      - 'tests/scripts/test-installer-robustness.sh'
 
 # Cancel in-progress runs of the same PR / schedule so a fast follow-up commit
 # does not pile up.
@@ -75,6 +60,11 @@ jobs:
       - name: Run hook tests
         run: bash tests/hooks/test-runner.sh
 
+      - name: Verify tests/scripts CI wiring
+        # #823: path-filter mentions do not count; the meta-test inspects only
+        # executable workflow run commands and reviewed manual-only exceptions.
+        run: bash tests/scripts/test-ci-wiring.sh
+
       - name: Run drift benchmark extractor tests
         run: bash tests/batch_drift_benchmark/test-extractors.sh
 
@@ -106,11 +96,23 @@ jobs:
         # (unknown schema, malformed JSON, missing key).
         run: bash tests/scripts/test-plugin-fallback.sh
 
+      - name: Run formatter ownership regression test
+        run: bash tests/scripts/test-no-duplicate-formatter.sh
+
       - name: Run install manifest helper tests
         run: bash tests/scripts/test-install-manifest-helpers.sh
 
       - name: Run install manifest helper tests (PowerShell)
         run: pwsh tests/scripts/test-install-manifest-helpers.ps1
+
+      - name: Run Bash library deployment regression test
+        run: bash tests/scripts/test-install-deploys-bash-lib.sh
+
+      - name: Run local customization preservation test
+        run: bash tests/scripts/test-install-preserves-customization.sh
+
+      - name: Run installer fetch integrity tests
+        run: bash tests/scripts/test-installer-fetch.sh
 
       - name: Run install permissions policy lint
         # Lint test: install.sh must enforce 700 / 600 / 644 on tracked files.
@@ -231,6 +233,10 @@ jobs:
       - name: Run PowerShell hook behavior tests on native Windows
         shell: pwsh
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File tests/hooks/test-runner.ps1
+
+      - name: Run dual-variant installer test on native Windows
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File tests/scripts/test-install-dual-variant.ps1
 
   shellcheck:
     runs-on: ${{ matrix.os }}
