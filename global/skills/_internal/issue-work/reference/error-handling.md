@@ -16,6 +16,24 @@ Prerequisite checks, runtime errors, and batch mode errors for the issue-work sk
 | Issue exists | "Issue #NUM not found" | Verify issue number is correct |
 | Issue is open | "Issue #NUM is not open" | Cannot work on closed issues |
 
+### Triage Gate Outcomes
+
+The Issue Triage Gate (Solo Step 1 / Team T-1, `scripts/triage.sh`) returns a
+structured outcome. Only `failed` is an error; the other non-`proceed` outcomes
+are legitimate terminal results that must not be retried or reported as failures.
+
+| Outcome | Nature | Behavior |
+|---------|--------|----------|
+| `proceed` | Success | Active issue claimed; continue to code work. |
+| `decomposed` | Terminal (not error) | Children created + one parent summary; stop, no branch/PR. |
+| `blocked` | Terminal (not error) | Unresolved blocker; blocked comment posted only if state changed; stop. |
+| `skipped` | Terminal (not error) | Issue closed/reassigned, or claim race lost with no next candidate; stop. |
+| `failed` | Error | API error, depth/cycle guard tripped, or 3 identical failures; stop and report. Do not blindly retry. |
+
+Triage never clones the repository, creates a branch, or spawns subagents for any
+outcome other than `proceed`. A `blocked` or `decomposed` result is produced from
+a bare `gh` session with no working tree.
+
 ### Runtime Errors
 
 | Error Condition | Behavior | User Action |

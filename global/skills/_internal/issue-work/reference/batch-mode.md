@@ -153,8 +153,14 @@ for each item in approved batch plan:
                Run Solo Mode Steps 1-12 (or Team Mode T-1 through T-6 for team mode). If team
                mode, you MUST call TeamDelete() after completing the item.
 
-               Report under 100 words as a single JSON line:
-               {"item": "$REPO#$ISSUE_NUMBER", "status": "merged|failed|skipped",
+               The single-item workflow begins with the Issue Triage Gate
+               (Solo Step 1 / Team T-1). Only a triage `proceed` outcome leads
+               to code work and a possible merge; `decomposed`, `blocked`,
+               `skipped`, and `failed` are terminal with no branch or PR.
+
+               Report under 100 words as a single JSON line. The status MUST
+               reflect the triage outcome when work did not proceed:
+               {"item": "$REPO#$ISSUE_NUMBER", "status": "merged|decomposed|blocked|skipped|failed",
                 "pr_url": "https://github.com/...", "ci_conclusion": "success|failure|timeout",
                 "reason": "<short reason if not merged>"}
            """
@@ -343,12 +349,22 @@ After all items are processed, present a summary:
 | 1 | org/repo-a | #12 | Fix login crash | solo | Merged | #89 |
 | 2 | org/repo-a | #8 | Add OAuth support | team | Merged | #90 |
 | 3 | org/repo-b | #45 | Update README links | solo | FAILED | -- |
+| 4 | org/repo-c | #7 | Refactor auth epic | team | Decomposed | -- |
+| 5 | org/repo-c | #9 | Wire payment gateway | solo | Blocked | -- |
 
-**Success**: 11/12
+**Merged**: 10/12
+**Decomposed**: 1/12
+**Blocked**: 1/12
 **Failed**: 1/12
 
 ### Failed Items
 - org/repo-b #45: Build failure — missing dependency `libfoo`. Manual intervention needed.
 ```
+
+**Success accounting**: only `Merged` items count as successes. A `Decomposed`
+result means the batch produced child issues (the children may be picked up in a
+later run) — it is **not** a merge and must never be tallied as one. `Blocked`
+and `Skipped` are neither successes nor failures; surface them so the operator
+can act on the blocker or confirm the skip.
 
 Delete `.claude/resume.md` after successful batch completion.
