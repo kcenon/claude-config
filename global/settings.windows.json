@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "description": "Claude Code Global Settings (Windows) - Applied to all projects (permissions.deny for security). NOTE: the sandbox block below (sandbox.network.allowedDomains, sandbox.excludedCommands) is inert on Windows - the sandbox does not run on this platform (see core/environment.md), so permissions.allow/deny matching is the only active command gate; the env-secret leak channel is covered by hooks/shell-env-secret-guard.ps1.",
-  "version": "1.17.0",
+  "version": "1.17.1",
 
   "respectGitignore": true,
   "cleanupPeriodDays": 30,
@@ -585,10 +585,6 @@
       "Read(**/*.key)",
       "Read(**/*.p12)",
       "Read(**/*password*)",
-      "Write(.env)",
-      "Write(.env.*)",
-      "Write(**/.env)",
-      "Write(**/.env.*)",
       "Edit(.env)",
       "Edit(.env.*)",
       "Edit(**/.env)",
