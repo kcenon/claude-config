@@ -54,6 +54,7 @@ on:
       - 'scripts/extract-doc-description.sh'
       - 'scripts/diff-readme.sh'
       - 'tests/doc-index/**'
+      - 'tests/issue-work/**'
       - 'tests/scripts/test-diff-readme.sh'
       - 'docs/.index/*.yaml'
       - 'VERSION_MAP.yml'
@@ -160,6 +161,12 @@ jobs:
 
       - name: Run workspace prefix tests
         run: bash tests/scripts/test-workspace-prefix.sh
+
+      - name: Run issue-work triage state machine tests (#829)
+        # Unit-tests the shared triage gate (issue selection + size evaluation +
+        # idempotent blocked/decomposition comments) against a fake gh. Bash
+        # only; PowerShell parity is tracked in #832.
+        run: bash tests/issue-work/test-triage.sh
 
       - name: Install pytest for fleet_orchestrator tests
         # pytest is already a transitive dep of jsonschema in some envs; pin

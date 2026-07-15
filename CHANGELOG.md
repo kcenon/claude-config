@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `issue-work` now routes issue selection and size evaluation through a
+  shared triage state machine
+  (`global/skills/_internal/issue-work/scripts/triage.sh`) that solo, team,
+  and batch modes run before any repository is cloned or branch created. The
+  gate emits one of five outcomes (`proceed`, `decomposed`, `blocked`,
+  `skipped`, `failed`), makes blocked and parent-decomposition comments
+  idempotent through a `triage-fingerprint` marker so re-running over an
+  unchanged issue is a no-op, and stops with a `blocked` result after three
+  identical issue fetches instead of retrying blindly. The state contract is
+  documented in `reference/triage-state-machine.md` and covered by a
+  fake-`gh` unit suite in `tests/issue-work/` (#829).
+
 ### Fixed
 
 - Every `tests/scripts/test-*` regression is now executed by an explicit CI

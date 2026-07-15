@@ -198,7 +198,8 @@ Skip mode selection — use `$EXEC_MODE` directly.
 
 #### 0-2. If no flag was provided (interactive selection)
 
-First, fetch issue information for size estimation (after Issue Selection in Step 1):
+First, fetch issue information for size estimation (after the Issue Triage Gate
+in Step 1 resolves and claims the active issue via `$ISSUE_NUMBER`):
 
 ```bash
 ISSUE_INFO=$(gh issue view $ISSUE_NUMBER --repo $ORG/$PROJECT \
@@ -239,51 +240,47 @@ Store the result in `$EXEC_MODE` (solo | team).
 
 Execute the following workflow for the specified project:
 
-### 1. Issue Selection
+### 1. Issue Triage Gate (state machine)
 
-**If issue number is provided:**
+Issue selection and size evaluation are handled by the shared triage state
+machine — a single deterministic, idempotent gate that solo, team, and batch
+modes all route through **before** any repository is cloned or branch created.
+The contract (states, outcome schema, comment fingerprint rule, eligibility
+predicate, sort key) lives in `reference/triage-state-machine.md`; the reference
+implementation is `scripts/triage.sh`.
 
-```bash
-# Fetch specific issue
-gh issue view $ISSUE_NUMBER --repo $ORG/$PROJECT --json number,title,state,labels
-
-# Verify issue exists and is open
-STATE=$(gh issue view $ISSUE_NUMBER --repo $ORG/$PROJECT --json state -q '.state')
-if [[ "$STATE" != "OPEN" ]]; then
-    echo "Error: Issue #$ISSUE_NUMBER is not open (state: $STATE)"
-    exit 1
-fi
-```
-
-**If issue number is NOT provided:**
+Run the gate, then branch on its structured outcome:
 
 ```bash
-# Auto-select by priority
-gh issue list --repo $ORG/$PROJECT --label "priority/critical" --state open --limit 1
-# If none found:
-gh issue list --repo $ORG/$PROJECT --label "priority/high" --state open --limit 1
-# If none found:
-gh issue list --repo $ORG/$PROJECT --label "priority/medium" --state open --limit 1
+TRIAGE_JSON=$(bash ~/.claude/skills/_internal/issue-work/scripts/triage.sh \
+  --repo "$ORG/$PROJECT" ${ISSUE_NUMBER:+--issue "$ISSUE_NUMBER"} ${PLAN_FILE:+--plan-file "$PLAN_FILE"})
+
+OUTCOME=$(printf '%s' "$TRIAGE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["outcome"])')
+ISSUE_NUMBER=$(printf '%s' "$TRIAGE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["active"])')
 ```
 
-Select the oldest (first created) issue from the results.
+**Outcome routing** (the JSON `outcome` field is authoritative):
 
-Store the selected issue number in `$ISSUE_NUMBER` variable.
+| `outcome` | Action |
+|-----------|--------|
+| `proceed` | An eligible issue was selected and claimed. `active` is the issue to work — continue to Step 3. |
+| `decomposed` | The issue was oversized and had no eligible open child; children were created and one parent summary was posted. **Stop** — no clone, no branch. Report the decomposition. |
+| `blocked` | The issue has an unresolved blocker (comment posted only if the blocker state changed), or the issue fetch failed identically three times. **Stop** — no clone, no branch. |
+| `skipped` | The issue was closed, reassigned, or every child lost a claim race. **Stop.** |
+| `failed` | Cycle/depth guard tripped, or `needs_plan` (oversized issue, no children, no `--plan-file`). A `needs_plan` reason means "design a plan and re-invoke with `--plan-file`", not a hard error. **Stop and report.** |
 
-### 2. Issue Size Evaluation
+Only `proceed` continues into code work. The other four outcomes are terminal
+for this invocation and perform no repository side effects — this is what lets a
+`blocked` or `decomposed` result be produced from a bare `gh` session (issue
+#829 AC9). In batch mode, `decomposed`/`blocked`/`skipped`/`failed` are **not**
+merge successes (see `reference/batch-mode.md` B-5).
 
-Analyze the issue and determine size:
-
-| Size | Expected LOC | Action |
-|------|--------------|--------|
-| XS/S | < 200 | Proceed directly |
-| M | 200-500 | Consider splitting into 2-3 sub-issues |
-| L/XL | > 500 | **Must split** into sub-issues, work on first |
-
-If splitting required:
-- Create sub-issues with `Part of #ORIGINAL` reference
-- Apply 5W1H template for each sub-issue
-- Proceed with the first sub-issue
+**Decomposition plan**: when an oversized issue has no eligible open child, the
+gate creates children from a plan file (one child title per line) supplied via
+`--plan-file`. Design the sub-issue titles per the 5W1H template and the issue
+splitting rules, write them to a temp file, and set `$PLAN_FILE` before invoking
+the gate. Reconciliation is idempotent: a re-run creates only the missing
+children and never posts a second summary (AC6).
 
 ### 3. Git Environment Setup
 

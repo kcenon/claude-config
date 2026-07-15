@@ -37,8 +37,17 @@ loop — sending change requests back to the dev team until quality gates pass.
 
 ### T-1. Setup (Lead executes)
 
-Perform Solo Mode Steps 1-4 (Issue Selection, Size Evaluation, Git Setup, Assignment).
-These steps require sequential execution and must complete before parallelization.
+Perform Solo Mode Steps 1-4 (Issue Triage Gate, Size Evaluation, Git Setup,
+Assignment). These steps require sequential execution and must complete before
+parallelization.
+
+**Triage gate first**: Step 1 runs the shared triage state machine
+(`scripts/triage.sh`, see `reference/triage-state-machine.md`). Only a triage
+`proceed` outcome justifies creating a team. If the gate returns `decomposed`,
+`blocked`, `skipped`, or `failed`, do **not** create the team, spawn teammates,
+or create a branch — report the terminal outcome and stop. Team setup is a
+repository side effect and is gated behind `proceed` exactly like the clone and
+branch (issue #829 AC9).
 
 Prepare shared context for all teammates:
 - `$ORG`, `$PROJECT`, `$ISSUE_NUMBER`, `$BRANCH_NAME`, `$BRANCH_TYPE`
