@@ -26,9 +26,16 @@ are legitimate terminal results that must not be retried or reported as failures
 |---------|--------|----------|
 | `proceed` | Success | Active issue claimed; continue to code work. |
 | `decomposed` | Terminal (not error) | Children created + one parent summary; stop, no branch/PR. |
-| `blocked` | Terminal (not error) | Unresolved blocker; blocked comment posted only if state changed; stop. |
+| `blocked` | Terminal (not error) | Unresolved blocker (comment posted only if state changed), **or** the issue fetch failed the same way three times in a row; stop. |
 | `skipped` | Terminal (not error) | Issue closed/reassigned, or claim race lost with no next candidate; stop. |
-| `failed` | Error | API error, depth/cycle guard tripped, or 3 identical failures; stop and report. Do not blindly retry. |
+| `failed` | Error | Cycle/depth guard tripped, or `needs_plan` (oversized issue, no children, no `--plan-file`); stop and report. Do not blindly retry. |
+
+**`failed` reason disambiguation.** A `failed` reason beginning `needs_plan` is
+**not** a build/CI/test failure — it means an oversized issue needs a
+decomposition plan. The caller should design sub-issue titles, write them to a
+plan file, and re-invoke the gate with `--plan-file` (the second call returns
+`decomposed`). Batch summaries must not tally a `needs_plan` result in the same
+bucket as a genuine build failure.
 
 Triage never clones the repository, creates a branch, or spawns subagents for any
 outcome other than `proceed`. A `blocked` or `decomposed` result is produced from

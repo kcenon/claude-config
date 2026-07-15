@@ -90,9 +90,17 @@ schema is the parent-side record in batch mode.
 |-----------|---------|-------------------|
 | `proceed` | An eligible issue was selected and claimed. | Continue to code work (clone, branch, implement). Becomes `merged` once the PR merges. |
 | `decomposed` | The root was too large and had no eligible open child; children were created and a parent summary was posted. | Stop. No clone, no branch. |
-| `blocked` | The active issue has an unresolved blocker. | Stop. A blocked comment was posted only if the blocker state changed. No clone, no branch. |
+| `blocked` | The active issue has an unresolved blocker, **or** the primary fetch failed the same way three times (see Failure policy). | Stop. A blocked comment was posted only if the blocker state changed. No clone, no branch. |
 | `skipped` | The active issue was closed, reassigned, or every child lost a claim race. | Stop. No side effects beyond re-reads. |
-| `failed` | Triage itself failed (API error, 3 identical failures, depth/cycle guard tripped). | Stop and report. |
+| `failed` | Triage cannot proceed deterministically: the depth/cycle guard tripped, or an oversized issue with no children was given no `--plan-file` (reason begins `needs_plan`, see below). | Stop and report. A `needs_plan` failure is a "re-invoke with a plan" signal, **not** a hard error. |
+
+**`needs_plan` failures are a two-step handshake, not a defect.** When an
+oversized issue has no eligible open child and no `--plan-file`, the gate cannot
+invent a child split, so it returns `failed` with a reason that begins
+`needs_plan`. The caller is expected to design the sub-issue titles, write them
+to a plan file, and re-invoke the gate with `--plan-file`; the second call then
+returns `decomposed`. Batch reporting must treat a `needs_plan` failure as
+"needs a decomposition plan" rather than tallying it as a build/CI failure.
 
 > **Batch reporting**: `decomposed`, `blocked`, `skipped`, and `failed` are NOT
 > merge successes. The batch summary counts only a `proceed` that later reaches
@@ -122,7 +130,13 @@ next candidate (and therefore race on the same claim rather than diverging):
 1. **Current-user assignment** — issues already assigned to the current user
    sort first.
 2. **Parent-defined order** — the order the child appears in the parent's task
-   list / sub-issue list.
+   list / sub-issue list. The reference implementation approximates this with
+   the order `gh issue list --search "Part of #parent"` returns rows (the search
+   index order), not by parsing the parent body's checklist. This is a
+   deliberate approximation: it is deterministic for a given index state and
+   avoids brittle body parsing, at the cost of not honoring a hand-authored
+   checklist reorder. Later tie-breakers (priority, creation time, issue number)
+   keep the total order stable when the index order is not meaningful.
 3. **Priority** — `priority/critical` < `high` < `medium` < `low` < none.
 4. **Creation time** — oldest first.
 5. **Issue number** — ascending, as the final tie-break.
@@ -186,15 +200,23 @@ colliding with AC2 (a work-selection operation).
 GitHub assignment and comments are not atomic locks. After assigning `active` to
 the current user, the machine re-reads the issue (state, assignees, linked PRs).
 If another run won the claim in between — the issue is now assigned only to
-someone else, was closed, or has a new linked PR — the machine abandons `active`,
-marks it visited, and advances to the next eligible child. If no next candidate
-remains, the outcome is `skipped` (AC7).
+someone else, was closed, or has a new linked PR — the machine **rolls back its
+own `@me` assignment** (`--remove-assignee`) so the abandoned issue is not left
+showing this run as an assignee, marks it visited, and advances to the next
+eligible child. If no next candidate remains, the outcome is `skipped` (AC7).
 
 ## Failure policy
 
-Three identical failures of the same triage operation (for example, the same
-`gh` call failing the same way) yield `failed` with the captured reason, matching
-the global 3-fail rule. Triage never retries a failing mutation blindly.
+The primary external dependency is the issue fetch. It is retried up to
+`TRIAGE_MAX_FAILURES` times (default 3); three identical failures in a row stop
+the run with a **`blocked`** outcome and a reason naming the identical-failure
+rule, rather than a blind retry loop. This realizes the issue #829 risk control
+("stop after three identical failures and return a blocked result") for the
+operation most likely to fail transiently.
+
+Deterministic internal errors — the cycle/depth guard, or an oversized issue
+with no plan (`needs_plan`) — yield `failed` instead, because they will not
+resolve on retry. Triage never retries a failing mutation blindly.
 
 ## Scope boundary
 

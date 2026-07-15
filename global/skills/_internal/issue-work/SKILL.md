@@ -265,9 +265,9 @@ ISSUE_NUMBER=$(printf '%s' "$TRIAGE_JSON" | python3 -c 'import json,sys;print(js
 |-----------|--------|
 | `proceed` | An eligible issue was selected and claimed. `active` is the issue to work — continue to Step 3. |
 | `decomposed` | The issue was oversized and had no eligible open child; children were created and one parent summary was posted. **Stop** — no clone, no branch. Report the decomposition. |
-| `blocked` | The issue has an unresolved blocker; a blocked comment was posted only if the blocker state changed. **Stop** — no clone, no branch. |
+| `blocked` | The issue has an unresolved blocker (comment posted only if the blocker state changed), or the issue fetch failed identically three times. **Stop** — no clone, no branch. |
 | `skipped` | The issue was closed, reassigned, or every child lost a claim race. **Stop.** |
-| `failed` | Triage itself failed (API error, depth/cycle guard, 3 identical failures). **Stop and report.** |
+| `failed` | Cycle/depth guard tripped, or `needs_plan` (oversized issue, no children, no `--plan-file`). A `needs_plan` reason means "design a plan and re-invoke with `--plan-file`", not a hard error. **Stop and report.** |
 
 Only `proceed` continues into code work. The other four outcomes are terminal
 for this invocation and perform no repository side effects — this is what lets a
