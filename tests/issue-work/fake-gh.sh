@@ -13,7 +13,7 @@
 #   issue-<n>.comments      comment text (markers live here; appended on post)
 #   children-<n>.json       array for `issue list --search "Part of #<n>"`
 #   pr-<n>.json             array for `pr list --search <n>` (default [])
-#   mutations.log           appended: COMMENT <n> / CREATE <title> / ASSIGN <n>
+#   mutations.log           appended: COMMENT <n> / CREATE <title> / ASSIGN <n> / UNASSIGN <n>
 #   edited-<n>              marker touched on `issue edit <n>`
 
 set -uo pipefail
@@ -102,8 +102,15 @@ for it in json.load(open(sys.argv[1])):
 
             edit)
                 num="$3"
-                : > "$DIR/edited-${num}"
-                echo "ASSIGN $num" >> "$LOG"
+                case " $* " in
+                    *" --remove-assignee "*)
+                        echo "UNASSIGN $num" >> "$LOG"
+                        ;;
+                    *)
+                        : > "$DIR/edited-${num}"
+                        echo "ASSIGN $num" >> "$LOG"
+                        ;;
+                esac
                 ;;
         esac
         ;;

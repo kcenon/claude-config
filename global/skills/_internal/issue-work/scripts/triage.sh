@@ -115,6 +115,23 @@ _triage_issue_json() {
         --json number,title,state,body,labels,assignees,createdAt 2>/dev/null
 }
 
+# Fetch with up to TRIAGE_MAX_FAILURES identical attempts. Returns the JSON on
+# success; returns 1 only after the same fetch has failed that many times in a
+# row, implementing the "stop after three identical failures" rule (#829 Risks)
+# for the primary external dependency.
+_triage_issue_json_retry() {
+    local repo="$1" num="$2" attempt=1 json=""
+    while [ "$attempt" -le "${TRIAGE_MAX_FAILURES:-3}" ]; do
+        json="$(_triage_issue_json "$repo" "$num")"
+        if [ -n "$json" ]; then
+            printf '%s' "$json"
+            return 0
+        fi
+        attempt=$((attempt + 1))
+    done
+    return 1
+}
+
 # Raw comments blob for marker scanning (grepped as text, no jq needed).
 _triage_comments_raw() {
     local repo="$1" num="$2"
@@ -123,10 +140,12 @@ _triage_comments_raw() {
 
 # True when an open PR references the issue (proxy for "active work in
 # progress"; full work-branch detection belongs to the workspace stage #830).
+# The "#<num> in:body" search narrows matches to PRs that mention the issue in
+# their body, reducing false positives from a bare numeric match.
 _triage_has_active_pr() {
     local repo="$1" num="$2" out
     out="$(_triage_gh pr list --repo "$repo" --state open \
-        --search "$num" --json number 2>/dev/null)"
+        --search "#${num} in:body" --json number 2>/dev/null)"
     # Any element other than the empty array means a linked PR exists.
     case "$out" in
         ''|'[]') return 1 ;;
@@ -160,22 +179,29 @@ else:
 ' "$expr"
 }
 
-# Resolve whether an issue is currently blocked. Prints "true"/"false" on the
-# first line and the required-action text on the rest.
+# Resolve whether an issue is currently blocked. Prints "true"/"false" on line 1
+# and a normalized "#N:STATE" action list (all blockers, numerically sorted) on
+# line 2. The action line is the fingerprint input, so it MUST NOT leak the raw
+# blocker-number list: a corrupted second line collapses the digest to the first
+# blocker number and suppresses the updated comment when a later blocker's state
+# changes (AC4).
 _triage_block_state() {
-    local repo="$1" json="$2" body blockers b bstate action="" open_found="false"
+    local repo="$1" json="$2" body blockers b bstate open_found="false" pairs=""
     body="$(_triage_field "$json" body)"
     blockers="$(triage_extract_blockers "$body")"
     for b in $blockers; do
         bstate="$(_triage_gh issue view "$b" --repo "$repo" --json state \
             --jq '.state' 2>/dev/null)"
+        [ -n "$bstate" ] || bstate="UNKNOWN"
+        pairs="${pairs}#${b}:${bstate} "
         if [ "$bstate" = "OPEN" ]; then
             open_found="true"
-            action="${action}#${b} (OPEN) "
         fi
     done
     printf '%s\n' "$open_found"
-    printf '%s\n' "$blockers is: ${action}"
+    # blockers are already numerically sorted by triage_extract_blockers, so the
+    # pair list is deterministic; trim trailing space for a stable digest.
+    printf '%s\n' "$(printf '%s' "$pairs" | sed 's/[[:space:]]*$//')"
 }
 
 # ── Mutations ────────────────────────────────────────────────────────
@@ -225,6 +251,13 @@ run_triage() {
     VISITED=""
     local depth=0
 
+    # Hard dependency: triage parses issue JSON with python3. Fail loudly rather
+    # than silently mis-reading every field as empty if it is missing.
+    if ! command -v python3 >/dev/null 2>&1; then
+        _triage_emit failed "python3 is required for triage but was not found on PATH"
+        return $?
+    fi
+
     # RESOLVE_REQUESTED: pick the root issue.
     if [ -z "$issue" ]; then
         issue="$(_triage_gh issue list --repo "$repo" --state open \
@@ -244,10 +277,12 @@ run_triage() {
             return $?
         fi
 
-        # REFRESH: re-fetch the active issue.
-        local json; json="$(_triage_issue_json "$repo" "$active")"
-        if [ -z "$json" ]; then
-            _triage_emit failed "cannot fetch issue #$active"
+        # REFRESH: re-fetch the active issue. Retry the fetch up to
+        # TRIAGE_MAX_FAILURES times; three identical failures in a row stop the
+        # run with a blocked outcome rather than a blind retry (#829 Risks).
+        local json
+        if ! json="$(_triage_issue_json_retry "$repo" "$active")"; then
+            _triage_emit blocked "stopped after ${TRIAGE_MAX_FAILURES:-3} identical failures fetching #$active" "" ""
             return $?
         fi
         local state; state="$(_triage_field "$json" state)"
@@ -266,7 +301,7 @@ run_triage() {
             local fp
             fp="$(printf '%s' "$action" | triage_hash)"
             _triage_post_idempotent_comment "$repo" "$active" blocked "$fp" \
-                "Blocked: unresolved dependency for #${active}. Required: ${action}"
+                "Blocked: #${active} has an unresolved dependency. Blocker states: ${action}"
             VISITED="$VISITED $active"
             _triage_emit blocked "unresolved blocker on #$active" "" "$fp"
             return $?
@@ -323,9 +358,11 @@ run_triage() {
                 _triage_emit skipped "children of #$active exist but none are eligible"
                 return $?
             fi
-            # Oversized, no children, and no plan to create them with.
+            # Oversized, no children, and no plan to create them with. Reason is
+            # prefixed "needs_plan" so callers/batch can distinguish this
+            # re-invoke signal from a genuine build/CI failure.
             VISITED="$VISITED $active"
-            _triage_emit failed "issue #$active needs decomposition; re-invoke with --plan-file"
+            _triage_emit failed "needs_plan: issue #$active needs decomposition; re-invoke with --plan-file"
             return $?
         fi
 
@@ -414,15 +451,11 @@ print(cands[0][5])
 ' "$repo" "$parent" "$user" "$VISITED"
 }
 
-# Assign the issue to the current user, then re-verify no one else won the race.
-# Returns 0 if the claim holds, 1 if lost (issue closed, reassigned away, or a
-# linked PR appeared).
-_triage_claim() {
+# Re-read the issue after a claim mutation and decide whether the claim holds.
+# Returns 0 if we won, 1 if lost (closed, reassigned away, or a linked PR
+# appeared).
+_triage_claim_verify() {
     local repo="$1" num="$2" user="$3"
-    if [ "${TRIAGE_DRY_RUN:-false}" != "true" ]; then
-        _triage_gh issue edit "$num" --repo "$repo" --add-assignee @me >/dev/null 2>&1
-    fi
-    # Re-read after the mutation to detect a race.
     local json; json="$(_triage_issue_json "$repo" "$num")"
     [ -n "$json" ] || return 1
     local state; state="$(_triage_field "$json" state)"
@@ -438,6 +471,23 @@ _triage_claim() {
         return 1
     fi
     return 0
+}
+
+# Assign the issue to the current user, then re-verify no one else won the race.
+# On a lost race, roll back our speculative @me assignment so the abandoned
+# issue is not left showing us as an assignee.
+_triage_claim() {
+    local repo="$1" num="$2" user="$3"
+    if [ "${TRIAGE_DRY_RUN:-false}" != "true" ]; then
+        _triage_gh issue edit "$num" --repo "$repo" --add-assignee @me >/dev/null 2>&1
+    fi
+    if _triage_claim_verify "$repo" "$num" "$user"; then
+        return 0
+    fi
+    if [ "${TRIAGE_DRY_RUN:-false}" != "true" ]; then
+        _triage_gh issue edit "$num" --repo "$repo" --remove-assignee @me >/dev/null 2>&1
+    fi
+    return 1
 }
 
 # Reconcile and create children from a plan file (one child title per line).

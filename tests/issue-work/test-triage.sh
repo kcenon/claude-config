@@ -177,6 +177,22 @@ assert_eq "blocked" "$(jfield "$out" outcome)" "AC4 rerun outcome=blocked"
 assert_eq "2" "$(count_log "$fix" COMMENT)" "AC4 changed blocker adds exactly one comment"
 
 echo ""
+echo "=== AC4b (M1 regression): later blocker flips while first stays -> one update ==="
+# Guards the fingerprint against the block-state leak bug: with the first
+# blocker unchanged, a *later* blocker's state change must still alter the
+# fingerprint and post exactly one updated comment.
+fix="$(newfix)"
+issue_json 35 OPEN '[{"name":"size/S"}]' '[]' 'Blocked by #36 Depends on #37' > "$fix/issue-35.json"
+issue_json 36 OPEN '[]' '[]' 'first dep' > "$fix/issue-36.json"
+issue_json 37 OPEN '[]' '[]' 'second dep' > "$fix/issue-37.json"
+run "$fix" --issue 35 >/dev/null                         # run1: #36 OPEN, #37 OPEN
+assert_eq "1" "$(count_log "$fix" COMMENT)" "AC4b first run posts one comment"
+issue_json 37 CLOSED '[]' '[]' 'second dep resolved' > "$fix/issue-37.json"   # later blocker flips
+out="$(run "$fix" --issue 35)"                            # run2: #36 OPEN, #37 CLOSED
+assert_eq "blocked" "$(jfield "$out" outcome)" "AC4b still blocked by the first dependency"
+assert_eq "2" "$(count_log "$fix" COMMENT)" "AC4b later-blocker flip posts exactly one update"
+
+echo ""
 echo "=== AC5: new human info evaluated before keeping blocked -> flips to proceed ==="
 fix="$(newfix)"
 issue_json 40 OPEN '[{"name":"size/S"}]' '[]' 'Blocked by #41' > "$fix/issue-40.json"
@@ -211,6 +227,8 @@ printf '[{"number":61,"title":"first child","state":"OPEN","labels":[{"name":"si
 out="$(run "$fix" --issue 60)"
 assert_eq "proceed" "$(jfield "$out" outcome)" "AC7 recovers to proceed"
 assert_eq "62" "$(jfield "$out" active)" "AC7 advances to the second child after losing the race"
+# m4: the abandoned claim rolls back its speculative @me assignment.
+assert_contains "UNASSIGN 61" "$(cat "$fix/mutations.log")" "AC7 rolls back @me on the lost claim (m4)"
 
 echo ""
 echo "=== AC8: only-closed children -> completion audit (skipped), not a closed pick ==="
@@ -262,6 +280,15 @@ printf '[]' > "$fix/children-103.json"
 out="$(run "$fix" --issue 100 --max-depth 2)"
 assert_eq "failed" "$(jfield "$out" outcome)" "VER max-depth guard yields failed"
 assert_contains "MAX_CHILD_DEPTH" "$(jfield "$out" reason)" "VER failure names the depth guard"
+
+echo ""
+echo "=== VER (m1): three identical fetch failures stop with a blocked outcome ==="
+# No issue-200.json fixture -> every fetch returns empty. The retry helper stops
+# after TRIAGE_MAX_FAILURES identical failures with a blocked outcome, not a loop.
+fix="$(newfix)"
+out="$(run "$fix" --issue 200)"
+assert_eq "blocked" "$(jfield "$out" outcome)" "VER 3-fail yields blocked"
+assert_contains "identical failures" "$(jfield "$out" reason)" "VER 3-fail names the failure rule"
 
 echo ""
 echo "=== VER: batch reporting does not treat decomposition as a merge success ==="

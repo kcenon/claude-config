@@ -29,7 +29,8 @@ The suite is wired into CI by `.github/workflows/validate-skills.yml`.
 | AC4 | Blocker set changed between runs | Exactly one updated comment. |
 | AC5 | Blocker resolved between runs (new human info) | Fresh state re-read flips `blocked` -> `proceed`. |
 | AC6 | Partial decomposition (one of two children exists) | Rerun creates only the missing child. |
-| AC7 | Claim race lost on the first child | Advances to the next eligible child and proceeds. |
+| AC4b | Multi-blocker: first unchanged, a later blocker flips state | Exactly one updated comment (M1 fingerprint-leak regression). |
+| AC7 | Claim race lost on the first child | Advances to the next eligible child, rolls back the speculative `@me` assignment (m4), and proceeds. |
 | AC8 | Parent whose children are all closed | `skipped` with a completion-audit reason; no closed child is claimed. |
 | AC9 | Blocked/decomposed outcomes | No assignment and no child/branch creation. |
 
@@ -42,6 +43,7 @@ The suite is wired into CI by `.github/workflows/validate-skills.yml`.
 | Concurrent claim | AC7. |
 | Cyclic parent/child relationship | `VER cycle` — visited guard terminates the traversal. |
 | Max child traversal depth | `VER max-depth` — depth guard yields `failed`, never loops. |
+| Three identical fetch failures | `VER m1` — retry helper stops with a `blocked` outcome (issue #829 risk control). |
 | Batch reporting does not treat decomposition as a merge success | `VER batch reporting` — asserts the accounting guard in `reference/batch-mode.md` B-5. |
 
 ## Scope note
