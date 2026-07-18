@@ -20,6 +20,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   identical issue fetches instead of retrying blindly. The state contract is
   documented in `reference/triage-state-machine.md` and covered by a
   fake-`gh` unit suite in `tests/issue-work/` (#829).
+- Added the isolated-workspace and subagent lifecycle for `issue-work`: a
+  reference implementation and contract for turning a triage `proceed` outcome
+  into a private, identity-verified clone, orchestrating subagents against it,
+  and tearing it down safely. The target repository's `develop` branch is
+  cloned into a unique run root under the OS temp directory, its origin
+  identity is verified against the expected `owner/name`, and lifecycle
+  progress is recorded in an atomic, credential-redacted manifest through
+  `CLAIMED -> CLONING -> READY -> AGENTS_RUNNING -> COMMITTED -> PUSHED ->
+  PR_OPEN -> CI_PENDING -> MERGED -> CLEANUP_PENDING -> CLEANED`. Subagents run
+  under a strict prompt contract and a single-writer lease while every push,
+  PR, merge, and cleanup stays the coordinator's exclusive responsibility; on
+  resume the state is reconciled against live Git and GitHub rather than
+  trusted from the manifest; and the workspace is removed only after the PR has
+  merged, the tree is clean, the work is recoverable from the remote, and all
+  agents have terminated, with recursive deletion gated by path- and Git-state
+  validation and preserved after three identical failures. The contract is
+  documented in `reference/workspace-lifecycle.md` with Bash and PowerShell
+  reference implementations (`scripts/workspace.sh`, `scripts/agents.sh`,
+  `scripts/cleanup-workspace.sh`) and fake-`gh` / bare-remote unit suites in
+  `tests/issue-work/` (#838, #839, #840).
 
 ### Fixed
 
