@@ -19,6 +19,7 @@ The suite is wired into CI by `.github/workflows/validate-skills.yml`.
 | `test-triage.sh` | Test runner: pure-function unit tests + end-to-end scenarios. |
 | `fake-gh.sh` | Canned `gh` for the subset of commands triage.sh calls; records mutations to `mutations.log` and appends posted comments so idempotency reruns observe prior state. |
 | `test-workspace.sh` | Test runner for the workspace lifecycle stage (`scripts/workspace.sh`); see the dedicated section below. |
+| `test-agents.sh` | Test runner for the subagent spawn-contract + single-writer-lease stage (`scripts/agents.sh`); see the dedicated section below. |
 
 ## Acceptance-criteria coverage (issue #829)
 
@@ -86,3 +87,42 @@ The suite is wired into CI by `.github/workflows/validate-skills.yml`.
 PowerShell parity for the workspace stage is delivered as
 `scripts/workspace.ps1`; cross-platform PS regression coverage is integrated
 in #832 (consistent with the existing #829 note above).
+
+## Subagent spawn / lease tests (issue #839)
+
+Unit and scenario tests for the subagent spawn-contract + single-writer-lease
+stage (`global/skills/_internal/issue-work/scripts/agents.sh`), which turns a
+`READY` workspace into an orchestrated one and advances the manifest
+`READY -> AGENTS_RUNNING -> COMMITTED`. The suite drives a real local git
+repository for the worktree scenarios rather than a fake — this stage never
+calls `gh`, so no shim is needed to exercise it without network access.
+Sourcing `agents.sh` also loads `workspace.sh`, so the #838 manifest primitive
+is available for assertions. See `reference/workspace-lifecycle.md` (the #839
+sections) for the full contract.
+
+### Run
+
+```bash
+bash tests/issue-work/test-agents.sh
+```
+
+The suite is wired into CI by `.github/workflows/validate-skills.yml`.
+
+### Acceptance-criteria coverage (issue #839)
+
+| AC | Scenario | Assertion |
+|----|----------|-----------|
+| AC1 | Path normalization | A relative path (existing or not-yet-existing) resolves to an absolute, lexically collapsed path; empty input fails. |
+| AC2 | Spawn-prompt contract | `agents_build_prompt` output contains every required field — normalized absolute repo path, active issue number, target branch, baseline sha, explicit write scope — plus a prohibition clause forbidding remote pushes, the GitHub CLI, opening/merging a PR, and workspace cleanup. |
+| AC3 | Lease mutual exclusion | First writer acquires; a second writer is refused while the lease is held; after the owner releases, the lease is re-acquirable. |
+| AC4 | Lease fail-safe | A non-owner release is refused (lease survives); releasing a non-existent lease fails cleanly; a non-lease path is refused (guarded removal). |
+| AC5 | Per-agent worktree | Adding a worktree on a new branch creates it and lists it; removing it deletes the directory and leaves no orphan in `git worktree list`. |
+| AC6 | State transitions | From `state=READY`, the start phase advances to `AGENTS_RUNNING` (recording `lease_owner`) and the commit phase to `COMMITTED`; an out-of-order transition is refused and leaves state unchanged. |
+| AC7 | Capability guard | `agents.sh` contains no `git push`, no `gh` invocation (word-boundary match), and no `gh` injection seam. |
+
+### Scope note
+
+PowerShell parity for the subagent/lease stage is delivered as
+`scripts/agents.ps1`; it is not runtime-verified here (no `pwsh`) and not wired
+into CI. Cross-platform PS regression coverage is integrated in #832
+(consistent with the #829 and #838 notes above).

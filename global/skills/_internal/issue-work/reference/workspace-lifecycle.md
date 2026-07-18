@@ -196,3 +196,123 @@ It does **not**:
 A `REJECTED` run root is left on disk for inspection rather than deleted by
 this stage — cleanup ownership belongs entirely to #840, consistent with
 triage leaving no side effects on its own non-`proceed` terminal outcomes.
+
+---
+
+# Subagent spawn + single-writer lease (#839)
+
+Picks up where `READY` leaves off. The reference implementation is
+`scripts/agents.sh` (sibling directory), ported 1:1 to `scripts/agents.ps1`.
+It reuses the #838 manifest primitive (`workspace_manifest_write` / `_read` /
+`_state`) by sourcing `workspace.sh`, and advances the manifest through
+`READY -> AGENTS_RUNNING -> COMMITTED`. Code and doc must stay in sync — when
+one changes, change the other in the same PR (same rule as the #838 sections
+above).
+
+This stage delivers three things and nothing more:
+
+1. A **spawn-prompt contract** that guarantees every subagent is fully
+   specified before it is launched.
+2. A **single-writer lease** so only one writer mutates a shared checkout at a
+   time.
+3. The `READY -> AGENTS_RUNNING -> COMMITTED` manifest transitions, built on the
+   #838 atomic primitive.
+
+Per-agent worktrees are the escape hatch used **only** when concurrent writes
+are genuinely required; the default is the single-writer lease on the shared
+checkout.
+
+## Agent prompt contract
+
+`agents_build_prompt <repo_path> <issue> <branch> <baseline> <write_scope>`
+emits a prompt that ALWAYS contains every field below, so a coordinator can
+never spawn an under-specified agent:
+
+| Field | Source | Why it is mandatory |
+|-------|--------|---------------------|
+| Normalized absolute repo path | `agents_normalize_path` of `<repo_path>` | An agent must never guess its working directory; a relative path is resolved to an absolute, symlink-resolved path. |
+| Active issue | `<issue>` | Anchors the work and every artifact reference to one issue. |
+| Target branch | `<branch>` | The branch the coordinator will commit and push; the agent writes toward it but never pushes. |
+| Baseline commit | `<baseline>` | The exact `develop` HEAD the workspace was cloned at (#838 `baseline`). |
+| Explicit write scope | `<write_scope>` | The only paths the agent may create or edit. Everything else is read-only to it. |
+| Ownership / prohibition clause | fixed prose | States that the coordinator owns all git/GitHub mutations and forbids the agent from pushing to the remote, invoking the GitHub CLI, opening/updating/merging a pull request, or cleaning up the workspace. |
+
+The prohibition clause is worded to convey each ban without embedding a literal
+push or GitHub-CLI command token, so the capability-guard test can assert
+`agents.sh` itself performs no such command (see below).
+
+## Coordinator vs. agent capability split
+
+The whole point of the spawn contract is a hard capability boundary. This is
+the authority for who may do what:
+
+| Capability | Coordinator | Subagent |
+|------------|:-----------:|:--------:|
+| Read/write files within the agent's write scope | Yes | Yes |
+| Write files outside the write scope | Yes | No |
+| `git` commit / branch (local) | Yes | No |
+| `git push` to a remote | Yes | No |
+| `gh` / GitHub API mutations | Yes | No |
+| Open / update / merge a pull request | Yes | No |
+| `git worktree` add/remove | Yes | No (coordinator-managed) |
+| Workspace cleanup / teardown (#840) | Yes | No |
+
+`agents.sh` enforces its own half of this contract structurally: it contains
+**no** `gh` invocation and **no** remote push. The only git verb it ever runs
+is `git worktree` (add/remove). A test greps the script to keep it that way.
+
+## Lease protocol
+
+Only one writer may modify a shared checkout at a time. The lease is a
+directory whose creation is the atomic primitive:
+
+- **Acquire** (`agents_acquire_lease <lease_path> <owner_id>`): creates the
+  lease directory with `mkdir` (atomic on POSIX — exactly one caller can create
+  it) and records `<owner_id>` in an `owner` marker file inside it. If the
+  directory already exists, acquisition **fails** (non-zero) rather than
+  admitting a second writer.
+- **Release** (`agents_release_lease <lease_path> <owner_id>`): succeeds only
+  when the caller is the recorded owner. Removal is **guarded** — the path's
+  final component must equal the lease basename (`.iw-writer.lease`) and the
+  directory must exist; release then deletes the known `owner` marker and
+  `rmdir`s the now-empty directory. It never performs a recursive delete on a
+  caller-supplied path.
+- **Fail-safe**: when in doubt, refuse. A non-owner release, a release of a
+  missing lease, and a release of a path that is not a lease directory all
+  return non-zero and change nothing. A held lease is never silently stolen.
+- **Mutual exclusion guarantee**: because acquisition is a single atomic
+  directory create, two concurrent callers can never both observe success; the
+  loser is refused and must wait or fall back to a worktree.
+
+## Worktree rule
+
+The single-writer lease on the shared checkout is the **default** concurrency
+control. Per-agent worktrees (`agents_worktree_add` /
+`agents_worktree_remove`, thin wrappers over `git worktree`) are used **only**
+when agents must write concurrently and serializing them behind one lease is
+unacceptable. When worktrees are used:
+
+- Each worktree is created on its own branch under the run root.
+- Each worktree **must** be removed once its agent finishes. An orphaned
+  worktree keeps a lock in the parent repository and will block the #840
+  cleanup stage, so removal is not optional.
+
+## Manifest keys and transitions added by this stage
+
+This stage advances `state` and adds one key, using the same atomic
+`workspace_manifest_write` primitive (which redacts every value before it
+touches disk):
+
+| Key | Meaning |
+|-----|---------|
+| `state` | Advanced `READY -> AGENTS_RUNNING` (start phase) and `AGENTS_RUNNING -> COMMITTED` (post-commit phase). |
+| `lease_owner` | The owner id recorded when the AGENTS_RUNNING transition is taken with an owner (the single writer holding the checkout). |
+
+Transitions are strictly ordered. `agents_mark_running` refuses unless the
+current state is exactly `READY`; `agents_mark_committed` refuses unless it is
+exactly `AGENTS_RUNNING`. An out-of-order request (e.g. `COMMITTED` straight
+from `READY`) is rejected and leaves the manifest unchanged, so a crash or a
+mis-sequenced caller can never fabricate a state the work never actually passed
+through. The `PUSHED` / `PR_OPEN` states listed in the full lifecycle table
+remain the coordinator's / #840's responsibility — this stage stops at
+`COMMITTED`.
