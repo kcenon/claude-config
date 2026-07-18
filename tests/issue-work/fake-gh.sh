@@ -13,6 +13,7 @@
 #   issue-<n>.comments      comment text (markers live here; appended on post)
 #   children-<n>.json       array for `issue list --search "Part of #<n>"`
 #   pr-<n>.json             array for `pr list --search <n>` (default [])
+#   pr-view-<n>.json        object for `pr view <n>` (default {}); #840 reconcile
 #   mutations.log           appended: COMMENT <n> / CREATE <title> / ASSIGN <n> / UNASSIGN <n>
 #   edited-<n>              marker touched on `issue edit <n>`
 
@@ -116,11 +117,44 @@ for it in json.load(open(sys.argv[1])):
         ;;
 
     pr)
-        if [ "$sub" = "list" ]; then
-            search="$(arg_value --search "$@")"
-            num="$(printf '%s' "$search" | grep -oE '[0-9]+' | head -n1)"
-            cat "$DIR/pr-${num}.json" 2>/dev/null || echo '[]'
-        fi
+        case "$sub" in
+            list)
+                search="$(arg_value --search "$@")"
+                num="$(printf '%s' "$search" | grep -oE '[0-9]+' | head -n1)"
+                cat "$DIR/pr-${num}.json" 2>/dev/null || echo '[]'
+                ;;
+
+            view)
+                # #840 reconcile: `pr view <n> --json ... --jq <dotted.path>`.
+                num="$3"
+                jq_expr="$(arg_value --jq "$@")"
+                file="$DIR/pr-view-${num}.json"
+                if [ ! -f "$file" ]; then
+                    echo '{}'
+                    exit 0
+                fi
+                if [ -n "$jq_expr" ]; then
+                    # Extract a simple dotted path (e.g. .state, .mergeCommit.oid,
+                    # .headRefName, .mergedAt) with python3 -- no jq dependency.
+                    python3 -c '
+import json, sys
+obj = json.load(open(sys.argv[1]))
+cur = obj
+for part in sys.argv[2].lstrip(".").split("."):
+    if part == "":
+        continue
+    if isinstance(cur, dict):
+        cur = cur.get(part, "")
+    else:
+        cur = ""
+        break
+print("" if cur is None else cur)
+' "$file" "$jq_expr" 2>/dev/null
+                else
+                    cat "$file"
+                fi
+                ;;
+        esac
         ;;
 esac
 exit 0
