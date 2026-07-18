@@ -126,3 +126,45 @@ PowerShell parity for the subagent/lease stage is delivered as
 `scripts/agents.ps1`; it is not runtime-verified here (no `pwsh`) and not wired
 into CI. Cross-platform PS regression coverage is integrated in #832
 (consistent with the #829 and #838 notes above).
+
+## Resume reconciliation / safe cleanup tests (issue #840)
+
+Unit and scenario tests for the resume-reconciliation + safe-cleanup stage
+(`global/skills/_internal/issue-work/scripts/cleanup-workspace.sh`), which drives
+the tail of the lifecycle
+(`PUSHED -> ... -> MERGED -> CLEANUP_PENDING -> CLEANED`). The suite drives a
+real local bare git repository for the git-state / recoverability scenarios and
+shadows `gh` with `fake-gh.sh` (extended additively with `pr view`) for the
+PR-state reads that reconciliation performs. Sourcing `cleanup-workspace.sh` also
+loads `workspace.sh`, so the #838 manifest primitive is available for
+assertions. See `reference/workspace-lifecycle.md` (the #840 sections) for the
+full contract.
+
+### Run
+
+```bash
+bash tests/issue-work/test-cleanup.sh
+```
+
+The suite is wired into CI by `.github/workflows/validate-skills.yml`.
+
+### Acceptance-criteria coverage (issue #840)
+
+| AC | Scenario | Assertion |
+|----|----------|-----------|
+| AC1 | Cleanup safety predicate | Empty, `/`, `$HOME`, the base itself, a `..` traversal, a basename not matching `iw-840-*`, a missing marker, a marker naming the wrong issue, and a symlinked run root are each REFUSED; a genuine run root passes. |
+| AC2 | Git-state gate | A tracked modification, an untracked file, and an unresolved merge conflict are each REFUSED; a clean tree passes. |
+| AC3 | Remotely-recoverable | An unpushed commit is REFUSED; a pushed HEAD is OK; a squash-merge (local feature commit not an ancestor of the merge commit, but the merge commit landed on `origin/develop`, passed via `--merge-commit`) is OK. |
+| AC4 | Agents-terminated | A surviving `.iw-writer.lease` directory is REFUSED; no lease passes. |
+| AC5 | Resume reconciliation | A fake `gh` returning a `MERGED` PR repairs the manifest to `MERGED` even when it stored `PR_OPEN` (reality wins over stored state); the merge commit and live HEAD are recorded. |
+| AC6 | 3-fail preservation | An injected always-failing remover (`CLEANUP_RM`) is retried exactly 3 times; the run root survives; the manifest is not `CLEANED`; a manual-procedure message naming the exact path is printed. |
+| AC7 | Happy path | `MERGED` + clean + recoverable + no agents + a valid path emits `CLEANED` and removes the run root; an external manifest override persists `CLEANED`; a pre-`MERGED` cleanup attempt is REFUSED and preserves the run root. |
+| AC8 | Credential redaction | A `GIT_BIN`-shimmed git that emits a credential-bearing branch string never leaks the fake token into reconcile stdout or the manifest. |
+
+### Scope note
+
+PowerShell parity for the cleanup/resume stage is delivered as
+`scripts/cleanup-workspace.ps1`; it is not runtime-verified here (no `pwsh`) and
+not wired into CI (it rejects junctions / reparse points where the `.sh` rejects
+symlinks). Cross-platform PS regression coverage is integrated in #832
+(consistent with the #829, #838, and #839 notes above).
