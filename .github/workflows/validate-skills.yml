@@ -168,6 +168,9 @@ jobs:
         # only; PowerShell parity is tracked in #832.
         run: bash tests/issue-work/test-triage.sh
 
+      - name: Run issue-work workspace lifecycle tests (#838)
+        run: bash tests/issue-work/test-workspace.sh
+
       - name: Install pytest for fleet_orchestrator tests
         # pytest is already a transitive dep of jsonschema in some envs; pin
         # explicitly so the runner does not silently fall back to unittest.
