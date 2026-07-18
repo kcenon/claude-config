@@ -18,6 +18,7 @@ The suite is wired into CI by `.github/workflows/validate-skills.yml`.
 |------|------|
 | `test-triage.sh` | Test runner: pure-function unit tests + end-to-end scenarios. |
 | `fake-gh.sh` | Canned `gh` for the subset of commands triage.sh calls; records mutations to `mutations.log` and appends posted comments so idempotency reruns observe prior state. |
+| `test-workspace.sh` | Test runner for the workspace lifecycle stage (`scripts/workspace.sh`); see the dedicated section below. |
 
 ## Acceptance-criteria coverage (issue #829)
 
@@ -50,3 +51,38 @@ The suite is wired into CI by `.github/workflows/validate-skills.yml`.
 
 These are bash tests. PowerShell parity for the triage gate is deferred to issue
 #832 (team/batch/cross-platform regression integration), per the epic #828 split.
+
+## Workspace lifecycle tests (issue #838)
+
+Unit and end-to-end tests for the workspace lifecycle stage
+(`global/skills/_internal/issue-work/scripts/workspace.sh`), which turns a
+triage `proceed` outcome into an isolated, identity-verified clone
+(`CLAIMED -> CLONING -> READY`). The suite drives a real local bare git
+repository rather than a fake — this stage never calls `gh`, so no shim is
+needed to exercise it without network access. See
+`reference/workspace-lifecycle.md` for the full contract.
+
+### Run
+
+```bash
+bash tests/issue-work/test-workspace.sh
+```
+
+The suite is wired into CI by `.github/workflows/validate-skills.yml`.
+
+### Acceptance-criteria coverage (issue #838)
+
+| AC | Scenario | Assertion |
+|----|----------|-----------|
+| AC1 | Run-root layout | Run root sits under the temp base, uniquely named per invocation, with a valid `.iw-run-marker` recording the issue number. |
+| AC2 | Clone from `develop` | Reaches `READY` with a `baseline` matching the seeded `develop` HEAD sha; the working tree is actually checked out. |
+| AC3 | Identity/origin mismatch | Outcome is `REJECTED`, never `READY`; the manifest never advances past `REJECTED`. |
+| AC4 | Credential redaction | Neither stdout nor the manifest ever contains a token, including on the real clone-failure path (a `GIT_BIN`-shimmed git that fails with a credential-bearing error message). |
+| AC5 | Manifest atomicity | `key=value` round-trips via `workspace_manifest_read`; a repeated key updates in place (no duplicate lines, no leftover `.tmp.$$` file). |
+| UNIT | Pure-function coverage | `workspace_redact_credentials`, `workspace_verify_identity` (https and SSH-shorthand origins, missing origin, empty expected value), `workspace_manifest_write`/`_read`/`_state`, `workspace_run_root`. |
+
+### Scope note
+
+PowerShell parity for the workspace stage is delivered as
+`scripts/workspace.ps1`; cross-platform PS regression coverage is integrated
+in #832 (consistent with the existing #829 note above).
