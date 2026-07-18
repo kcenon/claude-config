@@ -316,3 +316,150 @@ mis-sequenced caller can never fabricate a state the work never actually passed
 through. The `PUSHED` / `PR_OPEN` states listed in the full lifecycle table
 remain the coordinator's / #840's responsibility — this stage stops at
 `COMMITTED`.
+
+---
+
+# Resume reconciliation + safe cleanup (#840)
+
+Picks up where `COMMITTED` (#839) leaves off and drives the remainder of the
+full lifecycle table:
+`PUSHED -> PR_OPEN -> CI_PENDING -> MERGED -> CLEANUP_PENDING -> CLEANED`. The
+reference implementation is `scripts/cleanup-workspace.sh` (sibling directory),
+ported 1:1 to `scripts/cleanup-workspace.ps1`. It reuses the #838 manifest
+primitive (`workspace_manifest_write` / `_read` / `_state`,
+`workspace_redact_credentials`, `.iw-run-marker`) by sourcing `workspace.sh`.
+Code and doc must stay in sync — when one changes, change the other in the same
+PR (same rule as the #838 / #839 sections above).
+
+Unlike `agents.sh` (a subagent, which contains **no** `gh` and never pushes),
+this stage runs as the **coordinator**, so it MAY invoke the GitHub CLI (through
+the `GH_BIN` seam) to read PR state during reconciliation. Its only destructive
+operation is the gated removal of a run root, guarded by a safety predicate
+that is re-validated immediately before every removal attempt.
+
+## Resume-reconciliation rule
+
+`cleanup_reconcile <repo_dir> <manifest> [<pr_number>]` **re-reads reality and
+repairs the manifest — it never trusts the stored state alone.** A session may
+resume long after the manifest was last written (a crash, a machine restart, a
+`--auto-restart` batch boundary), by which point the stored `state` can be
+stale. Reconciliation reads:
+
+- the current branch (`git rev-parse --abbrev-ref HEAD`) and HEAD sha;
+- whether the branch still exists on the remote
+  (`git ls-remote --heads origin <branch>`);
+- when a PR number is supplied, the live PR state and merge commit via
+  `gh pr view <n> --json state,mergedAt,mergeCommit,headRefName --jq <expr>`.
+
+It then writes `branch`, `head`, `merge_commit`, and a `state` **derived from
+reality**, with reality winning over the stored value:
+
+| Reality | Reconciled `state` |
+|---------|--------------------|
+| PR is `MERGED` | `MERGED` (unless already `CLEANUP_PENDING`/`CLEANED`) |
+| remote branch exists + a live non-merged PR | `PR_OPEN` (keeps an in-flight `CI_PENDING`) |
+| remote branch exists, no PR read | `PUSHED` (keeps an in-flight `PR_OPEN`/`CI_PENDING`) |
+| no remote branch, no PR | stored state left untouched |
+
+A single redacted JSON summary line is emitted; every value passes through
+`workspace_redact_credentials` first.
+
+## Cleanup safety predicate
+
+`cleanup_validate_path <candidate> <run_base> <expected_issue>` is the single
+gate that decides whether a path may ever be handed to a remover. It is
+fail-safe: any doubt refuses. A candidate is accepted **only** when all hold:
+
+- it is non-empty, and the **raw** string contains no `..` (traversal is
+  rejected *before* any canonicalization, so a resolved path cannot launder a
+  traversal);
+- its final component is not itself a symlink / junction / reparse point (swap
+  attack) — checked on the raw candidate;
+- its basename matches `iw-<expected_issue>-*`;
+- it does not canonicalize to `/` (root) or to `$HOME` (home);
+- it is **strictly** under the canonicalized `run_base`
+  (`<canonical_base>/<something>`, never the base itself);
+- `<candidate>/.iw-run-marker` exists and contains a line
+  `issue=<expected_issue>`.
+
+Both the candidate and the base are canonicalized (existing dir: `cd`+`pwd -P`;
+otherwise a lexical normalization) so the macOS `/var` → `/private/var` symlink
+(and the Windows reparse-point equivalent) cannot cause a false path-prefix
+mismatch. The predicate is re-run **immediately before** the actual removal as a
+TOCTOU guard, so a swap between the gate check and the delete cannot redirect
+the remover.
+
+## Preservation predicate
+
+`cleanup_workspace` PRESERVES the run root (reports a reason, deletes nothing,
+returns non-zero) unless **every** gate passes:
+
+1. the manifest `state` is `MERGED` or `CLEANUP_PENDING` — an **incomplete /
+   not-yet-merged PR** falls out here, because the coordinator only advances to
+   `MERGED` after the CI gate and the merge;
+2. `cleanup_validate_path` passes (see above);
+3. `cleanup_git_state_clean` passes — `git status --porcelain` empty (no
+   **uncommitted** or untracked work) AND `git ls-files -u` empty (no
+   **unresolved conflicts**);
+4. `cleanup_remotely_recoverable` passes (no **unpushed** commits — see the rule
+   below);
+5. `cleanup_agents_terminated` passes — no surviving `.iw-writer.lease`
+   directory anywhere under the run root (no **live agents**).
+
+## Remotely-recoverable rule (incl. the squash-merge nuance)
+
+`cleanup_remotely_recoverable <repo_dir> [<merge_commit>]` succeeds if ANY of:
+
+- **(a)** HEAD is contained in some remote-tracking ref
+  (`git branch -r --contains HEAD` is non-empty);
+- **(b)** HEAD has an upstream and is not ahead of it
+  (`git rev-list --count @{u}..HEAD` is `0`);
+- **(c)** a `<merge_commit>` is supplied and is an ancestor of `origin/develop`
+  (`git merge-base --is-ancestor <merge_commit> origin/develop`).
+
+Clause **(c)** is the squash-merge nuance: after a squash merge the local
+feature commits are **not** ancestors of the merge commit (the squash produced a
+new sha), so `--contains HEAD` and the upstream check both fail even though the
+work has safely landed. The only sound proof the work is recoverable is that the
+**merge commit itself** is reachable from `origin/develop`. If none of (a)–(c)
+hold, the checkout is treated as carrying unpushed work and is preserved.
+
+## 3-fail preservation policy
+
+Removal is attempted at most **3 times** (with a brief pause between attempts —
+the Windows file-lock analog, controllable via the `CLEANUP_RETRY_SLEEP` seam).
+On three consecutive failures the stage stops (the global 3-fail rule),
+PRESERVES the run root, prints a **manual cleanup procedure naming the exact
+validated path**, and returns non-zero. The only path ever passed to the remover
+is the freshly re-validated `run_root`; the remover itself is swappable via the
+`CLEANUP_RM` seam (empty → the internal guarded `rm -rf -- "$run_root"`), which
+is how the test suite injects a failing remover to exercise this policy without a
+genuinely un-removable directory.
+
+## Manifest keys and transitions added by this stage
+
+Transitions are strictly ordered (`_cleanup_transition`, mirroring
+`_agents_transition`): each `cleanup_mark_*` refuses unless the manifest is at
+the exact predecessor state, so a crash or a mis-sequenced caller can never
+fabricate a state the work never passed through.
+
+| Key | Meaning |
+|-----|---------|
+| `state` | Advanced `PUSHED -> PR_OPEN -> CI_PENDING -> MERGED -> CLEANUP_PENDING -> CLEANED`. |
+| `branch` | The current branch, re-read live during reconciliation. |
+| `head` | The current HEAD sha, re-read live during reconciliation. |
+| `merge_commit` | The PR's merge-commit oid, when a merged PR was read. |
+
+On a successful removal the run root — and the manifest inside it — are gone, so
+the emitted `{"state":"CLEANED",...}` JSON line is the record. When a manifest
+**override outside the run root** is in use, the terminal `CLEANED` state is
+persisted there as well (the transition is a no-op when the manifest has already
+been removed).
+
+## Scope note
+
+PowerShell parity for this stage is delivered as `scripts/cleanup-workspace.ps1`;
+it is not runtime-verified (no `pwsh` in the authoring environment) and not wired
+into CI. Cross-platform PS regression coverage is integrated in #832 (consistent
+with the #829 / #838 / #839 notes). The `.ps1` rejects junctions / reparse
+points via the `ReparsePoint` file attribute where the `.sh` rejects symlinks.
