@@ -20,6 +20,8 @@ The suite is wired into CI by `.github/workflows/validate-skills.yml`.
 | `fake-gh.sh` | Canned `gh` for the subset of commands triage.sh calls; records mutations to `mutations.log` and appends posted comments so idempotency reruns observe prior state. |
 | `test-workspace.sh` | Test runner for the workspace lifecycle stage (`scripts/workspace.sh`); see the dedicated section below. |
 | `test-agents.sh` | Test runner for the subagent spawn-contract + single-writer-lease stage (`scripts/agents.sh`); see the dedicated section below. |
+| `test-cleanup.sh` | Test runner for the resume-reconciliation + safe-cleanup stage (`scripts/cleanup-workspace.sh`); see the dedicated section below. |
+| `test-pre-pr-gate.sh` | Test runner for the pre-PR readiness gate (`scripts/pre-pr-gate.sh`); see the dedicated section below. |
 
 ## Acceptance-criteria coverage (issue #829)
 
@@ -168,3 +170,47 @@ PowerShell parity for the cleanup/resume stage is delivered as
 not wired into CI (it rejects junctions / reparse points where the `.sh` rejects
 symlinks). Cross-platform PS regression coverage is integrated in #832
 (consistent with the #829, #838, and #839 notes above).
+
+## Pre-PR readiness gate tests (issue #831)
+
+Unit and scenario tests for the pre-PR readiness gate (git-state half)
+(`global/skills/_internal/issue-work/scripts/pre-pr-gate.sh`), which runs after
+implementation + docs are committed and before push/PR: it refreshes the base
+branch (`develop`) and integrates it into the feature branch with safe conflict
+handling, emitting a single JSON outcome. The suite drives real local bare git
+repositories rather than a fake — this stage never calls `gh`, so no shim is
+needed to exercise the fetch / fast-forward / rebase / merge codepaths without
+network access. The classifier unit test points the sourced helper at a
+throwaway repo via the `PREPR_REPO_DIR` seam, and the base-movement case uses
+the `PRE_PR_ON_FETCH` seam to push a fresh remote commit between fetches. See
+`reference/pre-pr-readiness.md` for the full contract (including the agent-side
+documentation-to-issue gap-audit procedure the script does not itself perform).
+
+### Run
+
+```bash
+bash tests/issue-work/test-pre-pr-gate.sh
+```
+
+The suite is wired into CI by `.github/workflows/validate-skills.yml`.
+
+### Acceptance-criteria coverage (issue #831)
+
+| AC | Scenario | Assertion |
+|----|----------|-----------|
+| AC1 | Clean-worktree precondition | A dirty (uncommitted tracked) feature worktree blocks with `dirty_worktree` before any fetch; the local base is untouched. |
+| AC2 | Develop refresh (advance) | A local base strictly behind the remote is fast-forwarded to the remote head and the feature is replayed onto it (`ready`); a base already current reaches `ready` without being moved. |
+| AC3 | Develop refresh (guard) | A local base that is ahead blocks with `base_ahead`, and a diverged base blocks with `base_diverged`; both leave `local_base_sha_after == local_base_sha_before` (never reset). |
+| AC4 | Integration | A clean rebase replays the feature commits onto the refreshed base (`ready`); `--integrate merge` integrates via a merge commit. |
+| AC5 | Conflict | Any integration conflict aborts the rebase/merge and blocks with `conflict`, leaving the feature branch HEAD unchanged and the worktree clean. |
+| AC6 | Base-movement retry | Repeated remote-base movement (via `PRE_PR_ON_FETCH`) blocks with `base_unstable` after `--max-base-moves` cycles, reporting `attempts`. |
+| UNIT | Base-relationship classifier | `classify_base_relationship` returns `equal` / `behind` / `ahead` / `diverged` for the corresponding ancestry, and `unknown` on an empty argument. |
+
+### Scope note
+
+The script owns only the mechanical git-state half of the gate. The
+documentation-to-issue gap audit (gap ledger, four dispositions, Korean-PR
+validation, post-creation checks) is an agent-side procedure specified in
+`reference/pre-pr-readiness.md` (AC7–AC12) and is not script-tested. PowerShell
+parity for this stage is deferred to #832, consistent with the #829 / #838 /
+#839 / #840 notes above.
