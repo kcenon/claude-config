@@ -181,7 +181,7 @@ fi
 See `reference/batch-mode.md` for the complete batch mode workflow including discovery, priority sorting, plan approval, and sequential execution.
 
 **Batch-only behaviors** (do not apply in single-item mode):
-- **Subagent delegation by default** (B-4): each item is dispatched to a fresh `general-purpose` Agent so it starts with an unpolluted attention pool. The parent retains only `{item_id, status, pr_url, ci_conclusion}` per item. Pass `--inline` to fall back to the legacy single-context loop.
+- **Subagent delegation by default** (B-4): each item is dispatched to a fresh `general-purpose` Agent so it starts with an unpolluted attention pool. The parent retains only `{item_id, status, requested, root, active, pr_url, ci_conclusion}` per item. Pass `--inline` to fall back to the legacy single-context loop.
 - **Per-item rule reminder** (B-4.0): a 5-line invariant block is emitted as a fresh tool result before each item so language/CI/attribution rules stay in the recent attention window. In delegated mode this reminder is embedded in the subagent prompt; in `--inline` mode it is emitted directly in the parent context.
 - **No `@load: reference/...` inside the per-item loop**: keep the inline reminder as the most recent context anchor.
 - **Chunked confirmation gate** (B-4.1): user confirmation prompt every 5 items, bypassable with `--no-confirm`. When `--auto-restart` is set (and `--no-restart` is not), the gate is replaced by a forced session restart that writes `.claude/resume.md` and exits; a fresh `claude` session resumes from the next item.
@@ -256,6 +256,8 @@ TRIAGE_JSON=$(bash ~/.claude/skills/_internal/issue-work/scripts/triage.sh \
   --repo "$ORG/$PROJECT" ${ISSUE_NUMBER:+--issue "$ISSUE_NUMBER"} ${PLAN_FILE:+--plan-file "$PLAN_FILE"})
 
 OUTCOME=$(printf '%s' "$TRIAGE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["outcome"])')
+REQUESTED_ISSUE=$(printf '%s' "$TRIAGE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["requested"])')
+ROOT_ISSUE=$(printf '%s' "$TRIAGE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["root"])')
 ISSUE_NUMBER=$(printf '%s' "$TRIAGE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["active"])')
 ```
 
