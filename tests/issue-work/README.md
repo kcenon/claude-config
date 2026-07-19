@@ -52,8 +52,11 @@ The suite is wired into CI by `.github/workflows/validate-skills.yml`.
 
 ## Scope note
 
-These are bash tests. PowerShell parity for the triage gate is deferred to issue
-#832 (team/batch/cross-platform regression integration), per the epic #828 split.
+These are bash tests. PowerShell parity for the triage gate is delivered as
+`scripts/triage.ps1`; it is not runtime-verified here (no `pwsh`) and not wired
+into CI. Cross-platform PS regression coverage is integrated in #832 (the
+PowerShell regression suite plus CI wiring is tracked by #847), consistent with
+the workspace (#838), agents (#839), and cleanup (#840) notes below.
 
 ## Workspace lifecycle tests (issue #838)
 
@@ -212,5 +215,8 @@ The script owns only the mechanical git-state half of the gate. The
 documentation-to-issue gap audit (gap ledger, four dispositions, Korean-PR
 validation, post-creation checks) is an agent-side procedure specified in
 `reference/pre-pr-readiness.md` (AC7–AC12) and is not script-tested. PowerShell
-parity for this stage is deferred to #832, consistent with the #829 / #838 /
-#839 / #840 notes above.
+parity for this stage is delivered as `scripts/pre-pr-gate.ps1`; it is not
+runtime-verified here (no `pwsh`) and not wired into CI. Cross-platform PS
+regression coverage is integrated in #832 (the PowerShell regression suite plus
+CI wiring is tracked by #847), consistent with the #829 / #838 / #839 / #840
+notes above.
