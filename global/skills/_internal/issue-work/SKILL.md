@@ -231,7 +231,7 @@ Store the result in `$EXEC_MODE` (solo | team).
 
 #### 0-3. Mode Routing
 
-- If `$EXEC_MODE == "solo"` → Execute **Solo Mode Instructions** (Steps 1-12 below)
+- If `$EXEC_MODE == "solo"` → Execute **Solo Mode Instructions** (Steps 1-13 below)
 - If `$EXEC_MODE == "team"` → Execute **Team Mode Instructions** (after Solo Mode section)
 
 ---
@@ -284,11 +284,38 @@ children and never posts a second summary (AC6).
 
 ### 3. Git Environment Setup
 
-```bash
-cd $PROJECT
-git fetch origin
-git checkout develop && git pull origin develop
+Git setup clones through the isolated-workspace stage (`scripts/workspace.sh`)
+instead of an in-place checkout of `$PROJECT` — every run gets a private,
+identity-verified clone rather than mutating a shared working copy. See
+`reference/workspace-lifecycle.md` for the full contract (run-root layout,
+manifest schema, identity-verification rule); this step only invokes it.
 
+```bash
+WORKSPACE_JSON=$(bash ~/.claude/skills/_internal/issue-work/scripts/workspace.sh \
+  --repo "$ORG/$PROJECT" --base "${TMPDIR:-/tmp}" --issue "$ISSUE_NUMBER")
+
+WS_STATE=$(printf '%s' "$WORKSPACE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["state"])')
+```
+
+**Outcome routing** (the JSON `state` field is authoritative):
+
+| `state` | Action |
+|---------|--------|
+| `READY` | Capture `repo_dir`, `baseline`, `manifest` below and continue. |
+| `REJECTED` | **Stop.** Report the `reason` (clone failure or origin identity mismatch). No branch, no code work. |
+
+```bash
+REPO_DIR=$(printf '%s' "$WORKSPACE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["repo_dir"])')
+BASELINE=$(printf '%s' "$WORKSPACE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["baseline"])')
+MANIFEST=$(printf '%s' "$WORKSPACE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["manifest"])')
+cd "$REPO_DIR"
+```
+
+Every step from here on (implementation, build, commit, push, PR) runs inside
+`$REPO_DIR`, not the shared `$PROJECT` checkout. Branch-name derivation is
+unchanged:
+
+```bash
 # Extract issue title for branch name
 ISSUE_TITLE=$(gh issue view $ISSUE_NUMBER --repo $ORG/$PROJECT --json title -q '.title')
 # Convert to kebab-case (lowercase, replace spaces with hyphens)
@@ -587,6 +614,29 @@ with a summary comment.
 gh issue comment <NUMBER> --repo $ORG/$PROJECT \
   --body "Implementation PR: #<PR_NUMBER>"
 ```
+
+### 13. Workspace Teardown
+
+**Mandatory, all tiers.** After the merge (Step 10) and issue/epic closure
+(Steps 11-12), tear down the isolated workspace claimed in Step 3. See
+`reference/workspace-lifecycle.md` (the #840 sections) for the full contract
+(resume-reconciliation rule, preservation predicate, remotely-recoverable
+rule, 3-fail preservation policy).
+
+```bash
+bash ~/.claude/skills/_internal/issue-work/scripts/cleanup-workspace.sh \
+  --phase reconcile --repo-dir "$REPO_DIR" --manifest "$MANIFEST" --pr "$PR_NUMBER"
+
+bash ~/.claude/skills/_internal/issue-work/scripts/cleanup-workspace.sh \
+  --phase cleanup --run-root "$(dirname "$REPO_DIR")" --repo-dir "$REPO_DIR" \
+  --manifest "$MANIFEST" --base "${TMPDIR:-/tmp}" --issue "$ISSUE_NUMBER" \
+  --pr "$PR_NUMBER" ${MERGE_COMMIT:+--merge-commit "$MERGE_COMMIT"}
+```
+
+`reconcile` re-reads the live branch/PR state before `cleanup` decides whether
+to remove the run root. A `PRESERVED` result (e.g. uncommitted work, an
+unmerged PR, or a still-held agent lease) is not a failure — report the
+`reason` and leave the run root on disk. Only a `CLEANED` result removes it.
 
 ---
 
