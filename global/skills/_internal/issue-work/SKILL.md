@@ -169,6 +169,13 @@ fi
 
 ## Instructions
 
+**Gates are tier-independent.** The triage gate (Step 1 / T-1), the isolated
+workspace lifecycle (Step 3 clone and the Step 13 teardown), and the pre-PR
+readiness gate (Step 7.5) are MANDATORY and run in every tier, including
+`light`. The frontmatter `tiers.<name>.deep_checks` and `ref_docs` only
+control which OPTIONAL reference docs auto-load and whether the extra deep
+checks run — they never disable these three gates.
+
 ### Mode Routing
 
 - If `$BATCH_MODE == "single-repo"` or `$BATCH_MODE == "cross-repo"` → Execute **Batch Mode Instructions** below
@@ -270,6 +277,11 @@ ISSUE_NUMBER=$(printf '%s' "$TRIAGE_JSON" | python3 -c 'import json,sys;print(js
 | `blocked` | The issue has an unresolved blocker (comment posted only if the blocker state changed), or the issue fetch failed identically three times. **Stop** — no clone, no branch. |
 | `skipped` | The issue was closed, reassigned, or every child lost a claim race. **Stop.** |
 | `failed` | Cycle/depth guard tripped, or `needs_plan` (oversized issue, no children, no `--plan-file`). A `needs_plan` reason means "design a plan and re-invoke with `--plan-file`", not a hard error. **Stop and report.** |
+
+Every **Stop** row above still ends the invocation by printing the
+`ISSUE_WORK_RESULT:` marker (see Output) as its last line — `status` matches
+the `outcome` value, `requested`/`root` come from `$REQUESTED_ISSUE`/
+`$ROOT_ISSUE` above, and `pr_url` is `null`.
 
 Only `proceed` continues into code work. The other four outcomes are terminal
 for this invocation and perform no repository side effects — this is what lets a
@@ -662,6 +674,26 @@ See [_policy.md](../_policy.md) for common rules, including the **Atomic Multi-P
 
 **CRITICAL**: Do NOT produce a completion summary if CI has any failing, pending, or incomplete checks. A task is only complete when the PR is merged with all CI checks passing.
 
+### Result Marker
+
+Every exit path of this workflow — a terminal triage outcome (Step 1), a
+pre-PR gate block (Step 7.5), a CI failure (Step 9-10), or a full merge — ends
+by printing exactly one `ISSUE_WORK_RESULT:` line as the **last line** of its
+output:
+
+```
+ISSUE_WORK_RESULT: {"status":"merged|decomposed|blocked|skipped|failed","requested":"<n>","root":"<n>","active":"<n>","pr_url":"<url-or-null>","reason":"<short>"}
+```
+
+Fields mirror the batch subagent JSON contract (`reference/batch-mode.md`
+B-4.a): the same status vocabulary and the same `requested`/`root`/`active`
+triple from the triage outcome (`reference/triage-state-machine.md`). `status`
+is derived from the triage outcome when work did not proceed, else from the
+final merge/CI state. External orchestrators (`scripts/batch-issue-work.sh` /
+`.ps1`) parse this line to branch on the structured outcome instead of the
+process exit code alone. Both Work Summary formats below end with this
+marker, as the trailing line after the table and any following sections.
+
 After successful merge, provide summary:
 
 ```markdown
@@ -687,6 +719,8 @@ After successful merge, provide summary:
 
 ### Next Steps
 - Any follow-up items
+
+ISSUE_WORK_RESULT: {"status":"merged","requested":"$REQUESTED_ISSUE","root":"$ROOT_ISSUE","active":"$ISSUE_NUMBER","pr_url":"https://github.com/$ORG/$PROJECT/pull/$PR_NUMBER","reason":""}
 ```
 
 If CI failed or the PR was not merged, use this format instead:
@@ -706,6 +740,8 @@ If CI failed or the PR was not merged, use this format instead:
 
 ### Action Required
 - User must resolve CI failures before merge
+
+ISSUE_WORK_RESULT: {"status":"failed","requested":"$REQUESTED_ISSUE","root":"$ROOT_ISSUE","active":"$ISSUE_NUMBER","pr_url":"<url-or-null>","reason":"<short reason>"}
 ```
 
 **IMPORTANT**: Always include the full PR URL in the output (e.g., `https://github.com/org/repo/pull/123`).
