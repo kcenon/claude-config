@@ -99,11 +99,12 @@ while IFS=$'\t' read -r ISSUE_NUMBER ISSUE_TITLE; do
 
     # Each item runs in a fresh claude process so its context state is
     # discarded on exit. --print exits after the turn completes.
+    # `|| EXIT_CODE=$?` captures claude's real exit status. An `if ! claude`
+    # guard would instead leave $? as the negation result (0), so a crash with
+    # no marker would be misread as success in the fallback branch below.
     EXIT_CODE=0
-    if ! claude --print "/issue-work ${ORG_PROJECT} ${ISSUE_NUMBER} --solo" \
-        >"$LOG_FILE" 2>&1; then
-        EXIT_CODE=$?
-    fi
+    claude --print "/issue-work ${ORG_PROJECT} ${ISSUE_NUMBER} --solo" \
+        >"$LOG_FILE" 2>&1 || EXIT_CODE=$?
 
     # Prefer the structured result marker over the bare exit code -- it
     # distinguishes a triage pause (decomposed/blocked) from a hard failure.
