@@ -1,0 +1,30 @@
+# Repo-wide registry of tracked test entrypoints OUTSIDE tests/scripts/test-*.
+#
+# tests/scripts/test-* wiring is owned by tests/scripts/test-ci-wiring.sh (#823).
+# This registry plus tests/scripts/test-nonstandard-test-wiring.sh (#833) cover
+# every OTHER tracked .sh/.ps1 under tests/.
+#
+# Only entrypoints that are neither directly wired into a workflow nor swept by
+# a wired shared runner need a row here. CI-wired and shared-runner-covered
+# entrypoints are derived by the gate from workflow run commands and the
+# runner coverage table; listing one of those here is a stale entry and fails.
+#
+# Format: <path>\t<disposition>\t<reason>[\t<risk>\t<removal-condition>]
+#   helper   - sourced/invoked by a test; not a standalone entrypoint.
+#              fields: path, disposition, reason
+#   manual   - deterministic test intentionally NOT run in CI (yet).
+#              fields: path, disposition, reason, risk, removal-condition
+#   obsolete - entrypoint pending removal.
+#              fields: path, disposition, reason, risk, removal-condition
+#
+# Fields are TAB-separated. Keep reasons specific and evidence-backed.
+
+tests/scripts/lib/ci-wiring-lib.sh	helper	Shared CI-wiring detection library sourced by test-ci-wiring.sh (#823) and test-nonstandard-test-wiring.sh (#833); not a standalone test entrypoint.
+tests/batch_drift_benchmark/aggregate-results.sh	helper	Result-aggregation library sourced by test-aggregate-results.sh; not a standalone test entrypoint.
+tests/batch_drift_benchmark/extractors.sh	helper	Metric-extraction library sourced by test-extractors.sh; not a standalone test entrypoint.
+tests/batch_drift_benchmark/run-benchmark.sh	helper	Benchmark orchestrator exercised by test-run-benchmark.sh and run manually; not a CI test entrypoint.
+tests/batch_drift_benchmark/seed-scratch-repo.sh	helper	Scratch-repo seeding helper exercised by test-seed-scratch-repo.sh; not a standalone test entrypoint.
+tests/issue-work/fake-gh.sh	helper	Fake gh shim sourced by the issue-work unit suites; not a standalone test entrypoint.
+tests/plugin/smoke-test.ps1	manual	PowerShell sibling of smoke-test.sh; exercised only on a native Windows runner, which PR CI does not currently provision.	Plugin/plugin-lite packaging regressions are not smoke-tested on native Windows in PR CI.	Wire into validate-hooks.yml (or the InstallerFetch matrix) once a Windows runner job is provisioned for plugin packaging.
+tests/hook-json-escape.sh	manual	Smoke test for dangerous-command-guard.sh JSON escaping (#567); its allow-path assertions still expect the pre-refactor allow_response(reason) contract, which now flows through allow_with_context/additionalContext, so two assertions fail against current code.	dangerous-command-guard.sh allow-path JSON escaping is not gated in CI while the assertions are stale.	Update the allow-path assertions to the split allow_response/allow_with_context contract so the suite passes, then wire it into validate-hooks.yml. Tracked by #850.
+tests/safe-rm-rf.sh	manual	Unit suite for scripts/lib/safe-rm.sh (#566); four allow-list cases assume Linux path canonicalization and fail on macOS, so it is not hermetic across the validate-hooks Linux/macOS matrix.	safe-rm allow-list acceptance and refusal behavior is not gated in CI.	Make the allow-list cases canonicalization-hermetic across Linux and macOS so the suite passes on both, then wire it into validate-hooks.yml. Tracked by #851.
