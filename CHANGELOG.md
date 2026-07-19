@@ -40,6 +40,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reference implementations (`scripts/workspace.sh`, `scripts/agents.sh`,
   `scripts/cleanup-workspace.sh`) and fake-`gh` / bare-remote unit suites in
   `tests/issue-work/` (#838, #839, #840).
+- Added a mandatory pre-PR readiness gate for `issue-work` that runs after the
+  implementation and documentation are committed and before any push or PR. A
+  deterministic git-state helper
+  (`global/skills/_internal/issue-work/scripts/pre-pr-gate.sh`) refuses a dirty
+  worktree, fetches the base branch, fast-forwards the local base only when it
+  is strictly behind (an `ahead` or `diverged` base blocks and is never
+  rewound), integrates the refreshed base into the feature branch (rebase by
+  default, merge for shared branches), aborts and blocks on any conflict rather
+  than guessing intent, and re-integrates when the remote base moves — stopping
+  with `base_unstable` after a capped number of movements. It emits a single
+  `ready`/`blocked` JSON outcome that the skill routes on. The agent-side
+  documentation-to-issue gap audit reconciles each required behavior against
+  implementation, test, documentation, and issue evidence in a seven-field gap
+  ledger whose rows carry exactly one of four dispositions (`fix-in-pr`,
+  `followup-issue`, `already-satisfied`, `blocked`), never reports "no gap" when
+  retrieval was incomplete, and requires the resulting PR to target `develop`,
+  close the active issue, and use a Korean title and body. The contract is
+  documented in `reference/pre-pr-readiness.md` and covered by a bare-remote
+  unit suite in `tests/issue-work/test-pre-pr-gate.sh` (#831).
 
 ### Fixed
 

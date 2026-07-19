@@ -10,29 +10,29 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 21112
+    size: 22527
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "[Unreleased]", l: 8, e: 9}
-      - {h: "Added", l: 10, e: 43}
-      - {h: "Fixed", l: 44, e: 67}
-      - {h: "1.11.0 - 2026-07-03", l: 68, e: 69}
-      - {h: "Fixed", l: 70, e: 83}
-      - {h: "Security", l: 84, e: 161}
-      - {h: "Added", l: 162, e: 190}
-      - {h: "Changed", l: 191, e: 237}
-      - {h: "1.10.0 - 2026-04-20", l: 238, e: 246}
-      - {h: "1.9.0 - 2026-04-13", l: 247, e: 256}
-      - {h: "1.8.0 - 2026-04-13", l: 257, e: 262}
-      - {h: "1.7.0 - 2026-04-06", l: 263, e: 277}
-      - {h: "1.6.0 - 2026-04-03", l: 278, e: 290}
-      - {h: "1.5.0 - 2026-03-21", l: 291, e: 309}
-      - {h: "1.4.0 - 2026-01-22", l: 310, e: 315}
-      - {h: "1.3.0 - 2026-01-15", l: 316, e: 324}
-      - {h: "1.2.0 - 2026-01-15", l: 325, e: 333}
-      - {h: "1.1.0 - 2025-01-15", l: 334, e: 344}
-      - {h: "1.0.0 - 2025-12-03", l: 345, e: 351}
+      - {h: "Added", l: 10, e: 62}
+      - {h: "Fixed", l: 63, e: 86}
+      - {h: "1.11.0 - 2026-07-03", l: 87, e: 88}
+      - {h: "Fixed", l: 89, e: 102}
+      - {h: "Security", l: 103, e: 180}
+      - {h: "Added", l: 181, e: 209}
+      - {h: "Changed", l: 210, e: 256}
+      - {h: "1.10.0 - 2026-04-20", l: 257, e: 265}
+      - {h: "1.9.0 - 2026-04-13", l: 266, e: 275}
+      - {h: "1.8.0 - 2026-04-13", l: 276, e: 281}
+      - {h: "1.7.0 - 2026-04-06", l: 282, e: 296}
+      - {h: "1.6.0 - 2026-04-03", l: 297, e: 309}
+      - {h: "1.5.0 - 2026-03-21", l: 310, e: 328}
+      - {h: "1.4.0 - 2026-01-22", l: 329, e: 334}
+      - {h: "1.3.0 - 2026-01-15", l: 335, e: 343}
+      - {h: "1.2.0 - 2026-01-15", l: 344, e: 352}
+      - {h: "1.1.0 - 2025-01-15", l: 353, e: 363}
+      - {h: "1.0.0 - 2025-12-03", l: 364, e: 370}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -2808,7 +2808,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 28353
+    size: 31505
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 36, e: 51}
@@ -2832,27 +2832,27 @@ documents:
       - {h: "Inline Strategy (short builds)", l: 374, e: 382}
       - {h: "Background + Log Polling Strategy (long builds)", l: 383, e: 391}
       - {h: "On Build/Test Failure", l: 392, e: 401}
-      - {h: "7. Documentation Update", l: 402, e: 414}
-      - {h: "8. Push and Create PR", l: 415, e: 423}
-      - {h: "Summary", l: 424, e: 426}
-      - {h: "Test Plan", l: 427, e: 437}
-      - {h: "9. Monitor CI", l: 438, e: 485}
-      - {h: "10. Squash Merge", l: 486, e: 515}
-      - {h: "11. Close Related Issues and Epics", l: 516, e: 531}
-      - {h: "12. Update Original Issue", l: 532, e: 542}
-      - {h: "Team Mode Instructions", l: 543, e: 546}
-      - {h: "Policies", l: 547, e: 550}
-      - {h: "Command-Specific Rules", l: 551, e: 558}
-      - {h: "Output", l: 559, e: 565}
-      - {h: "Work Summary", l: 566, e: 578}
-      - {h: "Changes Made", l: 579, e: 581}
-      - {h: "Files Modified", l: 582, e: 585}
-      - {h: "Next Steps", l: 586, e: 592}
-      - {h: "Work Summary (INCOMPLETE)", l: 593, e: 604}
-      - {h: "Action Required", l: 605, e: 610}
-      - {h: "Batch Mode Output", l: 611, e: 614}
-      - {h: "Error Handling", l: 615, e: 618}
-      - {h: "Side Effects and Loop-Safety", l: 619, e: 621}
+      - {h: "7. Documentation Update", l: 402, e: 464}
+      - {h: "8. Push and Create PR", l: 465, e: 473}
+      - {h: "Summary", l: 474, e: 476}
+      - {h: "Test Plan", l: 477, e: 487}
+      - {h: "9. Monitor CI", l: 488, e: 535}
+      - {h: "10. Squash Merge", l: 536, e: 565}
+      - {h: "11. Close Related Issues and Epics", l: 566, e: 581}
+      - {h: "12. Update Original Issue", l: 582, e: 592}
+      - {h: "Team Mode Instructions", l: 593, e: 596}
+      - {h: "Policies", l: 597, e: 600}
+      - {h: "Command-Specific Rules", l: 601, e: 608}
+      - {h: "Output", l: 609, e: 615}
+      - {h: "Work Summary", l: 616, e: 628}
+      - {h: "Changes Made", l: 629, e: 631}
+      - {h: "Files Modified", l: 632, e: 635}
+      - {h: "Next Steps", l: 636, e: 642}
+      - {h: "Work Summary (INCOMPLETE)", l: 643, e: 654}
+      - {h: "Action Required", l: 655, e: 660}
+      - {h: "Batch Mode Output", l: 661, e: 664}
+      - {h: "Error Handling", l: 665, e: 668}
+      - {h: "Side Effects and Loop-Safety", l: 669, e: 671}
   - path: "global/skills/_internal/issue-work/reference/batch-mode.md"
     title: "Batch Mode Instructions"
     description: ""

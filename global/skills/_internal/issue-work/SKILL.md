@@ -412,6 +412,56 @@ Commit separately:
 docs(scope): update documentation for <feature>
 ```
 
+### 7.5. Pre-PR Readiness Gate and Documentation-to-Issue Gap Audit
+
+**Mandatory.** This gate runs **after** the implementation and documentation are
+committed to the feature branch and **before** any push or PR. It has two
+halves — a deterministic git-state gate (`scripts/pre-pr-gate.sh`) and an
+agent-driven documentation-to-issue gap audit. The full contract (outcome table,
+develop-refresh rules, conflict rule, base-movement retry rule, gap-ledger
+schema, dispositions, Korean-PR requirement) lives in
+`reference/pre-pr-readiness.md`; do not duplicate it here.
+
+Run the git-state gate from the feature-branch checkout (the `$PROJECT` directory
+entered in Step 3), then branch on its structured outcome:
+
+```bash
+PREPR_JSON=$(bash ~/.claude/skills/_internal/issue-work/scripts/pre-pr-gate.sh \
+  --repo "$ORG/$PROJECT" --base develop --branch "$BRANCH_NAME")
+
+OUTCOME=$(printf '%s' "$PREPR_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["outcome"])')
+REASON=$(printf '%s' "$PREPR_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["reason"])')
+```
+
+**Outcome routing** (the JSON `outcome` field is authoritative):
+
+| `outcome` | Action |
+|-----------|--------|
+| `ready` | The base was refreshed (fast-forwarded or already current) and the feature was integrated cleanly onto a stable base. Run the gap audit below, then continue to Step 8. |
+| `blocked` | **STOP.** Report the `reason` (`dirty_worktree`, `base_ahead`, `base_diverged`, `conflict`, `base_unstable`, `fetch_failed`, ...). Do **NOT** push or open a PR. Resolve the cause per `reference/pre-pr-readiness.md` (e.g. commit impl+docs for `dirty_worktree`; hand-resolve only an unambiguous `conflict`, never guess), then rerun the gate. |
+
+The gate only ever **fast-forwards** the local `develop` when it is strictly
+behind the remote; an `ahead` or `diverged` base is left untouched and blocks —
+it is never reset. Integration defaults to rebase (private branch); pass
+`--integrate merge` for a shared branch. On any conflict the script aborts and
+blocks, leaving the feature branch exactly as it was — the agent may hand-resolve
+**only** verifiably-unambiguous conflicts and must rerun the affected
+verification and the gate before proceeding.
+
+On a `ready` outcome, perform the **documentation-to-issue gap audit** per
+`reference/pre-pr-readiness.md`: index the active issue plus its parent/child and
+linked issues, reconcile each required behavior against implementation, test, and
+documentation evidence, and record a gap ledger. Each row's `disposition` is
+exactly one of `fix-in-pr` (in scope — fix before pushing), `followup-issue`
+(out of scope — file a deduplicated follow-up), `already-satisfied`, or
+`blocked`. Never report "no gap" when issue or documentation retrieval was
+incomplete — treat those rows as `blocked`. Resolve every `fix-in-pr` row and
+rerun the gate before continuing to Step 8.
+
+The PR created in Step 8 must **target `develop`**, be written in **Korean** per
+`reference/pre-pr-readiness.md` (machine tokens — identifiers, paths, URLs, and
+the `Closes #N` keyword — stay ASCII), and **close the active issue**.
+
 ### 8. Push and Create PR
 
 ```bash

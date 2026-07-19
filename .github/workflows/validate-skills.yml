@@ -177,6 +177,9 @@ jobs:
       - name: Run issue-work cleanup/resume tests (#840)
         run: bash tests/issue-work/test-cleanup.sh
 
+      - name: Run issue-work pre-PR readiness gate tests (#831)
+        run: bash tests/issue-work/test-pre-pr-gate.sh
+
       - name: Install pytest for fleet_orchestrator tests
         # pytest is already a transitive dep of jsonschema in some envs; pin
         # explicitly so the runner does not silently fall back to unittest.
