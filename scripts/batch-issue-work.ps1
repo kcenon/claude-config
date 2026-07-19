@@ -18,6 +18,13 @@
 #
 # On any item failure, the batch pauses and exits with a non-zero code so
 # the operator can inspect the log before deciding to continue.
+#
+# Each item's outcome is read from the trailing ISSUE_WORK_RESULT: marker
+# line the skill prints (see SKILL.md "Output" / reference/batch-mode.md
+# B-4.a) rather than the bare exit code: a decomposed/blocked status pauses
+# the batch as an operator hand-off, distinct from a failed status. When no
+# marker is found (older skill or a crash), the script falls back to the
+# previous exit-code-only behavior.
 
 param(
     [Parameter(Mandatory = $true, Position = 0)]
@@ -80,15 +87,59 @@ foreach ($Issue in $IssuesJson) {
     # discarded on exit. --print exits after the turn completes.
     $Prompt = "/issue-work $OrgProject $($Issue.number) --solo"
     & claude --print $Prompt *>$LogFile
+    $ExitCode = $LASTEXITCODE
 
-    if ($LASTEXITCODE -ne 0) {
-        Write-Err "#$($Issue.number) failed (exit $LASTEXITCODE). Pausing batch."
-        Write-Err "Inspect the log before continuing: $LogFile"
-        $FailedItem = "#$($Issue.number)"
-        break
+    # Prefer the structured result marker over the bare exit code -- it
+    # distinguishes a triage pause (decomposed/blocked) from a hard failure.
+    $MarkerMatch = Select-String -Path $LogFile -Pattern 'ISSUE_WORK_RESULT:\s*(.+)$' -ErrorAction SilentlyContinue |
+        Select-Object -Last 1
+    $Status = ''
+    if ($MarkerMatch) {
+        try {
+            $Status = ($MarkerMatch.Matches[0].Groups[1].Value | ConvertFrom-Json).status
+        } catch {
+            $Status = ''
+        }
     }
 
-    Write-Ok "#$($Issue.number) completed"
+    switch ($Status) {
+        'merged' {
+            Write-Ok "#$($Issue.number) merged"
+        }
+        'skipped' {
+            Write-Warn "#$($Issue.number) skipped (deduplicated or closed) -- continuing"
+        }
+        { $_ -in 'decomposed', 'blocked' } {
+            Write-Warn "#$($Issue.number) paused for operator ($Status) -- not a failure, but the batch stops here."
+            Write-Err "Inspect the log and resolve before resuming: $LogFile"
+            $FailedItem = "#$($Issue.number) ($Status)"
+        }
+        'failed' {
+            Write-Err "#$($Issue.number) failed (exit $ExitCode). Pausing batch."
+            Write-Err "Inspect the log before continuing: $LogFile"
+            $FailedItem = "#$($Issue.number)"
+        }
+        '' {
+            # No marker found -- fall back to the exit-code-only behavior
+            # this script used before the marker existed.
+            if ($ExitCode -eq 0) {
+                Write-Ok "#$($Issue.number) completed"
+            } else {
+                Write-Err "#$($Issue.number) failed (exit $ExitCode). Pausing batch."
+                Write-Err "Inspect the log before continuing: $LogFile"
+                $FailedItem = "#$($Issue.number)"
+            }
+        }
+        default {
+            Write-Err "#$($Issue.number) failed (unrecognized status=$Status, exit $ExitCode). Pausing batch."
+            Write-Err "Inspect the log before continuing: $LogFile"
+            $FailedItem = "#$($Issue.number)"
+        }
+    }
+
+    if ($FailedItem) {
+        break
+    }
 }
 
 Write-Host ''
