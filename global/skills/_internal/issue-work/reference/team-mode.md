@@ -37,20 +37,27 @@ loop — sending change requests back to the dev team until quality gates pass.
 
 ### T-1. Setup (Lead executes)
 
-Perform Solo Mode Steps 1-4 (Issue Triage Gate, Size Evaluation, Git Setup,
+Perform Solo Mode Steps 1-4 (Issue Triage Gate, isolated workspace clone,
 Assignment). These steps require sequential execution and must complete before
 parallelization.
 
-**Triage gate first**: Step 1 runs the shared triage state machine
-(`scripts/triage.sh`, see `reference/triage-state-machine.md`). Only a triage
-`proceed` outcome justifies creating a team. If the gate returns `decomposed`,
-`blocked`, `skipped`, or `failed`, do **not** create the team, spawn teammates,
-or create a branch — report the terminal outcome and stop. Team setup is a
-repository side effect and is gated behind `proceed` exactly like the clone and
-branch (issue #829 AC9).
+**Ordering: triage -> workspace.sh -> agents.** Step 1 runs the shared triage
+state machine (`scripts/triage.sh`, see `reference/triage-state-machine.md`).
+Only a triage `proceed` outcome justifies creating a team. If the gate returns
+`decomposed`, `blocked`, `skipped`, or `failed`, do **not** create the team,
+spawn teammates, or create a branch — report the terminal outcome and stop.
+
+On `proceed`, Step 3 clones the workspace via `scripts/workspace.sh` (see
+`reference/workspace-lifecycle.md`) **before any teammate is created**,
+capturing `repo_dir`, `baseline`, and `manifest` from its `READY` JSON. A
+`REJECTED` clone (origin identity mismatch or clone failure) is equally
+terminal — report the `reason` and stop. Team creation, teammate spawn, and
+branch creation are repository side effects gated behind **both** a triage
+`proceed` **and** a successful (`READY`) clone (issue #829 AC9).
 
 Prepare shared context for all teammates:
 - `$ORG`, `$PROJECT`, `$ISSUE_NUMBER`, `$BRANCH_NAME`, `$BRANCH_TYPE`
+- `$REPO_DIR`, `$BASELINE` (from `workspace.sh`), and the write scope each teammate is granted
 - Issue body and acceptance criteria (fetched via `gh issue view`)
 
 ### T-2. Create Team and Tasks
@@ -85,6 +92,19 @@ Create tasks with dependencies:
 
 ### T-3. Spawn Teammates
 
+Each teammate's prompt is built by `agents_build_prompt <repo_path> <issue>
+<branch> <baseline> <write_scope>` (`scripts/agents.sh`, see
+`reference/workspace-lifecycle.md`, the #839 sections) rather than hand-typed
+per role. This guarantees every teammate prompt carries the normalized
+absolute repository path (`$REPO_DIR` from `scripts/workspace.sh`), the active
+issue, the target branch, the baseline commit, and that teammate's write
+scope, plus the fixed ownership/prohibition clause (the coordinator owns all
+git/GitHub mutations). Each role's responsibility list below is appended to
+that generated base prompt as its `write_scope` / role framing — the base
+prompt is never hand-written per role. (The reviewer role remains the Lead's
+designated exception for push + PR creation in Task 11 below — an existing
+Team Mode responsibility that predates this prompt-generation change.)
+
 **Dev Team** (implementation + fixes):
 
 ```
@@ -92,8 +112,9 @@ Agent(
   name="dev",
   team_name="issue-$ISSUE_NUMBER",
   subagent_type="general-purpose",
-  prompt="You are the development team for issue #$ISSUE_NUMBER in $ORG/$PROJECT.
-    Branch: $BRANCH_NAME
+  prompt=agents_build_prompt("$REPO_DIR", "$ISSUE_NUMBER", "$BRANCH_NAME", "$BASELINE",
+    "source and test files required to implement issue #$ISSUE_NUMBER") + "
+
     Repository: https://github.com/$ORG/$PROJECT
 
     Your responsibilities:
@@ -131,8 +152,9 @@ Agent(
   name="reviewer",
   team_name="issue-$ISSUE_NUMBER",
   subagent_type="general-purpose",
-  prompt="You are the review team for issue #$ISSUE_NUMBER in $ORG/$PROJECT.
-    Branch: $BRANCH_NAME
+  prompt=agents_build_prompt("$REPO_DIR", "$ISSUE_NUMBER", "$BRANCH_NAME", "$BASELINE",
+    "PR title/body and review comment text (push and PR creation are this role's Task 11 exception, see above)") + "
+
     Repository: https://github.com/$ORG/$PROJECT
 
     Your responsibilities:
@@ -177,8 +199,9 @@ Agent(
   name="doc-writer",
   team_name="issue-$ISSUE_NUMBER",
   subagent_type="general-purpose",
-  prompt="You are the documentation team for issue #$ISSUE_NUMBER in $ORG/$PROJECT.
-    Branch: $BRANCH_NAME
+  prompt=agents_build_prompt("$REPO_DIR", "$ISSUE_NUMBER", "$BRANCH_NAME", "$BASELINE",
+    "README.md, CHANGELOG.md, API docs, and code comments in files touched by the implementation") + "
+
     Repository: https://github.com/$ORG/$PROJECT
 
     Your responsibilities:
@@ -251,7 +274,8 @@ Reviewer has findings?
 2. Lead monitors CI (Task 12): non-blocking polling, 30s intervals, 10min max
 3. On all checks pass: `gh pr merge $PR_NUMBER --repo $ORG/$PROJECT --squash --delete-branch`
 4. Close related issues and epics (Steps 11-12 from Solo Mode)
-5. Post implementation comment to issue
+5. Post implementation comment to issue (Step 12)
+6. Tear down the workspace (Step 13 / T-6)
 
 ### T-5. CI Failure Handling
 
@@ -274,6 +298,13 @@ SendMessage(to="doc-writer", message={type: "shutdown_request"})
 # Delete team
 TeamDelete()
 ```
+
+After merge and issue/epic closure (Solo Steps 11-12), tear down the isolated
+workspace claimed in T-1 the same way Solo Step 13 does: run
+`scripts/cleanup-workspace.sh --phase reconcile` then `--phase cleanup`
+against `$REPO_DIR` / `$MANIFEST` (see `reference/workspace-lifecycle.md`, the
+#840 sections). A `PRESERVED` result is not a failure — report the reason and
+leave the run root on disk.
 
 ### T-Error. Team Mode Fallback
 

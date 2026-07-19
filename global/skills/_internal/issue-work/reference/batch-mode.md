@@ -60,6 +60,28 @@ Apply filters:
 
 If no issues found after filtering, report "No open issues found matching criteria" and exit.
 
+### B-1.5. Active-Issue Deduplication
+
+Triage resolves a `requested` issue to an `active` issue (a parent can resolve
+to a child — see `reference/triage-state-machine.md`). Because the batch plan
+is built from `requested` issue numbers before any item runs triage, two
+different requested issues can resolve to the same `active` child. The batch
+maintains a seen-set of `active` issue numbers as items are dispatched:
+
+- Before (or at) dispatch, if a queued item's triage resolves to an `active`
+  issue number already in the seen-set, mark that item `skipped` with reason
+  `"deduplicated: active #N already handled"` and do **not** dispatch a
+  second subagent for it.
+- Add each dispatched item's `active` value to the seen-set as soon as its
+  triage outcome is known (`proceed`, `decomposed`, `blocked`, and `skipped`
+  all populate `active`/`root` — add whichever the outcome carries).
+- This is a batch-level optimization, not the sole safety mechanism: the
+  triage claim mechanism (issue assignment + re-verification,
+  `reference/triage-state-machine.md` "Claim race handling") is the backstop
+  that prevents two runs from actually working the same issue concurrently.
+  Deduplicating explicitly here avoids wasting a subagent dispatch on an item
+  that triage would reject anyway.
+
 ### B-2. Auto Size/Mode Estimation per Item
 
 For each issue in the batch, estimate size and decide solo vs team **without prompting the user**.
@@ -130,9 +152,15 @@ Process each item one at a time. The default dispatch strategy is **subagent del
 
 ```
 PROCESSED=0
-RESULTS=[]   # Parent-side queue: only {item_id, repo, title, mode, status, pr_url, ci_conclusion}
+RESULTS=[]   # Parent-side queue: {item_id, repo, title, mode, status, requested, root, active, pr_url, ci_conclusion}
+SEEN_ACTIVE=[]  # Active-issue dedup set (see B-1.5)
 
 for each item in approved batch plan:
+    0. Dedup check (B-1.5): if this item's triage would resolve to an `active`
+       already in SEEN_ACTIVE, mark it `skipped` ("deduplicated: active #N
+       already handled"), append to RESULTS, and continue to the next item
+       without dispatching a subagent.
+
     1. Log progress: "[N/TOTAL] Dispatching: $REPO #$ISSUE_NUMBER — $TITLE ($MODE)"
 
     2. Delegate the full single-item workflow to a fresh subagent:
@@ -150,32 +178,43 @@ for each item in approved batch plan:
                - Branch: feature off develop, squash merge back via PR
                - 3-fail rule: stop and propose alternatives after 3 identical failures
 
-               Run Solo Mode Steps 1-12 (or Team Mode T-1 through T-6 for team mode). If team
+               Run Solo Mode Steps 1-13 (or Team Mode T-1 through T-6 for team mode). If team
                mode, you MUST call TeamDelete() after completing the item.
 
                The single-item workflow begins with the Issue Triage Gate
-               (Solo Step 1 / Team T-1). Only a triage `proceed` outcome leads
-               to code work and a possible merge; `decomposed`, `blocked`,
-               `skipped`, and `failed` are terminal with no branch or PR.
+               (Solo Step 1 / Team T-1), whose outcome JSON already carries
+               `requested`/`root`/`active` (reference/triage-state-machine.md).
+               Only a triage `proceed` outcome leads to code work and a
+               possible merge; `decomposed`, `blocked`, `skipped`, and
+               `failed` are terminal with no branch or PR.
 
                Report under 100 words as a single JSON line. The status MUST
-               reflect the triage outcome when work did not proceed:
+               reflect the triage outcome when work did not proceed, and
+               requested/root/active MUST echo the triage outcome's values:
                {"item": "$REPO#$ISSUE_NUMBER", "status": "merged|decomposed|blocked|skipped|failed",
+                "requested": "<n>", "root": "<n>", "active": "<n>",
                 "pr_url": "https://github.com/...", "ci_conclusion": "success|failure|timeout",
                 "reason": "<short reason if not merged>"}
            """
        )
 
-    3. Parse the subagent's final JSON line and append it to RESULTS.
+    3. Parse the subagent's final JSON line, append it to RESULTS, and add
+       its `active` (or `root` if `active` is empty) to SEEN_ACTIVE.
        Do NOT retain the full subagent transcript — the 100-word summary IS the parent-side record.
 
-    4. Write batch progress to .claude/resume.md (for session recovery)
+    4. Pause condition: if `status` is `decomposed` or `blocked`, this is an
+       operator pause, not a per-item failure. Call `write_resume_md_for_batch`,
+       surface the item (repo, issue, status, reason) to the operator, and
+       STOP — do not dispatch any further items in this run. A decomposed or
+       blocked item is never tallied as merged (see B-5).
 
-    5. Log completion: "[N/TOTAL] Completed: $REPO #$ISSUE_NUMBER — $status"
+    5. Write batch progress to .claude/resume.md (for session recovery)
 
-    6. Pause 2 seconds between items (rate limiting)
+    6. Log completion: "[N/TOTAL] Completed: $REPO #$ISSUE_NUMBER — $status"
 
-    7. PROCESSED=$((PROCESSED + 1))
+    7. Pause 2 seconds between items (rate limiting)
+
+    8. PROCESSED=$((PROCESSED + 1))
        Chunked confirmation gate (see B-4.1) — fires every CONFIRM_INTERVAL
        items and only when more items remain.
 ```
@@ -204,7 +243,7 @@ for each item in approved batch plan:
        - $EXEC_MODE from estimated mode (solo or team)
 
     3. Execute the single-item workflow directly in the parent context:
-       - If solo: run Solo Mode Steps 1-12
+       - If solo: run Solo Mode Steps 1-13
        - If team: run Team Mode Steps T-1 through T-6
        Ensure TeamDelete() is called after each team-mode item.
 
@@ -286,7 +325,7 @@ fi
 
 **Why `--auto-restart` goes further**: An interactive gate still runs inside the same Claude process, so accumulated tool results (gh outputs, build logs, diffs) remain in the context window even after the user clicks "Continue". `--auto-restart` ends the process entirely: a fresh `claude` session starts with an empty tool-result history, the full CLAUDE.md and skill files reloaded at position zero, and resumes work from `resume.md`. This is the strongest context cleanup available short of spawning a separate OS process per item.
 
-**Resume state on pause or auto-restart**: Both `Pause` (interactive) and `--auto-restart` call `write_resume_md_for_batch`, which writes `.claude/resume.md` using the **Batch Workflow Resume Format** described in `workflow/reference/session-resume-templates.md`. The file must include the per-item progress table so a future session can distinguish `DONE`, `IN PROGRESS`, and `PENDING` items and pick up at `$((PROCESSED + 1))`.
+**Resume state on pause or auto-restart**: Both `Pause` (interactive), `--auto-restart`, and the B-4.a pause condition (step 4, a `decomposed`/`blocked` item) call `write_resume_md_for_batch`, which writes `.claude/resume.md` using the **Batch Workflow Resume Format** described in `workflow/reference/session-resume-templates.md`. The file must include the per-item progress table so a future session can distinguish `DONE`, `IN PROGRESS`, and `PENDING` items and pick up at `$((PROCESSED + 1))`. Each row of `${BATCH_PROGRESS_TABLE}` carries the item's `requested`/`root`/`active` triple (from RESULTS, step 3) alongside `#`/`Repo`/`Issue`/`Mode`/`Status`, so a resumed session can tell which issue was actually claimed versus requested without re-running triage.
 
 Minimal shape of `write_resume_md_for_batch`:
 
@@ -365,6 +404,9 @@ After all items are processed, present a summary:
 result means the batch produced child issues (the children may be picked up in a
 later run) — it is **not** a merge and must never be tallied as one. `Blocked`
 and `Skipped` are neither successes nor failures; surface them so the operator
-can act on the blocker or confirm the skip.
+can act on the blocker or confirm the skip. A `Decomposed` or `Blocked` item
+**pauses** the batch (B-4.a step 4): processing stops at that item, resume
+state is written, and no further items are dispatched in the same run —
+neither result is silently passed over.
 
 Delete `.claude/resume.md` after successful batch completion.

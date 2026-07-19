@@ -59,6 +59,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   close the active issue, and use a Korean title and body. The contract is
   documented in `reference/pre-pr-readiness.md` and covered by a bare-remote
   unit suite in `tests/issue-work/test-pre-pr-gate.sh` (#831).
+- `issue-work` now invokes the triage state machine, isolated-workspace
+  lifecycle, and pre-PR readiness gate from the actual solo, team, batch, and
+  external-orchestrator paths, so the standalone scripts added in #829, #830,
+  and #831 run in order instead of existing unused. Solo and team setup clone
+  through `scripts/workspace.sh` and tear down through
+  `scripts/cleanup-workspace.sh` instead of an in-place checkout; team
+  teammates are spawned only after the clone, with prompts built by the
+  `agents.sh` `agents_build_prompt` contract so each carries the absolute
+  repository path, active issue, baseline commit, and write scope; batch
+  results and resume state record the triage `requested`/`root`/`active`
+  triple, deduplicate by the resolved active issue, and pause on a decomposed
+  or blocked item instead of counting it as merged; and the Bash and
+  PowerShell batch orchestrators branch on a structured `ISSUE_WORK_RESULT:`
+  result marker rather than the process exit code alone. The triage,
+  workspace, and pre-PR gates are documented as mandatory in every
+  skill-loading tier, including `light` (#845).
 
 ### Fixed
 

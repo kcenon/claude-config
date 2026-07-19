@@ -10,29 +10,29 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 22527
+    size: 23659
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "[Unreleased]", l: 8, e: 9}
-      - {h: "Added", l: 10, e: 62}
-      - {h: "Fixed", l: 63, e: 86}
-      - {h: "1.11.0 - 2026-07-03", l: 87, e: 88}
-      - {h: "Fixed", l: 89, e: 102}
-      - {h: "Security", l: 103, e: 180}
-      - {h: "Added", l: 181, e: 209}
-      - {h: "Changed", l: 210, e: 256}
-      - {h: "1.10.0 - 2026-04-20", l: 257, e: 265}
-      - {h: "1.9.0 - 2026-04-13", l: 266, e: 275}
-      - {h: "1.8.0 - 2026-04-13", l: 276, e: 281}
-      - {h: "1.7.0 - 2026-04-06", l: 282, e: 296}
-      - {h: "1.6.0 - 2026-04-03", l: 297, e: 309}
-      - {h: "1.5.0 - 2026-03-21", l: 310, e: 328}
-      - {h: "1.4.0 - 2026-01-22", l: 329, e: 334}
-      - {h: "1.3.0 - 2026-01-15", l: 335, e: 343}
-      - {h: "1.2.0 - 2026-01-15", l: 344, e: 352}
-      - {h: "1.1.0 - 2025-01-15", l: 353, e: 363}
-      - {h: "1.0.0 - 2025-12-03", l: 364, e: 370}
+      - {h: "Added", l: 10, e: 78}
+      - {h: "Fixed", l: 79, e: 102}
+      - {h: "1.11.0 - 2026-07-03", l: 103, e: 104}
+      - {h: "Fixed", l: 105, e: 118}
+      - {h: "Security", l: 119, e: 196}
+      - {h: "Added", l: 197, e: 225}
+      - {h: "Changed", l: 226, e: 272}
+      - {h: "1.10.0 - 2026-04-20", l: 273, e: 281}
+      - {h: "1.9.0 - 2026-04-13", l: 282, e: 291}
+      - {h: "1.8.0 - 2026-04-13", l: 292, e: 297}
+      - {h: "1.7.0 - 2026-04-06", l: 298, e: 312}
+      - {h: "1.6.0 - 2026-04-03", l: 313, e: 325}
+      - {h: "1.5.0 - 2026-03-21", l: 326, e: 344}
+      - {h: "1.4.0 - 2026-01-22", l: 345, e: 350}
+      - {h: "1.3.0 - 2026-01-15", l: 351, e: 359}
+      - {h: "1.2.0 - 2026-01-15", l: 360, e: 368}
+      - {h: "1.1.0 - 2025-01-15", l: 369, e: 379}
+      - {h: "1.0.0 - 2025-12-03", l: 380, e: 386}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -2808,76 +2808,76 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 31505
+    size: 36385
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 36, e: 51}
       - {h: "Arguments", l: 52, e: 93}
       - {h: "Argument Parsing", l: 94, e: 169}
-      - {h: "Instructions", l: 170, e: 171}
-      - {h: "Mode Routing", l: 172, e: 178}
-      - {h: "Batch Mode Instructions", l: 179, e: 190}
-      - {h: "Phase 0: Execution Mode Selection (Single-Item Mode)", l: 191, e: 194}
-      - {h: "0-1. If `--solo` or `--team` flag was provided", l: 195, e: 198}
-      - {h: "0-2. If no flag was provided (interactive selection)", l: 199, e: 231}
-      - {h: "0-3. Mode Routing", l: 232, e: 238}
-      - {h: "Solo Mode Instructions", l: 239, e: 242}
-      - {h: "1. Issue Triage Gate (state machine)", l: 243, e: 284}
-      - {h: "3. Git Environment Setup", l: 285, e: 314}
-      - {h: "4. Issue Assignment", l: 315, e: 320}
-      - {h: "5. Code Implementation", l: 321, e: 343}
-      - {h: "6. Build and Test Verification", l: 344, e: 348}
-      - {h: "Toolchain Availability Check", l: 349, e: 364}
-      - {h: "Strategy Selection", l: 365, e: 373}
-      - {h: "Inline Strategy (short builds)", l: 374, e: 382}
-      - {h: "Background + Log Polling Strategy (long builds)", l: 383, e: 391}
-      - {h: "On Build/Test Failure", l: 392, e: 401}
-      - {h: "7. Documentation Update", l: 402, e: 464}
-      - {h: "8. Push and Create PR", l: 465, e: 473}
-      - {h: "Summary", l: 474, e: 476}
-      - {h: "Test Plan", l: 477, e: 487}
-      - {h: "9. Monitor CI", l: 488, e: 535}
-      - {h: "10. Squash Merge", l: 536, e: 565}
-      - {h: "11. Close Related Issues and Epics", l: 566, e: 581}
-      - {h: "12. Update Original Issue", l: 582, e: 592}
-      - {h: "Team Mode Instructions", l: 593, e: 596}
-      - {h: "Policies", l: 597, e: 600}
-      - {h: "Command-Specific Rules", l: 601, e: 608}
-      - {h: "Output", l: 609, e: 615}
-      - {h: "Work Summary", l: 616, e: 628}
-      - {h: "Changes Made", l: 629, e: 631}
-      - {h: "Files Modified", l: 632, e: 635}
-      - {h: "Next Steps", l: 636, e: 642}
-      - {h: "Work Summary (INCOMPLETE)", l: 643, e: 654}
-      - {h: "Action Required", l: 655, e: 660}
-      - {h: "Batch Mode Output", l: 661, e: 664}
-      - {h: "Error Handling", l: 665, e: 668}
-      - {h: "Side Effects and Loop-Safety", l: 669, e: 671}
+      - {h: "Instructions", l: 170, e: 178}
+      - {h: "Mode Routing", l: 179, e: 185}
+      - {h: "Batch Mode Instructions", l: 186, e: 197}
+      - {h: "Phase 0: Execution Mode Selection (Single-Item Mode)", l: 198, e: 201}
+      - {h: "0-1. If `--solo` or `--team` flag was provided", l: 202, e: 205}
+      - {h: "0-2. If no flag was provided (interactive selection)", l: 206, e: 238}
+      - {h: "0-3. Mode Routing", l: 239, e: 245}
+      - {h: "Solo Mode Instructions", l: 246, e: 249}
+      - {h: "1. Issue Triage Gate (state machine)", l: 250, e: 298}
+      - {h: "3. Git Environment Setup", l: 299, e: 355}
+      - {h: "4. Issue Assignment", l: 356, e: 361}
+      - {h: "5. Code Implementation", l: 362, e: 384}
+      - {h: "6. Build and Test Verification", l: 385, e: 389}
+      - {h: "Toolchain Availability Check", l: 390, e: 405}
+      - {h: "Strategy Selection", l: 406, e: 414}
+      - {h: "Inline Strategy (short builds)", l: 415, e: 423}
+      - {h: "Background + Log Polling Strategy (long builds)", l: 424, e: 432}
+      - {h: "On Build/Test Failure", l: 433, e: 442}
+      - {h: "7. Documentation Update", l: 443, e: 505}
+      - {h: "8. Push and Create PR", l: 506, e: 514}
+      - {h: "Summary", l: 515, e: 517}
+      - {h: "Test Plan", l: 518, e: 528}
+      - {h: "9. Monitor CI", l: 529, e: 576}
+      - {h: "10. Squash Merge", l: 577, e: 606}
+      - {h: "11. Close Related Issues and Epics", l: 607, e: 622}
+      - {h: "12. Update Original Issue", l: 623, e: 656}
+      - {h: "Team Mode Instructions", l: 657, e: 660}
+      - {h: "Policies", l: 661, e: 664}
+      - {h: "Command-Specific Rules", l: 665, e: 672}
+      - {h: "Output", l: 673, e: 699}
+      - {h: "Work Summary", l: 700, e: 712}
+      - {h: "Changes Made", l: 713, e: 715}
+      - {h: "Files Modified", l: 716, e: 719}
+      - {h: "Next Steps", l: 720, e: 728}
+      - {h: "Work Summary (INCOMPLETE)", l: 729, e: 740}
+      - {h: "Action Required", l: 741, e: 748}
+      - {h: "Batch Mode Output", l: 749, e: 752}
+      - {h: "Error Handling", l: 753, e: 756}
+      - {h: "Side Effects and Loop-Safety", l: 757, e: 759}
   - path: "global/skills/_internal/issue-work/reference/batch-mode.md"
     title: "Batch Mode Instructions"
     description: ""
     category: reference
     scope: global
-    size: 18576
+    size: 21497
     tags: [global,reference,skill]
     sections:
       - {h: "B-0. Batch Discovery", l: 10, e: 41}
-      - {h: "B-1. Global Priority Sorting and Filtering", l: 42, e: 62}
-      - {h: "B-2. Auto Size/Mode Estimation per Item", l: 63, e: 79}
-      - {h: "B-3. Batch Plan Summary and Approval", l: 80, e: 84}
-      - {h: "Batch Plan: issue-work", l: 85, e: 105}
-      - {h: "B-4.0. Per-Item Rule Reminder", l: 106, e: 124}
-      - {h: "B-4. Sequential Execution Loop", l: 125, e: 128}
-      - {h: "B-4.a. Default — Subagent Delegation", l: 129, e: 188}
-      - {h: "B-4.b. Legacy — Inline Execution (`--inline` flag)", l: 189, e: 228}
-      - {h: "B-4.c. Delegation vs Inline Trade-offs", l: 229, e: 242}
-      - {h: "B-4.1. Chunked Confirmation Gate", l: 243, e: 301}
-      - {h: "Batch Context", l: 302, e: 310}
-      - {h: "Batch Progress", l: 311, e: 314}
-      - {h: "Next Action", l: 315, e: 339}
-      - {h: "B-5. Batch Summary Report", l: 340, e: 344}
-      - {h: "Batch Execution Summary", l: 345, e: 359}
-      - {h: "Failed Items", l: 360, e: 370}
+      - {h: "B-1. Global Priority Sorting and Filtering", l: 42, e: 84}
+      - {h: "B-2. Auto Size/Mode Estimation per Item", l: 85, e: 101}
+      - {h: "B-3. Batch Plan Summary and Approval", l: 102, e: 106}
+      - {h: "Batch Plan: issue-work", l: 107, e: 127}
+      - {h: "B-4.0. Per-Item Rule Reminder", l: 128, e: 146}
+      - {h: "B-4. Sequential Execution Loop", l: 147, e: 150}
+      - {h: "B-4.a. Default — Subagent Delegation", l: 151, e: 227}
+      - {h: "B-4.b. Legacy — Inline Execution (`--inline` flag)", l: 228, e: 267}
+      - {h: "B-4.c. Delegation vs Inline Trade-offs", l: 268, e: 281}
+      - {h: "B-4.1. Chunked Confirmation Gate", l: 282, e: 340}
+      - {h: "Batch Context", l: 341, e: 349}
+      - {h: "Batch Progress", l: 350, e: 353}
+      - {h: "Next Action", l: 354, e: 378}
+      - {h: "B-5. Batch Summary Report", l: 379, e: 383}
+      - {h: "Batch Execution Summary", l: 384, e: 398}
+      - {h: "Failed Items", l: 399, e: 412}
   - path: "global/skills/_internal/issue-work/reference/error-handling.md"
     title: "Error Handling"
     description: ""
@@ -2895,17 +2895,17 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 12142
+    size: 14240
     tags: [global,reference,skill]
     sections:
       - {h: "Team Architecture", l: 14, e: 37}
-      - {h: "T-1. Setup (Lead executes)", l: 38, e: 55}
-      - {h: "T-2. Create Team and Tasks", l: 56, e: 85}
-      - {h: "T-3. Spawn Teammates", l: 86, e: 202}
-      - {h: "T-4. Workflow Phases (Lead coordinates)", l: 203, e: 255}
-      - {h: "T-5. CI Failure Handling", l: 256, e: 265}
-      - {h: "T-6. Cleanup", l: 266, e: 277}
-      - {h: "T-Error. Team Mode Fallback", l: 278, e: 287}
+      - {h: "T-1. Setup (Lead executes)", l: 38, e: 62}
+      - {h: "T-2. Create Team and Tasks", l: 63, e: 92}
+      - {h: "T-3. Spawn Teammates", l: 93, e: 225}
+      - {h: "T-4. Workflow Phases (Lead coordinates)", l: 226, e: 279}
+      - {h: "T-5. CI Failure Handling", l: 280, e: 289}
+      - {h: "T-6. Cleanup", l: 290, e: 308}
+      - {h: "T-Error. Team Mode Fallback", l: 309, e: 318}
   - path: "global/skills/_internal/issue-work/reference/triage-state-machine.md"
     title: "Triage State Machine"
     description: ""

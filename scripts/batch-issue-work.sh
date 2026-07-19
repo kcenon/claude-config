@@ -19,6 +19,13 @@
 # On any item failure, the batch pauses and exits non-zero so the operator
 # can inspect the log before deciding to continue. Successful items are NOT
 # rolled back — reruns should skip already-merged issues by inspecting state.
+#
+# Each item's outcome is read from the trailing ISSUE_WORK_RESULT: marker
+# line the skill prints (see SKILL.md "Output" / reference/batch-mode.md
+# B-4.a) rather than the bare process exit code: a `decomposed`/`blocked`
+# status pauses the batch as an operator hand-off, distinct from a `failed`
+# status. When no marker is found (older skill or a crash), the script falls
+# back to the previous exit-code-only behavior.
 
 set -euo pipefail
 
@@ -92,16 +99,62 @@ while IFS=$'\t' read -r ISSUE_NUMBER ISSUE_TITLE; do
 
     # Each item runs in a fresh claude process so its context state is
     # discarded on exit. --print exits after the turn completes.
-    if claude --print "/issue-work ${ORG_PROJECT} ${ISSUE_NUMBER} --solo" \
-        >"$LOG_FILE" 2>&1; then
-        success "#${ISSUE_NUMBER} completed"
-    else
-        EXIT_CODE=$?
-        error "#${ISSUE_NUMBER} failed (exit ${EXIT_CODE}). Pausing batch."
-        error "Inspect the log before continuing: ${LOG_FILE}"
-        FAILED_ITEM="#${ISSUE_NUMBER}"
-        break
+    # `|| EXIT_CODE=$?` captures claude's real exit status. An `if ! claude`
+    # guard would instead leave $? as the negation result (0), so a crash with
+    # no marker would be misread as success in the fallback branch below.
+    EXIT_CODE=0
+    claude --print "/issue-work ${ORG_PROJECT} ${ISSUE_NUMBER} --solo" \
+        >"$LOG_FILE" 2>&1 || EXIT_CODE=$?
+
+    # Prefer the structured result marker over the bare exit code -- it
+    # distinguishes a triage pause (decomposed/blocked) from a hard failure.
+    # `|| true` so "no marker found" (older skill or a crash) does not abort
+    # the script under set -e/pipefail.
+    MARKER_LINE=$(grep -o 'ISSUE_WORK_RESULT:.*' "$LOG_FILE" 2>/dev/null | tail -n1 || true)
+    STATUS=""
+    if [[ -n "$MARKER_LINE" ]]; then
+        STATUS=$(printf '%s' "$MARKER_LINE" | sed -E 's/^ISSUE_WORK_RESULT:[[:space:]]*//' \
+            | python3 -c 'import json,sys;print(json.load(sys.stdin).get("status",""))' 2>/dev/null || true)
     fi
+
+    case "$STATUS" in
+        merged)
+            success "#${ISSUE_NUMBER} merged"
+            ;;
+        skipped)
+            warning "#${ISSUE_NUMBER} skipped (deduplicated or closed) — continuing"
+            ;;
+        decomposed|blocked)
+            warning "#${ISSUE_NUMBER} paused for operator (${STATUS}) — not a failure, but the batch stops here."
+            error "Inspect the log and resolve before resuming: ${LOG_FILE}"
+            FAILED_ITEM="#${ISSUE_NUMBER} (${STATUS})"
+            break
+            ;;
+        failed)
+            error "#${ISSUE_NUMBER} failed (exit ${EXIT_CODE}). Pausing batch."
+            error "Inspect the log before continuing: ${LOG_FILE}"
+            FAILED_ITEM="#${ISSUE_NUMBER}"
+            break
+            ;;
+        "")
+            # No marker found -- fall back to the exit-code-only behavior
+            # this script used before the marker existed.
+            if [[ "$EXIT_CODE" -eq 0 ]]; then
+                success "#${ISSUE_NUMBER} completed"
+            else
+                error "#${ISSUE_NUMBER} failed (exit ${EXIT_CODE}). Pausing batch."
+                error "Inspect the log before continuing: ${LOG_FILE}"
+                FAILED_ITEM="#${ISSUE_NUMBER}"
+                break
+            fi
+            ;;
+        *)
+            error "#${ISSUE_NUMBER} failed (unrecognized status=${STATUS}, exit ${EXIT_CODE}). Pausing batch."
+            error "Inspect the log before continuing: ${LOG_FILE}"
+            FAILED_ITEM="#${ISSUE_NUMBER}"
+            break
+            ;;
+    esac
 done <<< "$ISSUES"
 
 echo

@@ -169,6 +169,13 @@ fi
 
 ## Instructions
 
+**Gates are tier-independent.** The triage gate (Step 1 / T-1), the isolated
+workspace lifecycle (Step 3 clone and the Step 13 teardown), and the pre-PR
+readiness gate (Step 7.5) are MANDATORY and run in every tier, including
+`light`. The frontmatter `tiers.<name>.deep_checks` and `ref_docs` only
+control which OPTIONAL reference docs auto-load and whether the extra deep
+checks run — they never disable these three gates.
+
 ### Mode Routing
 
 - If `$BATCH_MODE == "single-repo"` or `$BATCH_MODE == "cross-repo"` → Execute **Batch Mode Instructions** below
@@ -181,7 +188,7 @@ fi
 See `reference/batch-mode.md` for the complete batch mode workflow including discovery, priority sorting, plan approval, and sequential execution.
 
 **Batch-only behaviors** (do not apply in single-item mode):
-- **Subagent delegation by default** (B-4): each item is dispatched to a fresh `general-purpose` Agent so it starts with an unpolluted attention pool. The parent retains only `{item_id, status, pr_url, ci_conclusion}` per item. Pass `--inline` to fall back to the legacy single-context loop.
+- **Subagent delegation by default** (B-4): each item is dispatched to a fresh `general-purpose` Agent so it starts with an unpolluted attention pool. The parent retains only `{item_id, status, requested, root, active, pr_url, ci_conclusion}` per item. Pass `--inline` to fall back to the legacy single-context loop.
 - **Per-item rule reminder** (B-4.0): a 5-line invariant block is emitted as a fresh tool result before each item so language/CI/attribution rules stay in the recent attention window. In delegated mode this reminder is embedded in the subagent prompt; in `--inline` mode it is emitted directly in the parent context.
 - **No `@load: reference/...` inside the per-item loop**: keep the inline reminder as the most recent context anchor.
 - **Chunked confirmation gate** (B-4.1): user confirmation prompt every 5 items, bypassable with `--no-confirm`. When `--auto-restart` is set (and `--no-restart` is not), the gate is replaced by a forced session restart that writes `.claude/resume.md` and exits; a fresh `claude` session resumes from the next item.
@@ -231,7 +238,7 @@ Store the result in `$EXEC_MODE` (solo | team).
 
 #### 0-3. Mode Routing
 
-- If `$EXEC_MODE == "solo"` → Execute **Solo Mode Instructions** (Steps 1-12 below)
+- If `$EXEC_MODE == "solo"` → Execute **Solo Mode Instructions** (Steps 1-13 below)
 - If `$EXEC_MODE == "team"` → Execute **Team Mode Instructions** (after Solo Mode section)
 
 ---
@@ -256,6 +263,8 @@ TRIAGE_JSON=$(bash ~/.claude/skills/_internal/issue-work/scripts/triage.sh \
   --repo "$ORG/$PROJECT" ${ISSUE_NUMBER:+--issue "$ISSUE_NUMBER"} ${PLAN_FILE:+--plan-file "$PLAN_FILE"})
 
 OUTCOME=$(printf '%s' "$TRIAGE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["outcome"])')
+REQUESTED_ISSUE=$(printf '%s' "$TRIAGE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["requested"])')
+ROOT_ISSUE=$(printf '%s' "$TRIAGE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["root"])')
 ISSUE_NUMBER=$(printf '%s' "$TRIAGE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["active"])')
 ```
 
@@ -268,6 +277,11 @@ ISSUE_NUMBER=$(printf '%s' "$TRIAGE_JSON" | python3 -c 'import json,sys;print(js
 | `blocked` | The issue has an unresolved blocker (comment posted only if the blocker state changed), or the issue fetch failed identically three times. **Stop** — no clone, no branch. |
 | `skipped` | The issue was closed, reassigned, or every child lost a claim race. **Stop.** |
 | `failed` | Cycle/depth guard tripped, or `needs_plan` (oversized issue, no children, no `--plan-file`). A `needs_plan` reason means "design a plan and re-invoke with `--plan-file`", not a hard error. **Stop and report.** |
+
+Every **Stop** row above still ends the invocation by printing the
+`ISSUE_WORK_RESULT:` marker (see Output) as its last line — `status` matches
+the `outcome` value, `requested`/`root` come from `$REQUESTED_ISSUE`/
+`$ROOT_ISSUE` above, and `pr_url` is `null`.
 
 Only `proceed` continues into code work. The other four outcomes are terminal
 for this invocation and perform no repository side effects — this is what lets a
@@ -284,11 +298,38 @@ children and never posts a second summary (AC6).
 
 ### 3. Git Environment Setup
 
-```bash
-cd $PROJECT
-git fetch origin
-git checkout develop && git pull origin develop
+Git setup clones through the isolated-workspace stage (`scripts/workspace.sh`)
+instead of an in-place checkout of `$PROJECT` — every run gets a private,
+identity-verified clone rather than mutating a shared working copy. See
+`reference/workspace-lifecycle.md` for the full contract (run-root layout,
+manifest schema, identity-verification rule); this step only invokes it.
 
+```bash
+WORKSPACE_JSON=$(bash ~/.claude/skills/_internal/issue-work/scripts/workspace.sh \
+  --repo "$ORG/$PROJECT" --base "${TMPDIR:-/tmp}" --issue "$ISSUE_NUMBER")
+
+WS_STATE=$(printf '%s' "$WORKSPACE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["state"])')
+```
+
+**Outcome routing** (the JSON `state` field is authoritative):
+
+| `state` | Action |
+|---------|--------|
+| `READY` | Capture `repo_dir`, `baseline`, `manifest` below and continue. |
+| `REJECTED` | **Stop.** Report the `reason` (clone failure or origin identity mismatch). No branch, no code work. |
+
+```bash
+REPO_DIR=$(printf '%s' "$WORKSPACE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["repo_dir"])')
+BASELINE=$(printf '%s' "$WORKSPACE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["baseline"])')
+MANIFEST=$(printf '%s' "$WORKSPACE_JSON" | python3 -c 'import json,sys;print(json.load(sys.stdin)["manifest"])')
+cd "$REPO_DIR"
+```
+
+Every step from here on (implementation, build, commit, push, PR) runs inside
+`$REPO_DIR`, not the shared `$PROJECT` checkout. Branch-name derivation is
+unchanged:
+
+```bash
 # Extract issue title for branch name
 ISSUE_TITLE=$(gh issue view $ISSUE_NUMBER --repo $ORG/$PROJECT --json title -q '.title')
 # Convert to kebab-case (lowercase, replace spaces with hyphens)
@@ -588,6 +629,29 @@ gh issue comment <NUMBER> --repo $ORG/$PROJECT \
   --body "Implementation PR: #<PR_NUMBER>"
 ```
 
+### 13. Workspace Teardown
+
+**Mandatory, all tiers.** After the merge (Step 10) and issue/epic closure
+(Steps 11-12), tear down the isolated workspace claimed in Step 3. See
+`reference/workspace-lifecycle.md` (the #840 sections) for the full contract
+(resume-reconciliation rule, preservation predicate, remotely-recoverable
+rule, 3-fail preservation policy).
+
+```bash
+bash ~/.claude/skills/_internal/issue-work/scripts/cleanup-workspace.sh \
+  --phase reconcile --repo-dir "$REPO_DIR" --manifest "$MANIFEST" --pr "$PR_NUMBER"
+
+bash ~/.claude/skills/_internal/issue-work/scripts/cleanup-workspace.sh \
+  --phase cleanup --run-root "$(dirname "$REPO_DIR")" --repo-dir "$REPO_DIR" \
+  --manifest "$MANIFEST" --base "${TMPDIR:-/tmp}" --issue "$ISSUE_NUMBER" \
+  --pr "$PR_NUMBER" ${MERGE_COMMIT:+--merge-commit "$MERGE_COMMIT"}
+```
+
+`reconcile` re-reads the live branch/PR state before `cleanup` decides whether
+to remove the run root. A `PRESERVED` result (e.g. uncommitted work, an
+unmerged PR, or a still-held agent lease) is not a failure — report the
+`reason` and leave the run root on disk. Only a `CLEANED` result removes it.
+
 ---
 
 ## Team Mode Instructions
@@ -609,6 +673,26 @@ See [_policy.md](../_policy.md) for common rules, including the **Atomic Multi-P
 ## Output
 
 **CRITICAL**: Do NOT produce a completion summary if CI has any failing, pending, or incomplete checks. A task is only complete when the PR is merged with all CI checks passing.
+
+### Result Marker
+
+Every exit path of this workflow — a terminal triage outcome (Step 1), a
+pre-PR gate block (Step 7.5), a CI failure (Step 9-10), or a full merge — ends
+by printing exactly one `ISSUE_WORK_RESULT:` line as the **last line** of its
+output:
+
+```
+ISSUE_WORK_RESULT: {"status":"merged|decomposed|blocked|skipped|failed","requested":"<n>","root":"<n>","active":"<n>","pr_url":"<url-or-null>","reason":"<short>"}
+```
+
+Fields mirror the batch subagent JSON contract (`reference/batch-mode.md`
+B-4.a): the same status vocabulary and the same `requested`/`root`/`active`
+triple from the triage outcome (`reference/triage-state-machine.md`). `status`
+is derived from the triage outcome when work did not proceed, else from the
+final merge/CI state. External orchestrators (`scripts/batch-issue-work.sh` /
+`.ps1`) parse this line to branch on the structured outcome instead of the
+process exit code alone. Both Work Summary formats below end with this
+marker, as the trailing line after the table and any following sections.
 
 After successful merge, provide summary:
 
@@ -635,6 +719,8 @@ After successful merge, provide summary:
 
 ### Next Steps
 - Any follow-up items
+
+ISSUE_WORK_RESULT: {"status":"merged","requested":"$REQUESTED_ISSUE","root":"$ROOT_ISSUE","active":"$ISSUE_NUMBER","pr_url":"https://github.com/$ORG/$PROJECT/pull/$PR_NUMBER","reason":""}
 ```
 
 If CI failed or the PR was not merged, use this format instead:
@@ -654,6 +740,8 @@ If CI failed or the PR was not merged, use this format instead:
 
 ### Action Required
 - User must resolve CI failures before merge
+
+ISSUE_WORK_RESULT: {"status":"failed","requested":"$REQUESTED_ISSUE","root":"$ROOT_ISSUE","active":"$ISSUE_NUMBER","pr_url":"<url-or-null>","reason":"<short reason>"}
 ```
 
 **IMPORTANT**: Always include the full PR URL in the output (e.g., `https://github.com/org/repo/pull/123`).
