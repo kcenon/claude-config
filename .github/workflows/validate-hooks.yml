@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [main, develop]
     paths:
+      # Repo-wide: any tracked test change must be able to run the nonstandard
+      # test-wiring gate (#833), which catches newly orphaned entrypoints.
+      - 'tests/**'
       - 'global/hooks/**'
       - 'hooks/**'
       - 'tests/hooks/**'
@@ -64,6 +67,33 @@ jobs:
         # #823: path-filter mentions do not count; the meta-test inspects only
         # executable workflow run commands and reviewed manual-only exceptions.
         run: bash tests/scripts/test-ci-wiring.sh
+
+      - name: Verify repo-wide nonstandard test wiring
+        # #833: every tracked test entrypoint OUTSIDE tests/scripts/test-* must
+        # be directly wired, swept by a wired shared runner, or explicitly
+        # classified in tests/nonstandard-test-registry.txt. Shares the wiring
+        # detection library with #823 so path filters/comments never count.
+        run: bash tests/scripts/test-nonstandard-test-wiring.sh
+
+      - name: Run hook JSON-escape regression tests (group 1)
+        # #578: user-controlled reason/feedback/context strings must be
+        # jq-escaped by 7 group-1 hooks so adversarial characters cannot flip
+        # the decision field or break the JSON literal.
+        run: bash tests/hook-json-escape-group1.sh
+
+      - name: Run hook JSON-escape regression tests (group 2)
+        # #579: same escaping contract across 6 group-2 hooks.
+        run: bash tests/hook-json-escape-group2.sh
+
+      - name: Run sonar-fix fixture integrity test
+        # #639: every whitelisted SonarQube rule keeps a before/after fixture
+        # pair that matches, byte-for-byte, its auto-fixable-rules.md pattern.
+        run: bash tests/sonar-fix/test-fixtures.sh
+
+      - name: Run batch drift regression runner tests
+        # Offline unit tests for tests/batch_drift_regression/run-regression.sh
+        # (argument parsing, dry-run output, threshold loading, assertions).
+        run: bash tests/batch_drift_regression/test-run-regression.sh
 
       - name: Run drift benchmark extractor tests
         run: bash tests/batch_drift_benchmark/test-extractors.sh

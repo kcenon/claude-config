@@ -9,6 +9,9 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 WORKFLOWS_DIR="$REPO_ROOT/.github/workflows"
 EXCEPTIONS_FILE="$SCRIPT_DIR/ci-wiring-exceptions.txt"
 
+# shellcheck source=tests/scripts/lib/ci-wiring-lib.sh
+. "$SCRIPT_DIR/lib/ci-wiring-lib.sh"
+
 PASS=0
 FAIL=0
 WIRED=0
@@ -31,47 +34,6 @@ fail() {
     echo "  FAIL: $1"
 }
 
-# Extract only commands from YAML run keys. Paths in trigger filters, comments,
-# or step descriptions must not count as executable CI wiring.
-extract_run_commands() {
-    awk '
-        function indentation(value) {
-            match(value, /^[[:space:]]*/)
-            return RLENGTH
-        }
-        {
-            line = $0
-            sub(/\r$/, "", line)
-
-            if (in_block) {
-                if (line ~ /^[[:space:]]*$/) {
-                    next
-                }
-                if (indentation(line) > block_indent) {
-                    sub(/^[[:space:]]+/, "", line)
-                    print line
-                    next
-                }
-                in_block = 0
-            }
-
-            trimmed = line
-            sub(/^[[:space:]]+/, "", trimmed)
-            if (trimmed !~ /^run:[[:space:]]*/) {
-                next
-            }
-
-            block_indent = indentation(line)
-            sub(/^run:[[:space:]]*/, "", trimmed)
-            if (trimmed ~ /^[|>][-+]?$/) {
-                in_block = 1
-                next
-            }
-            print trimmed
-        }
-    ' "$1"
-}
-
 if [ ! -d "$WORKFLOWS_DIR" ]; then
     fail "workflow directory is missing: .github/workflows"
 else
@@ -79,34 +41,6 @@ else
         extract_run_commands "$workflow" >> "$RUN_COMMANDS"
     done < <(find "$WORKFLOWS_DIR" -type f \( -name '*.yml' -o -name '*.yaml' \) | LC_ALL=C sort)
 fi
-
-# Return success only when the path is an argument to an executable test
-# command. Merely echoing or mentioning the path does not satisfy the gate.
-commands_reference_path() {
-    local test_path="$1"
-    local commands_file="$2"
-    awk -v path="$test_path" '
-        {
-            line = $0
-            position = index(line, path)
-            if (position == 0) {
-                next
-            }
-
-            prefix = substr(line, 1, position - 1)
-            suffix = substr(line, position + length(path))
-            if (suffix !~ /^([[:space:]\\;&|]|$)/) {
-                next
-            }
-
-            if (prefix ~ /(^|[;&|][[:space:]]*)(bash|pwsh|powershell)([[:space:]][^#]*)?$/ ||
-                prefix ~ /(^|[;&|][[:space:]]*)\.?\/?$/) {
-                found = 1
-            }
-        }
-        END { exit(found ? 0 : 1) }
-    ' "$commands_file"
-}
 
 is_workflow_wired() {
     commands_reference_path "$1" "$RUN_COMMANDS"

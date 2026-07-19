@@ -75,6 +75,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   result marker rather than the process exit code alone. The triage,
   workspace, and pre-PR gates are documented as mandatory in every
   skill-loading tier, including `light` (#845).
+- Regression-test wiring coverage now extends repo-wide. A second gate,
+  `tests/scripts/test-nonstandard-test-wiring.sh`, fails when any tracked test
+  entrypoint OUTSIDE `tests/scripts/test-*` is neither executed by a workflow
+  run command, swept by a wired shared runner, nor explicitly classified in
+  `tests/nonstandard-test-registry.txt`. The wiring-detection logic is factored
+  into `tests/scripts/lib/ci-wiring-lib.sh` and shared with the focused
+  `tests/scripts/test-ci-wiring.sh` gate (#823) so path-filter mentions,
+  comments, and echo statements never count as wiring in either. The previously
+  orphaned `hook-json-escape-group1.sh`, `hook-json-escape-group2.sh`,
+  `sonar-fix/test-fixtures.sh`, and `batch_drift_regression/test-run-regression.sh`
+  suites are now wired into `validate-hooks.yml`; the registry records the
+  remaining nonstandard entrypoints as sourced helpers, or as manual-only tests
+  with a reason, risk, and removal condition (#833).
 
 ### Fixed
 
