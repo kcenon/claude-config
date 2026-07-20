@@ -127,10 +127,36 @@ assert_deny 'true; echo y > .env' "; chain"
 assert_deny 'true && echo y > .env' "&& chain"
 
 echo ""
+echo "[deny — template allow-list must not widen the bypass surface (#866)]"
+# A literal glob reaching the hook unexpanded must never satisfy the
+# allow-list — `.env.*` would otherwise clobber every env file in a directory.
+assert_deny 'echo y > .env.*' "glob .env.* (not an allow-list entry)"
+assert_deny 'echo y > .env.example*' "glob .env.example* (no dot before wildcard)"
+assert_deny 'echo y > .env.examplexyz' ".env.examplexyz (not .env.example)"
+# Only .env.example carries a dotted-suffix arm, mirroring the file channel.
+assert_deny 'tee .env.sample.local' ".env.sample.local (no suffix arm for sample)"
+# The template arm falls through, so later directory checks still apply.
+# Absolute path on purpose: is_sensitive_target carries only the `*/secrets/*`
+# form, so a relative secrets/ path is allowed for every filename, template or
+# not — an unrelated pre-existing gap this case must not depend on.
+assert_deny 'echo y > /srv/secrets/.env.example' "template under secrets/ still denied"
+assert_deny 'true && echo y > .env.example; echo y > .env' "template does not launder a chained .env write"
+
+echo ""
 echo "[allow — write to new, non-sensitive files]"
 NEW_TARGET="$FIXTURE_DIR/new_output.txt"
 assert_allow "echo hello > $NEW_TARGET" "echo > new file"
 assert_allow "tee $NEW_TARGET" "tee new file"
+
+echo ""
+echo "[allow — env file templates (issue #866, file-channel parity)]"
+# Asserted before the read tracker is created below, so these exercise the
+# sensitive-target arm rather than the Read-before-Edit arm.
+assert_allow 'echo y > .env.example' "echo > .env.example"
+assert_allow 'tee .env.sample' "tee .env.sample"
+assert_allow 'echo y > /app/.env.template' "echo > /app/.env.template (path-prefixed form)"
+assert_allow 'echo y > .env.example.local' "echo > .env.example.local (suffixed example)"
+assert_allow 'cp template.txt .env.example' "cp into .env.example"
 
 echo ""
 echo "[allow — read-only commands]"
