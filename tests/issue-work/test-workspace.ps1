@@ -284,8 +284,8 @@ try {
     $repoDir2 = Get-JsonField $out2 'repo_dir'
     Assert-Equal $true (Test-Path -LiteralPath "$repoDir2/file.txt" -PathType Leaf) 'AC2 clone actually checked out the working tree'
     $manifest2 = Get-JsonField $out2 'manifest'
-    Assert-Equal 'READY' (workspace_manifest_state -Path $manifest2) 'AC2 manifest state reaches READY'
-    Assert-Equal $expectedSha (workspace_manifest_read -Path $manifest2 -Key 'baseline') 'AC2 manifest records the baseline'
+    Assert-Equal 'READY' (Get-ManifestState $manifest2) 'AC2 manifest state reaches READY'
+    Assert-Equal $expectedSha (Get-ManifestValue $manifest2 'baseline') 'AC2 manifest records the baseline'
 
     Write-Host ""
     Write-Host "=== AC3: identity/origin mismatch is REJECTED, never reaches READY ==="
@@ -296,7 +296,7 @@ try {
     Assert-Equal 'REJECTED' (Get-JsonField $out3 'state') 'AC3 outcome=REJECTED on identity mismatch'
     Assert-Contains 'acme/mismatch' (Get-JsonField $out3 'reason') 'AC3 reason names the expected repo'
     $manifest3 = Get-JsonField $out3 'manifest'
-    Assert-Equal 'REJECTED' (workspace_manifest_state -Path $manifest3) 'AC3 manifest never advances to READY'
+    Assert-Equal 'REJECTED' (Get-ManifestState $manifest3) 'AC3 manifest never advances to READY'
     Assert-NotContains 'READY' $out3 'AC3 stdout JSON never claims READY'
 
     Write-Host ""
@@ -307,7 +307,7 @@ try {
     $out4 = Invoke-WorkspaceCli 'run4' @('--repo', 'acme/secure', '--base', $base4, '--issue', '902', '--clone-url', $remote4, '--manifest', "$base4/iw-902-run4/manifest")
     Assert-Equal 'READY' (Get-JsonField $out4 'state') 'AC4 baseline run reaches READY (sanity precondition)'
     Assert-NotContains $FakeSecret $out4 'AC4 stdout never contains the fake token'
-    Assert-NotContains $FakeSecret (Get-Content -LiteralPath "$base4/iw-902-run4/manifest" -Raw) 'AC4 manifest never contains the fake token'
+    Assert-NotContains $FakeSecret (Get-FileText "$base4/iw-902-run4/manifest") 'AC4 manifest never contains the fake token'
     # The token above never entered the run at all (defense-in-depth baseline);
     # the manifest_write unit test earlier already proves a credential-bearing
     # value handed directly to the manifest primitive is redacted before write.
@@ -343,7 +343,7 @@ exit 0
     Assert-Contains 'clone failed' (Get-JsonField $out4b 'reason') 'AC4b reason names the clone failure'
     Assert-NotContains $FakeSecret $out4b "AC4b stdout never contains git's own credential-bearing error"
     $manifest4b = "$base4b/iw-903-run4b/manifest"
-    Assert-NotContains $FakeSecret (Get-Content -LiteralPath $manifest4b -Raw -ErrorAction SilentlyContinue) "AC4b manifest never contains git's own credential-bearing error"
+    Assert-NotContains $FakeSecret (Get-FileText $manifest4b) "AC4b manifest never contains git's own credential-bearing error"
 
     Write-Host ""
     Write-Host "=== AC5: manifest updates are atomic and key=value round-trips ==="
@@ -376,7 +376,7 @@ exit 0
     Assert-Equal 1 $s2Lines.Count 'S2 CLI emits exactly one line (the exit code is not re-emitted as output)'
     Assert-Contains '"state":"READY"' $outS2 'S2 CLI stdout carries the outcome JSON'
     Assert-Equal 'READY' (Get-JsonField $outS2 'state') 'S2 CLI stdout parses as JSON with a state field'
-    Assert-Equal 'acme/cliparity' (workspace_manifest_read -Path (Get-JsonField $outS2 'manifest') -Key 'repo') 'S2 CLI JSON manifest path is usable by the caller'
+    Assert-Equal 'acme/cliparity' (Get-ManifestValue (Get-JsonField $outS2 'manifest') 'repo') 'S2 CLI JSON manifest path is usable by the caller'
 
     # Split-WorkspaceCliResult in isolation, including the single-element edge
     # case the helper explicitly guards ($items[0..-1] would otherwise re-emit
@@ -425,7 +425,7 @@ exit $LASTEXITCODE
     Assert-Equal 'REJECTED' (Get-JsonField $outS1 'state') 'S1 a failing clone still yields a structured REJECTED outcome'
     Assert-Contains 'clone failed' (Get-JsonField $outS1 'reason') 'S1 the REJECTED reason still names the clone failure'
     Assert-Equal 1 $codeS1 'S1 the CLI still exits 1 rather than crashing'
-    Assert-Equal 'REJECTED' (workspace_manifest_state -Path "$Work/base-s1/iw-904-runs1/manifest") 'S1 the manifest still records REJECTED'
+    Assert-Equal 'REJECTED' (Get-ManifestState "$Work/base-s1/iw-904-runs1/manifest") 'S1 the manifest still records REJECTED'
 }
 finally {
     Remove-Item -LiteralPath $Work -Recurse -Force -ErrorAction SilentlyContinue

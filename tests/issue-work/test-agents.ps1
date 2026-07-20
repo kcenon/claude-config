@@ -107,6 +107,18 @@ function Assert-False {
     }
 }
 
+# Read one field out of an outcome JSON string. Degrades to '' for empty or
+# unparseable input rather than throwing, so a regression that makes the CLI
+# print nothing reports a readable failure instead of aborting the run before
+# the summary block. Guarded for StrictMode: an absent property yields ''.
+function Get-JsonField {
+    param([AllowEmptyString()][string]$Json = '', [string]$Field)
+    if ([string]::IsNullOrWhiteSpace($Json)) { return '' }
+    try { $obj = $Json | ConvertFrom-Json } catch { return '' }
+    if ($obj.PSObject.Properties.Name -contains $Field) { return [string]$obj.$Field }
+    return ''
+}
+
 # run_agents writes its JSON to the success stream and then returns an int exit
 # code, so a dot-sourced caller receives @(<json>, <int>). These two helpers are
 # the dot-sourced equivalent of what Split-AgentsCliResult does for the CLI.
@@ -329,14 +341,14 @@ try {
     $s2Lines = @($outStart -split "`r?`n" | Where-Object { $_.Trim() -ne '' })
     Assert-Equal 1 $s2Lines.Count 'S2 CLI emits exactly one line (the exit code is not re-emitted as output)'
     Assert-Contains '"state":"AGENTS_RUNNING"' $outStart 'S2 CLI stdout carries the phase JSON'
-    Assert-Equal 'AGENTS_RUNNING' ($outStart | ConvertFrom-Json).state 'S2 CLI stdout parses as JSON with a state field'
+    Assert-Equal 'AGENTS_RUNNING' (Get-JsonField $outStart 'state') 'S2 CLI stdout parses as JSON with a state field'
     Assert-Equal 0 $codeStart 'S2 CLI exits 0 on a successful phase'
     Assert-Equal 'AGENTS_RUNNING' (workspace_manifest_state -Path $manifestCli) 'S2 CLI actually advanced the manifest'
 
     # The refused-transition path must print its ERROR JSON too, not just exit 1.
     $outCommitBad = (& pwsh -NoProfile -File $Agents --manifest $manifestCli --phase commit 2>&1 | Out-String).Trim()
     $codeCommitBad = $LASTEXITCODE
-    Assert-Equal 'COMMITTED' ($outCommitBad | ConvertFrom-Json).state 'S2 CLI commit phase emits COMMITTED JSON'
+    Assert-Equal 'COMMITTED' (Get-JsonField $outCommitBad 'state') 'S2 CLI commit phase emits COMMITTED JSON'
     Assert-Equal 0 $codeCommitBad 'S2 CLI commit phase exits 0'
     $outRefused = (& pwsh -NoProfile -File $Agents --manifest $manifestCli --phase start 2>&1 | Out-String).Trim()
     $codeRefused = $LASTEXITCODE
