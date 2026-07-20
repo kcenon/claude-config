@@ -22,6 +22,8 @@ The suite is wired into CI by `.github/workflows/validate-skills.yml`.
 | `test-agents.sh` | Test runner for the subagent spawn-contract + single-writer-lease stage (`scripts/agents.sh`); see the dedicated section below. |
 | `test-cleanup.sh` | Test runner for the resume-reconciliation + safe-cleanup stage (`scripts/cleanup-workspace.sh`); see the dedicated section below. |
 | `test-pre-pr-gate.sh` | Test runner for the pre-PR readiness gate (`scripts/pre-pr-gate.sh`); see the dedicated section below. |
+| `test-*.ps1` | PowerShell counterparts driving the `.ps1` ports through the same scenarios; see [PowerShell parity suites](#powershell-parity-suites-issue-847). |
+| `fake-gh.ps1` | Canned `gh` for the PowerShell suites, mirroring `fake-gh.sh` and sharing its fixture layout. |
 
 ## Acceptance-criteria coverage (issue #829)
 
@@ -50,13 +52,11 @@ The suite is wired into CI by `.github/workflows/validate-skills.yml`.
 | Three identical fetch failures | `VER m1` — retry helper stops with a `blocked` outcome (issue #829 risk control). |
 | Batch reporting does not treat decomposition as a merge success | `VER batch reporting` — asserts the accounting guard in `reference/batch-mode.md` B-5. |
 
-## Scope note
+### PowerShell parity
 
-These are bash tests. PowerShell parity for the triage gate is delivered as
-`scripts/triage.ps1`; it is not runtime-verified here (no `pwsh`) and not wired
-into CI. Cross-platform PS regression coverage is integrated in #832 (the
-PowerShell regression suite plus CI wiring is tracked by #847), consistent with
-the workspace (#838), agents (#839), and cleanup (#840) notes below.
+`test-triage.ps1` drives `scripts/triage.ps1` through the same scenarios and
+runs in CI alongside the bash suite (#847). See
+[PowerShell parity suites](#powershell-parity-suites-issue-847) below.
 
 ## Workspace lifecycle tests (issue #838)
 
@@ -87,11 +87,10 @@ The suite is wired into CI by `.github/workflows/validate-skills.yml`.
 | AC5 | Manifest atomicity | `key=value` round-trips via `workspace_manifest_read`; a repeated key updates in place (no duplicate lines, no leftover `.tmp.$$` file). |
 | UNIT | Pure-function coverage | `workspace_redact_credentials`, `workspace_verify_identity` (https and SSH-shorthand origins, missing origin, empty expected value), `workspace_manifest_write`/`_read`/`_state`, `workspace_run_root`. |
 
-### Scope note
+### PowerShell parity
 
-PowerShell parity for the workspace stage is delivered as
-`scripts/workspace.ps1`; cross-platform PS regression coverage is integrated
-in #832 (consistent with the existing #829 note above).
+`test-workspace.ps1` drives `scripts/workspace.ps1` through the same scenarios
+and runs in CI alongside the bash suite (#847).
 
 ## Subagent spawn / lease tests (issue #839)
 
@@ -125,12 +124,14 @@ The suite is wired into CI by `.github/workflows/validate-skills.yml`.
 | AC6 | State transitions | From `state=READY`, the start phase advances to `AGENTS_RUNNING` (recording `lease_owner`) and the commit phase to `COMMITTED`; an out-of-order transition is refused and leaves state unchanged. |
 | AC7 | Capability guard | `agents.sh` contains no `git push`, no `gh` invocation (word-boundary match), and no `gh` injection seam. |
 
-### Scope note
+### PowerShell parity
 
-PowerShell parity for the subagent/lease stage is delivered as
-`scripts/agents.ps1`; it is not runtime-verified here (no `pwsh`) and not wired
-into CI. Cross-platform PS regression coverage is integrated in #832
-(consistent with the #829 and #838 notes above).
+`test-agents.ps1` drives `scripts/agents.ps1` through the same scenarios and
+runs in CI alongside the bash suite (#847). Its AC3/AC4 cases also pin a
+Unix-only lease defect: the lease directory is dot-prefixed, so `Remove-Item`
+refused to delete it without `-Force` and no owner could release its own lease.
+The bug is invisible on Windows, where a leading dot does not mark a file
+hidden.
 
 ## Resume reconciliation / safe cleanup tests (issue #840)
 
@@ -166,13 +167,13 @@ The suite is wired into CI by `.github/workflows/validate-skills.yml`.
 | AC7 | Happy path | `MERGED` + clean + recoverable + no agents + a valid path emits `CLEANED` and removes the run root; an external manifest override persists `CLEANED`; a pre-`MERGED` cleanup attempt is REFUSED and preserves the run root. |
 | AC8 | Credential redaction | A `GIT_BIN`-shimmed git that emits a credential-bearing branch string never leaks the fake token into reconcile stdout or the manifest. |
 
-### Scope note
+### PowerShell parity
 
-PowerShell parity for the cleanup/resume stage is delivered as
-`scripts/cleanup-workspace.ps1`; it is not runtime-verified here (no `pwsh`) and
-not wired into CI (it rejects junctions / reparse points where the `.sh` rejects
-symlinks). Cross-platform PS regression coverage is integrated in #832
-(consistent with the #829, #838, and #839 notes above).
+`test-cleanup.ps1` drives `scripts/cleanup-workspace.ps1` through the same
+scenarios and runs in CI alongside the bash suite (#847). One assertion differs
+in kind rather than in intent: the port refuses junctions / reparse points where
+the `.sh` refuses symlinks, so the AC1 swap-attack case is written against the
+construct the port actually guards.
 
 ## Pre-PR readiness gate tests (issue #831)
 
@@ -214,9 +215,53 @@ The suite is wired into CI by `.github/workflows/validate-skills.yml`.
 The script owns only the mechanical git-state half of the gate. The
 documentation-to-issue gap audit (gap ledger, four dispositions, Korean-PR
 validation, post-creation checks) is an agent-side procedure specified in
-`reference/pre-pr-readiness.md` (AC7–AC12) and is not script-tested. PowerShell
-parity for this stage is delivered as `scripts/pre-pr-gate.ps1`; it is not
-runtime-verified here (no `pwsh`) and not wired into CI. Cross-platform PS
-regression coverage is integrated in #832 (the PowerShell regression suite plus
-CI wiring is tracked by #847), consistent with the #829 / #838 / #839 / #840
-notes above.
+`reference/pre-pr-readiness.md` (AC7–AC12) and is not script-tested.
+
+### PowerShell parity
+
+`test-pre-pr-gate.ps1` drives `scripts/pre-pr-gate.ps1` through the same
+scenarios and runs in CI alongside the bash suite (#847).
+
+## PowerShell parity suites (issue #847)
+
+Each `.ps1` port has a suite mirroring its bash counterpart, wired into
+`.github/workflows/validate-skills.yml` next to the bash steps. The workflow's
+`validate` job runs on `ubuntu-latest`, where `pwsh` is preinstalled.
+
+### Run
+
+```bash
+pwsh -NoProfile -File tests/issue-work/test-triage.ps1
+pwsh -NoProfile -File tests/issue-work/test-workspace.ps1
+pwsh -NoProfile -File tests/issue-work/test-agents.ps1
+pwsh -NoProfile -File tests/issue-work/test-cleanup.ps1
+pwsh -NoProfile -File tests/issue-work/test-pre-pr-gate.ps1
+```
+
+### The gh double
+
+`fake-gh.ps1` uses the same fixture layout as `fake-gh.sh`, so both suites read
+the same `$FAKE_GH_DIR` contents. Wiring differs in one way worth knowing:
+pointing `GH_BIN` at the `.ps1` needs no shim and no executable bit, because
+PowerShell runs it in-process. Responses arrive on the success stream and
+`$LASTEXITCODE` is set exactly as it would be for a native `gh`, which is what
+lets the ports' `& $script:GhBin @GhArgs` seam stay unchanged. The bash suites,
+by contrast, must copy `fake-gh.sh` to an executable path first.
+
+### Runtime-only regressions
+
+Two failure modes cannot be caught by reading the ports; they appear only when
+`pwsh` actually runs them, which is why every suite pins them:
+
+| ID | Failure mode | Assertion |
+|----|--------------|-----------|
+| S2 | A driver emits its JSON on the success stream and then returns an int exit code. PowerShell merges the two, so `exit (Invoke-*Main ...)` cast an array to int, failed, and printed nothing — the ports produced no output at all as CLIs while the `.sh` entry points printed their outcome JSON. | The CLI prints its outcome JSON to stdout, on exactly one line, so the exit code is never re-emitted as output. |
+| S1 | A host that enables `$PSNativeCommandUseErrorActionPreference` promotes a benign non-zero `git`/`gh` exit into a terminating error. Those exits are load-bearing refusals — a failed clone, a missing upstream, `merge-base --is-ancestor` reporting "not an ancestor", `gh pr view` on a missing PR. | With that preference enabled, each port still returns its structured outcome instead of throwing `NativeCommandExitException`. |
+
+### Platform coverage
+
+The suites run on `ubuntu-latest`, and that choice is load-bearing rather than
+incidental. The lease defect recorded in the agents section reproduces only
+where a leading dot marks a file hidden — a Windows-only PowerShell job would
+have reported green while owners silently failed to release their leases on
+Linux and macOS.

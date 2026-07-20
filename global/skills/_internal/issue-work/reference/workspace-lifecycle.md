@@ -458,8 +458,9 @@ been removed).
 
 ## Scope note
 
-PowerShell parity for this stage is delivered as `scripts/cleanup-workspace.ps1`;
-it is not runtime-verified (no `pwsh` in the authoring environment) and not wired
-into CI. Cross-platform PS regression coverage is integrated in #832 (consistent
-with the #829 / #838 / #839 notes). The `.ps1` rejects junctions / reparse
-points via the `ReparsePoint` file attribute where the `.sh` rejects symlinks.
+PowerShell parity for this stage is delivered as `scripts/cleanup-workspace.ps1`
+and runtime-verified by `tests/issue-work/test-cleanup.ps1`, which runs in CI
+alongside the bash suite (#847). The `.ps1` rejects junctions / reparse points
+via the `ReparsePoint` file attribute where the `.sh` rejects symlinks, so the
+swap-attack assertion is written against the construct each one actually
+guards.
