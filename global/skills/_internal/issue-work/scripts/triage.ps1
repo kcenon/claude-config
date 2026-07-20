@@ -8,12 +8,8 @@
 # same injection seams. See reference/triage-state-machine.md for the contract
 # both scripts satisfy.
 #
-# NOTE (authoring-time caveat): pwsh was not available in the environment this
-# port was written in, so it was produced by mirroring the bash-verified logic
-# in triage.sh line-for-line rather than by running it. It has NOT been executed.
-# Cross-platform runtime regression coverage (a PowerShell test suite plus CI
-# wiring) is tracked in issue #847 under epic #832, consistent with the existing
-# PowerShell-parity notes for the workspace/agents/cleanup stages.
+# Runtime-verified by tests/issue-work/test-triage.ps1, which drives the same
+# scenarios as the bash suite and runs in CI alongside it (#847).
 #
 # The script is both a sourceable library (dot-source it to get the functions
 # below) and a CLI:

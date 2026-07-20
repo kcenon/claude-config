@@ -8,12 +8,8 @@
 # verb is `git worktree`). See reference/workspace-lifecycle.md for the contract
 # both scripts satisfy.
 #
-# NOTE (authoring-time caveat): pwsh was not available in the environment this
-# port was written in, so it was produced by mirroring the bash-verified logic
-# in agents.sh line-for-line rather than by running it. It has NOT been executed
-# and is NOT wired into CI. Cross-platform regression coverage is tracked in
-# issue #832, consistent with the existing PowerShell-parity notes for the
-# triage (#829) and workspace (#838) stages in tests/issue-work/README.md.
+# Runtime-verified by tests/issue-work/test-agents.ps1, which drives the same
+# scenarios as the bash suite and runs in CI alongside it (#847).
 #
 # The script is both a sourceable library (dot-source it to get the functions
 # below) and a CLI:

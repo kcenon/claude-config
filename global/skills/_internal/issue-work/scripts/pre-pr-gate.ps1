@@ -10,13 +10,8 @@
 # conflict rule, base-movement retry rule, and the agent-side gap audit this
 # script does not itself perform).
 #
-# NOTE (authoring-time caveat): pwsh was not available in the environment this
-# port was written in, so it was produced by mirroring the bash-verified logic
-# in pre-pr-gate.sh line-for-line rather than by running it. It has NOT been
-# executed and is NOT wired into CI. Cross-platform runtime regression coverage
-# is tracked in issue #847 under epic #832, consistent with the existing
-# PowerShell-parity notes for the triage (#829), workspace (#838), and agents
-# (#839) stages in tests/issue-work/README.md.
+# Runtime-verified by tests/issue-work/test-pre-pr-gate.ps1, which drives the
+# same scenarios as the bash suite and runs in CI alongside it (#847).
 #
 # This script owns only the mechanical, non-judgemental half of the gate:
 #   1. Refuse to run against a dirty worktree (commit impl+docs first).
