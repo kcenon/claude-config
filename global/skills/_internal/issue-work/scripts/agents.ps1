@@ -232,9 +232,21 @@ function agents_release_lease {
         return $false
     }
     $ownerFile = Join-Path $LeasePath $script:AgentsLeaseOwnerFile
-    Remove-Item -LiteralPath $ownerFile -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $ownerFile -Force -ErrorAction SilentlyContinue
     try {
-        Remove-Item -LiteralPath $LeasePath -ErrorAction Stop
+        # -Force is required, not cosmetic: the lease directory is named
+        # ".iw-writer.lease", and on Unix a leading dot marks it hidden, which
+        # Remove-Item refuses to delete without -Force. Without it an owner
+        # could never release its own lease on Linux/macOS -- the directory
+        # survived and every later run blocked on a lease nobody could clear.
+        # bash uses `rmdir`, which has no notion of hidden files, so the defect
+        # existed only in this port.
+        #
+        # -Recurse is deliberately NOT used: the owner marker is removed just
+        # above, so the directory is empty by then, and keeping the delete
+        # non-recursive preserves agents.sh's `rmdir` semantics -- an
+        # unexpectedly non-empty lease is refused rather than blown away.
+        Remove-Item -LiteralPath $LeasePath -Force -ErrorAction Stop
     } catch {
         return $false
     }
