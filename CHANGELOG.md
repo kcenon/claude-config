@@ -131,6 +131,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `validate-hooks.yml` ahead of the group 1/2 suites, so the
   dangerous-command-guard allow path is gated in CI, and its manual-only row
   is removed from `tests/nonstandard-test-registry.txt` (#850).
+- The nightly batch-drift regression now grades only a result file produced by
+  the current run. `run-regression.sh` captures a run-start marker before
+  invoking the benchmark and considers only result files newer than that
+  marker, so the committed benchmark results under
+  `tests/batch_drift_benchmark/results/` can no longer satisfy the selection
+  glob, and a run that writes no fresh result fails instead of grading a
+  pre-existing file. A non-zero exit from the benchmark runner is now fatal
+  rather than a warning that falls through to grading. Together these close a
+  false-pass path in which a benchmark that produced nothing was graded
+  against a months-old committed file and reported `passed: true`, so the
+  nightly job reported success while measuring nothing from that run. The
+  stale-result path is covered by regression cases that inject a stub
+  benchmark through the new `BATCH_DRIFT_BENCHMARK_DIR` override (#855).
 
 ## 1.11.0 - 2026-07-03
 

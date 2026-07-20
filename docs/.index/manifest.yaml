@@ -10,29 +10,29 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 25959
+    size: 26903
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "[Unreleased]", l: 8, e: 9}
       - {h: "Added", l: 10, e: 98}
-      - {h: "Fixed", l: 99, e: 134}
-      - {h: "1.11.0 - 2026-07-03", l: 135, e: 136}
-      - {h: "Fixed", l: 137, e: 150}
-      - {h: "Security", l: 151, e: 228}
-      - {h: "Added", l: 229, e: 257}
-      - {h: "Changed", l: 258, e: 304}
-      - {h: "1.10.0 - 2026-04-20", l: 305, e: 313}
-      - {h: "1.9.0 - 2026-04-13", l: 314, e: 323}
-      - {h: "1.8.0 - 2026-04-13", l: 324, e: 329}
-      - {h: "1.7.0 - 2026-04-06", l: 330, e: 344}
-      - {h: "1.6.0 - 2026-04-03", l: 345, e: 357}
-      - {h: "1.5.0 - 2026-03-21", l: 358, e: 376}
-      - {h: "1.4.0 - 2026-01-22", l: 377, e: 382}
-      - {h: "1.3.0 - 2026-01-15", l: 383, e: 391}
-      - {h: "1.2.0 - 2026-01-15", l: 392, e: 400}
-      - {h: "1.1.0 - 2025-01-15", l: 401, e: 411}
-      - {h: "1.0.0 - 2025-12-03", l: 412, e: 418}
+      - {h: "Fixed", l: 99, e: 147}
+      - {h: "1.11.0 - 2026-07-03", l: 148, e: 149}
+      - {h: "Fixed", l: 150, e: 163}
+      - {h: "Security", l: 164, e: 241}
+      - {h: "Added", l: 242, e: 270}
+      - {h: "Changed", l: 271, e: 317}
+      - {h: "1.10.0 - 2026-04-20", l: 318, e: 326}
+      - {h: "1.9.0 - 2026-04-13", l: 327, e: 336}
+      - {h: "1.8.0 - 2026-04-13", l: 337, e: 342}
+      - {h: "1.7.0 - 2026-04-06", l: 343, e: 357}
+      - {h: "1.6.0 - 2026-04-03", l: 358, e: 370}
+      - {h: "1.5.0 - 2026-03-21", l: 371, e: 389}
+      - {h: "1.4.0 - 2026-01-22", l: 390, e: 395}
+      - {h: "1.3.0 - 2026-01-15", l: 396, e: 404}
+      - {h: "1.2.0 - 2026-01-15", l: 405, e: 413}
+      - {h: "1.1.0 - 2025-01-15", l: 414, e: 424}
+      - {h: "1.0.0 - 2025-12-03", l: 425, e: 431}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -1192,7 +1192,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 7477
+    size: 8482
     tags: [docs]
     sections:
       - {h: "Overview", l: 16, e: 22}
@@ -1210,7 +1210,8 @@ documents:
       - {h: "Common failure causes", l: 142, e: 151}
       - {h: "Intentional regression testing", l: 152, e: 166}
       - {h: "Outputs", l: 167, e: 175}
-      - {h: "Cost", l: 176, e: 187}
+      - {h: "Result freshness", l: 176, e: 197}
+      - {h: "Cost", l: 198, e: 209}
   - path: "docs/branching-strategy.md"
     title: "Branching Strategy"
     description: ""
@@ -1290,7 +1291,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 143649
+    size: 143956
     tags: [audit,config,docs]
     sections:
       - {h: "Status as of 2026-07-20 — `tests-ci`", l: 13, e: 36}
