@@ -40,6 +40,16 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# A non-zero exit from git is data here, not an error: pre-pr-gate.sh reads
+# `merge-base --is-ancestor` failing as "not an ancestor" and a failed
+# rebase/merge as a conflict outcome. A host that has enabled
+# $PSNativeCommandUseErrorActionPreference would promote those exits to
+# terminating errors under the 'Stop' preference above and lose the structured
+# outcome, so the setting is pinned off for this script. _prepr_git also lowers
+# $ErrorActionPreference locally, which keeps the wrapper correct even if this
+# line is ever removed.
+$PSNativeCommandUseErrorActionPreference = $false
+
 # Injection seams (overridable by tests and callers via environment variables,
 # mirroring the bash GIT_BIN seam). GIT_BIN is captured once at load time, as in
 # the bash script; PREPR_REPO_DIR is read fresh on every git call (see
@@ -309,6 +319,43 @@ function run_pre_pr_gate {
 }
 
 # ── CLI entry ────────────────────────────────────────────────────────
+
+# Split a driver result into "emit on stdout" and "use as the exit code".
+#
+# run_pre_pr_gate writes its JSON to the success stream and then `return`s an
+# int exit code -- but in PowerShell a `return` value also lands on the success
+# stream, so the caller receives @(<json>, <int>) as one array. Passing that
+# array straight to `exit` casts the whole array to int, which throws and takes
+# the JSON down with it, so `pwsh -File pre-pr-gate.ps1 ...` printed nothing at
+# all while pre-pr-gate.sh printed the gate JSON (issue #847 S2).
+#
+# This helper writes every non-int item straight to the console and returns the
+# trailing int as the exit code, restoring parity with the bash CLI.
+# Dot-sourced callers are unaffected -- they consume the driver's return value
+# directly.
+#
+# The payload goes out via [Console]::Out rather than Write-Output on purpose:
+# Write-Output would put it back on the success stream alongside the returned
+# exit code, reproducing the very merge this helper exists to undo.
+function Split-PrePrGateCliResult {
+    param([Parameter(ValueFromRemainingArguments = $true)][object[]]$Result)
+    $items = @($Result)
+    $code = 0
+    if ($items.Count -gt 0 -and $items[-1] -is [int]) {
+        $code = [int]$items[-1]
+        # Note the explicit Count check: $items[0..($items.Count - 2)] would be
+        # $items[0..-1] for a single-element array, and PowerShell reads -1 as
+        # "last element", silently re-emitting the exit code as output.
+        if ($items.Count -gt 1) {
+            $items = $items[0..($items.Count - 2)]
+        } else {
+            $items = @()
+        }
+    }
+    foreach ($item in $items) { [Console]::Out.WriteLine([string]$item) }
+    return $code
+}
+
 # Mirrors pre-pr-gate.sh's _prepr_main: manual flag parsing over the argument
 # array (not native parameter binding) so the CLI surface matches the bash one
 # exactly. MaxMoves is left as a string here and coerced to [int] by
@@ -341,5 +388,5 @@ function Invoke-PrePrGateMain {
 # Run as CLI only when executed directly; stay quiet when dot-sourced by tests
 # (mirrors pre-pr-gate.sh's BASH_SOURCE guard).
 if ($MyInvocation.InvocationName -ne '.') {
-    exit (Invoke-PrePrGateMain -Arguments $args)
+    exit (Split-PrePrGateCliResult (Invoke-PrePrGateMain -Arguments $args))
 }

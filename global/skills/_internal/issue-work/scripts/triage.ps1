@@ -30,6 +30,15 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# A non-zero exit from gh is data here, not an error: triage.sh reads
+# `issue view` on a missing or closed issue as empty output and lets the retry
+# and eligibility logic decide. A host that has enabled
+# $PSNativeCommandUseErrorActionPreference would promote those exits to
+# terminating errors under the 'Stop' preference above, so the setting is pinned
+# off for this script. _triage_gh also lowers $ErrorActionPreference locally,
+# which keeps the wrapper correct even if this line is ever removed.
+$PSNativeCommandUseErrorActionPreference = $false
+
 # Injection seams (overridable by tests and callers via environment variables,
 # mirroring the bash GH_BIN / MAX_CHILD_DEPTH seams). TRIAGE_CURRENT_USER,
 # TRIAGE_DRY_RUN, and TRIAGE_MAX_FAILURES are read directly from $env at their
@@ -623,6 +632,43 @@ function _triage_create_children {
 }
 
 # ── CLI entry ────────────────────────────────────────────────────────
+
+# Split a driver result into "emit on stdout" and "use as the exit code".
+#
+# run_triage writes its JSON to the success stream and then `return`s an int
+# exit code -- but in PowerShell a `return` value also lands on the success
+# stream, so the caller receives @(<json>, <int>) as one array. Passing that
+# array straight to `exit` casts the whole array to int, which throws and takes
+# the JSON down with it, so `pwsh -File triage.ps1 ...` printed nothing at all
+# while triage.sh printed the triage JSON (issue #847 S2).
+#
+# This helper writes every non-int item straight to the console and returns the
+# trailing int as the exit code, restoring parity with the bash CLI.
+# Dot-sourced callers are unaffected -- they consume the driver's return value
+# directly.
+#
+# The payload goes out via [Console]::Out rather than Write-Output on purpose:
+# Write-Output would put it back on the success stream alongside the returned
+# exit code, reproducing the very merge this helper exists to undo.
+function Split-TriageCliResult {
+    param([Parameter(ValueFromRemainingArguments = $true)][object[]]$Result)
+    $items = @($Result)
+    $code = 0
+    if ($items.Count -gt 0 -and $items[-1] -is [int]) {
+        $code = [int]$items[-1]
+        # Note the explicit Count check: $items[0..($items.Count - 2)] would be
+        # $items[0..-1] for a single-element array, and PowerShell reads -1 as
+        # "last element", silently re-emitting the exit code as output.
+        if ($items.Count -gt 1) {
+            $items = $items[0..($items.Count - 2)]
+        } else {
+            $items = @()
+        }
+    }
+    foreach ($item in $items) { [Console]::Out.WriteLine([string]$item) }
+    return $code
+}
+
 function Invoke-TriageMain {
     param([string[]]$Arguments = @())
     $repo = ''; $issue = ''; $planFile = ''
@@ -650,5 +696,5 @@ function Invoke-TriageMain {
 # Run as CLI only when executed directly; stay quiet when dot-sourced by tests
 # (mirrors triage.sh's BASH_SOURCE guard).
 if ($MyInvocation.InvocationName -ne '.') {
-    exit (Invoke-TriageMain -Arguments $args)
+    exit (Split-TriageCliResult (Invoke-TriageMain -Arguments $args))
 }

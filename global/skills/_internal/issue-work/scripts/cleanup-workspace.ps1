@@ -28,6 +28,19 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# A non-zero exit from git/gh is data here, not an error: cleanup-workspace.sh
+# reads `rev-parse @{u}` failing as "no upstream", `merge-base --is-ancestor`
+# failing as "not an ancestor", and `gh pr view` failing as "no such PR" -- all
+# load-bearing refusals in the cleanup gate. A host that has enabled
+# $PSNativeCommandUseErrorActionPreference would promote those exits to
+# terminating errors under the 'Stop' preference above, turning a safety refusal
+# into a crash, so the setting is pinned off for this script.
+#
+# Pinned at script scope rather than inside _cleanup_git / _cleanup_gh because
+# most call sites invoke $script:GitBin / $script:GhBin directly; a
+# wrapper-local guard would leave them unprotected.
+$PSNativeCommandUseErrorActionPreference = $false
+
 # Reuse the #838 manifest primitive (workspace_manifest_write/_read/_state,
 # workspace_redact_credentials, WorkspaceMarkerFile). workspace.ps1 is quiet
 # when dot-sourced.
@@ -67,14 +80,27 @@ $script:CleanupStateCleaned = 'CLEANED'
 # ── Low-level command wrappers ────────────────────────────────────────
 # All git access funnels through here so a fake git can shadow it via
 # $env:GIT_BIN.
+#
+# Native-command failure is surfaced via $LASTEXITCODE, never a thrown
+# exception: $ErrorActionPreference is locally lowered to 'Continue' so a benign
+# non-zero git exit (`rev-parse @{u}` on a branch with no upstream, or
+# `merge-base --is-ancestor` reporting "not an ancestor") does NOT become a
+# terminating error when the caller has enabled
+# $PSNativeCommandUseErrorActionPreference under the script-scope 'Stop'
+# preference. Both exits are load-bearing refusals in cleanup-workspace.sh, not
+# errors. Mirrors _triage_gh in triage.ps1.
 function _cleanup_git {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$GitArgs)
+    $ErrorActionPreference = 'Continue'
     & $script:GitBin @GitArgs
 }
 
 # All gh access funnels through here so a fake gh can shadow it via $env:GH_BIN.
+# Guarded for the same reason as _cleanup_git: `gh pr view` on a missing PR
+# exits non-zero, and reconcile treats that as "no PR" rather than an error.
 function _cleanup_gh {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$GhArgs)
+    $ErrorActionPreference = 'Continue'
     & $script:GhBin @GhArgs
 }
 
@@ -575,6 +601,44 @@ function run_cleanup {
 }
 
 # ── CLI entry ─────────────────────────────────────────────────────────
+
+# Split a driver result into "emit on stdout" and "use as the exit code".
+#
+# run_cleanup writes its JSON to the success stream and then `return`s an int
+# exit code -- but in PowerShell a `return` value also lands on the success
+# stream, so the caller receives @(<json>, <int>) as one array. Passing that
+# array straight to `exit` casts the whole array to int, which throws and takes
+# the JSON down with it, so `pwsh -File cleanup-workspace.ps1 ...` printed
+# nothing at all while cleanup-workspace.sh printed the phase JSON
+# (issue #847 S2).
+#
+# This helper writes every non-int item straight to the console and returns the
+# trailing int as the exit code, restoring parity with the bash CLI.
+# Dot-sourced callers are unaffected -- they consume the driver's return value
+# directly.
+#
+# The payload goes out via [Console]::Out rather than Write-Output on purpose:
+# Write-Output would put it back on the success stream alongside the returned
+# exit code, reproducing the very merge this helper exists to undo.
+function Split-CleanupCliResult {
+    param([Parameter(ValueFromRemainingArguments = $true)][object[]]$Result)
+    $items = @($Result)
+    $code = 0
+    if ($items.Count -gt 0 -and $items[-1] -is [int]) {
+        $code = [int]$items[-1]
+        # Note the explicit Count check: $items[0..($items.Count - 2)] would be
+        # $items[0..-1] for a single-element array, and PowerShell reads -1 as
+        # "last element", silently re-emitting the exit code as output.
+        if ($items.Count -gt 1) {
+            $items = $items[0..($items.Count - 2)]
+        } else {
+            $items = @()
+        }
+    }
+    foreach ($item in $items) { [Console]::Out.WriteLine([string]$item) }
+    return $code
+}
+
 function Invoke-CleanupMain {
     param([string[]]$Arguments = @())
     $runRoot = ''; $repoDir = ''; $manifest = ''; $base = ''; $issue = ''; $phase = ''; $pr = ''; $mergeCommit = ''
@@ -605,5 +669,5 @@ function Invoke-CleanupMain {
 # Run as CLI only when executed directly; stay quiet when dot-sourced by tests
 # (mirrors cleanup-workspace.sh's BASH_SOURCE guard).
 if ($MyInvocation.InvocationName -ne '.') {
-    exit (Invoke-CleanupMain -Arguments $args)
+    exit (Split-CleanupCliResult (Invoke-CleanupMain -Arguments $args))
 }
