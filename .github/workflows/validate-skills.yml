@@ -164,8 +164,7 @@ jobs:
 
       - name: Run issue-work triage state machine tests (#829)
         # Unit-tests the shared triage gate (issue selection + size evaluation +
-        # idempotent blocked/decomposition comments) against a fake gh. Bash
-        # only; PowerShell parity is tracked in #832.
+        # idempotent blocked/decomposition comments) against a fake gh.
         run: bash tests/issue-work/test-triage.sh
 
       - name: Run issue-work workspace lifecycle tests (#838)
@@ -179,6 +178,27 @@ jobs:
 
       - name: Run issue-work pre-PR readiness gate tests (#831)
         run: bash tests/issue-work/test-pre-pr-gate.sh
+
+      # PowerShell parity suites (#847). They drive the same scenarios as the
+      # bash suites above against the .ps1 ports, using fake-gh.ps1 as the gh
+      # double. Two failure modes only reachable at pwsh runtime are pinned
+      # here: the CLI entry points must print their outcome JSON to stdout, and
+      # a host that enables $PSNativeCommandUseErrorActionPreference must not
+      # turn a benign non-zero git/gh exit into a terminating error.
+      - name: Run issue-work triage state machine tests (PowerShell)
+        run: pwsh -NoProfile -File tests/issue-work/test-triage.ps1
+
+      - name: Run issue-work workspace lifecycle tests (PowerShell)
+        run: pwsh -NoProfile -File tests/issue-work/test-workspace.ps1
+
+      - name: Run issue-work subagent lease tests (PowerShell)
+        run: pwsh -NoProfile -File tests/issue-work/test-agents.ps1
+
+      - name: Run issue-work cleanup/resume tests (PowerShell)
+        run: pwsh -NoProfile -File tests/issue-work/test-cleanup.ps1
+
+      - name: Run issue-work pre-PR readiness gate tests (PowerShell)
+        run: pwsh -NoProfile -File tests/issue-work/test-pre-pr-gate.ps1
 
       - name: Install pytest for fleet_orchestrator tests
         # pytest is already a transitive dep of jsonschema in some envs; pin

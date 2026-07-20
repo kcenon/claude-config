@@ -8,12 +8,8 @@
 # verb is `git worktree`). See reference/workspace-lifecycle.md for the contract
 # both scripts satisfy.
 #
-# NOTE (authoring-time caveat): pwsh was not available in the environment this
-# port was written in, so it was produced by mirroring the bash-verified logic
-# in agents.sh line-for-line rather than by running it. It has NOT been executed
-# and is NOT wired into CI. Cross-platform regression coverage is tracked in
-# issue #832, consistent with the existing PowerShell-parity notes for the
-# triage (#829) and workspace (#838) stages in tests/issue-work/README.md.
+# Runtime-verified by tests/issue-work/test-agents.ps1, which drives the same
+# scenarios as the bash suite and runs in CI alongside it (#847).
 #
 # The script is both a sourceable library (dot-source it to get the functions
 # below) and a CLI:
@@ -23,6 +19,17 @@
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+# A non-zero exit from git is data here, not an error: agents.sh reads a failed
+# `worktree add` / `worktree remove` as a plain "false". A host that has enabled
+# $PSNativeCommandUseErrorActionPreference would promote those exits to
+# terminating errors under the 'Stop' preference above, so the setting is pinned
+# off for this script.
+#
+# Pinned at script scope rather than inside _agents_git because the worktree
+# add/remove call sites invoke $script:GitBin directly; a wrapper-local guard
+# would leave them unprotected.
+$PSNativeCommandUseErrorActionPreference = $false
 
 # Reuse the #838 manifest primitive (workspace_manifest_write/_read/_state,
 # workspace_redact_credentials). workspace.ps1 is quiet when dot-sourced.
@@ -53,8 +60,17 @@ $script:AgentsLastError = ''
 # ── Low-level git wrapper ────────────────────────────────────────────
 # All git access funnels through here so a fake git can shadow it via
 # $env:GIT_BIN. Only `git worktree` is ever passed in -- never a network verb.
+#
+# Native-command failure is surfaced via $LASTEXITCODE, never a thrown
+# exception: $ErrorActionPreference is locally lowered to 'Continue' so a benign
+# non-zero git exit (a `worktree add` onto an existing path, or a `worktree
+# remove` of an already-removed tree) does NOT become a terminating error when
+# the caller has enabled $PSNativeCommandUseErrorActionPreference under the
+# script-scope 'Stop' preference. agents.sh treats those exits as a normal
+# "false". Mirrors _triage_gh in triage.ps1.
 function _agents_git {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$GitArgs)
+    $ErrorActionPreference = 'Continue'
     & $script:GitBin @GitArgs
 }
 
@@ -216,9 +232,21 @@ function agents_release_lease {
         return $false
     }
     $ownerFile = Join-Path $LeasePath $script:AgentsLeaseOwnerFile
-    Remove-Item -LiteralPath $ownerFile -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $ownerFile -Force -ErrorAction SilentlyContinue
     try {
-        Remove-Item -LiteralPath $LeasePath -ErrorAction Stop
+        # -Force is required, not cosmetic: the lease directory is named
+        # ".iw-writer.lease", and on Unix a leading dot marks it hidden, which
+        # Remove-Item refuses to delete without -Force. Without it an owner
+        # could never release its own lease on Linux/macOS -- the directory
+        # survived and every later run blocked on a lease nobody could clear.
+        # bash uses `rmdir`, which has no notion of hidden files, so the defect
+        # existed only in this port.
+        #
+        # -Recurse is deliberately NOT used: the owner marker is removed just
+        # above, so the directory is empty by then, and keeping the delete
+        # non-recursive preserves agents.sh's `rmdir` semantics -- an
+        # unexpectedly non-empty lease is refused rather than blown away.
+        Remove-Item -LiteralPath $LeasePath -Force -ErrorAction Stop
     } catch {
         return $false
     }
@@ -345,6 +373,43 @@ function run_agents {
 }
 
 # ── CLI entry ────────────────────────────────────────────────────────
+
+# Split a driver result into "emit on stdout" and "use as the exit code".
+#
+# run_agents writes its JSON to the success stream and then `return`s an int
+# exit code -- but in PowerShell a `return` value also lands on the success
+# stream, so the caller receives @(<json>, <int>) as one array. Passing that
+# array straight to `exit` casts the whole array to int, which throws and takes
+# the JSON down with it, so `pwsh -File agents.ps1 ...` printed nothing at all
+# while agents.sh printed the phase JSON (issue #847 S2).
+#
+# This helper writes every non-int item straight to the console and returns the
+# trailing int as the exit code, restoring parity with the bash CLI.
+# Dot-sourced callers are unaffected -- they consume the driver's return value
+# directly.
+#
+# The payload goes out via [Console]::Out rather than Write-Output on purpose:
+# Write-Output would put it back on the success stream alongside the returned
+# exit code, reproducing the very merge this helper exists to undo.
+function Split-AgentsCliResult {
+    param([Parameter(ValueFromRemainingArguments = $true)][object[]]$Result)
+    $items = @($Result)
+    $code = 0
+    if ($items.Count -gt 0 -and $items[-1] -is [int]) {
+        $code = [int]$items[-1]
+        # Note the explicit Count check: $items[0..($items.Count - 2)] would be
+        # $items[0..-1] for a single-element array, and PowerShell reads -1 as
+        # "last element", silently re-emitting the exit code as output.
+        if ($items.Count -gt 1) {
+            $items = $items[0..($items.Count - 2)]
+        } else {
+            $items = @()
+        }
+    }
+    foreach ($item in $items) { [Console]::Out.WriteLine([string]$item) }
+    return $code
+}
+
 function Invoke-AgentsMain {
     param([string[]]$Arguments = @())
     $manifest = ''; $phase = ''; $owner = ''
@@ -370,5 +435,5 @@ function Invoke-AgentsMain {
 # Run as CLI only when executed directly; stay quiet when dot-sourced by tests
 # (mirrors agents.sh's BASH_SOURCE guard).
 if ($MyInvocation.InvocationName -ne '.') {
-    exit (Invoke-AgentsMain -Arguments $args)
+    exit (Split-AgentsCliResult (Invoke-AgentsMain -Arguments $args))
 }
