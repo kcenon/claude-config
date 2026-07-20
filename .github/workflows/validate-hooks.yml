@@ -75,6 +75,12 @@ jobs:
         # detection library with #823 so path filters/comments never count.
         run: bash tests/scripts/test-nonstandard-test-wiring.sh
 
+      - name: Run hook JSON-escape smoke test (base)
+        # #567: dangerous-command-guard.sh must jq-escape its response reasons
+        # so adversarial strings cannot flip the decision field, and the plain
+        # allow path must stay silent on stdout (#715). Wired by #850.
+        run: bash tests/hook-json-escape.sh
+
       - name: Run hook JSON-escape regression tests (group 1)
         # #578: user-controlled reason/feedback/context strings must be
         # jq-escaped by 7 group-1 hooks so adversarial characters cannot flip
