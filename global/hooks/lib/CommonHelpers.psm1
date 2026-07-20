@@ -439,6 +439,69 @@ function New-DirectoryIfMissing {
 Set-Alias -Name Ensure-Directory -Value New-DirectoryIfMissing
 
 # ──────────────────────────────────────────────────────────────
+# Group 14: Path Resolution
+# Ported from global/hooks/lib/path-utils.sh resolve_path()
+# ──────────────────────────────────────────────────────────────
+
+function Resolve-HookPath {
+    <#
+    .SYNOPSIS
+        Canonicalizes a file path for hook pattern matching.
+    .DESCRIPTION
+        Port of resolve_path() from path-utils.sh, so the PowerShell guards
+        match on the same normalized form as their bash counterparts.
+
+        Expands a leading '~' or '$HOME' the same way the bash case statement
+        does, then canonicalizes through [System.IO.Path]::GetFullPath. That
+        static is a pure string transform, so paths that do not exist yet
+        still resolve — Resolve-Path is unusable here because it throws on
+        missing targets and the Write tool legitimately names new files.
+
+        When the target does exist, symlinks and reparse points are followed
+        so a link aimed at a denied file canonicalizes to that file.
+
+        Never throws. On any failure the input is returned unchanged, leaving
+        the caller with a string to match against.
+    .PARAMETER Path
+        The raw path to canonicalize. Empty input is returned as-is.
+    #>
+    param([string]$Path)
+
+    if ([string]::IsNullOrEmpty($Path)) { return $Path }
+
+    # Head expansion only, mirroring the case arms in resolve_path().
+    $p = $Path
+    if ($p -eq '~' -or $p -eq '$HOME') {
+        $p = $HOME
+    }
+    elseif ($p.StartsWith('~/')) {
+        $p = "$HOME/" + $p.Substring(2)
+    }
+    elseif ($p.StartsWith('$HOME/')) {
+        $p = "$HOME/" + $p.Substring(6)
+    }
+
+    try {
+        $full = [System.IO.Path]::GetFullPath($p)
+    }
+    catch {
+        return $p
+    }
+
+    # Collapse symlinks when the target exists. ResolveLinkTarget is absent
+    # before PowerShell 7.2, and Get-Item fails on unreadable paths; both
+    # land in the catch and leave the string form above standing.
+    try {
+        $item = Get-Item -LiteralPath $full -Force -ErrorAction Stop
+        $linkTarget = $item.ResolveLinkTarget($true)
+        if ($linkTarget) { $full = $linkTarget.FullName }
+    }
+    catch {}
+
+    return $full
+}
+
+# ──────────────────────────────────────────────────────────────
 # Export all functions
 # ──────────────────────────────────────────────────────────────
 
@@ -463,4 +526,5 @@ Export-ModuleMember -Function @(
     'Get-GitHubRepo'
     'Test-Administrator'
     'New-DirectoryIfMissing'
+    'Resolve-HookPath'
 ) -Alias @('Ensure-Directory')
