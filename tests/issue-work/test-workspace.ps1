@@ -89,7 +89,7 @@ function Assert-True {
     if ($Value -is [bool] -and $Value) {
         Add-Pass $Label
     } else {
-        Add-Fail $Label "expected \$true, got '$Value'"
+        Add-Fail $Label "expected `$true, got '$Value'"
     }
 }
 
@@ -98,7 +98,7 @@ function Assert-False {
     if ($Value -is [bool] -and -not $Value) {
         Add-Pass $Label
     } else {
-        Add-Fail $Label "expected \$false, got '$Value'"
+        Add-Fail $Label "expected `$false, got '$Value'"
     }
 }
 

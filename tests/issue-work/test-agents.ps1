@@ -94,7 +94,7 @@ function Assert-True {
     if ($Value -is [bool] -and $Value) {
         Add-Pass $Label
     } else {
-        Add-Fail $Label "expected \$true, got '$Value'"
+        Add-Fail $Label "expected `$true, got '$Value'"
     }
 }
 
@@ -103,7 +103,7 @@ function Assert-False {
     if ($Value -is [bool] -and -not $Value) {
         Add-Pass $Label
     } else {
-        Add-Fail $Label "expected \$false, got '$Value'"
+        Add-Fail $Label "expected `$false, got '$Value'"
     }
 }
 
@@ -217,6 +217,14 @@ try {
     Assert-Equal $OwnerA (agents_lease_owner $lease) 'AC3 lease records the owning writer'
     Assert-False (agents_acquire_lease $lease $OwnerB) 'AC3 second writer is refused while the lease is held'
     Assert-Equal $OwnerA (agents_lease_owner $lease) 'AC3 held lease still owned by the first writer'
+    # REGRESSION (commit 21d8b9d): the owner's own release used to return $false
+    # and leave the directory behind on Linux/macOS. The lease is named
+    # ".iw-writer.lease", and a leading dot marks it hidden on Unix, which
+    # Remove-Item refuses to delete without -Force -- so every later run blocked
+    # on a lease nobody could clear. agents.sh uses `rmdir`, which has no notion
+    # of hidden files, so the defect existed only in this port, and it does NOT
+    # reproduce on Windows. These two assertions are the safety net: the release
+    # must report $true AND the directory must actually be gone.
     Assert-True (agents_release_lease $lease $OwnerA) 'AC3 owner releases the lease'
     if (Test-Path -LiteralPath $lease) {
         Add-Fail 'AC3 lease directory must be gone after release'
@@ -242,6 +250,36 @@ try {
     Assert-False (agents_release_lease "$Work/nope/$script:AgentsLeaseDirname" $OwnerA) 'AC4 releasing a non-existent lease fails cleanly'
     # A path that is not a lease directory is refused outright (guarded removal).
     Assert-False (agents_release_lease "$Work/not-a-lease-dir" $OwnerA) 'AC4 non-lease path is refused (guarded removal)'
+
+    # A lease that still holds an unexpected artifact is refused rather than
+    # blown away: the removal is deliberately non-recursive, preserving
+    # agents.sh's `rmdir` semantics. This pins the -Recurse half of the 21d8b9d
+    # fix -- adding -Recurse alongside -Force would silently delete a crashed
+    # writer's leftovers instead of surfacing them.
+    #
+    # Driven through a child `pwsh -NonInteractive` on purpose: Remove-Item on a
+    # non-empty directory raises an interactive "has children" confirmation
+    # prompt, which pollutes test output and could block a run that has a TTY.
+    # -NonInteractive turns that prompt into the clean refusal asserted here.
+    $neDriver = "$Work/nonempty-lease-driver.ps1"
+    $neBody = @'
+$ErrorActionPreference = 'Stop'
+. '__AGENTS__'
+$lease = '__LEASE__'
+agents_acquire_lease $lease '__OWNER__' | Out-Null
+Set-Content -LiteralPath (Join-Path $lease 'stray-artifact.txt') -Value 'left behind by a crashed writer'
+$result = agents_release_lease $lease '__OWNER__'
+[Console]::Out.WriteLine("NONEMPTY_RESULT=$result")
+[Console]::Out.WriteLine("NONEMPTY_EXISTS=$(Test-Path -LiteralPath $lease)")
+[Console]::Out.WriteLine("NONEMPTY_SURVIVOR=$(Test-Path -LiteralPath (Join-Path $lease 'stray-artifact.txt'))")
+exit 0
+'@
+    $neBody = $neBody.Replace('__AGENTS__', $Agents).Replace('__LEASE__', "$Work/checkout3/$script:AgentsLeaseDirname").Replace('__OWNER__', $OwnerA)
+    Set-Content -LiteralPath $neDriver -Value $neBody
+    $outNe = (& pwsh -NoProfile -NonInteractive -File $neDriver 2>&1 | Out-String)
+    Assert-Contains 'NONEMPTY_RESULT=False' $outNe 'AC4 a non-empty lease is refused (non-recursive removal)'
+    Assert-Contains 'NONEMPTY_EXISTS=True' $outNe 'AC4 a refused non-empty lease survives'
+    Assert-Contains 'NONEMPTY_SURVIVOR=True' $outNe 'AC4 a refused non-empty lease keeps its contents (never blown away)'
 
     Write-Host ""
     Write-Host "=== AC5: per-agent worktree add then remove leaves no orphan ==="
