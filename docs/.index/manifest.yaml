@@ -1192,7 +1192,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 7477
+    size: 8482
     tags: [docs]
     sections:
       - {h: "Overview", l: 16, e: 22}
@@ -1210,7 +1210,8 @@ documents:
       - {h: "Common failure causes", l: 142, e: 151}
       - {h: "Intentional regression testing", l: 152, e: 166}
       - {h: "Outputs", l: 167, e: 175}
-      - {h: "Cost", l: 176, e: 187}
+      - {h: "Result freshness", l: 176, e: 197}
+      - {h: "Cost", l: 198, e: 209}
   - path: "docs/branching-strategy.md"
     title: "Branching Strategy"
     description: ""
@@ -1290,7 +1291,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 143946
+    size: 143956
     tags: [audit,config,docs]
     sections:
       - {h: "Status as of 2026-07-20 — `tests-ci`", l: 13, e: 36}
