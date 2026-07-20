@@ -98,6 +98,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The Bash-channel guards no longer deny env-file templates that the
+  file-channel guards allow. `bash-sensitive-read-guard` and
+  `bash-write-guard` matched the env class as `.env`, `*.env`, and `.env.*`
+  with no template exemption, so `.env.example` — a file that by definition
+  holds no secret and is committed on purpose — could be opened with the
+  `Read` tool but not with `cat`, and written with the `Write` tool but not
+  with a shell redirect. All four implementations (both `.sh` guards and both
+  `.ps1` counterparts, which the issue did not enumerate) now carry the same
+  four-name allow-list the file channel has used since #582: `.env.example`,
+  `.env.example.*`, `.env.sample`, `.env.template`. The direction follows
+  #863, which denied the mirrored `example.env` suffix form precisely because
+  the recognised template convention is the dotfile prefix. The allow-list
+  does not widen the bypass surface: in the `.sh` guards it is a no-op `case`
+  arm rather than an early allow, so the `secrets/` and credential-extension
+  checks below it still apply to a template under a secrets directory; in the
+  `.ps1` guards the template mention is masked out of the scanned string
+  rather than exiting early, so a template named alongside a real secret
+  (`cat .env.example && cat .env`) still denies. Unexpanded glob literals
+  (`.env.*`, `.env.example*`) never satisfy the allow-list and remain denied
+  (#866).
 - `sensitive-file-guard.sh` and `sensitive-file-guard.ps1` no longer allow
   env files written in the bare suffix form. Both matched the env class as
   `.env`, `.env.*`, and `.envrc` against the basename, so `production.env`

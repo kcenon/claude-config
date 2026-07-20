@@ -81,8 +81,9 @@ case "$BASENAME_LOWER" in
         # denotes the same artifact as the .env.* dotfile form. Both Bash-channel
         # guards already deny it; this arm closes the file-channel gap.
         # example.env / template.env are denied on purpose: the recognised
-        # template convention is the dotfile prefix (.env.example), and the
-        # Bash-channel guards carry no template allow-list at all.
+        # template convention is the dotfile prefix (.env.example), which the
+        # arm above admits. The Bash-channel guards carry the same four-name
+        # allow-list and deny the suffix form the same way (#866).
         deny_response "Access to sensitive file blocked: $FILE (env file)"
         ;;
     *.pem|*.key|*.p12|*.pfx)

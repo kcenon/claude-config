@@ -127,6 +127,27 @@ assert_allow 'git status' "git status"
 assert_allow 'ls -la' "ls -la"
 
 echo ""
+echo "[allow — env file templates (issue #866, file-channel parity)]"
+assert_allow 'cat .env.example' "cat .env.example"
+assert_allow 'cat /app/.env.sample' "cat /app/.env.sample (path-prefixed form)"
+assert_allow 'cat .env.template' "cat .env.template"
+assert_allow 'cat .env.example.local' "cat .env.example.local (suffixed example)"
+assert_allow 'grep API_URL .env.example' "grep in .env.example"
+
+echo ""
+echo "[deny — template allow-list must not widen the bypass surface (#866)]"
+# A literal glob reaching the hook unexpanded must never satisfy the
+# allow-list — `.env.*` would otherwise read every env file in a directory.
+assert_deny 'cat .env.*' "glob .env.* (not an allow-list entry)"
+assert_deny 'cat .env.example*' "glob .env.example* (no dot before wildcard)"
+assert_deny 'cat .env.examplexyz' ".env.examplexyz (not .env.example)"
+# Only .env.example carries a dotted-suffix arm, mirroring the file channel.
+assert_deny 'cat .env.sample.local' ".env.sample.local (no suffix arm for sample)"
+# The template arm falls through, so later directory checks still apply.
+assert_deny 'cat secrets/.env.example' "template under secrets/ still denied"
+assert_deny 'cat .env.example && cat .env' "template does not launder a chained .env read"
+
+echo ""
 echo "[edge — symlink to sensitive (Red Team Vector F)]"
 # Plant an actual .env so realpath has a target to resolve to. The hook's
 # resolve_path follows the symlink, so the deny pattern fires on the real
