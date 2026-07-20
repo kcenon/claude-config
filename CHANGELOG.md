@@ -98,6 +98,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The plugin distribution's inline sensitive-file guard
+  (`plugin/hooks/hooks.json`) no longer allows files the canonical
+  `sensitive-file-guard.sh` denies. Its extension alternation was anchored
+  against the full path, so the entire `.env.*` family passed unblocked —
+  including `.env.local`, which routinely holds real credentials. The guard
+  now extracts the basename, trims surrounding whitespace, folds case, and
+  matches a `case` block mirroring the canonical guard: the template
+  allow-list (`.env.example`, `.env.sample`, `.env.template`) is evaluated
+  first, then `.env` / `.env.*` / `.envrc`, credential extensions, SSH
+  private keys (`id_rsa`, `id_ed25519`, `id_ecdsa`, `id_dsa` and their
+  suffixed forms), and `credentials` / `config` under a `.aws/` path. The
+  plugin stays deliberately broader than the canonical guard for the bare
+  `*.env` suffix and the `private` directory pattern. Inline symlink
+  resolution is still out of scope and is now recorded as a retained
+  divergence in `docs/plugin-vs-global.md`, which no longer claims full
+  parity between the two surfaces (#860).
 - `sensitive-file-guard.ps1` no longer allows paths its bash counterpart
   denies. The guard now canonicalizes the incoming path through a new
   `Resolve-HookPath` helper in `CommonHelpers.psm1` — the PowerShell port of

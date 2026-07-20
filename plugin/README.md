@@ -55,7 +55,11 @@ claude --plugin-dir ./plugin --plugin-dir ./plugin-lite
 ## Hooks
 
 The plugin includes security hooks that:
-- Block access to sensitive files (.env, .pem, .key, etc.)
+- Block access to sensitive files: the `.env.*` family and `.envrc`,
+  credential containers (.pem, .key, .p12, .pfx), SSH private keys, and
+  AWS credential files. `.env.example` / `.env.sample` / `.env.template`
+  stay allowed. See `docs/plugin-vs-global.md` for the limits of the
+  inline check.
 - Prevent dangerous bash commands (rm -rf /, chmod 777)
 - Auto-format code on save (if formatters are available)
 
