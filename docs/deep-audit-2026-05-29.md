@@ -1,5 +1,7 @@
 # Deep Audit — claude-config (2026-05-29)
 
+> **Maintenance model**: this document is a point-in-time record of the audit taken on 2026-05-29. Finding bodies are preserved exactly as written and are **not** rewritten when a finding is resolved, so the state the audit actually observed stays auditable. Resolution is recorded additively in the reconciliation log below, which is the authoritative status source. Consult it before acting on any finding — an unreconciled cluster carries no implication either way.
+
 Multi-agent audit across 12 dimensions. Each finding was adversarially verified (a second agent read the actual files and checked whether the issue was a genuine defect or an intentional, documented design choice).
 
 
@@ -7,6 +9,30 @@ Multi-agent audit across 12 dimensions. Each finding was adversarially verified 
 - **Severity**: high 5, medium 26, low 30, info 6
 - **Category**: defect 19, inconsistency 28, risk 10, tech-debt 9, improvement 1
 
+
+## Status as of 2026-07-20 — `tests-ci`
+
+Reconciliation scope: the `tests-ci` cluster and the two sub-items of the [P0] CI-enforcement roadmap entry that cover it. Every other cluster in this document is unreconciled and still reads as of 2026-05-29.
+
+| Finding | Status | Closed by | Verified state on 2026-07-20 |
+|---------|--------|-----------|------------------------------|
+| `hook-json-escape-tests-orphaned` | Resolved | #833 (PR #852), #850 (PR #854) | All three suites run as explicit steps in the `test` job of `validate-hooks.yml`. |
+| `powershell-hooks-never-executed-in-ci` | Resolved | #821 (PR #826) | `tests/hooks/test-runner.ps1` executes twice per PR: under `pwsh` on the ubuntu/macos matrix in the `test` job, and natively in the dedicated `windows-powershell-hooks` job on `windows-latest`. |
+| `orphaned-script-and-regression-tests` | Resolved | #823 (PR #834), #833 (PR #852) | All thirteen named suites are wired across `validate-hooks.yml` and `validate-skills.yml`. `test-windows-hooks-parity.sh` is wired and now passes, contradicting the finding's "currently FAILS" note. |
+| `batch-drift-regression-stale-result-pass` | **Open** | — | Unchanged at every line number the finding cites. Tracked by #855. |
+
+Two meta-gates now enforce the wiring contract the resolved findings asked for, so this class of finding is self-detecting rather than dependent on the next manual audit:
+
+- `tests/scripts/test-ci-wiring.sh` (#823, PR #834) owns `tests/scripts/test-*` and counts only executable workflow run commands as wiring — path-filter mentions and comments do not qualify.
+- `tests/scripts/test-nonstandard-test-wiring.sh` (#833, PR #852) extends the same contract repo-wide to every other tracked `.sh`/`.ps1` under `tests/`, requiring each to be wired, swept by a wired shared runner, or classified in `tests/nonstandard-test-registry.txt` with a recorded risk and removal condition.
+
+**[P0] "Add CI enforcement that catches the parity gaps this audit found"** — sub-items (2) (wire the orphaned suites) and (3) (a windows-latest or pwsh leg running `tests/hooks/test-runner.ps1`) are satisfied by the wiring above; sub-item (3) was implemented as both legs, not one. Sub-item (1) (settings-file hook-set and `permissions.allow` diffing) belongs to the `settings-schema` cluster and is outside this reconciliation's scope; note only that equivalent gates have since landed in `validate-hooks.yml` rather than in `validate-hooks-doc.yml` as the roadmap specified, so it should not be read as outstanding — confirming it is the `settings-schema` reconciliation's job. The supporting paragraph's claim that `test-windows-hooks-parity.sh` "fails today but runs in no workflow" is stale on both counts.
+
+Fragments of the resolved findings that remain factually accurate, recorded so a future reader does not discard a whole finding as stale:
+
+- `tests/hooks/test-runner.sh` still globs only its own directory, so the `tests/` root suites are reached by explicit workflow steps rather than by runner discovery.
+- The parity job in `validate-hooks-doc.yml` still asserts only that same-basename `.ps1` counterparts exist and that the counts match; it executes nothing.
+- The "exercised when the InstallerFetch matrix lands a Windows runner" concession still exists in `validate-hooks.yml`, but has moved and now scopes only to `tests/plugin/smoke-test.ps1`.
 
 ## Executive Summary
 

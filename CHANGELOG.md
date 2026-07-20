@@ -88,6 +88,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   suites are now wired into `validate-hooks.yml`; the registry records the
   remaining nonstandard entrypoints as sourced helpers, or as manual-only tests
   with a reason, risk, and removal condition (#833).
+- `docs/deep-audit-2026-05-29.md` now declares a maintenance model and carries a
+  dated reconciliation log. The document is kept as an immutable point-in-time
+  record: finding bodies are never rewritten when a finding closes, and
+  resolution is tracked additively in a dated status section instead. The first
+  reconciliation covers the `tests-ci` cluster, recording three findings as
+  resolved by the landed CI wiring (#821, #823, #833, #850) and the fourth as
+  still open (#855) (#853).
 
 ### Fixed
 
