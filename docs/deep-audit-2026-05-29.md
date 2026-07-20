@@ -19,7 +19,7 @@ Reconciliation scope: the `tests-ci` cluster and the two sub-items of the [P0] C
 | `hook-json-escape-tests-orphaned` | Resolved | #833 (PR #852), #850 (PR #854) | All three suites run as explicit steps in the `test` job of `validate-hooks.yml`. |
 | `powershell-hooks-never-executed-in-ci` | Resolved | #821 (PR #826) | `tests/hooks/test-runner.ps1` executes twice per PR: under `pwsh` on the ubuntu/macos matrix in the `test` job, and natively in the dedicated `windows-powershell-hooks` job on `windows-latest`. |
 | `orphaned-script-and-regression-tests` | Resolved | #823 (PR #834), #833 (PR #852) | All thirteen named suites are wired across `validate-hooks.yml` and `validate-skills.yml`. `test-windows-hooks-parity.sh` is wired and now passes, contradicting the finding's "currently FAILS" note. |
-| `batch-drift-regression-stale-result-pass` | **Open** | — | Unchanged at every line number the finding cites. Tracked by #855. |
+| `batch-drift-regression-stale-result-pass` | Resolved | #855 | Grading is now restricted to result files written after a run-start marker, and a non-zero benchmark exit is fatal instead of a warning, so a run that produces no fresh result fails rather than grading a pre-existing file. The committed results the finding names are retained as benchmark evidence and are excluded by the timestamp guard rather than by deletion. |
 
 Two meta-gates now enforce the wiring contract the resolved findings asked for, so this class of finding is self-detecting rather than dependent on the next manual audit:
 
