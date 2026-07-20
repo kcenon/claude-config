@@ -43,6 +43,19 @@ $tracker = Join-Path $trackerDir ("claude-read-set-{0}" -f $sessionId)
 
 $sensitiveTargetRegex = '(\.env([.\s''"]|$))|((\.ssh)[/\\](id_|[A-Za-z0-9_-]+_(rsa|dsa|ecdsa|ed25519)))|(\.aws[/\\]credentials)|(\.kube[/\\]config)|(/etc/(shadow|sudoers|passwd|hosts))|(\.(pem|key|p12|pfx)(\s|$|[''"]))|([/\\]secrets[/\\])|([/\\]credentials[/\\])'
 
+# Env-file templates (.env.example, .env.example.*, .env.sample, .env.template)
+# are committed on purpose and never carry real secrets; sensitive-file-guard.ps1
+# allows the same four names on the file channel, so denying them here was a
+# cross-channel divergence (issue #866). Applied by masking the template mention
+# out of the text handed to $sensitiveTargetRegex, so a template named alongside
+# a real secret (`cp x .env.example && cp y .env`) still denies on the secret.
+# The placeholder is deliberately dot-free and slash-free so it cannot match any
+# arm of the regex above.
+$envTemplateMention = '(?i)(^|[\s/\\])\.env\.(?:example(?:\.[^\s''";|&]*)?|sample|template)(?=[\s''";|&]|$)'
+function Get-EnvTemplateMasked([string]$text) {
+    return [regex]::Replace($text, $envTemplateMention, '${1}env_template_placeholder')
+}
+
 # Uninspectable patterns — always denied.
 $uninspectableRegex = '\b(python\d?|node|perl|ruby)\s+-(c|e|E)\b|\b(awk|gawk|mawk)\b'
 
@@ -62,7 +75,7 @@ function Get-RedirectTarget([string]$cmdLine) {
 
 # Sensitive-target check on any redirect target.
 foreach ($target in (Get-RedirectTarget $cmd)) {
-    if ($target -match $sensitiveTargetRegex) {
+    if ((Get-EnvTemplateMasked $target) -match $sensitiveTargetRegex) {
         New-HookDenyResponse -Reason "Bash write to sensitive file blocked: $target"
         exit 0
     }
@@ -77,7 +90,7 @@ if ($cmd -match $uninspectableRegex) {
 # Sensitive-target check via cp/mv/tee/install argument scan: any sensitive
 # pattern preceded by a write tool (best-effort regex).
 if ($cmd -match $writeToolRegex) {
-    if ($cmd -match $sensitiveTargetRegex) {
+    if ((Get-EnvTemplateMasked $cmd) -match $sensitiveTargetRegex) {
         New-HookDenyResponse -Reason "Bash write to sensitive file blocked (write-tool argument matches sensitive pattern)"
         exit 0
     }

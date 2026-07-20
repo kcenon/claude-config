@@ -53,9 +53,23 @@ $sensitivePatterns = @(
 # This keeps `echo "this references .env"` as allow while denying `cat .env`.
 $readToolPrefix = '\b(cat|head|tail|less|more|bat|view|grep|egrep|fgrep|rg|find|tar|xxd|od|strings|hexdump|cp|mv|rsync|scp|install|sudo\s+cat|sudo\s+head|sudo\s+tail)\b'
 
+# Env-file templates (.env.example, .env.example.*, .env.sample, .env.template)
+# are committed on purpose and never carry real secrets; sensitive-file-guard.ps1
+# allows the same four names on the file channel, so denying them here was a
+# cross-channel divergence (issue #866).
+#
+# This guard matches patterns against the whole command string rather than
+# against extracted paths, so a plain "allow and exit" would also let
+# `cat .env.example && cat .env` through. Mask the template mentions out of a
+# scanning copy instead: the template token stops matching while every other
+# sensitive token in the same command still does. The placeholder is
+# deliberately dot-free and slash-free so it cannot match any pattern above.
+$envTemplateMention = '(?i)(^|[\s/\\])\.env\.(?:example(?:\.[^\s''";|&]*)?|sample|template)(?=[\s''";|&]|$)'
+$scanCmd = [regex]::Replace($cmd, $envTemplateMention, '${1}env_template_placeholder')
+
 foreach ($pattern in $sensitivePatterns) {
     $combined = "$readToolPrefix.*$pattern"
-    if ($cmd -match $combined) {
+    if ($scanCmd -match $combined) {
         $reason = "Bash read of sensitive file blocked: matched pattern $pattern"
         New-HookDenyResponse -Reason $reason
         exit 0

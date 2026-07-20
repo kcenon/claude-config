@@ -67,6 +67,17 @@ is_sensitive_target() {
     # Match against $lower so .ENV / .NETRC etc. on case-insensitive
     # filesystems (macOS, Windows) cannot bypass the guard.
     case "$lower" in
+        .env.example|*/.env.example|.env.example.*|*/.env.example.* \
+        |.env.sample|*/.env.sample|.env.template|*/.env.template)
+            # Env-file templates. Committed on purpose and never carry real
+            # secrets; sensitive-file-guard.sh allows the same four names on
+            # the file channel, so denying them here was a cross-channel
+            # divergence (issue #866). Listed BEFORE the broad .env.* arm so
+            # it wins, and left as a no-op arm rather than `return 1` so the
+            # secrets/ and *.pem checks below still apply. Both the bare and
+            # the `*/`-prefixed form are needed because this guard matches the
+            # whole path string, not the basename.
+            ;;
         */.env|*.env|*/.env.*|*.env.*) return 0 ;;
         */.ssh/id_*|*/.ssh/*_rsa|*/.ssh/*_dsa|*/.ssh/*_ecdsa|*/.ssh/*_ed25519) return 0 ;;
         */.aws/credentials|*/.aws/config) return 0 ;;
