@@ -64,6 +64,19 @@ assert_allow '{"tool_input":{"file_path":"config/.env.example"}}' "nested .env.e
 assert_allow '{"tool_input":{"file_path":"/app/.ENV.EXAMPLE"}}' "case-insensitive .env.example → allow"
 
 echo ""
+echo "[Path normalization + direnv parity (issue #856)]"
+assert_deny '{"tool_input":{"file_path":".envrc"}}' ".envrc → deny (direnv config)"
+assert_deny '{"tool_input":{"file_path":"/app/.envrc"}}' "path-qualified .envrc → deny"
+assert_deny '{"tool_input":{"file_path":"/app/.env "}}' ".env with trailing space → deny"
+assert_deny '{"tool_input":{"file_path":"keys/secret.key "}}' "secret.key with trailing space → deny"
+assert_deny '{"tool_input":{"file_path":"~/.env"}}' "tilde ~/.env → deny"
+assert_deny '{"tool_input":{"file_path":"~/.envrc"}}' "tilde ~/.envrc → deny"
+# The allow-list is matched against the normalized basename too, so templates
+# must survive the same tilde/whitespace handling that the deny paths apply.
+assert_allow '{"tool_input":{"file_path":"~/.env.example"}}' "tilde ~/.env.example → allow"
+assert_allow '{"tool_input":{"file_path":"/app/.env.template "}}' ".env.template with trailing space → allow"
+
+echo ""
 echo "[Certificate/key patterns]"
 assert_deny '{"tool_input":{"file_path":"certs/server.pem"}}' ".pem → deny"
 assert_deny '{"tool_input":{"file_path":"keys/private.key"}}' ".key → deny"

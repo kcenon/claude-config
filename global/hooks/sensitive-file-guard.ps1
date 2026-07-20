@@ -34,11 +34,18 @@ if ([string]::IsNullOrEmpty($FILE)) {
     exit 0
 }
 
-# Extract basename for template-file allow check (mirrors the bash variant).
+# Resolve the path so symlinks, ~, and $HOME all canonicalize. Resolve-HookPath
+# is purely string-transforming for non-existent targets, so newly-created
+# files still flow through.
+$TARGET = Resolve-HookPath $FILE
+
+# Lowercased basename with surrounding whitespace stripped. The strip defends
+# against ".env " (trailing space) and similar whitespace-padded bypasses;
+# case folding defends against ".ENV" / ".Env" variants.
+$basenameLower = (Split-Path -Leaf $TARGET).Trim().ToLowerInvariant()
+
 # Template files like .env.example never contain real secrets; allow them
 # BEFORE the broad .env.* block fires.
-$basename = Split-Path -Leaf $FILE
-$basenameLower = $basename.ToLowerInvariant().Trim()
 if ($basenameLower -eq '.env.example' -or
     $basenameLower -like '.env.example.*' -or
     $basenameLower -eq '.env.sample' -or
@@ -47,28 +54,33 @@ if ($basenameLower -eq '.env.example' -or
     exit 0
 }
 
-# Check sensitive file extensions
-if ($FILE -match '(^|[/\\])\.env($|\.)') {
-    New-HookDenyResponse -Reason "Access to sensitive file blocked: $FILE (protected extension)"
+# Env files. Mirrors the .env|.env.*|.envrc pattern set in the bash variant;
+# .envrc is direnv's config and carries the same class of secret.
+if ($basenameLower -eq '.env' -or
+    $basenameLower -like '.env.*' -or
+    $basenameLower -eq '.envrc') {
+    New-HookDenyResponse -Reason "Access to sensitive file blocked: $FILE (env file)"
     exit 0
 }
 
-if ($FILE -match '\.(pem|key|p12|pfx)$') {
-    New-HookDenyResponse -Reason "Access to sensitive file blocked: $FILE (protected extension)"
+# Credential containers, matched on the normalized basename.
+if ($basenameLower -match '\.(pem|key|p12|pfx)$') {
+    New-HookDenyResponse -Reason "Access to sensitive file blocked: $FILE (credential file)"
     exit 0
 }
 
 # SSH private keys (mirrors sensitive-file-guard.sh). Matches id_rsa,
 # id_ed25519, id_ecdsa, id_dsa and their suffixed variants (incl. .pub) by
-# basename. $basenameLower is computed above.
+# basename.
 if ($basenameLower -match '^id_(rsa|ed25519|ecdsa|dsa)(\..*)?$') {
     New-HookDenyResponse -Reason "Access to sensitive file blocked: $FILE (SSH private key)"
     exit 0
 }
 
 # AWS credential files: basename 'credentials' or 'config' under a .aws dir.
+# Matched against the resolved path, as the bash variant does.
 if (($basenameLower -eq 'credentials' -or $basenameLower -eq 'config') -and
-    ($FILE -match '(?i)[/\\]\.aws[/\\]')) {
+    ($TARGET -match '(?i)[/\\]\.aws[/\\]')) {
     New-HookDenyResponse -Reason "Access to sensitive file blocked: $FILE (AWS credentials)"
     exit 0
 }

@@ -50,7 +50,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 **Purpose**: Block access to sensitive files like `.env`, `.pem`, `.key`
 
 **Blocked targets**:
-- Extensions: `.env`, `.pem`, `.key`, `.p12`, `.pfx`
+- Extensions and names: `.env` (incl. `.envrc` and `.env.*`), `.pem`, `.key`, `.p12`, `.pfx`
 - Directories: `secrets/`, `credentials/`, `passwords/`, `private/`
 
 **Behavior**:
@@ -897,7 +897,7 @@ Hook commands use `pwsh -NoProfile -File` for fast, profile-independent executio
 
 | Hook | File | Description |
 |------|------|-------------|
-| Sensitive File Guard | `sensitive-file-guard.ps1` | Blocks `.env`, `.pem`, `.key` access |
+| Sensitive File Guard | `sensitive-file-guard.ps1` | Blocks the `.env` family (incl. `.envrc`), `.pem`/`.key`/`.p12`/`.pfx`, SSH private keys, AWS credentials, and sensitive directories |
 | Dangerous Command Guard | `dangerous-command-guard.ps1` | Blocks `rm -rf /`, `chmod 777`, pipe execution |
 | Session Logger | `session-logger.ps1` | Logs session start/end/stop events |
 | Cleanup | `cleanup.ps1` | Removes old temp files from `$env:TEMP` |

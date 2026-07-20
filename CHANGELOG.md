@@ -98,6 +98,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `sensitive-file-guard.ps1` no longer allows paths its bash counterpart
+  denies. The guard now canonicalizes the incoming path through a new
+  `Resolve-HookPath` helper in `CommonHelpers.psm1` — the PowerShell port of
+  `resolve_path()` from `path-utils.sh` — and matches every filename-based
+  rule against the resolved, trimmed, lowercased basename. This closes the
+  `.envrc` (direnv config) gap in the env-file pattern set and the
+  whitespace-padded and tilde-prefixed bypasses that previously slipped past
+  the raw-string env and credential-extension checks. The template allow-list
+  (`.env.example`, `.env.sample`, `.env.template`) is still evaluated first
+  and still allows; the sensitive-directory rule still matches the raw input,
+  as the bash variant does (#856).
 - Every `tests/scripts/test-*` regression is now executed by an explicit CI
   run command, and a meta-test fails when a new test is neither wired nor
   recorded with a reviewed manual-only reason. The previously orphaned

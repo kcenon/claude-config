@@ -64,6 +64,19 @@ Assert-Allow -InputJson '{"tool_input":{"file_path":"config/.env.example"}}' -La
 Assert-Allow -InputJson '{"tool_input":{"file_path":"/app/.ENV.EXAMPLE"}}' -Label 'case-insensitive .env.example -> allow'
 
 Write-Host ''
+Write-Host '[Path normalization + direnv parity (issue #856)]'
+Assert-Deny -InputJson '{"tool_input":{"file_path":".envrc"}}' -Label '.envrc -> deny (direnv config)'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/app/.envrc"}}' -Label 'path-qualified .envrc -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/app/.env "}}' -Label '.env with trailing space -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"keys/secret.key "}}' -Label 'secret.key with trailing space -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"~/.env"}}' -Label 'tilde ~/.env -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"~/.envrc"}}' -Label 'tilde ~/.envrc -> deny'
+# The allow-list is matched against the normalized basename too, so templates
+# must survive the same tilde/whitespace handling that the deny paths apply.
+Assert-Allow -InputJson '{"tool_input":{"file_path":"~/.env.example"}}' -Label 'tilde ~/.env.example -> allow'
+Assert-Allow -InputJson '{"tool_input":{"file_path":"/app/.env.template "}}' -Label '.env.template with trailing space -> allow'
+
+Write-Host ''
 Write-Host '[Certificate/key patterns]'
 Assert-Deny -InputJson '{"tool_input":{"file_path":"certs/server.pem"}}' -Label '.pem -> deny'
 Assert-Deny -InputJson '{"tool_input":{"file_path":"keys/private.key"}}' -Label '.key -> deny'
