@@ -78,7 +78,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 73230
+    size: 73366
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
