@@ -98,6 +98,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `sensitive-file-guard.sh` and `sensitive-file-guard.ps1` no longer allow
+  env files written in the bare suffix form. Both matched the env class as
+  `.env`, `.env.*`, and `.envrc` against the basename, so `production.env`
+  and `staging.env` matched no arm and fell through to an allow — while
+  `.env.production`, the same artifact under the other common naming
+  convention, was denied by the same guard under the reason `(env file)`.
+  Both gain a `*.env` arm, keeping the file-channel pair in the lockstep
+  #856 established. The two Bash-channel guards (`bash-write-guard.sh`,
+  `bash-sensitive-read-guard.sh`) and the plugin's inline guard already
+  denied this form, so the `*.env` row in the retained-divergence table in
+  `docs/plugin-vs-global.md` is removed rather than rewritten: the
+  divergence no longer exists. `example.env` and `template.env` are denied
+  on purpose — the recognised template convention is the dotfile prefix
+  (`.env.example`), which the allow-list still admits because it is
+  evaluated first, and both Bash-channel guards already deny the mirrored
+  form (#863).
 - The plugin distribution's inline sensitive-file guard
   (`plugin/hooks/hooks.json`) no longer allows files the canonical
   `sensitive-file-guard.sh` denies. Its extension alternation was anchored
@@ -109,8 +125,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   first, then `.env` / `.env.*` / `.envrc`, credential extensions, SSH
   private keys (`id_rsa`, `id_ed25519`, `id_ecdsa`, `id_dsa` and their
   suffixed forms), and `credentials` / `config` under a `.aws/` path. The
-  plugin stays deliberately broader than the canonical guard for the bare
-  `*.env` suffix and the `private` directory pattern. Inline symlink
+  plugin stays deliberately broader than the canonical guard for the
+  `private` directory pattern. Inline symlink
   resolution is still out of scope and is now recorded as a retained
   divergence in `docs/plugin-vs-global.md`, which no longer claims full
   parity between the two surfaces (#860).
