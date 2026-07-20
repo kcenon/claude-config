@@ -77,6 +77,19 @@ Assert-Allow -InputJson '{"tool_input":{"file_path":"~/.env.example"}}' -Label '
 Assert-Allow -InputJson '{"tool_input":{"file_path":"/app/.env.template "}}' -Label '.env.template with trailing space -> allow'
 
 Write-Host ''
+Write-Host '[Bare *.env suffix form (issue #863)]'
+# The suffix form denotes the same artifact as the .env.* dotfile form and is
+# already denied by both Bash-channel guards. The template allow-list asserted
+# in the issue #582 block above is load-bearing for this arm: it must keep
+# winning for .env.example / .env.sample / .env.template now that *.env matches.
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/app/production.env"}}' -Label 'production.env -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/srv/app/staging.env"}}' -Label 'path-qualified staging.env -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/app/example.env"}}' -Label 'example.env -> deny (not a recognised template form)'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/app/template.env"}}' -Label 'template.env -> deny (not a recognised template form)'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/app/PRODUCTION.ENV"}}' -Label 'PRODUCTION.ENV -> deny (case-folded)'
+Assert-Allow -InputJson '{"tool_input":{"file_path":"/app/foo.env.example"}}' -Label 'foo.env.example -> allow (ends in .example)'
+
+Write-Host ''
 Write-Host '[Certificate/key patterns]'
 Assert-Deny -InputJson '{"tool_input":{"file_path":"certs/server.pem"}}' -Label '.pem -> deny'
 Assert-Deny -InputJson '{"tool_input":{"file_path":"keys/private.key"}}' -Label '.key -> deny'
