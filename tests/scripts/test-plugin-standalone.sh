@@ -61,7 +61,7 @@ if [ -z "$SENSITIVE_CMD" ] || [ -z "$BASH_CMD" ]; then
     exit 1
 fi
 
-WORK="$(mktemp -d -t claude-plugin-standalone)"
+WORK="$(mktemp -d)"
 trap 'rm -rf -- "$WORK" 2>/dev/null || true' EXIT
 export HOME="$WORK"
 mkdir -p "$HOME/.claude"
