@@ -10,29 +10,29 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 25465
+    size: 25959
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "[Unreleased]", l: 8, e: 9}
-      - {h: "Added", l: 10, e: 91}
-      - {h: "Fixed", l: 92, e: 127}
-      - {h: "1.11.0 - 2026-07-03", l: 128, e: 129}
-      - {h: "Fixed", l: 130, e: 143}
-      - {h: "Security", l: 144, e: 221}
-      - {h: "Added", l: 222, e: 250}
-      - {h: "Changed", l: 251, e: 297}
-      - {h: "1.10.0 - 2026-04-20", l: 298, e: 306}
-      - {h: "1.9.0 - 2026-04-13", l: 307, e: 316}
-      - {h: "1.8.0 - 2026-04-13", l: 317, e: 322}
-      - {h: "1.7.0 - 2026-04-06", l: 323, e: 337}
-      - {h: "1.6.0 - 2026-04-03", l: 338, e: 350}
-      - {h: "1.5.0 - 2026-03-21", l: 351, e: 369}
-      - {h: "1.4.0 - 2026-01-22", l: 370, e: 375}
-      - {h: "1.3.0 - 2026-01-15", l: 376, e: 384}
-      - {h: "1.2.0 - 2026-01-15", l: 385, e: 393}
-      - {h: "1.1.0 - 2025-01-15", l: 394, e: 404}
-      - {h: "1.0.0 - 2025-12-03", l: 405, e: 411}
+      - {h: "Added", l: 10, e: 98}
+      - {h: "Fixed", l: 99, e: 134}
+      - {h: "1.11.0 - 2026-07-03", l: 135, e: 136}
+      - {h: "Fixed", l: 137, e: 150}
+      - {h: "Security", l: 151, e: 228}
+      - {h: "Added", l: 229, e: 257}
+      - {h: "Changed", l: 258, e: 304}
+      - {h: "1.10.0 - 2026-04-20", l: 305, e: 313}
+      - {h: "1.9.0 - 2026-04-13", l: 314, e: 323}
+      - {h: "1.8.0 - 2026-04-13", l: 324, e: 329}
+      - {h: "1.7.0 - 2026-04-06", l: 330, e: 344}
+      - {h: "1.6.0 - 2026-04-03", l: 345, e: 357}
+      - {h: "1.5.0 - 2026-03-21", l: 358, e: 376}
+      - {h: "1.4.0 - 2026-01-22", l: 377, e: 382}
+      - {h: "1.3.0 - 2026-01-15", l: 383, e: 391}
+      - {h: "1.2.0 - 2026-01-15", l: 392, e: 400}
+      - {h: "1.1.0 - 2025-01-15", l: 401, e: 411}
+      - {h: "1.0.0 - 2025-12-03", l: 412, e: 418}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -1290,96 +1290,97 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 139789
+    size: 143432
     tags: [audit,config,docs]
     sections:
-      - {h: "Executive Summary", l: 11, e: 25}
-      - {h: "Root-Cause Themes", l: 26, e: 35}
-      - {h: "Prioritized Roadmap", l: 36, e: 38}
-      - {h: "[P0] Wire the six missing security/memory hooks into settings.windows.json: add bash-sensitive-read-guard.ps1, bash-write-guard.ps1, gh-write-verb-guard.ps1, and traceability-guard.ps1 to the Bash matcher (preserving the POSIX .sh ordering and timeouts), and add memory-write-guard.ps1 (after pre-edit-read-guard.ps1), memory-integrity-check.ps1 (SessionStart), and memory-access-logger.ps1 (PostToolUse Read, async 5s). These .ps1 files already exist and are fully implemented; they are simply unregistered, leaving Windows users with no Bash-channel secret-read/write protection and no memory guarding that the docs claim are active. _(effort: S)_", l: 39, e: 45}
-      - {h: "[P0] Fix the case-sensitivity secret-guard bypass in bash-write-guard.sh and bash-sensitive-read-guard.sh: match the .env-family, SSH-key, .aws, .netrc/.npmrc/.pypirc, and system-credential globs against the already-computed $lower (as is already done for *.pem and the secrets/ dirs), mirroring sensitive-file-guard.sh's deliberate case-folding. Add deny fixtures for .ENV/.Env/.Envrc/.NETRC and uppercased SSH-key names to both test corpora. _(effort: S)_", l: 46, e: 52}
-      - {h: "[P0] Add CI enforcement that catches the parity gaps this audit found: (1) extend the parity job in validate-hooks-doc.yml to parse both settings files, normalize each hook to its basename, and fail if per-event hook sets diverge except for a documented POSIX-only allowlist; also diff the permissions.allow arrays. (2) Wire the orphaned regression suites into CI — add the three tests/hook-json-escape*.sh suites and the unrun tests/scripts/*.sh suites (especially test-hook-ordering.sh, test-windows-hooks-parity.sh which currently FAILS, and test-installer-fetch.sh) to validate-hooks.yml/validate-skills.yml. (3) Add a windows-latest (or pwsh) leg that runs tests/hooks/test-runner.ps1 so .ps1 hooks get behavioral execution, not just file-existence parity. _(effort: M)_", l: 53, e: 59}
-      - {h: "[P1] Restore behavioral parity in the divergent PowerShell guard logic: (1) merge-gate-guard.ps1 — add the squash-only --merge/--rebase deny block after the scope gate; (2) pr-target-guard.ps1 — block both main and master and resolve the repo default branch (with the override env var) when --base is absent, mirroring the #616 hardening; (3) commit-message-guard.ps1 — replace the broad attribution substring regex with the three-pattern logic (factor a Test-NoAttribution helper from attribution-guard.ps1); (4) memory-write-guard.ps1 — fail-closed on secret-check exit code 2 (#618); (5) LanguageValidator.psm1 — allowlist the English typographic code points (U+2014/2013/201C/201D/2018/2019/2026/00A0) per #583; (6) sensitive-file-guard.ps1 — add SSH-key and .aws cases; (7) bash-write-guard.ps1 — extend Read-before-Edit to argv targets (or document the redirect-only limit). Add or extend the corresponding parity/behavioral tests for each. _(effort: L)_", l: 60, e: 66}
-      - {h: "[P1] Establish an enforced SSOT for the plugin reference files and agents. Extend the canonical->mirror map in scripts/check_references.sh + sync_references.sh (and their .ps1 twins) to cover ALL plugin/skills/*/reference/* files that mirror rules/ (not just the 4 project-workflow files), then run sync to re-sync the ~29 currently-drifted copies — including the github-pr-5w1h.md mirror that drifted even within the declared scope. For the 8 near-duplicate agents, add a CI diff that asserts the shared body sections match between plugin/agents and project/.claude/agents (or adopt a body+per-layer-frontmatter overlay generated by sync), reusing the diff -q pattern already proven for hooks/lib/validate-commit-message.sh. _(effort: M)_", l: 67, e: 73}
-      - {h: "[P1] Fix the bootstrap.ps1 wrong-settings defect and the silent-data-loss script helpers. (1) bootstrap.ps1 Install-GlobalSettings: source global/settings.windows.json on Windows (mirroring install.ps1:441), not the Unix settings.json whose hooks point at .sh scripts; add a drift test asserting bootstrap.ps1 and install.ps1 select the same settings source per platform. (2) backup.sh and install.sh: make error() exit (or replace `cmd || error` with `cmd || { error; exit 1; }`) for destructive/critical copies; in backup.sh prefer copy-then-swap so a failed copy never leaves a wiped backup directory; fix the same non-exiting pattern in backup.ps1. _(effort: M)_", l: 74, e: 80}
-      - {h: "[P1] Fix the github-api-preflight scope-gate overmatch and the markdown-anchor-validator CJK divergence. (1) Anchor the gh detection in github-api-preflight.sh to a word boundary `(^|[[:space:]`(])gh[[:space:]]` (reusing gh-write-verb-guard's pre-filter) so benign words like 'high'/'weigh' no longer trigger a network curl on every Bash call; also drop the `^` anchor on the auth-status branch so `cd x && gh ...` gets the diagnostic. (2) Make markdown-anchor-validator anchor generation Unicode-aware on both sides — switch the .sh from locale-dependent `[:alnum:]` to a perl `\\p{L}\\p{N}\\p{Pc}` transform matching the .ps1, and add Korean/CJK fixtures asserting byte-identical anchors across platforms. _(effort: M)_", l: 81, e: 87}
-      - {h: "[P1] Fix the /release multi-track defects and govern the hooks version track. (1) Add `hooks` to the /release --target alternation, argument-hint, Options, and Version Source table; add the hooks consumer to sync_versions and check_versions so --target hooks actually bumps and propagates instead of silently falling back to suite. (2) In release Step 8, use the $TAG_NAME computed in Step 7 for `gh release create` and the Output template, so non-suite releases tag and publish consistently instead of creating a mismatched v$VERSION tag. (3) Either give the hooks track a real consumer (e.g. gen-hooks-md.sh emits a 'Hooks bundle version' line into HOOKS.md and check_versions asserts it) or correct VERSION_MAP.yml line 14 to drop the false 'surfaced to operators' claim and document hooks as an ungoverned label with a SemVer-validity assertion. _(effort: M)_", l: 88, e: 94}
-      - {h: "[P2] Reconcile the documentation that drifted from reality, preferring SSOT-derived values over hardcoded literals. Update: COMPATIBILITY.md parity count 32->37 (or derive from the CI-tracked HOOKS.md total), its hook-event table (rename PostToolUseFailure->ToolFailure, add CwdChanged/InstructionsLoaded/TaskCreated/PostCompact rows), and its stale v1.6.0/2026-04-17 footer. Fix HOOKS.md section 12 heading (H2->H3) and rewrite its no-base PR-target behavior to match the shipped #616 default-branch resolution. Sync README.md/README.ko.md Agents tables (add dependency-auditor, test-strategist), the _internal skills trees (add the 6 missing skills; rewrite the ko tree's structure), the hooks trees (replace the hand list of 19 with a pointer to the CI-verified HOOKS.md catalog), and the lib/ subtree listings; align plugin-lite README/plugin-vs-global.md hooks rows and plugin/README structure block with shipped contents. _(effort: L)_", l: 95, e: 101}
-      - {h: "[P2] Finalize the expired P4 timeline rollout and harden the dangerous-command-guard allow-shape and JSON-emission consistency. (1) P4: decide the terminal state (flip p4_strict_schema to true and retire the hooks, or remove strict mode), then delete the four p4-timeline hook files, their six settings registrations, the policy file, and the HOOKS.md entries — they currently fire on every Bash/Edit/Write/SessionStart but can never block or print. (2) Convert github-api-preflight.sh and prompt-validator.sh JSON emitters to `jq -nc --arg` to match the rest of the hardened suite. (3) Standardize the dangerous-command-guard allow-path diagnostic field (additionalContext vs permissionDecisionReason) across .sh/.ps1. _(effort: M)_", l: 102, e: 108}
-      - {h: "[P2] Add self-documenting loop-safety/side-effect sections and reconcile the tier-preset policy wording. (1) Add a short '### Side Effects and Loop-Safety' note to the 9 loop_safe:false skills that lack one (issue-work, pr-work, release, harness, branch-cleanup, issue-create, implement-all-levels, fleet-orchestrator, sonar-fix) and to traceability (whose loop metadata has no body content), using the evidence-pack section as template; optionally tighten validate_skills.sh to grep only the post-frontmatter body so the drift check cannot be self-satisfied by frontmatter keys. (2) Soften _policy.md line 135 tier presets from 'Required' to 'Recommended; adopted incrementally' with a cross-link to the TOKEN_OPTIMIZATION.md phased rollout (or schedule tier adoption for the ~10 oversized skills). _(effort: M)_", l: 109, e: 115}
-      - {h: "[P3] Clean up the remaining low-impact consistency and robustness nits: reconcile fleet-orchestrator flag drift (--retry->--max-retries in the argument-hint, document or remove --dry-run, add --resume to the hint) including the docs/fleet-orchestrator.md copy-paste examples; tighten the Windows git fetch allowlist to the two scoped origin/upstream entries; quote $BACKUP_DIR in backup.sh's ls -A summary checks and add 2>/dev/null to the two missing lines; add a Test-Path guard before bootstrap.sh sources installer-fetch.sh; add an explicit non-interactive (--yes / env-flag + TTY detection) mode to the installers; constrain sync_versions' global \"version\" sed to the first/top-level match plus a uniqueness assertion; document the per-call pwsh cold-start cost in COMPATIBILITY.md; port sync.ps1's missing option-4 interactive merge (or explicitly reject 4); add a behavioral test for conflict-guard.sh; add tests/markdown-anchor-validator/** to the validate-hooks.yml path filter; backfill the CHANGELOG per-version sections at next release; and delete the stale err.log scratch artifact. _(effort: L)_", l: 116, e: 123}
-      - {h: "Confirmed Findings (by severity)", l: 124, e: 197}
-      - {h: "Finding Details", l: 198, e: 200}
-      - {h: "`bsrg-env-case-bypass` — high/defect (hooks-correctness)", l: 201, e: 214}
-      - {h: "`merge-gate-guard-ps1-missing-squash-only` — high/defect (hooks-parity)", l: 215, e: 228}
-      - {h: "`sensitive-file-guard-ps1-missing-ssh-aws` — high/defect (hooks-parity)", l: 229, e: 242}
-      - {h: "`windows-bash-secret-guards-not-wired` — high/defect (security-surface)", l: 243, e: 256}
-      - {h: "`win-missing-bash-tool-guards` — high/inconsistency (settings-schema)", l: 257, e: 270}
-      - {h: "`plugin-skill-refs-drift-unguarded` — medium/tech-debt (architecture)", l: 271, e: 284}
-      - {h: "`plugin-agents-near-duplicate-unguarded` — medium/tech-debt (architecture)", l: 285, e: 298}
-      - {h: "`compat-pwsh-parity-count-stale` — medium/inconsistency (docs-consistency)", l: 299, e: 312}
-      - {h: "`hooks-md-section12-h2-and-stale-content` — medium/defect (docs-consistency)", l: 313, e: 326}
-      - {h: "`bwg-env-case-bypass` — medium/defect (hooks-correctness)", l: 327, e: 340}
-      - {h: "`gap-matcher-overmatch` — medium/defect (hooks-correctness)", l: 341, e: 354}
-      - {h: "`commit-msg-guard-ps1-broad-attribution-regex` — medium/inconsistency (hooks-parity)", l: 355, e: 368}
-      - {h: "`pr-target-guard-ps1-stale-master-and-default-branch` — medium/inconsistency (hooks-parity)", l: 369, e: 382}
-      - {h: "`memory-write-guard-ps1-missing-secret-rc2` — medium/defect (hooks-parity)", l: 383, e: 396}
-      - {h: "`language-validator-ps1-missing-typographic-allowlist` — medium/inconsistency (hooks-parity)", l: 397, e: 410}
-      - {h: "`markdown-anchor-validator-cjk-charclass-divergence` — medium/risk (hooks-parity)", l: 411, e: 424}
-      - {h: "`bootstrap-ps1-wrong-settings-windows` — medium/defect (scripts-robustness)", l: 425, e: 438}
-      - {h: "`backup-sh-silent-dataloss-cp-after-delete` — medium/defect (scripts-robustness)", l: 439, e: 452}
-      - {h: "`install-sh-error-fn-suppresses-errexit` — medium/defect (scripts-robustness)", l: 453, e: 466}
-      - {h: "`sync-ps1-missing-interactive-merge` — medium/inconsistency (scripts-robustness)", l: 467, e: 480}
-      - {h: "`parity-ci-checks-files-not-wiring` — medium/risk (security-surface)", l: 481, e: 494}
-      - {h: "`win-missing-memory-hooks` — medium/inconsistency (settings-schema)", l: 495, e: 508}
-      - {h: "`no-ci-parity-check-for-hook-wiring` — medium/risk (settings-schema)", l: 509, e: 522}
-      - {h: "`fleet-orchestrator-arg-hint-flag-drift` — medium/defect (skills-quality)", l: 523, e: 536}
-      - {h: "`hook-json-escape-tests-orphaned` — medium/risk (tests-ci)", l: 537, e: 550}
-      - {h: "`powershell-hooks-never-executed-in-ci` — medium/risk (tests-ci)", l: 551, e: 564}
-      - {h: "`batch-drift-regression-stale-result-pass` — medium/defect (tests-ci)", l: 565, e: 578}
-      - {h: "`orphaned-script-and-regression-tests` — medium/risk (tests-ci)", l: 579, e: 592}
-      - {h: "`hooks-field-never-checked-or-synced` — medium/defect (versioning)", l: 593, e: 606}
-      - {h: "`release-target-excludes-hooks` — medium/defect (versioning)", l: 607, e: 620}
-      - {h: "`release-gh-create-hardcodes-suite-tag` — medium/defect (versioning)", l: 621, e: 634}
-      - {h: "`plugin-lite-readme-hooks-contradiction` — low/inconsistency (architecture)", l: 635, e: 648}
-      - {h: "`plugin-bundled-lib-no-consumer` — low/tech-debt (architecture)", l: 649, e: 662}
-      - {h: "`plugin-readme-structure-omits-shipped-dirs` — low/inconsistency (architecture)", l: 663, e: 676}
-      - {h: "`compat-hook-event-table-incomplete-and-wrong` — low/inconsistency (docs-consistency)", l: 677, e: 690}
-      - {h: "`readme-agents-section-missing-two-agents` — low/inconsistency (docs-consistency)", l: 691, e: 704}
-      - {h: "`readme-internal-skills-tree-missing-six` — low/inconsistency (docs-consistency)", l: 705, e: 718}
-      - {h: "`readme-hooks-tree-missing-17` — low/inconsistency (docs-consistency)", l: 719, e: 732}
-      - {h: "`readme-tree-lib-dirs-understated` — low/inconsistency (docs-consistency)", l: 733, e: 746}
-      - {h: "`compat-footer-stale-version-date` — low/inconsistency (docs-consistency)", l: 747, e: 760}
-      - {h: "`changelog-no-released-sections` — low/tech-debt (docs-consistency)", l: 761, e: 774}
-      - {h: "`gap-authcheck-undermatch` — low/defect (hooks-correctness)", l: 775, e: 788}
-      - {h: "`gap-heredoc-not-jq` — low/inconsistency (hooks-correctness)", l: 789, e: 802}
-      - {h: "`bash-write-guard-ps1-no-readbefore-on-argv-targets` — low/inconsistency (hooks-parity)", l: 803, e: 816}
-      - {h: "`p4-guard-unbounded-gh-diff` — low/risk (hooks-performance)", l: 817, e: 830}
-      - {h: "`markdown-validator-double-registered` — low/defect (hooks-performance)", l: 831, e: 844}
-      - {h: "`windows-pwsh-cold-spawn-per-hook` — low/risk (hooks-performance)", l: 845, e: 858}
-      - {h: "`backup-sh-unquoted-backupdir-wordsplit` — low/defect (scripts-robustness)", l: 859, e: 872}
-      - {h: "`installer-fetch-source-unguarded-bootstrap-sh` — low/risk (scripts-robustness)", l: 873, e: 886}
-      - {h: "`windows-sensitive-file-guard-missing-ssh-aws` — low/inconsistency (security-surface)", l: 887, e: 900}
-      - {h: "`win-permissions-allow-narrower` — low/inconsistency (settings-schema)", l: 901, e: 914}
-      - {h: "`win-note-comment-stale` — low/inconsistency (settings-schema)", l: 915, e: 928}
-      - {h: "`fleet-orchestrator-resume-flag-missing-from-hint` — low/inconsistency (skills-quality)", l: 929, e: 942}
-      - {h: "`traceability-loop-metadata-no-loop-body` — low/inconsistency (skills-quality)", l: 943, e: 956}
-      - {h: "`loop-safe-false-missing-side-effect-section` — low/inconsistency (skills-quality)", l: 957, e: 970}
-      - {h: "`p4-timeline-windows-all-expired` — low/tech-debt (tech-debt-lifecycle)", l: 971, e: 984}
-      - {h: "`conflict-guard-no-behavioral-test` — low/tech-debt (tests-ci)", l: 985, e: 998}
-      - {h: "`validate-hooks-path-missing-anchor-fixtures` — low/inconsistency (tests-ci)", l: 999, e: 1012}
-      - {h: "`version-map-false-doc-claim-hooks-surfaced` — low/inconsistency (versioning)", l: 1013, e: 1026}
-      - {h: "`changelog-only-tracks-suite-no-per-version-sections` — low/tech-debt (versioning)", l: 1027, e: 1040}
-      - {h: "`sync-json-version-global-regex-fragility` — low/risk (versioning)", l: 1041, e: 1054}
-      - {h: "`dangerous-command-guard-allow-shape-mismatch` — info/inconsistency (hooks-parity)", l: 1055, e: 1068}
-      - {h: "`installers-no-noninteractive-flag` — info/improvement (scripts-robustness)", l: 1069, e: 1082}
-      - {h: "`deny-list-narrower-than-guards-by-design-gap` — info/tech-debt (security-surface)", l: 1083, e: 1096}
-      - {h: "`git-fetch-allow-divergence` — info/inconsistency (settings-schema)", l: 1097, e: 1110}
-      - {h: "`tier-presets-missing-on-oversized-skills` — info/inconsistency (skills-quality)", l: 1111, e: 1124}
-      - {h: "`stale-err-log-root` — info/tech-debt (tech-debt-lifecycle)", l: 1125, e: 1138}
-      - {h: "Rejected (verified as intentional design or not a defect)", l: 1139, e: 1157}
-      - {h: "Completeness Critic (gaps the per-dimension audit may have missed)", l: 1158, e: 1163}
-      - {h: "Gaps the audit likely missed", l: 1164, e: 1187}
+      - {h: "Status as of 2026-07-20 — `tests-ci`", l: 13, e: 36}
+      - {h: "Executive Summary", l: 37, e: 51}
+      - {h: "Root-Cause Themes", l: 52, e: 61}
+      - {h: "Prioritized Roadmap", l: 62, e: 64}
+      - {h: "[P0] Wire the six missing security/memory hooks into settings.windows.json: add bash-sensitive-read-guard.ps1, bash-write-guard.ps1, gh-write-verb-guard.ps1, and traceability-guard.ps1 to the Bash matcher (preserving the POSIX .sh ordering and timeouts), and add memory-write-guard.ps1 (after pre-edit-read-guard.ps1), memory-integrity-check.ps1 (SessionStart), and memory-access-logger.ps1 (PostToolUse Read, async 5s). These .ps1 files already exist and are fully implemented; they are simply unregistered, leaving Windows users with no Bash-channel secret-read/write protection and no memory guarding that the docs claim are active. _(effort: S)_", l: 65, e: 71}
+      - {h: "[P0] Fix the case-sensitivity secret-guard bypass in bash-write-guard.sh and bash-sensitive-read-guard.sh: match the .env-family, SSH-key, .aws, .netrc/.npmrc/.pypirc, and system-credential globs against the already-computed $lower (as is already done for *.pem and the secrets/ dirs), mirroring sensitive-file-guard.sh's deliberate case-folding. Add deny fixtures for .ENV/.Env/.Envrc/.NETRC and uppercased SSH-key names to both test corpora. _(effort: S)_", l: 72, e: 78}
+      - {h: "[P0] Add CI enforcement that catches the parity gaps this audit found: (1) extend the parity job in validate-hooks-doc.yml to parse both settings files, normalize each hook to its basename, and fail if per-event hook sets diverge except for a documented POSIX-only allowlist; also diff the permissions.allow arrays. (2) Wire the orphaned regression suites into CI — add the three tests/hook-json-escape*.sh suites and the unrun tests/scripts/*.sh suites (especially test-hook-ordering.sh, test-windows-hooks-parity.sh which currently FAILS, and test-installer-fetch.sh) to validate-hooks.yml/validate-skills.yml. (3) Add a windows-latest (or pwsh) leg that runs tests/hooks/test-runner.ps1 so .ps1 hooks get behavioral execution, not just file-existence parity. _(effort: M)_", l: 79, e: 85}
+      - {h: "[P1] Restore behavioral parity in the divergent PowerShell guard logic: (1) merge-gate-guard.ps1 — add the squash-only --merge/--rebase deny block after the scope gate; (2) pr-target-guard.ps1 — block both main and master and resolve the repo default branch (with the override env var) when --base is absent, mirroring the #616 hardening; (3) commit-message-guard.ps1 — replace the broad attribution substring regex with the three-pattern logic (factor a Test-NoAttribution helper from attribution-guard.ps1); (4) memory-write-guard.ps1 — fail-closed on secret-check exit code 2 (#618); (5) LanguageValidator.psm1 — allowlist the English typographic code points (U+2014/2013/201C/201D/2018/2019/2026/00A0) per #583; (6) sensitive-file-guard.ps1 — add SSH-key and .aws cases; (7) bash-write-guard.ps1 — extend Read-before-Edit to argv targets (or document the redirect-only limit). Add or extend the corresponding parity/behavioral tests for each. _(effort: L)_", l: 86, e: 92}
+      - {h: "[P1] Establish an enforced SSOT for the plugin reference files and agents. Extend the canonical->mirror map in scripts/check_references.sh + sync_references.sh (and their .ps1 twins) to cover ALL plugin/skills/*/reference/* files that mirror rules/ (not just the 4 project-workflow files), then run sync to re-sync the ~29 currently-drifted copies — including the github-pr-5w1h.md mirror that drifted even within the declared scope. For the 8 near-duplicate agents, add a CI diff that asserts the shared body sections match between plugin/agents and project/.claude/agents (or adopt a body+per-layer-frontmatter overlay generated by sync), reusing the diff -q pattern already proven for hooks/lib/validate-commit-message.sh. _(effort: M)_", l: 93, e: 99}
+      - {h: "[P1] Fix the bootstrap.ps1 wrong-settings defect and the silent-data-loss script helpers. (1) bootstrap.ps1 Install-GlobalSettings: source global/settings.windows.json on Windows (mirroring install.ps1:441), not the Unix settings.json whose hooks point at .sh scripts; add a drift test asserting bootstrap.ps1 and install.ps1 select the same settings source per platform. (2) backup.sh and install.sh: make error() exit (or replace `cmd || error` with `cmd || { error; exit 1; }`) for destructive/critical copies; in backup.sh prefer copy-then-swap so a failed copy never leaves a wiped backup directory; fix the same non-exiting pattern in backup.ps1. _(effort: M)_", l: 100, e: 106}
+      - {h: "[P1] Fix the github-api-preflight scope-gate overmatch and the markdown-anchor-validator CJK divergence. (1) Anchor the gh detection in github-api-preflight.sh to a word boundary `(^|[[:space:]`(])gh[[:space:]]` (reusing gh-write-verb-guard's pre-filter) so benign words like 'high'/'weigh' no longer trigger a network curl on every Bash call; also drop the `^` anchor on the auth-status branch so `cd x && gh ...` gets the diagnostic. (2) Make markdown-anchor-validator anchor generation Unicode-aware on both sides — switch the .sh from locale-dependent `[:alnum:]` to a perl `\\p{L}\\p{N}\\p{Pc}` transform matching the .ps1, and add Korean/CJK fixtures asserting byte-identical anchors across platforms. _(effort: M)_", l: 107, e: 113}
+      - {h: "[P1] Fix the /release multi-track defects and govern the hooks version track. (1) Add `hooks` to the /release --target alternation, argument-hint, Options, and Version Source table; add the hooks consumer to sync_versions and check_versions so --target hooks actually bumps and propagates instead of silently falling back to suite. (2) In release Step 8, use the $TAG_NAME computed in Step 7 for `gh release create` and the Output template, so non-suite releases tag and publish consistently instead of creating a mismatched v$VERSION tag. (3) Either give the hooks track a real consumer (e.g. gen-hooks-md.sh emits a 'Hooks bundle version' line into HOOKS.md and check_versions asserts it) or correct VERSION_MAP.yml line 14 to drop the false 'surfaced to operators' claim and document hooks as an ungoverned label with a SemVer-validity assertion. _(effort: M)_", l: 114, e: 120}
+      - {h: "[P2] Reconcile the documentation that drifted from reality, preferring SSOT-derived values over hardcoded literals. Update: COMPATIBILITY.md parity count 32->37 (or derive from the CI-tracked HOOKS.md total), its hook-event table (rename PostToolUseFailure->ToolFailure, add CwdChanged/InstructionsLoaded/TaskCreated/PostCompact rows), and its stale v1.6.0/2026-04-17 footer. Fix HOOKS.md section 12 heading (H2->H3) and rewrite its no-base PR-target behavior to match the shipped #616 default-branch resolution. Sync README.md/README.ko.md Agents tables (add dependency-auditor, test-strategist), the _internal skills trees (add the 6 missing skills; rewrite the ko tree's structure), the hooks trees (replace the hand list of 19 with a pointer to the CI-verified HOOKS.md catalog), and the lib/ subtree listings; align plugin-lite README/plugin-vs-global.md hooks rows and plugin/README structure block with shipped contents. _(effort: L)_", l: 121, e: 127}
+      - {h: "[P2] Finalize the expired P4 timeline rollout and harden the dangerous-command-guard allow-shape and JSON-emission consistency. (1) P4: decide the terminal state (flip p4_strict_schema to true and retire the hooks, or remove strict mode), then delete the four p4-timeline hook files, their six settings registrations, the policy file, and the HOOKS.md entries — they currently fire on every Bash/Edit/Write/SessionStart but can never block or print. (2) Convert github-api-preflight.sh and prompt-validator.sh JSON emitters to `jq -nc --arg` to match the rest of the hardened suite. (3) Standardize the dangerous-command-guard allow-path diagnostic field (additionalContext vs permissionDecisionReason) across .sh/.ps1. _(effort: M)_", l: 128, e: 134}
+      - {h: "[P2] Add self-documenting loop-safety/side-effect sections and reconcile the tier-preset policy wording. (1) Add a short '### Side Effects and Loop-Safety' note to the 9 loop_safe:false skills that lack one (issue-work, pr-work, release, harness, branch-cleanup, issue-create, implement-all-levels, fleet-orchestrator, sonar-fix) and to traceability (whose loop metadata has no body content), using the evidence-pack section as template; optionally tighten validate_skills.sh to grep only the post-frontmatter body so the drift check cannot be self-satisfied by frontmatter keys. (2) Soften _policy.md line 135 tier presets from 'Required' to 'Recommended; adopted incrementally' with a cross-link to the TOKEN_OPTIMIZATION.md phased rollout (or schedule tier adoption for the ~10 oversized skills). _(effort: M)_", l: 135, e: 141}
+      - {h: "[P3] Clean up the remaining low-impact consistency and robustness nits: reconcile fleet-orchestrator flag drift (--retry->--max-retries in the argument-hint, document or remove --dry-run, add --resume to the hint) including the docs/fleet-orchestrator.md copy-paste examples; tighten the Windows git fetch allowlist to the two scoped origin/upstream entries; quote $BACKUP_DIR in backup.sh's ls -A summary checks and add 2>/dev/null to the two missing lines; add a Test-Path guard before bootstrap.sh sources installer-fetch.sh; add an explicit non-interactive (--yes / env-flag + TTY detection) mode to the installers; constrain sync_versions' global \"version\" sed to the first/top-level match plus a uniqueness assertion; document the per-call pwsh cold-start cost in COMPATIBILITY.md; port sync.ps1's missing option-4 interactive merge (or explicitly reject 4); add a behavioral test for conflict-guard.sh; add tests/markdown-anchor-validator/** to the validate-hooks.yml path filter; backfill the CHANGELOG per-version sections at next release; and delete the stale err.log scratch artifact. _(effort: L)_", l: 142, e: 149}
+      - {h: "Confirmed Findings (by severity)", l: 150, e: 223}
+      - {h: "Finding Details", l: 224, e: 226}
+      - {h: "`bsrg-env-case-bypass` — high/defect (hooks-correctness)", l: 227, e: 240}
+      - {h: "`merge-gate-guard-ps1-missing-squash-only` — high/defect (hooks-parity)", l: 241, e: 254}
+      - {h: "`sensitive-file-guard-ps1-missing-ssh-aws` — high/defect (hooks-parity)", l: 255, e: 268}
+      - {h: "`windows-bash-secret-guards-not-wired` — high/defect (security-surface)", l: 269, e: 282}
+      - {h: "`win-missing-bash-tool-guards` — high/inconsistency (settings-schema)", l: 283, e: 296}
+      - {h: "`plugin-skill-refs-drift-unguarded` — medium/tech-debt (architecture)", l: 297, e: 310}
+      - {h: "`plugin-agents-near-duplicate-unguarded` — medium/tech-debt (architecture)", l: 311, e: 324}
+      - {h: "`compat-pwsh-parity-count-stale` — medium/inconsistency (docs-consistency)", l: 325, e: 338}
+      - {h: "`hooks-md-section12-h2-and-stale-content` — medium/defect (docs-consistency)", l: 339, e: 352}
+      - {h: "`bwg-env-case-bypass` — medium/defect (hooks-correctness)", l: 353, e: 366}
+      - {h: "`gap-matcher-overmatch` — medium/defect (hooks-correctness)", l: 367, e: 380}
+      - {h: "`commit-msg-guard-ps1-broad-attribution-regex` — medium/inconsistency (hooks-parity)", l: 381, e: 394}
+      - {h: "`pr-target-guard-ps1-stale-master-and-default-branch` — medium/inconsistency (hooks-parity)", l: 395, e: 408}
+      - {h: "`memory-write-guard-ps1-missing-secret-rc2` — medium/defect (hooks-parity)", l: 409, e: 422}
+      - {h: "`language-validator-ps1-missing-typographic-allowlist` — medium/inconsistency (hooks-parity)", l: 423, e: 436}
+      - {h: "`markdown-anchor-validator-cjk-charclass-divergence` — medium/risk (hooks-parity)", l: 437, e: 450}
+      - {h: "`bootstrap-ps1-wrong-settings-windows` — medium/defect (scripts-robustness)", l: 451, e: 464}
+      - {h: "`backup-sh-silent-dataloss-cp-after-delete` — medium/defect (scripts-robustness)", l: 465, e: 478}
+      - {h: "`install-sh-error-fn-suppresses-errexit` — medium/defect (scripts-robustness)", l: 479, e: 492}
+      - {h: "`sync-ps1-missing-interactive-merge` — medium/inconsistency (scripts-robustness)", l: 493, e: 506}
+      - {h: "`parity-ci-checks-files-not-wiring` — medium/risk (security-surface)", l: 507, e: 520}
+      - {h: "`win-missing-memory-hooks` — medium/inconsistency (settings-schema)", l: 521, e: 534}
+      - {h: "`no-ci-parity-check-for-hook-wiring` — medium/risk (settings-schema)", l: 535, e: 548}
+      - {h: "`fleet-orchestrator-arg-hint-flag-drift` — medium/defect (skills-quality)", l: 549, e: 562}
+      - {h: "`hook-json-escape-tests-orphaned` — medium/risk (tests-ci)", l: 563, e: 576}
+      - {h: "`powershell-hooks-never-executed-in-ci` — medium/risk (tests-ci)", l: 577, e: 590}
+      - {h: "`batch-drift-regression-stale-result-pass` — medium/defect (tests-ci)", l: 591, e: 604}
+      - {h: "`orphaned-script-and-regression-tests` — medium/risk (tests-ci)", l: 605, e: 618}
+      - {h: "`hooks-field-never-checked-or-synced` — medium/defect (versioning)", l: 619, e: 632}
+      - {h: "`release-target-excludes-hooks` — medium/defect (versioning)", l: 633, e: 646}
+      - {h: "`release-gh-create-hardcodes-suite-tag` — medium/defect (versioning)", l: 647, e: 660}
+      - {h: "`plugin-lite-readme-hooks-contradiction` — low/inconsistency (architecture)", l: 661, e: 674}
+      - {h: "`plugin-bundled-lib-no-consumer` — low/tech-debt (architecture)", l: 675, e: 688}
+      - {h: "`plugin-readme-structure-omits-shipped-dirs` — low/inconsistency (architecture)", l: 689, e: 702}
+      - {h: "`compat-hook-event-table-incomplete-and-wrong` — low/inconsistency (docs-consistency)", l: 703, e: 716}
+      - {h: "`readme-agents-section-missing-two-agents` — low/inconsistency (docs-consistency)", l: 717, e: 730}
+      - {h: "`readme-internal-skills-tree-missing-six` — low/inconsistency (docs-consistency)", l: 731, e: 744}
+      - {h: "`readme-hooks-tree-missing-17` — low/inconsistency (docs-consistency)", l: 745, e: 758}
+      - {h: "`readme-tree-lib-dirs-understated` — low/inconsistency (docs-consistency)", l: 759, e: 772}
+      - {h: "`compat-footer-stale-version-date` — low/inconsistency (docs-consistency)", l: 773, e: 786}
+      - {h: "`changelog-no-released-sections` — low/tech-debt (docs-consistency)", l: 787, e: 800}
+      - {h: "`gap-authcheck-undermatch` — low/defect (hooks-correctness)", l: 801, e: 814}
+      - {h: "`gap-heredoc-not-jq` — low/inconsistency (hooks-correctness)", l: 815, e: 828}
+      - {h: "`bash-write-guard-ps1-no-readbefore-on-argv-targets` — low/inconsistency (hooks-parity)", l: 829, e: 842}
+      - {h: "`p4-guard-unbounded-gh-diff` — low/risk (hooks-performance)", l: 843, e: 856}
+      - {h: "`markdown-validator-double-registered` — low/defect (hooks-performance)", l: 857, e: 870}
+      - {h: "`windows-pwsh-cold-spawn-per-hook` — low/risk (hooks-performance)", l: 871, e: 884}
+      - {h: "`backup-sh-unquoted-backupdir-wordsplit` — low/defect (scripts-robustness)", l: 885, e: 898}
+      - {h: "`installer-fetch-source-unguarded-bootstrap-sh` — low/risk (scripts-robustness)", l: 899, e: 912}
+      - {h: "`windows-sensitive-file-guard-missing-ssh-aws` — low/inconsistency (security-surface)", l: 913, e: 926}
+      - {h: "`win-permissions-allow-narrower` — low/inconsistency (settings-schema)", l: 927, e: 940}
+      - {h: "`win-note-comment-stale` — low/inconsistency (settings-schema)", l: 941, e: 954}
+      - {h: "`fleet-orchestrator-resume-flag-missing-from-hint` — low/inconsistency (skills-quality)", l: 955, e: 968}
+      - {h: "`traceability-loop-metadata-no-loop-body` — low/inconsistency (skills-quality)", l: 969, e: 982}
+      - {h: "`loop-safe-false-missing-side-effect-section` — low/inconsistency (skills-quality)", l: 983, e: 996}
+      - {h: "`p4-timeline-windows-all-expired` — low/tech-debt (tech-debt-lifecycle)", l: 997, e: 1010}
+      - {h: "`conflict-guard-no-behavioral-test` — low/tech-debt (tests-ci)", l: 1011, e: 1024}
+      - {h: "`validate-hooks-path-missing-anchor-fixtures` — low/inconsistency (tests-ci)", l: 1025, e: 1038}
+      - {h: "`version-map-false-doc-claim-hooks-surfaced` — low/inconsistency (versioning)", l: 1039, e: 1052}
+      - {h: "`changelog-only-tracks-suite-no-per-version-sections` — low/tech-debt (versioning)", l: 1053, e: 1066}
+      - {h: "`sync-json-version-global-regex-fragility` — low/risk (versioning)", l: 1067, e: 1080}
+      - {h: "`dangerous-command-guard-allow-shape-mismatch` — info/inconsistency (hooks-parity)", l: 1081, e: 1094}
+      - {h: "`installers-no-noninteractive-flag` — info/improvement (scripts-robustness)", l: 1095, e: 1108}
+      - {h: "`deny-list-narrower-than-guards-by-design-gap` — info/tech-debt (security-surface)", l: 1109, e: 1122}
+      - {h: "`git-fetch-allow-divergence` — info/inconsistency (settings-schema)", l: 1123, e: 1136}
+      - {h: "`tier-presets-missing-on-oversized-skills` — info/inconsistency (skills-quality)", l: 1137, e: 1150}
+      - {h: "`stale-err-log-root` — info/tech-debt (tech-debt-lifecycle)", l: 1151, e: 1164}
+      - {h: "Rejected (verified as intentional design or not a defect)", l: 1165, e: 1183}
+      - {h: "Completeness Critic (gaps the per-dimension audit may have missed)", l: 1184, e: 1189}
+      - {h: "Gaps the audit likely missed", l: 1190, e: 1213}
   - path: "docs/design/command-optimization.md"
     title: "Command-Specific Token Optimization"
     description: ""
