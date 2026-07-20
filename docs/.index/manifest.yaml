@@ -10,29 +10,29 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 28799
+    size: 29878
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "[Unreleased]", l: 8, e: 9}
       - {h: "Added", l: 10, e: 98}
-      - {h: "Fixed", l: 99, e: 174}
-      - {h: "1.11.0 - 2026-07-03", l: 175, e: 176}
-      - {h: "Fixed", l: 177, e: 190}
-      - {h: "Security", l: 191, e: 268}
-      - {h: "Added", l: 269, e: 297}
-      - {h: "Changed", l: 298, e: 344}
-      - {h: "1.10.0 - 2026-04-20", l: 345, e: 353}
-      - {h: "1.9.0 - 2026-04-13", l: 354, e: 363}
-      - {h: "1.8.0 - 2026-04-13", l: 364, e: 369}
-      - {h: "1.7.0 - 2026-04-06", l: 370, e: 384}
-      - {h: "1.6.0 - 2026-04-03", l: 385, e: 397}
-      - {h: "1.5.0 - 2026-03-21", l: 398, e: 416}
-      - {h: "1.4.0 - 2026-01-22", l: 417, e: 422}
-      - {h: "1.3.0 - 2026-01-15", l: 423, e: 431}
-      - {h: "1.2.0 - 2026-01-15", l: 432, e: 440}
-      - {h: "1.1.0 - 2025-01-15", l: 441, e: 451}
-      - {h: "1.0.0 - 2025-12-03", l: 452, e: 458}
+      - {h: "Fixed", l: 99, e: 190}
+      - {h: "1.11.0 - 2026-07-03", l: 191, e: 192}
+      - {h: "Fixed", l: 193, e: 206}
+      - {h: "Security", l: 207, e: 284}
+      - {h: "Added", l: 285, e: 313}
+      - {h: "Changed", l: 314, e: 360}
+      - {h: "1.10.0 - 2026-04-20", l: 361, e: 369}
+      - {h: "1.9.0 - 2026-04-13", l: 370, e: 379}
+      - {h: "1.8.0 - 2026-04-13", l: 380, e: 385}
+      - {h: "1.7.0 - 2026-04-06", l: 386, e: 400}
+      - {h: "1.6.0 - 2026-04-03", l: 401, e: 413}
+      - {h: "1.5.0 - 2026-03-21", l: 414, e: 432}
+      - {h: "1.4.0 - 2026-01-22", l: 433, e: 438}
+      - {h: "1.3.0 - 2026-01-15", l: 439, e: 447}
+      - {h: "1.2.0 - 2026-01-15", l: 448, e: 456}
+      - {h: "1.1.0 - 2025-01-15", l: 457, e: 467}
+      - {h: "1.0.0 - 2025-12-03", l: 468, e: 474}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -78,7 +78,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 73366
+    size: 73422
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
@@ -1811,16 +1811,16 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 9041
+    size: 8852
     tags: [docs,global,plugin]
     sections:
       - {h: "Decision Matrix", l: 16, e: 29}
       - {h: "Probe File Contract", l: 30, e: 67}
       - {h: "Behavior Matrix", l: 68, e: 88}
-      - {h: "Retained Divergences", l: 89, e: 109}
-      - {h: "Failure Modes", l: 110, e: 133}
-      - {h: "Spec Compliance", l: 134, e: 157}
-      - {h: "Related", l: 158, e: 164}
+      - {h: "Retained Divergences", l: 89, e: 108}
+      - {h: "Failure Modes", l: 109, e: 132}
+      - {h: "Spec Compliance", l: 133, e: 156}
+      - {h: "Related", l: 157, e: 163}
   - path: "docs/tier2-benchmark-results.md"
     title: "Tier 2 Benchmark Results"
     description: ""

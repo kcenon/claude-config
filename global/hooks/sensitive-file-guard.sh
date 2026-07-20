@@ -76,7 +76,13 @@ case "$BASENAME_LOWER" in
         # Template files — never contain real secrets, allow.
         # Listed BEFORE the broad .env.* block so they are not denied.
         ;;
-    .env|.env.*|.envrc)
+    .env|.env.*|.envrc|*.env)
+        # *.env covers the suffix form (production.env, staging.env), which
+        # denotes the same artifact as the .env.* dotfile form. Both Bash-channel
+        # guards already deny it; this arm closes the file-channel gap.
+        # example.env / template.env are denied on purpose: the recognised
+        # template convention is the dotfile prefix (.env.example), and the
+        # Bash-channel guards carry no template allow-list at all.
         deny_response "Access to sensitive file blocked: $FILE (env file)"
         ;;
     *.pem|*.key|*.p12|*.pfx)

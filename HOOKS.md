@@ -50,7 +50,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 **Purpose**: Block access to sensitive files like `.env`, `.pem`, `.key`
 
 **Blocked targets**:
-- Extensions and names: `.env` (incl. `.envrc` and `.env.*`), `.pem`, `.key`, `.p12`, `.pfx`
+- Extensions and names: `.env` (incl. `.envrc`, `.env.*`, and the bare `*.env` suffix form such as `production.env`), `.pem`, `.key`, `.p12`, `.pfx`
 - Directories: `secrets/`, `credentials/`, `passwords/`, `private/`
 
 **Behavior**:

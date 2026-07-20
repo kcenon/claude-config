@@ -89,18 +89,17 @@ when the full suite is installed but one of its hook scripts is absent
 ## Retained Divergences
 
 The plugin's sensitive-file guard matches the same *filename* pattern set
-as `global/hooks/sensitive-file-guard.sh` — the `.env.*` family, `.envrc`,
-credential containers, SSH private keys, and AWS credential files, with
-`.env.example` / `.env.sample` / `.env.template` allowed through. The
-differences below remain by design. They are documented limitations, not
-oversights.
+as `global/hooks/sensitive-file-guard.sh` — the `.env.*` family, the bare
+`*.env` suffix, `.envrc`, credential containers, SSH private keys, and AWS
+credential files, with `.env.example` / `.env.sample` / `.env.template`
+allowed through. The differences below remain by design. They are
+documented limitations, not oversights.
 
 | Area | Global suite | Plugin | Disposition |
 |------|--------------|--------|-------------|
 | Path canonicalization | `resolve_path` (`global/hooks/lib/path-utils.sh`) expands `~`/`$HOME`, collapses symlinks through `realpath`, and canonicalizes macOS `/var` → `/private/var` before matching | Basename only — strips the directory prefix, trims surrounding whitespace, folds case | Limitation. A symlink pointing at a sensitive file is not caught. Resolving symlinks inside a single-line `bash -c` string would be a fragile approximation of the real check. |
 | Decision protocol | Reads hook JSON on stdin, replies with `permissionDecision` on stdout, always exits 0 | Reads `CLAUDE_FILE_PATH`, writes to stderr, exits 2 to deny | Intentional, not a gap. The plugin ships without the `jq` dependency and the `lib/` helpers the canonical hooks source. |
 | Sensitive-directory patterns | `secrets`, `credentials`, `passwords` | Same, plus `private` | Plugin is broader. Kept — narrowing it would remove shipped coverage. |
-| Bare `*.env` suffix | Not matched; only the `.env`, `.env.*`, `.envrc` basenames | Additionally matched, so `production.env` is denied | Plugin is broader. Kept — narrowing it would regress shipped behavior. |
 | `Bash` matcher scope | Three hooks: `dangerous-command-guard.sh`, `bash-write-guard.sh` (read-before-write, via shell tokenization), `bash-sensitive-read-guard.sh` (secret reads through the Bash channel) | One inline guard, three regexes: recursive delete of `/`, `chmod 777`/`a+rwx`, and `curl`/`wget` piped to a shell | Limitation. The plugin covers only part of the destructive-command class. Reading a secret via `cat`, and writing a file without reading it first, are unguarded on the plugin-only surface. |
 
 A machine running the plugin standalone therefore has meaningfully less
