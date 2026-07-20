@@ -112,6 +112,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default installer `GITHUB_REF` pins in `bootstrap.sh`, `bootstrap.ps1`, and
   README one-line examples now track `VERSION_MAP.yml` `suite` (`v1.11.0`);
   `check_versions` and `sync_versions` cover those pins.
+- The `tests/hook-json-escape.sh` smoke test now matches the split allow
+  contract of `global/hooks/dangerous-command-guard.sh` instead of the
+  pre-refactor `allow_response(reason)` shape. `allow_with_context()` is
+  asserted to round-trip its reason through `additionalContext`, while the
+  plain `allow_response()` pass path is asserted to emit no reason field at
+  all, pinning the silent-pass contract from #715 rather than leaving it
+  unasserted. Both allow helpers are exercised against the adversarial
+  quote/backslash/CR/LF/tab reason and the historical
+  `permissionDecision` injection string. The suite is wired into
+  `validate-hooks.yml` ahead of the group 1/2 suites, so the
+  dangerous-command-guard allow path is gated in CI, and its manual-only row
+  is removed from `tests/nonstandard-test-registry.txt` (#850).
 
 ## 1.11.0 - 2026-07-03
 
