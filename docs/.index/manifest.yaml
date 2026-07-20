@@ -1290,7 +1290,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 143432
+    size: 143649
     tags: [audit,config,docs]
     sections:
       - {h: "Status as of 2026-07-20 — `tests-ci`", l: 13, e: 36}
