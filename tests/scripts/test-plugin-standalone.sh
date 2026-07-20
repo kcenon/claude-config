@@ -61,7 +61,7 @@ if [ -z "$SENSITIVE_CMD" ] || [ -z "$BASH_CMD" ]; then
     exit 1
 fi
 
-WORK="$(mktemp -d -t claude-plugin-standalone)"
+WORK="$(mktemp -d)"
 trap 'rm -rf -- "$WORK" 2>/dev/null || true' EXIT
 export HOME="$WORK"
 mkdir -p "$HOME/.claude"
@@ -85,6 +85,56 @@ assert_exit "standalone: safe path allowed" "0" "$?"
 # to inspect, Claude Code itself validates elsewhere).
 CLAUDE_FILE_PATH="" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
 assert_exit "standalone: empty path allowed" "0" "$?"
+
+# --- Sensitive-file guard: parity with global/hooks/sensitive-file-guard.sh
+# Issue #860: the inline guard used to anchor its extension alternation
+# against the FULL path, so the whole .env.* family, .envrc, SSH keys, and
+# AWS credential files slipped through. These assertions pin the widened
+# pattern set to the canonical guard's case block.
+
+# The .env.* family — the headline gap. .env.local routinely holds real
+# credentials.
+CLAUDE_FILE_PATH="/tmp/project/.env.local" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
+assert_exit "standalone: .env.local denied" "2" "$?"
+
+CLAUDE_FILE_PATH="/tmp/project/.env.production" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
+assert_exit "standalone: .env.production denied" "2" "$?"
+
+CLAUDE_FILE_PATH="/tmp/project/.envrc" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
+assert_exit "standalone: .envrc denied" "2" "$?"
+
+# Template allow-list — widening to .env.* makes these match for the first
+# time, so they are the regression guard for the fix itself.
+CLAUDE_FILE_PATH="/tmp/project/.env.example" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
+assert_exit "standalone: .env.example allowed" "0" "$?"
+
+CLAUDE_FILE_PATH="/tmp/project/.env.sample" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
+assert_exit "standalone: .env.sample allowed" "0" "$?"
+
+CLAUDE_FILE_PATH="/tmp/project/.env.template" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
+assert_exit "standalone: .env.template allowed" "0" "$?"
+
+# SSH private keys.
+CLAUDE_FILE_PATH="id_rsa" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
+assert_exit "standalone: bare id_rsa denied" "2" "$?"
+
+CLAUDE_FILE_PATH="/home/user/.ssh/id_ed25519" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
+assert_exit "standalone: path-qualified id_ed25519 denied" "2" "$?"
+
+# AWS credential files are denied only under a .aws/ path — a plain file
+# named config elsewhere is ordinary and must stay allowed.
+CLAUDE_FILE_PATH="/home/user/.aws/credentials" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
+assert_exit "standalone: .aws/credentials denied" "2" "$?"
+
+CLAUDE_FILE_PATH="/tmp/project/config" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
+assert_exit "standalone: config outside .aws allowed" "0" "$?"
+
+# Normalization: whitespace padding and case variants must not bypass.
+CLAUDE_FILE_PATH="/tmp/project/secret.key " bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
+assert_exit "standalone: trailing-space secret.key denied" "2" "$?"
+
+CLAUDE_FILE_PATH="/tmp/project/.ENV" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
+assert_exit "standalone: uppercase .ENV denied" "2" "$?"
 
 # --- Dangerous-command guard --------------------------------------------
 
