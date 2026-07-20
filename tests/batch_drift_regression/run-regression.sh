@@ -20,11 +20,16 @@
 #   1  one or more thresholds exceeded
 #   2  precondition failure / missing tool
 #   3  benchmark execution failed
+#
+# Environment:
+#   BATCH_DRIFT_BENCHMARK_DIR  override the benchmark directory. Used by
+#                              test-run-regression.sh to inject a stub
+#                              benchmark; unset in normal operation.
 
 set -euo pipefail
 
 REGRESSION_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BENCHMARK_DIR="$REGRESSION_DIR/../batch_drift_benchmark"
+BENCHMARK_DIR="${BATCH_DRIFT_BENCHMARK_DIR:-$REGRESSION_DIR/../batch_drift_benchmark}"
 SEEDER="$BENCHMARK_DIR/seed-scratch-repo.sh"
 RUNNER="$BENCHMARK_DIR/run-benchmark.sh"
 
@@ -165,18 +170,43 @@ if ! $SKIP_SEED; then
     RESET_FLAG="--reset"
 fi
 
+# Freshness reference: only result files modified after this marker are
+# eligible for grading (Phase 3). Committed results under results/ predate
+# every run and are therefore never selected. Using a marker file with
+# `find -newer` keeps this portable: `stat` format flags differ between
+# GNU and BSD, `-newer` does not.
+RUN_MARKER=$(mktemp)
+trap 'rm -f "$RUN_MARKER"' EXIT
+# Guarantee the marker is strictly older than anything the benchmark writes,
+# even on filesystems with whole-second timestamp granularity.
+sleep 1
+
 if ! bash "$RUNNER" --strategy "$STRATEGY" --items "$ITEMS" $RESET_FLAG; then
-    echo "WARNING: benchmark runner exited non-zero (per-item failures may exist)" >&2
+    echo "ERROR: benchmark runner exited non-zero; refusing to grade a possibly stale result" >&2
+    exit 3
 fi
 
 echo ""
 echo "==> Phase 3: Locating results"
 
 RESULTS_DIR="$BENCHMARK_DIR/results"
-LATEST_RESULT=$(ls -t "$RESULTS_DIR"/${STRATEGY}-*.json 2>/dev/null | head -1)
+
+# Select the newest result file written by THIS run. Files older than
+# RUN_MARKER (committed benchmark evidence, or output from an earlier run)
+# are ignored, so a benchmark that produced nothing fails instead of grading
+# a pre-existing file.
+LATEST_RESULT=""
+while IFS= read -r candidate; do
+    [ -n "$candidate" ] || continue
+    if [ -z "$LATEST_RESULT" ] || [ "$candidate" -nt "$LATEST_RESULT" ]; then
+        LATEST_RESULT="$candidate"
+    fi
+done < <(find "$RESULTS_DIR" -maxdepth 1 -type f -name "${STRATEGY}-*.json" \
+    -newer "$RUN_MARKER" 2>/dev/null)
 
 if [ -z "$LATEST_RESULT" ] || [ ! -f "$LATEST_RESULT" ]; then
-    echo "ERROR: no result file found for strategy '$STRATEGY' in $RESULTS_DIR" >&2
+    echo "ERROR: benchmark produced no fresh result file for strategy '$STRATEGY' in $RESULTS_DIR" >&2
+    echo "       Files predating this run are not eligible for grading." >&2
     exit 3
 fi
 
