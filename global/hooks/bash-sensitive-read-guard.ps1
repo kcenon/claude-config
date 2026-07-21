@@ -29,8 +29,13 @@ if ([string]::IsNullOrEmpty($cmd)) {
 # Sensitive-path regex set. Mirrors the deny patterns in
 # bash-sensitive-read-guard.sh (case-insensitive where applicable).
 $sensitivePatterns = @(
-    '(^|[\s/\\])\.env([\s.''"]|$)',
-    '(^|[\s/\\])\.env\.[A-Za-z0-9_-]+',
+    # `*` and `?` join the boundary classes so an unexpanded glob bracketing
+    # the token -- `cat *.env*`, `cat *.env`, `cat *.env.local` -- is treated
+    # like a separator and denied, matching the .sh guard's de-glob check
+    # (issue #867). The shell has not expanded the pattern yet, so a wildcard
+    # touching `.env` can only widen to real env files.
+    '(^|[\s/\\*?])\.env([\s.''"*?]|$)',
+    '(^|[\s/\\*?])\.env\.[A-Za-z0-9_-]+',
     '(^|[\s/\\])\.ssh[/\\](id_[A-Za-z0-9_-]+|[A-Za-z0-9_-]+_(?:rsa|dsa|ecdsa|ed25519))',
     '(^|[\s/\\])\.aws[/\\](credentials|config)',
     '(^|[\s/\\])\.gnupg([/\\]|$)',
