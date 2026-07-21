@@ -98,6 +98,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `bash-sensitive-read-guard` no longer allows an unexpanded glob that
+  brackets the env token. `cat *.env*` reached the guard as a literal path
+  matching no deny arm — it does not end in `.env` and holds no `.env.`
+  run — so the guard answered allow and the shell then expanded the pattern
+  over every env file in the directory. The hook inspects the command before
+  expansion, so the fix keys on the pattern rather than the expansion: the
+  `.sh` guard strips glob metacharacters from a wildcard-bearing token and
+  re-checks the remainder, denying when the de-globbed core is itself
+  sensitive — generalising past the one reported literal to any bracket
+  form — and the `.ps1` guard adds `*` and `?` to the `.env` boundary
+  classes, which also closes its latent `*.env` and `*.env.local`
+  divergences from the shell implementation. Env-mentioning non-globs
+  (`environment.txt`) and globs outside the env class (`cat *.md`,
+  `cat env*`) stay allowed, and the #866 template allow-list is
+  unaffected (#867).
 - The Bash-channel guards no longer deny env-file templates that the
   file-channel guards allow. `bash-sensitive-read-guard` and
   `bash-write-guard` matched the env class as `.env`, `*.env`, and `.env.*`
