@@ -136,11 +136,32 @@ assert_deny 'echo y > .env.examplexyz' ".env.examplexyz (not .env.example)"
 # Only .env.example carries a dotted-suffix arm, mirroring the file channel.
 assert_deny 'tee .env.sample.local' ".env.sample.local (no suffix arm for sample)"
 # The template arm falls through, so later directory checks still apply.
-# Absolute path on purpose: is_sensitive_target carries only the `*/secrets/*`
-# form, so a relative secrets/ path is allowed for every filename, template or
-# not — an unrelated pre-existing gap this case must not depend on.
+# Both anchored forms are pinned now that issue #871 closed the relative
+# secrets/ gap this case previously had to route around.
 assert_deny 'echo y > /srv/secrets/.env.example' "template under secrets/ still denied"
+assert_deny 'echo y > secrets/.env.example' "template under relative secrets/ denied"
 assert_deny 'true && echo y > .env.example; echo y > .env' "template does not launder a chained .env write"
+
+echo ""
+echo "[deny — relative sensitive-directory writes (issue #871)]"
+# resolve_path leaves a nonexistent relative path relative, so these must be
+# caught by the bare-anchored directory arm, mirroring the read guard.
+assert_deny 'echo y > secrets/db.yml' "redirect into relative secrets/"
+assert_deny 'echo y > credentials/aws.json' "redirect into relative credentials/"
+assert_deny 'tee passwords/list.txt' "tee into relative passwords/"
+assert_deny 'cp payload.txt secrets/db.yml' "cp destination in relative secrets/"
+assert_deny 'echo y > /srv/secrets/db.yml' "absolute secrets/ stays denied"
+
+echo ""
+echo "[deny — bare credential filenames (issue #871 arm-by-arm parity)]"
+assert_deny 'echo y > id_rsa' "planting bare id_rsa in cwd"
+assert_deny 'tee credentials' "overwriting bare credentials filename"
+
+echo ""
+echo "[allow — non-sensitive relative writes stay allowed (#871 precision)]"
+assert_allow 'echo y > build/out.txt' "relative non-sensitive dir"
+assert_allow 'echo y > docs/secrets-of-git.md' "secrets substring without directory boundary"
+assert_allow 'tee notes/password-policy.md' "password substring deliberately not ported to write side"
 
 echo ""
 echo "[allow — write to new, non-sensitive files]"

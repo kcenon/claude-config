@@ -89,8 +89,37 @@ is_sensitive_target() {
     esac
     case "$lower" in
         *.pem|*.key|*.p12|*.pfx) return 0 ;;
-        */secrets/*|*/credentials/*|*/passwords/*) return 0 ;;
     esac
+    # Sensitive directory tokens anywhere in the path. Match both absolute
+    # (`/srv/secrets/db.yml`) and relative (`secrets/db.yml`) forms —
+    # resolve_path does not absolutise a relative path whose target does not
+    # exist, so without the bare-anchored arm a repo-root-relative write
+    # reached this check with no leading slash and matched nothing, while
+    # bash-sensitive-read-guard.sh denied the same path (issue #871).
+    case "$lower" in
+        */secrets/*|*/credentials/*|*/passwords/*) return 0 ;;
+        secrets/*|credentials/*|passwords/*)       return 0 ;;
+    esac
+    # Bare credential filenames and SSH host keys, mirroring the read
+    # guard's bare-filename block: planting or overwriting `id_rsa` or
+    # `credentials` in the working directory is the write-side twin of the
+    # deliberate read that block exists to flag (issue #871).
+    case "$lower" in
+        id_rsa|id_dsa|id_ecdsa|id_ed25519|*/id_rsa|*/id_dsa|*/id_ecdsa|*/id_ed25519) return 0 ;;
+        credentials|*/credentials) return 0 ;;
+        /etc/ssh/ssh_host_*_key|*/etc/ssh/ssh_host_*_key) return 0 ;;
+    esac
+    # Deliberate asymmetries with bash-sensitive-read-guard.sh, recorded per
+    # the issue #871 arm-by-arm comparison:
+    #   - `*password*` substring: not ported. On the read side it flags
+    #     deliberate secret hunting; on the write side it would deny routine
+    #     work on auth code and docs (password-validator.ts,
+    #     password-policy.md), which Read-before-Edit already governs.
+    #   - `*.crt`/`*.cer`: not ported. Certificates are public material; the
+    #     write-side sensitive check protects secret matter, and tampering
+    #     with an existing certificate is caught by Read-before-Edit.
+    #   - `/etc/passwd`, `/etc/hosts`: write-side only (above) on purpose —
+    #     reading them is routine, overwriting them is an attack.
     return 1
 }
 

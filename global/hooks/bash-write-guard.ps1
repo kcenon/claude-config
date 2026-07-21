@@ -41,7 +41,12 @@ if ([string]::IsNullOrEmpty($sessionId)) { $sessionId = 'unknown' }
 $trackerDir = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { [System.IO.Path]::GetTempPath() }
 $tracker = Join-Path $trackerDir ("claude-read-set-{0}" -f $sessionId)
 
-$sensitiveTargetRegex = '(\.env([.\s''"]|$))|((\.ssh)[/\\](id_|[A-Za-z0-9_-]+_(rsa|dsa|ecdsa|ed25519)))|(\.aws[/\\]credentials)|(\.kube[/\\]config)|(/etc/(shadow|sudoers|passwd|hosts))|(\.(pem|key|p12|pfx)(\s|$|[''"]))|([/\\]secrets[/\\])|([/\\]credentials[/\\])'
+# The directory-token arm accepts a bare anchor (start, whitespace, quote,
+# redirect, or `=` for `dd of=`) in addition to a path separator, so relative
+# forms like `> secrets/db.yml` are denied in lockstep with the .sh guard,
+# and covers all three tokens — `passwords` was previously missing even in
+# the separator-anchored form (issue #871).
+$sensitiveTargetRegex = '(\.env([.\s''"]|$))|((\.ssh)[/\\](id_|[A-Za-z0-9_-]+_(rsa|dsa|ecdsa|ed25519)))|(\.aws[/\\]credentials)|(\.kube[/\\]config)|(/etc/(shadow|sudoers|passwd|hosts))|(\.(pem|key|p12|pfx)(\s|$|[''"]))|((^|[\s/\\''">=])(secrets|credentials|passwords)[/\\])'
 
 # Env-file templates (.env.example, .env.example.*, .env.sample, .env.template)
 # are committed on purpose and never carry real secrets; sensitive-file-guard.ps1
