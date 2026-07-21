@@ -98,6 +98,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `bash-write-guard` no longer allows writes to sensitive directories named
+  by a relative path. `echo y > secrets/db.yml` was permitted while the same
+  write to `/srv/secrets/db.yml` was denied: `resolve_path` does not
+  absolutise a relative path whose target does not exist, and
+  `is_sensitive_target` carried only the anchored `*/secrets/*` arm, so
+  repo-root-relative writes to all three directory tokens (`secrets/`,
+  `credentials/`, `passwords/`) matched nothing — while
+  `bash-sensitive-read-guard` denied the same paths, leaving the two
+  Bash-channel guards disagreeing about the same directory class. The shell
+  guard gains the bare-anchored arm mirroring the read guard, plus — from
+  the arm-by-arm comparison the issue required — the read guard's bare
+  credential-filename block (the `id_rsa` family and `credentials`) and an
+  `ssh_host_*_key` arm, with the deliberate omissions (`*password*`
+  substring, `*.crt`/`*.cer`, and the write-only `/etc/passwd` and
+  `/etc/hosts` arms) recorded in place with reasons. The PowerShell
+  counterpart replaces its two separator-anchored directory alternates with
+  one arm covering all three tokens in both anchored and bare forms —
+  `passwords/` was previously missing even in the anchored form. Relative
+  non-sensitive writes (`build/out.txt`) and boundary-adjacent names
+  (`docs/secrets-of-git.md`) stay allowed (#871).
 - `bash-sensitive-read-guard` no longer allows an unexpanded glob that
   brackets the env token. `cat *.env*` reached the guard as a literal path
   matching no deny arm — it does not end in `.env` and holds no `.env.`
