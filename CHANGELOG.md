@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- PowerShell test suites for the Bash-channel guards. The
+  `bash-sensitive-read-guard.ps1`/`bash-write-guard.ps1` pair carried zero
+  assertions while their bash counterparts carried 60 and 67, so `.ps1`
+  changes shipped on review and manual probing alone. Both bash suites are
+  now ported case-by-case in the `test-sensitive-file-guard.ps1` assertion
+  style (`tests/hooks/test-bash-sensitive-read-guard.ps1`, 61 assertions;
+  `tests/hooks/test-bash-write-guard.ps1`, 67 assertions), auto-discovered
+  by `tests/hooks/test-runner.ps1` on both the pwsh matrix job and the
+  native Windows job, and recognised by the unwired-test meta-check through
+  the shared-runner rule. Every ported case was probed against the real
+  `.ps1` guard first and asserted at its actual behaviour: approximation
+  artifacts of the whole-command regex design (the read-tool prefix
+  matching `echo cat .env`, the blanket `awk` arm denying read-only awk)
+  are marked as such in place, and the six security-relevant arm gaps the
+  port surfaced (relative sensitive directories and bare credential
+  filenames) are pinned at today's allow with pointers at #878, which will
+  flip them (#869).
 - `issue-work` now routes issue selection and size evaluation through a
   shared triage state machine
   (`global/skills/_internal/issue-work/scripts/triage.sh`) that solo, team,
