@@ -10,29 +10,29 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 34913
+    size: 36371
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "[Unreleased]", l: 8, e: 9}
       - {h: "Added", l: 10, e: 115}
-      - {h: "Fixed", l: 116, e: 262}
-      - {h: "1.11.0 - 2026-07-03", l: 263, e: 264}
-      - {h: "Fixed", l: 265, e: 278}
-      - {h: "Security", l: 279, e: 356}
-      - {h: "Added", l: 357, e: 385}
-      - {h: "Changed", l: 386, e: 432}
-      - {h: "1.10.0 - 2026-04-20", l: 433, e: 441}
-      - {h: "1.9.0 - 2026-04-13", l: 442, e: 451}
-      - {h: "1.8.0 - 2026-04-13", l: 452, e: 457}
-      - {h: "1.7.0 - 2026-04-06", l: 458, e: 472}
-      - {h: "1.6.0 - 2026-04-03", l: 473, e: 485}
-      - {h: "1.5.0 - 2026-03-21", l: 486, e: 504}
-      - {h: "1.4.0 - 2026-01-22", l: 505, e: 510}
-      - {h: "1.3.0 - 2026-01-15", l: 511, e: 519}
-      - {h: "1.2.0 - 2026-01-15", l: 520, e: 528}
-      - {h: "1.1.0 - 2025-01-15", l: 529, e: 539}
-      - {h: "1.0.0 - 2025-12-03", l: 540, e: 546}
+      - {h: "Fixed", l: 128, e: 274}
+      - {h: "1.11.0 - 2026-07-03", l: 286, e: 287}
+      - {h: "Fixed", l: 288, e: 301}
+      - {h: "Security", l: 302, e: 379}
+      - {h: "Added", l: 380, e: 408}
+      - {h: "Changed", l: 409, e: 455}
+      - {h: "1.10.0 - 2026-04-20", l: 456, e: 464}
+      - {h: "1.9.0 - 2026-04-13", l: 465, e: 474}
+      - {h: "1.8.0 - 2026-04-13", l: 475, e: 480}
+      - {h: "1.7.0 - 2026-04-06", l: 481, e: 495}
+      - {h: "1.6.0 - 2026-04-03", l: 496, e: 508}
+      - {h: "1.5.0 - 2026-03-21", l: 509, e: 527}
+      - {h: "1.4.0 - 2026-01-22", l: 528, e: 533}
+      - {h: "1.3.0 - 2026-01-15", l: 534, e: 542}
+      - {h: "1.2.0 - 2026-01-15", l: 543, e: 551}
+      - {h: "1.1.0 - 2025-01-15", l: 552, e: 562}
+      - {h: "1.0.0 - 2025-12-03", l: 563, e: 569}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -511,7 +511,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 24127
+    size: 25723
     tags: [docs,documentation]
     sections:
       - {h: "Custom Extensions vs Official Features", l: 1, e: 10}
@@ -530,22 +530,23 @@ documents:
       - {h: "5W1H Issue Framework", l: 172, e: 179}
       - {h: "Shared Skill References (SSOT)", l: 180, e: 203}
       - {h: "Doc-Index Drift Guard", l: 204, e: 226}
-      - {h: "Agent Definitions (drift guard)", l: 227, e: 240}
-      - {h: "Version Declarations (VERSION_MAP SSOT)", l: 241, e: 259}
-      - {h: "or, via sync.sh fast path:", l: 260, e: 269}
-      - {h: "Spec Linter (Official-Spec SSOT)", l: 270, e: 286}
-      - {h: "Repo-wide lint (advisory; reports without blocking)", l: 287, e: 289}
-      - {h: "Repo-wide lint (strict; same flag CI uses)", l: 290, e: 292}
-      - {h: "Single file or mode-specific", l: 293, e: 295}
-      - {h: "Fast path via sync.sh", l: 296, e: 317}
-      - {h: "Skill Context Isolation (`context: fork`)", l: 318, e: 331}
-      - {h: "Using This Configuration Elsewhere", l: 332, e: 333}
-      - {h: "What Works Out of the Box", l: 334, e: 342}
-      - {h: "What Requires Adaptation", l: 343, e: 349}
-      - {h: "Migration Checklist", l: 350, e: 360}
-      - {h: "Official Documentation References", l: 361, e: 371}
-      - {h: "ADR / Design Doc Frontmatter (#624)", l: 372, e: 415}
-      - {h: "Reporting Issues", l: 416, e: 426}
+      - {h: "Rule Frontmatter Contract (drift guard)", l: 227, e: 256}
+      - {h: "Agent Definitions (drift guard)", l: 257, e: 270}
+      - {h: "Version Declarations (VERSION_MAP SSOT)", l: 271, e: 289}
+      - {h: "or, via sync.sh fast path:", l: 290, e: 299}
+      - {h: "Spec Linter (Official-Spec SSOT)", l: 300, e: 316}
+      - {h: "Repo-wide lint (advisory; reports without blocking)", l: 317, e: 319}
+      - {h: "Repo-wide lint (strict; same flag CI uses)", l: 320, e: 322}
+      - {h: "Single file or mode-specific", l: 323, e: 325}
+      - {h: "Fast path via sync.sh", l: 326, e: 347}
+      - {h: "Skill Context Isolation (`context: fork`)", l: 348, e: 361}
+      - {h: "Using This Configuration Elsewhere", l: 362, e: 363}
+      - {h: "What Works Out of the Box", l: 364, e: 372}
+      - {h: "What Requires Adaptation", l: 373, e: 379}
+      - {h: "Migration Checklist", l: 380, e: 390}
+      - {h: "Official Documentation References", l: 391, e: 401}
+      - {h: "ADR / Design Doc Frontmatter (#624)", l: 402, e: 445}
+      - {h: "Reporting Issues", l: 446, e: 456}
   - path: "docs/MEMORY_MIGRATION.md"
     title: "Memory Sync — Single-Machine Migration Runbook"
     description: ""
