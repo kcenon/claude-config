@@ -1,5 +1,8 @@
 ---
 alwaysApply: false
+paths:
+  - ".github/**"
+  - "**/ISSUE_TEMPLATE/**"
 ---
 
 # GitHub Issue Guidelines (5W1H Principle)

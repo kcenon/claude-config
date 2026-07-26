@@ -1047,7 +1047,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 19020
+    size: 20175
     tags: [docs]
     sections:
       - {h: "Official Token Optimization Methods", l: 7, e: 10}
@@ -1061,7 +1061,7 @@ documents:
       - {h: "Important Notice: .claudeignore Status", l: 89, e: 96}
       - {h: "Official Alternative: permissions.deny", l: 97, e: 115}
       - {h: "Migration Strategy", l: 116, e: 125}
-      - {h: "Overview", l: 126, e: 129}
+      - {h: "Overview", l: 462, e: 155}
       - {h: "Problem Statement", l: 130, e: 131}
       - {h: "Before Optimization", l: 132, e: 145}
       - {h: "Impact", l: 146, e: 152}
@@ -1075,55 +1075,55 @@ documents:
       - {h: "After Optimization", l: 262, e: 263}
       - {h: "Token Usage Breakdown", l: 264, e: 275}
       - {h: "Real-World Results", l: 276, e: 287}
-      - {h: "Using Reference Documents", l: 288, e: 291}
-      - {h: "Method 1: Explicit File Path", l: 292, e: 299}
-      - {h: "Method 2: @load Directive", l: 300, e: 309}
-      - {h: "Method 3: Ask to Load", l: 310, e: 317}
-      - {h: "File-by-File Token Estimation", l: 318, e: 319}
-      - {h: "Reference Documents", l: 320, e: 328}
-      - {h: "Cache Directories", l: 329, e: 336}
-      - {h: "Plugin Marketplace", l: 337, e: 344}
-      - {h: "Rollback Instructions", l: 345, e: 348}
-      - {h: "Option 1: Modify permissions.deny", l: 349, e: 362}
-      - {h: "Option 2: Delete .claudeignore Files (Deprecated)", l: 363, e: 372}
-      - {h: "Option 2: Temporary Override", l: 373, e: 386}
-      - {h: "Option 3: Selective Re-enabling", l: 387, e: 395}
-      - {h: "Troubleshooting", l: 396, e: 397}
-      - {h: "Issue: Missing Information", l: 398, e: 409}
-      - {h: "Issue: Slower Responses", l: 410, e: 415}
-      - {h: "Issue: No Token Savings", l: 416, e: 425}
-      - {h: "Tier Preset Impact", l: 426, e: 435}
-      - {h: "Overview", l: 436, e: 447}
-      - {h: "Baseline Measurements", l: 448, e: 469}
-      - {h: "Default Tier Rationale", l: 470, e: 476}
-      - {h: "Invocation", l: 477, e: 489}
-      - {h: "Tiered Skills", l: 490, e: 500}
-      - {h: "Follow-up", l: 501, e: 513}
-      - {h: "Harness Routing Audit", l: 514, e: 517}
-      - {h: "Audited files", l: 518, e: 523}
-      - {h: "Classification", l: 524, e: 536}
-      - {h: "Threshold", l: 537, e: 553}
-      - {h: "Intent", l: 554, e: 559}
-      - {h: "Related frontmatter drift checks", l: 560, e: 570}
-      - {h: "Best Practices", l: 571, e: 572}
-      - {h: "1. Start Lean", l: 573, e: 578}
-      - {h: "2. Use @load Sparingly", l: 579, e: 592}
-      - {h: "3. Regular Cleanup", l: 593, e: 604}
-      - {h: "4. Monitor Token Usage", l: 605, e: 611}
-      - {h: "Cost Savings Calculator", l: 612, e: 613}
-      - {h: "Individual Developer", l: 614, e: 621}
-      - {h: "Team (5 Developers)", l: 622, e: 628}
-      - {h: "Enterprise (50 Developers)", l: 629, e: 637}
-      - {h: "Implementation Checklist", l: 638, e: 648}
-      - {h: "FAQ", l: 649, e: 650}
-      - {h: "Q: Is .claudeignore an official Claude Code feature?", l: 651, e: 654}
-      - {h: "Q: What's the difference between permissions.deny and .claudeignore?", l: 655, e: 660}
-      - {h: "Q: Will this break my workflow?", l: 661, e: 664}
-      - {h: "Q: How do I access excluded content?", l: 665, e: 668}
-      - {h: "Q: Can I customize .claudeignore?", l: 669, e: 672}
-      - {h: "Q: What if I need everything loaded?", l: 673, e: 676}
-      - {h: "Q: Does this affect code generation quality?", l: 677, e: 680}
-      - {h: "Support", l: 681, e: 691}
+      - {h: "Using Reference Documents", l: 314, e: 317}
+      - {h: "Method 1: Explicit File Path", l: 318, e: 325}
+      - {h: "Method 2: @load Directive", l: 326, e: 335}
+      - {h: "Method 3: Ask to Load", l: 336, e: 343}
+      - {h: "File-by-File Token Estimation", l: 344, e: 345}
+      - {h: "Reference Documents", l: 346, e: 354}
+      - {h: "Cache Directories", l: 355, e: 362}
+      - {h: "Plugin Marketplace", l: 363, e: 370}
+      - {h: "Rollback Instructions", l: 371, e: 374}
+      - {h: "Option 1: Modify permissions.deny", l: 375, e: 388}
+      - {h: "Option 2: Delete .claudeignore Files (Deprecated)", l: 389, e: 398}
+      - {h: "Option 2: Temporary Override", l: 399, e: 412}
+      - {h: "Option 3: Selective Re-enabling", l: 413, e: 421}
+      - {h: "Troubleshooting", l: 422, e: 423}
+      - {h: "Issue: Missing Information", l: 424, e: 435}
+      - {h: "Issue: Slower Responses", l: 436, e: 441}
+      - {h: "Issue: No Token Savings", l: 442, e: 451}
+      - {h: "Tier Preset Impact", l: 452, e: 461}
+      - {h: "Overview", l: 462, e: 473}
+      - {h: "Baseline Measurements", l: 474, e: 495}
+      - {h: "Default Tier Rationale", l: 496, e: 502}
+      - {h: "Invocation", l: 503, e: 515}
+      - {h: "Tiered Skills", l: 516, e: 526}
+      - {h: "Follow-up", l: 527, e: 539}
+      - {h: "Harness Routing Audit", l: 540, e: 543}
+      - {h: "Audited files", l: 544, e: 549}
+      - {h: "Classification", l: 550, e: 562}
+      - {h: "Threshold", l: 563, e: 579}
+      - {h: "Intent", l: 580, e: 585}
+      - {h: "Related frontmatter drift checks", l: 586, e: 596}
+      - {h: "Best Practices", l: 597, e: 598}
+      - {h: "1. Start Lean", l: 599, e: 604}
+      - {h: "2. Use @load Sparingly", l: 605, e: 618}
+      - {h: "3. Regular Cleanup", l: 619, e: 630}
+      - {h: "4. Monitor Token Usage", l: 631, e: 637}
+      - {h: "Cost Savings Calculator", l: 638, e: 639}
+      - {h: "Individual Developer", l: 640, e: 647}
+      - {h: "Team (5 Developers)", l: 648, e: 654}
+      - {h: "Enterprise (50 Developers)", l: 655, e: 663}
+      - {h: "Implementation Checklist", l: 664, e: 674}
+      - {h: "FAQ", l: 675, e: 676}
+      - {h: "Q: Is .claudeignore an official Claude Code feature?", l: 677, e: 680}
+      - {h: "Q: What's the difference between permissions.deny and .claudeignore?", l: 681, e: 686}
+      - {h: "Q: Will this break my workflow?", l: 687, e: 690}
+      - {h: "Q: How do I access excluded content?", l: 691, e: 694}
+      - {h: "Q: Can I customize .claudeignore?", l: 695, e: 698}
+      - {h: "Q: What if I need everything loaded?", l: 699, e: 702}
+      - {h: "Q: Does this affect code generation quality?", l: 703, e: 706}
+      - {h: "Support", l: 707, e: 717}
   - path: "docs/ad-sdlc-integration.md"
     title: "AD-SDLC Integration Guide"
     description: ""
@@ -4554,30 +4554,30 @@ documents:
     description: ""
     category: reference
     scope: plugin
-    size: 1841
+    size: 1892
     tags: [ci,git,github,plugin,project,reference,skill,workflow]
     sections:
-      - {h: "5W1H Framework", l: 9, e: 21}
-      - {h: "Quick Reference", l: 22, e: 23}
-      - {h: "Issue Types and Required Fields", l: 24, e: 33}
-      - {h: "Issue Splitting Rule", l: 34, e: 37}
-      - {h: "Auto-Close Keywords (in PRs)", l: 38, e: 41}
-      - {h: "Labels", l: 42, e: 50}
+      - {h: "5W1H Framework", l: 12, e: 24}
+      - {h: "Quick Reference", l: 25, e: 26}
+      - {h: "Issue Types and Required Fields", l: 27, e: 36}
+      - {h: "Issue Splitting Rule", l: 37, e: 40}
+      - {h: "Auto-Close Keywords (in PRs)", l: 41, e: 44}
+      - {h: "Labels", l: 45, e: 53}
   - path: "plugin/skills/project-workflow/reference/github-pr-5w1h.md"
     title: "GitHub Pull Request Guidelines (5W1H Principle)"
     description: ""
     category: reference
     scope: plugin
-    size: 2450
+    size: 2506
     tags: [ci,git,github,plugin,project,reference,skill,workflow]
     sections:
-      - {h: "5W1H Framework", l: 9, e: 21}
-      - {h: "Issue Linking (MANDATORY)", l: 22, e: 29}
-      - {h: "Auto-close behavior on develop merges", l: 30, e: 44}
-      - {h: "Quick Reference", l: 45, e: 46}
-      - {h: "PR Title Conventions", l: 47, e: 50}
-      - {h: "PR Size Guidelines", l: 51, e: 60}
-      - {h: "Reviewer Checklist", l: 61, e: 69}
+      - {h: "5W1H Framework", l: 12, e: 24}
+      - {h: "Issue Linking (MANDATORY)", l: 25, e: 32}
+      - {h: "Auto-close behavior on develop merges", l: 33, e: 47}
+      - {h: "Quick Reference", l: 48, e: 49}
+      - {h: "PR Title Conventions", l: 50, e: 53}
+      - {h: "PR Size Guidelines", l: 54, e: 63}
+      - {h: "Reviewer Checklist", l: 64, e: 72}
   - path: "plugin/skills/project-workflow/reference/orchestrator-patterns.md"
     title: "Orchestrator Pattern Templates"
     description: ""
@@ -4618,19 +4618,19 @@ documents:
     description: ""
     category: reference
     scope: plugin
-    size: 3101
+    size: 3215
     tags: [performance,plugin,project,reference,skill,workflow]
     sections:
-      - {h: "1. Establish Analysis Constraints", l: 13, e: 19}
-      - {h: "2. Gather Required Information", l: 20, e: 28}
-      - {h: "3. Progressive Exploration Strategy", l: 29, e: 32}
-      - {h: "3.1 Repository Structure Survey", l: 33, e: 37}
-      - {h: "3.2 Code Flow and Component Analysis", l: 38, e: 43}
-      - {h: "3.3 Performance Measurement Point Identification", l: 44, e: 49}
-      - {h: "3.4 Execution and Testing Verification", l: 50, e: 55}
-      - {h: "3.5 Comprehensive Analysis Synthesis", l: 56, e: 61}
-      - {h: "4. Present Analysis Plan", l: 62, e: 70}
-      - {h: "5. Report Findings", l: 71, e: 82}
+      - {h: "1. Establish Analysis Constraints", l: 18, e: 24}
+      - {h: "2. Gather Required Information", l: 25, e: 33}
+      - {h: "3. Progressive Exploration Strategy", l: 34, e: 37}
+      - {h: "3.1 Repository Structure Survey", l: 38, e: 42}
+      - {h: "3.2 Code Flow and Component Analysis", l: 43, e: 48}
+      - {h: "3.3 Performance Measurement Point Identification", l: 49, e: 54}
+      - {h: "3.4 Execution and Testing Verification", l: 55, e: 60}
+      - {h: "3.5 Comprehensive Analysis Synthesis", l: 61, e: 66}
+      - {h: "4. Present Analysis Plan", l: 67, e: 75}
+      - {h: "5. Report Findings", l: 76, e: 87}
   - path: "plugin/skills/project-workflow/reference/problem-solving.md"
     title: "Problem‑Solving Principles"
     description: ""
@@ -5487,14 +5487,14 @@ documents:
     description: ""
     category: rule
     scope: project
-    size: 5075
+    size: 5374
     tags: [project,readme,rule]
     sections:
-      - {h: "Populated Standards", l: 7, e: 14}
-      - {h: "Future-Work Standards (Out of Scope for This Iteration)", l: 15, e: 24}
-      - {h: "How to Extend", l: 25, e: 53}
-      - {h: "Conventions", l: 54, e: 60}
-      - {h: "Cross-references", l: 61, e: 66}
+      - {h: "Populated Standards", l: 22, e: 29}
+      - {h: "Future-Work Standards (Out of Scope for This Iteration)", l: 30, e: 39}
+      - {h: "How to Extend", l: 40, e: 68}
+      - {h: "Conventions", l: 69, e: 75}
+      - {h: "Cross-references", l: 76, e: 81}
   - path: "project/.claude/rules/compliance/iec-62304.md"
     title: "IEC 62304 — Medical Device Software Lifecycle"
     description: ""
@@ -5836,64 +5836,64 @@ documents:
     description: ""
     category: rule
     scope: project
-    size: 3275
+    size: 3372
     tags: [git,project,rule,workflow]
     sections:
-      - {h: "Conflict Resolution Strategy", l: 9, e: 21}
-      - {h: "Merge vs Rebase", l: 22, e: 33}
-      - {h: "Decision Tree: Abort vs Continue", l: 34, e: 56}
-      - {h: "Conflict Marker Verification", l: 57, e: 72}
-      - {h: "Stash Management", l: 73, e: 74}
-      - {h: "When to Stash", l: 75, e: 80}
-      - {h: "Naming Convention", l: 81, e: 92}
-      - {h: "Cleanup Policy", l: 93, e: 98}
+      - {h: "Conflict Resolution Strategy", l: 15, e: 27}
+      - {h: "Merge vs Rebase", l: 28, e: 39}
+      - {h: "Decision Tree: Abort vs Continue", l: 40, e: 62}
+      - {h: "Conflict Marker Verification", l: 63, e: 78}
+      - {h: "Stash Management", l: 79, e: 80}
+      - {h: "When to Stash", l: 81, e: 86}
+      - {h: "Naming Convention", l: 87, e: 98}
+      - {h: "Cleanup Policy", l: 99, e: 104}
   - path: "project/.claude/rules/workflow/github-issue-5w1h.md"
     title: "GitHub Issue Guidelines (5W1H Principle)"
     description: ""
     category: rule
     scope: project
-    size: 1841
+    size: 1892
     tags: [ci,git,github,project,rule,workflow]
     sections:
-      - {h: "5W1H Framework", l: 9, e: 21}
-      - {h: "Quick Reference", l: 22, e: 23}
-      - {h: "Issue Types and Required Fields", l: 24, e: 33}
-      - {h: "Issue Splitting Rule", l: 34, e: 37}
-      - {h: "Auto-Close Keywords (in PRs)", l: 38, e: 41}
-      - {h: "Labels", l: 42, e: 50}
+      - {h: "5W1H Framework", l: 12, e: 24}
+      - {h: "Quick Reference", l: 25, e: 26}
+      - {h: "Issue Types and Required Fields", l: 27, e: 36}
+      - {h: "Issue Splitting Rule", l: 37, e: 40}
+      - {h: "Auto-Close Keywords (in PRs)", l: 41, e: 44}
+      - {h: "Labels", l: 45, e: 53}
   - path: "project/.claude/rules/workflow/github-pr-5w1h.md"
     title: "GitHub Pull Request Guidelines (5W1H Principle)"
     description: ""
     category: rule
     scope: project
-    size: 2450
+    size: 2506
     tags: [ci,git,github,project,rule,workflow]
     sections:
-      - {h: "5W1H Framework", l: 9, e: 21}
-      - {h: "Issue Linking (MANDATORY)", l: 22, e: 29}
-      - {h: "Auto-close behavior on develop merges", l: 30, e: 44}
-      - {h: "Quick Reference", l: 45, e: 46}
-      - {h: "PR Title Conventions", l: 47, e: 50}
-      - {h: "PR Size Guidelines", l: 51, e: 60}
-      - {h: "Reviewer Checklist", l: 61, e: 69}
+      - {h: "5W1H Framework", l: 12, e: 24}
+      - {h: "Issue Linking (MANDATORY)", l: 25, e: 32}
+      - {h: "Auto-close behavior on develop merges", l: 33, e: 47}
+      - {h: "Quick Reference", l: 48, e: 49}
+      - {h: "PR Title Conventions", l: 50, e: 53}
+      - {h: "PR Size Guidelines", l: 54, e: 63}
+      - {h: "Reviewer Checklist", l: 64, e: 72}
   - path: "project/.claude/rules/workflow/performance-analysis.md"
     title: "Performance Analysis Procedure"
     description: ""
     category: rule
     scope: project
-    size: 3101
+    size: 3215
     tags: [performance,project,rule,workflow]
     sections:
-      - {h: "1. Establish Analysis Constraints", l: 13, e: 19}
-      - {h: "2. Gather Required Information", l: 20, e: 28}
-      - {h: "3. Progressive Exploration Strategy", l: 29, e: 32}
-      - {h: "3.1 Repository Structure Survey", l: 33, e: 37}
-      - {h: "3.2 Code Flow and Component Analysis", l: 38, e: 43}
-      - {h: "3.3 Performance Measurement Point Identification", l: 44, e: 49}
-      - {h: "3.4 Execution and Testing Verification", l: 50, e: 55}
-      - {h: "3.5 Comprehensive Analysis Synthesis", l: 56, e: 61}
-      - {h: "4. Present Analysis Plan", l: 62, e: 70}
-      - {h: "5. Report Findings", l: 71, e: 82}
+      - {h: "1. Establish Analysis Constraints", l: 18, e: 24}
+      - {h: "2. Gather Required Information", l: 25, e: 33}
+      - {h: "3. Progressive Exploration Strategy", l: 34, e: 37}
+      - {h: "3.1 Repository Structure Survey", l: 38, e: 42}
+      - {h: "3.2 Code Flow and Component Analysis", l: 43, e: 48}
+      - {h: "3.3 Performance Measurement Point Identification", l: 49, e: 54}
+      - {h: "3.4 Execution and Testing Verification", l: 55, e: 60}
+      - {h: "3.5 Comprehensive Analysis Synthesis", l: 61, e: 66}
+      - {h: "4. Present Analysis Plan", l: 67, e: 75}
+      - {h: "5. Report Findings", l: 76, e: 87}
   - path: "project/.claude/rules/workflow/session-resume.md"
     title: "Session Resume State"
     description: ""
@@ -6713,30 +6713,30 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 1841
+    size: 1892
     tags: [ci,git,github,project,reference,skill,workflow]
     sections:
-      - {h: "5W1H Framework", l: 9, e: 21}
-      - {h: "Quick Reference", l: 22, e: 23}
-      - {h: "Issue Types and Required Fields", l: 24, e: 33}
-      - {h: "Issue Splitting Rule", l: 34, e: 37}
-      - {h: "Auto-Close Keywords (in PRs)", l: 38, e: 41}
-      - {h: "Labels", l: 42, e: 50}
+      - {h: "5W1H Framework", l: 12, e: 24}
+      - {h: "Quick Reference", l: 25, e: 26}
+      - {h: "Issue Types and Required Fields", l: 27, e: 36}
+      - {h: "Issue Splitting Rule", l: 37, e: 40}
+      - {h: "Auto-Close Keywords (in PRs)", l: 41, e: 44}
+      - {h: "Labels", l: 45, e: 53}
   - path: "project/.claude/skills/project-workflow/reference/github-pr-5w1h.md"
     title: "GitHub Pull Request Guidelines (5W1H Principle)"
     description: ""
     category: reference
     scope: project
-    size: 2450
+    size: 2506
     tags: [ci,git,github,project,reference,skill,workflow]
     sections:
-      - {h: "5W1H Framework", l: 9, e: 21}
-      - {h: "Issue Linking (MANDATORY)", l: 22, e: 29}
-      - {h: "Auto-close behavior on develop merges", l: 30, e: 44}
-      - {h: "Quick Reference", l: 45, e: 46}
-      - {h: "PR Title Conventions", l: 47, e: 50}
-      - {h: "PR Size Guidelines", l: 51, e: 60}
-      - {h: "Reviewer Checklist", l: 61, e: 69}
+      - {h: "5W1H Framework", l: 12, e: 24}
+      - {h: "Issue Linking (MANDATORY)", l: 25, e: 32}
+      - {h: "Auto-close behavior on develop merges", l: 33, e: 47}
+      - {h: "Quick Reference", l: 48, e: 49}
+      - {h: "PR Title Conventions", l: 50, e: 53}
+      - {h: "PR Size Guidelines", l: 54, e: 63}
+      - {h: "Reviewer Checklist", l: 64, e: 72}
   - path: "project/.claude/skills/project-workflow/reference/orchestrator-patterns.md"
     title: "Orchestrator Pattern Templates"
     description: ""
@@ -6777,19 +6777,19 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 3101
+    size: 3215
     tags: [performance,project,reference,skill,workflow]
     sections:
-      - {h: "1. Establish Analysis Constraints", l: 13, e: 19}
-      - {h: "2. Gather Required Information", l: 20, e: 28}
-      - {h: "3. Progressive Exploration Strategy", l: 29, e: 32}
-      - {h: "3.1 Repository Structure Survey", l: 33, e: 37}
-      - {h: "3.2 Code Flow and Component Analysis", l: 38, e: 43}
-      - {h: "3.3 Performance Measurement Point Identification", l: 44, e: 49}
-      - {h: "3.4 Execution and Testing Verification", l: 50, e: 55}
-      - {h: "3.5 Comprehensive Analysis Synthesis", l: 56, e: 61}
-      - {h: "4. Present Analysis Plan", l: 62, e: 70}
-      - {h: "5. Report Findings", l: 71, e: 82}
+      - {h: "1. Establish Analysis Constraints", l: 18, e: 24}
+      - {h: "2. Gather Required Information", l: 25, e: 33}
+      - {h: "3. Progressive Exploration Strategy", l: 34, e: 37}
+      - {h: "3.1 Repository Structure Survey", l: 38, e: 42}
+      - {h: "3.2 Code Flow and Component Analysis", l: 43, e: 48}
+      - {h: "3.3 Performance Measurement Point Identification", l: 49, e: 54}
+      - {h: "3.4 Execution and Testing Verification", l: 55, e: 60}
+      - {h: "3.5 Comprehensive Analysis Synthesis", l: 61, e: 66}
+      - {h: "4. Present Analysis Plan", l: 67, e: 75}
+      - {h: "5. Report Findings", l: 76, e: 87}
   - path: "project/.claude/skills/project-workflow/reference/problem-solving.md"
     title: "problem solving"
     description: ""

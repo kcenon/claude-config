@@ -1,5 +1,8 @@
 ---
 alwaysApply: false
+paths:
+  - ".github/**"
+  - "**/PULL_REQUEST_TEMPLATE*"
 ---
 
 # GitHub Pull Request Guidelines (5W1H Principle)
