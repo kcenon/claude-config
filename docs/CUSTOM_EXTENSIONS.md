@@ -224,6 +224,36 @@ index-generation policy.
 
 **CI enforcement**: `.github/workflows/validate-skills.yml` runs the validator tests and then `scripts/validate-doc-index.sh` for every relevant PR. When documentation changes legitimately alter sizes, covered paths, or index generation metadata, regenerate the `docs/.index/*.yaml` outputs with `/doc-index` before opening the PR.
 
+### Rule Frontmatter Contract (drift guard)
+
+**Type**: Repository-internal convention
+
+The context loader gates a `project/.claude/rules/**/*.md` file solely on its
+`paths:` globs. `alwaysApply: false` is therefore **not** an off switch on its
+own — with no `paths:` trigger there is no condition to gate on, and the file
+loads in every session while its frontmatter looks like it defers the file. The
+same silent-resident outcome comes from a file with no frontmatter, a catch-all
+`paths: ["**/*"]`, or `globs:` written where the loader reads `paths:`.
+
+Every rule file must therefore be exactly one of:
+
+1. `alwaysApply: true` — deliberately always resident
+2. `alwaysApply: false` **plus** a non-catch-all `paths:` list — loads on demand
+
+`scripts/validate-rule-frontmatter.sh` enforces this, reporting
+`NO-FRONTMATTER`, `NO-PATHS-TRIGGER`, `CATCH-ALL-GLOB`, or `WRONG-KEY` per
+offending file. Reference documents under `project/.claude/reference/` are not
+checked: they sit outside the rules tree, and that placement is what defers
+them.
+
+**CI enforcement**: `.github/workflows/validate-rule-frontmatter.yml` runs the
+guard on every PR touching the rules tree. The job additionally seeds one
+fixture per violation class and requires a non-zero exit, plus a valid-frontmatter
+fixture set that must pass — so the guard cannot silently degrade into a check
+that detects nothing. Measured impact when the contract was first enforced
+(#880): the always-resident rule set went from 11 files (~6,496 est. tokens) to
+6 (~2,516). See `docs/TOKEN_OPTIMIZATION.md` for the measurement history.
+
 ### Agent Definitions (drift guard)
 
 **Type**: Repository-internal convention
