@@ -113,7 +113,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   resolved by the landed CI wiring (#821, #823, #833, #850) and the fourth as
   still open (#855) (#853).
 
+- Rule frontmatter is now gated in CI. `scripts/validate-rule-frontmatter.sh`
+  requires every `project/.claude/rules/**/*.md` file to declare either
+  `alwaysApply: true` or `alwaysApply: false` paired with a non-catch-all
+  `paths:` trigger, reporting `NO-FRONTMATTER`, `NO-PATHS-TRIGGER`,
+  `CATCH-ALL-GLOB`, or `WRONG-KEY` (`globs:` written where the loader reads
+  `paths:`). The guard runs from
+  `.github/workflows/validate-rule-frontmatter.yml` on PRs touching the rules
+  tree, and the job seeds one fixture per violation class — requiring a
+  non-zero exit — plus a valid-frontmatter set that must pass, so the guard
+  cannot degrade into a check that detects nothing. Documented in
+  `docs/CUSTOM_EXTENSIONS.md` (#880).
+
 ### Fixed
+
+- The five rule files fixed in #880 are now recorded here. `compliance/README.md`
+  carried no frontmatter, `workflow/performance-analysis.md` used a catch-all
+  `paths: ["**/*"]`, and `workflow/git-conflict-resolution.md`,
+  `workflow/github-pr-5w1h.md`, and `workflow/github-issue-5w1h.md` declared
+  `alwaysApply: false` with no `paths:` trigger — which the loader reads as "no
+  condition" rather than "off", the opposite of the intent and invisible in the
+  frontmatter. Each now carries a scoped trigger; no rule prose changed. The
+  always-resident set went from 11 files (~6,496 est. tokens) to 6 (~2,516), and
+  `docs/TOKEN_OPTIMIZATION.md`, whose 2026-03-21 measurement had drifted, was
+  re-measured (#880).
 
 - `bash-write-guard` no longer allows writes to sensitive directories named
   by a relative path. `echo y > secrets/db.yml` was permitted while the same
