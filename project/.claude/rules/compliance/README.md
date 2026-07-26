@@ -1,3 +1,18 @@
+---
+name: compliance-index
+description: Index of per-standard compliance rule files and how to extend them
+alwaysApply: false
+paths:
+  - "src/safety/**"
+  - "src/medical/**"
+  - "docs/srs/**"
+  - "docs/sdd/**"
+  - "docs/sdp/**"
+  - "tests/safety/**"
+  - "risk-file/**"
+  - "problem-reports/**"
+---
+
 # Compliance Rules — Per-Standard Index
 
 Path-triggered rule files mapping safety-standard clauses to project evidence. Each file is a YAML-frontmatter rule loaded only when matching paths are touched (see `paths:` in each file). Clause IDs follow the format `<STANDARD>-<NUMBER>` (e.g. `IEC-62304-5.1.7`) and are consumed by the `traceability` skill's matrix `clause_refs[]` field — once published, treat IDs as permanent.

@@ -1,5 +1,11 @@
 ---
 alwaysApply: false
+paths:
+  - "**/*.orig"
+  - "**/*.rej"
+  - "**/*.lock"
+  - "**/package-lock.json"
+  - "**/go.sum"
 ---
 
 # Git Conflict Resolution
