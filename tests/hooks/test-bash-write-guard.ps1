@@ -8,8 +8,9 @@
 # bash cases legitimately diverge. Every ported case was probed against the
 # actual .ps1 guard first; matches are asserted plainly, divergences are
 # asserted at the ACTUAL .ps1 decision with a comment (never forced into
-# agreement). See the read-only-awk approximation-artifact block and the
-# divergence section at the bottom.
+# agreement). See the divergence section at the bottom. The read-only-awk block
+# was one such divergence until the guard gained a tokenizing awk arm; those six
+# cases now agree with the bash suite.
 
 $ErrorActionPreference = 'Stop'
 
@@ -111,18 +112,17 @@ Assert-Deny -InputJson (New-BashPayload 'awk ''BEGIN{print "y" | "cat>/tmp/x"}''
 
 Write-Host ''
 Write-Host '[allow - read-only awk (no write target)]'
-# APPROXIMATION ARTIFACT (whole section): the bash guard tokenizes the awk body
-# and allows awk with no write redirect. The .ps1 uninspectable arm is the
-# coarse regex `\b(awk|gawk|mawk)\b`, which matches EVERY awk invocation
-# regardless of redirect, so all six read-only cases deny. Over-approximation
-# (fail-safe: it blocks harmless awk reads, never permits a write), not a
-# security gap. Asserted at the actual .ps1 decision.
-Assert-Deny -InputJson (New-BashPayload 'awk ''{print $1}'' file.txt') -Label 'awk print column (no redirect) [artifact -> deny]'
-Assert-Deny -InputJson (New-BashPayload 'awk ''/TODO/{c++} END{print c}'' src.txt') -Label 'awk count pattern (no redirect) [artifact -> deny]'
-Assert-Deny -InputJson (New-BashPayload 'ps aux | awk ''{print $2}''') -Label 'awk in pipe (no redirect) [artifact -> deny]'
-Assert-Deny -InputJson (New-BashPayload 'awk -F''|'' ''{print $1}'' file.txt') -Label "awk -F'|' separator [artifact -> deny]"
-Assert-Deny -InputJson (New-BashPayload 'awk -F ''|'' ''{print $1}'' file.txt') -Label "awk -F '|' separator [artifact -> deny]"
-Assert-Deny -InputJson (New-BashPayload 'awk -v sep=''a|b'' ''{print sep}'' file.txt') -Label 'awk -v value with pipe [artifact -> deny]'
+# Previously an APPROXIMATION ARTIFACT: the .ps1 uninspectable arm was the coarse
+# regex `\b(awk|gawk|mawk)\b`, which matched EVERY awk invocation regardless of
+# redirect, so all six read-only cases denied and were pinned at that behaviour.
+# The guard now tokenizes the awk body like bash-write-guard.sh and inspects only
+# the program token, so these assert the same decision as the bash suite.
+Assert-Allow -InputJson (New-BashPayload 'awk ''{print $1}'' file.txt') -Label 'awk print column (no redirect)'
+Assert-Allow -InputJson (New-BashPayload 'awk ''/TODO/{c++} END{print c}'' src.txt') -Label 'awk count pattern (no redirect)'
+Assert-Allow -InputJson (New-BashPayload 'ps aux | awk ''{print $2}''') -Label 'awk in pipe (no redirect)'
+Assert-Allow -InputJson (New-BashPayload 'awk -F''|'' ''{print $1}'' file.txt') -Label "awk -F'|' separator"
+Assert-Allow -InputJson (New-BashPayload 'awk -F ''|'' ''{print $1}'' file.txt') -Label "awk -F '|' separator"
+Assert-Allow -InputJson (New-BashPayload 'awk -v sep=''a|b'' ''{print sep}'' file.txt') -Label 'awk -v value with pipe'
 
 Write-Host ''
 Write-Host '[deny - wrapper bypass for sensitive write]'
