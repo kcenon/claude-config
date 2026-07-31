@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `bash-write-guard.ps1` no longer denies read-only `awk`. The uninspectable arm
+  matched the bare command word `\b(awk|gawk|mawk)\b`, so every awk invocation was
+  denied regardless of what the program did — `ps aux | awk '{print $2}'` and
+  `awk -F'|' '{print $1}'` included. The guard now tokenizes the command and
+  inspects only the awk PROGRAM token, denying when it carries `>` or `|`, which
+  is what `bash-write-guard.sh` has always done; flag values (`-F'|'`, `-F '|'`,
+  `-v sep='a|b'`) are skipped so a field separator cannot read as a write
+  operator, and the tokenizer honours backslash escapes so
+  `awk "BEGIN{print \"x\" > \"f\"}"` is not truncated before its redirect. The
+  six read-only cases pinned in `tests/hooks/test-bash-write-guard.ps1` as an
+  approximation artifact are unpinned and now assert the same decision as the
+  bash suite (67 assertions, 398 across the hooks runner, all passing).
+  Sensitive-target and read-before-write coverage is unchanged: both scan the raw
+  command string, so an in-program `print > "~/.ssh/id_rsa"` is still denied.
+- `project/.claude/rules/workflow/branching-strategy.md` no longer claims that CI
+  runs only on PRs targeting `main` and that feature PRs to `develop` trigger
+  nothing. CI scope is decided per workflow by the `pull_request` `branches:`
+  filter; a trigger with no filter fires on every base branch, `develop`
+  included. The rule is always-loaded, so the wrong claim mis-steered every
+  session that read it — including into treating a `develop` PR as costing no CI
+  time. It now states the mechanism and tells the reader to check the filters
+  under `.github/workflows/` rather than assume either way.
+
 ### Added
 
 - PowerShell test suites for the Bash-channel guards. The
