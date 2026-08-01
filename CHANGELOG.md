@@ -7,77 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- The PowerShell Bash-channel guards now match their shell counterparts for
-  relative `secrets/`, `credentials/`, and `passwords/` reads plus bare SSH-key
-  and `credentials` read-write targets, while delimiter-aware boundaries keep
-  ordinary names such as `credentials.md` allowed (#878).
-- The Bash write guards now reject unexpanded `*`/`?` targets that bracket an
-  env-file token, closing redirect and write-tool forms such as
-  `echo y > *.env*` and `tee *.env*` while preserving ordinary globs and the
-  explicit env-template allow-list (#876).
-- `tests/issue-work/test-triage.sh` now creates its scratch directory from an
-  explicit `${TMPDIR:-/tmp}/iw-triage-test.XXXXXX` template, matching the four
-  sibling Bash suites and remaining usable when a sandbox exposes a writable
-  temp root outside the system default (#873).
-- The `issue-work` PowerShell ports now route every git invocation through
-  their stage-specific wrapper (`_workspace_git`, `_agents_git`, or
-  `_cleanup_git`) instead of leaving those wrappers unused while bypassing
-  them through `$script:GitBin`. The wrapper comments and Bash parity now
-  match reality, and `GIT_BIN` remains a single control seam (#872).
-- Sensitive-file guards now classify suffix/template hybrids such as
-  `prod.env.example` and `staging.env.sample` as env files instead of letting
-  the file and plugin channels allow them by fall-through. The explicit
-  `*.env.*` deny class is aligned across Bash, PowerShell, and the plugin while
-  the four recognised dotfile-prefix templates remain allowed (#868).
-- `HOOKS.md` now scopes sensitive-file targets to the full global suite, lists
-  its SSH-key and AWS-credential patterns, and identifies the plugin-only
-  `private/` addition and stand-down behavior instead of presenting the union
-  of both guards as one pattern set (#861).
-- `docs/deep-audit-2026-05-29.md` now reconciles all 20 findings in the
-  `hooks-parity`, `settings-schema`, and `hooks-correctness` clusters against
-  the current working tree and landed PRs. The dated status log replaces the
-  stale Executive Summary claim that Windows secret/write and memory guards
-  are dormant, while preserving every original finding body as the immutable
-  May audit record. The reconciliation also closes its two live residuals:
-  `global/settings.windows.json` now carries the three-hook ordering note, and
-  `scripts/backup.sh` makes `error()` terminal so failed initial copies cannot
-  fall through to a success message; the installer robustness suite now pins
-  that contract. `sync.ps1` option 4 is recorded as an accepted Bash-only
-  exception because the PowerShell menu explicitly rejects it before dispatch,
-  preventing the unsafe overwrite path identified by the audit (#857).
-- `safe_rm_rf` now makes the same allow-list decision on Linux and macOS.
-  Both deletion targets and the fixed `HOME`/`/tmp` roots are canonicalized,
-  so macOS's `/tmp -> /private/tmp` symlink no longer rejects legitimate
-  `claude-*` scratch paths. The helper also uses portable `realpath` instead of
-  GNU-only `realpath -e`; an explicit resolved-target existence check preserves
-  fail-closed behavior for broken symlinks. The regression suite now builds
-  outside fixtures beneath canonical `/tmp`, avoids platform-specific
-  `/etc/hostname`, runs in the Linux/macOS `validate-hooks` matrix, and is no
-  longer classified as manual-only (#851).
-- `bash-write-guard.ps1` no longer denies read-only `awk`. The uninspectable arm
-  matched the bare command word `\b(awk|gawk|mawk)\b`, so every awk invocation was
-  denied regardless of what the program did — `ps aux | awk '{print $2}'` and
-  `awk -F'|' '{print $1}'` included. The guard now tokenizes the command and
-  inspects only the awk PROGRAM token, denying when it carries `>` or `|`, which
-  is what `bash-write-guard.sh` has always done; flag values (`-F'|'`, `-F '|'`,
-  `-v sep='a|b'`) are skipped so a field separator cannot read as a write
-  operator, and the tokenizer honours backslash escapes so
-  `awk "BEGIN{print \"x\" > \"f\"}"` is not truncated before its redirect. The
-  six read-only cases pinned in `tests/hooks/test-bash-write-guard.ps1` as an
-  approximation artifact are unpinned and now assert the same decision as the
-  bash suite (67 assertions, 398 across the hooks runner, all passing).
-  Sensitive-target and read-before-write coverage is unchanged: both scan the raw
-  command string, so an in-program `print > "~/.ssh/id_rsa"` is still denied.
-- `project/.claude/rules/workflow/branching-strategy.md` no longer claims that CI
-  runs only on PRs targeting `main` and that feature PRs to `develop` trigger
-  nothing. CI scope is decided per workflow by the `pull_request` `branches:`
-  filter; a trigger with no filter fires on every base branch, `develop`
-  included. The rule is always-loaded, so the wrong claim mis-steered every
-  session that read it — including into treating a `develop` PR as costing no CI
-  time. It now states the mechanism and tells the reader to check the filters
-  under `.github/workflows/` rather than assume either way.
+## 1.12.0 - 2026-08-01
 
 ### Added
 
@@ -196,9 +126,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   non-zero exit — plus a valid-frontmatter set that must pass, so the guard
   cannot degrade into a check that detects nothing. Documented in
   `docs/CUSTOM_EXTENSIONS.md` (#880).
+- Skill drift across the distribution layers is now contractual and gated in
+  CI. `skill-drift-contract.yml` declares, per skill name, which copies are
+  paired and which divergences are accepted, and `scripts/check_skill_drift.py`
+  (with `.sh` and `.ps1` entrypoints) compares `project/.claude/skills/`,
+  `plugin/skills/`, and `plugin-lite/skills/` on the high-risk frontmatter
+  fields — `allowed-tools`/`disallowed-tools`, `disable-model-invocation`,
+  `user-invocable`, `argument-hint`, `paths`, `model`, `context`, `agent`,
+  `severity`, `finding_levels`, `iso_class`, `safety_class`, and
+  `applies_at_or_above` — plus the body text that defines the same behavior, so
+  a shared skill cannot gain different permissions, routing, or mutation
+  authority by accident. Formatting-only YAML differences are not failures. The
+  contract is documented in `docs/SKILL_DRIFT_CONTRACT.md` and
+  `docs/PLUGIN_BUILD.md`, wired into `validate-skills.yml`, and covered by Bash
+  and PowerShell test suites (#827).
 
 ### Fixed
 
+- The PowerShell Bash-channel guards now match their shell counterparts for
+  relative `secrets/`, `credentials/`, and `passwords/` reads plus bare SSH-key
+  and `credentials` read-write targets, while delimiter-aware boundaries keep
+  ordinary names such as `credentials.md` allowed (#878).
+- The Bash write guards now reject unexpanded `*`/`?` targets that bracket an
+  env-file token, closing redirect and write-tool forms such as
+  `echo y > *.env*` and `tee *.env*` while preserving ordinary globs and the
+  explicit env-template allow-list (#876).
+- `tests/issue-work/test-triage.sh` now creates its scratch directory from an
+  explicit `${TMPDIR:-/tmp}/iw-triage-test.XXXXXX` template, matching the four
+  sibling Bash suites and remaining usable when a sandbox exposes a writable
+  temp root outside the system default (#873).
+- The `issue-work` PowerShell ports now route every git invocation through
+  their stage-specific wrapper (`_workspace_git`, `_agents_git`, or
+  `_cleanup_git`) instead of leaving those wrappers unused while bypassing
+  them through `$script:GitBin`. The wrapper comments and Bash parity now
+  match reality, and `GIT_BIN` remains a single control seam (#872).
+- Sensitive-file guards now classify suffix/template hybrids such as
+  `prod.env.example` and `staging.env.sample` as env files instead of letting
+  the file and plugin channels allow them by fall-through. The explicit
+  `*.env.*` deny class is aligned across Bash, PowerShell, and the plugin while
+  the four recognised dotfile-prefix templates remain allowed (#868).
+- `HOOKS.md` now scopes sensitive-file targets to the full global suite, lists
+  its SSH-key and AWS-credential patterns, and identifies the plugin-only
+  `private/` addition and stand-down behavior instead of presenting the union
+  of both guards as one pattern set (#861).
+- `docs/deep-audit-2026-05-29.md` now reconciles all 20 findings in the
+  `hooks-parity`, `settings-schema`, and `hooks-correctness` clusters against
+  the current working tree and landed PRs. The dated status log replaces the
+  stale Executive Summary claim that Windows secret/write and memory guards
+  are dormant, while preserving every original finding body as the immutable
+  May audit record. The reconciliation also closes its two live residuals:
+  `global/settings.windows.json` now carries the three-hook ordering note, and
+  `scripts/backup.sh` makes `error()` terminal so failed initial copies cannot
+  fall through to a success message; the installer robustness suite now pins
+  that contract. `sync.ps1` option 4 is recorded as an accepted Bash-only
+  exception because the PowerShell menu explicitly rejects it before dispatch,
+  preventing the unsafe overwrite path identified by the audit (#857).
+- `safe_rm_rf` now makes the same allow-list decision on Linux and macOS.
+  Both deletion targets and the fixed `HOME`/`/tmp` roots are canonicalized,
+  so macOS's `/tmp -> /private/tmp` symlink no longer rejects legitimate
+  `claude-*` scratch paths. The helper also uses portable `realpath` instead of
+  GNU-only `realpath -e`; an explicit resolved-target existence check preserves
+  fail-closed behavior for broken symlinks. The regression suite now builds
+  outside fixtures beneath canonical `/tmp`, avoids platform-specific
+  `/etc/hostname`, runs in the Linux/macOS `validate-hooks` matrix, and is no
+  longer classified as manual-only (#851).
+- `bash-write-guard.ps1` no longer denies read-only `awk`. The uninspectable arm
+  matched the bare command word `\b(awk|gawk|mawk)\b`, so every awk invocation was
+  denied regardless of what the program did — `ps aux | awk '{print $2}'` and
+  `awk -F'|' '{print $1}'` included. The guard now tokenizes the command and
+  inspects only the awk PROGRAM token, denying when it carries `>` or `|`, which
+  is what `bash-write-guard.sh` has always done; flag values (`-F'|'`, `-F '|'`,
+  `-v sep='a|b'`) are skipped so a field separator cannot read as a write
+  operator, and the tokenizer honours backslash escapes so
+  `awk "BEGIN{print \"x\" > \"f\"}"` is not truncated before its redirect. The
+  six read-only cases pinned in `tests/hooks/test-bash-write-guard.ps1` as an
+  approximation artifact are unpinned and now assert the same decision as the
+  bash suite (67 assertions, 398 across the hooks runner, all passing).
+  Sensitive-target and read-before-write coverage is unchanged: both scan the raw
+  command string, so an in-program `print > "~/.ssh/id_rsa"` is still denied.
+- `project/.claude/rules/workflow/branching-strategy.md` no longer claims that CI
+  runs only on PRs targeting `main` and that feature PRs to `develop` trigger
+  nothing. CI scope is decided per workflow by the `pull_request` `branches:`
+  filter; a trigger with no filter fires on every base branch, `develop`
+  included. The rule is always-loaded, so the wrong claim mis-steered every
+  session that read it — including into treating a `develop` PR as costing no CI
+  time. It now states the mechanism and tells the reader to check the filters
+  under `.github/workflows/` rather than assume either way.
 - The five rule files fixed in #880 are now recorded here. `compliance/README.md`
   carried no frontmatter, `workflow/performance-analysis.md` used a catch-all
   `paths: ["**/*"]`, and `workflow/git-conflict-resolution.md`,
@@ -327,7 +340,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reported, and legacy command files removed before directory manifests are
   pruned only when they match known upstream hashes (#820).
 - Default installer `GITHUB_REF` pins in `bootstrap.sh`, `bootstrap.ps1`, and
-  README one-line examples now track `VERSION_MAP.yml` `suite` (`v1.11.0`);
+  README one-line examples now track `VERSION_MAP.yml` `suite` (`v1.12.0`);
   `check_versions` and `sync_versions` cover those pins.
 - The `tests/hook-json-escape.sh` smoke test now matches the split allow
   contract of `global/hooks/dangerous-command-guard.sh` instead of the
@@ -354,6 +367,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   nightly job reported success while measuring nothing from that run. The
   stale-result path is covered by regression cases that inject a stub
   benchmark through the new `BATCH_DRIFT_BENCHMARK_DIR` override (#855).
+- `bootstrap.sh` and `bootstrap.ps1` now deploy the `global/scripts/` utility
+  scripts into `~/.claude/scripts` during installation. The statusline,
+  team-report, and weekly-usage scripts referenced by the shipped settings were
+  never copied, so a fresh bootstrap produced a `settings.json` pointing at
+  files that did not exist. Deployment runs before `settings.json` is replaced
+  and a failure is fatal, so a partial install cannot leave the settings file
+  swapped in against missing scripts; both atomic-deploy suites assert the new
+  step (#818).
+- The four `Write()` env deny entries are removed from `global/settings.json`
+  and `global/settings.windows.json`. File permission checks never match
+  `Write(path)` rules — the harness warned about each one at session startup —
+  while the existing `Edit(path)` rules already cover every file-editing tool
+  (`Edit`, `Write`, `NotebookEdit`), so the entries were inert rather than
+  protective. The Windows permissions regression test now requires only
+  `Edit(.env)` and fails if any `Write()` deny entry reappears. Bumps
+  settings-schema to 1.17.1 (#836).
 
 ## 1.11.0 - 2026-07-03
 
@@ -638,4 +667,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Claude Code Skills with progressive disclosure pattern.
 - Added hook settings for security and auto-formatting.
 
-[Unreleased]: https://github.com/kcenon/claude-config/compare/v1.11.0...HEAD
+[Unreleased]: https://github.com/kcenon/claude-config/compare/v1.12.0...HEAD
