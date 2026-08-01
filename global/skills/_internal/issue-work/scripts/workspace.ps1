@@ -28,9 +28,9 @@ $ErrorActionPreference = 'Stop'
 # terminating errors under the 'Stop' preference above and destroy the
 # structured outcome, so the setting is pinned off for this script.
 #
-# Pinned at script scope rather than inside _workspace_git because several call
-# sites invoke $script:GitBin directly (the clone, the origin lookup, and the
-# baseline rev-parse); a wrapper-local guard would leave those unprotected.
+# Kept at script scope so every call through _workspace_git inherits the same
+# non-throwing native-command behavior before the wrapper locally lowers
+# $ErrorActionPreference for the duration of the invocation.
 $PSNativeCommandUseErrorActionPreference = $false
 
 # Injection seams (overridable by tests and callers via environment
@@ -133,7 +133,7 @@ function _workspace_owner_name_from_origin {
 function workspace_verify_identity {
     param([string]$RepoDir, [string]$Expected)
     if ([string]::IsNullOrEmpty($RepoDir) -or [string]::IsNullOrEmpty($Expected)) { return $false }
-    $origin = & $script:GitBin -C $RepoDir remote get-url origin 2>$null
+    $origin = _workspace_git -C $RepoDir remote get-url origin 2>$null
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($origin)) { return $false }
     $origin = workspace_redact_credentials $origin
     $actual = _workspace_owner_name_from_origin $origin
@@ -210,7 +210,7 @@ function _workspace_clone {
     param([string]$Url, [string]$Branch, [string]$Dest)
     $depthArgs = @()
     if ($env:WORKSPACE_CLONE_DEPTH) { $depthArgs = @('--depth', $env:WORKSPACE_CLONE_DEPTH) }
-    $out = & $script:GitBin clone --branch $Branch --single-branch --no-recurse-submodules @depthArgs $Url $Dest 2>&1
+    $out = _workspace_git clone --branch $Branch --single-branch --no-recurse-submodules @depthArgs $Url $Dest 2>&1
     $rc = $LASTEXITCODE
     if ($rc -ne 0) {
         $joined = ($out | Out-String)
@@ -287,7 +287,7 @@ function run_workspace {
         return 1
     }
 
-    $baseline = (& $script:GitBin -C $repoDir rev-parse HEAD 2>$null)
+    $baseline = (_workspace_git -C $repoDir rev-parse HEAD 2>$null)
 
     if (-not (workspace_verify_identity -RepoDir $repoDir -Expected $Repo)) {
         workspace_manifest_write -Path $manifest -Key 'state' -Value 'REJECTED' | Out-Null

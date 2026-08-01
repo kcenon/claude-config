@@ -31,9 +31,9 @@ $ErrorActionPreference = 'Stop'
 # terminating errors under the 'Stop' preference above, turning a safety refusal
 # into a crash, so the setting is pinned off for this script.
 #
-# Pinned at script scope rather than inside _cleanup_git / _cleanup_gh because
-# most call sites invoke $script:GitBin / $script:GhBin directly; a
-# wrapper-local guard would leave them unprotected.
+# Kept at script scope so every call through _cleanup_git and _cleanup_gh
+# inherits the same non-throwing native-command behavior before each wrapper
+# locally lowers $ErrorActionPreference for the duration of the invocation.
 $PSNativeCommandUseErrorActionPreference = $false
 
 # Reuse the #838 manifest primitive (workspace_manifest_write/_read/_state,
@@ -254,12 +254,12 @@ function cleanup_git_state_clean {
     if ([string]::IsNullOrEmpty($RepoDir)) { $script:CleanupLastError = 'empty repo dir'; return $false }
     if (-not (Test-Path -LiteralPath $RepoDir -PathType Container)) { $script:CleanupLastError = 'repo dir does not exist'; return $false }
 
-    $porcelain = & $script:GitBin -C $RepoDir status --porcelain 2>$null
+    $porcelain = _cleanup_git -C $RepoDir status --porcelain 2>$null
     if (-not [string]::IsNullOrEmpty(($porcelain | Out-String).Trim())) {
         $script:CleanupLastError = 'working tree not clean (uncommitted or untracked changes)'
         return $false
     }
-    $unmerged = & $script:GitBin -C $RepoDir ls-files -u 2>$null
+    $unmerged = _cleanup_git -C $RepoDir ls-files -u 2>$null
     if (-not [string]::IsNullOrEmpty(($unmerged | Out-String).Trim())) {
         $script:CleanupLastError = 'unresolved merge conflicts present'
         return $false
@@ -280,15 +280,15 @@ function cleanup_remotely_recoverable {
     if ([string]::IsNullOrEmpty($RepoDir)) { $script:CleanupLastError = 'empty repo dir'; return $false }
 
     # (a) HEAD is contained in some remote-tracking ref.
-    $remoteContains = & $script:GitBin -C $RepoDir branch -r --contains HEAD 2>$null
+    $remoteContains = _cleanup_git -C $RepoDir branch -r --contains HEAD 2>$null
     if (-not [string]::IsNullOrEmpty(($remoteContains | Out-String).Trim())) {
         return $true
     }
 
     # (b) HEAD has an upstream and is not ahead of it.
-    & $script:GitBin -C $RepoDir rev-parse --abbrev-ref '@{u}' 2>$null | Out-Null
+    _cleanup_git -C $RepoDir rev-parse --abbrev-ref '@{u}' 2>$null | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        $ahead = (& $script:GitBin -C $RepoDir rev-list --count '@{u}..HEAD' 2>$null | Out-String).Trim()
+        $ahead = (_cleanup_git -C $RepoDir rev-list --count '@{u}..HEAD' 2>$null | Out-String).Trim()
         if ($ahead -eq '0') {
             return $true
         }
@@ -296,7 +296,7 @@ function cleanup_remotely_recoverable {
 
     # (c) squash-merge: the merge commit landed on origin/develop.
     if (-not [string]::IsNullOrEmpty($MergeCommit)) {
-        & $script:GitBin -C $RepoDir merge-base --is-ancestor $MergeCommit origin/develop 2>$null
+        _cleanup_git -C $RepoDir merge-base --is-ancestor $MergeCommit origin/develop 2>$null
         if ($LASTEXITCODE -eq 0) {
             return $true
         }
@@ -393,11 +393,11 @@ function cleanup_reconcile {
         return 2
     }
 
-    $branch = (& $script:GitBin -C $RepoDir rev-parse --abbrev-ref HEAD 2>$null | Out-String).Trim()
-    $head = (& $script:GitBin -C $RepoDir rev-parse HEAD 2>$null | Out-String).Trim()
+    $branch = (_cleanup_git -C $RepoDir rev-parse --abbrev-ref HEAD 2>$null | Out-String).Trim()
+    $head = (_cleanup_git -C $RepoDir rev-parse HEAD 2>$null | Out-String).Trim()
     $remoteRef = ''
     if (-not [string]::IsNullOrEmpty($branch)) {
-        $remoteRef = (& $script:GitBin -C $RepoDir ls-remote --heads origin $branch 2>$null | Out-String).Trim()
+        $remoteRef = (_cleanup_git -C $RepoDir ls-remote --heads origin $branch 2>$null | Out-String).Trim()
     }
     $storedState = workspace_manifest_state -Path $Manifest
 

@@ -26,9 +26,9 @@ $ErrorActionPreference = 'Stop'
 # terminating errors under the 'Stop' preference above, so the setting is pinned
 # off for this script.
 #
-# Pinned at script scope rather than inside _agents_git because the worktree
-# add/remove call sites invoke $script:GitBin directly; a wrapper-local guard
-# would leave them unprotected.
+# Kept at script scope so every call through _agents_git inherits the same
+# non-throwing native-command behavior before the wrapper locally lowers
+# $ErrorActionPreference for the duration of the invocation.
 $PSNativeCommandUseErrorActionPreference = $false
 
 # Reuse the #838 manifest primitive (workspace_manifest_write/_read/_state,
@@ -263,7 +263,7 @@ function agents_release_lease {
 function agents_worktree_add {
     param([string]$RepoDir, [string]$WorktreePath, [string]$Branch)
     if ([string]::IsNullOrEmpty($RepoDir) -or [string]::IsNullOrEmpty($WorktreePath) -or [string]::IsNullOrEmpty($Branch)) { return $false }
-    $out = & $script:GitBin -C $RepoDir worktree add -b $Branch $WorktreePath 2>&1
+    $out = _agents_git -C $RepoDir worktree add -b $Branch $WorktreePath 2>&1
     $rc = $LASTEXITCODE
     if ($rc -ne 0) {
         $joined = ($out | Out-String)
@@ -278,7 +278,7 @@ function agents_worktree_add {
 function agents_worktree_remove {
     param([string]$RepoDir, [string]$WorktreePath)
     if ([string]::IsNullOrEmpty($RepoDir) -or [string]::IsNullOrEmpty($WorktreePath)) { return $false }
-    $out = & $script:GitBin -C $RepoDir worktree remove $WorktreePath 2>&1
+    $out = _agents_git -C $RepoDir worktree remove $WorktreePath 2>&1
     $rc = $LASTEXITCODE
     if ($rc -ne 0) {
         $joined = ($out | Out-String)
