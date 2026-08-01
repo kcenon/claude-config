@@ -3,7 +3,7 @@
 # Test suite for bash-write-guard.ps1
 # Run: pwsh tests/hooks/test-bash-write-guard.ps1
 #
-# Port of tests/hooks/test-bash-write-guard.sh (69 assertions). The .ps1 guard
+# Port of tests/hooks/test-bash-write-guard.sh (78 assertions). The .ps1 guard
 # is a regex approximation of the tokenizer-based .sh guard, so a handful of
 # bash cases legitimately diverge. Every ported case was probed against the
 # actual .ps1 guard first; matches are asserted plainly, divergences are
@@ -148,6 +148,23 @@ Assert-Deny -InputJson (New-BashPayload 'echo y > /srv/secrets/.env.example') -L
 # secrets/ form denies here (unlike the read guard's #878 gap).
 Assert-Deny -InputJson (New-BashPayload 'echo y > secrets/.env.example') -Label 'template under relative secrets/ denied'
 Assert-Deny -InputJson (New-BashPayload 'true && echo y > .env.example; echo y > .env') -Label 'template does not launder a chained .env write'
+
+Write-Host ''
+Write-Host '[deny - unexpanded glob bracketing the env token (issue #876)]'
+# The hook sees these targets before pathname expansion. Wildcards adjacent to
+# `.env` therefore act as sensitive-token boundaries in the regex port.
+Assert-Deny -InputJson (New-BashPayload 'echo y > *.env*') -Label 'redirect double-wildcard env glob (the reported bypass)'
+Assert-Deny -InputJson (New-BashPayload 'tee *.env*') -Label 'tee double-wildcard env glob (the reported argv bypass)'
+Assert-Deny -InputJson (New-BashPayload 'echo y > .env*') -Label 'trailing glob after .env'
+Assert-Deny -InputJson (New-BashPayload 'echo y > *.env') -Label 'leading glob before .env'
+Assert-Deny -InputJson (New-BashPayload 'echo y > .env?') -Label 'single-char glob after .env'
+Assert-Deny -InputJson (New-BashPayload 'cp payload.txt config/*.env*') -Label 'path-prefixed double-wildcard env glob'
+
+Write-Host ''
+Write-Host '[allow - env-mentioning globs that cannot expand to a .env file (#876 precision)]'
+Assert-Allow -InputJson (New-BashPayload 'echo y > env*') -Label 'env* -- no leading dot, not the .env class'
+Assert-Allow -InputJson (New-BashPayload 'echo y > *.md') -Label 'wildcard over markdown'
+Assert-Allow -InputJson (New-BashPayload 'echo y > environment.txt') -Label 'environment.txt -- env substring, no wildcard, no .env'
 
 Write-Host ''
 Write-Host '[deny - relative sensitive-directory writes (issue #871)]'

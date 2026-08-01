@@ -123,6 +123,29 @@ is_sensitive_target() {
     return 1
 }
 
+# sensitive_glob_core <path>
+#   The hook receives Bash commands before pathname expansion. If a raw write
+#   target contains `*` or `?`, strip those metacharacters and re-check the
+#   remaining anchor against the literal sensitive-target rules. Prints the
+#   resolved core and returns 0 only when that core is sensitive. This closes
+#   forms such as `*.env*` without broadening the rules to ordinary globs such
+#   as `*.md` or env-mentioning names such as `environment.txt` (issue #876).
+sensitive_glob_core() {
+    local path="$1"
+    case "$path" in
+        *[*?]*)
+            local stripped resolved
+            stripped="${path//[*?]/}"
+            resolved=$(resolve_path "$stripped")
+            if is_sensitive_target "$resolved"; then
+                printf '%s' "$resolved"
+                return 0
+            fi
+            ;;
+    esac
+    return 1
+}
+
 # tracker_has <path>
 #   Returns 0 if the resolved path appears in the session Read tracker.
 #   Mirrors the pre-edit-read-guard tracker file location.
@@ -396,7 +419,7 @@ inspect_write_subcommand() {
     fi
 
     # --- Sensitive-target check (always denied, regardless of Read state) ---
-    local resolved
+    local resolved deglobbed
     if [ -n "$redirect_target" ]; then
         case "$redirect_target" in
             /dev/null|/dev/stderr|/dev/stdout|/dev/tty)
@@ -407,6 +430,10 @@ inspect_write_subcommand() {
         resolved=$(resolve_path "$redirect_target")
         if is_sensitive_target "$resolved"; then
             echo "Bash write to sensitive file blocked: $redirect_target (resolved: $resolved)"
+            return 1
+        fi
+        if deglobbed=$(sensitive_glob_core "$redirect_target"); then
+            echo "Bash write to sensitive glob blocked: $redirect_target (de-globbed core: $deglobbed)"
             return 1
         fi
     fi
@@ -487,6 +514,10 @@ inspect_write_subcommand() {
             echo "Bash write to sensitive file blocked: $wt (resolved: $resolved)"
             return 1
         fi
+        if deglobbed=$(sensitive_glob_core "$wt"); then
+            echo "Bash write to sensitive glob blocked: $wt (de-globbed core: $deglobbed)"
+            return 1
+        fi
     done
 
     # --- Read-before-Edit enforcement on existing files ---
@@ -550,6 +581,9 @@ if printf '%s' "$FIRST_LINE" | grep -qE '<<-?[[:space:]]*[^[:space:]]+' \
         RESOLVED_HEREDOC_TARGET=$(resolve_path "$HEREDOC_TARGET")
         if is_sensitive_target "$RESOLVED_HEREDOC_TARGET"; then
             deny_response "Bash write to sensitive file blocked: $HEREDOC_TARGET (resolved: $RESOLVED_HEREDOC_TARGET)"
+        fi
+        if RESOLVED_HEREDOC_DEGLOBBED=$(sensitive_glob_core "$HEREDOC_TARGET"); then
+            deny_response "Bash write to sensitive glob blocked: $HEREDOC_TARGET (de-globbed core: $RESOLVED_HEREDOC_DEGLOBBED)"
         fi
         if [ -e "$RESOLVED_HEREDOC_TARGET" ] && [ ! -d "$RESOLVED_HEREDOC_TARGET" ]; then
             tracker_dir="${TMPDIR:-/tmp}"

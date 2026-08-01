@@ -46,7 +46,10 @@ $tracker = Join-Path $trackerDir ("claude-read-set-{0}" -f $sessionId)
 # forms like `> secrets/db.yml` are denied in lockstep with the .sh guard,
 # and covers all three tokens — `passwords` was previously missing even in
 # the separator-anchored form (issue #871).
-$sensitiveTargetRegex = '(\.env([.\s''"]|$))|((\.ssh)[/\\](id_|[A-Za-z0-9_-]+_(rsa|dsa|ecdsa|ed25519)))|(\.aws[/\\]credentials)|(\.kube[/\\]config)|(/etc/(shadow|sudoers|passwd|hosts))|(\.(pem|key|p12|pfx)(\s|$|[''"]))|((^|[\s/\\''">=])(secrets|credentials|passwords)[/\\])'
+# The shell has not expanded pathname globs yet, so `*` and `?` must count as
+# boundaries after `.env`. Otherwise `*.env*` matches no env arm here and can
+# expand over a real env file only after the hook has allowed it (issue #876).
+$sensitiveTargetRegex = '(\.env([.\s''"*?]|$))|((\.ssh)[/\\](id_|[A-Za-z0-9_-]+_(rsa|dsa|ecdsa|ed25519)))|(\.aws[/\\]credentials)|(\.kube[/\\]config)|(/etc/(shadow|sudoers|passwd|hosts))|(\.(pem|key|p12|pfx)(\s|$|[''"]))|((^|[\s/\\''">=])(secrets|credentials|passwords)[/\\])'
 
 # Env-file templates (.env.example, .env.example.*, .env.sample, .env.template)
 # are committed on purpose and never carry real secrets; sensitive-file-guard.ps1

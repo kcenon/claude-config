@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The Bash write guards now reject unexpanded `*`/`?` targets that bracket an
+  env-file token, closing redirect and write-tool forms such as
+  `echo y > *.env*` and `tee *.env*` while preserving ordinary globs and the
+  explicit env-template allow-list (#876).
 - `tests/issue-work/test-triage.sh` now creates its scratch directory from an
   explicit `${TMPDIR:-/tmp}/iw-triage-test.XXXXXX` template, matching the four
   sibling Bash suites and remaining usable when a sandbox exposes a writable
