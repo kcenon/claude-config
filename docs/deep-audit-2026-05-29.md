@@ -12,7 +12,7 @@ Multi-agent audit across 12 dimensions. Each finding was adversarially verified 
 
 ## Status as of 2026-07-20 — `tests-ci`
 
-Reconciliation scope: the `tests-ci` cluster and the two sub-items of the [P0] CI-enforcement roadmap entry that cover it. Every other cluster in this document is unreconciled and still reads as of 2026-05-29.
+Reconciliation scope: the `tests-ci` cluster and the two sub-items of the [P0] CI-enforcement roadmap entry that cover it. Other clusters remain unreconciled unless a later status section below explicitly covers them.
 
 | Finding | Status | Closed by | Verified state on 2026-07-20 |
 |---------|--------|-----------|------------------------------|
@@ -34,13 +34,50 @@ Fragments of the resolved findings that remain factually accurate, recorded so a
 - The parity job in `validate-hooks-doc.yml` still asserts only that same-basename `.ps1` counterparts exist and that the counts match; it executes nothing.
 - The "exercised when the InstallerFetch matrix lands a Windows runner" concession still exists in `validate-hooks.yml`, but has moved and now scopes only to `tests/plugin/smoke-test.ps1`.
 
+## Status as of 2026-08-01 — `hooks-parity`, `settings-schema`, `hooks-correctness`
+
+Reconciliation scope: all 20 findings in the three named clusters, the cluster-spanning security claims in the Executive Summary, and the three residual dispositions required by #857. Finding bodies below remain the immutable 2026-05-29 record; this section is the authoritative current status for the named findings.
+
+| Finding | Status | Closed by | Verified state on 2026-08-01 |
+|---------|--------|-----------|------------------------------|
+| `bsrg-env-case-bypass` | Resolved | PR #654 | Every sensitive pattern arm in `bash-sensitive-read-guard.sh` matches the lowercased path; the suite denies `.ENV`, `.NETRC`, uppercase `.AWS`, and uppercase SSH-key paths (60 assertions pass). |
+| `bwg-env-case-bypass` | Resolved | PR #654 | `bash-write-guard.sh` likewise matches the full sensitive set against its lowercased path; the uppercase write cases remain denied (67 assertions pass). |
+| `gap-matcher-overmatch` | Resolved | PR #659 | `github-api-preflight.sh` now requires a word-bounded `gh` command (or a GitHub hostname); the regression suite proves `high` and `weigh` skip connectivity and auth probes. |
+| `gap-authcheck-undermatch` | Resolved | PR #659 | The auth-status branch uses the same non-start-anchored word boundary as the scope gate, so chained forms such as `cd x && gh ...` reach the check. |
+| `gap-heredoc-not-jq` | Resolved | PR #669 | Both `github-api-preflight.sh` and `prompt-validator.sh` construct contextual JSON through `jq -nc --arg`; their suites pass 11 and 39 assertions respectively. |
+| `merge-gate-guard-ps1-missing-squash-only` | Resolved | PR #657 | The PowerShell guard rejects `--merge` and `--rebase`; its squash-only suite passes 6 assertions. |
+| `sensitive-file-guard-ps1-missing-ssh-aws` | Resolved | PR #657; hardened by #856 (PR #862) | The guard denies SSH private-key basenames and `.aws/credentials`/`.aws/config` after path normalization; its suite passes 53 assertions. |
+| `commit-msg-guard-ps1-broad-attribution-regex` | Resolved | PR #657 | Both PowerShell attribution guards import `AttributionValidator.psm1`; casual product mentions pass while the three attribution shapes deny (15 commit-message assertions pass). |
+| `pr-target-guard-ps1-stale-master-and-default-branch` | Resolved | PR #657 | The port blocks both `main` and `master`, resolves an omitted base through the override or repository default, and passes 19 assertions. |
+| `memory-write-guard-ps1-missing-secret-rc2` | Resolved | PR #657 | `memory-write-guard.ps1` explicitly sets the block decision for `secret-check.sh` exit code 2 and reports the missing-configuration reason. |
+| `language-validator-ps1-missing-typographic-allowlist` | Resolved | PR #657 | `LanguageValidator.psm1` allows the eight English typographic code points named by the finding; its suite passes 29 assertions. |
+| `markdown-anchor-validator-cjk-charclass-divergence` | Resolved | PR #659 | The shell validator uses locale-independent Perl Unicode properties matching the PowerShell transform; both runners pass the same 11 cases, including Korean valid and broken anchors. |
+| `bash-write-guard-ps1-no-readbefore-on-argv-targets` | Resolved (documented exception) | PR #664 | The header now states that Read-before-Edit covers redirects only, while sensitive-target blocking still covers both redirects and write-tool argv. This is the documentation alternative the finding recommended; the PowerShell suite passes 67 assertions. |
+| `dangerous-command-guard-allow-shape-mismatch` | Resolved | PR #669; refined by #715 (PR #718) | Plain allows are minimal on both implementations, and warning-class allows use `additionalContext`; the Bash and PowerShell suites pass 36 and 28 assertions. |
+| `win-missing-bash-tool-guards` | Resolved | PR #655 | The Windows Bash matcher registers `bash-sensitive-read-guard.ps1`, `bash-write-guard.ps1`, `gh-write-verb-guard.ps1`, and `traceability-guard.ps1` in the corresponding POSIX order. |
+| `win-missing-memory-hooks` | Resolved | PR #655 | `memory-write-guard.ps1`, `memory-integrity-check.ps1`, and async `memory-access-logger.ps1` are registered at their matching events and order. |
+| `no-ci-parity-check-for-hook-wiring` | Resolved | PR #656; #821 (PR #826) | CI runs tuple-level hook wiring parity, full settings parity, PowerShell behavior under `pwsh` on Linux/macOS, and the native `windows-latest` runner. Both settings parity gates pass. |
+| `win-permissions-allow-narrower` | Resolved | PR #672; enforced by #821 (PR #826) | The Bash `permissions.allow` sets are equal; Windows-only PowerShell permissions are an explicit tested exception rather than silent drift. |
+| `win-note-comment-stale` | Resolved | #857 (this reconciliation) | The Windows three-hook note now records `memory-write-guard` after `pre-edit-read-guard` and cites both #424 and #521, matching the POSIX wording. |
+| `git-fetch-allow-divergence` | Resolved | PR #672 | Both settings files permit only scoped `git fetch origin:*` and `git fetch upstream:*`; the full settings parity gate enforces the shared Bash set. |
+
+The cluster-spanning claims that produced the original Executive Summary warning are also closed: `windows-bash-secret-guards-not-wired` by PR #655, `parity-ci-checks-files-not-wiring` by PR #656 and #821 (PR #826), and `windows-sensitive-file-guard-missing-ssh-aws` by PR #657. The Windows secret/read/write and memory surface described as inactive in May is therefore active and regression-gated now.
+
+The three residual items called out by #857 have explicit dispositions:
+
+- `win-note-comment-stale` is resolved in the table above by this reconciliation.
+- `backup-sh-silent-dataloss-cp-after-delete` is resolved by PR #658 plus #857: replacement uses copy-then-swap, and `backup.sh`'s `error()` is now terminal, so the two remaining initial `cp || error` paths cannot print success after failure. The robustness suite pins both invariants (10 assertions pass).
+- `sync-ps1-missing-interactive-merge` is resolved as a documented platform exception by PR #672. `sync.ps1` accepts only options 1–3 and explicitly rejects option 4 before dispatch, preventing the unvalidated system-to-backup overwrite that was the finding's actual failure mode; interactive merge remains Bash-only.
+
+All 20 findings in the reconciled clusters now have a resolved disposition. This does not claim that later audits found no new parity gaps: #868, #876, and #878 track distinct post-audit cases and remain open independently of this point-in-time finding set.
+
 ## Executive Summary
 
 This audit of the claude-config repository confirms 56 real findings, dominated by a single structural problem: the repo maintains the same logical artifact in multiple parallel copies (bash hooks vs. PowerShell hooks, global settings vs. Windows settings, rules/ SSOT vs. plugin/ inlined copies, README vs. actual inventory) but enforces consistency on only a fraction of these pairings. The result is silent drift, and in several cases that drift has concrete security and correctness consequences.
 
-The most serious cluster is cross-platform security divergence. On Windows, three Bash-channel secret guards (bash-sensitive-read-guard, bash-write-guard, gh-write-verb-guard) and three memory-protection hooks exist as fully-implemented .ps1 files but are never wired into settings.windows.json, so `cat .env`, `type ~/.aws/credentials`, writes to existing files, and unscoped gh write verbs are unguarded — while the documentation (ENFORCEMENT.md, HOOKS.md) advertises these as active fail-closed layers with no Windows caveat. The merge-gate squash-only enforcement and PR-target hardening (#616) are also missing from their .ps1 ports, and a case-sensitivity bug lets `.ENV`/`.NETRC` bypass the POSIX secret guards entirely on case-insensitive filesystems (macOS/Windows).
+The most serious cluster observed by the audit was cross-platform security divergence. The 2026-08-01 reconciliation above verified that this specific surface is no longer inactive: Windows settings register the Bash-channel secret/read/write guards and all three memory-protection hooks; the PowerShell merge and PR-target ports carry squash-only and default-branch enforcement; and the POSIX secret guards case-fold the complete sensitive-path set. `cat .env`, `.aws/credentials` access, writes to protected targets, unscoped `gh` write verbs, and memory updates are now guarded on Windows and covered by parity/behavior CI. Later, distinct parity gaps remain tracked in their own issues; they do not restore the broad dormant surface described in the original May finding.
 
-A second cluster is missing CI enforcement. The CI parity audit checks only that a same-basename .ps1 file EXISTS, never that it is wired into settings.windows.json or that it behaves correctly — which is precisely why the dormant-guard gap shipped on the default branch. No CI job ever executes PowerShell hooks behaviorally, and roughly a dozen genuine regression suites (including three JSON-injection suites covering 15 guards, plus test-windows-hooks-parity.sh which currently FAILS) are invoked by no workflow at all.
+A second cluster observed by the audit was missing CI enforcement. That specific parity gap is also closed for the reconciled findings: CI compares normalized hook wiring and permissions across both settings files, runs PowerShell hook behavior under `pwsh` on Linux/macOS and on a native Windows runner, and explicitly invokes the formerly orphaned regression suites. The broader lesson remains that parallel implementations need wiring and behavior checks, not file-existence checks alone.
 
 A third cluster is the unguarded plugin/rules drift: ~29 plugin reference files inline rules/ content but only 4 are sync-checked, and they have measurably diverged; plugin agents are near-duplicate copies with no SSOT.
 
