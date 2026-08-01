@@ -146,6 +146,23 @@ assert_deny 'echo y > secrets/.env.example' "template under relative secrets/ de
 assert_deny 'true && echo y > .env.example; echo y > .env' "template does not launder a chained .env write"
 
 echo ""
+echo "[deny — unexpanded glob bracketing the env token (issue #876)]"
+# The hook sees these targets before pathname expansion. Re-checking their
+# de-globbed core closes both redirect and write-tool argv forms.
+assert_deny 'echo y > *.env*' "redirect double-wildcard env glob (the reported bypass)"
+assert_deny 'tee *.env*' "tee double-wildcard env glob (the reported argv bypass)"
+assert_deny 'echo y > .env*' "trailing glob after .env"
+assert_deny 'echo y > *.env' "leading glob before .env"
+assert_deny 'echo y > .env?' "single-char glob after .env"
+assert_deny 'cp payload.txt config/*.env*' "path-prefixed double-wildcard env glob"
+
+echo ""
+echo "[allow — env-mentioning globs that cannot expand to a .env file (#876 precision)]"
+assert_allow 'echo y > env*' "env* -- no leading dot, not the .env class"
+assert_allow 'echo y > *.md' "wildcard over markdown"
+assert_allow 'echo y > environment.txt' "environment.txt -- env substring, no wildcard, no .env"
+
+echo ""
 echo "[deny — relative sensitive-directory writes (issue #871)]"
 # resolve_path leaves a nonexistent relative path relative, so these must be
 # caught by the bare-anchored directory arm, mirroring the read guard.
