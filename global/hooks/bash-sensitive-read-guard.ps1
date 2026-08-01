@@ -50,9 +50,13 @@ $sensitivePatterns = @(
     '(^|[\s/\\])\.docker[/\\]config\.json',
     '(^|[\s/\\])\.kube[/\\]config(\s|$)',
     '\.(?:pem|key|p12|pfx|crt|cer)([\s''"]|$)',
-    '[/\\]secrets[/\\]',
-    '[/\\]credentials[/\\]',
-    '[/\\]passwords[/\\]',
+    # Accept a command/path boundary before all three sensitive-directory
+    # tokens so relative paths (`cat secrets/db.yml`) deny just like absolute
+    # paths. This mirrors the write guard's boundary class (issue #878).
+    '(^|[\s/\\''">=])(secrets|credentials|passwords)[/\\]',
+    # Bare credential filenames need an explicit trailing shell delimiter
+    # rather than `\b`: a word boundary would also match `credentials.md`.
+    '(^|[\s/\\''">=])(id_(?:rsa|dsa|ecdsa|ed25519)|credentials)(?=[\s''";|&<>)]|$)',
     '\bpassword\b',
     '/etc/(shadow|sudoers)\b',
     '/etc/ssh/ssh_host_[A-Za-z0-9_]+_key\b'

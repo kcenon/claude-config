@@ -3,14 +3,14 @@
 # Test suite for bash-write-guard.ps1
 # Run: pwsh tests/hooks/test-bash-write-guard.ps1
 #
-# Port of tests/hooks/test-bash-write-guard.sh (78 assertions). The .ps1 guard
-# is a regex approximation of the tokenizer-based .sh guard, so a handful of
-# bash cases legitimately diverge. Every ported case was probed against the
-# actual .ps1 guard first; matches are asserted plainly, divergences are
-# asserted at the ACTUAL .ps1 decision with a comment (never forced into
-# agreement). See the divergence section at the bottom. The read-only-awk block
-# was one such divergence until the guard gained a tokenizing awk arm; those six
-# cases now agree with the bash suite.
+# Port of the Bash suite plus PowerShell parity regressions (79 assertions). The
+# .ps1 guard is a regex approximation of the tokenizer-based .sh guard, so a
+# handful of bash cases legitimately diverge. Every ported case was probed
+# against the actual .ps1 guard first; matches are asserted plainly. Divergences
+# are asserted at the ACTUAL .ps1 decision with a comment (never forced into
+# agreement). Remaining approximation artifacts are documented inline. The
+# read-only-awk block was one such divergence until the guard gained a tokenizing
+# awk arm; those six cases now agree with the bash suite.
 
 $ErrorActionPreference = 'Stop'
 
@@ -144,8 +144,7 @@ Assert-Deny -InputJson (New-BashPayload 'tee .env.sample.local') -Label '.env.sa
 Assert-Deny -InputJson (New-BashPayload 'echo y > prod.env.example') -Label 'prod.env.example hybrid'
 Assert-Deny -InputJson (New-BashPayload 'tee staging.env.sample') -Label 'staging.env.sample hybrid'
 Assert-Deny -InputJson (New-BashPayload 'echo y > /srv/secrets/.env.example') -Label 'template under secrets/ still denied'
-# The write .ps1 guard HAS the relative-directory fix from #877, so the relative
-# secrets/ form denies here (unlike the read guard's #878 gap).
+# Template masking must not hide a relative sensitive parent directory.
 Assert-Deny -InputJson (New-BashPayload 'echo y > secrets/.env.example') -Label 'template under relative secrets/ denied'
 Assert-Deny -InputJson (New-BashPayload 'true && echo y > .env.example; echo y > .env') -Label 'template does not launder a chained .env write'
 
@@ -179,6 +178,7 @@ Write-Host '[allow - non-sensitive relative writes stay allowed (#871 precision)
 Assert-Allow -InputJson (New-BashPayload 'echo y > build/out.txt') -Label 'relative non-sensitive dir'
 Assert-Allow -InputJson (New-BashPayload 'echo y > docs/secrets-of-git.md') -Label 'secrets substring without directory boundary'
 Assert-Allow -InputJson (New-BashPayload 'tee notes/password-policy.md') -Label 'password substring deliberately not ported to write side'
+Assert-Allow -InputJson (New-BashPayload 'tee credentials.md') -Label 'credentials.md (bare-name boundary precision)'
 
 Write-Host ''
 Write-Host '[allow - write to new, non-sensitive files]'
@@ -225,14 +225,9 @@ Set-Content -LiteralPath $script:Untracked -Value 'data'
 Assert-Deny -InputJson (New-BashPayload "echo overwrite > $script:Untracked") -Label 'untracked existing file -> deny'
 
 Write-Host ''
-Write-Host '[divergence - .ps1 arm gaps pinned as-is, see #878]'
-# The .ps1 sensitive-target regex only recognizes credential filenames behind a
-# `.ssh/` prefix; a bare `id_rsa` / `credentials` planted in cwd carries no such
-# boundary and is not matched. The .sh guard's bare-credential-filename block
-# was deferred out of the write port (#877) and is tracked by #878. Pinned at
-# today's ALLOW so the flip to deny (when #878 lands) trips this suite.
-Assert-Allow -InputJson (New-BashPayload 'echo y > id_rsa') -Label 'planting bare id_rsa in cwd [#878 gap -> allow]'
-Assert-Allow -InputJson (New-BashPayload 'tee credentials') -Label 'overwriting bare credentials filename [#878 gap -> allow]'
+Write-Host '[deny - bare credential filenames (issue #878)]'
+Assert-Deny -InputJson (New-BashPayload 'echo y > id_rsa') -Label 'planting bare id_rsa in cwd'
+Assert-Deny -InputJson (New-BashPayload 'tee credentials') -Label 'overwriting bare credentials filename'
 
 # Cleanup: remove the tracker and fixture dir this run created.
 Remove-Item -LiteralPath $script:Tracker -ErrorAction SilentlyContinue

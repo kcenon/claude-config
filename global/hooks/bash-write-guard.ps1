@@ -50,6 +50,10 @@ $tracker = Join-Path $trackerDir ("claude-read-set-{0}" -f $sessionId)
 # boundaries after `.env`. Otherwise `*.env*` matches no env arm here and can
 # expand over a real env file only after the hook has allowed it (issue #876).
 $sensitiveTargetRegex = '(\.env([.\s''"*?]|$))|((\.ssh)[/\\](id_|[A-Za-z0-9_-]+_(rsa|dsa|ecdsa|ed25519)))|(\.aws[/\\]credentials)|(\.kube[/\\]config)|(/etc/(shadow|sudoers|passwd|hosts))|(\.(pem|key|p12|pfx)(\s|$|[''"]))|((^|[\s/\\''">=])(secrets|credentials|passwords)[/\\])'
+# Bare credential filenames use an explicit trailing shell delimiter rather
+# than `\b`, which would over-match ordinary names such as `credentials.md`.
+$bareCredentialTargetRegex = '(^|[\s/\\''">=])(id_(?:rsa|dsa|ecdsa|ed25519)|credentials)(?=[\s''";|&<>)]|$)'
+$sensitiveTargetRegex = "(?:$sensitiveTargetRegex)|(?:$bareCredentialTargetRegex)"
 
 # Env-file templates (.env.example, .env.example.*, .env.sample, .env.template)
 # are committed on purpose and never carry real secrets; sensitive-file-guard.ps1
