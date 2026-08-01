@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The `issue-work` PowerShell ports now route every git invocation through
+  their stage-specific wrapper (`_workspace_git`, `_agents_git`, or
+  `_cleanup_git`) instead of leaving those wrappers unused while bypassing
+  them through `$script:GitBin`. The wrapper comments and Bash parity now
+  match reality, and `GIT_BIN` remains a single control seam (#872).
 - Sensitive-file guards now classify suffix/template hybrids such as
   `prod.env.example` and `staging.env.sample` as env files instead of letting
   the file and plugin channels allow them by fall-through. The explicit
