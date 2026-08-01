@@ -143,6 +143,9 @@ assert_deny 'cat .env.example*' "glob .env.example* (no dot before wildcard)"
 assert_deny 'cat .env.examplexyz' ".env.examplexyz (not .env.example)"
 # Only .env.example carries a dotted-suffix arm, mirroring the file channel.
 assert_deny 'cat .env.sample.local' ".env.sample.local (no suffix arm for sample)"
+# A prefix before the env token is not a recognised dotfile template (#868).
+assert_deny 'cat prod.env.example' "prod.env.example hybrid"
+assert_deny 'cat staging.env.sample' "staging.env.sample hybrid"
 # The template arm falls through, so later directory checks still apply.
 assert_deny 'cat secrets/.env.example' "template under secrets/ still denied"
 assert_deny 'cat .env.example && cat .env' "template does not launder a chained .env read"

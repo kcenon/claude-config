@@ -87,7 +87,8 @@ assert_deny '{"tool_input":{"file_path":"/srv/app/staging.env"}}' "path-qualifie
 assert_deny '{"tool_input":{"file_path":"/app/example.env"}}' "example.env → deny (not a recognised template form)"
 assert_deny '{"tool_input":{"file_path":"/app/template.env"}}' "template.env → deny (not a recognised template form)"
 assert_deny '{"tool_input":{"file_path":"/app/PRODUCTION.ENV"}}' "PRODUCTION.ENV → deny (case-folded)"
-assert_allow '{"tool_input":{"file_path":"/app/foo.env.example"}}' "foo.env.example → allow (ends in .example)"
+assert_deny '{"tool_input":{"file_path":"/app/prod.env.example"}}' "prod.env.example → deny (hybrid is not a template)"
+assert_deny '{"tool_input":{"file_path":"/app/staging.env.sample"}}' "staging.env.sample → deny (hybrid is not a template)"
 
 echo ""
 echo "[Certificate/key patterns]"

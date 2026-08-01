@@ -89,11 +89,11 @@ when the full suite is installed but one of its hook scripts is absent
 ## Retained Divergences
 
 The plugin's sensitive-file guard matches the same *filename* pattern set
-as `global/hooks/sensitive-file-guard.sh` — the `.env.*` family, the bare
-`*.env` suffix, `.envrc`, credential containers, SSH private keys, and AWS
-credential files, with `.env.example` / `.env.sample` / `.env.template`
-allowed through. The differences below remain by design. They are
-documented limitations, not oversights.
+as `global/hooks/sensitive-file-guard.sh` — the `.env.*` family, the `*.env`
+suffix, non-template `*.env.*` hybrids, `.envrc`, credential containers, SSH
+private keys, and AWS credential files, with `.env.example` / `.env.sample` /
+`.env.template` allowed through. The differences below remain by design. They
+are documented limitations, not oversights.
 
 | Area | Global suite | Plugin | Disposition |
 |------|--------------|--------|-------------|

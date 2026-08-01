@@ -76,10 +76,13 @@ case "$BASENAME_LOWER" in
         # Template files — never contain real secrets, allow.
         # Listed BEFORE the broad .env.* block so they are not denied.
         ;;
-    .env|.env.*|.envrc|*.env)
+    .env|.env.*|.envrc|*.env|*.env.*)
         # *.env covers the suffix form (production.env, staging.env), which
         # denotes the same artifact as the .env.* dotfile form. Both Bash-channel
         # guards already deny it; this arm closes the file-channel gap.
+        # *.env.* closes the corresponding hybrid fall-through
+        # (prod.env.example, staging.env.sample). These are not recognised
+        # templates: only the dotfile-prefix names in the allow arm above are.
         # example.env / template.env are denied on purpose: the recognised
         # template convention is the dotfile prefix (.env.example), which the
         # arm above admits. The Bash-channel guards carry the same four-name

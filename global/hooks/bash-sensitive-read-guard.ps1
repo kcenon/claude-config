@@ -36,6 +36,10 @@ $sensitivePatterns = @(
     # touching `.env` can only widen to real env files.
     '(^|[\s/\\*?])\.env([\s.''"*?]|$)',
     '(^|[\s/\\*?])\.env\.[A-Za-z0-9_-]+',
+    # Suffix/template hybrids such as prod.env.example are sensitive env files,
+    # not recognised templates. The file guards and plugin deny the same class
+    # explicitly; only dotfile-prefix .env.example names are masked below.
+    '(^|[\s/\\])[^/\s''";|&]+\.env\.[^/\s''";|&]+',
     '(^|[\s/\\])\.ssh[/\\](id_[A-Za-z0-9_-]+|[A-Za-z0-9_-]+_(?:rsa|dsa|ecdsa|ed25519))',
     '(^|[\s/\\])\.aws[/\\](credentials|config)',
     '(^|[\s/\\])\.gnupg([/\\]|$)',
