@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Sensitive-file guards now classify suffix/template hybrids such as
+  `prod.env.example` and `staging.env.sample` as env files instead of letting
+  the file and plugin channels allow them by fall-through. The explicit
+  `*.env.*` deny class is aligned across Bash, PowerShell, and the plugin while
+  the four recognised dotfile-prefix templates remain allowed (#868).
 - `HOOKS.md` now scopes sensitive-file targets to the full global suite, lists
   its SSH-key and AWS-credential patterns, and identifies the plugin-only
   `private/` addition and stand-down behavior instead of presenting the union

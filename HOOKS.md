@@ -50,7 +50,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 **Purpose**: Block access to sensitive files like `.env`, `.pem`, `.key`
 
 **Blocked targets (full global suite)**:
-- Filename patterns: `.env` (incl. `.envrc`, `.env.*`, and the bare `*.env` suffix form such as `production.env`), `.pem`, `.key`, `.p12`, `.pfx`, and SSH key basenames `id_rsa`, `id_ed25519`, `id_ecdsa`, `id_dsa` (incl. suffixed variants)
+- Filename patterns: `.env` (incl. `.envrc`, `.env.*`, the `*.env` suffix form such as `production.env`, and non-template `*.env.*` hybrids such as `prod.env.example`), `.pem`, `.key`, `.p12`, `.pfx`, and SSH key basenames `id_rsa`, `id_ed25519`, `id_ecdsa`, `id_dsa` (incl. suffixed variants)
 - Path patterns: `secrets/`, `credentials/`, `passwords/`, plus `credentials` and `config` basenames under `.aws/`. The plugin-only fallback shares the filename set but additionally blocks `private/`; it stands down when the full suite is active (see [Plugin vs Global](docs/plugin-vs-global.md#retained-divergences)).
 
 **Behavior**:

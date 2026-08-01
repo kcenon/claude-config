@@ -54,16 +54,18 @@ if ($basenameLower -eq '.env.example' -or
     exit 0
 }
 
-# Env files. Mirrors the .env|.env.*|.envrc|*.env pattern set in the bash
+# Env files. Mirrors the .env|.env.*|.envrc|*.env|*.env.* pattern set in the bash
 # variant; .envrc is direnv's config and carries the same class of secret.
-# The *.env arm covers the suffix form (production.env, staging.env), which
-# denotes the same artifact as the .env.* dotfile form. example.env and
-# template.env are denied on purpose: the recognised template convention is
-# the dotfile prefix (.env.example).
+# The *.env arm covers the suffix form (production.env, staging.env), and the
+# *.env.* arm closes the hybrid fall-through (prod.env.example,
+# staging.env.sample). Hybrids are not recognised templates: only the
+# dotfile-prefix names in the allow block above are. example.env and
+# template.env are denied for the same reason.
 if ($basenameLower -eq '.env' -or
     $basenameLower -like '.env.*' -or
     $basenameLower -eq '.envrc' -or
-    $basenameLower -like '*.env') {
+    $basenameLower -like '*.env' -or
+    $basenameLower -like '*.env.*') {
     New-HookDenyResponse -Reason "Access to sensitive file blocked: $FILE (env file)"
     exit 0
 }

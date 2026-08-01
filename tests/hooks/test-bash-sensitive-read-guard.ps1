@@ -3,7 +3,7 @@
 # Test suite for bash-sensitive-read-guard.ps1
 # Run: pwsh tests/hooks/test-bash-sensitive-read-guard.ps1
 #
-# Port of tests/hooks/test-bash-sensitive-read-guard.sh (60 assertions). The
+# Port of tests/hooks/test-bash-sensitive-read-guard.sh (62 assertions). The
 # .ps1 guard is a whole-command regex approximation of the tokenizer-based .sh
 # guard, so a handful of bash cases legitimately diverge. Every ported case was
 # probed against the actual .ps1 guard first; matches are asserted plainly,
@@ -138,6 +138,9 @@ Assert-Deny -InputJson (New-BashPayload 'cat .env.*') -Label 'glob .env.* (not a
 Assert-Deny -InputJson (New-BashPayload 'cat .env.example*') -Label 'glob .env.example* (no dot before wildcard)'
 Assert-Deny -InputJson (New-BashPayload 'cat .env.examplexyz') -Label '.env.examplexyz (not .env.example)'
 Assert-Deny -InputJson (New-BashPayload 'cat .env.sample.local') -Label '.env.sample.local (no suffix arm for sample)'
+# A prefix before the env token is not a recognised dotfile template (#868).
+Assert-Deny -InputJson (New-BashPayload 'cat prod.env.example') -Label 'prod.env.example hybrid'
+Assert-Deny -InputJson (New-BashPayload 'cat staging.env.sample') -Label 'staging.env.sample hybrid'
 # DIVERGENCE (#878 relative-dir arm gap, same root cause as `cat secrets/db.yml`
 # below): bash denies because the template arm falls through to the directory
 # check, which catches relative `secrets/`. The .ps1 directory arm requires a

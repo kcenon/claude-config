@@ -114,6 +114,14 @@ assert_exit "standalone: .env.sample allowed" "0" "$?"
 CLAUDE_FILE_PATH="/tmp/project/.env.template" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
 assert_exit "standalone: .env.template allowed" "0" "$?"
 
+# Suffix/template hybrids are not recognised templates. They must hit the
+# explicit *.env.* deny arm instead of falling through by exhaustion (#868).
+CLAUDE_FILE_PATH="/tmp/project/prod.env.example" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
+assert_exit "standalone: prod.env.example denied" "2" "$?"
+
+CLAUDE_FILE_PATH="/tmp/project/staging.env.sample" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
+assert_exit "standalone: staging.env.sample denied" "2" "$?"
+
 # SSH private keys.
 CLAUDE_FILE_PATH="id_rsa" bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
 assert_exit "standalone: bare id_rsa denied" "2" "$?"

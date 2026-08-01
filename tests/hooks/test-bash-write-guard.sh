@@ -135,6 +135,9 @@ assert_deny 'echo y > .env.example*' "glob .env.example* (no dot before wildcard
 assert_deny 'echo y > .env.examplexyz' ".env.examplexyz (not .env.example)"
 # Only .env.example carries a dotted-suffix arm, mirroring the file channel.
 assert_deny 'tee .env.sample.local' ".env.sample.local (no suffix arm for sample)"
+# A prefix before the env token is not a recognised dotfile template (#868).
+assert_deny 'echo y > prod.env.example' "prod.env.example hybrid"
+assert_deny 'tee staging.env.sample' "staging.env.sample hybrid"
 # The template arm falls through, so later directory checks still apply.
 # Both anchored forms are pinned now that issue #871 closed the relative
 # secrets/ gap this case previously had to route around.

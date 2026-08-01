@@ -3,7 +3,7 @@
 # Test suite for bash-write-guard.ps1
 # Run: pwsh tests/hooks/test-bash-write-guard.ps1
 #
-# Port of tests/hooks/test-bash-write-guard.sh (67 assertions). The .ps1 guard
+# Port of tests/hooks/test-bash-write-guard.sh (69 assertions). The .ps1 guard
 # is a regex approximation of the tokenizer-based .sh guard, so a handful of
 # bash cases legitimately diverge. Every ported case was probed against the
 # actual .ps1 guard first; matches are asserted plainly, divergences are
@@ -140,6 +140,9 @@ Assert-Deny -InputJson (New-BashPayload 'echo y > .env.*') -Label 'glob .env.* (
 Assert-Deny -InputJson (New-BashPayload 'echo y > .env.example*') -Label 'glob .env.example* (no dot before wildcard)'
 Assert-Deny -InputJson (New-BashPayload 'echo y > .env.examplexyz') -Label '.env.examplexyz (not .env.example)'
 Assert-Deny -InputJson (New-BashPayload 'tee .env.sample.local') -Label '.env.sample.local (no suffix arm for sample)'
+# A prefix before the env token is not a recognised dotfile template (#868).
+Assert-Deny -InputJson (New-BashPayload 'echo y > prod.env.example') -Label 'prod.env.example hybrid'
+Assert-Deny -InputJson (New-BashPayload 'tee staging.env.sample') -Label 'staging.env.sample hybrid'
 Assert-Deny -InputJson (New-BashPayload 'echo y > /srv/secrets/.env.example') -Label 'template under secrets/ still denied'
 # The write .ps1 guard HAS the relative-directory fix from #877, so the relative
 # secrets/ form denies here (unlike the read guard's #878 gap).
