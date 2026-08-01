@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `docs/deep-audit-2026-05-29.md` now reconciles all 20 findings in the
+  `hooks-parity`, `settings-schema`, and `hooks-correctness` clusters against
+  the current working tree and landed PRs. The dated status log replaces the
+  stale Executive Summary claim that Windows secret/write and memory guards
+  are dormant, while preserving every original finding body as the immutable
+  May audit record. The reconciliation also closes its two live residuals:
+  `global/settings.windows.json` now carries the three-hook ordering note, and
+  `scripts/backup.sh` makes `error()` terminal so failed initial copies cannot
+  fall through to a success message; the installer robustness suite now pins
+  that contract. `sync.ps1` option 4 is recorded as an accepted Bash-only
+  exception because the PowerShell menu explicitly rejects it before dispatch,
+  preventing the unsafe overwrite path identified by the audit (#857).
 - `safe_rm_rf` now makes the same allow-list decision on Linux and macOS.
   Both deletion targets and the fixed `HOME`/`/tmp` roots are canonicalized,
   so macOS's `/tmp -> /private/tmp` symlink no longer rejects legitimate

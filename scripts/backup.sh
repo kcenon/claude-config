@@ -37,7 +37,10 @@ echo -e "${NC}"
 info() { echo -e "${BLUE}ℹ️  $1${NC}"; }
 success() { echo -e "${GREEN}✅ $1${NC}"; }
 warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
-error() { echo -e "${RED}❌ $1${NC}"; }
+error() {
+    echo -e "${RED}❌ $1${NC}" >&2
+    exit 1
+}
 
 # 함수: Enterprise 경로 감지
 get_enterprise_dir() {
@@ -225,9 +228,8 @@ if [ "$REPLACE" = "y" ]; then
         safe_rm_rf "$ENT_STAGING"
         mkdir -p "$ENT_STAGING/rules"
         if ! cp -r "$TEMP_BACKUP/enterprise"/* "$ENT_STAGING/"; then
-            error "Enterprise 백업 업데이트 실패"
             safe_rm_rf "$ENT_STAGING"
-            exit 1
+            error "Enterprise 백업 업데이트 실패"
         fi
         safe_rm_rf "$BACKUP_DIR/enterprise"
         mv "$ENT_STAGING" "$BACKUP_DIR/enterprise"
@@ -240,9 +242,8 @@ if [ "$REPLACE" = "y" ]; then
         safe_rm_rf "$GLOBAL_STAGING"
         mkdir -p "$GLOBAL_STAGING"
         if ! cp -r "$TEMP_BACKUP/global"/* "$GLOBAL_STAGING/"; then
-            error "글로벌 백업 업데이트 실패"
             safe_rm_rf "$GLOBAL_STAGING"
-            exit 1
+            error "글로벌 백업 업데이트 실패"
         fi
         safe_rm_rf "$BACKUP_DIR/global"
         mv "$GLOBAL_STAGING" "$BACKUP_DIR/global"
@@ -255,9 +256,8 @@ if [ "$REPLACE" = "y" ]; then
         safe_rm_rf "$PROJ_STAGING"
         mkdir -p "$PROJ_STAGING"
         if ! cp -r "$TEMP_BACKUP/project"/* "$PROJ_STAGING/"; then
-            error "프로젝트 백업 업데이트 실패"
             safe_rm_rf "$PROJ_STAGING"
-            exit 1
+            error "프로젝트 백업 업데이트 실패"
         fi
         safe_rm_rf "$BACKUP_DIR/project"
         mv "$PROJ_STAGING" "$BACKUP_DIR/project"
