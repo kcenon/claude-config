@@ -75,6 +75,11 @@ jobs:
         # detection library with #823 so path filters/comments never count.
         run: bash tests/scripts/test-nonstandard-test-wiring.sh
 
+      - name: Run safe-rm guard regression tests
+        # #851: canonical path and allow-list behavior must agree on both
+        # Linux (/tmp) and macOS (/tmp -> /private/tmp).
+        run: bash tests/safe-rm-rf.sh
+
       - name: Run hook JSON-escape smoke test (base)
         # #567: dangerous-command-guard.sh must jq-escape its response reasons
         # so adversarial strings cannot flip the decision field, and the plain
