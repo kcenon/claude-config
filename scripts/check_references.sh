@@ -15,22 +15,28 @@ if [ ! -f "$MAP_FILE" ]; then
     exit 1
 fi
 
+normalize_newlines() {
+    local file="$1"
+    tr -d '\r' < "$file"
+}
+
 strip_frontmatter() {
     local file="$1"
+    normalize_newlines "$file" | \
     awk '
         NR == 1 && $0 == "---" { in_fm = 1; next }
         in_fm && $0 == "---" { in_fm = 0; skip_blank = 1; next }
         in_fm { next }
         skip_blank && $0 == "" { skip_blank = 0; next }
         { skip_blank = 0; print }
-    ' "$file"
+    '
 }
 
 emit_normalized() {
     local file="$1" mode="$2" side="$3"
     case "$mode:$side" in
         strip-source-frontmatter:source) strip_frontmatter "$file" ;;
-        exact:source|exact:target|strip-source-frontmatter:target) cat "$file" ;;
+        exact:source|exact:target|strip-source-frontmatter:target) normalize_newlines "$file" ;;
         *)
             echo "ERROR: unsupported reference comparison mode: $mode" >&2
             return 1
@@ -78,6 +84,35 @@ read_map_entries() {
         END { emit() }
     ' "$MAP_FILE"
 }
+
+tracked_project_reference_symlinks() {
+    if ! command -v git >/dev/null 2>&1; then
+        return 0
+    fi
+    if ! git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        return 0
+    fi
+    git -C "$ROOT_DIR" ls-files -s -- project/.claude/skills 2>/dev/null | \
+    awk '
+        $1 == "120000" {
+            path = $0
+            sub(/^[^\t]*\t/, "", path)
+            if (path ~ /^project\/\.claude\/skills\/.*\/reference\//) {
+                print path
+            }
+        }
+    '
+}
+
+tracked_symlinks="$(tracked_project_reference_symlinks)"
+if [ -n "$tracked_symlinks" ]; then
+    while IFS= read -r path; do
+        echo "FAIL: tracked symlink mode 120000: $path" >&2
+    done <<< "$tracked_symlinks"
+    echo "" >&2
+    echo "check_references: project skill reference files must be tracked as regular files." >&2
+    exit 2
+fi
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT

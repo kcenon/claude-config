@@ -16,23 +16,35 @@ on:
       - 'scripts/validate_skills.sh'
       - 'scripts/check_references.sh'
       - 'scripts/check_references.ps1'
+      - 'scripts/check_skill_drift.py'
+      - 'scripts/check_skill_drift.sh'
+      - 'scripts/check_skill_drift.ps1'
       - 'scripts/sync_references.sh'
       - 'scripts/sync_references.ps1'
       - 'reference-map.yml'
+      - 'skill-drift-contract.yml'
       - 'scripts/validate-doc-index.sh'
       - 'scripts/check_agents.sh'
       - 'scripts/check_agents.ps1'
       - 'tests/scripts/test-check-agents.sh'
       - 'tests/scripts/test-check-references.sh'
       - 'tests/scripts/test-check-references.ps1'
+      - 'tests/scripts/test-check-skill-drift.sh'
+      - 'tests/scripts/test-check-skill-drift.ps1'
       - 'plugin/agents/**'
       - 'project/.claude/agents/**'
       - 'scripts/spec_lint.sh'
       - 'scripts/spec_lint.ps1'
       - 'scripts/spec_lint.py'
       - 'scripts/schemas/**'
+      - 'scripts/migrate_halt_conditions.sh'
+      - 'scripts/check_workspace_prefix.sh'
       - 'tests/scripts/test-spec-lint.sh'
       - 'tests/scripts/test-spec-lint.ps1'
+      - 'tests/scripts/test-killswitch.sh'
+      - 'tests/scripts/test-migrate-halt-conditions.sh'
+      - 'tests/scripts/test-strict-lenient-dispatch.sh'
+      - 'tests/scripts/test-workspace-prefix.sh'
       - 'scripts/fleet_orchestrator/**'
       - 'tests/fleet_orchestrator/**'
       - 'docs/design/**'
@@ -42,15 +54,22 @@ on:
       - 'scripts/extract-doc-description.sh'
       - 'scripts/diff-readme.sh'
       - 'tests/doc-index/**'
+      - 'tests/issue-work/**'
       - 'tests/scripts/test-diff-readme.sh'
       - 'docs/.index/*.yaml'
       - 'VERSION_MAP.yml'
       - 'scripts/check_versions.sh'
+      - 'scripts/check_versions.ps1'
       - 'scripts/sync_versions.sh'
+      - 'scripts/sync_versions.ps1'
+      - 'tests/scripts/test-check-versions.sh'
+      - 'tests/scripts/test-check-versions.ps1'
       - 'plugin/.claude-plugin/plugin.json'
       - 'plugin-lite/.claude-plugin/plugin.json'
       - 'global/settings.json'
       - 'global/settings.windows.json'
+      - 'bootstrap.sh'
+      - 'bootstrap.ps1'
       - 'project/.claude/settings.json'
       - '.github/workflows/validate-skills.yml'
       - 'README.md'
@@ -92,6 +111,18 @@ jobs:
       - name: Run reference drift guard test suite (PowerShell)
         run: pwsh -NoProfile -File tests/scripts/test-check-references.ps1
 
+      - name: Check cross-layer SKILL.md drift contracts
+        run: ./scripts/check_skill_drift.sh
+
+      - name: Run skill drift guard test suite
+        run: bash tests/scripts/test-check-skill-drift.sh
+
+      - name: Check cross-layer SKILL.md drift contracts (PowerShell)
+        run: pwsh -NoProfile -File scripts/check_skill_drift.ps1
+
+      - name: Run skill drift guard test suite (PowerShell)
+        run: pwsh -NoProfile -File tests/scripts/test-check-skill-drift.ps1
+
       - name: Check plugin/project agent bodies in sync
         # plugin/agents and project/.claude/agents are near-duplicate copies;
         # this guard strips per-layer frontmatter and the one genericized
@@ -104,11 +135,70 @@ jobs:
       - name: Check VERSION_MAP consumers match declared values
         run: ./scripts/check_versions.sh
 
+      - name: Check VERSION_MAP consumers match declared values (PowerShell)
+        run: pwsh -NoProfile -File scripts/check_versions.ps1
+
+      - name: Run VERSION_MAP guard test suite
+        run: bash tests/scripts/test-check-versions.sh
+
+      - name: Run VERSION_MAP guard test suite (PowerShell)
+        run: pwsh -NoProfile -File tests/scripts/test-check-versions.ps1
+
       - name: Run spec linter test suite
         run: bash tests/scripts/test-spec-lint.sh
 
       - name: Run spec linter test suite (PowerShell)
         run: pwsh -NoProfile -File tests/scripts/test-spec-lint.ps1
+
+      - name: Run strict-schema kill switch tests
+        run: bash tests/scripts/test-killswitch.sh
+
+      - name: Run strict/lenient schema dispatch tests
+        run: bash tests/scripts/test-strict-lenient-dispatch.sh
+
+      - name: Run halt-condition migration tests
+        run: bash tests/scripts/test-migrate-halt-conditions.sh
+
+      - name: Run workspace prefix tests
+        run: bash tests/scripts/test-workspace-prefix.sh
+
+      - name: Run issue-work triage state machine tests (#829)
+        # Unit-tests the shared triage gate (issue selection + size evaluation +
+        # idempotent blocked/decomposition comments) against a fake gh.
+        run: bash tests/issue-work/test-triage.sh
+
+      - name: Run issue-work workspace lifecycle tests (#838)
+        run: bash tests/issue-work/test-workspace.sh
+
+      - name: Run issue-work subagent lease tests (#839)
+        run: bash tests/issue-work/test-agents.sh
+
+      - name: Run issue-work cleanup/resume tests (#840)
+        run: bash tests/issue-work/test-cleanup.sh
+
+      - name: Run issue-work pre-PR readiness gate tests (#831)
+        run: bash tests/issue-work/test-pre-pr-gate.sh
+
+      # PowerShell parity suites (#847). They drive the same scenarios as the
+      # bash suites above against the .ps1 ports, using fake-gh.ps1 as the gh
+      # double. Two failure modes only reachable at pwsh runtime are pinned
+      # here: the CLI entry points must print their outcome JSON to stdout, and
+      # a host that enables $PSNativeCommandUseErrorActionPreference must not
+      # turn a benign non-zero git/gh exit into a terminating error.
+      - name: Run issue-work triage state machine tests (PowerShell)
+        run: pwsh -NoProfile -File tests/issue-work/test-triage.ps1
+
+      - name: Run issue-work workspace lifecycle tests (PowerShell)
+        run: pwsh -NoProfile -File tests/issue-work/test-workspace.ps1
+
+      - name: Run issue-work subagent lease tests (PowerShell)
+        run: pwsh -NoProfile -File tests/issue-work/test-agents.ps1
+
+      - name: Run issue-work cleanup/resume tests (PowerShell)
+        run: pwsh -NoProfile -File tests/issue-work/test-cleanup.ps1
+
+      - name: Run issue-work pre-PR readiness gate tests (PowerShell)
+        run: pwsh -NoProfile -File tests/issue-work/test-pre-pr-gate.ps1
 
       - name: Install pytest for fleet_orchestrator tests
         # pytest is already a transitive dep of jsonschema in some envs; pin

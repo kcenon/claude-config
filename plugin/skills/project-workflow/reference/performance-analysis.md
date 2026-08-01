@@ -1,6 +1,11 @@
 ---
 paths:
-  - "**/*"
+  - "**/benchmark/**"
+  - "**/benchmarks/**"
+  - "**/perf/**"
+  - "**/profiling/**"
+  - "**/*bench*.cpp"
+  - "**/*bench*.py"
 alwaysApply: false
 ---
 

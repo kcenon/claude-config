@@ -1,5 +1,7 @@
 # Deep Audit — claude-config (2026-05-29)
 
+> **Maintenance model**: this document is a point-in-time record of the audit taken on 2026-05-29. Finding bodies are preserved exactly as written and are **not** rewritten when a finding is resolved, so the state the audit actually observed stays auditable. Resolution is recorded additively in the reconciliation log below, which is the authoritative status source. Consult it before acting on any finding — an unreconciled cluster carries no implication either way.
+
 Multi-agent audit across 12 dimensions. Each finding was adversarially verified (a second agent read the actual files and checked whether the issue was a genuine defect or an intentional, documented design choice).
 
 
@@ -8,13 +10,74 @@ Multi-agent audit across 12 dimensions. Each finding was adversarially verified 
 - **Category**: defect 19, inconsistency 28, risk 10, tech-debt 9, improvement 1
 
 
+## Status as of 2026-07-20 — `tests-ci`
+
+Reconciliation scope: the `tests-ci` cluster and the two sub-items of the [P0] CI-enforcement roadmap entry that cover it. Other clusters remain unreconciled unless a later status section below explicitly covers them.
+
+| Finding | Status | Closed by | Verified state on 2026-07-20 |
+|---------|--------|-----------|------------------------------|
+| `hook-json-escape-tests-orphaned` | Resolved | #833 (PR #852), #850 (PR #854) | All three suites run as explicit steps in the `test` job of `validate-hooks.yml`. |
+| `powershell-hooks-never-executed-in-ci` | Resolved | #821 (PR #826) | `tests/hooks/test-runner.ps1` executes twice per PR: under `pwsh` on the ubuntu/macos matrix in the `test` job, and natively in the dedicated `windows-powershell-hooks` job on `windows-latest`. |
+| `orphaned-script-and-regression-tests` | Resolved | #823 (PR #834), #833 (PR #852) | All thirteen named suites are wired across `validate-hooks.yml` and `validate-skills.yml`. `test-windows-hooks-parity.sh` is wired and now passes, contradicting the finding's "currently FAILS" note. |
+| `batch-drift-regression-stale-result-pass` | Resolved | #855 (PR #859) | Grading is now restricted to result files written after a run-start marker, and a non-zero benchmark exit is fatal instead of a warning, so a run that produces no fresh result fails rather than grading a pre-existing file. The committed results the finding names are retained as benchmark evidence and are excluded by the timestamp guard rather than by deletion. |
+
+Two meta-gates now enforce the wiring contract the resolved findings asked for, so this class of finding is self-detecting rather than dependent on the next manual audit:
+
+- `tests/scripts/test-ci-wiring.sh` (#823, PR #834) owns `tests/scripts/test-*` and counts only executable workflow run commands as wiring — path-filter mentions and comments do not qualify.
+- `tests/scripts/test-nonstandard-test-wiring.sh` (#833, PR #852) extends the same contract repo-wide to every other tracked `.sh`/`.ps1` under `tests/`, requiring each to be wired, swept by a wired shared runner, or classified in `tests/nonstandard-test-registry.txt` with a recorded risk and removal condition.
+
+**[P0] "Add CI enforcement that catches the parity gaps this audit found"** — sub-items (2) (wire the orphaned suites) and (3) (a windows-latest or pwsh leg running `tests/hooks/test-runner.ps1`) are satisfied by the wiring above; sub-item (3) was implemented as both legs, not one. Sub-item (1) (settings-file hook-set and `permissions.allow` diffing) belongs to the `settings-schema` cluster and is outside this reconciliation's scope; note only that equivalent gates have since landed in `validate-hooks.yml` rather than in `validate-hooks-doc.yml` as the roadmap specified, so it should not be read as outstanding — confirming it is the `settings-schema` reconciliation's job. The supporting paragraph's claim that `test-windows-hooks-parity.sh` "fails today but runs in no workflow" is stale on both counts.
+
+Fragments of the resolved findings that remain factually accurate, recorded so a future reader does not discard a whole finding as stale:
+
+- `tests/hooks/test-runner.sh` still globs only its own directory, so the `tests/` root suites are reached by explicit workflow steps rather than by runner discovery.
+- The parity job in `validate-hooks-doc.yml` still asserts only that same-basename `.ps1` counterparts exist and that the counts match; it executes nothing.
+- The "exercised when the InstallerFetch matrix lands a Windows runner" concession still exists in `validate-hooks.yml`, but has moved and now scopes only to `tests/plugin/smoke-test.ps1`.
+
+## Status as of 2026-08-01 — `hooks-parity`, `settings-schema`, `hooks-correctness`
+
+Reconciliation scope: all 20 findings in the three named clusters, the cluster-spanning security claims in the Executive Summary, and the three residual dispositions required by #857. Finding bodies below remain the immutable 2026-05-29 record; this section is the authoritative current status for the named findings.
+
+| Finding | Status | Closed by | Verified state on 2026-08-01 |
+|---------|--------|-----------|------------------------------|
+| `bsrg-env-case-bypass` | Resolved | PR #654 | Every sensitive pattern arm in `bash-sensitive-read-guard.sh` matches the lowercased path; the suite denies `.ENV`, `.NETRC`, uppercase `.AWS`, and uppercase SSH-key paths (60 assertions pass). |
+| `bwg-env-case-bypass` | Resolved | PR #654 | `bash-write-guard.sh` likewise matches the full sensitive set against its lowercased path; the uppercase write cases remain denied (67 assertions pass). |
+| `gap-matcher-overmatch` | Resolved | PR #659 | `github-api-preflight.sh` now requires a word-bounded `gh` command (or a GitHub hostname); the regression suite proves `high` and `weigh` skip connectivity and auth probes. |
+| `gap-authcheck-undermatch` | Resolved | PR #659 | The auth-status branch uses the same non-start-anchored word boundary as the scope gate, so chained forms such as `cd x && gh ...` reach the check. |
+| `gap-heredoc-not-jq` | Resolved | PR #669 | Both `github-api-preflight.sh` and `prompt-validator.sh` construct contextual JSON through `jq -nc --arg`; their suites pass 11 and 39 assertions respectively. |
+| `merge-gate-guard-ps1-missing-squash-only` | Resolved | PR #657 | The PowerShell guard rejects `--merge` and `--rebase`; its squash-only suite passes 6 assertions. |
+| `sensitive-file-guard-ps1-missing-ssh-aws` | Resolved | PR #657; hardened by #856 (PR #862) | The guard denies SSH private-key basenames and `.aws/credentials`/`.aws/config` after path normalization; its suite passes 53 assertions. |
+| `commit-msg-guard-ps1-broad-attribution-regex` | Resolved | PR #657 | Both PowerShell attribution guards import `AttributionValidator.psm1`; casual product mentions pass while the three attribution shapes deny (15 commit-message assertions pass). |
+| `pr-target-guard-ps1-stale-master-and-default-branch` | Resolved | PR #657 | The port blocks both `main` and `master`, resolves an omitted base through the override or repository default, and passes 19 assertions. |
+| `memory-write-guard-ps1-missing-secret-rc2` | Resolved | PR #657 | `memory-write-guard.ps1` explicitly sets the block decision for `secret-check.sh` exit code 2 and reports the missing-configuration reason. |
+| `language-validator-ps1-missing-typographic-allowlist` | Resolved | PR #657 | `LanguageValidator.psm1` allows the eight English typographic code points named by the finding; its suite passes 29 assertions. |
+| `markdown-anchor-validator-cjk-charclass-divergence` | Resolved | PR #659 | The shell validator uses locale-independent Perl Unicode properties matching the PowerShell transform; both runners pass the same 11 cases, including Korean valid and broken anchors. |
+| `bash-write-guard-ps1-no-readbefore-on-argv-targets` | Resolved (documented exception) | PR #664 | The header now states that Read-before-Edit covers redirects only, while sensitive-target blocking still covers both redirects and write-tool argv. This is the documentation alternative the finding recommended; the PowerShell suite passes 67 assertions. |
+| `dangerous-command-guard-allow-shape-mismatch` | Resolved | PR #669; refined by #715 (PR #718) | Plain allows are minimal on both implementations, and warning-class allows use `additionalContext`; the Bash and PowerShell suites pass 36 and 28 assertions. |
+| `win-missing-bash-tool-guards` | Resolved | PR #655 | The Windows Bash matcher registers `bash-sensitive-read-guard.ps1`, `bash-write-guard.ps1`, `gh-write-verb-guard.ps1`, and `traceability-guard.ps1` in the corresponding POSIX order. |
+| `win-missing-memory-hooks` | Resolved | PR #655 | `memory-write-guard.ps1`, `memory-integrity-check.ps1`, and async `memory-access-logger.ps1` are registered at their matching events and order. |
+| `no-ci-parity-check-for-hook-wiring` | Resolved | PR #656; #821 (PR #826) | CI runs tuple-level hook wiring parity, full settings parity, PowerShell behavior under `pwsh` on Linux/macOS, and the native `windows-latest` runner. Both settings parity gates pass. |
+| `win-permissions-allow-narrower` | Resolved | PR #672; enforced by #821 (PR #826) | The Bash `permissions.allow` sets are equal; Windows-only PowerShell permissions are an explicit tested exception rather than silent drift. |
+| `win-note-comment-stale` | Resolved | #857 (this reconciliation) | The Windows three-hook note now records `memory-write-guard` after `pre-edit-read-guard` and cites both #424 and #521, matching the POSIX wording. |
+| `git-fetch-allow-divergence` | Resolved | PR #672 | Both settings files permit only scoped `git fetch origin:*` and `git fetch upstream:*`; the full settings parity gate enforces the shared Bash set. |
+
+The cluster-spanning claims that produced the original Executive Summary warning are also closed: `windows-bash-secret-guards-not-wired` by PR #655, `parity-ci-checks-files-not-wiring` by PR #656 and #821 (PR #826), and `windows-sensitive-file-guard-missing-ssh-aws` by PR #657. The Windows secret/read/write and memory surface described as inactive in May is therefore active and regression-gated now.
+
+The three residual items called out by #857 have explicit dispositions:
+
+- `win-note-comment-stale` is resolved in the table above by this reconciliation.
+- `backup-sh-silent-dataloss-cp-after-delete` is resolved by PR #658 plus #857: replacement uses copy-then-swap, and `backup.sh`'s `error()` is now terminal, so the two remaining initial `cp || error` paths cannot print success after failure. The robustness suite pins both invariants (10 assertions pass).
+- `sync-ps1-missing-interactive-merge` is resolved as a documented platform exception by PR #672. `sync.ps1` accepts only options 1–3 and explicitly rejects option 4 before dispatch, preventing the unvalidated system-to-backup overwrite that was the finding's actual failure mode; interactive merge remains Bash-only.
+
+All 20 findings in the reconciled clusters now have a resolved disposition. This does not claim that later audits found no new parity gaps: #868, #876, and #878 track distinct post-audit cases and remain open independently of this point-in-time finding set.
+
 ## Executive Summary
 
 This audit of the claude-config repository confirms 56 real findings, dominated by a single structural problem: the repo maintains the same logical artifact in multiple parallel copies (bash hooks vs. PowerShell hooks, global settings vs. Windows settings, rules/ SSOT vs. plugin/ inlined copies, README vs. actual inventory) but enforces consistency on only a fraction of these pairings. The result is silent drift, and in several cases that drift has concrete security and correctness consequences.
 
-The most serious cluster is cross-platform security divergence. On Windows, three Bash-channel secret guards (bash-sensitive-read-guard, bash-write-guard, gh-write-verb-guard) and three memory-protection hooks exist as fully-implemented .ps1 files but are never wired into settings.windows.json, so `cat .env`, `type ~/.aws/credentials`, writes to existing files, and unscoped gh write verbs are unguarded — while the documentation (ENFORCEMENT.md, HOOKS.md) advertises these as active fail-closed layers with no Windows caveat. The merge-gate squash-only enforcement and PR-target hardening (#616) are also missing from their .ps1 ports, and a case-sensitivity bug lets `.ENV`/`.NETRC` bypass the POSIX secret guards entirely on case-insensitive filesystems (macOS/Windows).
+The most serious cluster observed by the audit was cross-platform security divergence. The 2026-08-01 reconciliation above verified that this specific surface is no longer inactive: Windows settings register the Bash-channel secret/read/write guards and all three memory-protection hooks; the PowerShell merge and PR-target ports carry squash-only and default-branch enforcement; and the POSIX secret guards case-fold the complete sensitive-path set. `cat .env`, `.aws/credentials` access, writes to protected targets, unscoped `gh` write verbs, and memory updates are now guarded on Windows and covered by parity/behavior CI. Later, distinct parity gaps remain tracked in their own issues; they do not restore the broad dormant surface described in the original May finding.
 
-A second cluster is missing CI enforcement. The CI parity audit checks only that a same-basename .ps1 file EXISTS, never that it is wired into settings.windows.json or that it behaves correctly — which is precisely why the dormant-guard gap shipped on the default branch. No CI job ever executes PowerShell hooks behaviorally, and roughly a dozen genuine regression suites (including three JSON-injection suites covering 15 guards, plus test-windows-hooks-parity.sh which currently FAILS) are invoked by no workflow at all.
+A second cluster observed by the audit was missing CI enforcement. That specific parity gap is also closed for the reconciled findings: CI compares normalized hook wiring and permissions across both settings files, runs PowerShell hook behavior under `pwsh` on Linux/macOS and on a native Windows runner, and explicitly invokes the formerly orphaned regression suites. The broader lesson remains that parallel implementations need wiring and behavior checks, not file-existence checks alone.
 
 A third cluster is the unguarded plugin/rules drift: ~29 plugin reference files inline rules/ content but only 4 are sync-checked, and they have measurably diverged; plugin agents are near-duplicate copies with no SSOT.
 
@@ -50,7 +113,7 @@ On case-insensitive filesystems (macOS default, Windows), `.ENV` is the same fil
 
 _Findings: `bwg-env-case-bypass`, `bsrg-env-case-bypass`_
 
-### [P0] Add CI enforcement that catches the parity gaps this audit found: (1) extend the parity job in validate-hooks-doc.yml to parse both settings files, normalize each hook to its basename, and fail if per-event hook sets diverge except for a documented POSIX-only allowlist; also diff the permissions.allow arrays. (2) Wire the orphaned regression suites into CI — add the three tests/hook-json-escape*.sh suites and the unrun tests/scripts/*.sh suites (especially test-hook-ordering.sh, test-windows-hooks-parity.sh which currently FAILS, and installer-fetch-tests.sh) to validate-hooks.yml/validate-skills.yml. (3) Add a windows-latest (or pwsh) leg that runs tests/hooks/test-runner.ps1 so .ps1 hooks get behavioral execution, not just file-existence parity.  _(effort: M)_
+### [P0] Add CI enforcement that catches the parity gaps this audit found: (1) extend the parity job in validate-hooks-doc.yml to parse both settings files, normalize each hook to its basename, and fail if per-event hook sets diverge except for a documented POSIX-only allowlist; also diff the permissions.allow arrays. (2) Wire the orphaned regression suites into CI — add the three tests/hook-json-escape*.sh suites and the unrun tests/scripts/*.sh suites (especially test-hook-ordering.sh, test-windows-hooks-parity.sh which currently FAILS, and test-installer-fetch.sh) to validate-hooks.yml/validate-skills.yml. (3) Add a windows-latest (or pwsh) leg that runs tests/hooks/test-runner.ps1 so .ps1 hooks get behavioral execution, not just file-existence parity.  _(effort: M)_
 
 The wiring/behavior gaps in the two P0 security items above shipped on the default branch precisely because CI checks only same-basename file existence. test-windows-hooks-parity.sh already encodes the correct assertion and fails today but runs in no workflow. Wiring these gates is what prevents this entire class of finding from recurring, and converts ~12 existing-but-dark regression suites into active protection.
 
@@ -581,11 +644,11 @@ _Findings: `fleet-orchestrator-arg-hint-flag-drift`, `fleet-orchestrator-resume-
 **About a dozen genuine regression suites under tests/scripts and tests/batch_drift_regression are invoked by no workflow**
 
 
-- Files: tests/scripts/test-hook-ordering.sh, tests/scripts/test-windows-hooks-parity.sh, tests/scripts/test-killswitch.sh, tests/scripts/installer-fetch-tests.sh, tests/scripts/test-no-duplicate-formatter.sh, tests/scripts/test-install-preserves-customization.sh, tests/batch_drift_regression/test-run-regression.sh
+- Files: tests/scripts/test-hook-ordering.sh, tests/scripts/test-windows-hooks-parity.sh, tests/scripts/test-killswitch.sh, tests/scripts/test-installer-fetch.sh, tests/scripts/test-no-duplicate-formatter.sh, tests/scripts/test-install-preserves-customization.sh, tests/batch_drift_regression/test-run-regression.sh
 
-- Evidence: Grepping .github/workflows for `tests/scripts/` shows only test-plugin-*, test-install-manifest-helpers.*, test-install-permissions-policy.sh, test-language-policy-drift.sh, test-installer-prompt-drift.sh, and (validate-skills) test-spec-lint.sh are run. NOT run: test-hook-ordering.sh (issue #424 — its header states it guards a 'load-bearing contract' that sensitive-file-guard precede pre-edit-read-guard), test-windows-hooks-parity.sh (settings.json<->settings.windows.json hook tuple parity, #421), test-killswitch.sh (#469 P4 strict-schema toggle), installer-fetch-tests.sh (#620 supply-chain installer-fetch lib exit codes), test-no-duplicate-formatter.sh, test-install-preserves-customization.sh, test-install-deploys-bash-lib.sh, test-migrate-halt-conditions.sh, test-severity-enum.sh, test-strict-lenient-dispatch.sh, test-workspace-prefix.sh, test-install-dual-variant.ps1, and tests/batch_drift_regression/test-run-regression.sh.
+- Evidence: Grepping .github/workflows for `tests/scripts/` shows only test-plugin-*, test-install-manifest-helpers.*, test-install-permissions-policy.sh, test-language-policy-drift.sh, test-installer-prompt-drift.sh, and (validate-skills) test-spec-lint.sh are run. NOT run: test-hook-ordering.sh (issue #424 — its header states it guards a 'load-bearing contract' that sensitive-file-guard precede pre-edit-read-guard), test-windows-hooks-parity.sh (settings.json<->settings.windows.json hook tuple parity, #421), test-killswitch.sh (#469 P4 strict-schema toggle), test-installer-fetch.sh (#620 supply-chain installer-fetch lib exit codes), test-no-duplicate-formatter.sh, test-install-preserves-customization.sh, test-install-deploys-bash-lib.sh, test-migrate-halt-conditions.sh, test-severity-enum.sh, test-strict-lenient-dispatch.sh, test-workspace-prefix.sh, test-install-dual-variant.ps1, and tests/batch_drift_regression/test-run-regression.sh.
 
-- Recommendation: Wire these into validate-hooks.yml / validate-skills.yml (and a windows leg for the .ps1 / parity tests). At minimum add test-hook-ordering.sh and test-windows-hooks-parity.sh, since the hook ordering they validate is explicitly documented as load-bearing in settings.json line 114 yet has no executing gate; and installer-fetch-tests.sh, which is the only coverage for the sha256-pinned installer-fetch supply-chain lib.
+- Recommendation: Wire these into validate-hooks.yml / validate-skills.yml (and a windows leg for the .ps1 / parity tests). At minimum add test-hook-ordering.sh and test-windows-hooks-parity.sh, since the hook ordering they validate is explicitly documented as load-bearing in settings.json line 114 yet has no executing gate; and test-installer-fetch.sh, which is the only coverage for the sha256-pinned installer-fetch supply-chain lib.
 
 - Confidence: high
 
@@ -1163,7 +1226,7 @@ Based on reading the actual repository and deployed state, here are the concrete
 
 ## Gaps the audit likely missed
 
-**1. Orphaned test suites are far broader than "~12" — and include the parity test itself.** 17 test scripts are referenced by NO workflow and run by no runner: `tests/scripts/test-windows-hooks-parity.sh`, `test-killswitch.sh`, `test-hook-ordering.sh`, `test-install-deploys-bash-lib.sh`, `test-install-preserves-customization.sh`, `test-migrate-halt-conditions.sh`, `test-no-duplicate-formatter.sh`, `test-severity-enum.sh`, `test-strict-lenient-dispatch.sh`, `test-workspace-prefix.sh`, `installer-fetch-tests.sh`, plus `tests/safe-rm-rf.sh`, `tests/hook-json-escape{,-group1,-group2}.sh`, `tests/sonar-fix/test-fixtures.sh`, and `tests/batch_drift_regression/test-run-regression.sh`. The self-referential failure: the suite designed to catch settings.json↔settings.windows.json drift is the one CI never runs. (I confirmed it exits 1 correctly when run manually and currently FAILS — the audit's "currently-failing suite" is this one, and it correctly reports drift; the bug is wiring, not the test's exit code.)
+**1. Orphaned test suites are far broader than "~12" — and include the parity test itself.** 17 test scripts are referenced by NO workflow and run by no runner: `tests/scripts/test-windows-hooks-parity.sh`, `test-killswitch.sh`, `test-hook-ordering.sh`, `test-install-deploys-bash-lib.sh`, `test-install-preserves-customization.sh`, `test-migrate-halt-conditions.sh`, `test-no-duplicate-formatter.sh`, `test-severity-enum.sh`, `test-strict-lenient-dispatch.sh`, `test-workspace-prefix.sh`, `test-installer-fetch.sh`, plus `tests/safe-rm-rf.sh`, `tests/hook-json-escape{,-group1,-group2}.sh`, `tests/sonar-fix/test-fixtures.sh`, and `tests/batch_drift_regression/test-run-regression.sh`. The self-referential failure: the suite designed to catch settings.json↔settings.windows.json drift is the one CI never runs. (I confirmed it exits 1 correctly when run manually and currently FAILS — the audit's "currently-failing suite" is this one, and it correctly reports drift; the bug is wiring, not the test's exit code.)
 
 **2. The Windows-parity finding has a concrete, confirmed 7-hook security gap.** Running the orphaned test shows `settings.windows.json` is missing: `bash-write-guard`, `bash-sensitive-read-guard`, `gh-write-verb-guard`, `traceability-guard`, `memory-write-guard` (PreToolUse), `memory-access-logger` (PostToolUse Read), and `memory-integrity-check` (SessionStart). The installer (`install.ps1:441`) copies `settings.windows.json` → `~/.claude/settings.json` on Windows, so Windows users genuinely run without these guards. The audit named the theme but may not have enumerated which guards are dormant on Windows.
 

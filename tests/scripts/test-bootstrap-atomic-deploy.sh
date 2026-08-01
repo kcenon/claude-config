@@ -41,7 +41,7 @@ assert_true() {
 make_fixture() {
     local fixture="$1"
     local lib
-    mkdir -p "$fixture/global/hooks/lib" "$fixture/hooks/lib" "$fixture/scripts"
+    mkdir -p "$fixture/global/hooks/lib" "$fixture/global/scripts" "$fixture/hooks/lib" "$fixture/scripts"
     cp "$REPO_ROOT/scripts/install-manifest.sh" "$fixture/scripts/install-manifest.sh"
 
     cat > "$fixture/global/settings.json" <<'JSON'
@@ -65,6 +65,10 @@ SH
 return 0 2>/dev/null || exit 0
 SH
     done
+    cat > "$fixture/global/scripts/statusline-command.sh" <<'SH'
+#!/bin/sh
+echo statusline
+SH
 }
 
 run_atomic_deploy() {
@@ -104,6 +108,8 @@ assert_true "top-level hook deployed executable" \
     "[ -x '$success_home/.claude/hooks/example.sh' ]"
 assert_true "hook lib deployed executable" \
     "[ -x '$success_home/.claude/hooks/lib/tokenize-shell.sh' ]"
+assert_true "statusline utility script deployed executable" \
+    "[ -x '$success_home/.claude/scripts/statusline-command.sh' ]"
 
 failure_fixture="$WORK/failure-fixture"
 failure_home="$WORK/failure-home"

@@ -70,7 +70,8 @@ function Copy-InstallHookFiles {
     param(
         [Parameter(Mandatory)][string]$SourceDir,
         [Parameter(Mandatory)][string]$DestinationDir,
-        [Parameter(Mandatory)][string[]]$Filters
+        [Parameter(Mandatory)][string[]]$Filters,
+        [string]$KeyPrefix = ''
     )
 
     if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) { return }
@@ -79,10 +80,22 @@ function Copy-InstallHookFiles {
     foreach ($filter in $Filters) {
         Get-ChildItem -LiteralPath $SourceDir -Filter $filter -File -ErrorAction SilentlyContinue | ForEach-Object {
             $dest = Join-Path $DestinationDir $_.Name
-            if ($_.Extension -eq '.sh') {
-                Install-BashScript -SourcePath $_.FullName -DestinationPath $dest
+            if ($KeyPrefix -and (Get-Command Invoke-ManifestTrackedCopy -ErrorAction SilentlyContinue)) {
+                $key = (($KeyPrefix, $_.Name) -join '/') -replace '\\', '/'
+                if ($_.Extension -eq '.sh') {
+                    $tmpScript = Join-Path ([System.IO.Path]::GetTempPath()) "claude-script-$([guid]::NewGuid()).sh"
+                    Install-BashScript -SourcePath $_.FullName -DestinationPath $tmpScript
+                    $null = Invoke-ManifestTrackedCopy -Src $tmpScript -Dest $dest -Key $key
+                    Remove-Item -LiteralPath $tmpScript -Force -ErrorAction SilentlyContinue
+                } else {
+                    $null = Invoke-ManifestTrackedCopy -Src $_.FullName -Dest $dest -Key $key
+                }
             } else {
-                Copy-Item -LiteralPath $_.FullName -Destination $dest -Force -ErrorAction Stop
+                if ($_.Extension -eq '.sh') {
+                    Install-BashScript -SourcePath $_.FullName -DestinationPath $dest
+                } else {
+                    Copy-Item -LiteralPath $_.FullName -Destination $dest -Force -ErrorAction Stop
+                }
             }
         }
     }
@@ -99,14 +112,14 @@ function Deploy-InstallHooks {
     $hooksDir = Join-Path $ClaudeDir "hooks"
     # Windows hooks use `pwsh -File ...ps1`; .sh/.json are deployed for WSL and
     # parity with container-side command rewriting.
-    Copy-InstallHookFiles -SourceDir $hooksSource -DestinationDir $hooksDir -Filters @('*.ps1', '*.sh', '*.json')
+    Copy-InstallHookFiles -SourceDir $hooksSource -DestinationDir $hooksDir -Filters @('*.ps1', '*.sh', '*.json') -KeyPrefix 'hooks'
 
     # Deploy global/hooks/lib/ shared libraries. The top-level hook copy is
     # non-recursive, and several runtime guards source these libraries.
     $hooksLibSource = Join-Path $hooksSource 'lib'
     if (Test-Path -LiteralPath $hooksLibSource -PathType Container) {
         $hooksLibDir = Join-Path $hooksDir 'lib'
-        Copy-InstallHookFiles -SourceDir $hooksLibSource -DestinationDir $hooksLibDir -Filters @('*.ps1', '*.psm1', '*.sh')
+        Copy-InstallHookFiles -SourceDir $hooksLibSource -DestinationDir $hooksLibDir -Filters @('*.ps1', '*.psm1', '*.sh') -KeyPrefix 'hooks/lib'
     }
 
     # Shared bash validator libraries used by deployed bash hook variants.
@@ -117,7 +130,7 @@ function Deploy-InstallHooks {
             'validate-commit-message.sh',
             'validate-language.sh',
             'validate-traceability.sh'
-        )
+        ) -KeyPrefix 'hooks/lib'
     }
 
     $requiredLibs = @(
@@ -531,6 +544,7 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         throw "install-manifest.ps1 helper not found at: $manifestHelper"
     }
     . $manifestHelper
+    Reset-ManifestManagedKeys
 
     # Copy configuration files (manifest-guarded)
     $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'git-identity.md', 'token-management.md')
@@ -543,14 +557,14 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
             $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "policy_$([guid]::NewGuid()).md"
             Invoke-PolicyTemplate -Source $srcTmpl -Destination $tmpFile `
                 -ContentLanguage $script:contentLanguage -AgentDisplay $script:agentDisplayLang -AgentLanguage $script:agentLanguage
-            if (Invoke-GuardedCopy -Src $tmpFile -Dest (Join-Path $claudeDir $gf) -Key $gf) {
+            if (Invoke-ManifestTrackedCopy -Src $tmpFile -Dest (Join-Path $claudeDir $gf) -Key $gf) {
                 Write-Success "$gf installed (policy phrase: $(Get-PolicyPhrase -Policy $script:contentLanguage))"
             } else {
                 Write-Info "$gf local changes preserved"
             }
             Remove-Item -LiteralPath $tmpFile -Force -ErrorAction SilentlyContinue
         } elseif (Test-Path $src) {
-            if (Invoke-GuardedCopy -Src $src -Dest (Join-Path $claudeDir $gf) -Key $gf) {
+            if (Invoke-ManifestTrackedCopy -Src $src -Dest (Join-Path $claudeDir $gf) -Key $gf) {
                 Write-Success "$gf installed"
             } else {
                 Write-Info "$gf local changes preserved"
@@ -579,8 +593,10 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         }
 
         if (Invoke-GuardedTemplateCopy -SrcTmpl $tmplPath -Dest (Join-Path $claudeDir "conversation-language.md") -Key "conversation-language.md" -DisplayLang $agentDisplayLang) {
+            Add-ManifestManagedKey -Key 'conversation-language.md'
             Write-Success "conversation-language.md installed (Language: $agentDisplayLang)"
         } else {
+            Add-ManifestManagedKey -Key 'conversation-language.md'
             Write-Info "conversation-language.md local changes preserved"
         }
     }
@@ -598,13 +614,18 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         try {
             $ps1Items = Get-ChildItem -Path $scriptsSource -Filter '*.ps1' -File
             if ($ps1Items.Count -gt 0) {
-                Copy-Item -Path "$scriptsSource\*.ps1" -Destination $scriptsDir -Force -ErrorAction Stop
+                foreach ($item in $ps1Items) {
+                    $null = Invoke-ManifestTrackedCopy -Src $item.FullName -Dest (Join-Path $scriptsDir $item.Name) -Key "scripts/$($item.Name)"
+                }
             }
         } catch {
             Write-Err "Failed to copy utility scripts: $_"
         }
         Get-ChildItem -Path $scriptsSource -Filter '*.sh' -File -ErrorAction SilentlyContinue | ForEach-Object {
-            Install-BashScript -SourcePath $_.FullName -DestinationPath (Join-Path $scriptsDir $_.Name)
+            $tmpScript = Join-Path ([System.IO.Path]::GetTempPath()) "claude-script-$([guid]::NewGuid()).sh"
+            Install-BashScript -SourcePath $_.FullName -DestinationPath $tmpScript
+            $null = Invoke-ManifestTrackedCopy -Src $tmpScript -Dest (Join-Path $scriptsDir $_.Name) -Key "scripts/$($_.Name)"
+            Remove-Item -LiteralPath $tmpScript -Force -ErrorAction SilentlyContinue
         }
 
         Write-Success "Utility scripts installed (scripts/*.ps1 + *.sh)!"
@@ -618,7 +639,9 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         try {
             $jsonItems = Get-ChildItem -Path $policiesSource -Filter '*.json' -File
             if ($jsonItems.Count -gt 0) {
-                Copy-Item -Path "$policiesSource\*.json" -Destination $policiesDir -Force -ErrorAction Stop
+                foreach ($item in $jsonItems) {
+                    $null = Invoke-ManifestTrackedCopy -Src $item.FullName -Dest (Join-Path $policiesDir $item.Name) -Key "policies/$($item.Name)"
+                }
             }
             Write-Success "Policy files (policies/*.json) installed!"
         } catch {
@@ -654,7 +677,7 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         $skillsDir = Join-Path $claudeDir "skills"
         Ensure-Directory $skillsDir
         try {
-            Copy-Item -Path "$skillsSource\*" -Destination $skillsDir -Recurse -Force -ErrorAction Stop
+            Copy-ManifestTree -SourceDir $skillsSource -DestinationDir $skillsDir -KeyPrefix 'skills'
             $skillCount = (Get-ChildItem -Path $skillsDir -Filter SKILL.md -Recurse -ErrorAction SilentlyContinue).Count
             Write-Success "Global Skills ($skillCount) installed!"
         } catch {
@@ -668,12 +691,23 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         $commandsDir = Join-Path $claudeDir "commands"
         Ensure-Directory $commandsDir
         try {
-            Copy-Item -Path "$commandsSource\*" -Destination $commandsDir -Recurse -Force -ErrorAction Stop
+            Copy-ManifestTree -SourceDir $commandsSource -DestinationDir $commandsDir -KeyPrefix 'commands'
             Write-Success "Global Commands installed!"
         } catch {
             Write-Err "Failed to copy global commands: $_"
         }
     }
+
+    Add-RetiredManagedManifestEntries -Root $claudeDir -Entries @{
+        'commands/branch-cleanup.md' = '3e7fc38c324cfc9cea639e95394d7819e7768364d12023ec0b36b91f9230b09d'
+        'commands/doc-review.md' = 'be659114c43ef29423c74d7b33e0f594b80c134b38fb7c5b61e6935cae88c26f'
+        'commands/implement-all-levels.md' = 'b675f8e689e8aca71eb67e8666acc98018ad70b746d16655476b5939380737be'
+        'commands/issue-create.md' = 'c654ab412f320b9d97553f92a510cf5de13a5d0a7ed5e14212ca62534887ae71'
+        'commands/issue-work.md' = '048a26140b03862c5b10630853115ee656056f45cedfd0a0b6ec814bf7225684'
+        'commands/pr-work.md' = '2ecf1a78271c553e2310b57b2a1deb026a07ae01b84c1f856638293ab41f1199'
+        'commands/release.md' = '93fd6d2f7800deada2868b97b65ef486f42482b5e2f1224c35f732ebfeb1c013'
+    }
+    $null = Invoke-ManifestPruneTracked -Root $claudeDir
 
     # Install ccstatusline settings (~/.config/ccstatusline/ — ccstatusline default settings path)
     $ccstatuslineSource = Join-Path $BackupDir "global/ccstatusline"
@@ -753,64 +787,87 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
 
     Write-Info "Install path: $projectDir"
 
-    # Copy files
-    Copy-Item -Path (Join-Path $BackupDir "project/CLAUDE.md") -Destination $projectDir -Force
-
     # .claude directory
     $projectClaudeDir = Join-Path $projectDir ".claude"
     Ensure-Directory $projectClaudeDir
+    if (-not (Get-Command Invoke-ManifestTrackedCopy -ErrorAction SilentlyContinue)) {
+        $manifestHelper = Join-Path $BackupDir 'scripts\install-manifest.ps1'
+        if (-not (Test-Path -LiteralPath $manifestHelper)) {
+            throw "install-manifest.ps1 helper not found at: $manifestHelper"
+        }
+        . $manifestHelper
+    }
+    $previousManifestPath = $env:MANIFEST_PATH
+    $env:MANIFEST_PATH = Join-Path $projectClaudeDir ".install-manifest.json"
+    Reset-ManifestManagedKeys
+
+    # Copy files
+    $null = Invoke-ManifestTrackedCopy -Src (Join-Path $BackupDir "project/CLAUDE.md") -Dest (Join-Path $projectDir "CLAUDE.md") -Key "CLAUDE.md"
 
     # settings.json
     $projectSettings = Join-Path $BackupDir "project/.claude/settings.json"
     if (Test-Path $projectSettings) {
-        Copy-Item -Path $projectSettings -Destination $projectClaudeDir -Force
+        $null = Invoke-ManifestTrackedCopy -Src $projectSettings -Dest (Join-Path $projectClaudeDir "settings.json") -Key ".claude/settings.json"
         Write-Success "Project hook settings (.claude/settings.json) installed!"
     }
 
     # rules directory
     $sourceRules = Join-Path $BackupDir "project/.claude/rules"
     if (Test-Path $sourceRules) {
-        Copy-Item -Path $sourceRules -Destination $projectClaudeDir -Recurse -Force
+        $rulesTmp = Join-Path ([System.IO.Path]::GetTempPath()) "claude-rules-$([guid]::NewGuid())"
+        New-Item -ItemType Directory -Path $rulesTmp -Force | Out-Null
+        Copy-Item -Path (Join-Path $sourceRules '*') -Destination $rulesTmp -Recurse -Force
         # Issue #411: render any .md.tmpl found under rules/ with the chosen policy phrase.
-        Invoke-PolicyTemplatesInDir -Path (Join-Path $projectClaudeDir 'rules') `
+        Invoke-PolicyTemplatesInDir -Path $rulesTmp `
             -ContentLanguage $script:contentLanguage -AgentDisplay $script:agentDisplayLang -AgentLanguage $script:agentLanguage
+        Copy-ManifestTree -SourceDir $rulesTmp -DestinationDir (Join-Path $projectClaudeDir 'rules') -KeyPrefix '.claude/rules'
+        Remove-Item -LiteralPath $rulesTmp -Recurse -Force -ErrorAction SilentlyContinue
         Write-Success "Rules directory installed! (policy phrase: $(Get-PolicyPhrase -Policy $script:contentLanguage))"
     }
 
     # reference directory (on-demand docs relocated out of rules/ -- issue #714)
     $sourceReference = Join-Path $BackupDir "project/.claude/reference"
     if (Test-Path $sourceReference) {
-        Copy-Item -Path $sourceReference -Destination $projectClaudeDir -Recurse -Force
+        Copy-ManifestTree -SourceDir $sourceReference -DestinationDir (Join-Path $projectClaudeDir 'reference') -KeyPrefix '.claude/reference'
         Write-Success "Reference directory installed!"
     }
 
     # Skills directory
     $sourceSkills = Join-Path $BackupDir "project/.claude/skills"
     if (Test-Path $sourceSkills) {
-        Copy-Item -Path $sourceSkills -Destination $projectClaudeDir -Recurse -Force
+        Copy-ManifestTree -SourceDir $sourceSkills -DestinationDir (Join-Path $projectClaudeDir 'skills') -KeyPrefix '.claude/skills'
         Write-Success "Skills directory installed!"
     }
 
     # commands directory
     $sourceCommands = Join-Path $BackupDir "project/.claude/commands"
     if (Test-Path $sourceCommands) {
-        Copy-Item -Path $sourceCommands -Destination $projectClaudeDir -Recurse -Force
+        Copy-ManifestTree -SourceDir $sourceCommands -DestinationDir (Join-Path $projectClaudeDir 'commands') -KeyPrefix '.claude/commands'
         Write-Success "Commands directory installed!"
     }
 
     # agents directory
     $sourceAgents = Join-Path $BackupDir "project/.claude/agents"
     if (Test-Path $sourceAgents) {
-        Copy-Item -Path $sourceAgents -Destination $projectClaudeDir -Recurse -Force
+        Copy-ManifestTree -SourceDir $sourceAgents -DestinationDir (Join-Path $projectClaudeDir 'agents') -KeyPrefix '.claude/agents'
         Write-Success "Agents directory installed!"
     }
 
     # .claudeignore (token optimization)
     $claudeIgnore = Join-Path $BackupDir "project/.claudeignore"
     if (Test-Path $claudeIgnore) {
-        Copy-Item -Path $claudeIgnore -Destination $projectDir -Force
+        $null = Invoke-ManifestTrackedCopy -Src $claudeIgnore -Dest (Join-Path $projectDir ".claudeignore") -Key ".claudeignore"
         Write-Success ".claudeignore installed!"
     }
+
+    Add-RetiredManagedManifestEntries -Root $projectDir -Entries @{
+        '.claude/commands/_policy.md' = '7144bf54352362eb3d523d05a1712732aec8e82fc95ea9db0cbc79269e2bf9b1'
+        '.claude/commands/code-quality.md' = '8c1e6ca0470582936fb96491d4aff7e23706da45b96ba38c51d43ba255f8f544'
+        '.claude/commands/git-status.md' = '4602f6ea8ffb18b05d5698c85d060b3d6f01913a4258e778bd6b898611ca9d33'
+        '.claude/commands/pr-review.md' = '3dbd7d788b1e19b1d04654e03eaf8531c933e6b7462120ffdc03d5d7f9658711'
+    }
+    $null = Invoke-ManifestPruneTracked -Root $projectDir
+    $env:MANIFEST_PATH = $previousManifestPath
 
     # CLAUDE.local.md creation
     Write-Host ""

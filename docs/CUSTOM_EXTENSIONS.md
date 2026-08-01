@@ -224,6 +224,36 @@ index-generation policy.
 
 **CI enforcement**: `.github/workflows/validate-skills.yml` runs the validator tests and then `scripts/validate-doc-index.sh` for every relevant PR. When documentation changes legitimately alter sizes, covered paths, or index generation metadata, regenerate the `docs/.index/*.yaml` outputs with `/doc-index` before opening the PR.
 
+### Rule Frontmatter Contract (drift guard)
+
+**Type**: Repository-internal convention
+
+The context loader gates a `project/.claude/rules/**/*.md` file solely on its
+`paths:` globs. `alwaysApply: false` is therefore **not** an off switch on its
+own — with no `paths:` trigger there is no condition to gate on, and the file
+loads in every session while its frontmatter looks like it defers the file. The
+same silent-resident outcome comes from a file with no frontmatter, a catch-all
+`paths: ["**/*"]`, or `globs:` written where the loader reads `paths:`.
+
+Every rule file must therefore be exactly one of:
+
+1. `alwaysApply: true` — deliberately always resident
+2. `alwaysApply: false` **plus** a non-catch-all `paths:` list — loads on demand
+
+`scripts/validate-rule-frontmatter.sh` enforces this, reporting
+`NO-FRONTMATTER`, `NO-PATHS-TRIGGER`, `CATCH-ALL-GLOB`, or `WRONG-KEY` per
+offending file. Reference documents under `project/.claude/reference/` are not
+checked: they sit outside the rules tree, and that placement is what defers
+them.
+
+**CI enforcement**: `.github/workflows/validate-rule-frontmatter.yml` runs the
+guard on every PR touching the rules tree. The job additionally seeds one
+fixture per violation class and requires a non-zero exit, plus a valid-frontmatter
+fixture set that must pass — so the guard cannot silently degrade into a check
+that detects nothing. Measured impact when the contract was first enforced
+(#880): the always-resident rule set went from 11 files (~6,496 est. tokens) to
+6 (~2,516). See `docs/TOKEN_OPTIMIZATION.md` for the measurement history.
+
 ### Agent Definitions (drift guard)
 
 **Type**: Repository-internal convention
@@ -242,14 +272,15 @@ The eight agent definitions exist in two layers — `project/.claude/agents/` an
 
 **Type**: Repository-internal convention
 
-Four independent version fields are declared across the suite. `VERSION_MAP.yml` at the repo root is the single source of truth; each field moves on its own SemVer track.
+Five independent version fields are declared across the suite. `VERSION_MAP.yml` at the repo root is the single source of truth; each field moves on its own SemVer track.
 
 | Field             | Consumers                                                  |
 |-------------------|------------------------------------------------------------|
-| `suite`           | `README.md`, `README.ko.md` (shields.io badge URL)         |
+| `suite`           | `README.md`, `README.ko.md` (shields.io badge URL and documented `GITHUB_REF` pins); `bootstrap.sh`, `bootstrap.ps1` (default `GITHUB_REF` pin) |
 | `plugin`          | `plugin/.claude-plugin/plugin.json` (`version`)            |
 | `plugin-lite`     | `plugin-lite/.claude-plugin/plugin.json` (`version`)       |
 | `settings-schema` | `global/settings.json`, `global/settings.windows.json`     |
+| `hooks`           | Field-only hook-bundle label; SemVer-validated by `check_versions`, tagged as `hooks-v<version>` by `/release --target hooks` |
 
 **Bumping a version**: edit the target field in `VERSION_MAP.yml`, then propagate:
 
@@ -262,7 +293,7 @@ scripts/sync.sh --versions-only
 
 The `/release` skill wraps this flow — pass `--target <field>` to bump one track.
 
-**CI enforcement**: `.github/workflows/validate-skills.yml` runs `scripts/check_versions.sh` on every PR. The job fails (exit 2) if any consumer drifts from its declared field in `VERSION_MAP.yml`.
+**CI enforcement**: `.github/workflows/validate-skills.yml` runs `scripts/check_versions.sh`, `scripts/check_versions.ps1`, and their focused test suites on every relevant PR. The job fails (exit 2) if any consumer drifts from its declared field in `VERSION_MAP.yml`.
 
 **Why independent tracks**: `plugin` and `plugin-lite` release on their own cadence (different users install different variants), and `settings-schema` rev-locks to schema-breaking changes in `global/settings.json`. A single monorepo version would force lockstep releases where none is semantically required.
 

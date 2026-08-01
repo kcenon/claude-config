@@ -2,7 +2,8 @@
 # Use after editing VERSION_MAP.yml (typically invoked by the /release skill).
 #
 # Consumers:
-#   suite           -> README.md, README.ko.md (shields.io badge)
+#   suite           -> README.md, README.ko.md (shields.io badge and
+#                      GITHUB_REF pins), bootstrap.sh, bootstrap.ps1
 #   plugin          -> plugin/.claude-plugin/plugin.json
 #   plugin-lite     -> plugin-lite/.claude-plugin/plugin.json
 #   settings-schema -> global/settings.json, global/settings.windows.json
@@ -67,12 +68,60 @@ function Set-ReadmeBadge {
     Write-Host "synced: $File -> badge=$NewVersion"
 }
 
+function Set-BootstrapRefBash {
+    param([string]$File, [string]$NewVersion)
+    $path = Join-Path $RootDir $File
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        Write-Host "SKIP: $File (not found)"
+        return
+    }
+    $content = Get-Content -LiteralPath $path -Raw
+    $pattern = '(GITHUB_REF="\$\{GITHUB_REF:-)v\d+\.\d+\.\d+(\}")'
+    $replacement = '${1}v' + $NewVersion + '${2}'
+    $updated = [regex]::Replace($content, $pattern, $replacement)
+    Set-Content -LiteralPath $path -Value $updated -NoNewline
+    Write-Host "synced: $File -> GITHUB_REF=v$NewVersion"
+}
+
+function Set-BootstrapRefPowerShell {
+    param([string]$File, [string]$NewVersion)
+    $path = Join-Path $RootDir $File
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        Write-Host "SKIP: $File (not found)"
+        return
+    }
+    $content = Get-Content -LiteralPath $path -Raw
+    $pattern = "(else\s*\{\s*')v\d+\.\d+\.\d+('\s*\})"
+    $replacement = '${1}v' + $NewVersion + '${2}'
+    $updated = [regex]::Replace($content, $pattern, $replacement)
+    Set-Content -LiteralPath $path -Value $updated -NoNewline
+    Write-Host "synced: $File -> GITHUB_REF=v$NewVersion"
+}
+
+function Set-ReadmeGitHubRefPins {
+    param([string]$File, [string]$NewVersion)
+    $path = Join-Path $RootDir $File
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        Write-Host "SKIP: $File (not found)"
+        return
+    }
+    $content = Get-Content -LiteralPath $path -Raw
+    $updated = [regex]::Replace($content, '(GITHUB_REF=)v\d+\.\d+\.\d+', '${1}v' + $NewVersion)
+    $updated = [regex]::Replace($updated, '((?:e\.g\.|예:) `)v\d+\.\d+\.\d+', '${1}v' + $NewVersion)
+    Set-Content -LiteralPath $path -Value $updated -NoNewline
+    Write-Host "synced: $File -> GITHUB_REF=v$NewVersion"
+}
+
 Set-JsonVersion 'plugin/.claude-plugin/plugin.json'      $Plugin
 Set-JsonVersion 'plugin-lite/.claude-plugin/plugin.json' $PluginLite
 Set-JsonVersion 'global/settings.json'                   $SettingsSchema
 Set-JsonVersion 'global/settings.windows.json'           $SettingsSchema
 Set-ReadmeBadge 'README.md'    $Suite
 Set-ReadmeBadge 'README.ko.md' $Suite
+Set-BootstrapRefBash 'bootstrap.sh'       $Suite
+Set-BootstrapRefPowerShell 'bootstrap.ps1' $Suite
+Set-ReadmeGitHubRefPins 'README.md'    $Suite
+Set-ReadmeGitHubRefPins 'README.ko.md' $Suite
 
 Write-Host ""
 Write-Host "sync_versions: done. Run scripts/check_versions.ps1 to verify."

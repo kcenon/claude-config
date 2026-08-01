@@ -54,7 +54,7 @@ main ← develop ← feature/*
 
 2. **Open a pull request** targeting `develop`.
 
-3. **Merge via squash merge** after review. Note: CI does not run on develop-targeting PRs (see [CI/CD Policy](#cicd-policy)).
+3. **Wait for all triggered CI checks to pass** (see [CI/CD Policy](#cicd-policy)).
 
 4. **Request review** if required by your team's policy.
 
@@ -140,20 +140,28 @@ main ← develop ← feature/*
 | Event | CI Triggered? |
 |-------|---------------|
 | Pull request to `main` | Yes — full validation (skills, hooks, shellcheck) |
-| Pull request to `develop` | No — code review only |
+| Pull request to `develop` | Yes — full validation when workflow path filters match |
 | Push to any branch | No |
 | Tag push (`v*`) | No (releases are created manually) |
 
 Both workflows use **path filters** — they only trigger when relevant files change:
-- `validate-skills.yml`: triggers on changes to `global/skills/**`, `project/.claude/skills/**`, `plugin/skills/**`
-- `validate-hooks.yml`: triggers on changes to `global/hooks/**`, `tests/hooks/**`
+- `validate-skills.yml`: triggers on skill trees, settings schema inputs, doc-index metadata, and validation scripts.
+- `validate-hooks.yml`: triggers on hook trees, hook tests and fixtures, installer/bootstrap scripts, settings profiles, plugin smoke tests, workflow definitions, and every `tests/scripts/test-*` file.
+
+The `tests/scripts` wiring gate inspects workflow `run` commands rather than
+path-filter mentions or comments. A new `test-*` file fails CI until a workflow
+executes it or a reviewed reason is added to the manual-only exception file.
 
 ### CI Checks
 
 | Workflow | What It Validates | Path Filter |
 |----------|-------------------|-------------|
-| `validate-skills.yml` | SKILL.md frontmatter format, name, description length | `**/skills/**` |
-| `validate-hooks.yml` | Hook script correctness (test suite + shellcheck) | `global/hooks/**`, `tests/hooks/**` |
+| `validate-skills.yml` | SKILL.md frontmatter/schema, references, doc index, README parity | Skill trees, schema/reference scripts, docs index files |
+| `validate-hooks.yml` | Hook behavior, settings parity, installer regressions, `tests/scripts` CI wiring, plugin smoke tests, shellcheck | Hook trees, settings profiles, installer/bootstrap scripts, workflows, all `tests/scripts/test-*` files |
+
+`validate-hooks.yml` also runs the PowerShell hook behavior suite on
+`windows-latest` so Windows-native console encoding, path, and shell behavior
+are covered in addition to the Linux/macOS `pwsh` matrix.
 
 ### Merge Rules
 
@@ -164,7 +172,8 @@ Both workflows use **path filters** — they only trigger when relevant files ch
 - CI failures must be investigated — do not dismiss failures as flaky or unrelated.
 
 **Feature PRs (feature → develop):**
-- CI does not run. Code review is the quality gate.
+- All triggered CI checks must pass before merging.
+- Code review remains required even when no path-filtered workflow triggers.
 - **Squash merge** is the only allowed merge strategy.
 
 ### Branch Protection Configuration

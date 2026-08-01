@@ -4,7 +4,7 @@
 # Exercises the four documented exit codes (OK, DOWNLOAD, MISMATCH, RUN) with
 # a local file:// fixture so the test runs deterministically without network.
 #
-# Run: bash tests/scripts/installer-fetch-tests.sh
+# Run: bash tests/scripts/test-installer-fetch.sh
 
 set -uo pipefail
 
@@ -17,6 +17,17 @@ ERRORS=()
 
 note_pass() { ((PASS++)); echo "  PASS: $1"; }
 note_fail() { ((FAIL++)); ERRORS+=("FAIL: $1"); echo "  FAIL: $1"; }
+
+sha256_file() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | awk '{print $1}'
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$1" | awk '{print $1}'
+    else
+        echo "No sha256 tool available" >&2
+        return 1
+    fi
+}
 
 run_lib() {
     # Sub-shell so the lib's RETURN trap doesn't leak. We capture rc and
@@ -45,7 +56,7 @@ exit 0
 EOF
 chmod +x "$TMP/installer.sh"
 
-GOOD_SHA=$(sha256sum "$TMP/installer.sh" | awk '{print $1}')
+GOOD_SHA=$(sha256_file "$TMP/installer.sh")
 BAD_SHA="0000000000000000000000000000000000000000000000000000000000000000"
 GOOD_URL="file://$TMP/installer.sh"
 
@@ -55,7 +66,7 @@ cat > "$TMP/bad-exit.sh" <<'EOF'
 exit 7
 EOF
 chmod +x "$TMP/bad-exit.sh"
-BAD_EXIT_SHA=$(sha256sum "$TMP/bad-exit.sh" | awk '{print $1}')
+BAD_EXIT_SHA=$(sha256_file "$TMP/bad-exit.sh")
 BAD_EXIT_URL="file://$TMP/bad-exit.sh"
 
 echo "[Happy path]"

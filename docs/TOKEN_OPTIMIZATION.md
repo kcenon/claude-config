@@ -285,6 +285,32 @@ Measured on claude-config project (2026-03-21):
 
 **Key finding**: `paths` frontmatter alone does NOT prevent loading. `alwaysApply: false` is required alongside `paths` for conditional loading to work.
 
+### Re-measured 2026-07-26 (#880)
+
+The 2026-03-21 figures above had drifted. Five rule files carried
+`alwaysApply: false` with no `paths:` trigger (or no frontmatter at all), which
+the loader reads as "no condition" rather than "off" — so they had silently
+rejoined the always-loaded set.
+
+| Metric | Before #880 | After #880 |
+|--------|-------------|------------|
+| Always-loaded rules | 11 files, ~25KB (~6,496 est. tokens) | 6 files, ~10KB (~2,516 est. tokens) |
+| Conditional rules | 21 files | 26 files (~194KB, on demand) |
+
+**Corollary to the key finding**: `alwaysApply: false` is not an off switch on its
+own. The loader gates a rule file solely on its `paths:` globs, so each of these
+loads unconditionally:
+
+| Frontmatter | Effect |
+|-------------|--------|
+| `alwaysApply: false`, no `paths:` | loads always — no condition to gate on |
+| no frontmatter at all | loads always |
+| `paths: ["**/*"]` | loads always — catch-all matches every file |
+| `globs:` instead of `paths:` | loads always — key is not read |
+
+`scripts/validate-rule-frontmatter.sh` enforces this contract in CI
+(`.github/workflows/validate-rule-frontmatter.yml`).
+
 ## Using Reference Documents
 
 Reference documents are excluded by default but easily accessible when needed.

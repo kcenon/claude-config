@@ -1,7 +1,7 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
-  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.11.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.12.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
 </p>
@@ -433,7 +433,7 @@ claude-config는 **저장소 단일 버전을 사용하지 않습니다**. 출�
 
 | 필드 | 추적 산출물 | Consumer 파일 |
 |------|------------|---------------|
-| `suite` | README 뱃지에 노출되는 사용자용 "릴리스" 식별자 | `README.md`, `README.ko.md` shields URL |
+| `suite` | README 뱃지와 원라인 설치 핀에 노출되는 사용자용 "릴리스" 식별자 | `README.md`, `README.ko.md` shields URL 및 문서화된 `GITHUB_REF` 예시; `bootstrap.sh`, `bootstrap.ps1` 기본 `GITHUB_REF` 핀 |
 | `plugin` | 마켓플레이스 플러그인 버전 | `plugin/.claude-plugin/plugin.json` |
 | `plugin-lite` | 경량 플러그인 (행동 가드레일) | `plugin-lite/.claude-plugin/plugin.json` |
 | `settings-schema` | 훅 발사 `settings.json` 스키마 | `global/settings.json`, `global/settings.windows.json` |
@@ -912,7 +912,7 @@ cp -r ~/project/.claude ~/claude_config_backup/project/
 # bootstrap.sh 사용 시
 GITHUB_USER=your-username \
 GITHUB_REPO=your-repo \
-GITHUB_REF=v1.10.0 \
+GITHUB_REF=v1.12.0 \
 INSTALL_DIR=~/my-claude-config \
 bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh)"
 ```
@@ -921,7 +921,7 @@ bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main
 |------|--------|------|
 | `GITHUB_USER` | `kcenon` | 저장소를 소유한 GitHub user/org |
 | `GITHUB_REPO` | `claude-config` | 저장소 이름 |
-| `GITHUB_REF` | 최신 release tag (예: `v1.10.0`) | clone할 tag, branch, commit. tag pinning은 SLSA-aligned supply-chain hardening으로 설치를 재현 가능하게 하고 `main`의 일시적 손상에 덜 취약하게 만듭니다. 개발 테스트에만 `develop`으로 override하세요. |
+| `GITHUB_REF` | 최신 release tag (예: `v1.12.0`) | clone할 tag, branch, commit. tag pinning은 SLSA-aligned supply-chain hardening으로 설치를 재현 가능하게 하고 `main`의 일시적 손상에 덜 취약하게 만듭니다. 개발 테스트에만 `develop`으로 override하세요. |
 | `INSTALL_DIR` | `~/claude_config_backup` | 저장소를 clone할 위치 |
 
 > **Deprecated**: `GITHUB_BRANCH`는 `GITHUB_REF`의 한 release alias로 보존되며, 설정 시 stderr deprecation warning을 출력합니다. 다음 major release 전 `GITHUB_REF`로 이전하세요.

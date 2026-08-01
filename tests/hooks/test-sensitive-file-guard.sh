@@ -64,6 +64,33 @@ assert_allow '{"tool_input":{"file_path":"config/.env.example"}}' "nested .env.e
 assert_allow '{"tool_input":{"file_path":"/app/.ENV.EXAMPLE"}}' "case-insensitive .env.example → allow"
 
 echo ""
+echo "[Path normalization + direnv parity (issue #856)]"
+assert_deny '{"tool_input":{"file_path":".envrc"}}' ".envrc → deny (direnv config)"
+assert_deny '{"tool_input":{"file_path":"/app/.envrc"}}' "path-qualified .envrc → deny"
+assert_deny '{"tool_input":{"file_path":"/app/.env "}}' ".env with trailing space → deny"
+assert_deny '{"tool_input":{"file_path":"keys/secret.key "}}' "secret.key with trailing space → deny"
+assert_deny '{"tool_input":{"file_path":"~/.env"}}' "tilde ~/.env → deny"
+assert_deny '{"tool_input":{"file_path":"~/.envrc"}}' "tilde ~/.envrc → deny"
+# The allow-list is matched against the normalized basename too, so templates
+# must survive the same tilde/whitespace handling that the deny paths apply.
+assert_allow '{"tool_input":{"file_path":"~/.env.example"}}' "tilde ~/.env.example → allow"
+assert_allow '{"tool_input":{"file_path":"/app/.env.template "}}' ".env.template with trailing space → allow"
+
+echo ""
+echo "[Bare *.env suffix form (issue #863)]"
+# The suffix form denotes the same artifact as the .env.* dotfile form and is
+# already denied by both Bash-channel guards. The template allow-list asserted
+# in the issue #582 block above is load-bearing for this arm: it must keep
+# winning for .env.example / .env.sample / .env.template now that *.env matches.
+assert_deny '{"tool_input":{"file_path":"/app/production.env"}}' "production.env → deny"
+assert_deny '{"tool_input":{"file_path":"/srv/app/staging.env"}}' "path-qualified staging.env → deny"
+assert_deny '{"tool_input":{"file_path":"/app/example.env"}}' "example.env → deny (not a recognised template form)"
+assert_deny '{"tool_input":{"file_path":"/app/template.env"}}' "template.env → deny (not a recognised template form)"
+assert_deny '{"tool_input":{"file_path":"/app/PRODUCTION.ENV"}}' "PRODUCTION.ENV → deny (case-folded)"
+assert_deny '{"tool_input":{"file_path":"/app/prod.env.example"}}' "prod.env.example → deny (hybrid is not a template)"
+assert_deny '{"tool_input":{"file_path":"/app/staging.env.sample"}}' "staging.env.sample → deny (hybrid is not a template)"
+
+echo ""
 echo "[Certificate/key patterns]"
 assert_deny '{"tool_input":{"file_path":"certs/server.pem"}}' ".pem → deny"
 assert_deny '{"tool_input":{"file_path":"keys/private.key"}}' ".key → deny"

@@ -86,13 +86,10 @@ jobs:
     # Multi-machine simulation runs only on schedule and manual dispatch — its
     # synthetic-git harness builds full bare-repo conflict scenarios and is
     # heavier than the per-PR sync-tests above. PR runs would amortize poorly.
-    # Skipped in fork PRs even when manually triggered (defense-in-depth: the
-    # harness is read-only against the test sandbox today, but secrets that
-    # land here in future must not leak via fork PRs).
+    # PR events are excluded here, which also excludes fork PRs without
+    # dereferencing pull_request on schedule/manual events.
     name: multi-machine simulation (S1-S5)
-    if: |
-      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
-      && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

@@ -12,6 +12,78 @@ references:
   - source: project/.claude/rules/workflow/performance-analysis.md
     target: project/.claude/skills/project-workflow/reference/performance-analysis.md
     mode: exact
+  - source: project/.claude/rules/api/api-design.md
+    target: project/.claude/skills/api-design/reference/api-design.md
+    mode: exact
+  - source: project/.claude/rules/api/architecture.md
+    target: project/.claude/skills/api-design/reference/architecture.md
+    mode: exact
+  - source: project/.claude/rules/api/observability.md
+    target: project/.claude/skills/api-design/reference/logging.md
+    mode: exact
+  - source: project/.claude/rules/api/observability.md
+    target: project/.claude/skills/api-design/reference/observability.md
+    mode: exact
+  - source: project/.claude/rules/coding/safety.md
+    target: project/.claude/skills/coding-guidelines/reference/concurrency.md
+    mode: exact
+  - source: project/.claude/rules/coding/error-handling.md
+    target: project/.claude/skills/coding-guidelines/reference/error-handling.md
+    mode: exact
+  - source: project/.claude/rules/coding/standards.md
+    target: project/.claude/skills/coding-guidelines/reference/general.md
+    mode: exact
+  - source: project/.claude/rules/coding/safety.md
+    target: project/.claude/skills/coding-guidelines/reference/memory.md
+    mode: exact
+  - source: project/.claude/rules/coding/performance.md
+    target: project/.claude/skills/coding-guidelines/reference/performance.md
+    mode: exact
+  - source: project/.claude/rules/coding/standards.md
+    target: project/.claude/skills/coding-guidelines/reference/quality.md
+    mode: exact
+  - source: project/.claude/rules/operations/ops.md
+    target: project/.claude/skills/documentation/reference/cleanup.md
+    mode: exact
+  - source: project/.claude/rules/core/communication.md
+    target: project/.claude/skills/documentation/reference/communication.md
+    mode: exact
+  - source: project/.claude/rules/project-management/documentation.md
+    target: project/.claude/skills/documentation/reference/documentation.md
+    mode: exact
+  - source: project/.claude/rules/coding/safety.md
+    target: project/.claude/skills/performance-review/reference/concurrency.md
+    mode: exact
+  - source: project/.claude/rules/coding/safety.md
+    target: project/.claude/skills/performance-review/reference/memory.md
+    mode: exact
+  - source: project/.claude/rules/operations/ops.md
+    target: project/.claude/skills/performance-review/reference/monitoring.md
+    mode: exact
+  - source: project/.claude/rules/coding/performance.md
+    target: project/.claude/skills/performance-review/reference/performance.md
+    mode: exact
+  - source: project/.claude/rules/project-management/build.md
+    target: project/.claude/skills/project-workflow/reference/build.md
+    mode: exact
+  - source: project/.claude/rules/core/principles.md
+    target: project/.claude/skills/project-workflow/reference/problem-solving.md
+    mode: exact
+  - source: project/.claude/rules/project-management/testing.md
+    target: project/.claude/skills/project-workflow/reference/testing.md
+    mode: exact
+  - source: project/.claude/rules/core/principles.md
+    target: project/.claude/skills/project-workflow/reference/workflow-problem-solving.md
+    mode: exact
+  - source: project/.claude/rules/api/api-design.md
+    target: project/.claude/skills/security-audit/reference/api-design.md
+    mode: exact
+  - source: project/.claude/rules/coding/error-handling.md
+    target: project/.claude/skills/security-audit/reference/error-handling.md
+    mode: exact
+  - source: project/.claude/rules/security.md
+    target: project/.claude/skills/security-audit/reference/security.md
+    mode: exact
   - source: project/.claude/rules/workflow/git-commit-format.md
     target: plugin/skills/project-workflow/reference/git-commit-format.md
     mode: exact

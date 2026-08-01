@@ -1,7 +1,7 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
-  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.11.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.12.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
 </p>
@@ -158,6 +158,9 @@ Get-Content $HOME\.claude\git-identity.md | Select-String '^(name|email):'
 
 > **Note**: Requires PowerShell 7+ (`pwsh`). Install via `winget install Microsoft.PowerShell`.
 > If you get an execution policy error, run: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+
+Windows installs `global/settings.windows.json`; CI parity gates keep it aligned
+with the Unix profile except for documented Windows-only PowerShell allowances.
 
 #### Docker-compatible dual-variant install
 
@@ -401,8 +404,8 @@ claude_config_backup/
 │
 ├── .github/
 │   └── workflows/
-│       ├── validate-skills.yml     # CI skill validation (main-targeting PRs only)
-│       ├── validate-hooks.yml      # CI hook validation (main-targeting PRs only)
+│       ├── validate-skills.yml     # CI skill validation (main/develop PRs)
+│       ├── validate-hooks.yml      # CI hook validation, including native Windows pwsh
 │       └── validate-pr-target.yml  # Enforce develop-only merges to main
 │
 ├── docs/                        # Design docs and guides
@@ -458,7 +461,7 @@ claude-config does **not** carry a single repo-wide version. Each shipped artifa
 
 | Field | Tracked artifact | Consumer files |
 |-------|------------------|----------------|
-| `suite` | The end-user "release" identifier surfaced by the README badge | `README.md`, `README.ko.md` shields URL |
+| `suite` | The end-user "release" identifier surfaced by the README badge and one-line installer pins | `README.md`, `README.ko.md` shields URL and documented `GITHUB_REF` examples; `bootstrap.sh`, `bootstrap.ps1` default `GITHUB_REF` pins |
 | `plugin` | Marketplace plugin version | `plugin/.claude-plugin/plugin.json` |
 | `plugin-lite` | Lite plugin (behavioral guardrails) | `plugin-lite/.claude-plugin/plugin.json` |
 | `settings-schema` | Hook-emitting `settings.json` schema | `global/settings.json`, `global/settings.windows.json` |
@@ -768,6 +771,7 @@ The `.mcp.json` template provides common MCP server configurations.
 
 After installation, `~/.claude/git-identity.md` is auto-filled from `git config --global user.name` and `git config --global user.email` when both values exist. Edit it only if the values are missing or wrong.
 On reinstall, the installer keeps the existing language policy defaults from `~/.claude/settings.json` unless `AGENT_LANGUAGE` or `CONTENT_LANGUAGE` is explicitly set.
+Reinstalls also prune removed managed files when their local hash still matches the install manifest; locally edited removed files are preserved and reported. See [docs/install.md](docs/install.md) for the manifest and prune rules.
 Existing files are automatically backed up with `.backup_YYYYMMDD_HHMMSS` format.
 
 ---
@@ -951,7 +955,7 @@ cp -r ~/project/.claude ~/claude_config_backup/project/
 # When using bootstrap.sh
 GITHUB_USER=your-username \
 GITHUB_REPO=your-repo \
-GITHUB_REF=v1.10.0 \
+GITHUB_REF=v1.12.0 \
 INSTALL_DIR=~/my-claude-config \
 bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh)"
 ```
@@ -960,7 +964,7 @@ bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main
 |----------|---------|---------|
 | `GITHUB_USER` | `kcenon` | GitHub user/org owning the repo |
 | `GITHUB_REPO` | `claude-config` | Repository name |
-| `GITHUB_REF` | latest release tag (e.g. `v1.10.0`) | Tag, branch, or commit to clone. Pinning to a tag is SLSA-aligned supply-chain hardening — the install is reproducible and resistant to a transient compromise of `main`. Override with `develop` only for development testing. |
+| `GITHUB_REF` | latest release tag (e.g. `v1.12.0`) | Tag, branch, or commit to clone. Pinning to a tag is SLSA-aligned supply-chain hardening — the install is reproducible and resistant to a transient compromise of `main`. Override with `develop` only for development testing. |
 | `INSTALL_DIR` | `~/claude_config_backup` | Where to clone the repo |
 
 > **Deprecated**: `GITHUB_BRANCH` is preserved as a one-release alias for `GITHUB_REF` and emits a stderr deprecation warning when set. Migrate to `GITHUB_REF` before the next major release.

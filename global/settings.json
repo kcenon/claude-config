@@ -127,10 +127,6 @@
       "Read(**/*.key)",
       "Read(**/*.p12)",
       "Read(**/*password*)",
-      "Write(.env)",
-      "Write(.env.*)",
-      "Write(**/.env)",
-      "Write(**/.env.*)",
       "Edit(.env)",
       "Edit(.env.*)",
       "Edit(**/.env)",
@@ -542,7 +538,7 @@
   "skillListingBudgetFraction": 0.02,
   "disableSkillShellExecution": true,
   "description": "Claude Code Global Settings - Applied to all projects (permissions.deny for security)",
-  "version": "1.17.0",
+  "version": "1.17.1",
   "showTurnDuration": true,
   "teammateMode": "in-process"
 }

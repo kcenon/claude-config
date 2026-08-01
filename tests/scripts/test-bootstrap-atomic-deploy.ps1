@@ -45,9 +45,11 @@ function New-Fixture {
     $lib = Join-Path $hooks 'lib'
     $sharedLib = Join-Path $Path 'hooks' 'lib'
     $scripts = Join-Path $Path 'scripts'
+    $globalScripts = Join-Path $Path 'global' 'scripts'
     New-Item -ItemType Directory -Path $lib -Force | Out-Null
     New-Item -ItemType Directory -Path $sharedLib -Force | Out-Null
     New-Item -ItemType Directory -Path $scripts -Force | Out-Null
+    New-Item -ItemType Directory -Path $globalScripts -Force | Out-Null
 
     Copy-Item -LiteralPath (Join-Path $RootDir 'scripts' 'install-manifest.ps1') -Destination $scripts -Force
     Set-Content -LiteralPath (Join-Path $Path 'global' 'settings.windows.json') -Value @'
@@ -65,6 +67,8 @@ function New-Fixture {
     foreach ($name in @('validate-commit-message.sh', 'validate-language.sh', 'validate-traceability.sh')) {
         Set-Content -LiteralPath (Join-Path $sharedLib $name) -Value "#!/bin/sh`nreturn 0 2>/dev/null || exit 0`n" -NoNewline
     }
+    Set-Content -LiteralPath (Join-Path $globalScripts 'statusline-command.ps1') -Value 'Write-Output "statusline"' -NoNewline
+    Set-Content -LiteralPath (Join-Path $globalScripts 'statusline-command.sh') -Value "#!/bin/sh`necho statusline`n" -NoNewline
 }
 
 function Invoke-AtomicDeploy {
@@ -123,6 +127,10 @@ try {
         'bash hook variant deployed'
     Assert-True (Test-Path -LiteralPath (Join-Path $successClaude 'hooks' 'lib' 'tokenize-shell.sh')) `
         'hook lib deployed'
+    Assert-True (Test-Path -LiteralPath (Join-Path $successClaude 'scripts' 'statusline-command.ps1')) `
+        'statusline PowerShell utility script deployed'
+    Assert-True (Test-Path -LiteralPath (Join-Path $successClaude 'scripts' 'statusline-command.sh')) `
+        'statusline bash utility script deployed'
 
     $failureFixture = Join-Path $scratch 'failure-fixture'
     $failureHome = Join-Path $scratch 'failure-home'

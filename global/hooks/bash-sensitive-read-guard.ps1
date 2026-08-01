@@ -29,8 +29,17 @@ if ([string]::IsNullOrEmpty($cmd)) {
 # Sensitive-path regex set. Mirrors the deny patterns in
 # bash-sensitive-read-guard.sh (case-insensitive where applicable).
 $sensitivePatterns = @(
-    '(^|[\s/\\])\.env([\s.''"]|$)',
-    '(^|[\s/\\])\.env\.[A-Za-z0-9_-]+',
+    # `*` and `?` join the boundary classes so an unexpanded glob bracketing
+    # the token -- `cat *.env*`, `cat *.env`, `cat *.env.local` -- is treated
+    # like a separator and denied, matching the .sh guard's de-glob check
+    # (issue #867). The shell has not expanded the pattern yet, so a wildcard
+    # touching `.env` can only widen to real env files.
+    '(^|[\s/\\*?])\.env([\s.''"*?]|$)',
+    '(^|[\s/\\*?])\.env\.[A-Za-z0-9_-]+',
+    # Suffix/template hybrids such as prod.env.example are sensitive env files,
+    # not recognised templates. The file guards and plugin deny the same class
+    # explicitly; only dotfile-prefix .env.example names are masked below.
+    '(^|[\s/\\])[^/\s''";|&]+\.env\.[^/\s''";|&]+',
     '(^|[\s/\\])\.ssh[/\\](id_[A-Za-z0-9_-]+|[A-Za-z0-9_-]+_(?:rsa|dsa|ecdsa|ed25519))',
     '(^|[\s/\\])\.aws[/\\](credentials|config)',
     '(^|[\s/\\])\.gnupg([/\\]|$)',
@@ -41,9 +50,13 @@ $sensitivePatterns = @(
     '(^|[\s/\\])\.docker[/\\]config\.json',
     '(^|[\s/\\])\.kube[/\\]config(\s|$)',
     '\.(?:pem|key|p12|pfx|crt|cer)([\s''"]|$)',
-    '[/\\]secrets[/\\]',
-    '[/\\]credentials[/\\]',
-    '[/\\]passwords[/\\]',
+    # Accept a command/path boundary before all three sensitive-directory
+    # tokens so relative paths (`cat secrets/db.yml`) deny just like absolute
+    # paths. This mirrors the write guard's boundary class (issue #878).
+    '(^|[\s/\\''">=])(secrets|credentials|passwords)[/\\]',
+    # Bare credential filenames need an explicit trailing shell delimiter
+    # rather than `\b`: a word boundary would also match `credentials.md`.
+    '(^|[\s/\\''">=])(id_(?:rsa|dsa|ecdsa|ed25519)|credentials)(?=[\s''";|&<>)]|$)',
     '\bpassword\b',
     '/etc/(shadow|sudoers)\b',
     '/etc/ssh/ssh_host_[A-Za-z0-9_]+_key\b'
@@ -53,9 +66,23 @@ $sensitivePatterns = @(
 # This keeps `echo "this references .env"` as allow while denying `cat .env`.
 $readToolPrefix = '\b(cat|head|tail|less|more|bat|view|grep|egrep|fgrep|rg|find|tar|xxd|od|strings|hexdump|cp|mv|rsync|scp|install|sudo\s+cat|sudo\s+head|sudo\s+tail)\b'
 
+# Env-file templates (.env.example, .env.example.*, .env.sample, .env.template)
+# are committed on purpose and never carry real secrets; sensitive-file-guard.ps1
+# allows the same four names on the file channel, so denying them here was a
+# cross-channel divergence (issue #866).
+#
+# This guard matches patterns against the whole command string rather than
+# against extracted paths, so a plain "allow and exit" would also let
+# `cat .env.example && cat .env` through. Mask the template mentions out of a
+# scanning copy instead: the template token stops matching while every other
+# sensitive token in the same command still does. The placeholder is
+# deliberately dot-free and slash-free so it cannot match any pattern above.
+$envTemplateMention = '(?i)(^|[\s/\\])\.env\.(?:example(?:\.[^\s''";|&]*)?|sample|template)(?=[\s''";|&]|$)'
+$scanCmd = [regex]::Replace($cmd, $envTemplateMention, '${1}env_template_placeholder')
+
 foreach ($pattern in $sensitivePatterns) {
     $combined = "$readToolPrefix.*$pattern"
-    if ($cmd -match $combined) {
+    if ($scanCmd -match $combined) {
         $reason = "Bash read of sensitive file blocked: matched pattern $pattern"
         New-HookDenyResponse -Reason $reason
         exit 0

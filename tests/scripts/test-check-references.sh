@@ -71,6 +71,42 @@ assert_exit 0 "$rc" "sync exits 0"
 out=$(bash "$CHECK" "$REPO" "$REPO/reference-map.yml" 2>&1); rc=$?
 assert_exit 0 "$rc" "sync restores drift"
 
+REPO_CRLF="$WORK/repo-crlf"
+mkdir -p "$REPO_CRLF"
+write_file "$REPO_CRLF/source/crlf-exact.md" $'same\r\nnext\r\n'
+write_file "$REPO_CRLF/target/crlf-exact.md" $'same\nnext\n'
+write_file "$REPO_CRLF/source/crlf-fm.md" $'---\r\ntitle: Source\r\n---\r\n\r\nbody\r\n'
+write_file "$REPO_CRLF/target/crlf-fm.md" $'body\n'
+cat > "$REPO_CRLF/reference-map.yml" <<'YAML'
+version: 1
+references:
+  - source: source/crlf-exact.md
+    target: target/crlf-exact.md
+    mode: exact
+  - source: source/crlf-fm.md
+    target: target/crlf-fm.md
+    mode: strip-source-frontmatter
+YAML
+out=$(bash "$CHECK" "$REPO_CRLF" "$REPO_CRLF/reference-map.yml" 2>&1); rc=$?
+assert_exit 0 "$rc" "CRLF entries compare equal after normalization"
+
+REPO_GIT="$WORK/repo-git"
+mkdir -p "$REPO_GIT"
+git -C "$REPO_GIT" init -q
+write_file "$REPO_GIT/source/exact.md" 'same'
+write_file "$REPO_GIT/target/exact.md" 'same'
+cat > "$REPO_GIT/reference-map.yml" <<'YAML'
+version: 1
+references:
+  - source: source/exact.md
+    target: target/exact.md
+    mode: exact
+YAML
+link_blob=$(printf '../../../rules/demo.md' | git -C "$REPO_GIT" hash-object -w --stdin)
+git -C "$REPO_GIT" update-index --add --cacheinfo "120000,$link_blob,project/.claude/skills/demo/reference/link.md"
+out=$(bash "$CHECK" "$REPO_GIT" "$REPO_GIT/reference-map.yml" 2>&1); rc=$?
+assert_exit 2 "$rc" "tracked project reference symlink exits 2"
+
 echo ""
 echo "=== Summary ==="
 echo "  $PASS passed, $FAIL failed"

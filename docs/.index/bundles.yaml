@@ -75,9 +75,10 @@ auto:
       - "docs/design/optimization-phases.md"
   docs-misc:
     description: "Project documentation, token reports, extensions"
-    estimated_tokens: 15705
+    estimated_tokens: 16478
     docs:
       - "docs/CUSTOM_EXTENSIONS.md"
+      - "docs/SKILL_DRIFT_CONTRACT.md"
       - "docs/SKILL_TOKEN_REPORT.md"
       - "docs/TOKEN_OPTIMIZATION.md"
       - "docs/ad-sdlc-integration.md"

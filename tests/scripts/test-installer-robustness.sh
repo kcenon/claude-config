@@ -54,6 +54,16 @@ else
 fi
 
 echo ""
+echo "[backup.sh error() is terminal (residual silent-success fix)]"
+# The initial backup-copy paths still call `cp || error`; error() itself must
+# terminate so they cannot fall through to the following success message.
+if awk '/^error\(\)/{f=1} f&&/exit 1/{print;found=1} f&&/^}/{f=0} END{exit !found}' scripts/backup.sh >/dev/null; then
+    check "backup.sh error() contains exit 1" y
+else
+    check "backup.sh error() contains exit 1" n
+fi
+
+echo ""
 echo "[backup copy-then-swap staging (no wipe-before-copy)]"
 check "backup.sh uses .new.\$\$ staging" "$(has scripts/backup.sh '.new.$$')"
 check "backup.ps1 uses .new staging"     "$(has scripts/backup.ps1 '.new')"

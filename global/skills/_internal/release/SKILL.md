@@ -72,7 +72,7 @@ When this skill runs in the claude-config repository (or any repo that declares 
 
 | Field             | Consumers                                                  |
 |-------------------|------------------------------------------------------------|
-| `suite`           | `README.md`, `README.ko.md` (shields.io badge)             |
+| `suite`           | `README.md`, `README.ko.md` (shields.io badge and documented `GITHUB_REF` pins); `bootstrap.sh`, `bootstrap.ps1` (default `GITHUB_REF` pin) |
 | `plugin`          | `plugin/.claude-plugin/plugin.json`                        |
 | `plugin-lite`     | `plugin-lite/.claude-plugin/plugin.json`                   |
 | `settings-schema` | `global/settings.json`, `global/settings.windows.json`     |
@@ -85,7 +85,7 @@ Propagation rule:
 1. The skill edits `VERSION_MAP.yml` — set `<target>: <new-version>`.
 2. The skill runs `scripts/sync_versions.sh` (or `.ps1` on Windows) to copy values
    from the map into each consumer file.
-3. `scripts/check_versions.sh` runs in CI to catch any future drift.
+3. `scripts/check_versions.sh` and `scripts/check_versions.ps1` run in CI to catch any future drift.
 
 If no `VERSION_MAP.yml` exists at the repo root, the skill falls back to its legacy
 single-version behavior (version passed as the sole argument, no multi-track bumping).

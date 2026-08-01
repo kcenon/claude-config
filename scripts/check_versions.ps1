@@ -2,7 +2,8 @@
 # Exits non-zero on drift. Each field tracks an independent SemVer.
 #
 # Consumers:
-#   suite           -> README.md, README.ko.md (shields.io badge)
+#   suite           -> README.md, README.ko.md (shields.io badge and
+#                      GITHUB_REF pins), bootstrap.sh, bootstrap.ps1
 #   plugin          -> plugin/.claude-plugin/plugin.json
 #   plugin-lite     -> plugin-lite/.claude-plugin/plugin.json
 #   settings-schema -> global/settings.json, global/settings.windows.json
@@ -84,12 +85,88 @@ function Test-ReadmeBadge {
     }
 }
 
+function Test-BootstrapRefBash {
+    param([string]$File, [string]$Expected)
+    $path = Join-Path $RootDir $File
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        Write-Host "FAIL: consumer missing: $File" -ForegroundColor Red
+        $script:drift = 1
+        return
+    }
+    $content = Get-Content -LiteralPath $path -Raw
+    if ($content -match 'GITHUB_REF="\$\{GITHUB_REF:-v(\d+\.\d+\.\d+)\}"') {
+        $actual = $Matches[1]
+        if ($actual -ne $Expected) {
+            Write-Host "FAIL: $File GITHUB_REF=$actual, VERSION_MAP[suite]=$Expected" -ForegroundColor Red
+            $script:drift = 1
+        }
+    } else {
+        Write-Host "FAIL: $File has no default GITHUB_REF pin" -ForegroundColor Red
+        $script:drift = 1
+    }
+}
+
+function Test-BootstrapRefPowerShell {
+    param([string]$File, [string]$Expected)
+    $path = Join-Path $RootDir $File
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        Write-Host "FAIL: consumer missing: $File" -ForegroundColor Red
+        $script:drift = 1
+        return
+    }
+    $content = Get-Content -LiteralPath $path -Raw
+    if ($content -match "else\s*\{\s*'v(\d+\.\d+\.\d+)'\s*\}") {
+        $actual = $Matches[1]
+        if ($actual -ne $Expected) {
+            Write-Host "FAIL: $File GITHUB_REF=$actual, VERSION_MAP[suite]=$Expected" -ForegroundColor Red
+            $script:drift = 1
+        }
+    } else {
+        Write-Host "FAIL: $File has no default GITHUB_REF pin" -ForegroundColor Red
+        $script:drift = 1
+    }
+}
+
+function Test-ReadmeGitHubRefPins {
+    param([string]$File, [string]$Expected)
+    $path = Join-Path $RootDir $File
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        Write-Host "FAIL: consumer missing: $File" -ForegroundColor Red
+        $script:drift = 1
+        return
+    }
+    $actuals = @()
+    Get-Content -LiteralPath $path |
+        Where-Object { $_ -match 'GITHUB_REF' } |
+        ForEach-Object {
+            foreach ($match in [regex]::Matches($_, 'v(\d+\.\d+\.\d+)')) {
+                $actuals += $match.Groups[1].Value
+            }
+        }
+    $actuals = @($actuals | Sort-Object -Unique)
+    if ($actuals.Count -eq 0) {
+        Write-Host "FAIL: $File has no GITHUB_REF version pin" -ForegroundColor Red
+        $script:drift = 1
+        return
+    }
+    foreach ($actual in $actuals) {
+        if ($actual -ne $Expected) {
+            Write-Host "FAIL: $File GITHUB_REF pin=$actual, VERSION_MAP[suite]=$Expected" -ForegroundColor Red
+            $script:drift = 1
+        }
+    }
+}
+
 Test-JsonVersion 'plugin/.claude-plugin/plugin.json'      $Plugin         'plugin'
 Test-JsonVersion 'plugin-lite/.claude-plugin/plugin.json' $PluginLite     'plugin-lite'
 Test-JsonVersion 'global/settings.json'                   $SettingsSchema 'settings-schema'
 Test-JsonVersion 'global/settings.windows.json'           $SettingsSchema 'settings-schema'
 Test-ReadmeBadge 'README.md'    $Suite
 Test-ReadmeBadge 'README.ko.md' $Suite
+Test-BootstrapRefBash 'bootstrap.sh'       $Suite
+Test-BootstrapRefPowerShell 'bootstrap.ps1' $Suite
+Test-ReadmeGitHubRefPins 'README.md'    $Suite
+Test-ReadmeGitHubRefPins 'README.ko.md' $Suite
 
 # hooks has no consumer file to mirror; validate only that the declared value
 # is well-formed SemVer so the field cannot silently rot (deep-audit P1).

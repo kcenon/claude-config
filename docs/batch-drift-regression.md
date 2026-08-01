@@ -1,7 +1,7 @@
 ---
 status: Active
 audience: maintainer
-last_reviewed: 2026-05-09
+last_reviewed: 2026-07-20
 supersedes: []
 superseded_by: null
 ---
@@ -169,9 +169,31 @@ mv global/hooks/pr-language-guard.sh.bak global/hooks/pr-language-guard.sh
 | Output | Path | Retention |
 |--------|------|-----------|
 | Run summary | `tests/batch_drift_regression/last-run-summary.json` | Until next run |
-| Strategy results | `tests/batch_drift_benchmark/results/<strategy>-<ts>.json` | Permanent (committed) |
+| Strategy results | `tests/batch_drift_benchmark/results/<strategy>-<ts>.json` | Permanent (committed); not eligible for grading by later runs |
 | Benchmark logs | `tests/batch_drift_benchmark/logs/<strategy>-<ts>.log` | 14 days (CI artifact) |
 | Raw PR data | `tests/batch_drift_benchmark/logs/<strategy>-<ts>-raw/` | 14 days (CI artifact) |
+
+## Result freshness
+
+The runner grades only a result file written by the current run. Before invoking
+the benchmark it records a run-start marker, then selects the newest
+`results/<strategy>-*.json` modified after that marker. Files predating the run,
+including the committed benchmark evidence listed above, are never eligible for
+grading.
+
+Two conditions abort with exit 3 instead of producing a verdict:
+
+| Condition | Behavior |
+|-----------|----------|
+| Benchmark runner exits non-zero | Abort immediately; nothing is graded |
+| No result file newer than the run-start marker | Abort; pre-existing files are not eligible |
+
+Neither case writes `last-run-summary.json`, so an absent summary means the run
+failed before grading rather than passing against an older file.
+
+`BATCH_DRIFT_BENCHMARK_DIR` overrides the benchmark directory the runner calls
+into. It exists so `test-run-regression.sh` can inject a stub benchmark; leave it
+unset in normal operation.
 
 ## Cost
 

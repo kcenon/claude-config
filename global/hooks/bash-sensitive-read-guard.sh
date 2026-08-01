@@ -103,6 +103,18 @@ is_sensitive() {
     # Match against $lower so .ENV / .Env on case-insensitive filesystems
     # (macOS, Windows) cannot bypass the guard.
     case "$lower" in
+        .env.example|*/.env.example|.env.example.*|*/.env.example.* \
+        |.env.sample|*/.env.sample|.env.template|*/.env.template)
+            # Env-file templates. Committed on purpose and never carry real
+            # secrets; sensitive-file-guard.sh allows the same four names on
+            # the file channel, so denying them here was a cross-channel
+            # divergence (issue #866). Listed BEFORE the broad .env.* arm so
+            # it wins, and left as a no-op arm rather than `return 1` so the
+            # secrets/ and *.pem checks below still apply — the same layering
+            # sensitive-file-guard.sh uses. Both the bare and the `*/`-prefixed
+            # form are needed because this guard matches the whole path string,
+            # not the basename.
+            ;;
         */.env|*.env|*/.env.*|*.env.*)
             return 0 ;;
     esac
@@ -314,7 +326,7 @@ inspect_subcommand() {
             ;;
     esac
 
-    local path resolved
+    local path resolved deglobbed
     while IFS= read -r path; do
         [ -z "$path" ] && continue
         resolved=$(resolve_path "$path")
@@ -322,6 +334,25 @@ inspect_subcommand() {
             echo "Bash read of sensitive file blocked: $cmd0 $path (resolved: $resolved)"
             return 1
         fi
+        # Unexpanded-glob bypass (issue #867). The hook sees the command
+        # before the shell expands it, so a wildcard bracketing a sensitive
+        # token -- e.g. `cat *.env*` -- reaches here as a literal path that
+        # matches no deny arm ('*.env*' ends in '*', not '.env', and holds no
+        # '.env.' run). Strip the glob metacharacters and re-check what the
+        # pattern is anchored on: if the non-wildcard remainder is itself
+        # sensitive, every file the glob can expand to is sensitive too. This
+        # generalises past the one literal to any bracket form, while leaving
+        # 'env'-mentioning non-globs (e.g. `cat environment.txt`) untouched
+        # because they carry no wildcard.
+        case "$path" in
+            *[*?]*)
+                deglobbed=$(resolve_path "${path//[*?]/}")
+                if is_sensitive "$deglobbed"; then
+                    echo "Bash read of sensitive glob blocked: $cmd0 $path (pattern brackets sensitive token: ${path//[*?]/})"
+                    return 1
+                fi
+                ;;
+        esac
     done < <(extract_read_paths "$cmd0" "${inspect_args[@]}")
     return 0
 }

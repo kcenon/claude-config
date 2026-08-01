@@ -67,6 +67,17 @@ is_sensitive_target() {
     # Match against $lower so .ENV / .NETRC etc. on case-insensitive
     # filesystems (macOS, Windows) cannot bypass the guard.
     case "$lower" in
+        .env.example|*/.env.example|.env.example.*|*/.env.example.* \
+        |.env.sample|*/.env.sample|.env.template|*/.env.template)
+            # Env-file templates. Committed on purpose and never carry real
+            # secrets; sensitive-file-guard.sh allows the same four names on
+            # the file channel, so denying them here was a cross-channel
+            # divergence (issue #866). Listed BEFORE the broad .env.* arm so
+            # it wins, and left as a no-op arm rather than `return 1` so the
+            # secrets/ and *.pem checks below still apply. Both the bare and
+            # the `*/`-prefixed form are needed because this guard matches the
+            # whole path string, not the basename.
+            ;;
         */.env|*.env|*/.env.*|*.env.*) return 0 ;;
         */.ssh/id_*|*/.ssh/*_rsa|*/.ssh/*_dsa|*/.ssh/*_ecdsa|*/.ssh/*_ed25519) return 0 ;;
         */.aws/credentials|*/.aws/config) return 0 ;;
@@ -78,7 +89,59 @@ is_sensitive_target() {
     esac
     case "$lower" in
         *.pem|*.key|*.p12|*.pfx) return 0 ;;
+    esac
+    # Sensitive directory tokens anywhere in the path. Match both absolute
+    # (`/srv/secrets/db.yml`) and relative (`secrets/db.yml`) forms —
+    # resolve_path does not absolutise a relative path whose target does not
+    # exist, so without the bare-anchored arm a repo-root-relative write
+    # reached this check with no leading slash and matched nothing, while
+    # bash-sensitive-read-guard.sh denied the same path (issue #871).
+    case "$lower" in
         */secrets/*|*/credentials/*|*/passwords/*) return 0 ;;
+        secrets/*|credentials/*|passwords/*)       return 0 ;;
+    esac
+    # Bare credential filenames and SSH host keys, mirroring the read
+    # guard's bare-filename block: planting or overwriting `id_rsa` or
+    # `credentials` in the working directory is the write-side twin of the
+    # deliberate read that block exists to flag (issue #871).
+    case "$lower" in
+        id_rsa|id_dsa|id_ecdsa|id_ed25519|*/id_rsa|*/id_dsa|*/id_ecdsa|*/id_ed25519) return 0 ;;
+        credentials|*/credentials) return 0 ;;
+        /etc/ssh/ssh_host_*_key|*/etc/ssh/ssh_host_*_key) return 0 ;;
+    esac
+    # Deliberate asymmetries with bash-sensitive-read-guard.sh, recorded per
+    # the issue #871 arm-by-arm comparison:
+    #   - `*password*` substring: not ported. On the read side it flags
+    #     deliberate secret hunting; on the write side it would deny routine
+    #     work on auth code and docs (password-validator.ts,
+    #     password-policy.md), which Read-before-Edit already governs.
+    #   - `*.crt`/`*.cer`: not ported. Certificates are public material; the
+    #     write-side sensitive check protects secret matter, and tampering
+    #     with an existing certificate is caught by Read-before-Edit.
+    #   - `/etc/passwd`, `/etc/hosts`: write-side only (above) on purpose —
+    #     reading them is routine, overwriting them is an attack.
+    return 1
+}
+
+# sensitive_glob_core <path>
+#   The hook receives Bash commands before pathname expansion. If a raw write
+#   target contains `*` or `?`, strip those metacharacters and re-check the
+#   remaining anchor against the literal sensitive-target rules. Prints the
+#   resolved core and returns 0 only when that core is sensitive. This closes
+#   forms such as `*.env*` without broadening the rules to ordinary globs such
+#   as `*.md` or env-mentioning names such as `environment.txt` (issue #876).
+sensitive_glob_core() {
+    local path="$1"
+    case "$path" in
+        *[*?]*)
+            local stripped resolved
+            stripped="${path//[*?]/}"
+            resolved=$(resolve_path "$stripped")
+            if is_sensitive_target "$resolved"; then
+                printf '%s' "$resolved"
+                return 0
+            fi
+            ;;
     esac
     return 1
 }
@@ -356,7 +419,7 @@ inspect_write_subcommand() {
     fi
 
     # --- Sensitive-target check (always denied, regardless of Read state) ---
-    local resolved
+    local resolved deglobbed
     if [ -n "$redirect_target" ]; then
         case "$redirect_target" in
             /dev/null|/dev/stderr|/dev/stdout|/dev/tty)
@@ -367,6 +430,10 @@ inspect_write_subcommand() {
         resolved=$(resolve_path "$redirect_target")
         if is_sensitive_target "$resolved"; then
             echo "Bash write to sensitive file blocked: $redirect_target (resolved: $resolved)"
+            return 1
+        fi
+        if deglobbed=$(sensitive_glob_core "$redirect_target"); then
+            echo "Bash write to sensitive glob blocked: $redirect_target (de-globbed core: $deglobbed)"
             return 1
         fi
     fi
@@ -447,6 +514,10 @@ inspect_write_subcommand() {
             echo "Bash write to sensitive file blocked: $wt (resolved: $resolved)"
             return 1
         fi
+        if deglobbed=$(sensitive_glob_core "$wt"); then
+            echo "Bash write to sensitive glob blocked: $wt (de-globbed core: $deglobbed)"
+            return 1
+        fi
     done
 
     # --- Read-before-Edit enforcement on existing files ---
@@ -510,6 +581,9 @@ if printf '%s' "$FIRST_LINE" | grep -qE '<<-?[[:space:]]*[^[:space:]]+' \
         RESOLVED_HEREDOC_TARGET=$(resolve_path "$HEREDOC_TARGET")
         if is_sensitive_target "$RESOLVED_HEREDOC_TARGET"; then
             deny_response "Bash write to sensitive file blocked: $HEREDOC_TARGET (resolved: $RESOLVED_HEREDOC_TARGET)"
+        fi
+        if RESOLVED_HEREDOC_DEGLOBBED=$(sensitive_glob_core "$HEREDOC_TARGET"); then
+            deny_response "Bash write to sensitive glob blocked: $HEREDOC_TARGET (de-globbed core: $RESOLVED_HEREDOC_DEGLOBBED)"
         fi
         if [ -e "$RESOLVED_HEREDOC_TARGET" ] && [ ! -d "$RESOLVED_HEREDOC_TARGET" ]; then
             tracker_dir="${TMPDIR:-/tmp}"

@@ -106,7 +106,6 @@ required_deny = {
     "Read(**/credentials/**)",
     "Read(**/*.pem)",
     "Read(**/*.key)",
-    "Write(.env)",
     "Edit(.env)",
 }
 
@@ -122,6 +121,14 @@ if present_forbidden:
 missing_deny = sorted(required_deny - deny)
 if missing_deny:
     errors.append("sensitive-file deny entries missing: " + ", ".join(missing_deny))
+
+# Write(path) deny rules are never matched by file permission checks; the
+# harness warns about them at startup. Edit(path) rules cover all
+# file-editing tools (Edit, Write, NotebookEdit), so Write() entries are
+# dead weight and must not reappear.
+dead_write_deny = sorted(entry for entry in deny if entry.startswith("Write("))
+if dead_write_deny:
+    errors.append("ineffective Write() deny entries present: " + ", ".join(dead_write_deny))
 
 if perms.get("defaultMode") != "default":
     errors.append("permissions.defaultMode must remain default")

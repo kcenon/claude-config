@@ -54,6 +54,31 @@ fi
 
 echo "guarded_template_copy: PASS"
 
+# Test manifest_copy_tree + manifest_prune_tracked
+manifest_reset_managed_keys
+mkdir -p "$TEST_DIR/tree-src/nested" "$TEST_DIR/tree-dest/nested"
+echo "active" > "$TEST_DIR/tree-src/nested/active.md"
+echo "stale" > "$TEST_DIR/tree-dest/stale.md"
+_manifest_write "stale.md" "$(_manifest_hash "$TEST_DIR/tree-dest/stale.md")"
+
+manifest_copy_tree "$TEST_DIR/tree-src" "$TEST_DIR/tree-dest" ""
+manifest_prune_tracked "$TEST_DIR/tree-dest" >/dev/null
+
+if [ ! -f "$TEST_DIR/tree-dest/nested/active.md" ]; then
+    echo "FAIL: manifest_copy_tree did not copy active file"
+    exit 1
+fi
+if [ -e "$TEST_DIR/tree-dest/stale.md" ]; then
+    echo "FAIL: manifest_prune_tracked did not prune stale managed file"
+    exit 1
+fi
+if ! grep -q "nested/active.md" "$TEST_DIR/.claude/.install-manifest.json"; then
+    echo "FAIL: manifest_copy_tree did not track active key"
+    exit 1
+fi
+
+echo "manifest_copy_tree/prune: PASS"
+
 # Test idempotent reset: english policy must remove .env.CLAUDE_CONTENT_LANGUAGE
 # left over from a prior non-default selection.
 if command -v jq >/dev/null 2>&1; then

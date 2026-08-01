@@ -64,6 +64,33 @@ Assert-Allow -InputJson '{"tool_input":{"file_path":"config/.env.example"}}' -La
 Assert-Allow -InputJson '{"tool_input":{"file_path":"/app/.ENV.EXAMPLE"}}' -Label 'case-insensitive .env.example -> allow'
 
 Write-Host ''
+Write-Host '[Path normalization + direnv parity (issue #856)]'
+Assert-Deny -InputJson '{"tool_input":{"file_path":".envrc"}}' -Label '.envrc -> deny (direnv config)'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/app/.envrc"}}' -Label 'path-qualified .envrc -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/app/.env "}}' -Label '.env with trailing space -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"keys/secret.key "}}' -Label 'secret.key with trailing space -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"~/.env"}}' -Label 'tilde ~/.env -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"~/.envrc"}}' -Label 'tilde ~/.envrc -> deny'
+# The allow-list is matched against the normalized basename too, so templates
+# must survive the same tilde/whitespace handling that the deny paths apply.
+Assert-Allow -InputJson '{"tool_input":{"file_path":"~/.env.example"}}' -Label 'tilde ~/.env.example -> allow'
+Assert-Allow -InputJson '{"tool_input":{"file_path":"/app/.env.template "}}' -Label '.env.template with trailing space -> allow'
+
+Write-Host ''
+Write-Host '[Bare *.env suffix form (issue #863)]'
+# The suffix form denotes the same artifact as the .env.* dotfile form and is
+# already denied by both Bash-channel guards. The template allow-list asserted
+# in the issue #582 block above is load-bearing for this arm: it must keep
+# winning for .env.example / .env.sample / .env.template now that *.env matches.
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/app/production.env"}}' -Label 'production.env -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/srv/app/staging.env"}}' -Label 'path-qualified staging.env -> deny'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/app/example.env"}}' -Label 'example.env -> deny (not a recognised template form)'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/app/template.env"}}' -Label 'template.env -> deny (not a recognised template form)'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/app/PRODUCTION.ENV"}}' -Label 'PRODUCTION.ENV -> deny (case-folded)'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/app/prod.env.example"}}' -Label 'prod.env.example -> deny (hybrid is not a template)'
+Assert-Deny -InputJson '{"tool_input":{"file_path":"/app/staging.env.sample"}}' -Label 'staging.env.sample -> deny (hybrid is not a template)'
+
+Write-Host ''
 Write-Host '[Certificate/key patterns]'
 Assert-Deny -InputJson '{"tool_input":{"file_path":"certs/server.pem"}}' -Label '.pem -> deny'
 Assert-Deny -InputJson '{"tool_input":{"file_path":"keys/private.key"}}' -Label '.key -> deny'
@@ -98,6 +125,13 @@ Assert-Allow -InputJson '{"tool_input":{"file_path":"src/environment.ts"}}' -Lab
 Assert-Allow -InputJson '{"tool_input":{"file_path":"src/config.json"}}' -Label 'config.json -> allow'
 Assert-Allow -InputJson '{"tool_input":{"file_path":"README.md"}}' -Label 'README.md -> allow'
 Assert-Allow -InputJson '{"tool_input":{"file_path":"package.json"}}' -Label 'package.json -> allow'
+
+Write-Host ''
+Write-Host '[UTF-8 stdin]'
+$koreanText = -join ([char]0xD55C, [char]0xAE00)
+$emoji = [char]::ConvertFromUtf32(0x1F680)
+$utf8Json = '{"tool_input":{"file_path":"src/' + $koreanText + '-' + $emoji + '.txt"}}'
+Assert-Allow -InputJson $utf8Json -Label 'Korean and emoji JSON -> allow'
 
 Write-Host ''
 Write-Host '[Edge cases]'

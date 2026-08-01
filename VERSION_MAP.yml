@@ -5,7 +5,9 @@
 # The /release skill bumps one field at a time via `--target <field>`.
 #
 # Consumers (checked by scripts/check_versions.sh):
-#   suite           -> README.md, README.ko.md (shields.io badge URL)
+#   suite           -> README.md, README.ko.md (shields.io badge URL and
+#                      documented GITHUB_REF pins), bootstrap.sh,
+#                      bootstrap.ps1 (default GITHUB_REF pin)
 #   plugin          -> plugin/.claude-plugin/plugin.json (version)
 #   plugin-lite     -> plugin-lite/.claude-plugin/plugin.json (version)
 #   settings-schema -> global/settings.json, global/settings.windows.json (version)
@@ -18,8 +20,8 @@
 # To bump a version: edit the field here, then run scripts/sync_versions.sh
 # (or /release <field> <new-version>) to propagate to consumers.
 
-suite: 1.11.0
+suite: 1.12.0
 plugin: 2.3.0
 plugin-lite: 1.1.0
-settings-schema: 1.17.0
+settings-schema: 1.17.1
 hooks: 1.1.1

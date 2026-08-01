@@ -41,10 +41,68 @@ if ([string]::IsNullOrEmpty($sessionId)) { $sessionId = 'unknown' }
 $trackerDir = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { [System.IO.Path]::GetTempPath() }
 $tracker = Join-Path $trackerDir ("claude-read-set-{0}" -f $sessionId)
 
-$sensitiveTargetRegex = '(\.env([.\s''"]|$))|((\.ssh)[/\\](id_|[A-Za-z0-9_-]+_(rsa|dsa|ecdsa|ed25519)))|(\.aws[/\\]credentials)|(\.kube[/\\]config)|(/etc/(shadow|sudoers|passwd|hosts))|(\.(pem|key|p12|pfx)(\s|$|[''"]))|([/\\]secrets[/\\])|([/\\]credentials[/\\])'
+# The directory-token arm accepts a bare anchor (start, whitespace, quote,
+# redirect, or `=` for `dd of=`) in addition to a path separator, so relative
+# forms like `> secrets/db.yml` are denied in lockstep with the .sh guard,
+# and covers all three tokens — `passwords` was previously missing even in
+# the separator-anchored form (issue #871).
+# The shell has not expanded pathname globs yet, so `*` and `?` must count as
+# boundaries after `.env`. Otherwise `*.env*` matches no env arm here and can
+# expand over a real env file only after the hook has allowed it (issue #876).
+$sensitiveTargetRegex = '(\.env([.\s''"*?]|$))|((\.ssh)[/\\](id_|[A-Za-z0-9_-]+_(rsa|dsa|ecdsa|ed25519)))|(\.aws[/\\]credentials)|(\.kube[/\\]config)|(/etc/(shadow|sudoers|passwd|hosts))|(\.(pem|key|p12|pfx)(\s|$|[''"]))|((^|[\s/\\''">=])(secrets|credentials|passwords)[/\\])'
+# Bare credential filenames use an explicit trailing shell delimiter rather
+# than `\b`, which would over-match ordinary names such as `credentials.md`.
+$bareCredentialTargetRegex = '(^|[\s/\\''">=])(id_(?:rsa|dsa|ecdsa|ed25519)|credentials)(?=[\s''";|&<>)]|$)'
+$sensitiveTargetRegex = "(?:$sensitiveTargetRegex)|(?:$bareCredentialTargetRegex)"
 
-# Uninspectable patterns — always denied.
-$uninspectableRegex = '\b(python\d?|node|perl|ruby)\s+-(c|e|E)\b|\b(awk|gawk|mawk)\b'
+# Env-file templates (.env.example, .env.example.*, .env.sample, .env.template)
+# are committed on purpose and never carry real secrets; sensitive-file-guard.ps1
+# allows the same four names on the file channel, so denying them here was a
+# cross-channel divergence (issue #866). Applied by masking the template mention
+# out of the text handed to $sensitiveTargetRegex, so a template named alongside
+# a real secret (`cp x .env.example && cp y .env`) still denies on the secret.
+# The placeholder is deliberately dot-free and slash-free so it cannot match any
+# arm of the regex above.
+$envTemplateMention = '(?i)(^|[\s/\\])\.env\.(?:example(?:\.[^\s''";|&]*)?|sample|template)(?=[\s''";|&]|$)'
+function Get-EnvTemplateMasked([string]$text) {
+    return [regex]::Replace($text, $envTemplateMention, '${1}env_template_placeholder')
+}
+
+# Uninspectable patterns — always denied. Inline interpreter code (-c/-e) is
+# opaque and routinely rewrites files, so the arm stays unconditional.
+$uninspectableRegex = '\b(python\d?|node|perl|ruby)\s+-(c|e|E)\b'
+
+# awk is NOT denied on the bare command word. This mirrors the whitelist branch
+# in bash-write-guard.sh: an awk body writes via `print > FILE`, `print >> FILE`
+# or `print | "cmd"`, so only the awk PROGRAM token is inspected and a redirect
+# operator inside it is what denies. Flag values (-F'|', -F '|', -v sep='a|b')
+# are skipped so a field separator never false-positives as a write operator.
+#
+# The previous `\b(awk|gawk|mawk)\b` arm denied EVERY awk invocation, including
+# read-only projections like `ps aux | awk '{print $2}'`. That divergence from
+# the bash guard was pinned in tests/hooks/test-bash-write-guard.ps1 as an
+# approximation artifact; this restores .ps1/.sh parity and unpins it.
+function Get-AwkProgram([string]$cmdLine) {
+    # Quote-aware tokenizer: single-quoted (no escapes, per POSIX shell),
+    # double-quoted (backslash escapes honoured), else a bare word. Escapes must
+    # be handled or `awk "BEGIN{print \"x\" > \"f\"}"` truncates at the first
+    # \" and its redirect goes unseen.
+    $tokens = [regex]::Matches($cmdLine, '''[^'']*''|"(?:\\.|[^"\\])*"|\S+') |
+              ForEach-Object { $_.Value }
+    for ($i = 0; $i -lt $tokens.Count; $i++) {
+        if ($tokens[$i].Trim('"', "'") -notmatch '^(awk|gawk|mawk)$') { continue }
+        $j = $i + 1
+        while ($j -lt $tokens.Count) {
+            $arg = $tokens[$j]
+            if ($arg -match '^(-F|-v|-f|--file)$') { $j += 2; continue }  # flag, value separate
+            if ($arg -match '^(-F|-v|-f).+')       { $j += 1; continue }  # flag, value attached
+            if ($arg -match '^--')                 { $j += 1; continue }
+            if ($arg -match '^-.')                 { $j += 1; continue }
+            break
+        }
+        if ($j -lt $tokens.Count) { Write-Output ($tokens[$j].Trim('"', "'")) }
+    }
+}
 
 # Known write-tool argv heads.
 $writeToolRegex = '\b(tee|cp|mv|install|rsync|scp|dd|truncate|ln|chmod|chown|chgrp|sed\s+-i|sed\s+--in-place)\b'
@@ -62,7 +120,7 @@ function Get-RedirectTarget([string]$cmdLine) {
 
 # Sensitive-target check on any redirect target.
 foreach ($target in (Get-RedirectTarget $cmd)) {
-    if ($target -match $sensitiveTargetRegex) {
+    if ((Get-EnvTemplateMasked $target) -match $sensitiveTargetRegex) {
         New-HookDenyResponse -Reason "Bash write to sensitive file blocked: $target"
         exit 0
     }
@@ -74,10 +132,18 @@ if ($cmd -match $uninspectableRegex) {
     exit 0
 }
 
+# awk: deny only when the program token carries a redirect or pipe operator.
+foreach ($program in (Get-AwkProgram $cmd)) {
+    if ($program -match '[>|]') {
+        New-HookDenyResponse -Reason "Uninspectable file mutation pattern (awk script may write via redirection); use Edit/Write tool instead"
+        exit 0
+    }
+}
+
 # Sensitive-target check via cp/mv/tee/install argument scan: any sensitive
 # pattern preceded by a write tool (best-effort regex).
 if ($cmd -match $writeToolRegex) {
-    if ($cmd -match $sensitiveTargetRegex) {
+    if ((Get-EnvTemplateMasked $cmd) -match $sensitiveTargetRegex) {
         New-HookDenyResponse -Reason "Bash write to sensitive file blocked (write-tool argument matches sensitive pattern)"
         exit 0
     }

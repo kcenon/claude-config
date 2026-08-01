@@ -127,6 +127,50 @@ assert_allow 'git status' "git status"
 assert_allow 'ls -la' "ls -la"
 
 echo ""
+echo "[allow — env file templates (issue #866, file-channel parity)]"
+assert_allow 'cat .env.example' "cat .env.example"
+assert_allow 'cat /app/.env.sample' "cat /app/.env.sample (path-prefixed form)"
+assert_allow 'cat .env.template' "cat .env.template"
+assert_allow 'cat .env.example.local' "cat .env.example.local (suffixed example)"
+assert_allow 'grep API_URL .env.example' "grep in .env.example"
+
+echo ""
+echo "[deny — template allow-list must not widen the bypass surface (#866)]"
+# A literal glob reaching the hook unexpanded must never satisfy the
+# allow-list — `.env.*` would otherwise read every env file in a directory.
+assert_deny 'cat .env.*' "glob .env.* (not an allow-list entry)"
+assert_deny 'cat .env.example*' "glob .env.example* (no dot before wildcard)"
+assert_deny 'cat .env.examplexyz' ".env.examplexyz (not .env.example)"
+# Only .env.example carries a dotted-suffix arm, mirroring the file channel.
+assert_deny 'cat .env.sample.local' ".env.sample.local (no suffix arm for sample)"
+# A prefix before the env token is not a recognised dotfile template (#868).
+assert_deny 'cat prod.env.example' "prod.env.example hybrid"
+assert_deny 'cat staging.env.sample' "staging.env.sample hybrid"
+# The template arm falls through, so later directory checks still apply.
+assert_deny 'cat secrets/.env.example' "template under secrets/ still denied"
+assert_deny 'cat .env.example && cat .env' "template does not launder a chained .env read"
+
+echo ""
+echo "[deny — unexpanded glob bracketing the env token (issue #867)]"
+# The hook sees the command before the shell expands it. A wildcard adjacent
+# to `.env` matches no literal deny arm, so the raw pattern must be caught by
+# its de-globbed remainder or it would read every env file in the directory.
+assert_deny 'cat *.env*' "double-wildcard env glob (the reported bypass)"
+assert_deny 'cat .env*' "trailing glob after .env"
+assert_deny 'cat *.env' "leading glob before .env"
+assert_deny 'cat .env?' "single-char glob after .env"
+assert_deny 'grep SECRET *.env*' "grep double-wildcard env glob"
+assert_deny 'head config/*.env*' "path-prefixed double-wildcard env glob"
+
+echo ""
+echo "[allow — env-mentioning globs that cannot expand to a .env file (#867 precision)]"
+# The de-glob check keys on the .env class specifically, so a wildcard that
+# does not bracket a dotted-env token stays allowed and does not over-deny.
+assert_allow 'cat env*' "env* -- no leading dot, not the .env class"
+assert_allow 'cat *.md' "wildcard over markdown"
+assert_allow 'cat environment.txt' "environment.txt -- env substring, no wildcard, no .env"
+
+echo ""
 echo "[edge — symlink to sensitive (Red Team Vector F)]"
 # Plant an actual .env so realpath has a target to resolve to. The hook's
 # resolve_path follows the symlink, so the deny pattern fires on the real

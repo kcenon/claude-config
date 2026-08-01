@@ -1,0 +1,63 @@
+name: Validate Rule Frontmatter
+
+# Enforces the conditional-loading contract on project/.claude/rules/**/*.md
+# (issue #880): every rule file must either declare `alwaysApply: true` or pair
+# `alwaysApply: false` with a non-catch-all `paths:` trigger.
+#
+# Why this gate exists: the context loader gates a rule file only on its
+# `paths:` globs. `alwaysApply: false` without a `paths:` trigger is therefore
+# not an off switch — it is "no condition", so the file loads in every session
+# of every project initialized from this template. The failure is silent: the
+# file looks deferred and behaves resident.
+#
+# Branch policy: the repo's default CI policy is "main-targeting PRs only", but
+# this validator is a sub-second static check and the defect it catches ships
+# straight to downstream projects, so it also runs on PRs targeting `develop`
+# (same rationale as validate-hooks-doc.yml, issue #481).
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'project/.claude/rules/**'
+      - 'scripts/validate-rule-frontmatter.sh'
+      - '.github/workflows/validate-rule-frontmatter.yml'
+
+jobs:
+  frontmatter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate rule frontmatter
+        run: bash scripts/validate-rule-frontmatter.sh
+
+      - name: Verify the guard detects seeded violations
+        # A validator that never fails is indistinguishable from no validator.
+        # Seed one fixture per violation class in a temp dir and require a
+        # non-zero exit, so a future refactor cannot silently neuter the check.
+        run: |
+          tmp=$(mktemp -d)
+          printf -- '---\nalwaysApply: false\n---\nbody\n'                        > "$tmp/no-paths.md"
+          printf -- '# no frontmatter\n'                                          > "$tmp/no-frontmatter.md"
+          printf -- '---\npaths:\n  - "**/*"\nalwaysApply: false\n---\nbody\n'    > "$tmp/catch-all.md"
+          printf -- '---\ndescription: x\nglobs:\n  - "a/**"\n---\nbody\n'        > "$tmp/wrong-key.md"
+          if bash scripts/validate-rule-frontmatter.sh "$tmp"/*.md; then
+            echo "Guard passed seeded violations — it is not detecting anything" >&2
+            rm -rf "$tmp"
+            exit 1
+          fi
+          echo "Guard correctly rejected all four seeded violation classes"
+          rm -rf "$tmp"
+
+      - name: Verify the guard accepts valid frontmatter
+        # Guard against the opposite failure: a check so strict it rejects
+        # correct files would push authors to disable it.
+        run: |
+          tmp=$(mktemp -d)
+          printf -- '---\nalwaysApply: true\n---\nbody\n'                              > "$tmp/always.md"
+          printf -- '---\nalwaysApply: false\npaths:\n  - "src/**"\n---\nbody\n'        > "$tmp/block-list.md"
+          printf -- '---\nalwaysApply: false\npaths: ["**/*.cpp", "**/*.h"]\n---\nb\n'  > "$tmp/inline-list.md"
+          bash scripts/validate-rule-frontmatter.sh "$tmp"/*.md
+          rm -rf "$tmp"

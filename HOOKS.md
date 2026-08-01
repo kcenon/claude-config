@@ -49,9 +49,9 @@ Hooks are user-defined commands that automatically execute during specific Claud
 
 **Purpose**: Block access to sensitive files like `.env`, `.pem`, `.key`
 
-**Blocked targets**:
-- Extensions: `.env`, `.pem`, `.key`, `.p12`, `.pfx`
-- Directories: `secrets/`, `credentials/`, `passwords/`, `private/`
+**Blocked targets (full global suite)**:
+- Filename patterns: `.env` (incl. `.envrc`, `.env.*`, the `*.env` suffix form such as `production.env`, and non-template `*.env.*` hybrids such as `prod.env.example`), `.pem`, `.key`, `.p12`, `.pfx`, and SSH key basenames `id_rsa`, `id_ed25519`, `id_ecdsa`, `id_dsa` (incl. suffixed variants)
+- Path patterns: `secrets/`, `credentials/`, `passwords/`, plus `credentials` and `config` basenames under `.aws/`. The plugin-only fallback shares the filename set but additionally blocks `private/`; it stands down when the full suite is active (see [Plugin vs Global](docs/plugin-vs-global.md#retained-divergences)).
 
 **Behavior**:
 - Returns JSON with `permissionDecision: "deny"` and exits with code 0
@@ -834,6 +834,12 @@ The Windows profile intentionally keeps these guardrails:
   execution cmdlets, and state-changing `gh` commands are not allowlisted.
 - Sensitive-file deny rules stay in place.
 
+`tests/scripts/test-windows-settings-parity.sh` gates this contract in CI. It
+fails on unexpected drift in top-level settings keys, shared `env` values,
+`permissions.deny`, or the Bash `permissions.allow` surface, while keeping the
+Windows-only PowerShell allowlist and POSIX-only CA-bundle environment variables
+as explicit platform exceptions.
+
 `skipDangerousModePermissionPrompt` only suppresses the extra dangerous-mode
 launch warning. It does not widen `permissions.allow`, and it does not override
 the installed profile's bypass/auto-mode disable settings.
@@ -891,7 +897,7 @@ Hook commands use `pwsh -NoProfile -File` for fast, profile-independent executio
 
 | Hook | File | Description |
 |------|------|-------------|
-| Sensitive File Guard | `sensitive-file-guard.ps1` | Blocks `.env`, `.pem`, `.key` access |
+| Sensitive File Guard | `sensitive-file-guard.ps1` | Blocks the `.env` family (incl. `.envrc`), `.pem`/`.key`/`.p12`/`.pfx`, SSH private keys, AWS credentials, and sensitive directories |
 | Dangerous Command Guard | `dangerous-command-guard.ps1` | Blocks `rm -rf /`, `chmod 777`, pipe execution |
 | Session Logger | `session-logger.ps1` | Logs session start/end/stop events |
 | Cleanup | `cleanup.ps1` | Removes old temp files from `$env:TEMP` |

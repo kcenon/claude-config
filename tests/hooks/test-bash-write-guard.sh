@@ -127,10 +127,77 @@ assert_deny 'true; echo y > .env' "; chain"
 assert_deny 'true && echo y > .env' "&& chain"
 
 echo ""
+echo "[deny — template allow-list must not widen the bypass surface (#866)]"
+# A literal glob reaching the hook unexpanded must never satisfy the
+# allow-list — `.env.*` would otherwise clobber every env file in a directory.
+assert_deny 'echo y > .env.*' "glob .env.* (not an allow-list entry)"
+assert_deny 'echo y > .env.example*' "glob .env.example* (no dot before wildcard)"
+assert_deny 'echo y > .env.examplexyz' ".env.examplexyz (not .env.example)"
+# Only .env.example carries a dotted-suffix arm, mirroring the file channel.
+assert_deny 'tee .env.sample.local' ".env.sample.local (no suffix arm for sample)"
+# A prefix before the env token is not a recognised dotfile template (#868).
+assert_deny 'echo y > prod.env.example' "prod.env.example hybrid"
+assert_deny 'tee staging.env.sample' "staging.env.sample hybrid"
+# The template arm falls through, so later directory checks still apply.
+# Both anchored forms are pinned now that issue #871 closed the relative
+# secrets/ gap this case previously had to route around.
+assert_deny 'echo y > /srv/secrets/.env.example' "template under secrets/ still denied"
+assert_deny 'echo y > secrets/.env.example' "template under relative secrets/ denied"
+assert_deny 'true && echo y > .env.example; echo y > .env' "template does not launder a chained .env write"
+
+echo ""
+echo "[deny — unexpanded glob bracketing the env token (issue #876)]"
+# The hook sees these targets before pathname expansion. Re-checking their
+# de-globbed core closes both redirect and write-tool argv forms.
+assert_deny 'echo y > *.env*' "redirect double-wildcard env glob (the reported bypass)"
+assert_deny 'tee *.env*' "tee double-wildcard env glob (the reported argv bypass)"
+assert_deny 'echo y > .env*' "trailing glob after .env"
+assert_deny 'echo y > *.env' "leading glob before .env"
+assert_deny 'echo y > .env?' "single-char glob after .env"
+assert_deny 'cp payload.txt config/*.env*' "path-prefixed double-wildcard env glob"
+
+echo ""
+echo "[allow — env-mentioning globs that cannot expand to a .env file (#876 precision)]"
+assert_allow 'echo y > env*' "env* -- no leading dot, not the .env class"
+assert_allow 'echo y > *.md' "wildcard over markdown"
+assert_allow 'echo y > environment.txt' "environment.txt -- env substring, no wildcard, no .env"
+
+echo ""
+echo "[deny — relative sensitive-directory writes (issue #871)]"
+# resolve_path leaves a nonexistent relative path relative, so these must be
+# caught by the bare-anchored directory arm, mirroring the read guard.
+assert_deny 'echo y > secrets/db.yml' "redirect into relative secrets/"
+assert_deny 'echo y > credentials/aws.json' "redirect into relative credentials/"
+assert_deny 'tee passwords/list.txt' "tee into relative passwords/"
+assert_deny 'cp payload.txt secrets/db.yml' "cp destination in relative secrets/"
+assert_deny 'echo y > /srv/secrets/db.yml' "absolute secrets/ stays denied"
+
+echo ""
+echo "[deny — bare credential filenames (issue #871 arm-by-arm parity)]"
+assert_deny 'echo y > id_rsa' "planting bare id_rsa in cwd"
+assert_deny 'tee credentials' "overwriting bare credentials filename"
+
+echo ""
+echo "[allow — non-sensitive relative writes stay allowed (#871 precision)]"
+assert_allow 'echo y > build/out.txt' "relative non-sensitive dir"
+assert_allow 'echo y > docs/secrets-of-git.md' "secrets substring without directory boundary"
+assert_allow 'tee notes/password-policy.md' "password substring deliberately not ported to write side"
+
+echo ""
 echo "[allow — write to new, non-sensitive files]"
 NEW_TARGET="$FIXTURE_DIR/new_output.txt"
 assert_allow "echo hello > $NEW_TARGET" "echo > new file"
 assert_allow "tee $NEW_TARGET" "tee new file"
+
+echo ""
+echo "[allow — env file templates (issue #866, file-channel parity)]"
+# Asserted before the read tracker is created below, so these exercise the
+# sensitive-target arm rather than the Read-before-Edit arm.
+assert_allow 'echo y > .env.example' "echo > .env.example"
+assert_allow 'tee .env.sample' "tee .env.sample"
+assert_allow 'echo y > /app/.env.template' "echo > /app/.env.template (path-prefixed form)"
+assert_allow 'echo y > .env.example.local' "echo > .env.example.local (suffixed example)"
+assert_allow 'cp template.txt .env.example' "cp into .env.example"
 
 echo ""
 echo "[allow — read-only commands]"

@@ -23,7 +23,17 @@ alwaysApply: true
 
 ## CI Policy
 
-CI runs only on PRs targeting `main`. Feature PRs to `develop` do not trigger CI.
+CI scope is decided by each workflow's `pull_request` trigger, not by the branch
+model. A `pull_request:` trigger with **no `branches:` filter fires on PRs to every
+base branch, `develop` included** — so unless a workflow explicitly filters to
+`main`, feature PRs to `develop` run it too.
+
+Verify before assuming either way: grep the `branches:` filters under
+`.github/workflows/` rather than relying on this document. Budget accordingly —
+a feature PR to `develop` usually costs a full CI run, not zero.
+
+The "CI gate" invariant (a task is not complete while any `gh pr checks` entry is
+failing, pending, or incomplete) therefore applies to `develop` PRs as well.
 
 ## Enforcement Layers
 

@@ -243,8 +243,10 @@ document:
 2. Each of the four policies produces output containing the expected
    phrase.
 
-The test is wired into `tests/hooks/test-runner.sh` via the standard
-`test-*.sh` glob and runs in CI alongside the hook test suite.
+The test is invoked directly by `.github/workflows/validate-hooks.yml`.
+`tests/scripts/test-ci-wiring.sh` verifies that every
+`tests/scripts/test-*` file is invoked by a workflow run command or recorded
+as a reviewed manual-only exception.
 
 ## Changing Policy After Install
 

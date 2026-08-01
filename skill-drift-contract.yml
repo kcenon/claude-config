@@ -1,0 +1,90 @@
+version: 1
+
+default_watched_fields:
+  - name
+  - description
+  - allowed-tools
+  - disallowed-tools
+  - disable-model-invocation
+  - user-invocable
+  - argument-hint
+  - paths
+  - model
+  - context
+  - agent
+  - severity
+  - finding_levels
+  - iso_class
+  - applies_at_or_above
+  - halt_condition
+  - halt_conditions
+  - on_halt
+  - loop_safe
+
+pairs:
+  - id: plugin-project-api-design
+    source: plugin/skills/api-design/SKILL.md
+    target: project/.claude/skills/api-design/SKILL.md
+    body:
+      mode: exact
+    exceptions:
+      - field: allowed-tools
+        source: null
+        target: [Read, Edit, Write, Glob, Grep, Bash]
+        reason: Project skills may edit local API files; the plugin copy stays declarative for standalone packaging.
+
+  - id: plugin-project-ci-debugging
+    source: plugin/skills/ci-debugging/SKILL.md
+    target: project/.claude/skills/ci-debugging/SKILL.md
+    body:
+      mode: exact
+
+  - id: plugin-project-coding-guidelines
+    source: plugin/skills/coding-guidelines/SKILL.md
+    target: project/.claude/skills/coding-guidelines/SKILL.md
+    body:
+      mode: exact
+    exceptions:
+      - field: allowed-tools
+        source: null
+        target: [Read, Edit, Write, Glob, Grep]
+        reason: Project skills may edit local code while the plugin copy inherits its runtime tool surface.
+
+  - id: plugin-project-documentation
+    source: plugin/skills/documentation/SKILL.md
+    target: project/.claude/skills/documentation/SKILL.md
+    body:
+      mode: exact
+    exceptions:
+      - field: allowed-tools
+        source: null
+        target: [Read, Write, Edit, Glob]
+        reason: Project documentation updates need local write tools; the plugin copy remains package-level guidance.
+
+  - id: plugin-project-performance-review
+    source: plugin/skills/performance-review/SKILL.md
+    target: project/.claude/skills/performance-review/SKILL.md
+    body:
+      mode: exact
+
+  - id: plugin-project-project-workflow
+    source: plugin/skills/project-workflow/SKILL.md
+    target: project/.claude/skills/project-workflow/SKILL.md
+    body:
+      mode: ignore
+      reason: Project workflow loads project-local reference modules; plugin workflow keeps plugin-packaged references.
+    exceptions:
+      - field: allowed-tools
+        source: null
+        target: [Read, Write, Edit, Glob, Grep, Bash]
+        reason: Project workflow automates local issue and PR work; plugin workflow remains a portable guidance skill.
+      - field: model
+        source: null
+        target: sonnet
+        reason: Project workflow pins Sonnet for local orchestration; plugin workflow inherits the caller default.
+
+  - id: plugin-project-security-audit
+    source: plugin/skills/security-audit/SKILL.md
+    target: project/.claude/skills/security-audit/SKILL.md
+    body:
+      mode: exact
