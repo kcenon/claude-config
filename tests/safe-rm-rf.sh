@@ -10,6 +10,7 @@
 # Coverage (matches the issue acceptance criteria):
 #   - relative path resolution
 #   - symlink pointing outside the allow-listed prefix
+#   - broken symlink rejection
 #   - `..` traversal
 #   - `$HOME` direct
 #   - `/` direct
@@ -29,11 +30,13 @@ if [ ! -f "$HELPER" ]; then
     exit 1
 fi
 
-# Test sandbox lives under /tmp/claude-config-* — itself an allow-listed
-# prefix, which is convenient: positive tests that delete real fixtures
-# can run inside the sandbox without tripping the guard.
-SANDBOX="$(mktemp -d -t claude-config-tests.XXXXXX)"
-trap 'rm -rf "$SANDBOX"' EXIT
+# Anchor fixtures under canonical /tmp rather than the platform-dependent
+# mktemp default. macOS sets TMPDIR under /var/folders and resolves /tmp to
+# /private/tmp; Linux normally keeps /tmp unchanged.
+TMP_ROOT="$(realpath -- /tmp)"
+SANDBOX="$(mktemp -d "$TMP_ROOT/claude-config-tests.XXXXXX")"
+OUTSIDE_SANDBOX="$(mktemp -d "$TMP_ROOT/safe-rm-outside.XXXXXX")"
+trap 'rm -rf -- "$SANDBOX" "$OUTSIDE_SANDBOX"' EXIT
 
 PASS=0
 FAIL=0
@@ -73,7 +76,7 @@ test_empty_arg() {
 test_nonexistent() {
     # shellcheck disable=SC1090
     source "$HELPER"
-    safe_rm_rf "/tmp/this-path-must-not-exist-$$"
+    safe_rm_rf "$SANDBOX/this-path-must-not-exist"
 }
 
 # 3. Root path -> refused.
@@ -91,11 +94,13 @@ test_home_refused() {
     safe_rm_rf "$HOME"
 }
 
-# 5. Path outside allow-list (e.g. /etc) -> refused.
+# 5. Existing path outside the allow-list -> refused.
 test_outside_refused() {
+    local fixture="$OUTSIDE_SANDBOX/outside-file"
+    touch "$fixture"
     # shellcheck disable=SC1090
     source "$HELPER"
-    safe_rm_rf "/etc/hostname"
+    safe_rm_rf "$fixture"
 }
 
 # 6. `..` traversal that escapes the allow-list -> refused after
@@ -103,28 +108,26 @@ test_outside_refused() {
 #    look like an allow-listed location, but `..` segments resolve it
 #    back to a non-allow-listed parent.
 test_dotdot_traversal_refused() {
-    # Create a fixture in /tmp directly using a name that is NOT
-    # /tmp/claude-* nor /tmp/claude-config-*, so resolving back to
-    # the fixture root escapes the allow-list.
-    local outside_root
-    outside_root="$(mktemp -d -t safe-rm-outside.XXXXXX)"
+    # Use a fixture whose basename is not claude-* so resolving back to the
+    # fixture root escapes the allow-list on both Linux and macOS.
+    local outside_root="$OUTSIDE_SANDBOX/dotdot-root"
     mkdir -p "$outside_root/.claude/inner"
     # shellcheck disable=SC1090
     source "$HELPER"
     local rc=0
     # Lexically contains /.claude/, but `../..` resolves to outside_root
-    # itself (e.g. /tmp/safe-rm-outside.*) — not allow-listed.
+    # itself — not an allow-listed claude-* target.
     safe_rm_rf "$outside_root/.claude/inner/../.." || rc=$?
-    rm -rf "$outside_root"
     return "$rc"
 }
 
 # 7. Symlink pointing outside the allow-list -> refused. The link itself
-#    lives in an allow-listed prefix, but realpath -e follows it to /etc.
+#    lives in an allow-listed prefix, but realpath follows it outside.
 test_symlink_outside_refused() {
-    local link="/tmp/claude-config-symlink-$$"
-    rm -f "$link"
-    ln -s "/etc" "$link"
+    local target="$OUTSIDE_SANDBOX/symlink-target"
+    local link="$SANDBOX/symlink-case"
+    mkdir -p "$target"
+    ln -s "$target" "$link"
     # shellcheck disable=SC1090
     source "$HELPER"
     local rc=0
@@ -133,7 +136,20 @@ test_symlink_outside_refused() {
     return "$rc"
 }
 
-# 8. Allow-listed path under /tmp/claude-config-* -> succeeds.
+# 8. Broken symlink -> refused consistently even when realpath permits a
+#    missing final component by default (GNU behavior without -e).
+test_broken_symlink_refused() {
+    local link="$SANDBOX/broken-symlink"
+    ln -s "$OUTSIDE_SANDBOX/missing-target" "$link"
+    # shellcheck disable=SC1090
+    source "$HELPER"
+    local rc=0
+    safe_rm_rf "$link" || rc=$?
+    rm -f "$link"
+    return "$rc"
+}
+
+# 9. Allow-listed path under /tmp/claude-config-* -> succeeds.
 test_allowlisted_tmp_succeeds() {
     local fixture="$SANDBOX/positive-case"
     mkdir -p "$fixture/sub"
@@ -144,7 +160,7 @@ test_allowlisted_tmp_succeeds() {
     [ ! -e "$fixture" ]
 }
 
-# 9. Relative path that resolves into an allow-listed prefix -> succeeds.
+# 10. Relative path that resolves into an allow-listed prefix -> succeeds.
 #    Verifies realpath promotion, not just literal prefix match.
 test_relative_path_succeeds() {
     local fixture="$SANDBOX/relative-case"
@@ -155,11 +171,13 @@ test_relative_path_succeeds() {
     [ ! -e "$fixture/inner" ]
 }
 
-# 10. Relative path that resolves OUTSIDE the allow-list -> refused.
+# 11. Relative existing path that resolves OUTSIDE the allow-list -> refused.
 test_relative_path_refused() {
+    local fixture="$OUTSIDE_SANDBOX/relative-file"
+    touch "$fixture"
     # shellcheck disable=SC1090
     source "$HELPER"
-    ( cd /etc && safe_rm_rf "./hostname" )
+    ( cd "$OUTSIDE_SANDBOX" && safe_rm_rf "./relative-file" )
 }
 
 # ---------------------------------------------------------------------
@@ -177,6 +195,7 @@ run_test "\$HOME refused"                    1 test_home_refused
 run_test "outside allow-list refused"        1 test_outside_refused
 run_test ".. traversal refused"              1 test_dotdot_traversal_refused
 run_test "symlink to outside refused"        1 test_symlink_outside_refused
+run_test "broken symlink refused"            1 test_broken_symlink_refused
 run_test "allow-listed path succeeds"        0 test_allowlisted_tmp_succeeds
 run_test "relative path inside succeeds"     0 test_relative_path_succeeds
 run_test "relative path outside refused"     1 test_relative_path_refused

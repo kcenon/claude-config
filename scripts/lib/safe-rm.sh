@@ -39,10 +39,11 @@
 #                                  — bootstrap.sh INSTALL_DIR default and
 #                                   backup.sh BACKUP_DIR (project clone
 #                                   acting as a backup carrier)
-#   4. /tmp/claude-*               — sha256-pinned installer scratch
-#                                   files from bootstrap.sh ensure_claude_cli
-#   5. /tmp/claude-config-*        — test fixtures created by tests/
-#                                   safe-rm-rf.sh and other suites
+#   4. /tmp/claude-*               — sha256-pinned installer scratch files
+#                                   and /tmp/claude-config-* test fixtures
+#
+# Both the deletion target and the fixed allow-list roots are canonicalized.
+# This matters on systems such as macOS where /tmp resolves to /private/tmp.
 # =====================================================================
 
 # Idempotency guard: avoid redefining the function or duplicating
@@ -67,22 +68,39 @@ safe_rm_rf() {
         return 0
     fi
 
-    local target
-    # `realpath -e` requires every component to exist and follows
-    # symlinks. This collapses `..` traversal and resolves symlinks
-    # before the allow-list check, so a symlinked redirect cannot
-    # bypass the guard.
-    target=$(realpath -e "$raw") || {
+    local target home_root tmp_root
+    # The existence guard above lets us use portable `realpath` without
+    # GNU-only `-e`. It follows symlinks and collapses `..` traversal before
+    # the allow-list check, so a symlinked redirect cannot bypass the guard.
+    target=$(realpath -- "$raw") || {
         echo "safe_rm_rf: cannot resolve $raw" >&2
+        return 1
+    }
+    # GNU realpath permits a missing final component unless `-e` is used.
+    # Preserve the original all-components-must-exist contract explicitly so
+    # broken symlinks fail closed on every implementation.
+    if [ ! -e "$target" ]; then
+        echo "safe_rm_rf: cannot resolve $raw" >&2
+        return 1
+    fi
+
+    # Compare canonical paths to canonical roots. Comparing the resolved
+    # target with literal /tmp breaks on macOS, where /tmp is a symlink to
+    # /private/tmp; HOME can likewise be reached through a symlinked prefix.
+    home_root=$(realpath -- "$HOME") || {
+        echo "safe_rm_rf: cannot resolve HOME allow-list root" >&2
+        return 1
+    }
+    tmp_root=$(realpath -- /tmp) || {
+        echo "safe_rm_rf: cannot resolve /tmp allow-list root" >&2
         return 1
     }
 
     case "$target" in
-        "$HOME"/.claude/*) ;;
-        "$HOME"/.claude-backup/*) ;;
-        "$HOME"/claude_config_backup/*) ;;
-        /tmp/claude-*) ;;
-        /tmp/claude-config-*) ;;
+        "$home_root"/.claude/*) ;;
+        "$home_root"/.claude-backup/*) ;;
+        "$home_root"/claude_config_backup/*) ;;
+        "$tmp_root"/claude-*) ;;
         *)
             echo "safe_rm_rf: refused — $target is outside allow-listed prefix" >&2
             return 1

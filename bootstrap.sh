@@ -134,7 +134,7 @@ error() { echo -e "${RED}❌ $1${NC}"; exit 1; }
 # scripts/lib/safe-rm.sh is unavailable when clone_repository() removes
 # a stale $INSTALL_DIR. The function is intentionally inlined here and
 # kept byte-equivalent in semantics with scripts/lib/safe-rm.sh.
-# Resolves the canonical path via `realpath -e`, then asserts it lies
+# Resolves the canonical path via portable `realpath`, then asserts it lies
 # under an allow-listed prefix before deleting. See safe-rm.sh for the
 # full threat model and allow-list rationale.
 safe_rm_rf() {
@@ -147,17 +147,28 @@ safe_rm_rf() {
     if [ ! -e "$raw" ] && [ ! -L "$raw" ]; then
         return 0
     fi
-    local target
-    target=$(realpath -e "$raw") || {
+    local target home_root tmp_root
+    target=$(realpath -- "$raw") || {
         echo "safe_rm_rf: cannot resolve $raw" >&2
         return 1
     }
+    if [ ! -e "$target" ]; then
+        echo "safe_rm_rf: cannot resolve $raw" >&2
+        return 1
+    fi
+    home_root=$(realpath -- "$HOME") || {
+        echo "safe_rm_rf: cannot resolve HOME allow-list root" >&2
+        return 1
+    }
+    tmp_root=$(realpath -- /tmp) || {
+        echo "safe_rm_rf: cannot resolve /tmp allow-list root" >&2
+        return 1
+    }
     case "$target" in
-        "$HOME"/.claude/*) ;;
-        "$HOME"/.claude-backup/*) ;;
-        "$HOME"/claude_config_backup/*) ;;
-        /tmp/claude-*) ;;
-        /tmp/claude-config-*) ;;
+        "$home_root"/.claude/*) ;;
+        "$home_root"/.claude-backup/*) ;;
+        "$home_root"/claude_config_backup/*) ;;
+        "$tmp_root"/claude-*) ;;
         *)
             echo "safe_rm_rf: refused — $target is outside allow-listed prefix" >&2
             return 1

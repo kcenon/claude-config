@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `safe_rm_rf` now makes the same allow-list decision on Linux and macOS.
+  Both deletion targets and the fixed `HOME`/`/tmp` roots are canonicalized,
+  so macOS's `/tmp -> /private/tmp` symlink no longer rejects legitimate
+  `claude-*` scratch paths. The helper also uses portable `realpath` instead of
+  GNU-only `realpath -e`; an explicit resolved-target existence check preserves
+  fail-closed behavior for broken symlinks. The regression suite now builds
+  outside fixtures beneath canonical `/tmp`, avoids platform-specific
+  `/etc/hostname`, runs in the Linux/macOS `validate-hooks` matrix, and is no
+  longer classified as manual-only (#851).
 - `bash-write-guard.ps1` no longer denies read-only `awk`. The uninspectable arm
   matched the bare command word `\b(awk|gawk|mawk)\b`, so every awk invocation was
   denied regardless of what the program did — `ps aux | awk '{print $2}'` and
