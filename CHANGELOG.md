@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `HOOKS.md` now scopes sensitive-file targets to the full global suite, lists
+  its SSH-key and AWS-credential patterns, and identifies the plugin-only
+  `private/` addition and stand-down behavior instead of presenting the union
+  of both guards as one pattern set (#861).
 - `docs/deep-audit-2026-05-29.md` now reconciles all 20 findings in the
   `hooks-parity`, `settings-schema`, and `hooks-correctness` clusters against
   the current working tree and landed PRs. The dated status log replaces the
