@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `tests/issue-work/test-triage.sh` now creates its scratch directory from an
+  explicit `${TMPDIR:-/tmp}/iw-triage-test.XXXXXX` template, matching the four
+  sibling Bash suites and remaining usable when a sandbox exposes a writable
+  temp root outside the system default (#873).
 - The `issue-work` PowerShell ports now route every git invocation through
   their stage-specific wrapper (`_workspace_git`, `_agents_git`, or
   `_cleanup_git`) instead of leaving those wrappers unused while bypassing

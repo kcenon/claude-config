@@ -31,7 +31,10 @@ PASS=0
 FAIL=0
 ERRORS=()
 
-WORK="$(mktemp -d)"
+# Explicit template (rather than a bare `mktemp -d`) so this suite is stable
+# under sandboxes that restrict the OS default temp directory but expose
+# $TMPDIR, as well as under plain CI runners where $TMPDIR is unset.
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/iw-triage-test.XXXXXX")"
 # A committed gh shadow lets triage.sh call "$GH_BIN" directly.
 GHBIN="$WORK/gh"
 cp "$FAKE_SRC" "$GHBIN"
