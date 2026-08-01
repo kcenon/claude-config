@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The PowerShell Bash-channel guards now match their shell counterparts for
+  relative `secrets/`, `credentials/`, and `passwords/` reads plus bare SSH-key
+  and `credentials` read-write targets, while delimiter-aware boundaries keep
+  ordinary names such as `credentials.md` allowed (#878).
 - The Bash write guards now reject unexpanded `*`/`?` targets that bracket an
   env-file token, closing redirect and write-tool forms such as
   `echo y > *.env*` and `tee *.env*` while preserving ordinary globs and the
