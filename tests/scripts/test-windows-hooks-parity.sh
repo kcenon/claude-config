@@ -4,6 +4,15 @@
 # (event, matcher, hook-script-basename) tuple from each file and
 # asserts the sets are equal.
 #
+# Windows registers its PreToolUse/Bash guards through
+# global/hooks/bash-guard-dispatcher.ps1 (one process instead of 15). A naive
+# basename diff would then compare 14 POSIX guards against a single
+# "bash-guard-dispatcher" entry and report drift for every guard, which would
+# force an allow-list so broad that the test stops guaranteeing anything.
+# Instead the dispatcher entry is EXPANDED to the guard names in its routing
+# table, so the parity guarantee is preserved exactly: a guard dropped from the
+# routing table, or added on POSIX but never routed on Windows, still fails.
+#
 # Run: bash tests/scripts/test-windows-hooks-parity.sh
 
 set -uo pipefail
@@ -31,6 +40,29 @@ fi
 DIFF=$("$PYTHON" - <<'PY' "$UNIX_JSON" "$WIN_JSON"
 import json, os, re, sys
 
+DISPATCHER_BASE = "bash-guard-dispatcher"
+DISPATCHER_PATH = "global/hooks/bash-guard-dispatcher.ps1"
+
+
+def dispatcher_guards():
+    """Guard names listed in the dispatcher's routing table.
+
+    The dispatcher is the sole PreToolUse/Bash hook on Windows, so its routing
+    table — not the settings file — is where a guard can silently go missing.
+    Parsing it here is what keeps this test a real parity guarantee.
+    """
+    if not os.path.exists(DISPATCHER_PATH):
+        print(f"missing dispatcher referenced by settings: {DISPATCHER_PATH}")
+        sys.exit(1)
+    with open(DISPATCHER_PATH, encoding="utf-8") as f:
+        src = f.read()
+    names = set(re.findall(r"name\s*=\s*'([A-Za-z0-9_.-]+)'", src))
+    if not names:
+        print(f"no guards parsed from routing table in {DISPATCHER_PATH}")
+        sys.exit(1)
+    return names
+
+
 def extract(path):
     with open(path) as f:
         data = json.load(f)
@@ -45,6 +77,12 @@ def extract(path):
                 # multiple scripts).
                 for m in re.finditer(r'([A-Za-z0-9_.-]+?)\.(?:sh|ps1)', cmd):
                     base = m.group(1)
+                    if base == DISPATCHER_BASE:
+                        # Compare against what the dispatcher actually runs,
+                        # not against the dispatcher's own name.
+                        for guard in dispatcher_guards():
+                            tuples.add((event, matcher, guard))
+                        continue
                     # Collapse common pairs: session-logger.sh start vs
                     # session-logger.ps1 start — strip trailing args by
                     # basename alone.

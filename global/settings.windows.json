@@ -2,34 +2,29 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "description": "Claude Code Global Settings (Windows) - Applied to all projects (permissions.deny for security). NOTE: the sandbox block below (sandbox.network.allowedDomains, sandbox.excludedCommands) is inert on Windows - the sandbox does not run on this platform (see core/environment.md), so permissions.allow/deny matching is the only active command gate; the env-secret leak channel is covered by hooks/shell-env-secret-guard.ps1.",
   "version": "1.17.1",
-
   "respectGitignore": true,
   "cleanupPeriodDays": 30,
-
   "minimumVersion": "2.2.0",
   "worktree": {
     "baseRef": "head"
   },
-
   "language": "korean",
-
   "outputStyle": "Explanatory",
-
   "showTurnDuration": true,
-
   "attribution": {
     "commit": "",
     "pr": ""
   },
-
   "enableAllProjectMcpServers": false,
   "enabledMcpjsonServers": [],
-
   "sandbox": {
     "enabled": true,
     "autoAllowBashIfSandboxed": true,
     "allowUnsandboxedCommands": true,
-    "excludedCommands": ["docker", "watchman"],
+    "excludedCommands": [
+      "docker",
+      "watchman"
+    ],
     "network": {
       "allowedDomains": [
         "github.com",
@@ -43,12 +38,14 @@
       "allowLocalBinding": true
     }
   },
-
   "spinnerVerbs": {
     "mode": "append",
-    "verbs": ["Analyzing", "Reviewing", "Composing"]
+    "verbs": [
+      "Analyzing",
+      "Reviewing",
+      "Composing"
+    ]
   },
-
   "statusLine": {
     "type": "command",
     "command": "pwsh.exe -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.claude\\scripts\\statusline-command.ps1')\"",
@@ -56,14 +53,12 @@
   },
   "alwaysThinkingEnabled": true,
   "teammateMode": "in-process",
-
   "autoUpdatesChannel": "latest",
   "skipDangerousModePermissionPrompt": true,
   "effortLevel": "high",
   "includeGitInstructions": false,
   "skillListingBudgetFraction": 0.02,
   "disableSkillShellExecution": true,
-
   "hooks": {
     "PreToolUse": [
       {
@@ -92,78 +87,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/dangerous-command-guard.ps1",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/bash-sensitive-read-guard.ps1",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/shell-env-secret-guard.ps1",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/bash-write-guard.ps1",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/gh-write-verb-guard.ps1",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/github-api-preflight.ps1",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/markdown-anchor-validator.ps1",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/bash-guard-dispatcher.ps1",
             "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/commit-message-guard.ps1",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/traceability-guard.ps1",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/conflict-guard.ps1",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/pr-target-guard.ps1",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/push-target-guard.ps1",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/pr-language-guard.ps1",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/merge-gate-guard.ps1",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/attribution-guard.ps1",
-            "timeout": 5
           }
         ]
       },
@@ -429,14 +354,12 @@
       }
     ]
   },
-
   "env": {
     "MAX_MCP_OUTPUT_TOKENS": "50000",
     "ENABLE_TOOL_SEARCH": "auto:10",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "MAX_TEAMS": "5"
   },
-
   "permissions": {
     "defaultMode": "default",
     "disableBypassPermissionsMode": "disable",

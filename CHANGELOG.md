@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `global/hooks/bash-guard-dispatcher.ps1` is now shipped from the repository
+  and registered as the sole `PreToolUse`/`Bash` hook in
+  `global/settings.windows.json`, replacing 15 separate registrations. Each
+  registration spawned its own `pwsh -NoProfile`, so one Bash tool call started
+  15 processes; the dispatcher pays that cost once and invokes only the guards
+  whose command family is present. Measured on the Windows profile (5 runs
+  each): 15-hook registration p50 1,002ms (spread 919-1,063ms) versus
+  dispatcher p50 541ms (spread 529-549ms). The 1,002ms baseline matches the
+  p50 observed in session transcripts, so the bench tracks the shipped path.
+  The collapsed spread matters as much as the median: the same scan window
+  recorded 90 hook timeouts (81 Bash, 6 Read, 3 Edit), which are the tail of
+  process contention rather than slow guard logic.
+  The caveat from the 2026-07-27 attempt is unchanged: an isolated bench is not
+  a session measurement, and that attempt's 863->446ms never reproduced in real
+  sessions. Re-measure from transcript p50 once several hundred calls have
+  accumulated.
+- `tests/hooks/test-bash-guard-dispatcher.ps1` (9 assertions) covering routing,
+  fail-closed behaviour, and - the property no decision-only assertion can see -
+  that the payload actually reaches each guard. Verified by mutation: with the
+  cache below reverted, a benign `git status --short` is denied and the suite
+  fails 2 assertions.
+
+### Changed
+
+- `Read-HookInput` (`global/hooks/lib/CommonHelpers.psm1`) caches its parsed
+  payload for the lifetime of the process. stdin can only be drained once, so
+  when the dispatcher reads it and then invokes guards in-process, the guards'
+  own `Read-HookInput` calls would otherwise see `$null` - fail-closed guards
+  denying every call, fail-open guards silently no longer checking. The cache
+  is in the GLOBAL scope on purpose: every guard re-imports the module with
+  `-Force`, which resets module scope. Guards invoked standalone run in a fresh
+  process, so they read stdin exactly as before (200 assertions across the five
+  existing `.ps1` guard suites pass unchanged).
+  This replaces the 2026-07-27 approach of adding a `-HookInput` parameter to
+  all 15 guards, whose revert surface was 15 files; all 15 had in fact been
+  reverted to their pre-consolidation contents by 2026-08-01, leaving the
+  dispatcher unwireable.
+- `bash-guard-dispatcher.ps1` now fails CLOSED on unparseable input, matching
+  `dangerous-command-guard`, which denies on the same condition. Allowing there
+  would have quietly weakened that guarantee once the guards stopped being
+  registered individually.
+- `tests/scripts/test-windows-hooks-parity.sh` expands a `bash-guard-dispatcher`
+  registration to the guard names in the dispatcher's routing table before
+  diffing. Comparing 14 POSIX guards against one dispatcher entry would
+  otherwise have required an allow-list broad enough to void the test; the
+  parity guarantee is instead preserved at the routing table, where a guard can
+  now actually go missing. Verified by mutation: dropping `push-target-guard`
+  from the routing table fails the test and names that guard.
+
+### Known limitation
+
+- The POSIX channel (`global/settings.json`) still registers its 14 `.sh`
+  guards individually. The same stdin-drain constraint applies there, so a
+  `.sh` dispatcher needs its own payload-passing mechanism and its own
+  verification; shipping one unvalidated alongside a Windows-only measurement
+  would be guesswork. Tracked as follow-up.
+
 ## 1.12.0 - 2026-08-01
 
 ### Added
