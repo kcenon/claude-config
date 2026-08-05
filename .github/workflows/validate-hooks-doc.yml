@@ -52,10 +52,21 @@ jobs:
 
       - name: Audit .sh / .ps1 parity
         run: |
+          # Guards ship as a .sh/.ps1 pair so neither platform silently lacks a
+          # protection. Dispatchers are exempt: a dispatcher is a per-platform
+          # execution strategy, not policy. bash-guard-dispatcher.ps1 exists
+          # because 15 pwsh cold starts per Bash call dominated hook latency;
+          # POSIX spawns a cheap bash per guard and has nothing to consolidate,
+          # so a .sh twin would be a dormant unwired file - precisely what this
+          # audit exists to catch. Windows guard COVERAGE is not weakened: it is
+          # enforced by tests/scripts/test-windows-hooks-parity.sh, which diffs
+          # the dispatcher's routing table against the POSIX registrations, so a
+          # guard dropped from the routing table still fails CI.
           missing=0
           sh_count=0
           ps_count=0
           for sh in global/hooks/*.sh; do
+            case "$sh" in */*-dispatcher.sh) continue ;; esac
             sh_count=$((sh_count + 1))
             base=$(basename "$sh" .sh)
             ps="global/hooks/${base}.ps1"
@@ -65,6 +76,7 @@ jobs:
             fi
           done
           for ps in global/hooks/*.ps1; do
+            case "$ps" in */*-dispatcher.ps1) continue ;; esac
             ps_count=$((ps_count + 1))
             base=$(basename "$ps" .ps1)
             sh="global/hooks/${base}.sh"
@@ -82,8 +94,10 @@ jobs:
 
       - name: Verify COMPATIBILITY.md parity count
         run: |
-          sh_count=$(find global/hooks -maxdepth 1 -type f -name '*.sh' | wc -l | tr -d ' ')
-          ps_count=$(find global/hooks -maxdepth 1 -type f -name '*.ps1' | wc -l | tr -d ' ')
+          # Dispatchers are excluded here for the same reason as the audit
+          # above: the row states guard parity, and a dispatcher is not a guard.
+          sh_count=$(find global/hooks -maxdepth 1 -type f -name '*.sh' ! -name '*-dispatcher.sh' | wc -l | tr -d ' ')
+          ps_count=$(find global/hooks -maxdepth 1 -type f -name '*.ps1' ! -name '*-dispatcher.ps1' | wc -l | tr -d ' ')
           expected="| \`global/hooks/*.sh\` | ${sh_count} | ${ps_count} | ${ps_count}/${sh_count} (100%) |"
           if ! grep -Fqx "$expected" COMPATIBILITY.md; then
             echo "COMPATIBILITY.md hook parity row is stale." >&2

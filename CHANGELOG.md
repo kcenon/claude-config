@@ -50,6 +50,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `dangerous-command-guard`, which denies on the same condition. Allowing there
   would have quietly weakened that guarantee once the guards stopped being
   registered individually.
+- The `.sh`/`.ps1` parity audit in `.github/workflows/validate-hooks-doc.yml`
+  and its `COMPATIBILITY.md` count now exempt `global/hooks/*-dispatcher.*`. The
+  audit's premise is that every file there is a guard with a per-platform
+  implementation; a dispatcher is an execution strategy instead. A `.sh` twin
+  would be a dormant unwired file, which is the condition the audit exists to
+  catch, and POSIX has nothing to consolidate anyway (a cheap `bash` per guard,
+  not a `pwsh` cold start). The guard twin rule is unchanged - an unpaired guard
+  still fails - and Windows guard coverage moves to the routing-table check
+  below rather than disappearing. Guard counts stay 38/38, so the
+  `COMPATIBILITY.md` parity row is unchanged.
 - `tests/scripts/test-windows-hooks-parity.sh` expands a `bash-guard-dispatcher`
   registration to the guard names in the dispatcher's routing table before
   diffing. Comparing 14 POSIX guards against one dispatcher entry would

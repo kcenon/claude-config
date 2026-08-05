@@ -248,14 +248,16 @@ The README v1.7.0 changelog originally claimed "All 42 bash scripts now have Pow
 |---|---:|---:|---:|
 | `global/hooks/*.sh` | 38 | 38 | 38/38 (100%) |
 
-The `*.sh` ↔ `*.ps1` mapping is 1:1; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if the counts diverge. The same job also compares this hardcoded table against the live hook count so the documented coverage cannot drift silently.
+The `*.sh` ↔ `*.ps1` mapping is 1:1 for guards; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if the counts diverge. The same job also compares this hardcoded table against the live hook count so the documented coverage cannot drift silently.
+
+Dispatchers (`global/hooks/*-dispatcher.*`) are excluded from both counts. A dispatcher is a per-platform execution strategy rather than a policy guard: `bash-guard-dispatcher.ps1` exists because 15 `pwsh` cold starts per Bash tool call dominated hook latency, whereas POSIX spawns a cheap `bash` per guard and has nothing to consolidate. A `.sh` twin would therefore be a dormant unwired file — the exact condition this audit exists to catch. Windows guard coverage is enforced separately by `tests/scripts/test-windows-hooks-parity.sh`, which diffs the dispatcher's routing table against the POSIX registrations.
 
 Behavioral PowerShell hook coverage runs twice: the Linux/macOS hook workflow
 executes `tests/hooks/test-runner.ps1` under `pwsh`, and the native Windows job
 executes the same runner on `windows-latest` to catch Windows console encoding,
 path, and shell behavior differences.
 
-The script that produces the live count: `bash -c 'b=$(ls global/hooks/*.sh | wc -l); p=$(ls global/hooks/*.ps1 | wc -l); echo "$p/$b"'`.
+The script that produces the live count: `bash -c 'b=$(find global/hooks -maxdepth 1 -type f -name "*.sh" ! -name "*-dispatcher.sh" | wc -l); p=$(find global/hooks -maxdepth 1 -type f -name "*.ps1" ! -name "*-dispatcher.ps1" | wc -l); echo "$p/$b"'`.
 
 #### Cross-platform `timeout` fallback (`global/hooks/lib/timeout-wrapper.sh`)
 
