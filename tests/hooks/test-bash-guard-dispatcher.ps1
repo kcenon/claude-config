@@ -108,7 +108,11 @@ Assert-ReasonMatches    -InputJson $prToMain  -Pattern 'pr-target-guard' `
     -Label 'gh-family deny is attributed to pr-target-guard'
 
 Write-Host ''
-Write-Host "Passed: $script:Passed  Failed: $script:Failed"
+# Emit the summary in the repo-standard shape. test-runner.ps1 aggregates with
+# /(\d+)\s+passed/ and /(\d+)\s+failed/, and PowerShell -match is
+# case-insensitive, so a "Passed: N  Failed: M" line has its N read as the
+# FAILED count ("N  Failed" matches the second pattern).
+Write-Host "=== Results: $($script:Passed) passed, $($script:Failed) failed ==="
 if ($script:Failed -gt 0) {
     Write-Host ''
     $script:Errors | ForEach-Object { Write-Host $_ -ForegroundColor Red }
