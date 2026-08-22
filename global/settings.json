@@ -137,22 +137,22 @@
     "PreToolUse": [
       {
         "matcher": "Edit|Write|Read",
-        "_note": "Hook order is load-bearing: sensitive-file-guard must run before pre-edit-read-guard so denied files are not tracked. memory-write-guard runs after pre-edit-read-guard so it only validates writes the harness has cleared. See docs/hooks-ownership.md and issues #424, #521.",
+        "_note": "Hook order is load-bearing: sensitive-file-guard must run before pre-edit-read-guard so denied files are not tracked. memory-write-guard runs after pre-edit-read-guard so it only validates writes the harness has cleared. See docs/hooks-ownership.md and issues #424, #521. Timeout is 30s rather than the 5s default: a PreToolUse timeout is fail-OPEN - the harness cancels the hook and the tool call proceeds - so an under-budgeted security guard is silently skipped, never denied. Across 35,276 local hook runs on this matcher the median is 429ms and p99 is 1,020ms, but four contention bursts timed out all three guards of a single call together, peaking at 11,141ms. 30s covers every observed case and matches the Bash channel. See issue #897.",
         "hooks": [
           {
             "type": "command",
             "command": "~/.claude/hooks/sensitive-file-guard.sh",
-            "timeout": 5
+            "timeout": 30
           },
           {
             "type": "command",
             "command": "~/.claude/hooks/pre-edit-read-guard.sh",
-            "timeout": 5
+            "timeout": 30
           },
           {
             "type": "command",
             "command": "~/.claude/hooks/memory-write-guard.sh",
-            "timeout": 5
+            "timeout": 30
           }
         ]
       },

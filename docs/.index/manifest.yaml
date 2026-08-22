@@ -83,7 +83,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 73838
+    size: 75310
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
@@ -131,51 +131,51 @@ documents:
       - {h: "Matcher Patterns", l: 979, e: 987}
       - {h: "Troubleshooting", l: 988, e: 989}
       - {h: "Hook is not executing", l: 990, e: 995}
-      - {h: "Timeout occurring", l: 996, e: 999}
-      - {h: "Formatter not working", l: 1000, e: 1008}
-      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 1009, e: 1048}
-      - {h: "References", l: 1049, e: 1061}
-      - {h: "Auto-Generated Hook Catalog", l: 1062, e: 1069}
-      - {h: "Index", l: 1070, e: 1114}
-      - {h: "Hook Details", l: 1115, e: 1116}
-      - {h: "attribution-guard", l: 1117, e: 1133}
-      - {h: "bash-sensitive-read-guard", l: 1134, e: 1150}
-      - {h: "bash-write-guard", l: 1151, e: 1167}
-      - {h: "cleanup", l: 1168, e: 1184}
-      - {h: "commit-message-guard", l: 1185, e: 1201}
-      - {h: "config-change-logger", l: 1202, e: 1218}
-      - {h: "conflict-guard", l: 1219, e: 1235}
-      - {h: "cwd-change-logger", l: 1236, e: 1252}
-      - {h: "dangerous-command-guard", l: 1253, e: 1269}
-      - {h: "gh-write-verb-guard", l: 1270, e: 1286}
-      - {h: "github-api-preflight", l: 1287, e: 1303}
-      - {h: "instructions-loaded-reinforcer", l: 1304, e: 1320}
-      - {h: "markdown-anchor-validator", l: 1321, e: 1337}
-      - {h: "memory-access-logger", l: 1338, e: 1354}
-      - {h: "memory-integrity-check", l: 1355, e: 1371}
-      - {h: "memory-write-guard", l: 1372, e: 1388}
-      - {h: "merge-gate-guard", l: 1389, e: 1406}
-      - {h: "permission-denial-logger", l: 1407, e: 1424}
-      - {h: "post-compact-restore", l: 1425, e: 1442}
-      - {h: "post-task-checkpoint", l: 1443, e: 1459}
-      - {h: "pr-language-guard", l: 1460, e: 1476}
-      - {h: "pr-target-guard", l: 1477, e: 1493}
-      - {h: "pre-compact-snapshot", l: 1494, e: 1510}
-      - {h: "pre-edit-read-guard", l: 1511, e: 1527}
-      - {h: "prompt-validator", l: 1528, e: 1544}
-      - {h: "push-target-guard", l: 1545, e: 1561}
-      - {h: "sensitive-file-guard", l: 1562, e: 1578}
-      - {h: "session-logger", l: 1579, e: 1595}
-      - {h: "shell-env-secret-guard", l: 1596, e: 1612}
-      - {h: "subagent-logger", l: 1613, e: 1629}
-      - {h: "task-completed-logger", l: 1630, e: 1646}
-      - {h: "task-created-validator", l: 1647, e: 1663}
-      - {h: "team-limit-guard", l: 1664, e: 1680}
-      - {h: "tool-failure-logger", l: 1681, e: 1697}
-      - {h: "traceability-guard", l: 1698, e: 1714}
-      - {h: "version-check", l: 1715, e: 1731}
-      - {h: "worktree-create", l: 1732, e: 1748}
-      - {h: "worktree-remove", l: 1749, e: 1766}
+      - {h: "Timeout occurring", l: 996, e: 1021}
+      - {h: "Formatter not working", l: 1022, e: 1030}
+      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 1031, e: 1070}
+      - {h: "References", l: 1071, e: 1083}
+      - {h: "Auto-Generated Hook Catalog", l: 1084, e: 1091}
+      - {h: "Index", l: 1092, e: 1136}
+      - {h: "Hook Details", l: 1137, e: 1138}
+      - {h: "attribution-guard", l: 1139, e: 1155}
+      - {h: "bash-sensitive-read-guard", l: 1156, e: 1172}
+      - {h: "bash-write-guard", l: 1173, e: 1189}
+      - {h: "cleanup", l: 1190, e: 1206}
+      - {h: "commit-message-guard", l: 1207, e: 1223}
+      - {h: "config-change-logger", l: 1224, e: 1240}
+      - {h: "conflict-guard", l: 1241, e: 1257}
+      - {h: "cwd-change-logger", l: 1258, e: 1274}
+      - {h: "dangerous-command-guard", l: 1275, e: 1291}
+      - {h: "gh-write-verb-guard", l: 1292, e: 1308}
+      - {h: "github-api-preflight", l: 1309, e: 1325}
+      - {h: "instructions-loaded-reinforcer", l: 1326, e: 1342}
+      - {h: "markdown-anchor-validator", l: 1343, e: 1359}
+      - {h: "memory-access-logger", l: 1360, e: 1376}
+      - {h: "memory-integrity-check", l: 1377, e: 1393}
+      - {h: "memory-write-guard", l: 1394, e: 1410}
+      - {h: "merge-gate-guard", l: 1411, e: 1428}
+      - {h: "permission-denial-logger", l: 1429, e: 1446}
+      - {h: "post-compact-restore", l: 1447, e: 1464}
+      - {h: "post-task-checkpoint", l: 1465, e: 1481}
+      - {h: "pr-language-guard", l: 1482, e: 1498}
+      - {h: "pr-target-guard", l: 1499, e: 1515}
+      - {h: "pre-compact-snapshot", l: 1516, e: 1532}
+      - {h: "pre-edit-read-guard", l: 1533, e: 1549}
+      - {h: "prompt-validator", l: 1550, e: 1566}
+      - {h: "push-target-guard", l: 1567, e: 1583}
+      - {h: "sensitive-file-guard", l: 1584, e: 1600}
+      - {h: "session-logger", l: 1601, e: 1617}
+      - {h: "shell-env-secret-guard", l: 1618, e: 1634}
+      - {h: "subagent-logger", l: 1635, e: 1651}
+      - {h: "task-completed-logger", l: 1652, e: 1668}
+      - {h: "task-created-validator", l: 1669, e: 1685}
+      - {h: "team-limit-guard", l: 1686, e: 1702}
+      - {h: "tool-failure-logger", l: 1703, e: 1719}
+      - {h: "traceability-guard", l: 1720, e: 1736}
+      - {h: "version-check", l: 1737, e: 1753}
+      - {h: "worktree-create", l: 1754, e: 1770}
+      - {h: "worktree-remove", l: 1771, e: 1788}
   - path: "PREREQUISITES.md"
     title: "Prerequisites"
     description: ""
