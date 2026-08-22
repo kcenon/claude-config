@@ -3,7 +3,7 @@ name: ci-fix
 description: "Diagnose and fix failing CI checks by classifying the failure into a known pattern and applying a codified remediation. Use when CI reports MSVC C4996 warnings-as-errors, CMake FetchContent shallow-clone failures, __cpp_lib_format probe mismatches, or when pr-work escalates a failing workflow. Cuts the push-wait-fail-retry loop to a single iteration for the three dominant patterns documented from prior sessions."
 argument-hint: "[pr-number] [--pattern msvc-c4996|cmake-fetchcontent|cpp-lib-format] [--dry-run]"
 user-invocable: true
-disable-model-invocation: false
+disable-model-invocation: true
 allowed-tools: "Bash(gh *)"
 max_iterations: 3
 halt_conditions:
