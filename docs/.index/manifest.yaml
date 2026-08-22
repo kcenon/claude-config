@@ -1986,7 +1986,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 5174
+    size: 5173
     tags: [ci,global,skill]
     sections:
       - {h: "Usage", l: 22, e: 30}
@@ -2205,7 +2205,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 22246
+    size: 22245
     tags: [global,skill]
     sections:
       - {h: "When to Use This Skill", l: 39, e: 51}
@@ -3151,7 +3151,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 4741
+    size: 4740
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 21, e: 34}
