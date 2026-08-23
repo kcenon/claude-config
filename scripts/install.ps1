@@ -368,6 +368,12 @@ function Confirm-ClaudeCli {
 function Install-Enterprise {
     $enterpriseDir = Get-EnterpriseDir
 
+    # Every exit path sets this so the closing summary reports what actually
+    # happened. Before, the summary printed the enterprise paths under
+    # "Installed files:" for install types 4 and 5 unconditionally, including
+    # when this function had returned early and deployed nothing.
+    $script:EnterpriseInstallState = 'skipped'
+
     Write-Host ""
     Write-Host "======================================================"
     Write-Info "Enterprise settings installation..."
@@ -401,6 +407,7 @@ function Install-Enterprise {
             if ([string]::IsNullOrEmpty($deployTemplate)) { $deployTemplate = 'n' }
             if ($deployTemplate -ne 'y') {
                 Write-Info "Enterprise installation skipped. Customize enterprise/CLAUDE.md first."
+                $script:EnterpriseInstallState = 'skipped-uncustomized'
                 return
             }
             Write-Warn "Proceeding with uncustomized template deployment."
@@ -416,6 +423,7 @@ function Install-Enterprise {
         Write-Err "This operation requires administrator privileges."
         Write-Info "Please run PowerShell as Administrator and try again."
         Write-Info "  Right-click PowerShell -> 'Run as administrator'"
+        $script:EnterpriseInstallState = 'skipped-not-admin'
         return
     }
 
@@ -424,24 +432,69 @@ function Install-Enterprise {
     $rulesDir = Join-Path $enterpriseDir "rules"
     New-Item -ItemType Directory -Path $rulesDir -Force | Out-Null
 
-    # Copy files
-    Copy-Item -Path $enterpriseMd -Destination $enterpriseDir -Force
-    Write-Success "CLAUDE.md installed"
-
-    # Copy rules directory
-    $sourceRules = Join-Path $BackupDir "enterprise/rules"
-    if (Test-Path $sourceRules) {
-        $items = Get-ChildItem -Path $sourceRules
-        if ($items.Count -gt 0) {
-            try {
-                Copy-Item -Path "$sourceRules\*" -Destination $rulesDir -Recurse -Force -ErrorAction Stop
-                Write-Success "rules directory installed"
-            } catch {
-                Write-Err "Failed to copy rules: $_"
-            }
+    # Load the manifest helper. Unlike the global and project blocks, this
+    # cannot be assumed already dot-sourced: Install-Enterprise runs before
+    # the global block, and install type 4 never enters that block at all.
+    if (-not (Get-Command Invoke-ManifestTrackedCopy -ErrorAction SilentlyContinue)) {
+        $manifestHelper = Join-Path $BackupDir 'scripts\install-manifest.ps1'
+        if (-not (Test-Path -LiteralPath $manifestHelper)) {
+            throw "install-manifest.ps1 helper not found at: $manifestHelper"
         }
+        . $manifestHelper
     }
 
+    # The enterprise tree gets its OWN manifest file, keyed relative to the
+    # enterprise root. It cannot share ~/.claude/.install-manifest.json: the
+    # global tree already tracks a key named `CLAUDE.md`, so the two roots
+    # would overwrite each other's stored hash and every subsequent guarded
+    # copy would compare against the wrong baseline.
+    #
+    # The manifest lives beside the files it describes. That keeps the
+    # "one manifest per install root" invariant, and the write is safe because
+    # this function has already established administrator rights above. Reads
+    # need no elevation, so a drift audit can run unprivileged.
+    #
+    # try/finally, not a plain restore: Write-ManifestFiles has no error
+    # handling and $ErrorActionPreference is 'Stop' at the top of this script,
+    # so an unwritable manifest would otherwise leave MANIFEST_PATH pointing at
+    # the enterprise root for the rest of the install, redirecting the global
+    # manifest into C:\Program Files.
+    $previousManifestPath = $env:MANIFEST_PATH
+    $env:MANIFEST_PATH = Join-Path $enterpriseDir ".install-manifest.json"
+    try {
+        Reset-ManifestManagedKeys
+
+        if (Invoke-ManifestTrackedCopy -Src $enterpriseMd -Dest (Join-Path $enterpriseDir 'CLAUDE.md') -Key 'CLAUDE.md') {
+            Write-Success "CLAUDE.md installed"
+        } else {
+            Write-Info "CLAUDE.md: local changes kept"
+        }
+
+        # Copy rules directory
+        $sourceRules = Join-Path $BackupDir "enterprise/rules"
+        if (Test-Path $sourceRules) {
+            $items = Get-ChildItem -Path $sourceRules
+            if ($items.Count -gt 0) {
+                try {
+                    Copy-ManifestTree -SourceDir $sourceRules -DestinationDir $rulesDir -KeyPrefix 'rules'
+                    Write-Success "rules directory installed"
+                } catch {
+                    Write-Err "Failed to copy rules: $_"
+                    $script:EnterpriseInstallState = 'failed'
+                    return
+                }
+            }
+        }
+    } finally {
+        $env:MANIFEST_PATH = $previousManifestPath
+    }
+
+    # Deliberately no Invoke-ManifestPruneTracked here. Tracking exists so drift
+    # becomes visible; deleting files out of a managed-policy directory is a
+    # separate decision. Retired enterprise rules therefore still linger, as
+    # they did before, and docs/install.md says so.
+
+    $script:EnterpriseInstallState = 'installed'
     Write-Success "Enterprise settings installation complete!"
     Write-Host ""
     Write-Warn "Important: Customize enterprise/CLAUDE.md for your organization's policies!"
@@ -520,6 +573,11 @@ if ($contentLanguage -ne 'english') {
 }
 
 # ── Enterprise installation ──────────────────────────────────
+
+# Read by the closing summary. 'not-attempted' is what stays if the enterprise
+# block never runs, so the summary can never claim a deployment that was not
+# even tried.
+$script:EnterpriseInstallState = 'not-attempted'
 
 if ($installType -eq '4' -or $installType -eq '5') {
     Install-Enterprise
@@ -898,9 +956,28 @@ Write-Host ""
 Write-Info "Installed files:"
 if ($installType -eq '4' -or $installType -eq '5') {
     $ed = Get-EnterpriseDir
-    Write-Host "  Enterprise settings:"
-    Write-Host "    - $ed\CLAUDE.md"
-    Write-Host "    - $ed\rules\"
+    switch ($script:EnterpriseInstallState) {
+        'installed' {
+            Write-Host "  Enterprise settings:"
+            Write-Host "    - $ed\CLAUDE.md"
+            Write-Host "    - $ed\rules\"
+            Write-Host "    - $ed\.install-manifest.json"
+        }
+        'skipped-not-admin' {
+            Write-Warn "  Enterprise settings: NOT installed (administrator privileges required)"
+            Write-Warn "    $ed was left untouched. Re-run as Administrator to deploy it."
+        }
+        'skipped-uncustomized' {
+            Write-Warn "  Enterprise settings: NOT installed (enterprise/CLAUDE.md is still the template)"
+            Write-Warn "    $ed was left untouched."
+        }
+        'failed' {
+            Write-Err "  Enterprise settings: deployment FAILED partway; $ed may be inconsistent"
+        }
+        default {
+            Write-Warn "  Enterprise settings: NOT installed; $ed was left untouched"
+        }
+    }
 }
 
 if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {

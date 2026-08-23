@@ -40,6 +40,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that the payload actually reaches each guard. Verified by mutation: with the
   cache below reverted, a benign `git status --short` is denied and the suite
   fails 2 assertions.
+- The enterprise install tree is manifest-tracked on Windows. It was deployed
+  by two bare `Copy-Item` calls that no manifest recorded, which made it the
+  only layer in the cascade with no integrity mechanism -- and the
+  highest-precedence one, since Claude Code loads it as managed policy. A
+  three-way audit that classified 270 of 278 tracked files could say nothing
+  about these three, and the one real difference surfaced only by hashing them
+  by hand: `C:\Program Files\ClaudeCode\rules\compliance.md` is 1574 B against
+  the repo's 1983 B, missing the Scope note added by `e345d36` (#705), with all
+  three live files dated 2026-03-04. `Install-Enterprise` now repoints
+  `MANIFEST_PATH` at `<enterprise-dir>/.install-manifest.json` and copies
+  through `Invoke-ManifestTrackedCopy` / `Copy-ManifestTree`. The root needs its
+  own manifest file rather than a key prefix, because the global tree already
+  tracks a key named `CLAUDE.md` and a shared manifest would have the two roots
+  overwrite each other's stored hash. The repoint is unwound in a `finally`:
+  `Write-ManifestFiles` has no error handling and the script runs under
+  `$ErrorActionPreference = 'Stop'`, so a throw would otherwise leave
+  `MANIFEST_PATH` aimed at `C:\Program Files` for the rest of the install. The
+  helper is also loaded inside `Install-Enterprise`, since install type 4 never
+  enters the global block that dot-sources it. Prune is deliberately not run
+  for this root: tracking makes drift visible, while deleting out of a
+  managed-policy directory is a separate decision. `enterprise/**` is added to
+  the `validate-hooks.yml` paths filter, which previously matched nothing, so a
+  PR touching only `enterprise/rules/*.md` ran no workflow at all. POSIX is not
+  covered -- those roots are written with `sudo` and
+  `scripts/install-manifest.sh` has no elevation path -- and is tracked as a
+  follow-up. (#903)
+- The installer's closing summary no longer claims an enterprise deployment
+  that did not happen. It printed the enterprise paths under "Installed files:"
+  for install types 4 and 5 unconditionally, including when `Install-Enterprise`
+  had returned early because administrator rights were missing or because the
+  operator declined to deploy an uncustomized template. Each exit path now
+  records its outcome and the summary reports it. (#903)
 
 ### Changed
 

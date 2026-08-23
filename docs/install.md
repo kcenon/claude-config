@@ -10,6 +10,14 @@ Locations:
 
 - Global install tree: `~/.claude/.install-manifest.json`
 - Project install tree: `<project>/.claude/.install-manifest.json`
+- Enterprise install tree (Windows only, `scripts/install.ps1`):
+  `<enterprise-dir>/.install-manifest.json`, where `<enterprise-dir>` is
+  `C:\Program Files\ClaudeCode`. Reachable only through `scripts/install.ps1`
+  with install type 4 or 5; neither `bootstrap.sh` nor `bootstrap.ps1` deploys
+  it. The POSIX enterprise roots
+  (`/Library/Application Support/ClaudeCode`, `/etc/claude-code`) are not yet
+  tracked -- their copies run under `sudo`, so the manifest write needs
+  elevation plumbing that `scripts/install-manifest.sh` does not have.
 
 Format:
 
@@ -32,7 +40,14 @@ The manifest is written on successful managed copies and updated whenever
 the installer replaces a file. It is created on first install and survives
 across re-runs. Project manifests use paths relative to the project root
 (`CLAUDE.md`, `.claude/rules/...`, `.claude/skills/...`), while global
-manifests use paths relative to `~/.claude`.
+manifests use paths relative to `~/.claude`. The enterprise manifest follows
+the same rule, with keys relative to the enterprise dir (`CLAUDE.md`,
+`rules/security.md`, `rules/compliance.md`).
+
+Each root needs its own manifest file, not merely its own key prefix: the
+global and enterprise trees both deploy a file whose key is `CLAUDE.md`, so a
+shared manifest would have them overwrite each other's stored hash and every
+later guarded copy would compare against the wrong baseline.
 
 ## Copy Decision
 
@@ -202,6 +217,18 @@ The project manifest tracks files relative to the project root, including
 `CLAUDE.md`, `.claude/settings.json`, `.claude/rules/`,
 `.claude/reference/`, `.claude/skills/`, `.claude/commands/`,
 `.claude/agents/`, and `.claudeignore`.
+
+The enterprise manifest tracks `CLAUDE.md` and `rules/` relative to the
+enterprise dir. Two differences from the other two roots:
+
+- **Prune does not run for this root.** Tracking exists so drift becomes
+  visible; deleting files out of a managed-policy directory is a separate
+  decision. A retired enterprise rule therefore stays on disk after it is
+  removed from `enterprise/rules/`, as it did before tracking existed.
+- **`BOOTSTRAP_FORCE=1` reaches this root too.** Since the tree is now
+  manifest-tracked, a divergent enterprise policy file is overwritten without
+  the keep/overwrite prompt under that variable, exactly as for the global and
+  project trees.
 
 Artifacts deployed outside those roots, such as `~/.tmux.conf` and
 `~/.config/ccstatusline/settings.json`, remain outside manifest pruning.
