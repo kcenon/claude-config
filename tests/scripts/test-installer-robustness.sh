@@ -286,6 +286,43 @@ check "install.ps1 reports what it preserved" "$(has scripts/install.ps1 'machin
 check "install.sh reports what it preserved"  "$(has scripts/install.sh 'machine-local settings keys preserved')"
 
 echo ""
+echo "[git-identity is seeded on the source, not the deployed file (#916)]"
+# Seeding after the guarded copy left the manifest holding the repo hash while
+# the file on disk held the seeded one, so every reinstall hit the divergence
+# prompt for a change the installer itself had made.
+check "install.ps1 seeds a staged copy"   "$(has scripts/install.ps1 'Copy-Item -LiteralPath $src -Destination $seedTmp -Force')"
+check "bootstrap.ps1 seeds a staged copy" "$(has bootstrap.ps1 'Copy-Item -LiteralPath $src -Destination $seedTmp -Force')"
+check "install.sh seeds a staged copy"    "$(has scripts/install.sh 'cp "$_src" "$_seed_tmp"')"
+check "bootstrap.sh seeds a staged copy"  "$(has bootstrap.sh 'cp "$src" "$seed_tmp"')"
+check "install.ps1 seeds before the copy"   "$(before scripts/install.ps1 'Set-GitIdentitySeed -Path $seedTmp' 'Invoke-ManifestTrackedCopy -Src $effectiveSrc')"
+check "bootstrap.ps1 seeds before the copy" "$(before bootstrap.ps1 'Set-GitIdentitySeed -Path $seedTmp' 'Invoke-ManifestTrackedCopy -Src $effectiveSrc')"
+check "install.sh seeds before the copy"    "$(before scripts/install.sh 'seed_git_identity "$_seed_tmp"' 'manifest_copy_file "$_src"')"
+check "bootstrap.sh seeds before the copy"  "$(before bootstrap.sh 'seed_git_identity "$seed_tmp"' 'manifest_copy_file "$src"')"
+# The deployed file must never be the seed target again.
+check "install.ps1 no longer seeds the deployed file"   "$(hasnot scripts/install.ps1 'Set-GitIdentitySeed -Path $gitIdTarget')"
+check "bootstrap.ps1 no longer seeds the deployed file" "$(hasnot bootstrap.ps1 'Set-GitIdentitySeed -Path $gitIdTarget')"
+check "install.sh no longer seeds the deployed file"    "$(hasnot scripts/install.sh 'seed_git_identity "$_git_identity_target"')"
+check "bootstrap.sh no longer seeds the deployed file"  "$(hasnot bootstrap.sh 'seed_git_identity "$CLAUDE_DIR/git-identity.md"')"
+
+echo ""
+echo "[the seeder is anchored to the two field lines (#916)]"
+# An unanchored replace also rewrote the sentence that explains what the
+# placeholders are, and an unanchored presence check then found those tokens on
+# every later run.
+check "sh anchors the name substitution"  "$(has scripts/lib/install-prompts.sh 's|^\(name:[[:space:]]*\)YOUR NAME\([[:space:]]*\)$|')"
+check "sh anchors the email substitution" "$(has scripts/lib/install-prompts.sh 's|^\(email:[[:space:]]*\)YOUR EMAIL\([[:space:]]*\)$|')"
+check "sh anchors the presence check"     "$(has scripts/lib/install-prompts.sh '^(name:[[:space:]]*YOUR NAME|email:[[:space:]]*YOUR EMAIL)[[:space:]]*$')"
+check "sh no longer replaces globally"    "$(hasnot scripts/lib/install-prompts.sh 's|YOUR NAME|${esc_name}|g')"
+check "ps1 anchors the name substitution"  "$(has scripts/lib/InstallPrompts.psm1 "'^(name:\\s*)YOUR NAME(\\s*)\$'")"
+check "ps1 anchors the email substitution" "$(has scripts/lib/InstallPrompts.psm1 "'^(email:\\s*)YOUR EMAIL(\\s*)\$'")"
+check "ps1 no longer replaces globally"    "$(hasnot scripts/lib/InstallPrompts.psm1 ".Replace('YOUR NAME', \$name)")"
+# $script: inside a module lands in the module's scope, so the importer read
+# empty strings and both installers printed "auto-filled from git config ( <>)".
+check "ps1 returns the seeded values"      "$(has scripts/lib/InstallPrompts.psm1 '[pscustomobject]@{ Name = $name; Email = $email }')"
+check "install.ps1 no longer reads module scope"   "$(hasnot scripts/install.ps1 '$script:SeededGitName')"
+check "bootstrap.ps1 no longer reads module scope" "$(hasnot bootstrap.ps1 '$script:SeededGitName')"
+
+echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
 if [ ${#ERRORS[@]} -gt 0 ]; then
     echo ""

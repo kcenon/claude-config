@@ -212,6 +212,19 @@ shared `env` values, `permissions.deny`, or the Bash `permissions.allow`
 surface drift unexpectedly. The only documented exceptions are POSIX CA-bundle
 environment variables and the Windows-only PowerShell read-only allowlist.
 
+`git-identity.md` follows the same stage-then-copy shape. The installer copies
+the repo file to a temp path, fills the `name:` and `email:` fields from
+`git config --global`, and hands *that* to the guarded copy, so the manifest
+records the bytes that were actually deployed. Seeding the deployed file
+afterwards -- the pre-#916 order -- left the manifest describing content that
+no longer existed, and every subsequent install then found a divergence it had
+created itself and prompted the user to resolve it.
+
+The substitution is anchored to the two field lines. A document-wide replace
+also rewrote the sentence explaining what the placeholders are, and an
+unanchored presence check would then match those tokens forever and report a
+seeding that changed nothing.
+
 ## Tracked Files
 
 The global manifest tracks guarded files under `~/.claude`, including:

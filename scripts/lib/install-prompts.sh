@@ -272,10 +272,15 @@ detect_legacy_content_language() {
 # Contract (idempotent, never destructive):
 #   - no-op (return 1) when the target file is absent,
 #   - no-op when git config lacks either user.name or user.email,
-#   - only rewrites lines that still hold the YOUR NAME / YOUR EMAIL
-#     placeholder tokens, so a user-customized file is left untouched.
+#   - only rewrites the `name:` and `email:` field lines while they still hold
+#     the placeholder tokens, so a user-customized file is left untouched.
 # On success, exports SEED_GIT_IDENTITY_NAME / SEED_GIT_IDENTITY_EMAIL so the
 # caller can print a confirmation, and returns 0.
+#
+# The field anchors matter (#916). An unanchored s|YOUR NAME|...|g also rewrote
+# the sentence that explains what the placeholders are, and an unanchored
+# presence check would then find those tokens on every later run and report a
+# seeding that did nothing.
 seed_git_identity() {
     local target="${1:-}"
     [ -f "$target" ] || return 1
@@ -285,8 +290,10 @@ seed_git_identity() {
     email="$(git config --global user.email 2>/dev/null || true)"
     [ -n "$name" ] && [ -n "$email" ] || return 1
 
-    # Only touch the file while placeholders remain — never clobber real values.
-    grep -q "YOUR NAME\|YOUR EMAIL" "$target" 2>/dev/null || return 1
+    # Only touch the file while the FIELD LINES still hold placeholders —
+    # never clobber real values, and never fire on the explanatory sentence.
+    grep -qE '^(name:[[:space:]]*YOUR NAME|email:[[:space:]]*YOUR EMAIL)[[:space:]]*$' \
+        "$target" 2>/dev/null || return 1
 
     # Escape sed replacement metacharacters (\ & and the | delimiter) so a
     # name/email containing them cannot corrupt the substitution.
@@ -294,9 +301,11 @@ seed_git_identity() {
     esc_name="$(printf '%s' "$name" | sed -e 's/[\\&|]/\\&/g')"
     esc_email="$(printf '%s' "$email" | sed -e 's/[\\&|]/\\&/g')"
 
+    # \2 preserves any trailing whitespace, CR included, so a CRLF checkout
+    # keeps its line endings.
     if sed -i.bak \
-        -e "s|YOUR NAME|${esc_name}|g" \
-        -e "s|YOUR EMAIL|${esc_email}|g" \
+        -e "s|^\(name:[[:space:]]*\)YOUR NAME\([[:space:]]*\)$|\1${esc_name}\2|" \
+        -e "s|^\(email:[[:space:]]*\)YOUR EMAIL\([[:space:]]*\)$|\1${esc_email}\2|" \
         "$target" 2>/dev/null; then
         rm -f "$target.bak"
         SEED_GIT_IDENTITY_NAME="$name"

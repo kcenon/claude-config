@@ -670,21 +670,32 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
             }
             Remove-Item -LiteralPath $tmpFile -Force -ErrorAction SilentlyContinue
         } elseif (Test-Path $src) {
-            if (Invoke-ManifestTrackedCopy -Src $src -Dest (Join-Path $claudeDir $gf) -Key $gf) {
+            # git-identity.md is seeded on a staged copy of the SOURCE, never on
+            # the deployed file. Seeding afterwards left the manifest holding
+            # the repo hash while the file on disk held the seeded one, so the
+            # next install saw a divergence it had created itself and prompted
+            # for it, every time (#916). Rendering first is the same shape
+            # Invoke-GuardedTemplateCopy already uses for the .tmpl files above.
+            $effectiveSrc = $src
+            $seedTmp = $null
+            if ($gf -eq 'git-identity.md' -and (Get-Command Set-GitIdentitySeed -ErrorAction SilentlyContinue)) {
+                $seedTmp = Join-Path ([System.IO.Path]::GetTempPath()) "git-identity_$([guid]::NewGuid()).md"
+                Copy-Item -LiteralPath $src -Destination $seedTmp -Force
+                $seeded = Set-GitIdentitySeed -Path $seedTmp
+                if ($seeded) {
+                    $effectiveSrc = $seedTmp
+                    Write-Success "git-identity.md auto-filled from git config ($($seeded.Name) <$($seeded.Email)>)"
+                } else {
+                    Remove-Item -LiteralPath $seedTmp -Force -ErrorAction SilentlyContinue
+                    $seedTmp = $null
+                }
+            }
+            if (Invoke-ManifestTrackedCopy -Src $effectiveSrc -Dest (Join-Path $claudeDir $gf) -Key $gf) {
                 Write-Success "$gf installed"
             } else {
                 Write-Info "$gf local changes preserved"
             }
-        }
-    }
-
-    # Auto-seed git identity from `git config --global` (issue #777). Shared
-    # with bootstrap.ps1 via Set-GitIdentitySeed in InstallPrompts.psm1, so a
-    # fresh install produces a usable git-identity.md without manual editing.
-    if (Get-Command Set-GitIdentitySeed -ErrorAction SilentlyContinue) {
-        $gitIdTarget = Join-Path $claudeDir 'git-identity.md'
-        if (Set-GitIdentitySeed -Path $gitIdTarget) {
-            Write-Success "git-identity.md auto-filled from git config ($($script:SeededGitName) <$($script:SeededGitEmail)>)"
+            if ($seedTmp) { Remove-Item -LiteralPath $seedTmp -Force -ErrorAction SilentlyContinue }
         }
     }
 
