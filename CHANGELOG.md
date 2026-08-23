@@ -66,6 +66,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   covered -- those roots are written with `sudo` and
   `scripts/install-manifest.sh` has no elevation path -- and is tracked as a
   follow-up. (#903)
+- `scripts/install.ps1` declares `#Requires -Version 7.0` instead of `5.1`. It
+  uses the three-argument `Join-Path` (`-AdditionalChildPath`, PowerShell 6+
+  only) at `:335` and `:538`, so the old floor admitted an interpreter that
+  cannot run the script -- measured on Windows PowerShell 5.1.26100.9168,
+  `Join-Path a b c` fails with "A positional parameter cannot be found that
+  accepts argument 'c'". Because `:538` runs after `Confirm-ClaudeCli` and the
+  install-type prompt, a 5.1 user answered questions and then hit a parameter
+  error naming `InstallPrompts.psm1`, rather than being refused up front. The
+  file also contradicted itself: the comment above the directive already said
+  PowerShell 7. `install.ps1` was the only outlier -- `bootstrap.ps1`,
+  `scripts/backup.ps1`, `scripts/sync.ps1` and `scripts/verify.ps1` already
+  declared 7.0 -- and no `Join-Path` call was changed, since the call sites are
+  correct and the deployed hooks already run under `pwsh`.
+  `tests/scripts/test-installer-robustness.sh` now pins the declaration on all
+  five entry points so it cannot drift from the syntax again. (#911)
 - `project/CLAUDE.md` now says what makes a skill invocable. The `## Skills`
   section listed eleven names and stopped there, while availability is decided
   by `skillOverrides` in `.claude/settings.local.json` -- a file no installer
