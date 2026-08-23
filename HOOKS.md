@@ -995,7 +995,29 @@ To disable a specific hook, remove or comment out the corresponding entry.
 
 ### Timeout occurring
 
-Increase the `timeout` value (unit: seconds, max: 300)
+Increase the `timeout` value (unit: seconds, max: 300).
+
+**A PreToolUse timeout is fail-open.** When a hook exceeds its budget the
+harness cancels it and the tool call proceeds; the hook never gets to deny. An
+under-budgeted *security* guard is therefore silently skipped rather than
+enforced, which is the opposite of what the guard exists to do. Budget
+generously and read a timeout as a coverage gap, not as noise.
+
+Timeouts appear in the session transcript as a `hook_cancelled` attachment
+carrying `timedOut: true` next to `timeoutMs` and the actual `durationMs`. A
+user-pressed Esc also produces `hook_cancelled` but without those two fields,
+so the two causes are distinguishable.
+
+Contention, not guard logic, produces the tail, and it takes out a whole
+matcher at once: every timeout observed locally on `Edit|Write|Read` arrived in
+a burst of three with near-identical durations, meaning all three guards of a
+single tool call were killed at the same deadline and that call ran unguarded.
+Budget for the matcher's worst case, not its median.
+
+| Matcher | Registered | Timeout | Why |
+|---------|-----------|---------|-----|
+| `Edit\|Write\|Read` | 3 guards, one process each | 30 s | Fail-open makes a skipped guard worse than a slow one. Median 429 ms and p99 1,020 ms over 35,276 local runs, worst case 11,141 ms (#897). |
+| `Bash` | `bash-guard-dispatcher.ps1` on Windows | 30 s | 25 s internal guard budget plus process-start slack. The dispatcher names any guard it had to skip instead of truncating silently. |
 
 ### Formatter not working
 
