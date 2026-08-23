@@ -432,15 +432,86 @@ function Test-SyncFile {
     }
 }
 
+function ConvertTo-CanonicalJson {
+    # Order-insensitive rendering of a settings subtree: object keys sorted,
+    # array order preserved (hook order within a matcher is significant).
+    param($Node)
+
+    if ($null -eq $Node) { return 'null' }
+    if ($Node -is [System.Management.Automation.PSCustomObject]) {
+        $parts = foreach ($p in ($Node.PSObject.Properties | Sort-Object Name)) {
+            '"{0}":{1}' -f $p.Name, (ConvertTo-CanonicalJson -Node $p.Value)
+        }
+        return '{' + ($parts -join ',') + '}'
+    }
+    if (($Node -is [System.Collections.IEnumerable]) -and ($Node -isnot [string])) {
+        $items = foreach ($i in $Node) { ConvertTo-CanonicalJson -Node $i }
+        return '[' + ($items -join ',') + ']'
+    }
+    return ($Node | ConvertTo-Json -Compress -Depth 32)
+}
+
+function Test-SyncSettings {
+    # settings.json cannot be line-compared against its source profile: the
+    # installer republishes it through ConvertTo-Json (install-manifest.ps1)
+    # rather than copying bytes, so the deployed file is machine-serialized
+    # while the profile is hand-formatted -- 11 of ~516 lines matched in order
+    # when issue #914 measured it, for two semantically near-identical files.
+    #
+    # What the repo actually owns here is `permissions` (security) and `hooks`
+    # (the runtime guards settings.json points at). Scalar preferences such as
+    # model and effortLevel are machine-local; see issue #915.
+    param([string]$Source, [string]$Destination)
+
+    $script:SYNC_TOTAL++
+    $label = 'settings.json (hooks + permissions)'
+
+    if (-not (Test-Path -LiteralPath $Destination -PathType Leaf)) {
+        Write-WarningMessage "MISS: $label"
+        $script:SYNC_MISS++
+        return
+    }
+
+    try {
+        $src = Get-Content -Raw -LiteralPath $Source | ConvertFrom-Json
+        $dst = Get-Content -Raw -LiteralPath $Destination | ConvertFrom-Json
+    }
+    catch {
+        Write-ErrorMessage "DIFF: $label (unparseable JSON)"
+        $script:SYNC_DIFF++
+        return
+    }
+
+    foreach ($key in @('permissions', 'hooks')) {
+        if ((ConvertTo-CanonicalJson -Node $src.$key) -ne (ConvertTo-CanonicalJson -Node $dst.$key)) {
+            Write-ErrorMessage "DIFF: $label -- $key"
+            $script:SYNC_DIFF++
+            return
+        }
+    }
+
+    Write-SuccessMessage "SYNC: $label"
+    $script:SYNC_OK++
+}
+
 $GlobalDst = Join-Path $HOME '.claude'
 
-# Global config files
+# Global config files. settings.json is excluded from the byte-wise loop and
+# handled by Test-SyncSettings below.
 Write-InfoMessage "글로벌 설정 파일 동기화:"
-foreach ($f in @('CLAUDE.md', 'commit-settings.md', 'settings.json', '.claudeignore')) {
+foreach ($f in @('CLAUDE.md', 'commit-settings.md', '.claudeignore')) {
     $src = Join-Path $BackupDir 'global' $f
     if (Test-Path -LiteralPath $src -PathType Leaf) {
         Test-SyncFile -Source $src -Destination (Join-Path $GlobalDst $f) -Label $f
     }
+}
+
+# Windows publishes settings.windows.json as ~/.claude/settings.json; comparing
+# against the POSIX profile reported a permanent DIFF here before #914.
+$settingsProfile = if ($IsWindows) { 'settings.windows.json' } else { 'settings.json' }
+$settingsSrc = Join-Path $BackupDir 'global' $settingsProfile
+if (Test-Path -LiteralPath $settingsSrc -PathType Leaf) {
+    Test-SyncSettings -Source $settingsSrc -Destination (Join-Path $GlobalDst 'settings.json')
 }
 
 # Global skills

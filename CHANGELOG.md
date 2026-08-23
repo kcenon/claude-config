@@ -198,6 +198,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `scripts/verify.ps1` reported two failures that no non-destructive Windows
+  action could clear -- `DIFF: settings.json` and `MISS: .claudeignore`, 176 of
+  178 checks passing since before this release. Two unrelated causes.
+  `global/.claudeignore` was deployed only by `install.sh`, although
+  `docs/CLAUDE_DOCKER_CONTRACT.md` guarantees it under `~/.claude/` after a full
+  install from any of the four entry points and claude-docker's entrypoint
+  mirrors that layout into the container; `install.ps1`, `bootstrap.ps1`, and
+  `bootstrap.sh` now deploy it too, manifest-tracked under key `.claudeignore`.
+  Separately, the `settings.json` sync check compared the deployed file against
+  `global/settings.json` even on Windows, where the published file comes from
+  `global/settings.windows.json` -- and, more fundamentally, compared them line
+  by line when the installer republishes settings.json through
+  `ConvertTo-Json` (`jq` on POSIX) rather than copying bytes. Measured against
+  the correct profile, 11 of ~516 lines matched in order for two files that
+  differ by three top-level keys and one value, so the check could not pass on
+  either platform. Both verifiers now select the profile the platform publishes
+  and compare `permissions` and `hooks` semantically, leaving machine-local
+  scalar preferences to #915. Prior art the earlier gates missed: #586 and #781
+  added filename-specific parity checks that a non-hook `global/` asset walks
+  past, and #821 gates settings parity between the two repo profiles rather
+  than between the deployed file and its source. (#914)
+- `scripts/install.sh` no longer copies `global/tmux.conf` to
+  `~/.claude/tmux.conf`. tmux reads `~/.tmux.conf`, which `bootstrap.sh` and
+  `bootstrap.ps1` install on both platforms; the `~/.claude/` copy was read by
+  nothing, is absent from the guaranteed subtree, and was the only `global/`
+  payload the two installers disagreed on. (#914)
 - The three `PreToolUse` guards on the `Edit|Write|Read` matcher ran with
   `timeout: 5` while the Bash channel used 30. Nineteen runs exceeded that
   budget locally, and every one was followed by a successful tool call: a

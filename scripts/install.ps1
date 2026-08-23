@@ -700,6 +700,20 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         }
     }
 
+    # global/.claudeignore. docs/CLAUDE_DOCKER_CONTRACT.md guarantees this file
+    # under ~/.claude/ after a full install from ANY of the four entry points,
+    # and claude-docker's entrypoint mirrors the layout into the container.
+    # Only install.sh honoured that; the Windows paths and bootstrap.sh did not,
+    # so verify.{ps1,sh} reported a permanent MISS here (issue #914).
+    $globalClaudeIgnore = Join-Path $BackupDir "global/.claudeignore"
+    if (Test-Path -LiteralPath $globalClaudeIgnore) {
+        if (Invoke-ManifestTrackedCopy -Src $globalClaudeIgnore -Dest (Join-Path $claudeDir ".claudeignore") -Key ".claudeignore") {
+            Write-Success ".claudeignore installed"
+        } else {
+            Write-Info ".claudeignore local changes preserved"
+        }
+    }
+
     # settings.json + hooks directory install. The Windows settings file points
     # at runtime hooks, so publish settings only after hook deployment succeeds.
     Install-GlobalSettingsAndHooks -ClaudeDir $claudeDir
