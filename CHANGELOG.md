@@ -25,6 +25,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a session measurement, and that attempt's 863->446ms never reproduced in real
   sessions. Re-measure from transcript p50 once several hundred calls have
   accumulated.
+  Re-measured 2026-08-23 over 61,780 transcript hook runs, and the caveat does
+  not survive its own test. Segmented by configuration, `PreToolUse:Bash` p50
+  runs 828ms on 15 hooks, 424ms on the 2026-07-27 prototype, 908ms after that
+  prototype was reverted, and 534ms on the shipped dispatcher: -35.5% against
+  the pre-consolidation baseline. So the 2026-07-27 bench did reproduce; the
+  check that reported otherwise straddled the reverted window, where the
+  channel was back on 15 hooks. The `Edit|Write|Read` matcher, untouched by all
+  four transitions, is flat at 415/437/448/426ms across them and serves as the
+  control. Table and method in `HOOKS.md`; a naive before-and-after split at
+  2026-07-27 reports no improvement and should not be used.
 - `tests/hooks/test-bash-guard-dispatcher.ps1` (9 assertions) covering routing,
   fail-closed behaviour, and - the property no decision-only assertion can see -
   that the payload actually reaches each guard. Verified by mutation: with the
@@ -67,6 +77,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   parity guarantee is instead preserved at the routing table, where a guard can
   now actually go missing. Verified by mutation: dropping `push-target-guard`
   from the routing table fails the test and names that guard.
+- `ci-fix`, `fleet-orchestrator`, and `preflight` now carry
+  `disable-model-invocation: true`, so all 19 `_internal` skills are hidden
+  from the model-facing skill listing instead of 16 of them. The three held
+  1,369 chars (~342 est. tokens) of resident context per session for zero
+  model invocations across 50 local sessions, and all three are reached
+  through the Skill Aliases table in `global/CLAUDE.md` regardless.
+  `user-invocable: true` is unchanged, so the keyword path still works.
+  Counting rule for anyone auditing this: alias invocation never increments
+  `skillUsage`, so a zero counter is not evidence of disuse. (#896)
+- `HOOKS.md` documents the `PreToolUse`/`Bash` topology as it is configured.
+  Sections 10-15 described individually-registered guards with per-guard
+  timeouts, which is still true on POSIX but has not been true on Windows since
+  the dispatcher landed. A new "Bash Guard Dispatcher (Windows)" section covers
+  the routing table, the fail-closed/fail-open classification, the 25 s
+  internal budget, and the standalone-invocation contract, and the affected
+  guard sections now say which platform their timeout applies to. (#898)
+
+### Fixed
+
+- The three `PreToolUse` guards on the `Edit|Write|Read` matcher ran with
+  `timeout: 5` while the Bash channel used 30. Nineteen runs exceeded that
+  budget locally, and every one was followed by a successful tool call: a
+  PreToolUse timeout is fail-open, so an over-budget security guard is skipped
+  rather than given the chance to deny. The timeouts arrive in bursts of three
+  with near-identical durations, meaning all three guards of one call die at
+  the same deadline and that call runs with no coverage at all. Raised to 30 s,
+  which covers the 11,141ms worst case over 35,276 runs with 2.7x headroom and
+  would have prevented all nineteen. This reduces exposure without removing it
+  (the Bash channel still recorded seven timeouts at 30 s), so `HOOKS.md` now
+  states the fail-open semantics and how to distinguish a timeout from an Esc
+  rather than leaving them to be rediscovered. (#897)
 
 ### Known limitation
 
