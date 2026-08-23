@@ -51,6 +51,11 @@ Stored in `.claude/reference/` (`coding/`, `workflow/`), outside the auto-loaded
 
 `api-design`, `ci-debugging`, `code-quality`, `coding-guidelines`, `doc-update`, `documentation`, `git-status`, `performance-review`, `pr-review`, `project-workflow`, `security-audit`
 
+> Presence is not availability: `skillOverrides` in `.claude/settings.local.json`
+> disables individual skills, and a disabled skill fails silently. That file is
+> machine-local -- no installer creates it, `.gitignore` excludes it -- so this
+> list cannot reflect it. Absent the key, as in the shipped template, all are enabled.
+
 ## MCP
 
 Use `.mcp.json` at project root for team-shared MCP server definitions (committed to Git).

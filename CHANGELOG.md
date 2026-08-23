@@ -66,6 +66,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   covered -- those roots are written with `sudo` and
   `scripts/install-manifest.sh` has no elevation path -- and is tracked as a
   follow-up. (#903)
+- `project/CLAUDE.md` now says what makes a skill invocable. The `## Skills`
+  section listed eleven names and stopped there, while availability is decided
+  by `skillOverrides` in `.claude/settings.local.json` -- a file no installer
+  creates and `.gitignore` excludes, so the list can never reflect it. On the
+  machine where this surfaced, nine of the eleven were switched off and nothing
+  in `CLAUDE.md` pointed there; a disabled skill fails silently, so the reader
+  has no way to connect the two. The list is kept, because it is accurate: all
+  eleven names match directories under `project/.claude/skills/`, and the
+  shipped `settings.local.json.template` declares no `skillOverrides`, so on a
+  fresh checkout every listed skill really is enabled. That default is now
+  stated too, so the caveat is not misread as "the list is unreliable".
+  `## Agents` is unchanged: its eight names are equally accurate and there is no
+  per-agent disable mechanism to warn about. (#908)
 - The enterprise install tree is manifest-tracked on POSIX too, completing the
   Windows half above. `install_enterprise` in `scripts/install.sh` carried the
   same bare-copy defect in triplicate -- three near-identical branches (sudo
