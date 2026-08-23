@@ -433,6 +433,96 @@ function Invoke-GuardedTemplateCopy {
     return $result
 }
 
+# Keys the repo profile owns unconditionally. A local value here never wins:
+# `language` is chosen by the install-time policy prompt, and `permissions`
+# (security) and `hooks` (the runtime guards settings.json points at) must not
+# be able to survive an intentional repo change as a stale local block.
+$script:SettingsPolicyKeys = @('language', 'permissions', 'hooks')
+
+# Repo-defined keys that are nonetheless runtime state. `effortLevel` ships a
+# default in both profiles but is written by the in-app /effort control, so a
+# reinstall resetting it is the bug this list exists to prevent. Keep this list
+# short: every entry is a key the repo can no longer change for existing
+# installs. See docs/install.md, "Machine-local settings keys".
+$script:SettingsRuntimeKeys = @('effortLevel')
+
+function Merge-LocalSettingsKeys {
+    <#
+    .SYNOPSIS
+    Carry machine-local top-level keys from the deployed settings.json into a
+    staged copy of the repo profile.
+
+    .DESCRIPTION
+    settings.json is published by replacing the destination wholesale, which is
+    deliberate -- the policy attributes have to be enforced on every install --
+    but the blast radius was the whole file. Keys Claude Code writes itself
+    (model, effortLevel, agentPushNotifEnabled, skipWorkflowUsageWarning) were
+    reset by every reinstall with no warning (issue #915).
+
+    Rules, in order:
+      - $SettingsPolicyKeys      -> repo always wins
+      - $SettingsRuntimeKeys     -> live always wins, even though the profile
+                                    defines the key
+      - any other key the profile defines -> repo wins
+      - any key the profile does not define -> carried forward
+      - env: merged one level, profile winning per key, so a machine-local
+        variable survives without letting a stale value shadow the profile
+
+    Returns the names carried, so the caller can say what it preserved.
+    #>
+    [OutputType([string[]])]
+    param(
+        [Parameter(Mandatory)][string]$StagedPath,
+        [Parameter(Mandatory)][string]$LivePath
+    )
+
+    if (-not (Test-Path -LiteralPath $LivePath -PathType Leaf)) { return @() }
+
+    try {
+        $staged = Get-Content -Raw -LiteralPath $StagedPath | ConvertFrom-Json
+        $live = Get-Content -Raw -LiteralPath $LivePath | ConvertFrom-Json
+    }
+    catch {
+        # An unparseable live file is not a reason to abort the install; the
+        # publish that follows replaces it wholesale, which is the old behaviour.
+        return @()
+    }
+
+    $profileKeys = @($staged.PSObject.Properties.Name)
+    $carried = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($p in $live.PSObject.Properties) {
+        if ($script:SettingsPolicyKeys -contains $p.Name) { continue }
+        if ($p.Name -eq 'env') { continue }
+        $known = $profileKeys -contains $p.Name
+        if ($known -and ($script:SettingsRuntimeKeys -notcontains $p.Name)) { continue }
+        if ($known) {
+            $staged.$($p.Name) = $p.Value
+        }
+        else {
+            $staged | Add-Member -NotePropertyName $p.Name -NotePropertyValue $p.Value -Force
+        }
+        $carried.Add($p.Name)
+    }
+
+    $liveEnv = $live.PSObject.Properties['env']
+    if ($liveEnv -and $liveEnv.Value) {
+        if (-not ($profileKeys -contains 'env')) {
+            $staged | Add-Member -NotePropertyName 'env' -NotePropertyValue ([PSCustomObject]@{}) -Force
+        }
+        foreach ($e in $liveEnv.Value.PSObject.Properties) {
+            if ($staged.env.PSObject.Properties.Name -contains $e.Name) { continue }
+            $staged.env | Add-Member -NotePropertyName $e.Name -NotePropertyValue $e.Value -Force
+            $carried.Add("env.$($e.Name)")
+        }
+    }
+
+    if ($carried.Count -gt 0) {
+        ($staged | ConvertTo-Json -Depth 32) | Set-Content -LiteralPath $StagedPath -Encoding UTF8
+    }
+    return $carried.ToArray()
+}
+
 function Update-ClaudeSettingsJson {
     [OutputType([bool])]
     param(

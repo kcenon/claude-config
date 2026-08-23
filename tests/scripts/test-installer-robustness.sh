@@ -227,6 +227,65 @@ check "verify.sh canonicalises before comparing"               "$(has_in_func sc
 check "both verifiers compare permissions and hooks"           "$([ "$(has scripts/verify.ps1 "@('permissions', 'hooks')")" = y ] && [ "$(has scripts/verify.sh '("permissions", "hooks")')" = y ] && echo y || echo n)"
 
 echo ""
+echo "[settings.json publish preserves machine-local keys (#915)]"
+# line_of <file> <literal> -- first matching line number, or 0.
+line_of() {
+    local n
+    n=$(grep -nF -- "$2" "$1" | head -1 | cut -d: -f1)
+    echo "${n:-0}"
+}
+
+# All four full-install entry points stage the repo profile and move it over
+# the destination, so all four dropped the same keys. #914 is the standing
+# lesson about fixing one entry point and calling it done.
+check "install.ps1 merges local keys"    "$(has scripts/install.ps1 'Merge-LocalSettingsKeys -StagedPath $settingsTmp -LivePath $destSettings')"
+check "bootstrap.ps1 merges local keys"  "$(has bootstrap.ps1 'Merge-LocalSettingsKeys -StagedPath $settingsTmp -LivePath $settingsDst')"
+check "install.sh merges local keys"     "$(has scripts/install.sh 'merge_local_settings_keys "$settings_tmp" "$settings_dst"')"
+check "bootstrap.sh merges local keys"   "$(has bootstrap.sh 'merge_local_settings_keys "$settings_tmp" "$settings_dst"')"
+
+# before <file> <earlier-literal> <later-literal>
+# Both must be present. Without the -gt 0 guard a missing "earlier" compares as
+# line 0 and the assertion passes vacuously -- these four did exactly that on
+# their first mutation check.
+before() {
+    local a b
+    a=$(line_of "$1" "$2")
+    b=$(line_of "$1" "$3")
+    if [ "$a" -gt 0 ] && [ "$b" -gt 0 ] && [ "$a" -lt "$b" ]; then echo y; else echo n; fi
+}
+
+# Ordering is the whole contract: merge first, then inject policy, so the
+# policy still wins on the keys it owns. Reversed, a stale local `language`
+# would survive a policy change -- the property install.ps1:184-187 protects.
+check "install.ps1 merges before the policy injection" \
+    "$(before scripts/install.ps1 'Merge-LocalSettingsKeys' 'Update-ClaudeSettingsJson -SettingsPath $settingsTmp')"
+check "bootstrap.ps1 merges before the policy injection" \
+    "$(before bootstrap.ps1 'Merge-LocalSettingsKeys' 'Update-ClaudeSettingsJson -SettingsPath $settingsTmp')"
+check "install.sh merges before the policy injection" \
+    "$(before scripts/install.sh 'merge_local_settings_keys' 'update_claude_settings_json "$settings_tmp"')"
+check "bootstrap.sh merges before the policy injection" \
+    "$(before bootstrap.sh 'merge_local_settings_keys' 'update_claude_settings_json "$settings_tmp"')"
+
+# The two implementations must agree on which keys the repo owns and which are
+# runtime state, or a machine would keep different values depending on which
+# installer last ran.
+check "policy keys agree across implementations" \
+    "$([ "$(has scripts/install-manifest.ps1 "@('language', 'permissions', 'hooks')")" = y ] && [ "$(has scripts/install-manifest.sh '["language","permissions","hooks"]')" = y ] && echo y || echo n)"
+check "runtime keys agree across implementations" \
+    "$([ "$(has scripts/install-manifest.ps1 "@('effortLevel')")" = y ] && [ "$(has scripts/install-manifest.sh '["effortLevel"]')" = y ] && echo y || echo n)"
+# env is merged one level so a machine-local variable survives, but the repo
+# still wins per key.
+check "ps1 merges env one level"          "$(has_in_ps_func scripts/install-manifest.ps1 Merge-LocalSettingsKeys 'foreach ($e in $liveEnv.Value.PSObject.Properties)')"
+check "sh merges env with repo winning"   "$(has_in_func scripts/install-manifest.sh merge_local_settings_keys '.env = (($lv.env // {}) * ($st.env // {}))')"
+# jq on Git Bash emits CRLF, which would put a stray CR inside a reported key
+# name; the JSON itself is unaffected.
+check "sh strips CR from reported keys"   "$(has_in_func scripts/install-manifest.sh merge_local_settings_keys "tr -d '\\r'")"
+# Silence was the original defect: four values vanished and the run printed a
+# green success line.
+check "install.ps1 reports what it preserved" "$(has scripts/install.ps1 'machine-local settings keys preserved')"
+check "install.sh reports what it preserved"  "$(has scripts/install.sh 'machine-local settings keys preserved')"
+
+echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
 if [ ${#ERRORS[@]} -gt 0 ]; then
     echo ""

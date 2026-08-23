@@ -210,6 +210,10 @@ function Install-GlobalSettingsAndHooks {
         Remove-Item -LiteralPath $settingsTmp -Force -ErrorAction SilentlyContinue
         Copy-Item -LiteralPath $settingsSource -Destination $settingsTmp -Force -ErrorAction Stop
 
+        # Carry machine-local keys forward before the policy injection, so the
+        # policy still wins on the keys it owns (issue #915).
+        $carriedKeys = Merge-LocalSettingsKeys -StagedPath $settingsTmp -LivePath $destSettings
+
         $settingsUpdated = Update-ClaudeSettingsJson -SettingsPath $settingsTmp -AgentLang $agentLanguage -ContentLang $contentLanguage
 
         Deploy-InstallHooks -ClaudeDir $ClaudeDir
@@ -223,6 +227,9 @@ function Install-GlobalSettingsAndHooks {
     }
 
     Write-Success "Hook settings (settings.json) installed! [Windows version]"
+    if ($carriedKeys -and $carriedKeys.Count -gt 0) {
+        Write-Info "machine-local settings keys preserved: $($carriedKeys -join ', ')"
+    }
     if ($settingsUpdated) {
         Write-Success "settings.json updated with language=$agentLanguage and CLAUDE_CONTENT_LANGUAGE=$contentLanguage"
     } else {

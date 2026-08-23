@@ -333,6 +333,10 @@ function Install-BootstrapSettingsAndHooks {
         Remove-Item -LiteralPath $settingsTmp -Force -ErrorAction SilentlyContinue
         Copy-Item -LiteralPath $settingsSrc -Destination $settingsTmp -Force -ErrorAction Stop
 
+        # Carry machine-local keys forward before the policy injection, so the
+        # policy still wins on the keys it owns (issue #915).
+        $carriedKeys = Merge-LocalSettingsKeys -StagedPath $settingsTmp -LivePath $settingsDst
+
         $settingsUpdated = Update-ClaudeSettingsJson -SettingsPath $settingsTmp -AgentLang $agentLanguage -ContentLang $contentLanguage
 
         Deploy-BootstrapHooks
@@ -345,6 +349,9 @@ function Install-BootstrapSettingsAndHooks {
         Write-Fail "Hook 스크립트 배포 실패. settings.json을 변경하지 않았습니다. $_"
     }
 
+    if ($carriedKeys -and $carriedKeys.Count -gt 0) {
+        Write-Info "machine-local settings keys preserved: $($carriedKeys -join ', ')"
+    }
     if ($settingsUpdated) {
         Write-Ok "settings.json (에이전트: $agentLanguage, 컨텐츠: $contentLanguage) 설치 완료"
     } else {

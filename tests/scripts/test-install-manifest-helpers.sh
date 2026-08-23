@@ -171,5 +171,59 @@ before_log="$(wc -l < "$SHIM_LOG")"
 MANIFEST_PATH="$saved_manifest_path"
 echo "MANIFEST_ELEVATE unset is a no-op: PASS"
 
+# merge_local_settings_keys: settings.json is published by replacing the
+# destination wholesale, so anything the repo profile does not define was lost
+# on every reinstall (#915). These cases pin which side wins per key.
+MERGE_DIR="$TEST_DIR/merge"
+mkdir -p "$MERGE_DIR"
+cat > "$MERGE_DIR/profile.json" <<'JSON'
+{ "description": "repo profile", "language": "korean", "effortLevel": "high",
+  "permissions": { "allow": ["A"] },
+  "hooks": { "PreToolUse": [{ "matcher": "Bash" }] },
+  "env": { "MAX_TEAMS": "4" } }
+JSON
+cat > "$MERGE_DIR/live.json" <<'JSON'
+{ "description": "LOCALLY EDITED", "language": "english", "effortLevel": "xhigh",
+  "model": "opus", "agentPushNotifEnabled": true,
+  "permissions": { "allow": ["STALE"] },
+  "hooks": { "PreToolUse": [{ "matcher": "STALE" }] },
+  "env": { "MAX_TEAMS": "99", "MY_LOCAL_VAR": "keep me" } }
+JSON
+cp "$MERGE_DIR/profile.json" "$MERGE_DIR/staged.json"
+merged_keys="$(merge_local_settings_keys "$MERGE_DIR/staged.json" "$MERGE_DIR/live.json" | LC_ALL=C sort | tr '\n' ' ')"
+
+merge_eq() {
+    local label="$1" got="$2" want="$3"
+    [ "$got" = "$want" ] || { echo "FAIL: $label (got '$got' want '$want')"; exit 1; }
+}
+merge_eq "repo description wins"       "$(jq -r .description "$MERGE_DIR/staged.json")" "repo profile"
+merge_eq "repo language wins"          "$(jq -r .language "$MERGE_DIR/staged.json")" "korean"
+merge_eq "repo permissions win"        "$(jq -c .permissions.allow "$MERGE_DIR/staged.json")" '["A"]'
+merge_eq "repo hooks win"              "$(jq -r .hooks.PreToolUse[0].matcher "$MERGE_DIR/staged.json")" "Bash"
+merge_eq "repo env value wins"         "$(jq -r .env.MAX_TEAMS "$MERGE_DIR/staged.json")" "4"
+merge_eq "unknown key carried"         "$(jq -r .model "$MERGE_DIR/staged.json")" "opus"
+merge_eq "unknown bool carried"        "$(jq -r .agentPushNotifEnabled "$MERGE_DIR/staged.json")" "true"
+merge_eq "runtime key carried"         "$(jq -r .effortLevel "$MERGE_DIR/staged.json")" "xhigh"
+merge_eq "live-only env key carried"   "$(jq -r .env.MY_LOCAL_VAR "$MERGE_DIR/staged.json")" "keep me"
+merge_eq "carried names are reported"  "$merged_keys" "agentPushNotifEnabled effortLevel env.MY_LOCAL_VAR model "
+
+# Fresh machine: no deployed settings.json at all. The staged profile must come
+# through untouched, and nothing may be reported as carried.
+cp "$MERGE_DIR/profile.json" "$MERGE_DIR/staged2.json"
+fresh_keys="$(merge_local_settings_keys "$MERGE_DIR/staged2.json" "$MERGE_DIR/absent.json")"
+merge_eq "absent live file carries nothing" "$fresh_keys" ""
+diff -q "$MERGE_DIR/profile.json" "$MERGE_DIR/staged2.json" > /dev/null \
+    || { echo "FAIL: absent live file altered the staged profile"; exit 1; }
+
+# An unparseable live file must not abort the install: the publish that follows
+# replaces it wholesale, which is the pre-#915 behaviour.
+cp "$MERGE_DIR/profile.json" "$MERGE_DIR/staged3.json"
+printf 'not json at all' > "$MERGE_DIR/broken.json"
+bad_keys="$(merge_local_settings_keys "$MERGE_DIR/staged3.json" "$MERGE_DIR/broken.json")"
+merge_eq "unparseable live file carries nothing" "$bad_keys" ""
+diff -q "$MERGE_DIR/profile.json" "$MERGE_DIR/staged3.json" > /dev/null \
+    || { echo "FAIL: unparseable live file altered the staged profile"; exit 1; }
+echo "merge_local_settings_keys: PASS"
+
 echo "All helper tests passed!"
 exit 0

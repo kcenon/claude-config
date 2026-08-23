@@ -210,6 +210,69 @@ try {
     }
     Write-Host "Invoke-ManifestTrackedCopy returns `$true for copy/no-op/missing-source: PASS"
 
+    # Merge-LocalSettingsKeys: settings.json is published by replacing the
+    # destination wholesale, so anything the repo profile does not define was
+    # lost on every reinstall (#915). These cases pin which side wins per key.
+    $mergeDir = Join-Path $testDir 'merge'
+    New-Item -ItemType Directory -Path $mergeDir -Force | Out-Null
+    $profileJson = @'
+{ "description": "repo profile", "language": "korean", "effortLevel": "high",
+  "permissions": { "allow": ["A"] },
+  "hooks": { "PreToolUse": [{ "matcher": "Bash" }] },
+  "env": { "MAX_TEAMS": "4" } }
+'@
+    $liveJson = @'
+{ "description": "LOCALLY EDITED", "language": "english", "effortLevel": "xhigh",
+  "model": "opus", "agentPushNotifEnabled": true,
+  "permissions": { "allow": ["STALE"] },
+  "hooks": { "PreToolUse": [{ "matcher": "STALE" }] },
+  "env": { "MAX_TEAMS": "99", "MY_LOCAL_VAR": "keep me" } }
+'@
+    $profilePath = Join-Path $mergeDir 'profile.json'
+    $livePath = Join-Path $mergeDir 'live.json'
+    $stagedPath = Join-Path $mergeDir 'staged.json'
+    $profileJson | Set-Content -LiteralPath $profilePath -Encoding UTF8
+    $liveJson | Set-Content -LiteralPath $livePath -Encoding UTF8
+    Copy-Item -LiteralPath $profilePath -Destination $stagedPath -Force
+
+    $carried = Merge-LocalSettingsKeys -StagedPath $stagedPath -LivePath $livePath
+    $merged = Get-Content -Raw -LiteralPath $stagedPath | ConvertFrom-Json
+
+    function Assert-MergeEq {
+        param($Label, $Got, $Want)
+        if ("$Got" -ne "$Want") { throw "FAIL: $Label (got '$Got' want '$Want')" }
+    }
+    Assert-MergeEq 'repo description wins'     $merged.description "repo profile"
+    Assert-MergeEq 'repo language wins'        $merged.language "korean"
+    Assert-MergeEq 'repo permissions win'      ($merged.permissions.allow -join ',') "A"
+    Assert-MergeEq 'repo hooks win'            $merged.hooks.PreToolUse[0].matcher "Bash"
+    Assert-MergeEq 'repo env value wins'       $merged.env.MAX_TEAMS "4"
+    Assert-MergeEq 'unknown key carried'       $merged.model "opus"
+    Assert-MergeEq 'unknown bool carried'      $merged.agentPushNotifEnabled "True"
+    Assert-MergeEq 'runtime key carried'       $merged.effortLevel "xhigh"
+    Assert-MergeEq 'live-only env key carried' $merged.env.MY_LOCAL_VAR "keep me"
+    Assert-MergeEq 'carried names reported' (($carried | Sort-Object) -join ',') `
+        'agentPushNotifEnabled,effortLevel,env.MY_LOCAL_VAR,model'
+
+    # Fresh machine: no deployed settings.json at all.
+    $staged2 = Join-Path $mergeDir 'staged2.json'
+    Copy-Item -LiteralPath $profilePath -Destination $staged2 -Force
+    $before2 = Get-Content -Raw -LiteralPath $staged2
+    $fresh = Merge-LocalSettingsKeys -StagedPath $staged2 -LivePath (Join-Path $mergeDir 'absent.json')
+    Assert-MergeEq 'absent live file carries nothing' $fresh.Count 0
+    Assert-MergeEq 'absent live file leaves staged untouched' (Get-Content -Raw -LiteralPath $staged2) $before2
+
+    # An unparseable live file must not abort the install: the publish that
+    # follows replaces it wholesale, which is the pre-#915 behaviour.
+    $staged3 = Join-Path $mergeDir 'staged3.json'
+    Copy-Item -LiteralPath $profilePath -Destination $staged3 -Force
+    $before3 = Get-Content -Raw -LiteralPath $staged3
+    'not json at all' | Set-Content -LiteralPath (Join-Path $mergeDir 'broken.json') -Encoding UTF8
+    $bad = Merge-LocalSettingsKeys -StagedPath $staged3 -LivePath (Join-Path $mergeDir 'broken.json')
+    Assert-MergeEq 'unparseable live file carries nothing' $bad.Count 0
+    Assert-MergeEq 'unparseable live file leaves staged untouched' (Get-Content -Raw -LiteralPath $staged3) $before3
+    Write-Host "Merge-LocalSettingsKeys: PASS"
+
     Write-Host "All helper tests passed!"
 } finally {
     Remove-Item -LiteralPath $testDir -Recurse -Force -ErrorAction SilentlyContinue

@@ -246,6 +246,38 @@ enterprise dir. Two differences from the other two roots:
 Artifacts deployed outside those roots, such as `~/.tmux.conf` and
 `~/.config/ccstatusline/settings.json`, remain outside manifest pruning.
 
+## Machine-local settings keys
+
+`~/.claude/settings.json` is the one deployed file with no manifest key. It is
+published by staging the repo profile, injecting the language policy, and
+moving the result over the destination -- deliberately, so the policy
+attributes are enforced on every install rather than surviving as a stale local
+value. Until #915 the blast radius was the whole file, and keys Claude Code
+writes itself were reset by every reinstall with no warning.
+
+The staged copy now takes machine-local keys from the deployed file first, so
+the policy injection still runs last and still wins. Rules, in order:
+
+| Key | Winner | Why |
+|-----|--------|-----|
+| `language`, `permissions`, `hooks` | repo profile, always | `language` is the install-time policy choice; `permissions` is security and `hooks` are the runtime guards `settings.json` points at, and neither may survive an intentional repo change as a stale local block |
+| `effortLevel` | the deployed file | The profiles ship a default, but the in-app `/effort` control writes this key, so enforcing the profile would reset a choice the user just made |
+| any other key the profile defines | repo profile | the profile has an opinion, so it is configuration rather than machine state |
+| any key the profile does not define | the deployed file | `model`, `agentPushNotifEnabled`, `skipWorkflowUsageWarning`, and anything Claude Code adds later |
+| `env` | merged one level, profile winning per key | a machine-local variable survives without letting a stale value shadow the profile |
+
+`effortLevel` is the only entry in the runtime list, and adding to that list has
+a cost worth stating plainly: a key on it is one the repo can no longer change
+for existing installs. The alternative -- dropping `effortLevel` from both
+profiles so the general rule covers it -- would change the shipped default for
+new installs and is a product decision, not an installer one.
+
+The run prints `machine-local settings keys preserved: ...` naming what it
+carried, because the original defect was silence rather than loss.
+
+An unparseable deployed file is not fatal: nothing is carried and the publish
+replaces it wholesale, which is the pre-#915 behaviour.
+
 ## Regression Test
 
 `tests/scripts/test-install-preserves-customization.sh` covers keep,

@@ -422,6 +422,69 @@ guarded_template_copy() {
     return "$result"
 }
 
+# Keys the repo profile owns unconditionally (parity with $SettingsPolicyKeys
+# in install-manifest.ps1): `language` is chosen by the install-time policy
+# prompt, and `permissions` / `hooks` must not survive an intentional repo
+# change as a stale local block.
+SETTINGS_POLICY_KEYS='["language","permissions","hooks"]'
+
+# Repo-defined keys that are nonetheless runtime state. `effortLevel` ships a
+# default in both profiles but is written by the in-app /effort control, so a
+# reinstall resetting it is the bug this list exists to prevent. Keep it short:
+# every entry is a key the repo can no longer change for existing installs.
+# See docs/install.md, "Machine-local settings keys".
+SETTINGS_RUNTIME_KEYS='["effortLevel"]'
+
+# merge_local_settings_keys <staged_path> <live_path>
+# Carry machine-local top-level keys from the deployed settings.json into a
+# staged copy of the repo profile. Mirrors Merge-LocalSettingsKeys; see its
+# comment block for the rule order. Prints the carried key names, one per line.
+merge_local_settings_keys() {
+    local staged="$1" live="$2"
+    [ -f "$staged" ] || return 0
+    [ -f "$live" ] || return 0
+    command -v jq > /dev/null 2>&1 || return 0
+
+    local carried
+    carried="$(jq -r -n --slurpfile s "$staged" --slurpfile l "$live" \
+        --argjson policy "$SETTINGS_POLICY_KEYS" \
+        --argjson runtime "$SETTINGS_RUNTIME_KEYS" '
+        ($s[0]) as $st | ($l[0]) as $lv
+        | [ ($lv | keys_unsorted)[] as $k
+            | select(($policy | index($k)) | not)
+            | select($k != "env")
+            | select((($st | has($k)) | not) or (($runtime | index($k)) != null))
+            | $k ]
+          + [ (($lv.env // {}) | keys_unsorted)[] as $k
+              | select((($st.env // {}) | has($k)) | not)
+              | "env." + $k ]
+        | .[]
+    ' 2> /dev/null | tr -d '\r')" || return 0
+    [ -n "$carried" ] || return 0
+
+    local tmpfile
+    tmpfile=$(mktemp) || return 0
+    if jq -n --slurpfile s "$staged" --slurpfile l "$live" \
+        --argjson policy "$SETTINGS_POLICY_KEYS" \
+        --argjson runtime "$SETTINGS_RUNTIME_KEYS" '
+        ($s[0]) as $st | ($l[0]) as $lv
+        | reduce ($lv | keys_unsorted)[] as $k ($st;
+            if ($policy | index($k)) then .
+            elif $k == "env" then .
+            elif (($st | has($k)) and (($runtime | index($k)) | not)) then .
+            else .[$k] = $lv[$k]
+            end)
+        | if (($lv | has("env")) or ($st | has("env")))
+          then .env = (($lv.env // {}) * ($st.env // {}))
+          else . end
+    ' > "$tmpfile" 2> /dev/null; then
+        mv "$tmpfile" "$staged"
+        printf '%s\n' "$carried"
+    else
+        rm -f "$tmpfile"
+    fi
+}
+
 # update_claude_settings_json <settings_json_path> <agent_language> <content_language>
 update_claude_settings_json() {
     local settings_path="$1" agent_lang="$2" content_lang="$3"
