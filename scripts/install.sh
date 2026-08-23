@@ -819,9 +819,28 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     manifest_reset_managed_keys
 
     # 파일 설치 (매니페스트 가드 사용)
+    _seeded_identity=""
     for gf in CLAUDE.md commit-settings.md git-identity.md token-management.md; do
         if [ -f "$BACKUP_DIR/global/$gf" ]; then
-            if manifest_copy_file "$BACKUP_DIR/global/$gf" "$HOME/.claude/$gf" "$gf"; then
+            # git-identity.md is seeded on a staged copy of the SOURCE, never on
+            # the deployed file. Seeding afterwards left the manifest holding the
+            # repo hash while the file on disk held the seeded one, so the next
+            # install saw a divergence it had created itself and prompted for it,
+            # every time (#916).
+            _src="$BACKUP_DIR/global/$gf"
+            _seed_tmp=""
+            if [ "$gf" = "git-identity.md" ]; then
+                _seed_tmp="$(mktemp)"
+                cp "$_src" "$_seed_tmp"
+                if seed_git_identity "$_seed_tmp"; then
+                    _src="$_seed_tmp"
+                    _seeded_identity="${SEED_GIT_IDENTITY_NAME} <${SEED_GIT_IDENTITY_EMAIL}>"
+                else
+                    rm -f "$_seed_tmp"
+                    _seed_tmp=""
+                fi
+            fi
+            if manifest_copy_file "$_src" "$HOME/.claude/$gf" "$gf"; then
                 if [ "$gf" = "git-identity.md" ] || [ "$gf" = "token-management.md" ]; then
                     chmod 600 "$HOME/.claude/$gf"
                 else
@@ -831,17 +850,18 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
             else
                 info "$gf 로컬 변경 유지"
             fi
+            [ -n "$_seed_tmp" ] && rm -f "$_seed_tmp"
         fi
     done
+    unset _src _seed_tmp
 
-    # Git identity auto-fill (issue #748; extracted to shared lib in #777).
-    # seed_git_identity() lives in scripts/lib/install-prompts.sh so bootstrap.sh
-    # and install.sh share one implementation. It only patches placeholder
-    # lines and only when both git config values are present, never overwriting
-    # a user-customized file.
+    # Git identity auto-fill (issue #748; extracted to shared lib in #777;
+    # moved ahead of the copy in #916). The messaging below still distinguishes
+    # "already customized" from "git config missing", which the seed result
+    # alone cannot.
     _git_identity_target="$HOME/.claude/git-identity.md"
-    if seed_git_identity "$_git_identity_target"; then
-        success "git-identity.md: git global config로 자동 채우기 완료 (${SEED_GIT_IDENTITY_NAME} <${SEED_GIT_IDENTITY_EMAIL}>)"
+    if [ -n "$_seeded_identity" ]; then
+        success "git-identity.md: git global config로 자동 채우기 완료 (${_seeded_identity})"
     elif [ -f "$_git_identity_target" ]; then
         # Not seeded: either the file was already customized, or git config is
         # missing. Preserve the pre-extraction messaging for both cases.
@@ -852,7 +872,7 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
             warning "git config --global user.name / user.email 미설정 — git-identity.md를 수동으로 편집하세요"
         fi
     fi
-    unset _git_identity_target
+    unset _git_identity_target _seeded_identity
 
     # conversation-language.md 템플릿 렌더링
     # AGENT_DISPLAY_LANG is populated by prompt_language_profile() in

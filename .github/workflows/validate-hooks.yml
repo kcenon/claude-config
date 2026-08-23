@@ -144,6 +144,9 @@ jobs:
       - name: Run formatter ownership regression test
         run: bash tests/scripts/test-no-duplicate-formatter.sh
 
+      - name: Run installer prompt helper tests
+        run: bash tests/scripts/test-install-prompts.sh
+
       - name: Run install manifest helper tests
         run: bash tests/scripts/test-install-manifest-helpers.sh
 

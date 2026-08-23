@@ -198,6 +198,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `git-identity.md` was copied under manifest guard and then rewritten in place
+  by the identity seeder, which never updated the manifest. From that moment
+  the manifest described a file that no longer existed on disk, so the next
+  install found `srcSha != destSha` and `destSha != storedSha`, fell through to
+  the divergence branch, and prompted the user to keep or overwrite a change
+  the installer itself had made -- on every run, on both platforms. A drift
+  audit on 2026-08-24 classified 281 of 282 manifest-tracked files as in sync;
+  the single exception was this file. The seeder now runs on a staged copy of
+  the source before the guarded copy, matching the shape
+  `Invoke-GuardedTemplateCopy` already uses, so the manifest records what was
+  deployed. Two further defects in the same block: the substitution was
+  document-wide and rewrote the sentence explaining what the placeholders are
+  ("replace the `YOUR NAME` / `YOUR EMAIL` placeholders by hand" came out
+  naming the substituted values), and `Set-GitIdentitySeed` reported through
+  `$script:` variables from inside a module, so both PowerShell installers
+  printed `auto-filled from git config ( <>)` with empty values. The
+  substitution is now anchored to the `name:` and `email:` lines and the
+  function returns the values it seeded. `seed_git_identity` had no behavioural
+  test at all; `tests/scripts/test-install-prompts.sh` is new. (#916)
 - Publishing `~/.claude/settings.json` discarded every top-level key the repo
   profile does not define. All four full-install entry points stage the
   profile, inject the language policy into the staged copy, and move it over
