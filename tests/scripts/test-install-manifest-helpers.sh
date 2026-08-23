@@ -107,5 +107,69 @@ else
     echo "update_claude_settings_json idempotent reset: SKIP (jq missing)"
 fi
 
+# Test MANIFEST_ELEVATE plumbing (#906).
+#
+# The enterprise tree on POSIX is root-owned, so its copies and its manifest
+# write go through an elevation prefix. Real `sudo` cannot run here, so the
+# prefix is a shim that records every invocation and then execs the command.
+# That exercises the whole path -- argument passing, the temp-file manifest
+# write, and the elevated placement -- without needing privilege. What it does
+# NOT cover is sudo-specific behaviour (environment stripping, TTY prompts);
+# the temp-file design exists precisely so the heredoc never runs under sudo.
+manifest_reset_managed_keys
+SHIM="$TEST_DIR/elevate-shim.sh"
+SHIM_LOG="$TEST_DIR/elevate.log"
+cat > "$SHIM" << 'SHIMEOF'
+#!/bin/bash
+printf '%s\n' "$1" >> "$ELEVATE_LOG"
+exec "$@"
+SHIMEOF
+chmod +x "$SHIM"
+export ELEVATE_LOG="$SHIM_LOG"
+: > "$SHIM_LOG"
+
+ENT_SRC="$TEST_DIR/ent-src"
+ENT_DEST="$TEST_DIR/ent-dest"
+mkdir -p "$ENT_SRC/rules"
+echo "policy" > "$ENT_SRC/CLAUDE.md"
+echo "rule one" > "$ENT_SRC/rules/security.md"
+
+saved_manifest_path="$MANIFEST_PATH"
+MANIFEST_PATH="$ENT_DEST/.install-manifest.json"
+MANIFEST_ELEVATE="$SHIM"
+
+_manifest_run mkdir -p "$ENT_DEST/rules"
+manifest_copy_file "$ENT_SRC/CLAUDE.md" "$ENT_DEST/CLAUDE.md" "CLAUDE.md" || true
+manifest_copy_tree "$ENT_SRC/rules" "$ENT_DEST/rules" "rules"
+
+MANIFEST_ELEVATE=""
+[ -f "$ENT_DEST/CLAUDE.md" ] || { echo "FAIL: elevated copy did not place CLAUDE.md"; exit 1; }
+[ -f "$ENT_DEST/rules/security.md" ] || { echo "FAIL: elevated copy did not place rules tree"; exit 1; }
+[ -f "$ENT_DEST/.install-manifest.json" ] || { echo "FAIL: elevated manifest write produced no manifest"; exit 1; }
+grep -q '"CLAUDE.md"' "$ENT_DEST/.install-manifest.json" || { echo "FAIL: enterprise manifest missing CLAUDE.md key"; exit 1; }
+grep -q '"rules/security.md"' "$ENT_DEST/.install-manifest.json" || { echo "FAIL: enterprise manifest missing rules key"; exit 1; }
+# The key must be relative to the enterprise root, not to $HOME, or the two
+# roots would collide on `CLAUDE.md`.
+grep -q "$ENT_DEST" "$ENT_DEST/.install-manifest.json" && { echo "FAIL: enterprise manifest stored an absolute key"; exit 1; }
+# Prove the shim actually ran; otherwise this whole case would pass on the
+# unelevated path and assert nothing.
+grep -q '^cp$' "$SHIM_LOG" || { echo "FAIL: elevation prefix was never used for cp"; exit 1; }
+grep -q '^mkdir$' "$SHIM_LOG" || { echo "FAIL: elevation prefix was never used for mkdir"; exit 1; }
+echo "MANIFEST_ELEVATE plumbing: PASS"
+
+# Test that an unset MANIFEST_ELEVATE leaves no temp residue and still writes
+# in place -- the property that makes this change a no-op for the global and
+# project layers.
+MANIFEST_PATH="$TEST_DIR/plain/.install-manifest.json"
+mkdir -p "$TEST_DIR/plain"
+echo "plain" > "$TEST_DIR/plain-src.md"
+manifest_copy_file "$TEST_DIR/plain-src.md" "$TEST_DIR/plain/x.md" "x.md" || true
+[ -f "$TEST_DIR/plain/x.md" ] || { echo "FAIL: unelevated copy did not place file"; exit 1; }
+grep -q '"x.md"' "$MANIFEST_PATH" || { echo "FAIL: unelevated manifest write did not record key"; exit 1; }
+before_log="$(wc -l < "$SHIM_LOG")"
+[ "$before_log" -gt 0 ] || { echo "FAIL: shim log unexpectedly empty"; exit 1; }
+MANIFEST_PATH="$saved_manifest_path"
+echo "MANIFEST_ELEVATE unset is a no-op: PASS"
+
 echo "All helper tests passed!"
 exit 0

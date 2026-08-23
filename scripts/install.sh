@@ -482,56 +482,75 @@ install_enterprise() {
     warning "관리자 권한이 필요합니다."
     echo ""
 
-    # sudo 필요 여부 확인
+    # The manifest helper cannot be assumed in scope here. install_enterprise
+    # runs before the global block that sources it, and INSTALL_TYPE=4 never
+    # enters that block at all, so under `set -euo pipefail` an enterprise-only
+    # install would die on the first helper call.
+    if ! type manifest_copy_file >/dev/null 2>&1; then
+        # shellcheck source=scripts/install-manifest.sh
+        source "$BACKUP_DIR/scripts/install-manifest.sh"
+    fi
+
+    # One deployment path, one privilege decision. This used to be three
+    # near-identical branches (sudo POSIX / plain POSIX / Windows), which is how
+    # a bare-cp defect survived here in triplicate.
+    local needs_sudo=0
     if [ "$(uname -s)" = "Darwin" ] || [ "$(uname -s)" = "Linux" ]; then
         if [ ! -w "$(dirname "$enterprise_dir")" ]; then
+            needs_sudo=1
             info "sudo를 사용하여 설치합니다."
-
-            # 디렉토리 생성
-            sudo mkdir -p "$enterprise_dir"
-            sudo mkdir -p "$enterprise_dir/rules"
-
-            # 파일 복사
-            sudo cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/" || error "CLAUDE.md 복사 실패"
-            success "CLAUDE.md 설치됨"
-
-            # rules 디렉토리 복사
-            if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
-                sudo cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" || error "rules 복사 실패"
-                success "rules 디렉토리 설치됨"
-            fi
-
-            # 권한 설정 (읽기 전용)
-            sudo chmod 755 "$enterprise_dir"
-            sudo chmod 644 "$enterprise_dir/CLAUDE.md"
-            sudo chmod 755 "$enterprise_dir/rules"
-            if [ -n "$(ls -A "$enterprise_dir/rules" 2>/dev/null)" ]; then
-                sudo chmod 644 "$enterprise_dir/rules"/* || error "rules 권한 설정 실패"
-            fi
-        else
-            # sudo 불필요
-            mkdir -p "$enterprise_dir"
-            mkdir -p "$enterprise_dir/rules"
-            cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/" || error "CLAUDE.md 복사 실패"
-            success "CLAUDE.md 설치됨"
-
-            if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
-                cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" || error "rules 복사 실패"
-                success "rules 디렉토리 설치됨"
-            fi
-        fi
-    else
-        # Windows
-        mkdir -p "$enterprise_dir"
-        mkdir -p "$enterprise_dir/rules"
-        cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/" || error "CLAUDE.md 복사 실패"
-        success "CLAUDE.md 설치됨"
-
-        if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
-            cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" || error "rules 복사 실패"
-            success "rules 디렉토리 설치됨"
         fi
     fi
+
+    # The enterprise tree gets its OWN manifest file, keyed relative to the
+    # enterprise root. It cannot share ~/.claude/.install-manifest.json: the
+    # global tree already tracks a key named `CLAUDE.md`, so the two roots would
+    # overwrite each other's stored hash and every later guarded copy would
+    # compare against the wrong baseline.
+    #
+    # Restoring MANIFEST_PATH matters more here than in the project layer,
+    # because install_enterprise runs BEFORE the global block: a leaked value
+    # would redirect the entire ~/.claude manifest into the enterprise root.
+    local previous_manifest_path="${MANIFEST_PATH:-}"
+    local previous_elevate="${MANIFEST_ELEVATE:-}"
+    MANIFEST_PATH="$enterprise_dir/.install-manifest.json"
+    if [ "$needs_sudo" = "1" ]; then
+        MANIFEST_ELEVATE="sudo"
+    fi
+    manifest_reset_managed_keys
+
+    _manifest_run mkdir -p "$enterprise_dir"
+    _manifest_run mkdir -p "$enterprise_dir/rules"
+
+    manifest_copy_file "$BACKUP_DIR/enterprise/CLAUDE.md" \
+        "$enterprise_dir/CLAUDE.md" "CLAUDE.md" || true
+    success "CLAUDE.md 설치됨"
+
+    if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
+        manifest_copy_tree "$BACKUP_DIR/enterprise/rules" \
+            "$enterprise_dir/rules" "rules"
+        success "rules 디렉토리 설치됨"
+    fi
+
+    # 권한 설정 (읽기 전용)
+    if [ "$needs_sudo" = "1" ]; then
+        sudo chmod 755 "$enterprise_dir"
+        sudo chmod 644 "$enterprise_dir/CLAUDE.md"
+        sudo chmod 755 "$enterprise_dir/rules"
+        if [ -n "$(ls -A "$enterprise_dir/rules" 2>/dev/null)" ]; then
+            sudo chmod 644 "$enterprise_dir/rules"/* || error "rules 권한 설정 실패"
+        fi
+        # World-readable by design: a drift audit must be able to hash the
+        # deployed files and the manifest without elevation.
+        sudo chmod 644 "$MANIFEST_PATH"
+    fi
+
+    # Deliberately no manifest_prune_tracked here, matching the Windows side.
+    # Tracking exists so drift becomes visible; deleting files out of a managed
+    # policy directory is a separate decision.
+
+    MANIFEST_PATH="$previous_manifest_path"
+    MANIFEST_ELEVATE="$previous_elevate"
 
     success "Enterprise 설정 설치 완료!"
     echo ""
