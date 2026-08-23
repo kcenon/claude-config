@@ -31,6 +31,19 @@ check() {
 has() { grep -qF -- "$2" "$1" && echo y || echo n; }
 hasnot() { grep -qF -- "$2" "$1" && echo n || echo y; }
 
+# has_in_func <file> <shell-function-name> <literal>
+# Whole-file `has` is not discriminating for idioms this repo already uses
+# elsewhere: the project layer, for example, guards its helper load and
+# restores MANIFEST_PATH with exactly the same lines. Scoping the search to one
+# function body is what makes those assertions mean anything.
+has_in_func() {
+    awk -v opener="$2() {" '
+        index($0, opener) == 1 { inside = 1 }
+        inside { print }
+        inside && $0 == "}" { exit }
+    ' "$1" | grep -qF -- "$3" && echo y || echo n
+}
+
 echo "=== installer robustness tests ==="
 echo ""
 echo "[settings-source parity: PowerShell installers -> settings.windows.json]"
@@ -85,6 +98,24 @@ check "MANIFEST_PATH repoint is unwound in finally"   "$(awk '/MANIFEST_PATH = J
 # were never written.
 check "summary reads the recorded install state"      "$(has scripts/install.ps1 'switch ($script:EnterpriseInstallState)')"
 check "admin-gate exit records why it skipped"        "$(has scripts/install.ps1 "EnterpriseInstallState = 'skipped-not-admin'")"
+
+echo ""
+echo "[enterprise layer is manifest-tracked on POSIX (#906)]"
+check "install.sh tracks enterprise CLAUDE.md"        "$(has scripts/install.sh 'manifest_copy_file "$BACKUP_DIR/enterprise/CLAUDE.md"')"
+check "install.sh tracks enterprise rules tree"       "$(has scripts/install.sh 'manifest_copy_tree "$BACKUP_DIR/enterprise/rules"')"
+check "install.sh no bare cp for enterprise CLAUDE.md" "$(hasnot scripts/install.sh 'cp "$BACKUP_DIR/enterprise/CLAUDE.md"')"
+check "install.sh no bare cp -r for enterprise rules"  "$(hasnot scripts/install.sh 'cp -r "$BACKUP_DIR/enterprise/rules"')"
+check "enterprise root gets its own manifest"          "$(has scripts/install.sh 'MANIFEST_PATH="$enterprise_dir/.install-manifest.json"')"
+# install_enterprise runs before the global block sources the helper, and
+# INSTALL_TYPE=4 never enters that block, so the guarded load is not optional.
+check "install_enterprise sources the helper itself"   "$(has_in_func scripts/install.sh install_enterprise 'if ! type manifest_copy_file')"
+# A leaked MANIFEST_PATH would redirect the whole ~/.claude manifest into the
+# enterprise root, because install_enterprise runs first.
+check "MANIFEST_PATH is restored afterwards"           "$(has_in_func scripts/install.sh install_enterprise 'MANIFEST_PATH="$previous_manifest_path"')"
+check "elevation is opt-in via MANIFEST_ELEVATE"       "$(has scripts/install-manifest.sh '_manifest_run()')"
+check "elevation defaults to a plain exec"             "$(has scripts/install-manifest.sh 'MANIFEST_ELEVATE:-')"
+# The audit that motivated this must be able to hash the manifest unprivileged.
+check "elevated manifest is left world-readable"       "$(has scripts/install.sh 'sudo chmod 644 "$MANIFEST_PATH"')"
 
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="

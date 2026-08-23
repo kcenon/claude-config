@@ -10,14 +10,24 @@ Locations:
 
 - Global install tree: `~/.claude/.install-manifest.json`
 - Project install tree: `<project>/.claude/.install-manifest.json`
-- Enterprise install tree (Windows only, `scripts/install.ps1`):
-  `<enterprise-dir>/.install-manifest.json`, where `<enterprise-dir>` is
-  `C:\Program Files\ClaudeCode`. Reachable only through `scripts/install.ps1`
-  with install type 4 or 5; neither `bootstrap.sh` nor `bootstrap.ps1` deploys
-  it. The POSIX enterprise roots
-  (`/Library/Application Support/ClaudeCode`, `/etc/claude-code`) are not yet
-  tracked -- their copies run under `sudo`, so the manifest write needs
-  elevation plumbing that `scripts/install-manifest.sh` does not have.
+- Enterprise install tree: `<enterprise-dir>/.install-manifest.json`, where
+  `<enterprise-dir>` is `C:\Program Files\ClaudeCode` on Windows,
+  `/Library/Application Support/ClaudeCode` on macOS, and `/etc/claude-code`
+  elsewhere. Reachable only through `scripts/install.ps1` or
+  `scripts/install.sh` with install type 4 or 5; neither `bootstrap.sh` nor
+  `bootstrap.ps1` deploys it.
+
+  On POSIX the enterprise root is usually not writable by the installing user,
+  so `install_enterprise` sets `MANIFEST_ELEVATE=sudo` and the manifest helper
+  routes its copies, its `mkdir`, and the placement of the manifest through
+  that prefix. `MANIFEST_ELEVATE` is empty everywhere else, and an empty value
+  makes the helper collapse to running the command directly, so the global and
+  project layers are unaffected. The merged manifest document is always built
+  unprivileged in a temp file and only its final placement is elevated: reading
+  the existing manifest needs no privilege, and keeping the JSON step out of
+  `sudo` avoids the environment stripping its inline variables depend on. The
+  deployed manifest is left mode 644 so a drift audit can hash it without
+  elevation.
 
 Format:
 

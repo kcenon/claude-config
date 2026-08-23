@@ -66,6 +66,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   covered -- those roots are written with `sudo` and
   `scripts/install-manifest.sh` has no elevation path -- and is tracked as a
   follow-up. (#903)
+- The enterprise install tree is manifest-tracked on POSIX too, completing the
+  Windows half above. `install_enterprise` in `scripts/install.sh` carried the
+  same bare-copy defect in triplicate -- three near-identical branches (sudo
+  POSIX, plain POSIX, Windows-under-bash), each with its own pair of copies --
+  which is how the defect survived there at all; they are now one deployment
+  path preceded by a privilege decision. The blocker was that the POSIX
+  enterprise root is root-owned while every write primitive in
+  `scripts/install-manifest.sh` is unprivileged. Resolved with
+  `MANIFEST_ELEVATE`, an opt-in command prefix consulted by a new
+  `_manifest_run`: it is empty for every existing caller, and an empty value
+  makes the helper collapse to `"$@"`, so the global and project layers execute
+  byte-identically to before. `install_enterprise` sets it to `sudo` only on the
+  branch where the destination's parent is not writable. The merged manifest
+  document is built unprivileged in a temp file and only its placement is
+  elevated -- reading the existing manifest needs no privilege, and keeping the
+  JSON step out of `sudo` avoids the environment stripping its inline variables
+  depend on. The deployed manifest is left mode 644 so a drift audit needs no
+  elevation. The helper is sourced inside `install_enterprise`, which runs
+  before the global block that sources it and is skipped entirely for
+  `INSTALL_TYPE=4`, and `MANIFEST_PATH` is restored afterwards because a leaked
+  value would redirect the whole `~/.claude` manifest into the enterprise root.
+  Prune stays off here, matching Windows. (#906)
 - The installer's closing summary no longer claims an enterprise deployment
   that did not happen. It printed the enterprise paths under "Installed files:"
   for install types 4 and 5 unconditionally, including when `Install-Enterprise`

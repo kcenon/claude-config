@@ -552,7 +552,7 @@ Enterprise 설정은 조직의 모든 개발자에게 적용되는 조직 전체
 
 배포 전에 조직의 정책에 맞게 `enterprise/CLAUDE.md`를 커스터마이즈하세요.
 
-Windows에서는 `scripts/install.ps1`이 이 트리의 SHA-256 매니페스트를 `<enterprise-dir>/.install-manifest.json`에 기록합니다. 따라서 재설치가 로컬에서 편집한 정책 파일을 덮어쓰지 않고 보존하며, 드리프트 점검이 낡은 배포와 편집된 파일을 구분할 수 있습니다. 프롬프트 없이 덮어쓰려면 `BOOTSTRAP_FORCE=1`을 설정하세요. 퇴역한 규칙은 삭제되지 않으며, POSIX enterprise 루트는 아직 추적되지 않습니다. [docs/install.md](docs/install.md)를 참고하세요.
+두 설치기 모두 이 트리의 SHA-256 매니페스트를 `<enterprise-dir>/.install-manifest.json`에 기록합니다. 따라서 재설치가 로컬에서 편집한 정책 파일을 덮어쓰지 않고 보존하며, 드리프트 점검이 낡은 배포와 편집된 파일을 구분할 수 있습니다. 프롬프트 없이 덮어쓰려면 `BOOTSTRAP_FORCE=1`을 설정하세요. POSIX에서는 enterprise 루트에 쓰기 권한이 없을 때 복사와 매니페스트 배치가 `sudo`를 거치며, 매니페스트 자체는 읽기 가능하게 남겨 두어 감사에 권한이 필요 없습니다. 퇴역한 규칙은 삭제되지 않습니다. [docs/install.md](docs/install.md)를 참고하세요.
 
 ---
 
