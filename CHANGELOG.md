@@ -66,6 +66,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   covered -- those roots are written with `sudo` and
   `scripts/install-manifest.sh` has no elevation path -- and is tracked as a
   follow-up. (#903)
+- `Install-Enterprise` reports what is on disk instead of what the copy helpers
+  returned. Two paths were wrong. A throw from the `CLAUDE.md` copy or the
+  manifest write unwound past the function -- only the rules copy had a `catch`
+  -- so under `$ErrorActionPreference = 'Stop'` the state stayed `'skipped'` and
+  the closing summary never ran, which is the same failure #905 added the state
+  variable to prevent. And the success lines were printed unconditionally:
+  `Invoke-ManifestTrackedCopy` returns `$true` for a real write, for a
+  destination already byte-identical, and for a **missing source** alike, while
+  `Copy-ManifestTree` discards every per-file result, so a file kept at the
+  divergence prompt was reported as installed. That mattered concretely: on a
+  first run there is no manifest, so a stale file has no stored hash, falls to
+  the divergence branch, and a bare Enter keeps it -- the exact drift the
+  tracking exists to expose could survive a run that declared success. The
+  function now records each destination's hash before the copies and reports
+  `updated` / `already current` / `kept local` / `source missing` from a
+  comparison afterwards, and a kept file yields a new `installed-with-kept`
+  state that the summary renders by naming each file left behind. Pinned by
+  seven assertions, all verified to fail against the pre-change file, plus a
+  behavioural test in `test-install-manifest-helpers.ps1` fixing the
+  three-outcomes-one-return-value fact the old reporting relied on. (#910)
 - `scripts/install.ps1` declares `#Requires -Version 7.0` instead of `5.1`. It
   uses the three-argument `Join-Path` (`-AdditionalChildPath`, PowerShell 6+
   only) at `:335` and `:538`, so the old floor admitted an interpreter that

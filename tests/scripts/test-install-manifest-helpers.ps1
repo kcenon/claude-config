@@ -177,6 +177,39 @@ try {
     }
     Write-Host "Update-ClaudeSettingsJson idempotent reset: PASS"
 
+    # Invoke-ManifestTrackedCopy returns $true for three different outcomes, so
+    # a caller cannot report from it. Pinned here because #910 removed the
+    # reporting that relied on it, and a later "fix" to this return value would
+    # invalidate that rationale rather than improve it.
+    $tc = Join-Path $testDir 'trackedcopy'
+    New-Item -ItemType Directory -Path $tc -Force | Out-Null
+    $env:MANIFEST_PATH = Join-Path $tc '.install-manifest.json'
+    Reset-ManifestManagedKeys
+
+    $missingSrc = Join-Path $tc 'does-not-exist.md'
+    $missingDst = Join-Path $tc 'out-missing.md'
+    if (-not (Invoke-ManifestTrackedCopy -Src $missingSrc -Dest $missingDst -Key 'out-missing.md')) {
+        throw "FAIL: expected `$true for a missing source"
+    }
+    if (Test-Path -LiteralPath $missingDst) {
+        throw "FAIL: a missing source must not produce a destination file"
+    }
+
+    $realSrc = Join-Path $tc 'src.md'
+    $realDst = Join-Path $tc 'dst.md'
+    Set-Content -LiteralPath $realSrc -Value 'policy' -NoNewline
+    if (-not (Invoke-ManifestTrackedCopy -Src $realSrc -Dest $realDst -Key 'dst.md')) {
+        throw "FAIL: expected `$true for a real copy"
+    }
+    if (-not (Test-Path -LiteralPath $realDst)) {
+        throw "FAIL: real copy did not write the destination"
+    }
+    # Second call: destination already identical. Same return value, no write.
+    if (-not (Invoke-ManifestTrackedCopy -Src $realSrc -Dest $realDst -Key 'dst.md')) {
+        throw "FAIL: expected `$true for an already-identical destination"
+    }
+    Write-Host "Invoke-ManifestTrackedCopy returns `$true for copy/no-op/missing-source: PASS"
+
     Write-Host "All helper tests passed!"
 } finally {
     Remove-Item -LiteralPath $testDir -Recurse -Force -ErrorAction SilentlyContinue

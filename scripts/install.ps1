@@ -460,40 +460,79 @@ function Install-Enterprise {
     # so an unwritable manifest would otherwise leave MANIFEST_PATH pointing at
     # the enterprise root for the rest of the install, redirecting the global
     # manifest into C:\Program Files.
+    # Every file this run will touch, with the destination hash BEFORE the copy.
+    # The report below is derived from these rather than from the copy helpers'
+    # return values: Invoke-ManifestTrackedCopy returns $true for a real write,
+    # for a destination that was already byte-identical, and for a MISSING
+    # SOURCE alike, and Copy-ManifestTree discards its per-file results
+    # entirely, so no return value can distinguish "wrote it" from "left it".
+    $planned = [System.Collections.Generic.List[hashtable]]::new()
+    $planned.Add(@{ Rel = 'CLAUDE.md'; Src = $enterpriseMd
+                    Dest = (Join-Path $enterpriseDir 'CLAUDE.md') })
+    $sourceRules = Join-Path $BackupDir "enterprise/rules"
+    if (Test-Path $sourceRules) {
+        foreach ($f in @(Get-ChildItem -LiteralPath $sourceRules -File -Recurse)) {
+            $rel = $f.FullName.Substring($sourceRules.Length).TrimStart('\', '/')
+            $planned.Add(@{ Rel = "rules/$($rel -replace '\\', '/')"; Src = $f.FullName
+                            Dest = (Join-Path $rulesDir $rel) })
+        }
+    }
+
     $previousManifestPath = $env:MANIFEST_PATH
     $env:MANIFEST_PATH = Join-Path $enterpriseDir ".install-manifest.json"
     try {
         Reset-ManifestManagedKeys
+        foreach ($p in $planned) { $p.Before = Get-FileSha256 -Path $p.Dest }
 
-        if (Invoke-ManifestTrackedCopy -Src $enterpriseMd -Dest (Join-Path $enterpriseDir 'CLAUDE.md') -Key 'CLAUDE.md') {
-            Write-Success "CLAUDE.md installed"
-        } else {
-            Write-Info "CLAUDE.md: local changes kept"
-        }
+        $null = Invoke-ManifestTrackedCopy -Src $enterpriseMd -Dest (Join-Path $enterpriseDir 'CLAUDE.md') -Key 'CLAUDE.md'
 
-        # Copy rules directory
-        $sourceRules = Join-Path $BackupDir "enterprise/rules"
         if (Test-Path $sourceRules) {
-            $items = Get-ChildItem -Path $sourceRules
-            if ($items.Count -gt 0) {
-                try {
-                    Copy-ManifestTree -SourceDir $sourceRules -DestinationDir $rulesDir -KeyPrefix 'rules'
-                    Write-Success "rules directory installed"
-                } catch {
-                    Write-Err "Failed to copy rules: $_"
-                    $script:EnterpriseInstallState = 'failed'
-                    return
-                }
+            if (@(Get-ChildItem -Path $sourceRules).Count -gt 0) {
+                Copy-ManifestTree -SourceDir $sourceRules -DestinationDir $rulesDir -KeyPrefix 'rules'
             }
         }
-    } finally {
+    }
+    catch {
+        # Previously only the rules copy was guarded, so a throw from the
+        # CLAUDE.md copy or from the manifest write unwound past this function
+        # under $ErrorActionPreference = 'Stop': the state stayed 'skipped' and
+        # the closing summary never ran at all.
+        Write-Err "Enterprise deployment failed: $_"
+        $script:EnterpriseInstallState = 'failed'
+        return
+    }
+    finally {
         $env:MANIFEST_PATH = $previousManifestPath
+    }
+
+    # Report what is on disk now, not what the helpers returned.
+    $script:EnterpriseKeptFiles = @()
+    foreach ($p in $planned) {
+        $src = Get-FileSha256 -Path $p.Src
+        $now = Get-FileSha256 -Path $p.Dest
+        if ($null -eq $src) {
+            Write-Warn "  $($p.Rel): source missing, nothing deployed"
+            $script:EnterpriseKeptFiles += $p.Rel
+        } elseif ($now -ne $src) {
+            Write-Warn "  $($p.Rel): local copy kept, differs from the repo version"
+            $script:EnterpriseKeptFiles += $p.Rel
+        } elseif ($p.Before -ne $src) {
+            Write-Success "  $($p.Rel): updated"
+        } else {
+            Write-Info "  $($p.Rel): already current"
+        }
     }
 
     # Deliberately no Invoke-ManifestPruneTracked here. Tracking exists so drift
     # becomes visible; deleting files out of a managed-policy directory is a
     # separate decision. Retired enterprise rules therefore still linger, as
     # they did before, and docs/install.md says so.
+
+    if ($script:EnterpriseKeptFiles.Count -gt 0) {
+        $script:EnterpriseInstallState = 'installed-with-kept'
+        Write-Warn "Enterprise settings deployed, $($script:EnterpriseKeptFiles.Count) file(s) not updated."
+        return
+    }
 
     $script:EnterpriseInstallState = 'installed'
     Write-Success "Enterprise settings installation complete!"
@@ -579,6 +618,7 @@ if ($contentLanguage -ne 'english') {
 # block never runs, so the summary can never claim a deployment that was not
 # even tried.
 $script:EnterpriseInstallState = 'not-attempted'
+$script:EnterpriseKeptFiles = @()
 
 if ($installType -eq '4' -or $installType -eq '5') {
     Install-Enterprise
@@ -963,6 +1003,14 @@ if ($installType -eq '4' -or $installType -eq '5') {
             Write-Host "    - $ed\CLAUDE.md"
             Write-Host "    - $ed\rules\"
             Write-Host "    - $ed\.install-manifest.json"
+        }
+        'installed-with-kept' {
+            Write-Host "  Enterprise settings: deployed, with exceptions"
+            Write-Host "    - $ed\.install-manifest.json"
+            Write-Warn "    Not updated -- the deployed copy still differs from the repo:"
+            foreach ($kept in $script:EnterpriseKeptFiles) {
+                Write-Warn "      $ed\$($kept -replace '/', '\')"
+            }
         }
         'skipped-not-admin' {
             Write-Warn "  Enterprise settings: NOT installed (administrator privileges required)"
