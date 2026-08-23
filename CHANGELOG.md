@@ -198,6 +198,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Publishing `~/.claude/settings.json` discarded every top-level key the repo
+  profile does not define. All four full-install entry points stage the
+  profile, inject the language policy into the staged copy, and move it over
+  the destination; the destination was never read as part of that, and the only
+  reads anywhere in the install recover two language values for the policy
+  prompt. Measured on a live machine: three keys gone (`model`,
+  `agentPushNotifEnabled`, `skipWorkflowUsageWarning`) plus `effortLevel` reset
+  from `xhigh` to the profile's `high`, all four written by in-app controls
+  rather than by hand-editing, and the run printed a green success line
+  regardless. The staged copy now takes machine-local keys from the deployed
+  file before the policy injection, so the policy still wins on the keys it
+  owns: `language`, `permissions`, and `hooks` always come from the repo, and
+  `env` is merged one level with the profile winning per key. `effortLevel` is
+  the sole repo-defined key treated as runtime state, since `/effort` writes
+  it. The run now names what it preserved. #780 solved this shape for two keys;
+  this generalizes it. (#915)
 - `scripts/verify.ps1` reported two failures that no non-destructive Windows
   action could clear -- `DIFF: settings.json` and `MISS: .claudeignore`, 176 of
   178 checks passing since before this release. Two unrelated causes.

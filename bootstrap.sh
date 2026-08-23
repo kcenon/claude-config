@@ -399,6 +399,11 @@ install_bootstrap_settings_and_hooks() {
     rm -f "$settings_tmp"
     cp "$settings_src" "$settings_tmp" || error "settings.json 스테이징 실패"
 
+    # Carry machine-local keys forward before the policy injection, so the
+    # policy still wins on the keys it owns (issue #915).
+    local carried_keys
+    carried_keys="$(merge_local_settings_keys "$settings_tmp" "$settings_dst" | tr '\n' ' ' | sed -e 's/ *$//')"
+
     if update_claude_settings_json "$settings_tmp" "$agent_language" "$content_language"; then
         settings_updated=1
     fi
@@ -418,6 +423,9 @@ install_bootstrap_settings_and_hooks() {
         error "settings.json 게시 실패"
     }
 
+    if [ -n "$carried_keys" ]; then
+        info "machine-local settings keys preserved: $carried_keys"
+    fi
     if [ "$settings_updated" = "1" ]; then
         success "settings.json (에이전트: $agent_language, 컨텐츠: $content_language) 설치 완료"
     else
