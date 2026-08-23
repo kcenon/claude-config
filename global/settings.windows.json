@@ -4,7 +4,6 @@
   "version": "1.17.1",
   "respectGitignore": true,
   "cleanupPeriodDays": 30,
-  "minimumVersion": "2.2.0",
   "worktree": {
     "baseRef": "head"
   },
