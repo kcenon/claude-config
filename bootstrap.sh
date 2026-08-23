@@ -491,6 +491,17 @@ install_global() {
         fi
     fi
 
+    # global/.claudeignore. Guaranteed under ~/.claude/ by
+    # docs/CLAUDE_DOCKER_CONTRACT.md for every full-install entry point,
+    # including bootstrap; only install.sh honoured it before #914.
+    if [ -f "$INSTALL_DIR/global/.claudeignore" ]; then
+        if manifest_copy_file "$INSTALL_DIR/global/.claudeignore" "$CLAUDE_DIR/.claudeignore" ".claudeignore"; then
+            success ".claudeignore 설치됨"
+        else
+            info ".claudeignore 로컬 변경 유지"
+        fi
+    fi
+
     # Legacy settings.json migration warning (informational only).
     warn_legacy_settings_value "$HOME/.claude/settings.json" || true
 

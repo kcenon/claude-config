@@ -370,15 +370,84 @@ check_sync() {
     fi
 }
 
+# settings.json cannot be diffed against its source profile: the installer
+# republishes it through jq (install-manifest.sh) rather than copying bytes,
+# so the deployed file is machine-serialized while the profile is
+# hand-formatted. What the repo owns here is `permissions` (security) and
+# `hooks` (the runtime guards settings.json points at). Scalar preferences
+# such as model and effortLevel are machine-local; see issue #915.
+check_sync_settings() {
+    local src="$1"
+    local dst="$2"
+    local label="settings.json (hooks + permissions)"
+    SYNC_TOTAL=$((SYNC_TOTAL + 1))
+
+    if [ ! -f "$dst" ]; then
+        warning "MISS: $label"
+        SYNC_MISS=$((SYNC_MISS + 1))
+        return
+    fi
+
+    if ! command -v python3 > /dev/null 2>&1; then
+        SYNC_TOTAL=$((SYNC_TOTAL - 1))
+        warning "SKIP: $label (python3 unavailable)"
+        return
+    fi
+
+    local mismatch
+    mismatch="$(python3 - "$src" "$dst" <<'PY'
+import json, sys
+
+def canon(node):
+    # sort_keys makes object key order irrelevant; array order is preserved
+    # because hook order within a matcher is significant.
+    return json.dumps(node, sort_keys=True, separators=(",", ":"))
+
+try:
+    with open(sys.argv[1], encoding="utf-8") as fh:
+        a = json.load(fh)
+    with open(sys.argv[2], encoding="utf-8") as fh:
+        b = json.load(fh)
+except (OSError, ValueError):
+    print("unparseable JSON")
+    sys.exit(0)
+
+for key in ("permissions", "hooks"):
+    if canon(a.get(key)) != canon(b.get(key)):
+        print(key)
+        sys.exit(0)
+PY
+)"
+
+    if [ -z "$mismatch" ]; then
+        success "SYNC: $label"
+        SYNC_OK=$((SYNC_OK + 1))
+    else
+        error "DIFF: $label -- $mismatch"
+        SYNC_DIFF=$((SYNC_DIFF + 1))
+    fi
+}
+
 GLOBAL_DST="$HOME/.claude"
 
-# Global config files
+# Global config files. settings.json is excluded from the byte-wise loop and
+# handled by check_sync_settings below.
 info "글로벌 설정 파일 동기화:"
-for f in CLAUDE.md commit-settings.md settings.json .claudeignore; do
+for f in CLAUDE.md commit-settings.md .claudeignore; do
     if [ -f "$BACKUP_DIR/global/$f" ]; then
         check_sync "$BACKUP_DIR/global/$f" "$GLOBAL_DST/$f" "$f"
     fi
 done
+
+# A Windows tree publishes settings.windows.json as ~/.claude/settings.json,
+# and this script also runs under Git Bash / MSYS on such a tree.
+case "${OS:-}$(uname -s 2> /dev/null)" in
+    Windows_NT* | *MINGW* | *MSYS* | *CYGWIN*) settings_profile='settings.windows.json' ;;
+    *) settings_profile='settings.json' ;;
+esac
+if [ -f "$BACKUP_DIR/global/$settings_profile" ]; then
+    check_sync_settings "$BACKUP_DIR/global/$settings_profile" "$GLOBAL_DST/settings.json"
+fi
 
 # Global skills (including reference/ subdirectories)
 echo ""

@@ -156,6 +156,67 @@ check "elevation defaults to a plain exec"             "$(has scripts/install-ma
 check "elevated manifest is left world-readable"       "$(has scripts/install.sh 'sudo chmod 644 "$MANIFEST_PATH"')"
 
 echo ""
+echo "[global payload parity against the claude-docker contract (#914)]"
+# docs/CLAUDE_DOCKER_CONTRACT.md declares the ~/.claude/ subtree guaranteed
+# after a full install from ANY of the four entry points, which is the promise
+# #914 found broken for .claudeignore.
+#
+# What this is NOT: a payload-set comparison derived from the installers. That
+# was the first attempt, and it does not survive a mutation check. Searching
+# each script for a guaranteed name passes on `project/.claudeignore` too, and
+# tightening it to a `global/`-qualified form then misses CLAUDE.md and
+# commit-settings.md, which both installers deploy through a loop variable
+# (`global/$gf`). Two languages, four copy idioms, and loop indirection put a
+# reliable static payload diff out of reach; a green check that proves nothing
+# is worse than an honest narrower one (the #910 lesson, inverted).
+#
+# So: a tripwire on the contract itself. If the guaranteed subtree gains or
+# loses a top-level file, this fails and forces whoever changed the contract to
+# extend the per-entry-point assertions below.
+contract_top_level_files() {
+    awk '
+        /^~\/\.claude\/$/ { inside = 1; next }
+        inside && /^```/  { exit }
+        inside && /^[\xe2][\x94][\x9c\x94]/ { print }
+    ' docs/CLAUDE_DOCKER_CONTRACT.md |
+        grep -v '(' |
+        sed -e 's/^[^ ]* //' -e 's/ *$//' |
+        grep -v '/$' |
+        LC_ALL=C sort -u
+}
+
+# `.full-suite-active` is absent by design: its line carries the "(optional
+# probe)" parenthetical, and invariant #4 names install.{sh,ps1} as its only
+# writers, so bootstrap not writing it is correct.
+contract_names="$(contract_top_level_files | tr '\n' ' ' | sed -e 's/ *$//')"
+check "contract subtree still lists exactly the files this test covers" \
+    "$([ "$contract_names" = ".claudeignore CLAUDE.md commit-settings.md settings.json" ] && echo y || echo n)"
+
+# The specific regression, pinned per entry point.
+check "install.ps1 deploys global/.claudeignore"  "$(has scripts/install.ps1 'Join-Path $BackupDir "global/.claudeignore"')"
+check "install.ps1 tracks it under key .claudeignore" "$(has scripts/install.ps1 '-Dest (Join-Path $claudeDir ".claudeignore") -Key ".claudeignore"')"
+check "bootstrap.ps1 deploys global/.claudeignore" "$(has bootstrap.ps1 "Join-Path \$InstallDir 'global' '.claudeignore'")"
+check "bootstrap.sh deploys global/.claudeignore"  "$(has bootstrap.sh '"$INSTALL_DIR/global/.claudeignore" "$CLAUDE_DIR/.claudeignore" ".claudeignore"')"
+# tmux reads ~/.tmux.conf, which bootstrap installs; the ~/.claude/tmux.conf
+# copy was read by nothing and had no Windows peer.
+check "install.sh no longer copies tmux.conf to ~/.claude" "$(hasnot scripts/install.sh 'cp "$BACKUP_DIR/global/tmux.conf" "$HOME/.claude/"')"
+
+echo ""
+echo "[verifiers compare the settings profile the platform publishes (#914)]"
+check "verify.ps1 selects settings.windows.json on Windows" "$(has scripts/verify.ps1 "if (\$IsWindows) { 'settings.windows.json' } else { 'settings.json' }")"
+check "verify.sh selects the windows profile under MSYS"    "$(has scripts/verify.sh 'Windows_NT* | *MINGW* | *MSYS* | *CYGWIN*)')"
+# A line comparison can never pass: the installer republishes settings.json
+# through ConvertTo-Json / jq, so the deployed file is machine-serialized while
+# the profile is hand-formatted.
+check "verify.ps1 drops settings.json from the byte-wise loop" "$(hasnot scripts/verify.ps1 "@('CLAUDE.md', 'commit-settings.md', 'settings.json', '.claudeignore')")"
+check "verify.sh drops settings.json from the byte-wise loop"  "$(hasnot scripts/verify.sh 'for f in CLAUDE.md commit-settings.md settings.json .claudeignore')"
+check "verify.ps1 compares settings semantically"              "$(has scripts/verify.ps1 'function Test-SyncSettings')"
+check "verify.sh compares settings semantically"               "$(has scripts/verify.sh 'check_sync_settings()')"
+check "verify.ps1 canonicalises before comparing"              "$(has_in_ps_func scripts/verify.ps1 Test-SyncSettings 'ConvertTo-CanonicalJson')"
+check "verify.sh canonicalises before comparing"               "$(has_in_func scripts/verify.sh check_sync_settings 'sort_keys=True')"
+check "both verifiers compare permissions and hooks"           "$([ "$(has scripts/verify.ps1 "@('permissions', 'hooks')")" = y ] && [ "$(has scripts/verify.sh '("permissions", "hooks")')" = y ] && echo y || echo n)"
+
+echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
 if [ ${#ERRORS[@]} -gt 0 ]; then
     echo ""

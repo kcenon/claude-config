@@ -906,11 +906,11 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         success ".claudeignore 설치 완료!"
     fi
 
-    # tmux.conf 설치
-    if [ -f "$BACKUP_DIR/global/tmux.conf" ]; then
-        cp "$BACKUP_DIR/global/tmux.conf" "$HOME/.claude/"
-        success "tmux.conf 설치 완료!"
-    fi
+    # tmux.conf is intentionally NOT deployed here. tmux reads ~/.tmux.conf,
+    # which bootstrap.{sh,ps1} install; the copy this block used to place at
+    # ~/.claude/tmux.conf was read by nothing, is absent from the guaranteed
+    # subtree in docs/CLAUDE_DOCKER_CONTRACT.md, and had no Windows peer --
+    # the only global/ payload the two installers disagreed on (issue #914).
 
     # policies 디렉토리 설치 (있는 경우 정책 JSON 파일 배포)
     if [ -d "$BACKUP_DIR/global/policies" ]; then

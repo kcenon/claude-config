@@ -10,7 +10,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 59472
+    size: 61408
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
@@ -18,26 +18,26 @@ documents:
       - {h: "Added", l: 10, e: 33}
       - {h: "Changed", l: 146, e: 182}
       - {h: "Fixed", l: 199, e: 213}
-      - {h: "Known limitation", l: 229, e: 236}
-      - {h: "1.12.0 - 2026-08-01", l: 237, e: 238}
-      - {h: "Added", l: 239, e: 370}
-      - {h: "Fixed", l: 371, e: 613}
-      - {h: "1.11.0 - 2026-07-03", l: 614, e: 615}
-      - {h: "Fixed", l: 616, e: 629}
-      - {h: "Security", l: 630, e: 707}
-      - {h: "Added", l: 708, e: 736}
-      - {h: "Changed", l: 737, e: 783}
-      - {h: "1.10.0 - 2026-04-20", l: 784, e: 792}
-      - {h: "1.9.0 - 2026-04-13", l: 793, e: 802}
-      - {h: "1.8.0 - 2026-04-13", l: 803, e: 808}
-      - {h: "1.7.0 - 2026-04-06", l: 809, e: 823}
-      - {h: "1.6.0 - 2026-04-03", l: 824, e: 836}
-      - {h: "1.5.0 - 2026-03-21", l: 837, e: 855}
-      - {h: "1.4.0 - 2026-01-22", l: 856, e: 861}
-      - {h: "1.3.0 - 2026-01-15", l: 862, e: 870}
-      - {h: "1.2.0 - 2026-01-15", l: 871, e: 879}
-      - {h: "1.1.0 - 2025-01-15", l: 880, e: 890}
-      - {h: "1.0.0 - 2025-12-03", l: 891, e: 898}
+      - {h: "Known limitation", l: 255, e: 262}
+      - {h: "1.12.0 - 2026-08-01", l: 263, e: 264}
+      - {h: "Added", l: 265, e: 396}
+      - {h: "Fixed", l: 397, e: 639}
+      - {h: "1.11.0 - 2026-07-03", l: 640, e: 641}
+      - {h: "Fixed", l: 642, e: 655}
+      - {h: "Security", l: 656, e: 733}
+      - {h: "Added", l: 734, e: 762}
+      - {h: "Changed", l: 763, e: 809}
+      - {h: "1.10.0 - 2026-04-20", l: 810, e: 818}
+      - {h: "1.9.0 - 2026-04-13", l: 819, e: 828}
+      - {h: "1.8.0 - 2026-04-13", l: 829, e: 834}
+      - {h: "1.7.0 - 2026-04-06", l: 835, e: 849}
+      - {h: "1.6.0 - 2026-04-03", l: 850, e: 862}
+      - {h: "1.5.0 - 2026-03-21", l: 863, e: 881}
+      - {h: "1.4.0 - 2026-01-22", l: 882, e: 887}
+      - {h: "1.3.0 - 2026-01-15", l: 888, e: 896}
+      - {h: "1.2.0 - 2026-01-15", l: 897, e: 905}
+      - {h: "1.1.0 - 2025-01-15", l: 906, e: 916}
+      - {h: "1.0.0 - 2025-12-03", l: 917, e: 924}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -1735,7 +1735,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 11379
+    size: 11642
     tags: [docs]
     sections:
       - {h: "Install Behavior", l: 1, e: 6}
@@ -1750,7 +1750,7 @@ documents:
       - {h: "Toolchain Fallback", l: 151, e: 161}
       - {h: "Template Files", l: 162, e: 214}
       - {h: "Tracked Files", l: 215, e: 233}
-      - {h: "Regression Test", l: 246, e: 269}
+      - {h: "Regression Test", l: 249, e: 272}
   - path: "docs/loop-patterns.md"
     title: "Loop-Safety Patterns for Skills"
     description: ""

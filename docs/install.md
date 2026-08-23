@@ -220,8 +220,11 @@ The global manifest tracks guarded files under `~/.claude`, including:
   `conversation-language.md`, `git-identity.md`, `token-management.md`
 - Runtime trees: `hooks/`, `hooks/lib/`, `scripts/`
 - Catalog trees: `skills/`, `commands/`
-- Optional in-tree artifacts when present, such as `.claudeignore` and
-  `policies/`
+- `.claudeignore`, deployed by all four full-install entry points. It is part
+  of the `~/.claude/` subtree that `CLAUDE_DOCKER_CONTRACT.md` guarantees, so
+  it is not optional; before #914 only `install.sh` deployed it and the
+  verifiers reported a permanent `MISS` everywhere else.
+- Optional in-tree artifacts when present, such as `policies/`
 
 The project manifest tracks files relative to the project root, including
 `CLAUDE.md`, `.claude/settings.json`, `.claude/rules/`,

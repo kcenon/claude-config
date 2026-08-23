@@ -457,6 +457,18 @@ function Install-GlobalSettings {
         }
     }
 
+    # global/.claudeignore. Guaranteed under ~/.claude/ by
+    # docs/CLAUDE_DOCKER_CONTRACT.md for every full-install entry point,
+    # including bootstrap; only install.sh honoured it before #914.
+    $globalClaudeIgnore = Join-Path $InstallDir 'global' '.claudeignore'
+    if (Test-Path -LiteralPath $globalClaudeIgnore) {
+        if (Invoke-ManifestTrackedCopy -Src $globalClaudeIgnore -Dest (Join-Path $ClaudeDir '.claudeignore') -Key '.claudeignore') {
+            Write-Ok ".claudeignore 설치됨"
+        } else {
+            Write-Info ".claudeignore 로컬 변경 유지"
+        }
+    }
+
     # Legacy settings.json migration warning (informational only).
     $null = Show-LegacySettingsWarning -SettingsPath (Join-Path $HOME '.claude/settings.json') -NewSelection $contentLanguage
 
