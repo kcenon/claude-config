@@ -69,6 +69,24 @@ check "backup.sh uses .new.\$\$ staging" "$(has scripts/backup.sh '.new.$$')"
 check "backup.ps1 uses .new staging"     "$(has scripts/backup.ps1 '.new')"
 
 echo ""
+echo "[enterprise layer is manifest-tracked on Windows (#903)]"
+# The enterprise tree is the highest-precedence layer and was deployed with
+# bare Copy-Item, so nothing could tell a stale deployment from a tampered one.
+check "install.ps1 tracks enterprise CLAUDE.md"       "$(has scripts/install.ps1 "Invoke-ManifestTrackedCopy -Src \$enterpriseMd")"
+check "install.ps1 tracks enterprise rules tree"      "$(has scripts/install.ps1 "Copy-ManifestTree -SourceDir \$sourceRules")"
+check "install.ps1 no bare Copy-Item for enterprise"  "$(hasnot scripts/install.ps1 "Copy-Item -Path \$enterpriseMd")"
+# A shared manifest would collide on the key `CLAUDE.md`, which the global root
+# already tracks, so the enterprise root must get its own manifest file.
+check "enterprise root gets its own manifest"         "$(has scripts/install.ps1 'MANIFEST_PATH = Join-Path $enterpriseDir')"
+# A leaked MANIFEST_PATH would redirect the global manifest into the enterprise
+# root, so the repoint has to be unwound even when the copy throws.
+check "MANIFEST_PATH repoint is unwound in finally"   "$(awk '/MANIFEST_PATH = Join-Path \$enterpriseDir/{f=1} f&&/finally \{/{found=1} f&&/^\}/{f=0} END{exit !found}' scripts/install.ps1 >/dev/null && echo y || echo n)"
+# Every exit path must record an outcome, or the summary reports paths that
+# were never written.
+check "summary reads the recorded install state"      "$(has scripts/install.ps1 'switch ($script:EnterpriseInstallState)')"
+check "admin-gate exit records why it skipped"        "$(has scripts/install.ps1 "EnterpriseInstallState = 'skipped-not-admin'")"
+
+echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
 if [ ${#ERRORS[@]} -gt 0 ]; then
     echo ""

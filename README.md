@@ -580,6 +580,8 @@ The default enterprise template includes:
 
 Customize `enterprise/CLAUDE.md` according to your organization's policies before deployment.
 
+On Windows, `scripts/install.ps1` records a SHA-256 manifest for this tree at `<enterprise-dir>/.install-manifest.json`. A re-install then keeps a locally edited policy file instead of overwriting it, and a drift check can tell a stale deployment apart from an edited one. Set `BOOTSTRAP_FORCE=1` to overwrite without the prompt. Retired rules are not deleted, and the POSIX enterprise roots are not tracked yet. See [docs/install.md](docs/install.md).
+
 ---
 
 ## Personal Settings (CLAUDE.local.md)

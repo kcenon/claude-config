@@ -10,34 +10,34 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 51840
+    size: 54197
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "[Unreleased]", l: 8, e: 9}
       - {h: "Added", l: 10, e: 33}
-      - {h: "Changed", l: 44, e: 80}
-      - {h: "Fixed", l: 97, e: 111}
-      - {h: "Known limitation", l: 127, e: 134}
-      - {h: "1.12.0 - 2026-08-01", l: 135, e: 136}
-      - {h: "Added", l: 137, e: 268}
-      - {h: "Fixed", l: 269, e: 511}
-      - {h: "1.11.0 - 2026-07-03", l: 512, e: 513}
-      - {h: "Fixed", l: 514, e: 527}
-      - {h: "Security", l: 528, e: 605}
-      - {h: "Added", l: 606, e: 634}
-      - {h: "Changed", l: 635, e: 681}
-      - {h: "1.10.0 - 2026-04-20", l: 682, e: 690}
-      - {h: "1.9.0 - 2026-04-13", l: 691, e: 700}
-      - {h: "1.8.0 - 2026-04-13", l: 701, e: 706}
-      - {h: "1.7.0 - 2026-04-06", l: 707, e: 721}
-      - {h: "1.6.0 - 2026-04-03", l: 722, e: 734}
-      - {h: "1.5.0 - 2026-03-21", l: 735, e: 753}
-      - {h: "1.4.0 - 2026-01-22", l: 754, e: 759}
-      - {h: "1.3.0 - 2026-01-15", l: 760, e: 768}
-      - {h: "1.2.0 - 2026-01-15", l: 769, e: 777}
-      - {h: "1.1.0 - 2025-01-15", l: 778, e: 788}
-      - {h: "1.0.0 - 2025-12-03", l: 789, e: 796}
+      - {h: "Changed", l: 76, e: 112}
+      - {h: "Fixed", l: 129, e: 143}
+      - {h: "Known limitation", l: 159, e: 166}
+      - {h: "1.12.0 - 2026-08-01", l: 167, e: 168}
+      - {h: "Added", l: 169, e: 300}
+      - {h: "Fixed", l: 301, e: 543}
+      - {h: "1.11.0 - 2026-07-03", l: 544, e: 545}
+      - {h: "Fixed", l: 546, e: 559}
+      - {h: "Security", l: 560, e: 637}
+      - {h: "Added", l: 638, e: 666}
+      - {h: "Changed", l: 667, e: 713}
+      - {h: "1.10.0 - 2026-04-20", l: 714, e: 722}
+      - {h: "1.9.0 - 2026-04-13", l: 723, e: 732}
+      - {h: "1.8.0 - 2026-04-13", l: 733, e: 738}
+      - {h: "1.7.0 - 2026-04-06", l: 739, e: 753}
+      - {h: "1.6.0 - 2026-04-03", l: 754, e: 766}
+      - {h: "1.5.0 - 2026-03-21", l: 767, e: 785}
+      - {h: "1.4.0 - 2026-01-22", l: 786, e: 791}
+      - {h: "1.3.0 - 2026-01-15", l: 792, e: 800}
+      - {h: "1.2.0 - 2026-01-15", l: 801, e: 809}
+      - {h: "1.1.0 - 2025-01-15", l: 810, e: 820}
+      - {h: "1.0.0 - 2025-12-03", l: 821, e: 828}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -229,7 +229,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 47744
+    size: 48311
     tags: [config,readme]
     sections:
       - {h: "Claude Configuration Backup & Deployment System", l: 1, e: 29}
@@ -284,82 +284,82 @@ documents:
       - {h: "4) Enterprise 설정만 설치 (관리자 권한 필요)", l: 539, e: 539}
       - {h: "5) 전체 설치 (Enterprise + Global + Project)", l: 540, e: 544}
       - {h: "Enterprise 템플릿 내용", l: 545, e: 556}
-      - {h: "개인 설정 (CLAUDE.local.md)", l: 557, e: 561}
-      - {h: "템플릿 복사", l: 562, e: 571}
-      - {h: "Rules", l: 572, e: 575}
-      - {h: "사용 가능한 Rules", l: 576, e: 585}
-      - {h: "Rules 작동 방식", l: 586, e: 597}
-      - {h: "Rule 내용", l: 598, e: 604}
-      - {h: "스킬 — 무엇을 할 수 있나요", l: 605, e: 613}
-      - {h: "워크플로우 자동화", l: 614, e: 625}
-      - {h: "코드 분석", l: 626, e: 634}
-      - {h: "설계 및 문서화", l: 635, e: 648}
-      - {h: "Agents", l: 649, e: 652}
-      - {h: "사용 가능한 Agents", l: 653, e: 665}
-      - {h: "Agent 설정", l: 666, e: 680}
-      - {h: "Agent Teams", l: 681, e: 686}
-      - {h: "빠른 시작", l: 687, e: 697}
-      - {h: "주요 조작법", l: 698, e: 712}
-      - {h: "MCP 설정", l: 713, e: 716}
-      - {h: "사용 가능한 서버", l: 717, e: 726}
-      - {h: "설정 방법", l: 727, e: 734}
-      - {h: "스크립트 설명", l: 735, e: 750}
-      - {h: "Git Hooks", l: 751, e: 760}
-      - {h: "Pre-commit Hook", l: 761, e: 765}
-      - {h: "Commit-msg Hook", l: 766, e: 770}
-      - {h: "Pre-push Hook", l: 771, e: 777}
-      - {h: "사용 시나리오", l: 778, e: 779}
-      - {h: "시나리오 A: 회사 + 집 컴퓨터 동기화", l: 780, e: 782}
-      - {h: "회사에서 (초기 설정)", l: 783, e: 788}
-      - {h: "집에서", l: 789, e: 792}
-      - {h: "선택: 1 (백업 → 시스템)", l: 793, e: 797}
-      - {h: "시나리오 B: 팀 프로젝트 설정 공유", l: 798, e: 800}
-      - {h: "프로젝트 리더", l: 801, e: 805}
-      - {h: "타입: 2 (프로젝트만)", l: 806, e: 807}
-      - {h: "팀 멤버", l: 808, e: 811}
-      - {h: "타입: 2 (프로젝트만)", l: 812, e: 816}
-      - {h: "시나리오 C: 새 개발 머신 설정", l: 817, e: 819}
-      - {h: "원라인 설치", l: 820, e: 822}
-      - {h: "또는 수동 설치", l: 823, e: 826}
-      - {h: "타입: 3 (둘 다)", l: 827, e: 828}
-      - {h: "Git identity 확인; 누락되었거나 틀린 경우에만 수정", l: 829, e: 834}
-      - {h: "시나리오 D: 열린 이슈 또는 실패 PR 일괄 처리", l: 835, e: 845}
-      - {h: "저장소에서 최대 5개의 열린 이슈 처리 (기본 limit)", l: 846, e: 848}
-      - {h: "최대 3개 이슈 처리", l: 849, e: 851}
-      - {h: "실패한 PR을 대신 처리", l: 852, e: 856}
-      - {h: "PowerShell 동등 명령", l: 857, e: 874}
-      - {h: "고급 사용법", l: 875, e: 876}
-      - {h: "GitHub Actions 자동 동기화", l: 877, e: 898}
-      - {h: "특정 파일만 백업", l: 899, e: 901}
-      - {h: "글로벌 CLAUDE.md만 백업", l: 902, e: 904}
-      - {h: "프로젝트 설정만 백업", l: 905, e: 908}
-      - {h: "환경 변수로 커스터마이즈", l: 909, e: 911}
-      - {h: "bootstrap.sh 사용 시", l: 912, e: 932}
-      - {h: "FAQ", l: 933, e: 934}
-      - {h: "Q1: Git identity를 왜 개인화해야 하나요?", l: 935, e: 940}
-      - {h: "설치된 값이 누락되었거나 틀린 경우에만 name과 email 변경", l: 941, e: 945}
-      - {h: "Q2: 백업을 여러 곳에서 관리하면?", l: 946, e: 958}
-      - {h: "Q3: 프로젝트마다 다른 설정을 쓰고 싶어요", l: 959, e: 964}
-      - {h: "프로젝트 A 설정 수정", l: 965, e: 968}
-      - {h: "프로젝트 B 설정 수정", l: 969, e: 974}
-      - {h: "Q4: 스크립트가 실행 안 돼요", l: 975, e: 981}
-      - {h: "또는 직접 실행", l: 982, e: 987}
-      - {h: "Q5: Private repo로 사용하고 싶어요", l: 988, e: 992}
-      - {h: "Token 생성: GitHub Settings > Developer settings > Personal access tokens", l: 993, e: 994}
-      - {h: "설치", l: 995, e: 1001}
-      - {h: "Memory sync (다중 머신)", l: 1002, e: 1014}
-      - {h: "추가 리소스", l: 1015, e: 1026}
-      - {h: "버전", l: 1027, e: 1034}
-      - {h: "기여", l: 1035, e: 1046}
-      - {h: "Related Projects", l: 1047, e: 1048}
-      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1049, e: 1057}
-      - {h: "License", l: 1058, e: 1066}
+      - {h: "개인 설정 (CLAUDE.local.md)", l: 559, e: 563}
+      - {h: "템플릿 복사", l: 564, e: 573}
+      - {h: "Rules", l: 574, e: 577}
+      - {h: "사용 가능한 Rules", l: 578, e: 587}
+      - {h: "Rules 작동 방식", l: 588, e: 599}
+      - {h: "Rule 내용", l: 600, e: 606}
+      - {h: "스킬 — 무엇을 할 수 있나요", l: 607, e: 615}
+      - {h: "워크플로우 자동화", l: 616, e: 627}
+      - {h: "코드 분석", l: 628, e: 636}
+      - {h: "설계 및 문서화", l: 637, e: 650}
+      - {h: "Agents", l: 651, e: 654}
+      - {h: "사용 가능한 Agents", l: 655, e: 667}
+      - {h: "Agent 설정", l: 668, e: 682}
+      - {h: "Agent Teams", l: 683, e: 688}
+      - {h: "빠른 시작", l: 689, e: 699}
+      - {h: "주요 조작법", l: 700, e: 714}
+      - {h: "MCP 설정", l: 715, e: 718}
+      - {h: "사용 가능한 서버", l: 719, e: 728}
+      - {h: "설정 방법", l: 729, e: 736}
+      - {h: "스크립트 설명", l: 737, e: 752}
+      - {h: "Git Hooks", l: 753, e: 762}
+      - {h: "Pre-commit Hook", l: 763, e: 767}
+      - {h: "Commit-msg Hook", l: 768, e: 772}
+      - {h: "Pre-push Hook", l: 773, e: 779}
+      - {h: "사용 시나리오", l: 780, e: 781}
+      - {h: "시나리오 A: 회사 + 집 컴퓨터 동기화", l: 782, e: 784}
+      - {h: "회사에서 (초기 설정)", l: 785, e: 790}
+      - {h: "집에서", l: 791, e: 794}
+      - {h: "선택: 1 (백업 → 시스템)", l: 795, e: 799}
+      - {h: "시나리오 B: 팀 프로젝트 설정 공유", l: 800, e: 802}
+      - {h: "프로젝트 리더", l: 803, e: 807}
+      - {h: "타입: 2 (프로젝트만)", l: 808, e: 809}
+      - {h: "팀 멤버", l: 810, e: 813}
+      - {h: "타입: 2 (프로젝트만)", l: 814, e: 818}
+      - {h: "시나리오 C: 새 개발 머신 설정", l: 819, e: 821}
+      - {h: "원라인 설치", l: 822, e: 824}
+      - {h: "또는 수동 설치", l: 825, e: 828}
+      - {h: "타입: 3 (둘 다)", l: 829, e: 830}
+      - {h: "Git identity 확인; 누락되었거나 틀린 경우에만 수정", l: 831, e: 836}
+      - {h: "시나리오 D: 열린 이슈 또는 실패 PR 일괄 처리", l: 837, e: 847}
+      - {h: "저장소에서 최대 5개의 열린 이슈 처리 (기본 limit)", l: 848, e: 850}
+      - {h: "최대 3개 이슈 처리", l: 851, e: 853}
+      - {h: "실패한 PR을 대신 처리", l: 854, e: 858}
+      - {h: "PowerShell 동등 명령", l: 859, e: 876}
+      - {h: "고급 사용법", l: 877, e: 878}
+      - {h: "GitHub Actions 자동 동기화", l: 879, e: 900}
+      - {h: "특정 파일만 백업", l: 901, e: 903}
+      - {h: "글로벌 CLAUDE.md만 백업", l: 904, e: 906}
+      - {h: "프로젝트 설정만 백업", l: 907, e: 910}
+      - {h: "환경 변수로 커스터마이즈", l: 911, e: 913}
+      - {h: "bootstrap.sh 사용 시", l: 914, e: 934}
+      - {h: "FAQ", l: 935, e: 936}
+      - {h: "Q1: Git identity를 왜 개인화해야 하나요?", l: 937, e: 942}
+      - {h: "설치된 값이 누락되었거나 틀린 경우에만 name과 email 변경", l: 943, e: 947}
+      - {h: "Q2: 백업을 여러 곳에서 관리하면?", l: 948, e: 960}
+      - {h: "Q3: 프로젝트마다 다른 설정을 쓰고 싶어요", l: 961, e: 966}
+      - {h: "프로젝트 A 설정 수정", l: 967, e: 970}
+      - {h: "프로젝트 B 설정 수정", l: 971, e: 976}
+      - {h: "Q4: 스크립트가 실행 안 돼요", l: 977, e: 983}
+      - {h: "또는 직접 실행", l: 984, e: 989}
+      - {h: "Q5: Private repo로 사용하고 싶어요", l: 990, e: 994}
+      - {h: "Token 생성: GitHub Settings > Developer settings > Personal access tokens", l: 995, e: 996}
+      - {h: "설치", l: 997, e: 1003}
+      - {h: "Memory sync (다중 머신)", l: 1004, e: 1016}
+      - {h: "추가 리소스", l: 1017, e: 1028}
+      - {h: "버전", l: 1029, e: 1036}
+      - {h: "기여", l: 1037, e: 1048}
+      - {h: "Related Projects", l: 1049, e: 1050}
+      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1051, e: 1059}
+      - {h: "License", l: 1060, e: 1068}
   - path: "README.md"
     title: "Claude Configuration Backup & Deployment System"
     description: ""
     category: root
     scope: root
-    size: 46309
+    size: 46763
     tags: [config,readme]
     sections:
       - {h: "Claude Configuration Backup & Deployment System", l: 1, e: 29}
@@ -415,76 +415,76 @@ documents:
       - {h: "4) Enterprise settings only (admin required)", l: 567, e: 567}
       - {h: "5) All (Enterprise + Global + Project)", l: 568, e: 572}
       - {h: "Enterprise Template Contents", l: 573, e: 584}
-      - {h: "Personal Settings (CLAUDE.local.md)", l: 585, e: 589}
-      - {h: "Copy the template", l: 590, e: 599}
-      - {h: "Rules", l: 600, e: 603}
-      - {h: "Available Rules", l: 604, e: 613}
-      - {h: "How Rules Work", l: 614, e: 624}
-      - {h: "Rule content here", l: 625, e: 631}
-      - {h: "Skills — What You Can Do", l: 632, e: 640}
-      - {h: "Workflow Automation", l: 641, e: 652}
-      - {h: "Code Analysis", l: 653, e: 661}
-      - {h: "Design and Documentation", l: 662, e: 675}
-      - {h: "Agents", l: 676, e: 679}
-      - {h: "Available Agents", l: 680, e: 692}
-      - {h: "Agent Configuration", l: 693, e: 707}
-      - {h: "Agent Teams", l: 708, e: 713}
-      - {h: "Quick Start", l: 714, e: 724}
-      - {h: "Key Controls", l: 725, e: 739}
-      - {h: "MCP Configuration", l: 740, e: 743}
-      - {h: "Available Servers", l: 744, e: 753}
-      - {h: "Setup", l: 754, e: 761}
-      - {h: "Scripts", l: 762, e: 778}
-      - {h: "Git Hooks", l: 779, e: 789}
-      - {h: "Pre-commit Hook", l: 790, e: 795}
-      - {h: "Commit-msg Hook", l: 796, e: 801}
-      - {h: "Pre-push Hook", l: 802, e: 809}
-      - {h: "Use Cases", l: 810, e: 811}
-      - {h: "Use Case A: Sync Work + Home Computers", l: 812, e: 814}
-      - {h: "At work (initial setup)", l: 815, e: 820}
-      - {h: "At home", l: 821, e: 824}
-      - {h: "Select: 1 (Backup → System)", l: 825, e: 829}
-      - {h: "Use Case B: Share Team Project Settings", l: 830, e: 832}
-      - {h: "Project leader", l: 833, e: 837}
-      - {h: "Type: 2 (Project only)", l: 838, e: 839}
-      - {h: "Team member", l: 840, e: 843}
-      - {h: "Type: 2 (Project only)", l: 844, e: 848}
-      - {h: "Use Case C: New Development Machine Setup", l: 849, e: 851}
-      - {h: "One-line installation", l: 852, e: 854}
-      - {h: "Or manual installation", l: 855, e: 858}
-      - {h: "Type: 3 (Both)", l: 859, e: 860}
-      - {h: "Verify Git identity; edit only if missing or wrong", l: 861, e: 866}
-      - {h: "Use Case D: Batch-Process Open Issues or Failing PRs", l: 867, e: 885}
-      - {h: "Process up to 5 open issues in a repo (default limit)", l: 886, e: 888}
-      - {h: "Process up to 3 open issues", l: 889, e: 891}
-      - {h: "Process failing PRs instead", l: 892, e: 896}
-      - {h: "PowerShell equivalents", l: 897, e: 917}
-      - {h: "Advanced Usage", l: 918, e: 919}
-      - {h: "GitHub Actions Auto-Sync", l: 920, e: 941}
-      - {h: "Backup Specific Files Only", l: 942, e: 944}
-      - {h: "Backup global CLAUDE.md only", l: 945, e: 947}
-      - {h: "Backup project settings only", l: 948, e: 951}
-      - {h: "Customize with Environment Variables", l: 952, e: 954}
-      - {h: "When using bootstrap.sh", l: 955, e: 975}
-      - {h: "FAQ", l: 976, e: 977}
-      - {h: "Q1: Why do I need to personalize Git identity?", l: 978, e: 983}
-      - {h: "Change name and email only when the installed values are missing or wrong", l: 984, e: 988}
-      - {h: "Q2: How to manage backups across multiple locations?", l: 989, e: 1001}
-      - {h: "Q3: I want different settings for each project", l: 1002, e: 1007}
-      - {h: "Modify project A settings", l: 1008, e: 1011}
-      - {h: "Modify project B settings", l: 1012, e: 1017}
-      - {h: "Q4: Scripts won't run", l: 1018, e: 1024}
-      - {h: "Or run directly", l: 1025, e: 1030}
-      - {h: "Q5: I want to use a private repo", l: 1031, e: 1035}
-      - {h: "Create token: GitHub Settings > Developer settings > Personal access tokens", l: 1036, e: 1037}
-      - {h: "Installation", l: 1038, e: 1044}
-      - {h: "Memory sync (multi-machine)", l: 1045, e: 1057}
-      - {h: "Additional Resources", l: 1058, e: 1069}
-      - {h: "Version", l: 1070, e: 1077}
-      - {h: "Contributing", l: 1078, e: 1089}
-      - {h: "Related Projects", l: 1090, e: 1091}
-      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1092, e: 1100}
-      - {h: "License", l: 1101, e: 1109}
+      - {h: "Personal Settings (CLAUDE.local.md)", l: 587, e: 591}
+      - {h: "Copy the template", l: 592, e: 601}
+      - {h: "Rules", l: 602, e: 605}
+      - {h: "Available Rules", l: 606, e: 615}
+      - {h: "How Rules Work", l: 616, e: 626}
+      - {h: "Rule content here", l: 627, e: 633}
+      - {h: "Skills — What You Can Do", l: 634, e: 642}
+      - {h: "Workflow Automation", l: 643, e: 654}
+      - {h: "Code Analysis", l: 655, e: 663}
+      - {h: "Design and Documentation", l: 664, e: 677}
+      - {h: "Agents", l: 678, e: 681}
+      - {h: "Available Agents", l: 682, e: 694}
+      - {h: "Agent Configuration", l: 695, e: 709}
+      - {h: "Agent Teams", l: 710, e: 715}
+      - {h: "Quick Start", l: 716, e: 726}
+      - {h: "Key Controls", l: 727, e: 741}
+      - {h: "MCP Configuration", l: 742, e: 745}
+      - {h: "Available Servers", l: 746, e: 755}
+      - {h: "Setup", l: 756, e: 763}
+      - {h: "Scripts", l: 764, e: 780}
+      - {h: "Git Hooks", l: 781, e: 791}
+      - {h: "Pre-commit Hook", l: 792, e: 797}
+      - {h: "Commit-msg Hook", l: 798, e: 803}
+      - {h: "Pre-push Hook", l: 804, e: 811}
+      - {h: "Use Cases", l: 812, e: 813}
+      - {h: "Use Case A: Sync Work + Home Computers", l: 814, e: 816}
+      - {h: "At work (initial setup)", l: 817, e: 822}
+      - {h: "At home", l: 823, e: 826}
+      - {h: "Select: 1 (Backup → System)", l: 827, e: 831}
+      - {h: "Use Case B: Share Team Project Settings", l: 832, e: 834}
+      - {h: "Project leader", l: 835, e: 839}
+      - {h: "Type: 2 (Project only)", l: 840, e: 841}
+      - {h: "Team member", l: 842, e: 845}
+      - {h: "Type: 2 (Project only)", l: 846, e: 850}
+      - {h: "Use Case C: New Development Machine Setup", l: 851, e: 853}
+      - {h: "One-line installation", l: 854, e: 856}
+      - {h: "Or manual installation", l: 857, e: 860}
+      - {h: "Type: 3 (Both)", l: 861, e: 862}
+      - {h: "Verify Git identity; edit only if missing or wrong", l: 863, e: 868}
+      - {h: "Use Case D: Batch-Process Open Issues or Failing PRs", l: 869, e: 887}
+      - {h: "Process up to 5 open issues in a repo (default limit)", l: 888, e: 890}
+      - {h: "Process up to 3 open issues", l: 891, e: 893}
+      - {h: "Process failing PRs instead", l: 894, e: 898}
+      - {h: "PowerShell equivalents", l: 899, e: 919}
+      - {h: "Advanced Usage", l: 920, e: 921}
+      - {h: "GitHub Actions Auto-Sync", l: 922, e: 943}
+      - {h: "Backup Specific Files Only", l: 944, e: 946}
+      - {h: "Backup global CLAUDE.md only", l: 947, e: 949}
+      - {h: "Backup project settings only", l: 950, e: 953}
+      - {h: "Customize with Environment Variables", l: 954, e: 956}
+      - {h: "When using bootstrap.sh", l: 957, e: 977}
+      - {h: "FAQ", l: 978, e: 979}
+      - {h: "Q1: Why do I need to personalize Git identity?", l: 980, e: 985}
+      - {h: "Change name and email only when the installed values are missing or wrong", l: 986, e: 990}
+      - {h: "Q2: How to manage backups across multiple locations?", l: 991, e: 1003}
+      - {h: "Q3: I want different settings for each project", l: 1004, e: 1009}
+      - {h: "Modify project A settings", l: 1010, e: 1013}
+      - {h: "Modify project B settings", l: 1014, e: 1019}
+      - {h: "Q4: Scripts won't run", l: 1020, e: 1026}
+      - {h: "Or run directly", l: 1027, e: 1032}
+      - {h: "Q5: I want to use a private repo", l: 1033, e: 1037}
+      - {h: "Create token: GitHub Settings > Developer settings > Personal access tokens", l: 1038, e: 1039}
+      - {h: "Installation", l: 1040, e: 1046}
+      - {h: "Memory sync (multi-machine)", l: 1047, e: 1059}
+      - {h: "Additional Resources", l: 1060, e: 1071}
+      - {h: "Version", l: 1072, e: 1079}
+      - {h: "Contributing", l: 1080, e: 1091}
+      - {h: "Related Projects", l: 1092, e: 1093}
+      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1094, e: 1102}
+      - {h: "License", l: 1103, e: 1111}
   - path: "THIRD_PARTY_NOTICES.md"
     title: "Third-Party Notices"
     description: ""
@@ -1735,22 +1735,22 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 9093
+    size: 10749
     tags: [docs]
     sections:
       - {h: "Install Behavior", l: 1, e: 6}
       - {h: "Manifest", l: 7, e: 36}
-      - {h: "Copy Decision", l: 37, e: 64}
-      - {h: "Prune Decision", l: 65, e: 84}
-      - {h: "Non-Interactive Override", l: 85, e: 91}
-      - {h: "Pick the install type and accept every other default.", l: 92, e: 94}
-      - {h: "Force bootstrap defaults. The bootstrap default install type is 1.", l: 95, e: 99}
-      - {h: "Pick the install type and accept every other default.", l: 100, e: 102}
-      - {h: "Force bootstrap defaults. The bootstrap default install type is 1.", l: 103, e: 125}
-      - {h: "Toolchain Fallback", l: 126, e: 136}
-      - {h: "Template Files", l: 137, e: 189}
-      - {h: "Tracked Files", l: 190, e: 208}
-      - {h: "Regression Test", l: 209, e: 232}
+      - {h: "Copy Decision", l: 52, e: 79}
+      - {h: "Prune Decision", l: 80, e: 99}
+      - {h: "Non-Interactive Override", l: 100, e: 106}
+      - {h: "Pick the install type and accept every other default.", l: 107, e: 109}
+      - {h: "Force bootstrap defaults. The bootstrap default install type is 1.", l: 110, e: 114}
+      - {h: "Pick the install type and accept every other default.", l: 115, e: 117}
+      - {h: "Force bootstrap defaults. The bootstrap default install type is 1.", l: 118, e: 140}
+      - {h: "Toolchain Fallback", l: 141, e: 151}
+      - {h: "Template Files", l: 152, e: 204}
+      - {h: "Tracked Files", l: 205, e: 223}
+      - {h: "Regression Test", l: 236, e: 259}
   - path: "docs/loop-patterns.md"
     title: "Loop-Safety Patterns for Skills"
     description: ""
