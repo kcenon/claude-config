@@ -1,9 +1,10 @@
 # Claude Configuration Auto-Installer (PowerShell)
 # =================================================
 # Installs backed up CLAUDE.md settings to a new Windows system
-# Requires: PowerShell 7+ (pwsh) recommended
+# Requires: PowerShell 7+ (pwsh). Not optional -- this script uses the
+# three-argument Join-Path (-AdditionalChildPath), which is PowerShell 6+ only.
 
-#Requires -Version 5.1
+#Requires -Version 7.0
 
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8

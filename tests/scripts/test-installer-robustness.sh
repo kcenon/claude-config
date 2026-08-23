@@ -100,6 +100,17 @@ check "summary reads the recorded install state"      "$(has scripts/install.ps1
 check "admin-gate exit records why it skipped"        "$(has scripts/install.ps1 "EnterpriseInstallState = 'skipped-not-admin'")"
 
 echo ""
+echo "[user-facing entry points declare the PowerShell floor they need (#911)]"
+# These scripts use the three-argument Join-Path (-AdditionalChildPath), which
+# is PowerShell 6+ only. A `#Requires -Version 5.1` line admits an interpreter
+# that cannot run them, turning a clear refusal into a mid-run parameter error
+# after the user has already answered prompts.
+for entry in bootstrap.ps1 scripts/install.ps1 scripts/backup.ps1 scripts/sync.ps1 scripts/verify.ps1; do
+    check "$entry declares PowerShell 7" "$(has "$entry" '#Requires -Version 7.0')"
+done
+check "no entry point still declares 5.1" "$(grep -rl '#Requires -Version 5\.' --include='*.ps1' --include='*.psm1' . >/dev/null 2>&1 && echo n || echo y)"
+
+echo ""
 echo "[enterprise layer is manifest-tracked on POSIX (#906)]"
 check "install.sh tracks enterprise CLAUDE.md"        "$(has scripts/install.sh 'manifest_copy_file "$BACKUP_DIR/enterprise/CLAUDE.md"')"
 check "install.sh tracks enterprise rules tree"       "$(has scripts/install.sh 'manifest_copy_tree "$BACKUP_DIR/enterprise/rules"')"
