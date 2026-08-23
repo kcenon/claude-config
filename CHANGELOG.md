@@ -108,6 +108,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (the Bash channel still recorded seven timeouts at 30 s), so `HOOKS.md` now
   states the fail-open semantics and how to distinguish a timeout from an Esc
   rather than leaving them to be rediscovered. (#897)
+- Both settings profiles declared `"minimumVersion": "2.2.0"`, a floor above
+  every shipped Claude Code release, so installing either one pinned the CLI at
+  whatever version it already had. This is an *update floor*, not a startup
+  guard: the CLI launches normally, which is why the setting looked inert when
+  it was checked by running `claude -p`. `claude update` is where it bites, and
+  it names itself when it does -- observed on 2.1.199: "The latest channel is at
+  2.1.201, which is below your minimumVersion setting (2.2.0). Staying on
+  2.1.199." Removed from `global/settings.json` and
+  `global/settings.windows.json`; fixing only one would have left the same trap
+  armed for the other platform. `COMPATIBILITY.md` now records the update-floor
+  semantics, the observed recognition at 2.1.199 (the previous "2.2.0+" implied
+  the key was ignored below that), and the rule that any value must be a
+  version that has already shipped. The key remains valid in
+  `scripts/schemas/settings-json.schema.json`; this repo simply does not set
+  it. (#902)
 
 ### Known limitation
 
