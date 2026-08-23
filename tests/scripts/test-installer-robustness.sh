@@ -173,11 +173,21 @@ echo "[global payload parity against the claude-docker contract (#914)]"
 # So: a tripwire on the contract itself. If the guaranteed subtree gains or
 # loses a top-level file, this fails and forces whoever changed the contract to
 # extend the per-entry-point assertions below.
+# No \xNN escapes in the awk pattern: mawk (the Ubuntu runner's awk) and gawk
+# disagree about them, and in a UTF-8 locale gawk matches characters rather
+# than bytes -- /^[\xe2][\x94][\x9c\x94]/ passed on Git Bash and failed on both
+# CI runners. Structural rule instead, with the box-drawing literals passed in
+# as plain strings for index(): a top-level entry carries the connector, has no
+# vertical bar (that marks a nested line), and does not start with a space
+# (that marks the last directory's children).
 contract_top_level_files() {
-    awk '
+    local conn vbar
+    conn=$(printf '\342\224\200\342\224\200 ')
+    vbar=$(printf '\342\224\202')
+    awk -v conn="$conn" -v vbar="$vbar" '
         /^~\/\.claude\/$/ { inside = 1; next }
         inside && /^```/  { exit }
-        inside && /^[\xe2][\x94][\x9c\x94]/ { print }
+        inside && index($0, conn) > 0 && index($0, vbar) == 0 && substr($0, 1, 1) != " " { print }
     ' docs/CLAUDE_DOCKER_CONTRACT.md |
         grep -v '(' |
         sed -e 's/^[^ ]* //' -e 's/ *$//' |
