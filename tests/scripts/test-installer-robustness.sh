@@ -31,6 +31,18 @@ check() {
 has() { grep -qF -- "$2" "$1" && echo y || echo n; }
 hasnot() { grep -qF -- "$2" "$1" && echo n || echo y; }
 
+# has_in_ps_func <file> <powershell-function-name> <literal>
+# PowerShell declares functions as `function Name {`, so has_in_func's
+# `name() {` opener never matches one. Same reason for scoping: the assertions
+# below would otherwise pass on text that lives elsewhere in install.ps1.
+has_in_ps_func() {
+    awk -v opener="function $2 {" '
+        index($0, opener) == 1 { inside = 1 }
+        inside { print }
+        inside && $0 == "}" { exit }
+    ' "$1" | grep -qF -- "$3" && echo y || echo n
+}
+
 # has_in_func <file> <shell-function-name> <literal>
 # Whole-file `has` is not discriminating for idioms this repo already uses
 # elsewhere: the project layer, for example, guards its helper load and
@@ -98,6 +110,21 @@ check "MANIFEST_PATH repoint is unwound in finally"   "$(awk '/MANIFEST_PATH = J
 # were never written.
 check "summary reads the recorded install state"      "$(has scripts/install.ps1 'switch ($script:EnterpriseInstallState)')"
 check "admin-gate exit records why it skipped"        "$(has scripts/install.ps1 "EnterpriseInstallState = 'skipped-not-admin'")"
+
+echo ""
+echo "[the enterprise block reports from measurement, not return values (#910)]"
+# Previously only the rules copy was guarded, so a throw from the CLAUDE.md
+# copy or the manifest write unwound past the function under
+# ErrorActionPreference=Stop: state stayed 'skipped' and no summary printed.
+check "enterprise copies have a catch, not just a finally" "$(has_in_ps_func scripts/install.ps1 Install-Enterprise 'Enterprise deployment failed')"
+# Invoke-ManifestTrackedCopy returns true for a real copy, a no-op, AND a
+# missing source, so the old success lines could not have been accurate.
+check "CLAUDE.md copy result is not used for reporting"    "$(has_in_ps_func scripts/install.ps1 Install-Enterprise '$null = Invoke-ManifestTrackedCopy -Src $enterpriseMd')"
+check "per-file report compares hashes"                    "$(has_in_ps_func scripts/install.ps1 Install-Enterprise 'Get-FileSha256 -Path $p.Dest')"
+check "report distinguishes updated from already current"  "$(has_in_ps_func scripts/install.ps1 Install-Enterprise 'already current')"
+check "a kept file is not reported as installed"           "$(has_in_ps_func scripts/install.ps1 Install-Enterprise "EnterpriseInstallState = 'installed-with-kept'")"
+check "summary renders the kept-file state"                "$(has scripts/install.ps1 "'installed-with-kept' {")"
+check "summary names each kept file"                       "$(has scripts/install.ps1 'foreach ($kept in $script:EnterpriseKeptFiles)')"
 
 echo ""
 echo "[user-facing entry points declare the PowerShell floor they need (#911)]"
