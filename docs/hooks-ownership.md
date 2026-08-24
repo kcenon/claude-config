@@ -65,6 +65,18 @@ same hook is installed from either file depending on OS; only one of
 the two files is the active surface at runtime, so there is no
 duplicate execution.
 
+Ownership is per guard even where Windows does not register the guard
+directly. Two matchers are routed through a dispatcher that runs their
+guards in a single process instead of one process per guard:
+`PreToolUse: Bash` through `global/hooks/bash-guard-dispatcher.ps1`
+(issue #895) and `PreToolUse: Edit|Write|Read` through
+`global/hooks/edit-guard-dispatcher.ps1` (issue #920). On those matchers
+`global/settings.windows.json` names only the dispatcher, and the guard
+list lives in the dispatcher's routing table;
+`tests/scripts/test-windows-hooks-parity.sh` expands that table so a
+guard dropped from it still fails parity. Execution order and fail-open
+/ fail-closed behaviour are documented in `HOOKS.md`, not here.
+
 The plugin bundle (`plugin/hooks/hooks.json`) also registers simplified
 inline `PreToolUse: Edit|Write|Read` and `PreToolUse: Bash` guards. These
 activate only when the full global suite is absent — they detect

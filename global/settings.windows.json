@@ -62,21 +62,11 @@
     "PreToolUse": [
       {
         "matcher": "Edit|Write|Read",
-        "_note": "Hook order is load-bearing: sensitive-file-guard must run before pre-edit-read-guard so denied files are not tracked. memory-write-guard runs after pre-edit-read-guard so it only validates writes the harness has cleared. See docs/hooks-ownership.md and issues #424, #521. Timeout is 30s rather than the 5s default: a PreToolUse timeout is fail-OPEN - the harness cancels the hook and the tool call proceeds - so an under-budgeted security guard is silently skipped, never denied. Across 35,276 local hook runs on this matcher the median is 429ms and p99 is 1,020ms, but four contention bursts timed out all three guards of a single call together, peaking at 11,141ms. 30s covers every observed case and matches the Bash channel. See issue #897.",
+        "_note": "Single registration: edit-guard-dispatcher.ps1 runs sensitive-file-guard, pre-edit-read-guard and memory-write-guard in one process. Three separate registrations spawned three pwsh processes per file operation; measured on this profile, 5 runs each, the chain was p50 1,068ms against the dispatcher's p50 410ms. Hook order is load-bearing and is now the dispatcher's routing table, not this list: sensitive-file-guard must run before pre-edit-read-guard so denied files are not tracked, and its deny short-circuits the chain. Separate registrations could not enforce that - the harness runs later hooks even after a denial, so denied paths were reaching the read-set tracker. memory-write-guard is prefiltered to memory-shared paths. See docs/hooks-ownership.md and issues #424, #521, #920. Timeout is 30s rather than the 5s default: a PreToolUse timeout is fail-OPEN - the harness cancels the hook and the tool call proceeds - so an under-budgeted security guard is silently skipped, never denied. Across 35,276 local hook runs on this matcher the median was 429ms and p99 1,020ms, but four contention bursts timed out all three guards of a single call together, peaking at 11,141ms. 30s covers every observed case and matches the Bash channel. See issue #897.",
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/sensitive-file-guard.ps1",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/pre-edit-read-guard.ps1",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/memory-write-guard.ps1",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/edit-guard-dispatcher.ps1",
             "timeout": 30
           }
         ]

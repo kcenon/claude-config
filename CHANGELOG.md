@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `global/hooks/edit-guard-dispatcher.ps1` is now the sole `PreToolUse`/
+  `Edit|Write|Read` hook in `global/settings.windows.json`, replacing three
+  separate registrations (`sensitive-file-guard`, `pre-edit-read-guard`,
+  `memory-write-guard`). Same problem and same pattern as the Bash dispatcher
+  below: each registration spawned its own `pwsh -NoProfile`, so one file
+  operation started three processes. Measured on the Windows profile, 5 runs
+  each with the same payload: three-process chain p50 1,068ms (spread 21ms)
+  versus dispatcher p50 410ms (spread 36ms), -61.6%. `memory-write-guard` is
+  prefiltered to `memory-shared` paths, so ordinary edits no longer pay for its
+  three `bash` subprocesses at all. Issue #920.
+  Note for future measurements: the `Edit|Write|Read` matcher served as the
+  untouched control in the 2026-08-23 re-measurement of the Bash dispatcher
+  (flat at 415/437/448/426ms across four transitions). This change consumes that
+  control — a later segmentation of Bash-channel numbers can no longer treat this
+  matcher as a fixed baseline.
+- `tests/hooks/test-edit-guard-dispatcher.ps1` (11 assertions) covering routing,
+  fail-closed behaviour, payload delivery through the `Read-HookInput` cache
+  (asserted on the deny *reason*, since a decision-only assertion cannot tell a
+  working cache from a broken one), and the short-circuit invariant. The
+  short-circuit check is paired with a positive control: a denied path must be
+  absent from the read-set tracker *and* an ordinary path must still be recorded,
+  otherwise the same assertion would pass if short-circuiting had killed track
+  mode outright.
+- `tests/scripts/test-hook-ordering.sh` (the #424 regression test) now follows a
+  lone dispatcher registration into its routing table instead of reading the
+  settings file alone, so the guard order it guards is still checked on Windows.
+  It also asserts `shortCircuit = $true` on `sensitive-file-guard`: order alone
+  never enforced the contract, so dropping the flag would silently reintroduce
+  #424 while leaving the order intact. Verified by mutation — flipping the flag
+  to `$false` fails both this test and the tracker assertion in
+  `test-edit-guard-dispatcher.ps1`, the latter by recording a denied `.env` path.
 - `global/hooks/bash-guard-dispatcher.ps1` is now shipped from the repository
   and registered as the sole `PreToolUse`/`Bash` hook in
   `global/settings.windows.json`, replacing 15 separate registrations. Each
@@ -198,6 +229,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Files denied by `sensitive-file-guard` were still being recorded in
+  `pre-edit-read-guard`'s read-set tracker. `global/settings.windows.json` has
+  documented the opposite since #424/#521 ("sensitive-file-guard must run before
+  pre-edit-read-guard so denied files are not tracked"), but hook order alone
+  cannot enforce it: the harness runs the remaining `PreToolUse` hooks even after
+  one denies. Across 212 denied `Edit|Write|Read` calls in a local transcript
+  window, none recorded all three guards while guards after the denying one still
+  ran, and two live read-set trackers contained `*.env` paths that
+  `sensitive-file-guard` denies. Consolidating into `edit-guard-dispatcher.ps1`
+  moves ordering in-process, where a deny from `sensitive-file-guard`
+  short-circuits the chain and the invariant actually holds. Impact was contained
+  rather than exploitable — the guard denies the follow-up `Edit` as well, and
+  `permissions.deny` carries `Edit(.env)` entries — but the containment was
+  incidental. Issue #920.
 - `git-identity.md` was copied under manifest guard and then rewritten in place
   by the identity seeder, which never updated the manifest. From that moment
   the manifest described a file that no longer existed on disk, so the next
