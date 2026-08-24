@@ -103,13 +103,21 @@ $ordinary   = 'D:/Sources/claude-config/README.md'
 $secretPath = "D:/Sources/claude-config/$envName"
 $template   = "D:/Sources/claude-config/$envName.example"
 
+# Every payload carries a session id, and each test group gets its own. Without
+# one, pre-edit-read-guard falls back to the shared 'unknown' tracker: a leftover
+# from any previous run then decides whether the routing assertions below see
+# first-run safety (allow) or a tracker miss (deny), which makes them depend on
+# machine state rather than on the dispatcher.
+$script:BaseSession = "test-920-base-$([System.Guid]::NewGuid().ToString('N').Substring(0,8))"
+
 function New-Payload {
     param([string]$Tool, [string]$Path, [string]$SessionId = '')
+    if (-not $SessionId) { $SessionId = $script:BaseSession }
     $o = @{
         tool_name  = $Tool
+        session_id = $SessionId
         tool_input = @{ file_path = $Path; old_string = 'a'; new_string = 'b' }
     }
-    if ($SessionId) { $o['session_id'] = $SessionId }
     return ($o | ConvertTo-Json -Depth 4 -Compress)
 }
 
@@ -168,7 +176,8 @@ $okContent = Get-Content -LiteralPath $okTracker -Raw -ErrorAction SilentlyConti
 Assert-Condition ($okContent -match 'README') `
     'Ordinary Read is still tracked (track mode alive)' "tracker content: $okContent"
 
-foreach ($t in @($denyTracker, $okTracker)) {
+$baseTracker = Join-Path $trackerDir "claude-read-set-$($script:BaseSession)"
+foreach ($t in @($denyTracker, $okTracker, $baseTracker)) {
     if (Test-Path -LiteralPath $t) { Remove-Item -LiteralPath $t -Force -ErrorAction SilentlyContinue }
 }
 if ($null -ne $script:SavedSessionId) { $env:CLAUDE_SESSION_ID = $script:SavedSessionId }

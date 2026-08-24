@@ -32,6 +32,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   absent from the read-set tracker *and* an ordinary path must still be recorded,
   otherwise the same assertion would pass if short-circuiting had killed track
   mode outright.
+- `tests/scripts/test-hook-ordering.sh` (the #424 regression test) now follows a
+  lone dispatcher registration into its routing table instead of reading the
+  settings file alone, so the guard order it guards is still checked on Windows.
+  It also asserts `shortCircuit = $true` on `sensitive-file-guard`: order alone
+  never enforced the contract, so dropping the flag would silently reintroduce
+  #424 while leaving the order intact. Verified by mutation — flipping the flag
+  to `$false` fails both this test and the tracker assertion in
+  `test-edit-guard-dispatcher.ps1`, the latter by recording a denied `.env` path.
 - `global/hooks/bash-guard-dispatcher.ps1` is now shipped from the repository
   and registered as the sole `PreToolUse`/`Bash` hook in
   `global/settings.windows.json`, replacing 15 separate registrations. Each
