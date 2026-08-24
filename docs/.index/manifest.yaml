@@ -10,34 +10,34 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 64005
+    size: 66687
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "[Unreleased]", l: 8, e: 9}
       - {h: "Added", l: 10, e: 33}
-      - {h: "Changed", l: 146, e: 182}
-      - {h: "Fixed", l: 199, e: 213}
-      - {h: "Known limitation", l: 290, e: 297}
-      - {h: "1.12.0 - 2026-08-01", l: 298, e: 299}
-      - {h: "Added", l: 300, e: 431}
-      - {h: "Fixed", l: 432, e: 674}
-      - {h: "1.11.0 - 2026-07-03", l: 675, e: 676}
-      - {h: "Fixed", l: 677, e: 690}
-      - {h: "Security", l: 691, e: 768}
-      - {h: "Added", l: 769, e: 797}
-      - {h: "Changed", l: 798, e: 844}
-      - {h: "1.10.0 - 2026-04-20", l: 845, e: 853}
-      - {h: "1.9.0 - 2026-04-13", l: 854, e: 863}
-      - {h: "1.8.0 - 2026-04-13", l: 864, e: 869}
-      - {h: "1.7.0 - 2026-04-06", l: 870, e: 884}
-      - {h: "1.6.0 - 2026-04-03", l: 885, e: 897}
-      - {h: "1.5.0 - 2026-03-21", l: 898, e: 916}
-      - {h: "1.4.0 - 2026-01-22", l: 917, e: 922}
-      - {h: "1.3.0 - 2026-01-15", l: 923, e: 931}
-      - {h: "1.2.0 - 2026-01-15", l: 932, e: 940}
-      - {h: "1.1.0 - 2025-01-15", l: 941, e: 951}
-      - {h: "1.0.0 - 2025-12-03", l: 952, e: 959}
+      - {h: "Changed", l: 169, e: 205}
+      - {h: "Fixed", l: 222, e: 236}
+      - {h: "Known limitation", l: 327, e: 334}
+      - {h: "1.12.0 - 2026-08-01", l: 335, e: 336}
+      - {h: "Added", l: 337, e: 468}
+      - {h: "Fixed", l: 469, e: 711}
+      - {h: "1.11.0 - 2026-07-03", l: 712, e: 713}
+      - {h: "Fixed", l: 714, e: 727}
+      - {h: "Security", l: 728, e: 805}
+      - {h: "Added", l: 806, e: 834}
+      - {h: "Changed", l: 835, e: 881}
+      - {h: "1.10.0 - 2026-04-20", l: 882, e: 890}
+      - {h: "1.9.0 - 2026-04-13", l: 891, e: 900}
+      - {h: "1.8.0 - 2026-04-13", l: 901, e: 906}
+      - {h: "1.7.0 - 2026-04-06", l: 907, e: 921}
+      - {h: "1.6.0 - 2026-04-03", l: 922, e: 934}
+      - {h: "1.5.0 - 2026-03-21", l: 935, e: 953}
+      - {h: "1.4.0 - 2026-01-22", l: 954, e: 959}
+      - {h: "1.3.0 - 2026-01-15", l: 960, e: 968}
+      - {h: "1.2.0 - 2026-01-15", l: 969, e: 977}
+      - {h: "1.1.0 - 2025-01-15", l: 978, e: 988}
+      - {h: "1.0.0 - 2025-12-03", l: 989, e: 995}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -84,100 +84,101 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 82211
+    size: 86098
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
       - {h: "Quick Navigation", l: 11, e: 36}
-      - {h: "Configuration File Locations", l: 38, e: 44}
-      - {h: "Global Hooks (global/settings.json)", l: 45, e: 46}
-      - {h: "1. Sensitive File Protection (PreToolUse)", l: 57, e: 70}
-      - {h: "2. Dangerous Command Blocking (PreToolUse)", l: 71, e: 81}
-      - {h: "3. Session Logging (SessionStart/SessionEnd)", l: 82, e: 95}
-      - {h: "4. Temporary File Cleanup (SessionEnd)", l: 96, e: 105}
-      - {h: "5. Markdown Anchor Validation (PreToolUse)", l: 106, e: 136}
-      - {h: "6. Team Limit Guard (PreToolUse)", l: 137, e: 154}
-      - {h: "7. TeammateIdle (TeammateIdle)", l: 155, e: 179}
-      - {h: "8. Version Check (SessionStart)", l: 180, e: 202}
-      - {h: "9. TaskCompleted (TaskCompleted)", l: 203, e: 228}
-      - {h: "10. Commit Message Guard (PreToolUse)", l: 229, e: 251}
-      - {h: "11. Conflict Guard (PreToolUse)", l: 252, e: 269}
-      - {h: "12. PR Target Guard (PreToolUse)", l: 270, e: 303}
-      - {h: "13. PR Language Guard (PreToolUse)", l: 304, e: 358}
-      - {h: "14. Merge Gate Guard (PreToolUse)", l: 359, e: 412}
-      - {h: "15. Attribution Guard (PreToolUse)", l: 413, e: 479}
-      - {h: "16. Instructions Loaded Reinforcer (InstructionsLoaded)", l: 480, e: 526}
-      - {h: "17. Post-Compact Restore (SessionStart)", l: 527, e: 582}
-      - {h: "18. Task Created Validator (TaskCreated)", l: 583, e: 646}
-      - {h: "19. Post Task/Agent Checkpoint (PostToolUse)", l: 647, e: 690}
-      - {h: "20. Pre-edit Read Guard (PreToolUse/PostToolUse)", l: 691, e: 752}
-      - {h: "Hook Response Format", l: 753, e: 786}
-      - {h: "Project Hooks (project/.claude/settings.json)", l: 787, e: 788}
-      - {h: "1. Auto Formatting (PostToolUse)", l: 789, e: 809}
-      - {h: "Permission Settings", l: 810, e: 857}
-      - {h: "Over-length commands and the parse limit", l: 858, e: 880}
-      - {h: "Windows Support (PowerShell)", l: 881, e: 882}
-      - {h: "Overview", l: 883, e: 891}
-      - {h: "How It Works", l: 892, e: 906}
-      - {h: "Bash Guard Dispatcher (Windows)", l: 907, e: 992}
-      - {h: "PowerShell Hook Scripts", l: 993, e: 1013}
-      - {h: "Key Differences from Bash Hooks", l: 1014, e: 1023}
-      - {h: "Prerequisites", l: 1024, e: 1034}
-      - {h: "Troubleshooting (Windows)", l: 1035, e: 1036}
-      - {h: "\"File cannot be loaded because running scripts is disabled\"", l: 1037, e: 1041}
-      - {h: "Hooks not executing", l: 1042, e: 1047}
-      - {h: "\"pwsh is not recognized\"", l: 1048, e: 1052}
-      - {h: "Customization", l: 1053, e: 1054}
-      - {h: "Disabling Hooks", l: 1055, e: 1058}
-      - {h: "Adding New Hooks", l: 1059, e: 1075}
-      - {h: "Matcher Patterns", l: 1076, e: 1084}
-      - {h: "Troubleshooting", l: 1085, e: 1086}
-      - {h: "Hook is not executing", l: 1087, e: 1092}
-      - {h: "Timeout occurring", l: 1093, e: 1118}
-      - {h: "Formatter not working", l: 1119, e: 1127}
-      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 1128, e: 1167}
-      - {h: "References", l: 1168, e: 1180}
-      - {h: "Auto-Generated Hook Catalog", l: 1181, e: 1188}
-      - {h: "Index", l: 1189, e: 1233}
-      - {h: "Hook Details", l: 1234, e: 1235}
-      - {h: "attribution-guard", l: 1236, e: 1252}
-      - {h: "bash-sensitive-read-guard", l: 1253, e: 1269}
-      - {h: "bash-write-guard", l: 1270, e: 1286}
-      - {h: "cleanup", l: 1287, e: 1303}
-      - {h: "commit-message-guard", l: 1304, e: 1320}
-      - {h: "config-change-logger", l: 1321, e: 1337}
-      - {h: "conflict-guard", l: 1338, e: 1354}
-      - {h: "cwd-change-logger", l: 1355, e: 1371}
-      - {h: "dangerous-command-guard", l: 1372, e: 1388}
-      - {h: "gh-write-verb-guard", l: 1389, e: 1405}
-      - {h: "github-api-preflight", l: 1406, e: 1422}
-      - {h: "instructions-loaded-reinforcer", l: 1423, e: 1439}
-      - {h: "markdown-anchor-validator", l: 1440, e: 1456}
-      - {h: "memory-access-logger", l: 1457, e: 1473}
-      - {h: "memory-integrity-check", l: 1474, e: 1490}
-      - {h: "memory-write-guard", l: 1491, e: 1507}
-      - {h: "merge-gate-guard", l: 1508, e: 1525}
-      - {h: "permission-denial-logger", l: 1526, e: 1543}
-      - {h: "post-compact-restore", l: 1544, e: 1561}
-      - {h: "post-task-checkpoint", l: 1562, e: 1578}
-      - {h: "pr-language-guard", l: 1579, e: 1595}
-      - {h: "pr-target-guard", l: 1596, e: 1612}
-      - {h: "pre-compact-snapshot", l: 1613, e: 1629}
-      - {h: "pre-edit-read-guard", l: 1630, e: 1646}
-      - {h: "prompt-validator", l: 1647, e: 1663}
-      - {h: "push-target-guard", l: 1664, e: 1680}
-      - {h: "sensitive-file-guard", l: 1681, e: 1697}
-      - {h: "session-logger", l: 1698, e: 1714}
-      - {h: "shell-env-secret-guard", l: 1715, e: 1731}
-      - {h: "subagent-logger", l: 1732, e: 1748}
-      - {h: "task-completed-logger", l: 1749, e: 1765}
-      - {h: "task-created-validator", l: 1766, e: 1782}
-      - {h: "team-limit-guard", l: 1783, e: 1799}
-      - {h: "tool-failure-logger", l: 1800, e: 1816}
-      - {h: "traceability-guard", l: 1817, e: 1833}
-      - {h: "version-check", l: 1834, e: 1850}
-      - {h: "worktree-create", l: 1851, e: 1867}
-      - {h: "worktree-remove", l: 1868, e: 1885}
+      - {h: "Configuration File Locations", l: 39, e: 45}
+      - {h: "Global Hooks (global/settings.json)", l: 46, e: 47}
+      - {h: "1. Sensitive File Protection (PreToolUse)", l: 60, e: 73}
+      - {h: "2. Dangerous Command Blocking (PreToolUse)", l: 74, e: 84}
+      - {h: "3. Session Logging (SessionStart/SessionEnd)", l: 85, e: 98}
+      - {h: "4. Temporary File Cleanup (SessionEnd)", l: 99, e: 108}
+      - {h: "5. Markdown Anchor Validation (PreToolUse)", l: 109, e: 139}
+      - {h: "6. Team Limit Guard (PreToolUse)", l: 140, e: 157}
+      - {h: "7. TeammateIdle (TeammateIdle)", l: 158, e: 182}
+      - {h: "8. Version Check (SessionStart)", l: 183, e: 205}
+      - {h: "9. TaskCompleted (TaskCompleted)", l: 206, e: 231}
+      - {h: "10. Commit Message Guard (PreToolUse)", l: 232, e: 254}
+      - {h: "11. Conflict Guard (PreToolUse)", l: 255, e: 272}
+      - {h: "12. PR Target Guard (PreToolUse)", l: 273, e: 306}
+      - {h: "13. PR Language Guard (PreToolUse)", l: 307, e: 361}
+      - {h: "14. Merge Gate Guard (PreToolUse)", l: 362, e: 415}
+      - {h: "15. Attribution Guard (PreToolUse)", l: 416, e: 482}
+      - {h: "16. Instructions Loaded Reinforcer (InstructionsLoaded)", l: 483, e: 529}
+      - {h: "17. Post-Compact Restore (SessionStart)", l: 530, e: 585}
+      - {h: "18. Task Created Validator (TaskCreated)", l: 586, e: 649}
+      - {h: "19. Post Task/Agent Checkpoint (PostToolUse)", l: 650, e: 693}
+      - {h: "20. Pre-edit Read Guard (PreToolUse/PostToolUse)", l: 694, e: 755}
+      - {h: "Hook Response Format", l: 756, e: 789}
+      - {h: "Project Hooks (project/.claude/settings.json)", l: 790, e: 791}
+      - {h: "1. Auto Formatting (PostToolUse)", l: 792, e: 812}
+      - {h: "Permission Settings", l: 813, e: 860}
+      - {h: "Over-length commands and the parse limit", l: 861, e: 883}
+      - {h: "Windows Support (PowerShell)", l: 884, e: 885}
+      - {h: "Overview", l: 886, e: 894}
+      - {h: "How It Works", l: 895, e: 909}
+      - {h: "Bash Guard Dispatcher (Windows)", l: 910, e: 958}
+      - {h: "Edit Guard Dispatcher (Windows)", l: 959, e: 1056}
+      - {h: "PowerShell Hook Scripts", l: 1057, e: 1077}
+      - {h: "Key Differences from Bash Hooks", l: 1078, e: 1087}
+      - {h: "Prerequisites", l: 1088, e: 1098}
+      - {h: "Troubleshooting (Windows)", l: 1099, e: 1100}
+      - {h: "\"File cannot be loaded because running scripts is disabled\"", l: 1101, e: 1105}
+      - {h: "Hooks not executing", l: 1106, e: 1111}
+      - {h: "\"pwsh is not recognized\"", l: 1112, e: 1116}
+      - {h: "Customization", l: 1117, e: 1118}
+      - {h: "Disabling Hooks", l: 1119, e: 1122}
+      - {h: "Adding New Hooks", l: 1123, e: 1139}
+      - {h: "Matcher Patterns", l: 1140, e: 1148}
+      - {h: "Troubleshooting", l: 1149, e: 1150}
+      - {h: "Hook is not executing", l: 1151, e: 1156}
+      - {h: "Timeout occurring", l: 1157, e: 1182}
+      - {h: "Formatter not working", l: 1183, e: 1191}
+      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 1192, e: 1231}
+      - {h: "References", l: 1232, e: 1244}
+      - {h: "Auto-Generated Hook Catalog", l: 1245, e: 1252}
+      - {h: "Index", l: 1253, e: 1297}
+      - {h: "Hook Details", l: 1298, e: 1299}
+      - {h: "attribution-guard", l: 1300, e: 1316}
+      - {h: "bash-sensitive-read-guard", l: 1317, e: 1333}
+      - {h: "bash-write-guard", l: 1334, e: 1350}
+      - {h: "cleanup", l: 1351, e: 1367}
+      - {h: "commit-message-guard", l: 1368, e: 1384}
+      - {h: "config-change-logger", l: 1385, e: 1401}
+      - {h: "conflict-guard", l: 1402, e: 1418}
+      - {h: "cwd-change-logger", l: 1419, e: 1435}
+      - {h: "dangerous-command-guard", l: 1436, e: 1452}
+      - {h: "gh-write-verb-guard", l: 1453, e: 1469}
+      - {h: "github-api-preflight", l: 1470, e: 1486}
+      - {h: "instructions-loaded-reinforcer", l: 1487, e: 1503}
+      - {h: "markdown-anchor-validator", l: 1504, e: 1520}
+      - {h: "memory-access-logger", l: 1521, e: 1537}
+      - {h: "memory-integrity-check", l: 1538, e: 1554}
+      - {h: "memory-write-guard", l: 1555, e: 1571}
+      - {h: "merge-gate-guard", l: 1572, e: 1589}
+      - {h: "permission-denial-logger", l: 1590, e: 1607}
+      - {h: "post-compact-restore", l: 1608, e: 1625}
+      - {h: "post-task-checkpoint", l: 1626, e: 1642}
+      - {h: "pr-language-guard", l: 1643, e: 1659}
+      - {h: "pr-target-guard", l: 1660, e: 1676}
+      - {h: "pre-compact-snapshot", l: 1677, e: 1693}
+      - {h: "pre-edit-read-guard", l: 1694, e: 1710}
+      - {h: "prompt-validator", l: 1711, e: 1727}
+      - {h: "push-target-guard", l: 1728, e: 1744}
+      - {h: "sensitive-file-guard", l: 1745, e: 1761}
+      - {h: "session-logger", l: 1762, e: 1778}
+      - {h: "shell-env-secret-guard", l: 1779, e: 1795}
+      - {h: "subagent-logger", l: 1796, e: 1812}
+      - {h: "task-completed-logger", l: 1813, e: 1829}
+      - {h: "task-created-validator", l: 1830, e: 1846}
+      - {h: "team-limit-guard", l: 1847, e: 1863}
+      - {h: "tool-failure-logger", l: 1864, e: 1880}
+      - {h: "traceability-guard", l: 1881, e: 1897}
+      - {h: "version-check", l: 1898, e: 1914}
+      - {h: "worktree-create", l: 1915, e: 1931}
+      - {h: "worktree-remove", l: 1932, e: 1949}
   - path: "PREREQUISITES.md"
     title: "Prerequisites"
     description: ""
@@ -1725,11 +1726,11 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 7472
+    size: 8194
     tags: [docs,hook,hooks]
     sections:
       - {h: "Ownership Table", l: 13, e: 78}
-      - {h: "Adding a new hook", l: 79, e: 88}
+      - {h: "Adding a new hook", l: 91, e: 100}
   - path: "docs/install.md"
     title: "Install Behavior"
     description: ""

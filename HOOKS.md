@@ -32,6 +32,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Block Edit/Write on files that weren't Read first | [Pre-edit Read Guard](#20-pre-edit-read-guard-pretooluseposttooluse) |
 | Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
 | Understand how Bash guards are dispatched on Windows | [Bash Guard Dispatcher](#bash-guard-dispatcher-windows) |
+| Understand how Edit/Write/Read guards are dispatched on Windows | [Edit Guard Dispatcher](#edit-guard-dispatcher-windows) |
 | Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
 | Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
 
@@ -44,15 +45,17 @@ Hooks are user-defined commands that automatically execute during specific Claud
 
 ## Global Hooks (global/settings.json)
 
-> **Registration differs by platform for the `Bash` matcher.** On POSIX,
-> `global/settings.json` registers each Bash guard as its own hook, so the
-> per-guard `Timeout:` values in the sections below are the values in force. On
-> Windows, `global/settings.windows.json` registers exactly one hook on that
-> matcher, [`bash-guard-dispatcher.ps1`](#bash-guard-dispatcher-windows), which
-> fronts all of them: they share its 25 s internal budget rather than carrying
-> their own. Sections 2, 5, and 10 through 15 all describe Bash-matcher guards
-> and are affected. The `Edit|Write|Read` and `TeamCreate` matchers are
-> registered identically on both platforms.
+> **Registration differs by platform for the `Bash` and `Edit|Write|Read`
+> matchers.** On POSIX, `global/settings.json` registers each guard as its own
+> hook, so the per-guard `Timeout:` values in the sections below are the values
+> in force. On Windows, `global/settings.windows.json` registers exactly one hook
+> on each of those matchers — [`bash-guard-dispatcher.ps1`](#bash-guard-dispatcher-windows)
+> and [`edit-guard-dispatcher.ps1`](#edit-guard-dispatcher-windows) — which front
+> their guards: the guards share the dispatcher's 25 s internal budget rather
+> than carrying their own. Sections 2, 5, and 10 through 15 describe
+> Bash-matcher guards; `sensitive-file-guard`, `pre-edit-read-guard` and
+> `memory-write-guard` are the `Edit|Write|Read` ones. All are affected. The
+> `TeamCreate` matcher is registered identically on both platforms.
 
 ### 1. Sensitive File Protection (PreToolUse)
 
@@ -948,9 +951,70 @@ whole, matching `dangerous-command-guard`, the strictest guard it fronts.
 **Time budget**: 25 s internally, inside the harness's 30 s `timeout`. When the
 internal budget runs out the dispatcher does not truncate silently: it names
 every guard it skipped in `additionalContext`. The individually-registered POSIX
-guards have no equivalent internal budget, and neither do the three guards on
-the `Edit|Write|Read` matcher, where a harness timeout is fail-open and
-therefore invisible (see [Timeout occurring](#timeout-occurring)).
+guards have no equivalent internal budget, where a harness timeout is fail-open
+and therefore invisible (see [Timeout occurring](#timeout-occurring)). The
+`Edit|Write|Read` matcher gained the same internal budget in
+[its own dispatcher](#edit-guard-dispatcher-windows).
+
+### Edit Guard Dispatcher (Windows)
+
+*Single entry point for every `Edit|Write|Read` guard on Windows, in place of 3 individual hook registrations.*
+
+**Purpose**: the same process-cost problem as the Bash dispatcher, on the matcher
+that fires most often. One file operation started three `pwsh -NoProfile`
+processes. Measured on this profile, 5 runs each with the same payload: the
+three-process chain p50 1,068 ms (spread 21 ms) against the dispatcher's p50
+410 ms (spread 36 ms), a 62% reduction.
+
+**Registration**: `global/settings.windows.json` registers
+`edit-guard-dispatcher.ps1` as the only hook on the `Edit|Write|Read` matcher,
+with `timeout: 30`. POSIX is unchanged and still registers its three `.sh` guards
+individually, for the same reason the Bash axis does — a `bash` process is cheap
+to start — and there is likewise no `edit-guard-dispatcher.sh`, which the
+`*-dispatcher.*` exemption in `.github/workflows/validate-hooks-doc.yml` allows.
+
+**Routing table**: order is load-bearing, and it lives here rather than in the
+settings file.
+
+| Order | Routed when | Guard | Fail policy | Short-circuit |
+|-------|-------------|-------|-------------|---------------|
+| 1 | always | `sensitive-file-guard` | closed | yes |
+| 2 | always | `pre-edit-read-guard` | open | no |
+| 3 | `Edit`/`Write` and path contains `memory-shared` | `memory-write-guard` | open | no |
+
+**Short-circuit**: a `deny` from `sensitive-file-guard` returns immediately and
+the remaining guards do not run, so a file it rejects is never recorded in
+`pre-edit-read-guard`'s read-set tracker (issues #424, #521). Separate
+registrations could not enforce this: the harness runs later hooks even after a
+denial. Measured across 212 denied calls in a local transcript window, guards
+after the denying one still ran, and two live trackers contained `*.env` paths
+that `sensitive-file-guard` denies. Consolidation is what made the documented
+order enforceable, and issue #920 fixed the invariant along with the latency.
+Only guard 1 short-circuits; a `deny` from the other two is collected and merged
+as usual, so the caller still sees every applicable reason.
+
+**Prefilter**: `memory-write-guard` is the only heavy guard here — it shells out
+to `validate.sh`, `secret-check.sh` and `injection-check.sh` — and its own gate
+accepts nothing outside `$HOME/.claude/memory-shared/memories/*.md`. The
+prefilter matches the coarse `memory-shared` substring instead, keeping every
+path the guard could act on. As on the Bash dispatcher, too narrow would silently
+disable a guard; too wide costs a few milliseconds.
+
+**Fail policy**: unparseable hook input is fail-closed for the dispatcher as a
+whole, matching `sensitive-file-guard`. The other two guards fail open on their
+own, but stdin can only be drained once, so the dispatcher must pick one policy
+for all three and weakening the security guard is not an option.
+
+**Time budget**: 25 s internally, inside the harness's 30 s `timeout`, with the
+same no-silent-truncation rule as the Bash dispatcher.
+
+**Payload delivery**: as with the Bash dispatcher, the payload reaches each guard
+through the process-lifetime cache in `Read-HookInput`
+(`global/hooks/lib/CommonHelpers.psm1`), not through a parameter — no guard
+declares a `param()` block, so the `-HookInput` argument lands in `$args` and is
+ignored. `tests/hooks/test-edit-guard-dispatcher.ps1` asserts the deny *reason*,
+not just the decision, because a broken cache would still produce a deny from a
+fail-closed guard.
 
 **Standalone contract**: every guard still accepts an optional `-HookInput`
 parameter carrying the already-parsed payload and falls back to reading stdin
