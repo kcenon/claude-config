@@ -229,6 +229,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `project/.claude/rules/project-management/documentation.md` no longer
+  declares `**/*.md` in its `paths:` frontmatter; `**/docs/**`, `**/README*`
+  and `**/CHANGELOG*` remain. The glob made the 14,127-byte rule body
+  (Doxygen, KDoc, docstring and TSDoc templates plus README/CHANGELOG
+  skeletons — content for authoring API docs) load on every markdown read,
+  including reads of the rules, docs and `CLAUDE.md` files themselves, at a
+  cost larger than all six `alwaysApply` rules combined. The `mode: exact`
+  twin at `project/.claude/skills/documentation/reference/documentation.md`
+  carries the same frontmatter, and the `documentation` skill's inline
+  `paths:` in `project/.claude/skills/documentation/SKILL.md` and
+  `plugin/skills/documentation/SKILL.md` drops `**/*.md` as well, so a
+  markdown file outside `docs/`, `README*` or `CHANGELOG*` injects neither.
+  `README.md`, `README.ko.md` and `docs/architecture-review-skills-rules.md`
+  publish the narrowed trigger, and `docs/.index/manifest.yaml` follows the
+  size and section-line changes. No validator logic changes: the
+  `CATCH-ALL-GLOB` check in `scripts/validate-rule-frontmatter.sh` only
+  matches the literal universal glob, and a markdown special case is a
+  separate policy decision. (#922)
 - Files denied by `sensitive-file-guard` were still being recorded in
   `pre-edit-read-guard`'s read-set tracker. `global/settings.windows.json` has
   documented the opposite since #424/#521 ("sensitive-file-guard must run before

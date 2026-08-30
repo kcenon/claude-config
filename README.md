@@ -610,7 +610,7 @@ Rules are modular configuration files in `.claude/rules/` that are conditionally
 | `coding.md` | `**/*.ts`, `**/*.py`, `**/*.go`, etc. | General coding standards |
 | `testing.md` | `**/*.test.ts`, `**/test_*.py`, etc. | Testing conventions |
 | `security.md` | All code files | Security best practices |
-| `documentation.md` | `**/*.md`, `**/docs/**` | Documentation standards |
+| `documentation.md` | `**/docs/**`, `**/README*`, `**/CHANGELOG*` | Documentation standards |
 | `api/rest-api.md` | `**/api/**`, `**/routes/**` | REST API design patterns |
 
 ### How Rules Work

@@ -52,7 +52,7 @@ CLAUDE.md
 |------|-------|---------|
 | `coding.md` | `**/*.{ts,tsx,js,py,cpp,hpp,go,rs,kt,java}` | Naming, structure, comments |
 | `api/rest-api.md` | `**/api/**`, `**/routes/**`, etc. | REST conventions |
-| `documentation.md` | `**/*.md`, `**/docs/**` | Documentation standards |
+| `documentation.md` | `**/docs/**`, `**/README*`, `**/CHANGELOG*` | Documentation standards |
 | `security.md` | Various auth/security paths | Security guidelines |
 | `testing.md` | `**/test/**`, `**/*.test.*` | Testing conventions |
 

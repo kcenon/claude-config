@@ -582,7 +582,7 @@ Rules는 `.claude/rules/`에 있는 모듈형 설정 파일로, 파일 경로에
 | `coding.md` | `**/*.ts`, `**/*.py`, `**/*.go` 등 | 일반 코딩 표준 |
 | `testing.md` | `**/*.test.ts`, `**/test_*.py` 등 | 테스트 관례 |
 | `security.md` | 모든 코드 파일 | 보안 모범 사례 |
-| `documentation.md` | `**/*.md`, `**/docs/**` | 문서화 표준 |
+| `documentation.md` | `**/docs/**`, `**/README*`, `**/CHANGELOG*` | 문서화 표준 |
 | `api/rest-api.md` | `**/api/**`, `**/routes/**` | REST API 설계 패턴 |
 
 ### Rules 작동 방식
