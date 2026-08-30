@@ -1,7 +1,6 @@
 ---
 alwaysApply: false
 paths:
-  - "**/*.md"
   - "**/docs/**"
   - "**/README*"
   - "**/CHANGELOG*"

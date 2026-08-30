@@ -8,7 +8,7 @@ allowed-tools:
   - Glob
 model: haiku
 argument-hint: "<file-or-topic>"
-paths: "**/*.md, **/README*"
+paths: "**/README*"
 iso_class: none
 ---
 
