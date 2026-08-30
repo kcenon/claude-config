@@ -1279,6 +1279,7 @@ this catalog for the canonical hook inventory.
 | [`pre-compact-snapshot.sh`](#pre-compact-snapshot) | PreCompact (async) | yes |
 | [`pre-edit-read-guard.sh`](#pre-edit-read-guard) | PreToolUse (Edit|Write) + PostToolUse (Read) | yes |
 | [`prompt-validator.sh`](#prompt-validator) | UserPromptSubmit | yes |
+| [`prune-permission-rules.sh`](#prune-permission-rules) | SessionEnd | yes |
 | [`push-target-guard.sh`](#push-target-guard) | PreToolUse (Bash) | yes |
 | [`sensitive-file-guard.sh`](#sensitive-file-guard) | PreToolUse (Edit|Write|Read) | yes |
 | [`session-logger.sh`](#session-logger) | SessionStart, SessionEnd, Stop, TeammateIdle | yes |
@@ -1293,7 +1294,7 @@ this catalog for the canonical hook inventory.
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
 | [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 38 bash hooks, 38 with PowerShell counterparts._
+_Total: 39 bash hooks, 39 with PowerShell counterparts._
 
 ### Hook Details
 
@@ -1724,6 +1725,24 @@ Validates user prompts for dangerous operations
 | Response format | hookSpecificOutput with additionalContext (UserPromptSubmit) |
 | PowerShell counterpart | present (`prompt-validator.ps1`) |
 | Source | `global/hooks/prompt-validator.sh` |
+
+### prune-permission-rules
+
+_File:_ `prune-permission-rules.sh`
+
+_Anchor:_ `#prune-permission-rules`
+
+Prunes permissions.allow entries that can never match again from the project-scope settings.local.json
+
+| Field | Value |
+|---|---|
+| Hook Type | SessionEnd |
+| Trigger / Matcher | — |
+| Exit codes | 0=always (fail-open; teardown is never blocked) |
+| Response format | none (lifecycle event, no JSON output needed) |
+| Fail policy | fail-open - any parse, classification, or IO error leaves the file byte-identical |
+| PowerShell counterpart | present (`prune-permission-rules.ps1`) |
+| Source | `global/hooks/prune-permission-rules.sh` |
 
 ### push-target-guard
 
