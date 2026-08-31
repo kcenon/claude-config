@@ -84,7 +84,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 86098
+    size: 86821
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
@@ -140,45 +140,46 @@ documents:
       - {h: "References", l: 1232, e: 1244}
       - {h: "Auto-Generated Hook Catalog", l: 1245, e: 1252}
       - {h: "Index", l: 1253, e: 1297}
-      - {h: "Hook Details", l: 1298, e: 1299}
-      - {h: "attribution-guard", l: 1300, e: 1316}
-      - {h: "bash-sensitive-read-guard", l: 1317, e: 1333}
-      - {h: "bash-write-guard", l: 1334, e: 1350}
-      - {h: "cleanup", l: 1351, e: 1367}
-      - {h: "commit-message-guard", l: 1368, e: 1384}
-      - {h: "config-change-logger", l: 1385, e: 1401}
-      - {h: "conflict-guard", l: 1402, e: 1418}
-      - {h: "cwd-change-logger", l: 1419, e: 1435}
-      - {h: "dangerous-command-guard", l: 1436, e: 1452}
-      - {h: "gh-write-verb-guard", l: 1453, e: 1469}
-      - {h: "github-api-preflight", l: 1470, e: 1486}
-      - {h: "instructions-loaded-reinforcer", l: 1487, e: 1503}
-      - {h: "markdown-anchor-validator", l: 1504, e: 1520}
-      - {h: "memory-access-logger", l: 1521, e: 1537}
-      - {h: "memory-integrity-check", l: 1538, e: 1554}
-      - {h: "memory-write-guard", l: 1555, e: 1571}
-      - {h: "merge-gate-guard", l: 1572, e: 1589}
-      - {h: "permission-denial-logger", l: 1590, e: 1607}
-      - {h: "post-compact-restore", l: 1608, e: 1625}
-      - {h: "post-task-checkpoint", l: 1626, e: 1642}
-      - {h: "pr-language-guard", l: 1643, e: 1659}
-      - {h: "pr-target-guard", l: 1660, e: 1676}
-      - {h: "pre-compact-snapshot", l: 1677, e: 1693}
-      - {h: "pre-edit-read-guard", l: 1694, e: 1710}
-      - {h: "prompt-validator", l: 1711, e: 1727}
-      - {h: "push-target-guard", l: 1728, e: 1744}
-      - {h: "sensitive-file-guard", l: 1745, e: 1761}
-      - {h: "session-logger", l: 1762, e: 1778}
-      - {h: "shell-env-secret-guard", l: 1779, e: 1795}
-      - {h: "subagent-logger", l: 1796, e: 1812}
-      - {h: "task-completed-logger", l: 1813, e: 1829}
-      - {h: "task-created-validator", l: 1830, e: 1846}
-      - {h: "team-limit-guard", l: 1847, e: 1863}
-      - {h: "tool-failure-logger", l: 1864, e: 1880}
-      - {h: "traceability-guard", l: 1881, e: 1897}
-      - {h: "version-check", l: 1898, e: 1914}
-      - {h: "worktree-create", l: 1915, e: 1931}
-      - {h: "worktree-remove", l: 1932, e: 1949}
+      - {h: "Hook Details", l: 1299, e: 1300}
+      - {h: "attribution-guard", l: 1301, e: 1317}
+      - {h: "bash-sensitive-read-guard", l: 1318, e: 1334}
+      - {h: "bash-write-guard", l: 1335, e: 1351}
+      - {h: "cleanup", l: 1352, e: 1368}
+      - {h: "commit-message-guard", l: 1369, e: 1385}
+      - {h: "config-change-logger", l: 1386, e: 1402}
+      - {h: "conflict-guard", l: 1403, e: 1419}
+      - {h: "cwd-change-logger", l: 1420, e: 1436}
+      - {h: "dangerous-command-guard", l: 1437, e: 1453}
+      - {h: "gh-write-verb-guard", l: 1454, e: 1470}
+      - {h: "github-api-preflight", l: 1471, e: 1487}
+      - {h: "instructions-loaded-reinforcer", l: 1488, e: 1504}
+      - {h: "markdown-anchor-validator", l: 1505, e: 1521}
+      - {h: "memory-access-logger", l: 1522, e: 1538}
+      - {h: "memory-integrity-check", l: 1539, e: 1555}
+      - {h: "memory-write-guard", l: 1556, e: 1572}
+      - {h: "merge-gate-guard", l: 1573, e: 1590}
+      - {h: "permission-denial-logger", l: 1591, e: 1608}
+      - {h: "post-compact-restore", l: 1609, e: 1626}
+      - {h: "post-task-checkpoint", l: 1627, e: 1643}
+      - {h: "pr-language-guard", l: 1644, e: 1660}
+      - {h: "pr-target-guard", l: 1661, e: 1677}
+      - {h: "pre-compact-snapshot", l: 1678, e: 1694}
+      - {h: "pre-edit-read-guard", l: 1695, e: 1711}
+      - {h: "prompt-validator", l: 1712, e: 1728}
+      - {h: "prune-permission-rules", l: 1729, e: 1746}
+      - {h: "push-target-guard", l: 1747, e: 1763}
+      - {h: "sensitive-file-guard", l: 1764, e: 1780}
+      - {h: "session-logger", l: 1781, e: 1797}
+      - {h: "shell-env-secret-guard", l: 1798, e: 1814}
+      - {h: "subagent-logger", l: 1815, e: 1831}
+      - {h: "task-completed-logger", l: 1832, e: 1848}
+      - {h: "task-created-validator", l: 1849, e: 1865}
+      - {h: "team-limit-guard", l: 1866, e: 1882}
+      - {h: "tool-failure-logger", l: 1883, e: 1899}
+      - {h: "traceability-guard", l: 1900, e: 1916}
+      - {h: "version-check", l: 1917, e: 1933}
+      - {h: "worktree-create", l: 1934, e: 1950}
+      - {h: "worktree-remove", l: 1951, e: 1968}
   - path: "PREREQUISITES.md"
     title: "Prerequisites"
     description: ""
