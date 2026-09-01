@@ -281,6 +281,11 @@
             "type": "command",
             "command": "~/.claude/hooks/session-logger.sh end && ~/.claude/hooks/cleanup.sh",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/prune-permission-rules.sh",
+            "timeout": 15
           }
         ]
       }
