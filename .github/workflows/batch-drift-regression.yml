@@ -1,5 +1,16 @@
 name: Batch Drift Regression
 
+# What a failure means: a nightly batch run breached one of the drift
+# thresholds (language, attribution, CI gate, missing Closes, commit format)
+# or could not produce a summary. Either needs a maintainer decision: fix the
+# regression, or change the threshold in a PR that says why. Who acts: the
+# repository maintainer.
+#
+# Missing credentials are not a failure. The run needs the SCRATCH_REPO_TOKEN
+# and ANTHROPIC_API_KEY repository secrets; when either is absent the job
+# writes "skipped" to the job summary and succeeds, so a red run always means
+# a regression (kcenon/claude-config#929).
+
 on:
   schedule:
     # Nightly at 03:17 UTC (12:17 KST) — off-minute to avoid fleet congestion
@@ -44,11 +55,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check credentials
+        id: creds
+        run: |
+          if [ -n "$GH_TOKEN" ] && [ -n "$ANTHROPIC_API_KEY" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "run=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::Batch drift regression skipped: SCRATCH_REPO_TOKEN or ANTHROPIC_API_KEY is not set"
+          {
+            echo "## Batch Drift Regression: skipped"
+            echo ""
+            echo "The SCRATCH_REPO_TOKEN and ANTHROPIC_API_KEY repository secrets are required"
+            echo "to seed the scratch repository and run the batch. At least one is not set,"
+            echo "so no regression result was produced."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Install dependencies
+        if: steps.creds.outputs.run == 'true'
         run: |
           sudo apt-get update && sudo apt-get install -y jq perl
 
       - name: Verify prerequisites
+        if: steps.creds.outputs.run == 'true'
         run: |
           echo "==> checking gh"
           gh --version
@@ -61,12 +91,14 @@ jobs:
           perl -v | head -2
 
       - name: Install Claude CLI
+        if: steps.creds.outputs.run == 'true'
         run: |
           npm install -g @anthropic-ai/claude-code
           claude --version
 
       - name: Run regression test
         id: regression
+        if: steps.creds.outputs.run == 'true'
         run: |
           STRATEGY="${{ github.event.inputs.strategy || 'subagent' }}"
           ITEMS="${{ github.event.inputs.items || '30' }}"
@@ -84,7 +116,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload regression summary
-        if: always()
+        if: always() && steps.creds.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: regression-summary
@@ -94,7 +126,7 @@ jobs:
           retention-days: 30
 
       - name: Upload benchmark logs
-        if: always()
+        if: always() && steps.creds.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-logs
@@ -102,7 +134,7 @@ jobs:
           retention-days: 14
 
       - name: Report results
-        if: always()
+        if: always() && steps.creds.outputs.run == 'true'
         run: |
           SUMMARY="tests/batch_drift_regression/last-run-summary.json"
 

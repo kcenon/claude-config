@@ -5,6 +5,13 @@ name: Anthropic installer drift check
 # installer drifts from the pinned hash. Auto-rotation is intentionally
 # NOT performed — pin rotation requires human review per
 # docs/SUPPLY_CHAIN.md.
+#
+# What a failure means: bootstrap.sh and scripts/install.sh refuse to run
+# the upstream installer until the pin matches again, so installing the
+# claude CLI through this repository is blocked. Who acts: the repository
+# maintainer reviews the new installer and rotates the pin (see "Rotating
+# the pin" in docs/SUPPLY_CHAIN.md), or re-runs the workflow when the
+# failure was a network error (kcenon/claude-config#929).
 
 on:
   schedule:
