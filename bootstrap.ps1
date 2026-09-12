@@ -33,7 +33,7 @@ $GitHubRef = if ($env:GITHUB_REF) { $env:GITHUB_REF }
 # The Anthropic-hosted PowerShell installer is pinned by sha256 to prevent
 # MITM substitution. Rotation policy mirrors docs/SUPPLY_CHAIN.md.
 $AnthropicInstallerUrl    = if ($env:ANTHROPIC_INSTALLER_URL) { $env:ANTHROPIC_INSTALLER_URL } else { 'https://claude.ai/install.ps1' }
-$AnthropicInstallerSha256 = if ($env:ANTHROPIC_INSTALLER_SHA256) { $env:ANTHROPIC_INSTALLER_SHA256 } else { 'acc15c3d844b8952e702a24b584d2fdc0b589ee1061c11202529cdd5702711df' }  # pinned 2026-05-09
+$AnthropicInstallerSha256 = if ($env:ANTHROPIC_INSTALLER_SHA256) { $env:ANTHROPIC_INSTALLER_SHA256 } else { 'cd17c6b555f761d60373659824bf805e1510538226e4c7028e19d7494937a333' }  # pinned 2026-09-12
 
 # Installation directory
 $InstallDir = if ($env:INSTALL_DIR) { $env:INSTALL_DIR } else { Join-Path $HOME 'claude_config_backup' }
