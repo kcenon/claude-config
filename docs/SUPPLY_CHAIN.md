@@ -56,11 +56,23 @@ review the upstream change and open a manual PR.
 ## Drift detection
 
 `.github/workflows/check-anthropic-installer.yml` runs every Monday at
-06:07 UTC and on demand (`workflow_dispatch`). It re-fetches
-`https://claude.ai/install.sh`, computes its sha256, and compares against
-the pinned value extracted from `bootstrap.sh`. On mismatch the workflow
-exits non-zero with both hashes printed to the job log, surfacing an alert
-that a maintainer can investigate.
+06:07 UTC and on demand (`workflow_dispatch`). It runs
+`scripts/check-installer-pins.sh`, which makes three checks and runs all of
+them even when one fails:
+
+| Check | Compares | Network |
+|-------|----------|---------|
+| bash pin parity | the `ANTHROPIC_INSTALLER_SHA256` default in `bootstrap.sh` with its copy in `scripts/install.sh` | no |
+| `install.sh` | the `bootstrap.sh` pin with the sha256 of `https://claude.ai/install.sh` | yes |
+| `install.ps1` | the `$AnthropicInstallerSha256` default in `bootstrap.ps1` with the sha256 of `https://claude.ai/install.ps1` | yes |
+
+On a failure the workflow exits non-zero, prints both hashes to the job log,
+and lists every result in the job summary. Exit code 1 is drift (a mismatch,
+or bash pins that differ), 2 a pin line the script could not read, 3 a failed
+download. Pull requests run the parity half too:
+`tests/scripts/test-check-installer-pins.sh` (in `validate-hooks.yml`) runs
+the script with `--offline` against the repository, so a rotation that
+updates only one of the two bash pins fails before merge.
 
 Failure paths the workflow surfaces:
 
@@ -70,7 +82,12 @@ Failure paths the workflow surfaces:
 - Origin or CDN serving unexpected content. Action: maintainer holds the
   pin, raises with Anthropic security, and notifies users via release
   notes if this drags on.
-- Network blip during the workflow. Action: re-run the workflow manually.
+- The two bash pins differ (exit 1, parity row). Action: set both to the
+  reviewed value in one PR.
+- A pin line changed shape (exit 2). Action: restore the shape or update the
+  pattern in `scripts/check-installer-pins.sh`.
+- Network blip during the workflow (exit 3). Action: re-run the workflow
+  manually.
 
 ## Rotating the pin
 
@@ -85,8 +102,10 @@ A pin rotation MUST be a human-authored PR with explicit rationale.
 NEW_HASH=$(curl -fsSL https://claude.ai/install.sh | sha256sum | awk '{print $1}')
 echo "$NEW_HASH"
 
-# 3. Open a branch and update the pin in bootstrap.sh.
-#    Edit ANTHROPIC_INSTALLER_SHA256 and the `# pinned YYYY-MM-DD` comment.
+# 3. Open a branch and update the pin in bootstrap.sh and its copy in
+#    scripts/install.sh (ensure_claude_cli). Edit ANTHROPIC_INSTALLER_SHA256
+#    and the `# pinned YYYY-MM-DD` comment in bootstrap.sh;
+#    scripts/check-installer-pins.sh fails when the two values differ.
 
 # 4. Commit and PR.
 git commit -am "security(bootstrap): rotate Anthropic installer pin to <date>"
@@ -100,7 +119,9 @@ PR review checklist for a pin rotation:
 - [ ] Upstream change is documented (Anthropic announcement, release notes,
       diff inspection).
 - [ ] New sha256 was independently re-computed by the reviewer.
-- [ ] Pin date comment in `bootstrap.sh` is updated.
+- [ ] Pin date comment in `bootstrap.sh` (or `bootstrap.ps1`) is updated.
+- [ ] For the bash pin, `bootstrap.sh` and `scripts/install.sh` carry the
+      same value: `bash scripts/check-installer-pins.sh --offline` exits 0.
 - [ ] No other unrelated changes in the PR.
 
 ## Tamper test
@@ -142,8 +163,10 @@ every subsequent verification step in those entry points.
 
 ### PowerShell installer pin
 
-`bootstrap.ps1` ships a parallel pin for `https://claude.ai/install.ps1`.
-Compute it the same way:
+`bootstrap.ps1` ships a parallel pin for `https://claude.ai/install.ps1`,
+and the weekly drift check covers it as well (#936). The URL answers 302 to
+`https://downloads.claude.ai/claude-code-releases/bootstrap.ps1`, which
+`curl -L` follows. Compute it the same way:
 
 ```bash
 curl -fsSL https://claude.ai/install.ps1 | sha256sum
@@ -156,7 +179,9 @@ maintainer rotates each side separately rather than waiting for both.
 
 ## Related
 
-- Issue: #565 (M1.2b — bash sha256 pin), #620 (parity sync to ps1 + install.sh)
+- Issue: #565 (M1.2b — bash sha256 pin), #620 (parity sync to ps1 + install.sh),
+  #936 (drift check covers `install.ps1` and bash pin parity)
 - Parent EPIC: #562 (supply-chain hardening rollup)
 - Sibling: #564 / PR #571 (M1.2a — pin `claude-config` source by tag)
-- Workflow: `.github/workflows/check-anthropic-installer.yml`
+- Workflow: `.github/workflows/check-anthropic-installer.yml`, which runs
+  `scripts/check-installer-pins.sh`

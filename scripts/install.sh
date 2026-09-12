@@ -172,8 +172,9 @@ ensure_claude_cli() {
     # 설치 경로: ~/.local/bin/claude → ~/.local/share/claude/versions/<ver>
     #
     # Supply-chain hardening (#620): delegates to hooks/lib/installer-fetch.sh
-    # for download → sha256 verify → run. The pinned hash is shared with
-    # bootstrap.sh and lives in $ANTHROPIC_INSTALLER_SHA256. Bare
+    # for download → sha256 verify → run. The default below is a copy of the
+    # ANTHROPIC_INSTALLER_SHA256 pin in bootstrap.sh: rotate both in the same
+    # PR (scripts/check-installer-pins.sh fails when they differ). Bare
     # 'curl | bash' is no longer used — every install path verifies.
     local installer_url="${ANTHROPIC_INSTALLER_URL:-https://claude.ai/install.sh}"
     local installer_sha="${ANTHROPIC_INSTALLER_SHA256:-3a68d3406cf674e17bed1733a4dcf37805e2e47d87417700007d7e1aa766a944}"
