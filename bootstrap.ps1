@@ -27,7 +27,7 @@ if ($env:GITHUB_BRANCH) {
 }
 $GitHubRef = if ($env:GITHUB_REF) { $env:GITHUB_REF }
              elseif ($env:GITHUB_BRANCH) { $env:GITHUB_BRANCH }
-             else { 'v1.12.0' }
+             else { 'v1.13.0' }
 
 # Anthropic Claude Code installer pin (#620 — supply-chain parity with bash).
 # The Anthropic-hosted PowerShell installer is pinned by sha256 to prevent
@@ -333,6 +333,10 @@ function Install-BootstrapSettingsAndHooks {
         Remove-Item -LiteralPath $settingsTmp -Force -ErrorAction SilentlyContinue
         Copy-Item -LiteralPath $settingsSrc -Destination $settingsTmp -Force -ErrorAction Stop
 
+        # Carry machine-local keys forward before the policy injection, so the
+        # policy still wins on the keys it owns (issue #915).
+        $carriedKeys = Merge-LocalSettingsKeys -StagedPath $settingsTmp -LivePath $settingsDst
+
         $settingsUpdated = Update-ClaudeSettingsJson -SettingsPath $settingsTmp -AgentLang $agentLanguage -ContentLang $contentLanguage
 
         Deploy-BootstrapHooks
@@ -345,6 +349,9 @@ function Install-BootstrapSettingsAndHooks {
         Write-Fail "Hook 스크립트 배포 실패. settings.json을 변경하지 않았습니다. $_"
     }
 
+    if ($carriedKeys -and $carriedKeys.Count -gt 0) {
+        Write-Info "machine-local settings keys preserved: $($carriedKeys -join ', ')"
+    }
     if ($settingsUpdated) {
         Write-Ok "settings.json (에이전트: $agentLanguage, 컨텐츠: $contentLanguage) 설치 완료"
     } else {
@@ -384,28 +391,37 @@ function Install-GlobalSettings {
         $dest = Join-Path $ClaudeDir $gf
         if (-not (Test-Path -LiteralPath $src)) { continue }
 
+        # git-identity.md is seeded on a staged copy of the SOURCE, never on the
+        # deployed file. Seeding afterwards left the manifest holding the repo
+        # hash while the file on disk held the seeded one, so the next install
+        # saw a divergence it had created itself and prompted for it (#916).
+        $effectiveSrc = $src
+        $seedTmp = $null
+        if ($gf -eq 'git-identity.md' -and (Get-Command Set-GitIdentitySeed -ErrorAction SilentlyContinue)) {
+            $seedTmp = Join-Path ([System.IO.Path]::GetTempPath()) "git-identity_$([guid]::NewGuid()).md"
+            Copy-Item -LiteralPath $src -Destination $seedTmp -Force
+            $seeded = Set-GitIdentitySeed -Path $seedTmp
+            if ($seeded) {
+                $effectiveSrc = $seedTmp
+                Write-Ok "git-identity.md: git config로 자동 채우기 완료 ($($seeded.Name) <$($seeded.Email)>)"
+            } else {
+                Remove-Item -LiteralPath $seedTmp -Force -ErrorAction SilentlyContinue
+                $seedTmp = $null
+            }
+        }
+
         if (Get-Command Invoke-ManifestTrackedCopy -ErrorAction SilentlyContinue) {
-            if (Invoke-ManifestTrackedCopy -Src $src -Dest $dest -Key $gf) {
+            if (Invoke-ManifestTrackedCopy -Src $effectiveSrc -Dest $dest -Key $gf) {
                 Write-Ok "$gf 설치됨"
             }
             else {
                 Write-Info "$gf 로컬 변경 유지"
             }
         } else {
-            Copy-Item -LiteralPath $src -Destination $ClaudeDir -Force
+            Copy-Item -LiteralPath $effectiveSrc -Destination $dest -Force
             Write-Ok "$gf 설치됨"
         }
-    }
-
-    # Auto-seed git identity from `git config --global` (issue #777). Shared
-    # with scripts/install.ps1 via Set-GitIdentitySeed in InstallPrompts.psm1,
-    # so the later Invoke-PersonalizeGitIdentity step becomes confirm-only when
-    # the user already has a global git identity configured.
-    if (Get-Command Set-GitIdentitySeed -ErrorAction SilentlyContinue) {
-        $gitIdTarget = Join-Path $ClaudeDir 'git-identity.md'
-        if (Set-GitIdentitySeed -Path $gitIdTarget) {
-            Write-Ok "git-identity.md: git config로 자동 채우기 완료 ($($script:SeededGitName) <$($script:SeededGitEmail)>)"
-        }
+        if ($seedTmp) { Remove-Item -LiteralPath $seedTmp -Force -ErrorAction SilentlyContinue }
     }
 
     # Language policy selection (Unified Language Profile)
@@ -454,6 +470,18 @@ function Install-GlobalSettings {
                 Add-ManifestManagedKey -Key 'conversation-language.md'
                 Write-Info "conversation-language.md 로컬 변경 유지"
             }
+        }
+    }
+
+    # global/.claudeignore. Guaranteed under ~/.claude/ by
+    # docs/CLAUDE_DOCKER_CONTRACT.md for every full-install entry point,
+    # including bootstrap; only install.sh honoured it before #914.
+    $globalClaudeIgnore = Join-Path $InstallDir 'global' '.claudeignore'
+    if (Test-Path -LiteralPath $globalClaudeIgnore) {
+        if (Invoke-ManifestTrackedCopy -Src $globalClaudeIgnore -Dest (Join-Path $ClaudeDir '.claudeignore') -Key '.claudeignore') {
+            Write-Ok ".claudeignore 설치됨"
+        } else {
+            Write-Info ".claudeignore 로컬 변경 유지"
         }
     }
 

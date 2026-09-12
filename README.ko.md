@@ -1,7 +1,7 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
-  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.12.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.13.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
 </p>
@@ -552,6 +552,8 @@ Enterprise 설정은 조직의 모든 개발자에게 적용되는 조직 전체
 
 배포 전에 조직의 정책에 맞게 `enterprise/CLAUDE.md`를 커스터마이즈하세요.
 
+두 설치기 모두 이 트리의 SHA-256 매니페스트를 `<enterprise-dir>/.install-manifest.json`에 기록합니다. 따라서 재설치가 로컬에서 편집한 정책 파일을 덮어쓰지 않고 보존하며, 드리프트 점검이 낡은 배포와 편집된 파일을 구분할 수 있습니다. 프롬프트 없이 덮어쓰려면 `BOOTSTRAP_FORCE=1`을 설정하세요. POSIX에서는 enterprise 루트에 쓰기 권한이 없을 때 복사와 매니페스트 배치가 `sudo`를 거치며, 매니페스트 자체는 읽기 가능하게 남겨 두어 감사에 권한이 필요 없습니다. 퇴역한 규칙은 삭제되지 않습니다. [docs/install.md](docs/install.md)를 참고하세요.
+
 ---
 
 ## 개인 설정 (CLAUDE.local.md)
@@ -580,7 +582,7 @@ Rules는 `.claude/rules/`에 있는 모듈형 설정 파일로, 파일 경로에
 | `coding.md` | `**/*.ts`, `**/*.py`, `**/*.go` 등 | 일반 코딩 표준 |
 | `testing.md` | `**/*.test.ts`, `**/test_*.py` 등 | 테스트 관례 |
 | `security.md` | 모든 코드 파일 | 보안 모범 사례 |
-| `documentation.md` | `**/*.md`, `**/docs/**` | 문서화 표준 |
+| `documentation.md` | `**/docs/**`, `**/README*`, `**/CHANGELOG*` | 문서화 표준 |
 | `api/rest-api.md` | `**/api/**`, `**/routes/**` | REST API 설계 패턴 |
 
 ### Rules 작동 방식
@@ -912,7 +914,7 @@ cp -r ~/project/.claude ~/claude_config_backup/project/
 # bootstrap.sh 사용 시
 GITHUB_USER=your-username \
 GITHUB_REPO=your-repo \
-GITHUB_REF=v1.12.0 \
+GITHUB_REF=v1.13.0 \
 INSTALL_DIR=~/my-claude-config \
 bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh)"
 ```
@@ -921,7 +923,7 @@ bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main
 |------|--------|------|
 | `GITHUB_USER` | `kcenon` | 저장소를 소유한 GitHub user/org |
 | `GITHUB_REPO` | `claude-config` | 저장소 이름 |
-| `GITHUB_REF` | 최신 release tag (예: `v1.12.0`) | clone할 tag, branch, commit. tag pinning은 SLSA-aligned supply-chain hardening으로 설치를 재현 가능하게 하고 `main`의 일시적 손상에 덜 취약하게 만듭니다. 개발 테스트에만 `develop`으로 override하세요. |
+| `GITHUB_REF` | 최신 release tag (예: `v1.13.0`) | clone할 tag, branch, commit. tag pinning은 SLSA-aligned supply-chain hardening으로 설치를 재현 가능하게 하고 `main`의 일시적 손상에 덜 취약하게 만듭니다. 개발 테스트에만 `develop`으로 override하세요. |
 | `INSTALL_DIR` | `~/claude_config_backup` | 저장소를 clone할 위치 |
 
 > **Deprecated**: `GITHUB_BRANCH`는 `GITHUB_REF`의 한 release alias로 보존되며, 설정 시 stderr deprecation warning을 출력합니다. 다음 major release 전 `GITHUB_REF`로 이전하세요.

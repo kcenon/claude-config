@@ -10,6 +10,24 @@ Locations:
 
 - Global install tree: `~/.claude/.install-manifest.json`
 - Project install tree: `<project>/.claude/.install-manifest.json`
+- Enterprise install tree: `<enterprise-dir>/.install-manifest.json`, where
+  `<enterprise-dir>` is `C:\Program Files\ClaudeCode` on Windows,
+  `/Library/Application Support/ClaudeCode` on macOS, and `/etc/claude-code`
+  elsewhere. Reachable only through `scripts/install.ps1` or
+  `scripts/install.sh` with install type 4 or 5; neither `bootstrap.sh` nor
+  `bootstrap.ps1` deploys it.
+
+  On POSIX the enterprise root is usually not writable by the installing user,
+  so `install_enterprise` sets `MANIFEST_ELEVATE=sudo` and the manifest helper
+  routes its copies, its `mkdir`, and the placement of the manifest through
+  that prefix. `MANIFEST_ELEVATE` is empty everywhere else, and an empty value
+  makes the helper collapse to running the command directly, so the global and
+  project layers are unaffected. The merged manifest document is always built
+  unprivileged in a temp file and only its final placement is elevated: reading
+  the existing manifest needs no privilege, and keeping the JSON step out of
+  `sudo` avoids the environment stripping its inline variables depend on. The
+  deployed manifest is left mode 644 so a drift audit can hash it without
+  elevation.
 
 Format:
 
@@ -32,7 +50,14 @@ The manifest is written on successful managed copies and updated whenever
 the installer replaces a file. It is created on first install and survives
 across re-runs. Project manifests use paths relative to the project root
 (`CLAUDE.md`, `.claude/rules/...`, `.claude/skills/...`), while global
-manifests use paths relative to `~/.claude`.
+manifests use paths relative to `~/.claude`. The enterprise manifest follows
+the same rule, with keys relative to the enterprise dir (`CLAUDE.md`,
+`rules/security.md`, `rules/compliance.md`).
+
+Each root needs its own manifest file, not merely its own key prefix: the
+global and enterprise trees both deploy a file whose key is `CLAUDE.md`, so a
+shared manifest would have them overwrite each other's stored hash and every
+later guarded copy would compare against the wrong baseline.
 
 ## Copy Decision
 
@@ -187,6 +212,19 @@ shared `env` values, `permissions.deny`, or the Bash `permissions.allow`
 surface drift unexpectedly. The only documented exceptions are POSIX CA-bundle
 environment variables and the Windows-only PowerShell read-only allowlist.
 
+`git-identity.md` follows the same stage-then-copy shape. The installer copies
+the repo file to a temp path, fills the `name:` and `email:` fields from
+`git config --global`, and hands *that* to the guarded copy, so the manifest
+records the bytes that were actually deployed. Seeding the deployed file
+afterwards -- the pre-#916 order -- left the manifest describing content that
+no longer existed, and every subsequent install then found a divergence it had
+created itself and prompted the user to resolve it.
+
+The substitution is anchored to the two field lines. A document-wide replace
+also rewrote the sentence explaining what the placeholders are, and an
+unanchored presence check would then match those tokens forever and report a
+seeding that changed nothing.
+
 ## Tracked Files
 
 The global manifest tracks guarded files under `~/.claude`, including:
@@ -195,16 +233,63 @@ The global manifest tracks guarded files under `~/.claude`, including:
   `conversation-language.md`, `git-identity.md`, `token-management.md`
 - Runtime trees: `hooks/`, `hooks/lib/`, `scripts/`
 - Catalog trees: `skills/`, `commands/`
-- Optional in-tree artifacts when present, such as `.claudeignore` and
-  `policies/`
+- `.claudeignore`, deployed by all four full-install entry points. It is part
+  of the `~/.claude/` subtree that `CLAUDE_DOCKER_CONTRACT.md` guarantees, so
+  it is not optional; before #914 only `install.sh` deployed it and the
+  verifiers reported a permanent `MISS` everywhere else.
+- Optional in-tree artifacts when present, such as `policies/`
 
 The project manifest tracks files relative to the project root, including
 `CLAUDE.md`, `.claude/settings.json`, `.claude/rules/`,
 `.claude/reference/`, `.claude/skills/`, `.claude/commands/`,
 `.claude/agents/`, and `.claudeignore`.
 
+The enterprise manifest tracks `CLAUDE.md` and `rules/` relative to the
+enterprise dir. Two differences from the other two roots:
+
+- **Prune does not run for this root.** Tracking exists so drift becomes
+  visible; deleting files out of a managed-policy directory is a separate
+  decision. A retired enterprise rule therefore stays on disk after it is
+  removed from `enterprise/rules/`, as it did before tracking existed.
+- **`BOOTSTRAP_FORCE=1` reaches this root too.** Since the tree is now
+  manifest-tracked, a divergent enterprise policy file is overwritten without
+  the keep/overwrite prompt under that variable, exactly as for the global and
+  project trees.
+
 Artifacts deployed outside those roots, such as `~/.tmux.conf` and
 `~/.config/ccstatusline/settings.json`, remain outside manifest pruning.
+
+## Machine-local settings keys
+
+`~/.claude/settings.json` is the one deployed file with no manifest key. It is
+published by staging the repo profile, injecting the language policy, and
+moving the result over the destination -- deliberately, so the policy
+attributes are enforced on every install rather than surviving as a stale local
+value. Until #915 the blast radius was the whole file, and keys Claude Code
+writes itself were reset by every reinstall with no warning.
+
+The staged copy now takes machine-local keys from the deployed file first, so
+the policy injection still runs last and still wins. Rules, in order:
+
+| Key | Winner | Why |
+|-----|--------|-----|
+| `language`, `permissions`, `hooks` | repo profile, always | `language` is the install-time policy choice; `permissions` is security and `hooks` are the runtime guards `settings.json` points at, and neither may survive an intentional repo change as a stale local block |
+| `effortLevel` | the deployed file | The profiles ship a default, but the in-app `/effort` control writes this key, so enforcing the profile would reset a choice the user just made |
+| any other key the profile defines | repo profile | the profile has an opinion, so it is configuration rather than machine state |
+| any key the profile does not define | the deployed file | `model`, `agentPushNotifEnabled`, `skipWorkflowUsageWarning`, and anything Claude Code adds later |
+| `env` | merged one level, profile winning per key | a machine-local variable survives without letting a stale value shadow the profile |
+
+`effortLevel` is the only entry in the runtime list, and adding to that list has
+a cost worth stating plainly: a key on it is one the repo can no longer change
+for existing installs. The alternative -- dropping `effortLevel` from both
+profiles so the general rule covers it -- would change the shipped default for
+new installs and is a product decision, not an installer one.
+
+The run prints `machine-local settings keys preserved: ...` naming what it
+carried, because the original defect was silence rather than loss.
+
+An unparseable deployed file is not fatal: nothing is carried and the publish
+replaces it wholesale, which is the pre-#915 behaviour.
 
 ## Regression Test
 

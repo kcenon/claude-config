@@ -29,6 +29,27 @@ manifest_available() {
     [ -n "$_manifest_json_tool" ]
 }
 
+# _manifest_run <cmd> [args...]
+# Runs a filesystem mutation, optionally through an elevation prefix.
+#
+# MANIFEST_ELEVATE is empty for every existing caller, and an empty value makes
+# this collapse to `"$@"` -- the global and project layers therefore execute
+# byte-identically to before. It is set only by install_enterprise, and only on
+# the branch where $(dirname "$enterprise_dir") is not writable, so the managed
+# policy tree (/etc/claude-code, /Library/Application Support/ClaudeCode) can be
+# tracked without making the whole installer run as root.
+#
+# Deliberately unquoted so a caller can pass a multi-word prefix such as
+# `sudo -n`. The value is set by this repo's own installer, never by user input.
+_manifest_run() {
+    if [ -n "${MANIFEST_ELEVATE:-}" ]; then
+        # shellcheck disable=SC2086  # word splitting is the point; see above
+        $MANIFEST_ELEVATE "$@"
+    else
+        "$@"
+    fi
+}
+
 manifest_reset_managed_keys() {
     MANIFEST_MANAGED_KEYS=()
 }
@@ -68,12 +89,24 @@ PY
 }
 
 _manifest_write() {
-    local key="$1" sha="$2"
-    mkdir -p "$(dirname "$MANIFEST_PATH")"
-    MANIFEST_PATH="$MANIFEST_PATH" KEY="$key" SHA="$sha" \
+    local key="$1" sha="$2" out="$MANIFEST_PATH"
+
+    # Under elevation the manifest's directory is not writable by this process.
+    # Build the merged document in a temp file and elevate only its placement:
+    # reading the existing manifest needs no privilege, and keeping the Python
+    # unprivileged avoids sudo stripping the inline environment variables the
+    # heredoc depends on. Without elevation `out` is MANIFEST_PATH and the write
+    # happens exactly where it always did.
+    if [ -n "${MANIFEST_ELEVATE:-}" ]; then
+        out="$(mktemp)"
+    fi
+
+    _manifest_run mkdir -p "$(dirname "$MANIFEST_PATH")"
+    MANIFEST_PATH="$MANIFEST_PATH" MANIFEST_OUT="$out" KEY="$key" SHA="$sha" \
     SCHEMA="$MANIFEST_SCHEMA" "$_manifest_json_tool" <<'PY'
 import json, os
 p = os.environ["MANIFEST_PATH"]
+out = os.environ["MANIFEST_OUT"]
 k = os.environ["KEY"]
 v = os.environ["SHA"]
 schema = int(os.environ["SCHEMA"])
@@ -86,10 +119,15 @@ except Exception:
     m = {}
 m["schema"] = schema
 m.setdefault("files", {})[k] = v
-with open(p, "w") as f:
+with open(out, "w") as f:
     json.dump(m, f, indent=2, sort_keys=True)
     f.write("\n")
 PY
+
+    if [ "$out" != "$MANIFEST_PATH" ]; then
+        _manifest_run cp "$out" "$MANIFEST_PATH"
+        rm -f "$out"
+    fi
 }
 
 # manifest_prune_removed <dest_root> <managed_key>...
@@ -250,10 +288,10 @@ manifest_seed_retired_managed() {
 manifest_copy_file() {
     local src="$1" dest="$2" key="$3" executable="${4:-0}"
     [ -f "$src" ] || return 0
-    mkdir -p "$(dirname "$dest")"
+    _manifest_run mkdir -p "$(dirname "$dest")"
 
     if guarded_copy "$src" "$dest" "$key"; then
-        [ "$executable" = "1" ] && chmod +x "$dest"
+        [ "$executable" = "1" ] && _manifest_run chmod +x "$dest"
         manifest_track_key "$key"
         return 0
     fi
@@ -267,7 +305,7 @@ manifest_copy_files() {
     local src base key dest
 
     [ -d "$src_dir" ] || return 0
-    mkdir -p "$dest_dir"
+    _manifest_run mkdir -p "$dest_dir"
 
     for src in "$src_dir"/$pattern; do
         [ -f "$src" ] || continue
@@ -283,7 +321,7 @@ manifest_copy_tree() {
     local src rel key dest
 
     [ -d "$src_dir" ] || return 0
-    mkdir -p "$dest_dir"
+    _manifest_run mkdir -p "$dest_dir"
 
     while IFS= read -r src; do
         [ -f "$src" ] || continue
@@ -303,13 +341,13 @@ guarded_copy() {
 
     # Fall back to unconditional copy if no JSON tool is available.
     if ! manifest_available; then
-        cp "$src" "$dest"
+        _manifest_run cp "$src" "$dest"
         return 0
     fi
 
     # Destination missing — first install; copy and record.
     if [ ! -f "$dest" ]; then
-        cp "$src" "$dest"
+        _manifest_run cp "$src" "$dest"
         local sha
         sha=$(_manifest_hash "$src")
         [ -n "$sha" ] && _manifest_write "$key" "$sha"
@@ -329,14 +367,14 @@ guarded_copy() {
 
     # Destination matches stored hash → safe upgrade, no local edits.
     if [ -n "$stored_sha" ] && [ "$dest_sha" = "$stored_sha" ]; then
-        cp "$src" "$dest"
+        _manifest_run cp "$src" "$dest"
         _manifest_write "$key" "$src_sha"
         return 0
     fi
 
     # Divergence: destination differs from both source and stored hash.
     if [ "${BOOTSTRAP_FORCE:-0}" = "1" ]; then
-        cp "$src" "$dest"
+        _manifest_run cp "$src" "$dest"
         _manifest_write "$key" "$src_sha"
         return 0
     fi
@@ -353,7 +391,7 @@ guarded_copy() {
 
     case "$choice" in
         o|O)
-            cp "$src" "$dest"
+            _manifest_run cp "$src" "$dest"
             _manifest_write "$key" "$src_sha"
             return 0
             ;;
@@ -382,6 +420,69 @@ guarded_template_copy() {
     fi
     rm -f "$tmp_lang"
     return "$result"
+}
+
+# Keys the repo profile owns unconditionally (parity with $SettingsPolicyKeys
+# in install-manifest.ps1): `language` is chosen by the install-time policy
+# prompt, and `permissions` / `hooks` must not survive an intentional repo
+# change as a stale local block.
+SETTINGS_POLICY_KEYS='["language","permissions","hooks"]'
+
+# Repo-defined keys that are nonetheless runtime state. `effortLevel` ships a
+# default in both profiles but is written by the in-app /effort control, so a
+# reinstall resetting it is the bug this list exists to prevent. Keep it short:
+# every entry is a key the repo can no longer change for existing installs.
+# See docs/install.md, "Machine-local settings keys".
+SETTINGS_RUNTIME_KEYS='["effortLevel"]'
+
+# merge_local_settings_keys <staged_path> <live_path>
+# Carry machine-local top-level keys from the deployed settings.json into a
+# staged copy of the repo profile. Mirrors Merge-LocalSettingsKeys; see its
+# comment block for the rule order. Prints the carried key names, one per line.
+merge_local_settings_keys() {
+    local staged="$1" live="$2"
+    [ -f "$staged" ] || return 0
+    [ -f "$live" ] || return 0
+    command -v jq > /dev/null 2>&1 || return 0
+
+    local carried
+    carried="$(jq -r -n --slurpfile s "$staged" --slurpfile l "$live" \
+        --argjson policy "$SETTINGS_POLICY_KEYS" \
+        --argjson runtime "$SETTINGS_RUNTIME_KEYS" '
+        ($s[0]) as $st | ($l[0]) as $lv
+        | [ ($lv | keys_unsorted)[] as $k
+            | select(($policy | index($k)) | not)
+            | select($k != "env")
+            | select((($st | has($k)) | not) or (($runtime | index($k)) != null))
+            | $k ]
+          + [ (($lv.env // {}) | keys_unsorted)[] as $k
+              | select((($st.env // {}) | has($k)) | not)
+              | "env." + $k ]
+        | .[]
+    ' 2> /dev/null | tr -d '\r')" || return 0
+    [ -n "$carried" ] || return 0
+
+    local tmpfile
+    tmpfile=$(mktemp) || return 0
+    if jq -n --slurpfile s "$staged" --slurpfile l "$live" \
+        --argjson policy "$SETTINGS_POLICY_KEYS" \
+        --argjson runtime "$SETTINGS_RUNTIME_KEYS" '
+        ($s[0]) as $st | ($l[0]) as $lv
+        | reduce ($lv | keys_unsorted)[] as $k ($st;
+            if ($policy | index($k)) then .
+            elif $k == "env" then .
+            elif (($st | has($k)) and (($runtime | index($k)) | not)) then .
+            else .[$k] = $lv[$k]
+            end)
+        | if (($lv | has("env")) or ($st | has("env")))
+          then .env = (($lv.env // {}) * ($st.env // {}))
+          else . end
+    ' > "$tmpfile" 2> /dev/null; then
+        mv "$tmpfile" "$staged"
+        printf '%s\n' "$carried"
+    else
+        rm -f "$tmpfile"
+    fi
 }
 
 # update_claude_settings_json <settings_json_path> <agent_language> <content_language>

@@ -10,38 +10,44 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 43627
+    size: 71837
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
-      - {h: "[Unreleased]", l: 8, e: 9}
-      - {h: "1.12.0 - 2026-08-01", l: 10, e: 11}
-      - {h: "Added", l: 12, e: 143}
-      - {h: "Fixed", l: 144, e: 386}
-      - {h: "1.11.0 - 2026-07-03", l: 387, e: 388}
-      - {h: "Fixed", l: 389, e: 402}
-      - {h: "Security", l: 403, e: 480}
-      - {h: "Added", l: 481, e: 509}
-      - {h: "Changed", l: 510, e: 556}
-      - {h: "1.10.0 - 2026-04-20", l: 557, e: 565}
-      - {h: "1.9.0 - 2026-04-13", l: 566, e: 575}
-      - {h: "1.8.0 - 2026-04-13", l: 576, e: 581}
-      - {h: "1.7.0 - 2026-04-06", l: 582, e: 596}
-      - {h: "1.6.0 - 2026-04-03", l: 597, e: 609}
-      - {h: "1.5.0 - 2026-03-21", l: 610, e: 628}
-      - {h: "1.4.0 - 2026-01-22", l: 629, e: 634}
-      - {h: "1.3.0 - 2026-01-15", l: 635, e: 643}
-      - {h: "1.2.0 - 2026-01-15", l: 644, e: 652}
-      - {h: "1.1.0 - 2025-01-15", l: 653, e: 663}
-      - {h: "1.0.0 - 2025-12-03", l: 664, e: 670}
+      - {h: "1.13.0 - 2026-09-13", l: 8, e: 9}
+      - {h: "Added", l: 10, e: 195}
+      - {h: "Changed", l: 196, e: 248}
+      - {h: "Fixed", l: 249, e: 382}
+      - {h: "Security", l: 383, e: 401}
+      - {h: "Known limitation", l: 402, e: 409}
+      - {h: "1.12.0 - 2026-08-01", l: 410, e: 411}
+      - {h: "Added", l: 412, e: 543}
+      - {h: "Fixed", l: 544, e: 786}
+      - {h: "1.11.0 - 2026-07-03", l: 787, e: 788}
+      - {h: "Fixed", l: 789, e: 802}
+      - {h: "Security", l: 803, e: 880}
+      - {h: "Added", l: 881, e: 909}
+      - {h: "Changed", l: 910, e: 956}
+      - {h: "1.10.0 - 2026-04-20", l: 957, e: 965}
+      - {h: "1.9.0 - 2026-04-13", l: 966, e: 975}
+      - {h: "1.8.0 - 2026-04-13", l: 976, e: 981}
+      - {h: "1.7.0 - 2026-04-06", l: 982, e: 996}
+      - {h: "1.6.0 - 2026-04-03", l: 997, e: 1009}
+      - {h: "1.5.0 - 2026-03-21", l: 1010, e: 1028}
+      - {h: "1.4.0 - 2026-01-22", l: 1029, e: 1034}
+      - {h: "1.3.0 - 2026-01-15", l: 1035, e: 1043}
+      - {h: "1.2.0 - 2026-01-15", l: 1044, e: 1052}
+      - {h: "1.1.0 - 2025-01-15", l: 1053, e: 1063}
+      - {h: "1.0.0 - 2025-12-03", l: 1064, e: 1070}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
     category: config
     scope: root
-    size: 17617
+    size: 18565
     tags: [compatibility,config]
     sections:
+      - {h: "Compatibility Guide", l: 1, e: 6}
       - {h: "Minimum Requirements", l: 7, e: 22}
       - {h: "Feature Dependencies", l: 23, e: 24}
       - {h: "Hook Event Types", l: 25, e: 52}
@@ -59,8 +65,8 @@ documents:
       - {h: "Upgrading claude-config", l: 205, e: 224}
       - {h: "Upgrading Claude Code", l: 225, e: 234}
       - {h: "Cross-Platform Notes", l: 235, e: 242}
-      - {h: "PowerShell parity status", l: 243, e: 259}
-      - {h: "Cross-platform `timeout` fallback (`global/hooks/lib/timeout-wrapper.sh`)", l: 260, e: 274}
+      - {h: "PowerShell parity status", l: 243, e: 261}
+      - {h: "Cross-platform `timeout` fallback (`global/hooks/lib/timeout-wrapper.sh`)", l: 262, e: 277}
   - path: "ENFORCEMENT.md"
     title: "Enforcement Cheat Sheet"
     description: ""
@@ -79,99 +85,102 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 73838
+    size: 86821
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
       - {h: "Quick Navigation", l: 11, e: 36}
-      - {h: "Configuration File Locations", l: 37, e: 43}
-      - {h: "Global Hooks (global/settings.json)", l: 44, e: 45}
-      - {h: "1. Sensitive File Protection (PreToolUse)", l: 46, e: 59}
-      - {h: "2. Dangerous Command Blocking (PreToolUse)", l: 60, e: 70}
-      - {h: "3. Session Logging (SessionStart/SessionEnd)", l: 71, e: 84}
-      - {h: "4. Temporary File Cleanup (SessionEnd)", l: 85, e: 94}
-      - {h: "5. Markdown Anchor Validation (PreToolUse)", l: 95, e: 125}
-      - {h: "6. Team Limit Guard (PreToolUse)", l: 126, e: 143}
-      - {h: "7. TeammateIdle (TeammateIdle)", l: 144, e: 168}
-      - {h: "8. Version Check (SessionStart)", l: 169, e: 191}
-      - {h: "9. TaskCompleted (TaskCompleted)", l: 192, e: 217}
-      - {h: "10. Commit Message Guard (PreToolUse)", l: 218, e: 240}
-      - {h: "11. Conflict Guard (PreToolUse)", l: 241, e: 258}
-      - {h: "12. PR Target Guard (PreToolUse)", l: 259, e: 292}
-      - {h: "13. PR Language Guard (PreToolUse)", l: 293, e: 347}
-      - {h: "14. Merge Gate Guard (PreToolUse)", l: 348, e: 401}
-      - {h: "15. Attribution Guard (PreToolUse)", l: 402, e: 468}
-      - {h: "16. Instructions Loaded Reinforcer (InstructionsLoaded)", l: 469, e: 515}
-      - {h: "17. Post-Compact Restore (SessionStart)", l: 516, e: 571}
-      - {h: "18. Task Created Validator (TaskCreated)", l: 572, e: 635}
-      - {h: "19. Post Task/Agent Checkpoint (PostToolUse)", l: 636, e: 679}
-      - {h: "20. Pre-edit Read Guard (PreToolUse/PostToolUse)", l: 680, e: 741}
-      - {h: "Hook Response Format", l: 742, e: 775}
-      - {h: "Project Hooks (project/.claude/settings.json)", l: 776, e: 777}
-      - {h: "1. Auto Formatting (PostToolUse)", l: 778, e: 798}
-      - {h: "Permission Settings", l: 799, e: 846}
-      - {h: "Over-length commands and the parse limit", l: 847, e: 869}
-      - {h: "Windows Support (PowerShell)", l: 870, e: 871}
-      - {h: "Overview", l: 872, e: 880}
-      - {h: "How It Works", l: 881, e: 895}
-      - {h: "PowerShell Hook Scripts", l: 896, e: 916}
-      - {h: "Key Differences from Bash Hooks", l: 917, e: 926}
-      - {h: "Prerequisites", l: 927, e: 937}
-      - {h: "Troubleshooting (Windows)", l: 938, e: 939}
-      - {h: "\"File cannot be loaded because running scripts is disabled\"", l: 940, e: 944}
-      - {h: "Hooks not executing", l: 945, e: 950}
-      - {h: "\"pwsh is not recognized\"", l: 951, e: 955}
-      - {h: "Customization", l: 956, e: 957}
-      - {h: "Disabling Hooks", l: 958, e: 961}
-      - {h: "Adding New Hooks", l: 962, e: 978}
-      - {h: "Matcher Patterns", l: 979, e: 987}
-      - {h: "Troubleshooting", l: 988, e: 989}
-      - {h: "Hook is not executing", l: 990, e: 995}
-      - {h: "Timeout occurring", l: 996, e: 999}
-      - {h: "Formatter not working", l: 1000, e: 1008}
-      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 1009, e: 1048}
-      - {h: "References", l: 1049, e: 1061}
-      - {h: "Auto-Generated Hook Catalog", l: 1062, e: 1069}
-      - {h: "Index", l: 1070, e: 1114}
-      - {h: "Hook Details", l: 1115, e: 1116}
-      - {h: "attribution-guard", l: 1117, e: 1133}
-      - {h: "bash-sensitive-read-guard", l: 1134, e: 1150}
-      - {h: "bash-write-guard", l: 1151, e: 1167}
-      - {h: "cleanup", l: 1168, e: 1184}
-      - {h: "commit-message-guard", l: 1185, e: 1201}
-      - {h: "config-change-logger", l: 1202, e: 1218}
-      - {h: "conflict-guard", l: 1219, e: 1235}
-      - {h: "cwd-change-logger", l: 1236, e: 1252}
-      - {h: "dangerous-command-guard", l: 1253, e: 1269}
-      - {h: "gh-write-verb-guard", l: 1270, e: 1286}
-      - {h: "github-api-preflight", l: 1287, e: 1303}
-      - {h: "instructions-loaded-reinforcer", l: 1304, e: 1320}
-      - {h: "markdown-anchor-validator", l: 1321, e: 1337}
-      - {h: "memory-access-logger", l: 1338, e: 1354}
-      - {h: "memory-integrity-check", l: 1355, e: 1371}
-      - {h: "memory-write-guard", l: 1372, e: 1388}
-      - {h: "merge-gate-guard", l: 1389, e: 1406}
-      - {h: "permission-denial-logger", l: 1407, e: 1424}
-      - {h: "post-compact-restore", l: 1425, e: 1442}
-      - {h: "post-task-checkpoint", l: 1443, e: 1459}
-      - {h: "pr-language-guard", l: 1460, e: 1476}
-      - {h: "pr-target-guard", l: 1477, e: 1493}
-      - {h: "pre-compact-snapshot", l: 1494, e: 1510}
-      - {h: "pre-edit-read-guard", l: 1511, e: 1527}
-      - {h: "prompt-validator", l: 1528, e: 1544}
-      - {h: "push-target-guard", l: 1545, e: 1561}
-      - {h: "sensitive-file-guard", l: 1562, e: 1578}
-      - {h: "session-logger", l: 1579, e: 1595}
-      - {h: "shell-env-secret-guard", l: 1596, e: 1612}
-      - {h: "subagent-logger", l: 1613, e: 1629}
-      - {h: "task-completed-logger", l: 1630, e: 1646}
-      - {h: "task-created-validator", l: 1647, e: 1663}
-      - {h: "team-limit-guard", l: 1664, e: 1680}
-      - {h: "tool-failure-logger", l: 1681, e: 1697}
-      - {h: "traceability-guard", l: 1698, e: 1714}
-      - {h: "version-check", l: 1715, e: 1731}
-      - {h: "worktree-create", l: 1732, e: 1748}
-      - {h: "worktree-remove", l: 1749, e: 1766}
+      - {h: "Configuration File Locations", l: 39, e: 45}
+      - {h: "Global Hooks (global/settings.json)", l: 46, e: 47}
+      - {h: "1. Sensitive File Protection (PreToolUse)", l: 60, e: 73}
+      - {h: "2. Dangerous Command Blocking (PreToolUse)", l: 74, e: 84}
+      - {h: "3. Session Logging (SessionStart/SessionEnd)", l: 85, e: 98}
+      - {h: "4. Temporary File Cleanup (SessionEnd)", l: 99, e: 108}
+      - {h: "5. Markdown Anchor Validation (PreToolUse)", l: 109, e: 139}
+      - {h: "6. Team Limit Guard (PreToolUse)", l: 140, e: 157}
+      - {h: "7. TeammateIdle (TeammateIdle)", l: 158, e: 182}
+      - {h: "8. Version Check (SessionStart)", l: 183, e: 205}
+      - {h: "9. TaskCompleted (TaskCompleted)", l: 206, e: 231}
+      - {h: "10. Commit Message Guard (PreToolUse)", l: 232, e: 254}
+      - {h: "11. Conflict Guard (PreToolUse)", l: 255, e: 272}
+      - {h: "12. PR Target Guard (PreToolUse)", l: 273, e: 306}
+      - {h: "13. PR Language Guard (PreToolUse)", l: 307, e: 361}
+      - {h: "14. Merge Gate Guard (PreToolUse)", l: 362, e: 415}
+      - {h: "15. Attribution Guard (PreToolUse)", l: 416, e: 482}
+      - {h: "16. Instructions Loaded Reinforcer (InstructionsLoaded)", l: 483, e: 529}
+      - {h: "17. Post-Compact Restore (SessionStart)", l: 530, e: 585}
+      - {h: "18. Task Created Validator (TaskCreated)", l: 586, e: 649}
+      - {h: "19. Post Task/Agent Checkpoint (PostToolUse)", l: 650, e: 693}
+      - {h: "20. Pre-edit Read Guard (PreToolUse/PostToolUse)", l: 694, e: 755}
+      - {h: "Hook Response Format", l: 756, e: 789}
+      - {h: "Project Hooks (project/.claude/settings.json)", l: 790, e: 791}
+      - {h: "1. Auto Formatting (PostToolUse)", l: 792, e: 812}
+      - {h: "Permission Settings", l: 813, e: 860}
+      - {h: "Over-length commands and the parse limit", l: 861, e: 883}
+      - {h: "Windows Support (PowerShell)", l: 884, e: 885}
+      - {h: "Overview", l: 886, e: 894}
+      - {h: "How It Works", l: 895, e: 909}
+      - {h: "Bash Guard Dispatcher (Windows)", l: 910, e: 958}
+      - {h: "Edit Guard Dispatcher (Windows)", l: 959, e: 1056}
+      - {h: "PowerShell Hook Scripts", l: 1057, e: 1077}
+      - {h: "Key Differences from Bash Hooks", l: 1078, e: 1087}
+      - {h: "Prerequisites", l: 1088, e: 1098}
+      - {h: "Troubleshooting (Windows)", l: 1099, e: 1100}
+      - {h: "\"File cannot be loaded because running scripts is disabled\"", l: 1101, e: 1105}
+      - {h: "Hooks not executing", l: 1106, e: 1111}
+      - {h: "\"pwsh is not recognized\"", l: 1112, e: 1116}
+      - {h: "Customization", l: 1117, e: 1118}
+      - {h: "Disabling Hooks", l: 1119, e: 1122}
+      - {h: "Adding New Hooks", l: 1123, e: 1139}
+      - {h: "Matcher Patterns", l: 1140, e: 1148}
+      - {h: "Troubleshooting", l: 1149, e: 1150}
+      - {h: "Hook is not executing", l: 1151, e: 1156}
+      - {h: "Timeout occurring", l: 1157, e: 1182}
+      - {h: "Formatter not working", l: 1183, e: 1191}
+      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 1192, e: 1231}
+      - {h: "References", l: 1232, e: 1244}
+      - {h: "Auto-Generated Hook Catalog", l: 1245, e: 1252}
+      - {h: "Index", l: 1253, e: 1297}
+      - {h: "Hook Details", l: 1299, e: 1300}
+      - {h: "attribution-guard", l: 1301, e: 1317}
+      - {h: "bash-sensitive-read-guard", l: 1318, e: 1334}
+      - {h: "bash-write-guard", l: 1335, e: 1351}
+      - {h: "cleanup", l: 1352, e: 1368}
+      - {h: "commit-message-guard", l: 1369, e: 1385}
+      - {h: "config-change-logger", l: 1386, e: 1402}
+      - {h: "conflict-guard", l: 1403, e: 1419}
+      - {h: "cwd-change-logger", l: 1420, e: 1436}
+      - {h: "dangerous-command-guard", l: 1437, e: 1453}
+      - {h: "gh-write-verb-guard", l: 1454, e: 1470}
+      - {h: "github-api-preflight", l: 1471, e: 1487}
+      - {h: "instructions-loaded-reinforcer", l: 1488, e: 1504}
+      - {h: "markdown-anchor-validator", l: 1505, e: 1521}
+      - {h: "memory-access-logger", l: 1522, e: 1538}
+      - {h: "memory-integrity-check", l: 1539, e: 1555}
+      - {h: "memory-write-guard", l: 1556, e: 1572}
+      - {h: "merge-gate-guard", l: 1573, e: 1590}
+      - {h: "permission-denial-logger", l: 1591, e: 1608}
+      - {h: "post-compact-restore", l: 1609, e: 1626}
+      - {h: "post-task-checkpoint", l: 1627, e: 1643}
+      - {h: "pr-language-guard", l: 1644, e: 1660}
+      - {h: "pr-target-guard", l: 1661, e: 1677}
+      - {h: "pre-compact-snapshot", l: 1678, e: 1694}
+      - {h: "pre-edit-read-guard", l: 1695, e: 1711}
+      - {h: "prompt-validator", l: 1712, e: 1728}
+      - {h: "prune-permission-rules", l: 1729, e: 1746}
+      - {h: "push-target-guard", l: 1747, e: 1763}
+      - {h: "sensitive-file-guard", l: 1764, e: 1780}
+      - {h: "session-logger", l: 1781, e: 1797}
+      - {h: "shell-env-secret-guard", l: 1798, e: 1814}
+      - {h: "subagent-logger", l: 1815, e: 1831}
+      - {h: "task-completed-logger", l: 1832, e: 1848}
+      - {h: "task-created-validator", l: 1849, e: 1865}
+      - {h: "team-limit-guard", l: 1866, e: 1882}
+      - {h: "tool-failure-logger", l: 1883, e: 1899}
+      - {h: "traceability-guard", l: 1900, e: 1916}
+      - {h: "version-check", l: 1917, e: 1933}
+      - {h: "worktree-create", l: 1934, e: 1950}
+      - {h: "worktree-remove", l: 1951, e: 1968}
   - path: "PREREQUISITES.md"
     title: "Prerequisites"
     description: ""
@@ -223,7 +232,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 47744
+    size: 48474
     tags: [config,readme]
     sections:
       - {h: "Claude Configuration Backup & Deployment System", l: 1, e: 29}
@@ -278,82 +287,82 @@ documents:
       - {h: "4) Enterprise 설정만 설치 (관리자 권한 필요)", l: 539, e: 539}
       - {h: "5) 전체 설치 (Enterprise + Global + Project)", l: 540, e: 544}
       - {h: "Enterprise 템플릿 내용", l: 545, e: 556}
-      - {h: "개인 설정 (CLAUDE.local.md)", l: 557, e: 561}
-      - {h: "템플릿 복사", l: 562, e: 571}
-      - {h: "Rules", l: 572, e: 575}
-      - {h: "사용 가능한 Rules", l: 576, e: 585}
-      - {h: "Rules 작동 방식", l: 586, e: 597}
-      - {h: "Rule 내용", l: 598, e: 604}
-      - {h: "스킬 — 무엇을 할 수 있나요", l: 605, e: 613}
-      - {h: "워크플로우 자동화", l: 614, e: 625}
-      - {h: "코드 분석", l: 626, e: 634}
-      - {h: "설계 및 문서화", l: 635, e: 648}
-      - {h: "Agents", l: 649, e: 652}
-      - {h: "사용 가능한 Agents", l: 653, e: 665}
-      - {h: "Agent 설정", l: 666, e: 680}
-      - {h: "Agent Teams", l: 681, e: 686}
-      - {h: "빠른 시작", l: 687, e: 697}
-      - {h: "주요 조작법", l: 698, e: 712}
-      - {h: "MCP 설정", l: 713, e: 716}
-      - {h: "사용 가능한 서버", l: 717, e: 726}
-      - {h: "설정 방법", l: 727, e: 734}
-      - {h: "스크립트 설명", l: 735, e: 750}
-      - {h: "Git Hooks", l: 751, e: 760}
-      - {h: "Pre-commit Hook", l: 761, e: 765}
-      - {h: "Commit-msg Hook", l: 766, e: 770}
-      - {h: "Pre-push Hook", l: 771, e: 777}
-      - {h: "사용 시나리오", l: 778, e: 779}
-      - {h: "시나리오 A: 회사 + 집 컴퓨터 동기화", l: 780, e: 782}
-      - {h: "회사에서 (초기 설정)", l: 783, e: 788}
-      - {h: "집에서", l: 789, e: 792}
-      - {h: "선택: 1 (백업 → 시스템)", l: 793, e: 797}
-      - {h: "시나리오 B: 팀 프로젝트 설정 공유", l: 798, e: 800}
-      - {h: "프로젝트 리더", l: 801, e: 805}
-      - {h: "타입: 2 (프로젝트만)", l: 806, e: 807}
-      - {h: "팀 멤버", l: 808, e: 811}
-      - {h: "타입: 2 (프로젝트만)", l: 812, e: 816}
-      - {h: "시나리오 C: 새 개발 머신 설정", l: 817, e: 819}
-      - {h: "원라인 설치", l: 820, e: 822}
-      - {h: "또는 수동 설치", l: 823, e: 826}
-      - {h: "타입: 3 (둘 다)", l: 827, e: 828}
-      - {h: "Git identity 확인; 누락되었거나 틀린 경우에만 수정", l: 829, e: 834}
-      - {h: "시나리오 D: 열린 이슈 또는 실패 PR 일괄 처리", l: 835, e: 845}
-      - {h: "저장소에서 최대 5개의 열린 이슈 처리 (기본 limit)", l: 846, e: 848}
-      - {h: "최대 3개 이슈 처리", l: 849, e: 851}
-      - {h: "실패한 PR을 대신 처리", l: 852, e: 856}
-      - {h: "PowerShell 동등 명령", l: 857, e: 874}
-      - {h: "고급 사용법", l: 875, e: 876}
-      - {h: "GitHub Actions 자동 동기화", l: 877, e: 898}
-      - {h: "특정 파일만 백업", l: 899, e: 901}
-      - {h: "글로벌 CLAUDE.md만 백업", l: 902, e: 904}
-      - {h: "프로젝트 설정만 백업", l: 905, e: 908}
-      - {h: "환경 변수로 커스터마이즈", l: 909, e: 911}
-      - {h: "bootstrap.sh 사용 시", l: 912, e: 932}
-      - {h: "FAQ", l: 933, e: 934}
-      - {h: "Q1: Git identity를 왜 개인화해야 하나요?", l: 935, e: 940}
-      - {h: "설치된 값이 누락되었거나 틀린 경우에만 name과 email 변경", l: 941, e: 945}
-      - {h: "Q2: 백업을 여러 곳에서 관리하면?", l: 946, e: 958}
-      - {h: "Q3: 프로젝트마다 다른 설정을 쓰고 싶어요", l: 959, e: 964}
-      - {h: "프로젝트 A 설정 수정", l: 965, e: 968}
-      - {h: "프로젝트 B 설정 수정", l: 969, e: 974}
-      - {h: "Q4: 스크립트가 실행 안 돼요", l: 975, e: 981}
-      - {h: "또는 직접 실행", l: 982, e: 987}
-      - {h: "Q5: Private repo로 사용하고 싶어요", l: 988, e: 992}
-      - {h: "Token 생성: GitHub Settings > Developer settings > Personal access tokens", l: 993, e: 994}
-      - {h: "설치", l: 995, e: 1001}
-      - {h: "Memory sync (다중 머신)", l: 1002, e: 1014}
-      - {h: "추가 리소스", l: 1015, e: 1026}
-      - {h: "버전", l: 1027, e: 1034}
-      - {h: "기여", l: 1035, e: 1046}
-      - {h: "Related Projects", l: 1047, e: 1048}
-      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1049, e: 1057}
-      - {h: "License", l: 1058, e: 1066}
+      - {h: "개인 설정 (CLAUDE.local.md)", l: 559, e: 563}
+      - {h: "템플릿 복사", l: 564, e: 573}
+      - {h: "Rules", l: 574, e: 577}
+      - {h: "사용 가능한 Rules", l: 578, e: 587}
+      - {h: "Rules 작동 방식", l: 588, e: 599}
+      - {h: "Rule 내용", l: 600, e: 606}
+      - {h: "스킬 — 무엇을 할 수 있나요", l: 607, e: 615}
+      - {h: "워크플로우 자동화", l: 616, e: 627}
+      - {h: "코드 분석", l: 628, e: 636}
+      - {h: "설계 및 문서화", l: 637, e: 650}
+      - {h: "Agents", l: 651, e: 654}
+      - {h: "사용 가능한 Agents", l: 655, e: 667}
+      - {h: "Agent 설정", l: 668, e: 682}
+      - {h: "Agent Teams", l: 683, e: 688}
+      - {h: "빠른 시작", l: 689, e: 699}
+      - {h: "주요 조작법", l: 700, e: 714}
+      - {h: "MCP 설정", l: 715, e: 718}
+      - {h: "사용 가능한 서버", l: 719, e: 728}
+      - {h: "설정 방법", l: 729, e: 736}
+      - {h: "스크립트 설명", l: 737, e: 752}
+      - {h: "Git Hooks", l: 753, e: 762}
+      - {h: "Pre-commit Hook", l: 763, e: 767}
+      - {h: "Commit-msg Hook", l: 768, e: 772}
+      - {h: "Pre-push Hook", l: 773, e: 779}
+      - {h: "사용 시나리오", l: 780, e: 781}
+      - {h: "시나리오 A: 회사 + 집 컴퓨터 동기화", l: 782, e: 784}
+      - {h: "회사에서 (초기 설정)", l: 785, e: 790}
+      - {h: "집에서", l: 791, e: 794}
+      - {h: "선택: 1 (백업 → 시스템)", l: 795, e: 799}
+      - {h: "시나리오 B: 팀 프로젝트 설정 공유", l: 800, e: 802}
+      - {h: "프로젝트 리더", l: 803, e: 807}
+      - {h: "타입: 2 (프로젝트만)", l: 808, e: 809}
+      - {h: "팀 멤버", l: 810, e: 813}
+      - {h: "타입: 2 (프로젝트만)", l: 814, e: 818}
+      - {h: "시나리오 C: 새 개발 머신 설정", l: 819, e: 821}
+      - {h: "원라인 설치", l: 822, e: 824}
+      - {h: "또는 수동 설치", l: 825, e: 828}
+      - {h: "타입: 3 (둘 다)", l: 829, e: 830}
+      - {h: "Git identity 확인; 누락되었거나 틀린 경우에만 수정", l: 831, e: 836}
+      - {h: "시나리오 D: 열린 이슈 또는 실패 PR 일괄 처리", l: 837, e: 847}
+      - {h: "저장소에서 최대 5개의 열린 이슈 처리 (기본 limit)", l: 848, e: 850}
+      - {h: "최대 3개 이슈 처리", l: 851, e: 853}
+      - {h: "실패한 PR을 대신 처리", l: 854, e: 858}
+      - {h: "PowerShell 동등 명령", l: 859, e: 876}
+      - {h: "고급 사용법", l: 877, e: 878}
+      - {h: "GitHub Actions 자동 동기화", l: 879, e: 900}
+      - {h: "특정 파일만 백업", l: 901, e: 903}
+      - {h: "글로벌 CLAUDE.md만 백업", l: 904, e: 906}
+      - {h: "프로젝트 설정만 백업", l: 907, e: 910}
+      - {h: "환경 변수로 커스터마이즈", l: 911, e: 913}
+      - {h: "bootstrap.sh 사용 시", l: 914, e: 934}
+      - {h: "FAQ", l: 935, e: 936}
+      - {h: "Q1: Git identity를 왜 개인화해야 하나요?", l: 937, e: 942}
+      - {h: "설치된 값이 누락되었거나 틀린 경우에만 name과 email 변경", l: 943, e: 947}
+      - {h: "Q2: 백업을 여러 곳에서 관리하면?", l: 948, e: 960}
+      - {h: "Q3: 프로젝트마다 다른 설정을 쓰고 싶어요", l: 961, e: 966}
+      - {h: "프로젝트 A 설정 수정", l: 967, e: 970}
+      - {h: "프로젝트 B 설정 수정", l: 971, e: 976}
+      - {h: "Q4: 스크립트가 실행 안 돼요", l: 977, e: 983}
+      - {h: "또는 직접 실행", l: 984, e: 989}
+      - {h: "Q5: Private repo로 사용하고 싶어요", l: 990, e: 994}
+      - {h: "Token 생성: GitHub Settings > Developer settings > Personal access tokens", l: 995, e: 996}
+      - {h: "설치", l: 997, e: 1003}
+      - {h: "Memory sync (다중 머신)", l: 1004, e: 1016}
+      - {h: "추가 리소스", l: 1017, e: 1028}
+      - {h: "버전", l: 1029, e: 1036}
+      - {h: "기여", l: 1037, e: 1048}
+      - {h: "Related Projects", l: 1049, e: 1050}
+      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1051, e: 1059}
+      - {h: "License", l: 1060, e: 1068}
   - path: "README.md"
     title: "Claude Configuration Backup & Deployment System"
     description: ""
     category: root
     scope: root
-    size: 46309
+    size: 46889
     tags: [config,readme]
     sections:
       - {h: "Claude Configuration Backup & Deployment System", l: 1, e: 29}
@@ -409,76 +418,76 @@ documents:
       - {h: "4) Enterprise settings only (admin required)", l: 567, e: 567}
       - {h: "5) All (Enterprise + Global + Project)", l: 568, e: 572}
       - {h: "Enterprise Template Contents", l: 573, e: 584}
-      - {h: "Personal Settings (CLAUDE.local.md)", l: 585, e: 589}
-      - {h: "Copy the template", l: 590, e: 599}
-      - {h: "Rules", l: 600, e: 603}
-      - {h: "Available Rules", l: 604, e: 613}
-      - {h: "How Rules Work", l: 614, e: 624}
-      - {h: "Rule content here", l: 625, e: 631}
-      - {h: "Skills — What You Can Do", l: 632, e: 640}
-      - {h: "Workflow Automation", l: 641, e: 652}
-      - {h: "Code Analysis", l: 653, e: 661}
-      - {h: "Design and Documentation", l: 662, e: 675}
-      - {h: "Agents", l: 676, e: 679}
-      - {h: "Available Agents", l: 680, e: 692}
-      - {h: "Agent Configuration", l: 693, e: 707}
-      - {h: "Agent Teams", l: 708, e: 713}
-      - {h: "Quick Start", l: 714, e: 724}
-      - {h: "Key Controls", l: 725, e: 739}
-      - {h: "MCP Configuration", l: 740, e: 743}
-      - {h: "Available Servers", l: 744, e: 753}
-      - {h: "Setup", l: 754, e: 761}
-      - {h: "Scripts", l: 762, e: 778}
-      - {h: "Git Hooks", l: 779, e: 789}
-      - {h: "Pre-commit Hook", l: 790, e: 795}
-      - {h: "Commit-msg Hook", l: 796, e: 801}
-      - {h: "Pre-push Hook", l: 802, e: 809}
-      - {h: "Use Cases", l: 810, e: 811}
-      - {h: "Use Case A: Sync Work + Home Computers", l: 812, e: 814}
-      - {h: "At work (initial setup)", l: 815, e: 820}
-      - {h: "At home", l: 821, e: 824}
-      - {h: "Select: 1 (Backup → System)", l: 825, e: 829}
-      - {h: "Use Case B: Share Team Project Settings", l: 830, e: 832}
-      - {h: "Project leader", l: 833, e: 837}
-      - {h: "Type: 2 (Project only)", l: 838, e: 839}
-      - {h: "Team member", l: 840, e: 843}
-      - {h: "Type: 2 (Project only)", l: 844, e: 848}
-      - {h: "Use Case C: New Development Machine Setup", l: 849, e: 851}
-      - {h: "One-line installation", l: 852, e: 854}
-      - {h: "Or manual installation", l: 855, e: 858}
-      - {h: "Type: 3 (Both)", l: 859, e: 860}
-      - {h: "Verify Git identity; edit only if missing or wrong", l: 861, e: 866}
-      - {h: "Use Case D: Batch-Process Open Issues or Failing PRs", l: 867, e: 885}
-      - {h: "Process up to 5 open issues in a repo (default limit)", l: 886, e: 888}
-      - {h: "Process up to 3 open issues", l: 889, e: 891}
-      - {h: "Process failing PRs instead", l: 892, e: 896}
-      - {h: "PowerShell equivalents", l: 897, e: 917}
-      - {h: "Advanced Usage", l: 918, e: 919}
-      - {h: "GitHub Actions Auto-Sync", l: 920, e: 941}
-      - {h: "Backup Specific Files Only", l: 942, e: 944}
-      - {h: "Backup global CLAUDE.md only", l: 945, e: 947}
-      - {h: "Backup project settings only", l: 948, e: 951}
-      - {h: "Customize with Environment Variables", l: 952, e: 954}
-      - {h: "When using bootstrap.sh", l: 955, e: 975}
-      - {h: "FAQ", l: 976, e: 977}
-      - {h: "Q1: Why do I need to personalize Git identity?", l: 978, e: 983}
-      - {h: "Change name and email only when the installed values are missing or wrong", l: 984, e: 988}
-      - {h: "Q2: How to manage backups across multiple locations?", l: 989, e: 1001}
-      - {h: "Q3: I want different settings for each project", l: 1002, e: 1007}
-      - {h: "Modify project A settings", l: 1008, e: 1011}
-      - {h: "Modify project B settings", l: 1012, e: 1017}
-      - {h: "Q4: Scripts won't run", l: 1018, e: 1024}
-      - {h: "Or run directly", l: 1025, e: 1030}
-      - {h: "Q5: I want to use a private repo", l: 1031, e: 1035}
-      - {h: "Create token: GitHub Settings > Developer settings > Personal access tokens", l: 1036, e: 1037}
-      - {h: "Installation", l: 1038, e: 1044}
-      - {h: "Memory sync (multi-machine)", l: 1045, e: 1057}
-      - {h: "Additional Resources", l: 1058, e: 1069}
-      - {h: "Version", l: 1070, e: 1077}
-      - {h: "Contributing", l: 1078, e: 1089}
-      - {h: "Related Projects", l: 1090, e: 1091}
-      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1092, e: 1100}
-      - {h: "License", l: 1101, e: 1109}
+      - {h: "Personal Settings (CLAUDE.local.md)", l: 587, e: 591}
+      - {h: "Copy the template", l: 592, e: 601}
+      - {h: "Rules", l: 602, e: 605}
+      - {h: "Available Rules", l: 606, e: 615}
+      - {h: "How Rules Work", l: 616, e: 626}
+      - {h: "Rule content here", l: 627, e: 633}
+      - {h: "Skills — What You Can Do", l: 634, e: 642}
+      - {h: "Workflow Automation", l: 643, e: 654}
+      - {h: "Code Analysis", l: 655, e: 663}
+      - {h: "Design and Documentation", l: 664, e: 677}
+      - {h: "Agents", l: 678, e: 681}
+      - {h: "Available Agents", l: 682, e: 694}
+      - {h: "Agent Configuration", l: 695, e: 709}
+      - {h: "Agent Teams", l: 710, e: 715}
+      - {h: "Quick Start", l: 716, e: 726}
+      - {h: "Key Controls", l: 727, e: 741}
+      - {h: "MCP Configuration", l: 742, e: 745}
+      - {h: "Available Servers", l: 746, e: 755}
+      - {h: "Setup", l: 756, e: 763}
+      - {h: "Scripts", l: 764, e: 780}
+      - {h: "Git Hooks", l: 781, e: 791}
+      - {h: "Pre-commit Hook", l: 792, e: 797}
+      - {h: "Commit-msg Hook", l: 798, e: 803}
+      - {h: "Pre-push Hook", l: 804, e: 811}
+      - {h: "Use Cases", l: 812, e: 813}
+      - {h: "Use Case A: Sync Work + Home Computers", l: 814, e: 816}
+      - {h: "At work (initial setup)", l: 817, e: 822}
+      - {h: "At home", l: 823, e: 826}
+      - {h: "Select: 1 (Backup → System)", l: 827, e: 831}
+      - {h: "Use Case B: Share Team Project Settings", l: 832, e: 834}
+      - {h: "Project leader", l: 835, e: 839}
+      - {h: "Type: 2 (Project only)", l: 840, e: 841}
+      - {h: "Team member", l: 842, e: 845}
+      - {h: "Type: 2 (Project only)", l: 846, e: 850}
+      - {h: "Use Case C: New Development Machine Setup", l: 851, e: 853}
+      - {h: "One-line installation", l: 854, e: 856}
+      - {h: "Or manual installation", l: 857, e: 860}
+      - {h: "Type: 3 (Both)", l: 861, e: 862}
+      - {h: "Verify Git identity; edit only if missing or wrong", l: 863, e: 868}
+      - {h: "Use Case D: Batch-Process Open Issues or Failing PRs", l: 869, e: 887}
+      - {h: "Process up to 5 open issues in a repo (default limit)", l: 888, e: 890}
+      - {h: "Process up to 3 open issues", l: 891, e: 893}
+      - {h: "Process failing PRs instead", l: 894, e: 898}
+      - {h: "PowerShell equivalents", l: 899, e: 919}
+      - {h: "Advanced Usage", l: 920, e: 921}
+      - {h: "GitHub Actions Auto-Sync", l: 922, e: 943}
+      - {h: "Backup Specific Files Only", l: 944, e: 946}
+      - {h: "Backup global CLAUDE.md only", l: 947, e: 949}
+      - {h: "Backup project settings only", l: 950, e: 953}
+      - {h: "Customize with Environment Variables", l: 954, e: 956}
+      - {h: "When using bootstrap.sh", l: 957, e: 977}
+      - {h: "FAQ", l: 978, e: 979}
+      - {h: "Q1: Why do I need to personalize Git identity?", l: 980, e: 985}
+      - {h: "Change name and email only when the installed values are missing or wrong", l: 986, e: 990}
+      - {h: "Q2: How to manage backups across multiple locations?", l: 991, e: 1003}
+      - {h: "Q3: I want different settings for each project", l: 1004, e: 1009}
+      - {h: "Modify project A settings", l: 1010, e: 1013}
+      - {h: "Modify project B settings", l: 1014, e: 1019}
+      - {h: "Q4: Scripts won't run", l: 1020, e: 1026}
+      - {h: "Or run directly", l: 1027, e: 1032}
+      - {h: "Q5: I want to use a private repo", l: 1033, e: 1037}
+      - {h: "Create token: GitHub Settings > Developer settings > Personal access tokens", l: 1038, e: 1039}
+      - {h: "Installation", l: 1040, e: 1046}
+      - {h: "Memory sync (multi-machine)", l: 1047, e: 1059}
+      - {h: "Additional Resources", l: 1060, e: 1071}
+      - {h: "Version", l: 1072, e: 1079}
+      - {h: "Contributing", l: 1080, e: 1091}
+      - {h: "Related Projects", l: 1092, e: 1093}
+      - {h: "AD-SDLC (Agent-Driven Software Development Lifecycle)", l: 1094, e: 1102}
+      - {h: "License", l: 1103, e: 1111}
   - path: "THIRD_PARTY_NOTICES.md"
     title: "Third-Party Notices"
     description: ""
@@ -1160,7 +1169,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 9853
+    size: 9873
     tags: [architecture,docs,skill]
     sections:
       - {h: "Executive Summary", l: 7, e: 12}
@@ -1719,32 +1728,33 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 7472
+    size: 8194
     tags: [docs,hook,hooks]
     sections:
       - {h: "Ownership Table", l: 13, e: 78}
-      - {h: "Adding a new hook", l: 79, e: 88}
+      - {h: "Adding a new hook", l: 91, e: 100}
   - path: "docs/install.md"
     title: "Install Behavior"
     description: ""
     category: docs
     scope: docs
-    size: 9093
+    size: 14621
     tags: [docs]
     sections:
       - {h: "Install Behavior", l: 1, e: 6}
       - {h: "Manifest", l: 7, e: 36}
-      - {h: "Copy Decision", l: 37, e: 64}
-      - {h: "Prune Decision", l: 65, e: 84}
-      - {h: "Non-Interactive Override", l: 85, e: 91}
-      - {h: "Pick the install type and accept every other default.", l: 92, e: 94}
-      - {h: "Force bootstrap defaults. The bootstrap default install type is 1.", l: 95, e: 99}
-      - {h: "Pick the install type and accept every other default.", l: 100, e: 102}
-      - {h: "Force bootstrap defaults. The bootstrap default install type is 1.", l: 103, e: 125}
-      - {h: "Toolchain Fallback", l: 126, e: 136}
-      - {h: "Template Files", l: 137, e: 189}
-      - {h: "Tracked Files", l: 190, e: 208}
-      - {h: "Regression Test", l: 209, e: 232}
+      - {h: "Copy Decision", l: 62, e: 89}
+      - {h: "Prune Decision", l: 90, e: 109}
+      - {h: "Non-Interactive Override", l: 110, e: 116}
+      - {h: "Pick the install type and accept every other default.", l: 117, e: 119}
+      - {h: "Force bootstrap defaults. The bootstrap default install type is 1.", l: 120, e: 124}
+      - {h: "Pick the install type and accept every other default.", l: 125, e: 127}
+      - {h: "Force bootstrap defaults. The bootstrap default install type is 1.", l: 128, e: 150}
+      - {h: "Toolchain Fallback", l: 151, e: 161}
+      - {h: "Template Files", l: 162, e: 227}
+      - {h: "Tracked Files", l: 228, e: 249}
+      - {h: "Machine-local settings keys", l: 262, e: 293}
+      - {h: "Regression Test", l: 294, e: 317}
   - path: "docs/loop-patterns.md"
     title: "Loop-Safety Patterns for Skills"
     description: ""
@@ -1982,7 +1992,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 5174
+    size: 5173
     tags: [ci,global,skill]
     sections:
       - {h: "Usage", l: 22, e: 30}
@@ -2201,7 +2211,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 22246
+    size: 22245
     tags: [global,skill]
     sections:
       - {h: "When to Use This Skill", l: 39, e: 51}
@@ -3147,7 +3157,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 4741
+    size: 4740
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 21, e: 34}
@@ -4247,7 +4257,7 @@ documents:
     description: ""
     category: skill
     scope: plugin
-    size: 1262
+    size: 1253
     tags: [documentation,plugin,skill]
     sections:
       - {h: "When to Use", l: 12, e: 20}
@@ -5634,67 +5644,67 @@ documents:
     description: ""
     category: rule
     scope: project
-    size: 14127
+    size: 14113
     tags: [documentation,project,rule]
     sections:
-      - {h: "API Documentation", l: 12, e: 15}
-      - {h: "C++ Documentation (Doxygen)", l: 16, e: 75}
-      - {h: "Kotlin Documentation (KDoc)", l: 76, e: 123}
-      - {h: "Python Documentation (Docstrings)", l: 124, e: 190}
-      - {h: "TypeScript Documentation (TSDoc)", l: 191, e: 250}
-      - {h: "README Files", l: 251, e: 254}
-      - {h: "Template", l: 255, e: 261}
-      - {h: "Features", l: 262, e: 267}
-      - {h: "Prerequisites", l: 268, e: 273}
-      - {h: "Installation", l: 274, e: 275}
-      - {h: "Quick Start", l: 276, e: 293}
-      - {h: "Detailed Installation", l: 294, e: 297}
-      - {h: "Usage", l: 298, e: 299}
-      - {h: "Basic Example", l: 300, e: 312}
-      - {h: "Advanced Usage", l: 313, e: 316}
-      - {h: "Configuration", l: 317, e: 329}
-      - {h: "API Documentation", l: 330, e: 338}
-      - {h: "Development", l: 339, e: 340}
-      - {h: "Building from Source", l: 341, e: 344}
-      - {h: "Running Tests", l: 345, e: 350}
-      - {h: "Code Style", l: 351, e: 360}
-      - {h: "Contributing", l: 361, e: 364}
-      - {h: "Architecture", l: 365, e: 368}
-      - {h: "License", l: 369, e: 372}
-      - {h: "Authors", l: 373, e: 376}
-      - {h: "Acknowledgments", l: 377, e: 382}
-      - {h: "Support", l: 383, e: 389}
-      - {h: "CHANGELOG", l: 390, e: 393}
-      - {h: "Format", l: 394, e: 403}
-      - {h: "[Unreleased]", l: 404, e: 405}
-      - {h: "Added", l: 406, e: 408}
-      - {h: "Changed", l: 409, e: 411}
-      - {h: "Deprecated", l: 412, e: 414}
-      - {h: "Removed", l: 415, e: 417}
-      - {h: "Fixed", l: 418, e: 420}
-      - {h: "Security", l: 421, e: 423}
-      - {h: "[1.2.0] - 2025-11-02", l: 424, e: 425}
-      - {h: "Added", l: 426, e: 430}
-      - {h: "Changed", l: 431, e: 434}
-      - {h: "Fixed", l: 435, e: 438}
-      - {h: "[1.1.0] - 2025-10-15", l: 439, e: 440}
-      - {h: "Added", l: 441, e: 444}
-      - {h: "Changed", l: 445, e: 447}
-      - {h: "Deprecated", l: 448, e: 450}
-      - {h: "Fixed", l: 451, e: 453}
-      - {h: "[1.0.0] - 2025-09-01", l: 454, e: 455}
-      - {h: "Added", l: 456, e: 467}
-      - {h: "Version Number Guidelines", l: 468, e: 475}
-      - {h: "Architecture Documentation", l: 476, e: 477}
-      - {h: "High-Level Architecture", l: 478, e: 482}
-      - {h: "System Architecture", l: 483, e: 507}
-      - {h: "Component Descriptions", l: 508, e: 509}
-      - {h: "API Layer", l: 510, e: 514}
-      - {h: "Business Logic", l: 515, e: 519}
-      - {h: "Database", l: 520, e: 525}
-      - {h: "Inline Documentation", l: 526, e: 527}
-      - {h: "When to Write Comments", l: 528, e: 540}
-      - {h: "Example", l: 541, e: 566}
+      - {h: "API Documentation", l: 11, e: 14}
+      - {h: "C++ Documentation (Doxygen)", l: 15, e: 74}
+      - {h: "Kotlin Documentation (KDoc)", l: 75, e: 122}
+      - {h: "Python Documentation (Docstrings)", l: 123, e: 189}
+      - {h: "TypeScript Documentation (TSDoc)", l: 190, e: 249}
+      - {h: "README Files", l: 250, e: 253}
+      - {h: "Template", l: 254, e: 260}
+      - {h: "Features", l: 261, e: 266}
+      - {h: "Prerequisites", l: 267, e: 272}
+      - {h: "Installation", l: 273, e: 274}
+      - {h: "Quick Start", l: 275, e: 292}
+      - {h: "Detailed Installation", l: 293, e: 296}
+      - {h: "Usage", l: 297, e: 298}
+      - {h: "Basic Example", l: 299, e: 311}
+      - {h: "Advanced Usage", l: 312, e: 315}
+      - {h: "Configuration", l: 316, e: 328}
+      - {h: "API Documentation", l: 329, e: 337}
+      - {h: "Development", l: 338, e: 339}
+      - {h: "Building from Source", l: 340, e: 343}
+      - {h: "Running Tests", l: 344, e: 349}
+      - {h: "Code Style", l: 350, e: 359}
+      - {h: "Contributing", l: 360, e: 363}
+      - {h: "Architecture", l: 364, e: 367}
+      - {h: "License", l: 368, e: 371}
+      - {h: "Authors", l: 372, e: 375}
+      - {h: "Acknowledgments", l: 376, e: 381}
+      - {h: "Support", l: 382, e: 388}
+      - {h: "CHANGELOG", l: 389, e: 392}
+      - {h: "Format", l: 393, e: 402}
+      - {h: "[Unreleased]", l: 403, e: 404}
+      - {h: "Added", l: 405, e: 407}
+      - {h: "Changed", l: 408, e: 410}
+      - {h: "Deprecated", l: 411, e: 413}
+      - {h: "Removed", l: 414, e: 416}
+      - {h: "Fixed", l: 417, e: 419}
+      - {h: "Security", l: 420, e: 422}
+      - {h: "[1.2.0] - 2025-11-02", l: 423, e: 424}
+      - {h: "Added", l: 425, e: 429}
+      - {h: "Changed", l: 430, e: 433}
+      - {h: "Fixed", l: 434, e: 437}
+      - {h: "[1.1.0] - 2025-10-15", l: 438, e: 439}
+      - {h: "Added", l: 440, e: 443}
+      - {h: "Changed", l: 444, e: 446}
+      - {h: "Deprecated", l: 447, e: 449}
+      - {h: "Fixed", l: 450, e: 452}
+      - {h: "[1.0.0] - 2025-09-01", l: 453, e: 454}
+      - {h: "Added", l: 455, e: 466}
+      - {h: "Version Number Guidelines", l: 467, e: 474}
+      - {h: "Architecture Documentation", l: 475, e: 476}
+      - {h: "High-Level Architecture", l: 477, e: 481}
+      - {h: "System Architecture", l: 482, e: 506}
+      - {h: "Component Descriptions", l: 507, e: 508}
+      - {h: "API Layer", l: 509, e: 513}
+      - {h: "Business Logic", l: 514, e: 518}
+      - {h: "Database", l: 519, e: 524}
+      - {h: "Inline Documentation", l: 525, e: 526}
+      - {h: "When to Write Comments", l: 527, e: 539}
+      - {h: "Example", l: 540, e: 565}
   - path: "project/.claude/rules/project-management/testing.md"
     title: "Testing Strategy"
     description: ""
@@ -6300,7 +6310,7 @@ documents:
     description: ""
     category: skill
     scope: project
-    size: 1314
+    size: 1305
     tags: [documentation,project,skill]
     sections:
       - {h: "When to Use", l: 17, e: 25}
@@ -6353,76 +6363,76 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 14127
+    size: 14113
     tags: [documentation,project,reference,skill]
     sections:
-      - {h: "Documentation Standards", l: 10, e: 11}
-      - {h: "API Documentation", l: 12, e: 15}
-      - {h: "C++ Documentation (Doxygen)", l: 16, e: 75}
-      - {h: "Kotlin Documentation (KDoc)", l: 76, e: 123}
-      - {h: "Python Documentation (Docstrings)", l: 124, e: 190}
-      - {h: "TypeScript Documentation (TSDoc)", l: 191, e: 250}
-      - {h: "README Files", l: 251, e: 254}
-      - {h: "Template", l: 255, e: 257}
-      - {h: "Project Name", l: 258, e: 261}
-      - {h: "Features", l: 262, e: 267}
-      - {h: "Prerequisites", l: 268, e: 273}
-      - {h: "Installation", l: 274, e: 275}
-      - {h: "Quick Start", l: 276, e: 278}
-      - {h: "Clone the repository", l: 279, e: 282}
-      - {h: "Install dependencies", l: 283, e: 285}
-      - {h: "Build", l: 286, e: 289}
-      - {h: "Run tests", l: 290, e: 293}
-      - {h: "Detailed Installation", l: 294, e: 297}
-      - {h: "Usage", l: 298, e: 299}
-      - {h: "Basic Example", l: 300, e: 312}
-      - {h: "Advanced Usage", l: 313, e: 316}
-      - {h: "Configuration", l: 317, e: 329}
-      - {h: "API Documentation", l: 330, e: 335}
-      - {h: "Documentation in docs/html/index.html", l: 336, e: 338}
-      - {h: "Development", l: 339, e: 340}
-      - {h: "Building from Source", l: 341, e: 344}
-      - {h: "Running Tests", l: 345, e: 350}
-      - {h: "Code Style", l: 351, e: 360}
-      - {h: "Contributing", l: 361, e: 364}
-      - {h: "Architecture", l: 365, e: 368}
-      - {h: "License", l: 369, e: 372}
-      - {h: "Authors", l: 373, e: 376}
-      - {h: "Acknowledgments", l: 377, e: 382}
-      - {h: "Support", l: 383, e: 389}
-      - {h: "CHANGELOG", l: 390, e: 393}
-      - {h: "Format", l: 394, e: 396}
-      - {h: "Changelog", l: 397, e: 403}
-      - {h: "[Unreleased]", l: 404, e: 405}
-      - {h: "Added", l: 406, e: 408}
-      - {h: "Changed", l: 409, e: 411}
-      - {h: "Deprecated", l: 412, e: 414}
-      - {h: "Removed", l: 415, e: 417}
-      - {h: "Fixed", l: 418, e: 420}
-      - {h: "Security", l: 421, e: 423}
-      - {h: "[1.2.0] - 2025-11-02", l: 424, e: 425}
-      - {h: "Added", l: 426, e: 430}
-      - {h: "Changed", l: 431, e: 434}
-      - {h: "Fixed", l: 435, e: 438}
-      - {h: "[1.1.0] - 2025-10-15", l: 439, e: 440}
-      - {h: "Added", l: 441, e: 444}
-      - {h: "Changed", l: 445, e: 447}
-      - {h: "Deprecated", l: 448, e: 450}
-      - {h: "Fixed", l: 451, e: 453}
-      - {h: "[1.0.0] - 2025-09-01", l: 454, e: 455}
-      - {h: "Added", l: 456, e: 467}
-      - {h: "Version Number Guidelines", l: 468, e: 475}
-      - {h: "Architecture Documentation", l: 476, e: 477}
-      - {h: "High-Level Architecture", l: 478, e: 480}
-      - {h: "Architecture Overview", l: 481, e: 482}
-      - {h: "System Architecture", l: 483, e: 507}
-      - {h: "Component Descriptions", l: 508, e: 509}
-      - {h: "API Layer", l: 510, e: 514}
-      - {h: "Business Logic", l: 515, e: 519}
-      - {h: "Database", l: 520, e: 525}
-      - {h: "Inline Documentation", l: 526, e: 527}
-      - {h: "When to Write Comments", l: 528, e: 540}
-      - {h: "Example", l: 541, e: 566}
+      - {h: "Documentation Standards", l: 9, e: 10}
+      - {h: "API Documentation", l: 11, e: 14}
+      - {h: "C++ Documentation (Doxygen)", l: 15, e: 74}
+      - {h: "Kotlin Documentation (KDoc)", l: 75, e: 122}
+      - {h: "Python Documentation (Docstrings)", l: 123, e: 189}
+      - {h: "TypeScript Documentation (TSDoc)", l: 190, e: 249}
+      - {h: "README Files", l: 250, e: 253}
+      - {h: "Template", l: 254, e: 256}
+      - {h: "Project Name", l: 257, e: 260}
+      - {h: "Features", l: 261, e: 266}
+      - {h: "Prerequisites", l: 267, e: 272}
+      - {h: "Installation", l: 273, e: 274}
+      - {h: "Quick Start", l: 275, e: 277}
+      - {h: "Clone the repository", l: 278, e: 281}
+      - {h: "Install dependencies", l: 282, e: 284}
+      - {h: "Build", l: 285, e: 288}
+      - {h: "Run tests", l: 289, e: 292}
+      - {h: "Detailed Installation", l: 293, e: 296}
+      - {h: "Usage", l: 297, e: 298}
+      - {h: "Basic Example", l: 299, e: 311}
+      - {h: "Advanced Usage", l: 312, e: 315}
+      - {h: "Configuration", l: 316, e: 328}
+      - {h: "API Documentation", l: 329, e: 334}
+      - {h: "Documentation in docs/html/index.html", l: 335, e: 337}
+      - {h: "Development", l: 338, e: 339}
+      - {h: "Building from Source", l: 340, e: 343}
+      - {h: "Running Tests", l: 344, e: 349}
+      - {h: "Code Style", l: 350, e: 359}
+      - {h: "Contributing", l: 360, e: 363}
+      - {h: "Architecture", l: 364, e: 367}
+      - {h: "License", l: 368, e: 371}
+      - {h: "Authors", l: 372, e: 375}
+      - {h: "Acknowledgments", l: 376, e: 381}
+      - {h: "Support", l: 382, e: 388}
+      - {h: "CHANGELOG", l: 389, e: 392}
+      - {h: "Format", l: 393, e: 395}
+      - {h: "Changelog", l: 396, e: 402}
+      - {h: "[Unreleased]", l: 403, e: 404}
+      - {h: "Added", l: 405, e: 407}
+      - {h: "Changed", l: 408, e: 410}
+      - {h: "Deprecated", l: 411, e: 413}
+      - {h: "Removed", l: 414, e: 416}
+      - {h: "Fixed", l: 417, e: 419}
+      - {h: "Security", l: 420, e: 422}
+      - {h: "[1.2.0] - 2025-11-02", l: 423, e: 424}
+      - {h: "Added", l: 425, e: 429}
+      - {h: "Changed", l: 430, e: 433}
+      - {h: "Fixed", l: 434, e: 437}
+      - {h: "[1.1.0] - 2025-10-15", l: 438, e: 439}
+      - {h: "Added", l: 440, e: 443}
+      - {h: "Changed", l: 444, e: 446}
+      - {h: "Deprecated", l: 447, e: 449}
+      - {h: "Fixed", l: 450, e: 452}
+      - {h: "[1.0.0] - 2025-09-01", l: 453, e: 454}
+      - {h: "Added", l: 455, e: 466}
+      - {h: "Version Number Guidelines", l: 467, e: 474}
+      - {h: "Architecture Documentation", l: 475, e: 476}
+      - {h: "High-Level Architecture", l: 477, e: 479}
+      - {h: "Architecture Overview", l: 480, e: 481}
+      - {h: "System Architecture", l: 482, e: 506}
+      - {h: "Component Descriptions", l: 507, e: 508}
+      - {h: "API Layer", l: 509, e: 513}
+      - {h: "Business Logic", l: 514, e: 518}
+      - {h: "Database", l: 519, e: 524}
+      - {h: "Inline Documentation", l: 525, e: 526}
+      - {h: "When to Write Comments", l: 527, e: 539}
+      - {h: "Example", l: 540, e: 565}
   - path: "project/.claude/skills/git-status/SKILL.md"
     title: "Git Status Command"
     description: ""
@@ -6997,7 +7007,7 @@ documents:
     description: ""
     category: config
     scope: project
-    size: 2885
+    size: 3215
     tags: [config,project]
     sections:
       - {h: "Auto-Loaded Rules", l: 6, e: 15}
@@ -7005,7 +7015,7 @@ documents:
       - {h: "Reference Docs", l: 33, e: 45}
       - {h: "Agents", l: 46, e: 49}
       - {h: "Skills", l: 50, e: 53}
-      - {h: "MCP", l: 54, e: 57}
+      - {h: "MCP", l: 59, e: 62}
   - path: "project/VERSION_HISTORY.md"
     title: "Project Guidelines Version History"
     description: ""

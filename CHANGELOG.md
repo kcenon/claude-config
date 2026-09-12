@@ -5,7 +5,407 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## 1.13.0 - 2026-09-13
+
+### Added
+
+- `global/hooks/edit-guard-dispatcher.ps1` is now the sole `PreToolUse`/
+  `Edit|Write|Read` hook in `global/settings.windows.json`, replacing three
+  separate registrations (`sensitive-file-guard`, `pre-edit-read-guard`,
+  `memory-write-guard`). Same problem and same pattern as the Bash dispatcher
+  below: each registration spawned its own `pwsh -NoProfile`, so one file
+  operation started three processes. Measured on the Windows profile, 5 runs
+  each with the same payload: three-process chain p50 1,068ms (spread 21ms)
+  versus dispatcher p50 410ms (spread 36ms), -61.6%. `memory-write-guard` is
+  prefiltered to `memory-shared` paths, so ordinary edits no longer pay for its
+  three `bash` subprocesses at all. Issue #920.
+  Note for future measurements: the `Edit|Write|Read` matcher served as the
+  untouched control in the 2026-08-23 re-measurement of the Bash dispatcher
+  (flat at 415/437/448/426ms across four transitions). This change consumes that
+  control — a later segmentation of Bash-channel numbers can no longer treat this
+  matcher as a fixed baseline.
+- `tests/hooks/test-edit-guard-dispatcher.ps1` (11 assertions) covering routing,
+  fail-closed behaviour, payload delivery through the `Read-HookInput` cache
+  (asserted on the deny *reason*, since a decision-only assertion cannot tell a
+  working cache from a broken one), and the short-circuit invariant. The
+  short-circuit check is paired with a positive control: a denied path must be
+  absent from the read-set tracker *and* an ordinary path must still be recorded,
+  otherwise the same assertion would pass if short-circuiting had killed track
+  mode outright.
+- `tests/scripts/test-hook-ordering.sh` (the #424 regression test) now follows a
+  lone dispatcher registration into its routing table instead of reading the
+  settings file alone, so the guard order it guards is still checked on Windows.
+  It also asserts `shortCircuit = $true` on `sensitive-file-guard`: order alone
+  never enforced the contract, so dropping the flag would silently reintroduce
+  #424 while leaving the order intact. Verified by mutation — flipping the flag
+  to `$false` fails both this test and the tracker assertion in
+  `test-edit-guard-dispatcher.ps1`, the latter by recording a denied `.env` path.
+- `global/hooks/bash-guard-dispatcher.ps1` is now shipped from the repository
+  and registered as the sole `PreToolUse`/`Bash` hook in
+  `global/settings.windows.json`, replacing 15 separate registrations. Each
+  registration spawned its own `pwsh -NoProfile`, so one Bash tool call started
+  15 processes; the dispatcher pays that cost once and invokes only the guards
+  whose command family is present. Measured on the Windows profile (5 runs
+  each): 15-hook registration p50 1,002ms (spread 919-1,063ms) versus
+  dispatcher p50 541ms (spread 529-549ms). The 1,002ms baseline matches the
+  p50 observed in session transcripts, so the bench tracks the shipped path.
+  The collapsed spread matters as much as the median: the same scan window
+  recorded 90 hook timeouts (81 Bash, 6 Read, 3 Edit), which are the tail of
+  process contention rather than slow guard logic.
+  The caveat from the 2026-07-27 attempt is unchanged: an isolated bench is not
+  a session measurement, and that attempt's 863->446ms never reproduced in real
+  sessions. Re-measure from transcript p50 once several hundred calls have
+  accumulated.
+  Re-measured 2026-08-23 over 61,780 transcript hook runs, and the caveat does
+  not survive its own test. Segmented by configuration, `PreToolUse:Bash` p50
+  runs 828ms on 15 hooks, 424ms on the 2026-07-27 prototype, 908ms after that
+  prototype was reverted, and 534ms on the shipped dispatcher: -35.5% against
+  the pre-consolidation baseline. So the 2026-07-27 bench did reproduce; the
+  check that reported otherwise straddled the reverted window, where the
+  channel was back on 15 hooks. The `Edit|Write|Read` matcher, untouched by all
+  four transitions, is flat at 415/437/448/426ms across them and serves as the
+  control. Table and method in `HOOKS.md`; a naive before-and-after split at
+  2026-07-27 reports no improvement and should not be used.
+- `tests/hooks/test-bash-guard-dispatcher.ps1` (9 assertions) covering routing,
+  fail-closed behaviour, and - the property no decision-only assertion can see -
+  that the payload actually reaches each guard. Verified by mutation: with the
+  cache below reverted, a benign `git status --short` is denied and the suite
+  fails 2 assertions.
+- The enterprise install tree is manifest-tracked on Windows. It was deployed
+  by two bare `Copy-Item` calls that no manifest recorded, which made it the
+  only layer in the cascade with no integrity mechanism -- and the
+  highest-precedence one, since Claude Code loads it as managed policy. A
+  three-way audit that classified 270 of 278 tracked files could say nothing
+  about these three, and the one real difference surfaced only by hashing them
+  by hand: `C:\Program Files\ClaudeCode\rules\compliance.md` is 1574 B against
+  the repo's 1983 B, missing the Scope note added by `e345d36` (#705), with all
+  three live files dated 2026-03-04. `Install-Enterprise` now repoints
+  `MANIFEST_PATH` at `<enterprise-dir>/.install-manifest.json` and copies
+  through `Invoke-ManifestTrackedCopy` / `Copy-ManifestTree`. The root needs its
+  own manifest file rather than a key prefix, because the global tree already
+  tracks a key named `CLAUDE.md` and a shared manifest would have the two roots
+  overwrite each other's stored hash. The repoint is unwound in a `finally`:
+  `Write-ManifestFiles` has no error handling and the script runs under
+  `$ErrorActionPreference = 'Stop'`, so a throw would otherwise leave
+  `MANIFEST_PATH` aimed at `C:\Program Files` for the rest of the install. The
+  helper is also loaded inside `Install-Enterprise`, since install type 4 never
+  enters the global block that dot-sources it. Prune is deliberately not run
+  for this root: tracking makes drift visible, while deleting out of a
+  managed-policy directory is a separate decision. `enterprise/**` is added to
+  the `validate-hooks.yml` paths filter, which previously matched nothing, so a
+  PR touching only `enterprise/rules/*.md` ran no workflow at all. POSIX is not
+  covered -- those roots are written with `sudo` and
+  `scripts/install-manifest.sh` has no elevation path -- and is tracked as a
+  follow-up. (#903)
+- `Install-Enterprise` reports what is on disk instead of what the copy helpers
+  returned. Two paths were wrong. A throw from the `CLAUDE.md` copy or the
+  manifest write unwound past the function -- only the rules copy had a `catch`
+  -- so under `$ErrorActionPreference = 'Stop'` the state stayed `'skipped'` and
+  the closing summary never ran, which is the same failure #905 added the state
+  variable to prevent. And the success lines were printed unconditionally:
+  `Invoke-ManifestTrackedCopy` returns `$true` for a real write, for a
+  destination already byte-identical, and for a **missing source** alike, while
+  `Copy-ManifestTree` discards every per-file result, so a file kept at the
+  divergence prompt was reported as installed. That mattered concretely: on a
+  first run there is no manifest, so a stale file has no stored hash, falls to
+  the divergence branch, and a bare Enter keeps it -- the exact drift the
+  tracking exists to expose could survive a run that declared success. The
+  function now records each destination's hash before the copies and reports
+  `updated` / `already current` / `kept local` / `source missing` from a
+  comparison afterwards, and a kept file yields a new `installed-with-kept`
+  state that the summary renders by naming each file left behind. Pinned by
+  seven assertions, all verified to fail against the pre-change file, plus a
+  behavioural test in `test-install-manifest-helpers.ps1` fixing the
+  three-outcomes-one-return-value fact the old reporting relied on. (#910)
+- `scripts/install.ps1` declares `#Requires -Version 7.0` instead of `5.1`. It
+  uses the three-argument `Join-Path` (`-AdditionalChildPath`, PowerShell 6+
+  only) at `:335` and `:538`, so the old floor admitted an interpreter that
+  cannot run the script -- measured on Windows PowerShell 5.1.26100.9168,
+  `Join-Path a b c` fails with "A positional parameter cannot be found that
+  accepts argument 'c'". Because `:538` runs after `Confirm-ClaudeCli` and the
+  install-type prompt, a 5.1 user answered questions and then hit a parameter
+  error naming `InstallPrompts.psm1`, rather than being refused up front. The
+  file also contradicted itself: the comment above the directive already said
+  PowerShell 7. `install.ps1` was the only outlier -- `bootstrap.ps1`,
+  `scripts/backup.ps1`, `scripts/sync.ps1` and `scripts/verify.ps1` already
+  declared 7.0 -- and no `Join-Path` call was changed, since the call sites are
+  correct and the deployed hooks already run under `pwsh`.
+  `tests/scripts/test-installer-robustness.sh` now pins the declaration on all
+  five entry points so it cannot drift from the syntax again. (#911)
+- `project/CLAUDE.md` now says what makes a skill invocable. The `## Skills`
+  section listed eleven names and stopped there, while availability is decided
+  by `skillOverrides` in `.claude/settings.local.json` -- a file no installer
+  creates and `.gitignore` excludes, so the list can never reflect it. On the
+  machine where this surfaced, nine of the eleven were switched off and nothing
+  in `CLAUDE.md` pointed there; a disabled skill fails silently, so the reader
+  has no way to connect the two. The list is kept, because it is accurate: all
+  eleven names match directories under `project/.claude/skills/`, and the
+  shipped `settings.local.json.template` declares no `skillOverrides`, so on a
+  fresh checkout every listed skill really is enabled. That default is now
+  stated too, so the caveat is not misread as "the list is unreliable".
+  `## Agents` is unchanged: its eight names are equally accurate and there is no
+  per-agent disable mechanism to warn about. (#908)
+- The enterprise install tree is manifest-tracked on POSIX too, completing the
+  Windows half above. `install_enterprise` in `scripts/install.sh` carried the
+  same bare-copy defect in triplicate -- three near-identical branches (sudo
+  POSIX, plain POSIX, Windows-under-bash), each with its own pair of copies --
+  which is how the defect survived there at all; they are now one deployment
+  path preceded by a privilege decision. The blocker was that the POSIX
+  enterprise root is root-owned while every write primitive in
+  `scripts/install-manifest.sh` is unprivileged. Resolved with
+  `MANIFEST_ELEVATE`, an opt-in command prefix consulted by a new
+  `_manifest_run`: it is empty for every existing caller, and an empty value
+  makes the helper collapse to `"$@"`, so the global and project layers execute
+  byte-identically to before. `install_enterprise` sets it to `sudo` only on the
+  branch where the destination's parent is not writable. The merged manifest
+  document is built unprivileged in a temp file and only its placement is
+  elevated -- reading the existing manifest needs no privilege, and keeping the
+  JSON step out of `sudo` avoids the environment stripping its inline variables
+  depend on. The deployed manifest is left mode 644 so a drift audit needs no
+  elevation. The helper is sourced inside `install_enterprise`, which runs
+  before the global block that sources it and is skipped entirely for
+  `INSTALL_TYPE=4`, and `MANIFEST_PATH` is restored afterwards because a leaked
+  value would redirect the whole `~/.claude` manifest into the enterprise root.
+  Prune stays off here, matching Windows. (#906)
+- The installer's closing summary no longer claims an enterprise deployment
+  that did not happen. It printed the enterprise paths under "Installed files:"
+  for install types 4 and 5 unconditionally, including when `Install-Enterprise`
+  had returned early because administrator rights were missing or because the
+  operator declined to deploy an uncustomized template. Each exit path now
+  records its outcome and the summary reports it. (#903)
+- `global/hooks/prune-permission-rules.{sh,ps1}`, a `SessionEnd` hook that
+  removes `permissions.allow` entries from the project-scope
+  `.claude/settings.local.json` that can never match again. One measured file
+  held 1,738 entries, 67% of them permanently unreachable, and a manual cleanup
+  grew back to four digits within a month. Removed: denylisted
+  unbounded-argument rules, entries carrying a session UUID path, compound
+  entries containing `;` or `|`, literals over 120 characters, and entries
+  subsumed by a broader `Tool(prefix:*)` rule in the same file;
+  `Tool(prefix:*)` rules and bare tool names are kept. The target comes from
+  the payload's `cwd`, never a fixed path. The hook filters lines rather than
+  round-tripping the JSON, so kept entries are written back byte for byte; it
+  fails open (a malformed file, a missing `cwd`, or any IO error leaves the file
+  byte-identical and exits 0); it replaces atomically through a temp file in
+  the target's own directory; and it discards a candidate that does not
+  re-parse or that changes any key other than the pruned array, so
+  `skillOverrides` cannot be lost. `SessionEnd` was confirmed as the right
+  event by measurement: the pruned file's hash survived the process exit and
+  was the next session's starting hash. Wired into both settings profiles; the
+  `COMPATIBILITY.md` parity row moves from 38/38 to 39/39. (#923)
+
+### Changed
+
+- `Read-HookInput` (`global/hooks/lib/CommonHelpers.psm1`) caches its parsed
+  payload for the lifetime of the process. stdin can only be drained once, so
+  when the dispatcher reads it and then invokes guards in-process, the guards'
+  own `Read-HookInput` calls would otherwise see `$null` - fail-closed guards
+  denying every call, fail-open guards silently no longer checking. The cache
+  is in the GLOBAL scope on purpose: every guard re-imports the module with
+  `-Force`, which resets module scope. Guards invoked standalone run in a fresh
+  process, so they read stdin exactly as before (200 assertions across the five
+  existing `.ps1` guard suites pass unchanged).
+  This replaces the 2026-07-27 approach of adding a `-HookInput` parameter to
+  all 15 guards, whose revert surface was 15 files; all 15 had in fact been
+  reverted to their pre-consolidation contents by 2026-08-01, leaving the
+  dispatcher unwireable.
+- `bash-guard-dispatcher.ps1` now fails CLOSED on unparseable input, matching
+  `dangerous-command-guard`, which denies on the same condition. Allowing there
+  would have quietly weakened that guarantee once the guards stopped being
+  registered individually.
+- The `.sh`/`.ps1` parity audit in `.github/workflows/validate-hooks-doc.yml`
+  and its `COMPATIBILITY.md` count now exempt `global/hooks/*-dispatcher.*`. The
+  audit's premise is that every file there is a guard with a per-platform
+  implementation; a dispatcher is an execution strategy instead. A `.sh` twin
+  would be a dormant unwired file, which is the condition the audit exists to
+  catch, and POSIX has nothing to consolidate anyway (a cheap `bash` per guard,
+  not a `pwsh` cold start). The guard twin rule is unchanged - an unpaired guard
+  still fails - and Windows guard coverage moves to the routing-table check
+  below rather than disappearing. Guard counts stay 38/38, so the
+  `COMPATIBILITY.md` parity row is unchanged.
+- `tests/scripts/test-windows-hooks-parity.sh` expands a `bash-guard-dispatcher`
+  registration to the guard names in the dispatcher's routing table before
+  diffing. Comparing 14 POSIX guards against one dispatcher entry would
+  otherwise have required an allow-list broad enough to void the test; the
+  parity guarantee is instead preserved at the routing table, where a guard can
+  now actually go missing. Verified by mutation: dropping `push-target-guard`
+  from the routing table fails the test and names that guard.
+- `ci-fix`, `fleet-orchestrator`, and `preflight` now carry
+  `disable-model-invocation: true`, so all 19 `_internal` skills are hidden
+  from the model-facing skill listing instead of 16 of them. The three held
+  1,369 chars (~342 est. tokens) of resident context per session for zero
+  model invocations across 50 local sessions, and all three are reached
+  through the Skill Aliases table in `global/CLAUDE.md` regardless.
+  `user-invocable: true` is unchanged, so the keyword path still works.
+  Counting rule for anyone auditing this: alias invocation never increments
+  `skillUsage`, so a zero counter is not evidence of disuse. (#896)
+- `HOOKS.md` documents the `PreToolUse`/`Bash` topology as it is configured.
+  Sections 10-15 described individually-registered guards with per-guard
+  timeouts, which is still true on POSIX but has not been true on Windows since
+  the dispatcher landed. A new "Bash Guard Dispatcher (Windows)" section covers
+  the routing table, the fail-closed/fail-open classification, the 25 s
+  internal budget, and the standalone-invocation contract, and the affected
+  guard sections now say which platform their timeout applies to. (#898)
+
+### Fixed
+
+- `project/.claude/rules/project-management/documentation.md` no longer
+  declares `**/*.md` in its `paths:` frontmatter; `**/docs/**`, `**/README*`
+  and `**/CHANGELOG*` remain. The glob made the 14,127-byte rule body
+  (Doxygen, KDoc, docstring and TSDoc templates plus README/CHANGELOG
+  skeletons — content for authoring API docs) load on every markdown read,
+  including reads of the rules, docs and `CLAUDE.md` files themselves, at a
+  cost larger than all six `alwaysApply` rules combined. The `mode: exact`
+  twin at `project/.claude/skills/documentation/reference/documentation.md`
+  carries the same frontmatter, and the `documentation` skill's inline
+  `paths:` in `project/.claude/skills/documentation/SKILL.md` and
+  `plugin/skills/documentation/SKILL.md` drops `**/*.md` as well, so a
+  markdown file outside `docs/`, `README*` or `CHANGELOG*` injects neither.
+  `README.md`, `README.ko.md` and `docs/architecture-review-skills-rules.md`
+  publish the narrowed trigger, and `docs/.index/manifest.yaml` follows the
+  size and section-line changes. No validator logic changes: the
+  `CATCH-ALL-GLOB` check in `scripts/validate-rule-frontmatter.sh` only
+  matches the literal universal glob, and a markdown special case is a
+  separate policy decision. (#922)
+- Files denied by `sensitive-file-guard` were still being recorded in
+  `pre-edit-read-guard`'s read-set tracker. `global/settings.windows.json` has
+  documented the opposite since #424/#521 ("sensitive-file-guard must run before
+  pre-edit-read-guard so denied files are not tracked"), but hook order alone
+  cannot enforce it: the harness runs the remaining `PreToolUse` hooks even after
+  one denies. Across 212 denied `Edit|Write|Read` calls in a local transcript
+  window, none recorded all three guards while guards after the denying one still
+  ran, and two live read-set trackers contained `*.env` paths that
+  `sensitive-file-guard` denies. Consolidating into `edit-guard-dispatcher.ps1`
+  moves ordering in-process, where a deny from `sensitive-file-guard`
+  short-circuits the chain and the invariant actually holds. Impact was contained
+  rather than exploitable — the guard denies the follow-up `Edit` as well, and
+  `permissions.deny` carries `Edit(.env)` entries — but the containment was
+  incidental. Issue #920.
+- `git-identity.md` was copied under manifest guard and then rewritten in place
+  by the identity seeder, which never updated the manifest. From that moment
+  the manifest described a file that no longer existed on disk, so the next
+  install found `srcSha != destSha` and `destSha != storedSha`, fell through to
+  the divergence branch, and prompted the user to keep or overwrite a change
+  the installer itself had made -- on every run, on both platforms. A drift
+  audit on 2026-08-24 classified 281 of 282 manifest-tracked files as in sync;
+  the single exception was this file. The seeder now runs on a staged copy of
+  the source before the guarded copy, matching the shape
+  `Invoke-GuardedTemplateCopy` already uses, so the manifest records what was
+  deployed. Two further defects in the same block: the substitution was
+  document-wide and rewrote the sentence explaining what the placeholders are
+  ("replace the `YOUR NAME` / `YOUR EMAIL` placeholders by hand" came out
+  naming the substituted values), and `Set-GitIdentitySeed` reported through
+  `$script:` variables from inside a module, so both PowerShell installers
+  printed `auto-filled from git config ( <>)` with empty values. The
+  substitution is now anchored to the `name:` and `email:` lines and the
+  function returns the values it seeded. `seed_git_identity` had no behavioural
+  test at all; `tests/scripts/test-install-prompts.sh` is new. (#916)
+- Publishing `~/.claude/settings.json` discarded every top-level key the repo
+  profile does not define. All four full-install entry points stage the
+  profile, inject the language policy into the staged copy, and move it over
+  the destination; the destination was never read as part of that, and the only
+  reads anywhere in the install recover two language values for the policy
+  prompt. Measured on a live machine: three keys gone (`model`,
+  `agentPushNotifEnabled`, `skipWorkflowUsageWarning`) plus `effortLevel` reset
+  from `xhigh` to the profile's `high`, all four written by in-app controls
+  rather than by hand-editing, and the run printed a green success line
+  regardless. The staged copy now takes machine-local keys from the deployed
+  file before the policy injection, so the policy still wins on the keys it
+  owns: `language`, `permissions`, and `hooks` always come from the repo, and
+  `env` is merged one level with the profile winning per key. `effortLevel` is
+  the sole repo-defined key treated as runtime state, since `/effort` writes
+  it. The run now names what it preserved. #780 solved this shape for two keys;
+  this generalizes it. (#915)
+- `scripts/verify.ps1` reported two failures that no non-destructive Windows
+  action could clear -- `DIFF: settings.json` and `MISS: .claudeignore`, 176 of
+  178 checks passing since before this release. Two unrelated causes.
+  `global/.claudeignore` was deployed only by `install.sh`, although
+  `docs/CLAUDE_DOCKER_CONTRACT.md` guarantees it under `~/.claude/` after a full
+  install from any of the four entry points and claude-docker's entrypoint
+  mirrors that layout into the container; `install.ps1`, `bootstrap.ps1`, and
+  `bootstrap.sh` now deploy it too, manifest-tracked under key `.claudeignore`.
+  Separately, the `settings.json` sync check compared the deployed file against
+  `global/settings.json` even on Windows, where the published file comes from
+  `global/settings.windows.json` -- and, more fundamentally, compared them line
+  by line when the installer republishes settings.json through
+  `ConvertTo-Json` (`jq` on POSIX) rather than copying bytes. Measured against
+  the correct profile, 11 of ~516 lines matched in order for two files that
+  differ by three top-level keys and one value, so the check could not pass on
+  either platform. Both verifiers now select the profile the platform publishes
+  and compare `permissions` and `hooks` semantically, leaving machine-local
+  scalar preferences to #915. Prior art the earlier gates missed: #586 and #781
+  added filename-specific parity checks that a non-hook `global/` asset walks
+  past, and #821 gates settings parity between the two repo profiles rather
+  than between the deployed file and its source. (#914)
+- `scripts/install.sh` no longer copies `global/tmux.conf` to
+  `~/.claude/tmux.conf`. tmux reads `~/.tmux.conf`, which `bootstrap.sh` and
+  `bootstrap.ps1` install on both platforms; the `~/.claude/` copy was read by
+  nothing, is absent from the guaranteed subtree, and was the only `global/`
+  payload the two installers disagreed on. (#914)
+- The three `PreToolUse` guards on the `Edit|Write|Read` matcher ran with
+  `timeout: 5` while the Bash channel used 30. Nineteen runs exceeded that
+  budget locally, and every one was followed by a successful tool call: a
+  PreToolUse timeout is fail-open, so an over-budget security guard is skipped
+  rather than given the chance to deny. The timeouts arrive in bursts of three
+  with near-identical durations, meaning all three guards of one call die at
+  the same deadline and that call runs with no coverage at all. Raised to 30 s,
+  which covers the 11,141ms worst case over 35,276 runs with 2.7x headroom and
+  would have prevented all nineteen. This reduces exposure without removing it
+  (the Bash channel still recorded seven timeouts at 30 s), so `HOOKS.md` now
+  states the fail-open semantics and how to distinguish a timeout from an Esc
+  rather than leaving them to be rediscovered. (#897)
+- Both settings profiles declared `"minimumVersion": "2.2.0"`, a floor above
+  every shipped Claude Code release, so installing either one pinned the CLI at
+  whatever version it already had. This is an *update floor*, not a startup
+  guard: the CLI launches normally, which is why the setting looked inert when
+  it was checked by running `claude -p`. `claude update` is where it bites, and
+  it names itself when it does -- observed on 2.1.199: "The latest channel is at
+  2.1.201, which is below your minimumVersion setting (2.2.0). Staying on
+  2.1.199." Removed from `global/settings.json` and
+  `global/settings.windows.json`; fixing only one would have left the same trap
+  armed for the other platform. `COMPATIBILITY.md` now records the update-floor
+  semantics, the observed recognition at 2.1.199 (the previous "2.2.0+" implied
+  the key was ignored below that), and the rule that any value must be a
+  version that has already shipped. The key remains valid in
+  `scripts/schemas/settings-json.schema.json`; this repo simply does not set
+  it. (#902)
+- The nightly Batch Drift Regression failed on every scheduled run the API
+  lists (2026-08-27 onward) without ever reaching the thresholds it was written
+  for: the repository has no `SCRATCH_REPO_TOKEN` or `ANTHROPIC_API_KEY`
+  secret, so seeding exited 3 ("gh CLI not authenticated") and the report step
+  then failed on the missing summary. A new "Check credentials" step writes
+  "skipped" to the job summary and succeeds when either secret is unset, and
+  every later step is gated on the credentials being present. "Fail job on
+  threshold breach" is unchanged, so a credentialed run that breaches a
+  threshold or produces no summary still fails. `batch-drift-regression.yml`
+  and `check-anthropic-installer.yml` now open with a comment stating what a
+  failure means and who acts on it. (#929)
+
+### Security
+
+- The pinned sha256 of the upstream Anthropic installer
+  (`https://claude.ai/install.sh`) is rotated from `b315b46925a9...d830`
+  (pinned 2026-05-03) to
+  `3a68d3406cf674e17bed1733a4dcf37805e2e47d87417700007d7e1aa766a944` in
+  `bootstrap.sh` and `scripts/install.sh`. Upstream changed the script, so
+  `hooks/lib/installer-fetch.sh` aborted on the mismatch and installing the
+  claude CLI through either entry point failed unless
+  `ANTHROPIC_INSTALLER_SHA256` was overridden; the weekly installer drift check
+  had failed on every run the API lists since 2026-06-15. As
+  `docs/SUPPLY_CHAIN.md` requires, the reviewer re-computed the hash
+  independently and read the full current script: it contacts only
+  `downloads.claude.ai` and verifies the downloaded binary against the manifest
+  sha256 before running it. No earlier copy existed to diff against.
+  `bootstrap.ps1` pins `https://claude.ai/install.ps1` separately; that
+  installer has drifted too, is not covered by the drift check, and is not
+  rotated here. (#929)
+
+### Known limitation
+
+- The POSIX channel (`global/settings.json`) still registers its 14 `.sh`
+  guards individually. The same stdin-drain constraint applies there, so a
+  `.sh` dispatcher needs its own payload-passing mechanism and its own
+  verification; shipping one unvalidated alongside a Windows-only measurement
+  would be guesswork. Tracked as follow-up.
 
 ## 1.12.0 - 2026-08-01
 

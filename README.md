@@ -1,7 +1,7 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
-  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.12.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.13.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
 </p>
@@ -580,6 +580,8 @@ The default enterprise template includes:
 
 Customize `enterprise/CLAUDE.md` according to your organization's policies before deployment.
 
+Both installers record a SHA-256 manifest for this tree at `<enterprise-dir>/.install-manifest.json`. A re-install then keeps a locally edited policy file instead of overwriting it, and a drift check can tell a stale deployment apart from an edited one. Set `BOOTSTRAP_FORCE=1` to overwrite without the prompt. On POSIX the copies and the manifest placement run through `sudo` when the enterprise root is not writable; the manifest itself is left readable so an audit needs no elevation. Retired rules are not deleted. See [docs/install.md](docs/install.md).
+
 ---
 
 ## Personal Settings (CLAUDE.local.md)
@@ -608,7 +610,7 @@ Rules are modular configuration files in `.claude/rules/` that are conditionally
 | `coding.md` | `**/*.ts`, `**/*.py`, `**/*.go`, etc. | General coding standards |
 | `testing.md` | `**/*.test.ts`, `**/test_*.py`, etc. | Testing conventions |
 | `security.md` | All code files | Security best practices |
-| `documentation.md` | `**/*.md`, `**/docs/**` | Documentation standards |
+| `documentation.md` | `**/docs/**`, `**/README*`, `**/CHANGELOG*` | Documentation standards |
 | `api/rest-api.md` | `**/api/**`, `**/routes/**` | REST API design patterns |
 
 ### How Rules Work
@@ -955,7 +957,7 @@ cp -r ~/project/.claude ~/claude_config_backup/project/
 # When using bootstrap.sh
 GITHUB_USER=your-username \
 GITHUB_REPO=your-repo \
-GITHUB_REF=v1.12.0 \
+GITHUB_REF=v1.13.0 \
 INSTALL_DIR=~/my-claude-config \
 bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh)"
 ```
@@ -964,7 +966,7 @@ bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main
 |----------|---------|---------|
 | `GITHUB_USER` | `kcenon` | GitHub user/org owning the repo |
 | `GITHUB_REPO` | `claude-config` | Repository name |
-| `GITHUB_REF` | latest release tag (e.g. `v1.12.0`) | Tag, branch, or commit to clone. Pinning to a tag is SLSA-aligned supply-chain hardening — the install is reproducible and resistant to a transient compromise of `main`. Override with `develop` only for development testing. |
+| `GITHUB_REF` | latest release tag (e.g. `v1.13.0`) | Tag, branch, or commit to clone. Pinning to a tag is SLSA-aligned supply-chain hardening — the install is reproducible and resistant to a transient compromise of `main`. Override with `develop` only for development testing. |
 | `INSTALL_DIR` | `~/claude_config_backup` | Where to clone the repo |
 
 > **Deprecated**: `GITHUB_BRANCH` is preserved as a one-release alias for `GITHUB_REF` and emits a stderr deprecation warning when set. Migrate to `GITHUB_REF` before the next major release.

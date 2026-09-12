@@ -31,7 +31,7 @@ if [ -n "${GITHUB_BRANCH:-}" ]; then
     echo "warning: GITHUB_BRANCH is deprecated, use GITHUB_REF" >&2
     GITHUB_REF="${GITHUB_REF:-$GITHUB_BRANCH}"
 fi
-GITHUB_REF="${GITHUB_REF:-v1.12.0}"
+GITHUB_REF="${GITHUB_REF:-v1.13.0}"
 
 # Anthropic Claude Code installer pin (M1.2b — supply-chain hardening, see #565).
 # The Anthropic-hosted install script is pinned by sha256 to prevent MITM
@@ -39,7 +39,7 @@ GITHUB_REF="${GITHUB_REF:-v1.12.0}"
 # workflow `.github/workflows/check-anthropic-installer.yml` fails when the
 # upstream sha256 deviates from this value.
 ANTHROPIC_INSTALLER_URL="${ANTHROPIC_INSTALLER_URL:-https://claude.ai/install.sh}"
-ANTHROPIC_INSTALLER_SHA256="${ANTHROPIC_INSTALLER_SHA256:-b315b46925a9bfb9422f2503dd5aa649f680832f4c076b22d87c39d578c3d830}"  # pinned 2026-05-03
+ANTHROPIC_INSTALLER_SHA256="${ANTHROPIC_INSTALLER_SHA256:-3a68d3406cf674e17bed1733a4dcf37805e2e47d87417700007d7e1aa766a944}"  # pinned 2026-09-10
 
 # 설치 디렉토리
 INSTALL_DIR="${INSTALL_DIR:-$HOME/claude_config_backup}"
@@ -399,6 +399,11 @@ install_bootstrap_settings_and_hooks() {
     rm -f "$settings_tmp"
     cp "$settings_src" "$settings_tmp" || error "settings.json 스테이징 실패"
 
+    # Carry machine-local keys forward before the policy injection, so the
+    # policy still wins on the keys it owns (issue #915).
+    local carried_keys
+    carried_keys="$(merge_local_settings_keys "$settings_tmp" "$settings_dst" | tr '\n' ' ' | sed -e 's/ *$//')"
+
     if update_claude_settings_json "$settings_tmp" "$agent_language" "$content_language"; then
         settings_updated=1
     fi
@@ -418,6 +423,9 @@ install_bootstrap_settings_and_hooks() {
         error "settings.json 게시 실패"
     }
 
+    if [ -n "$carried_keys" ]; then
+        info "machine-local settings keys preserved: $carried_keys"
+    fi
     if [ "$settings_updated" = "1" ]; then
         success "settings.json (에이전트: $agent_language, 컨텐츠: $content_language) 설치 완료"
     else
@@ -441,24 +449,35 @@ install_global() {
     source "$INSTALL_DIR/scripts/lib/install-prompts.sh"
 
     # 파일 복사 (매니페스트 가드: 로컬 편집은 기본적으로 유지)
+    #
+    # git-identity.md is seeded on a staged copy of the SOURCE, never on the
+    # deployed file. Seeding afterwards left the manifest holding the repo hash
+    # while the file on disk held the seeded one, so the next install saw a
+    # divergence it had created itself and prompted for it, every time (#916).
     for gf in CLAUDE.md commit-settings.md git-identity.md token-management.md; do
         src="$INSTALL_DIR/global/$gf"
         dest="$CLAUDE_DIR/$gf"
         [ -f "$src" ] || continue
+        seed_tmp=""
+        if [ "$gf" = "git-identity.md" ]; then
+            seed_tmp="$(mktemp)"
+            cp "$src" "$seed_tmp"
+            if seed_git_identity "$seed_tmp"; then
+                src="$seed_tmp"
+                success "git-identity.md: git config로 자동 채우기 완료 (${SEED_GIT_IDENTITY_NAME} <${SEED_GIT_IDENTITY_EMAIL}>)"
+            else
+                rm -f "$seed_tmp"
+                seed_tmp=""
+            fi
+        fi
         if manifest_copy_file "$src" "$dest" "$gf"; then
             success "$gf 설치됨"
         else
             info "$gf 로컬 변경 유지"
         fi
+        [ -n "$seed_tmp" ] && rm -f "$seed_tmp"
     done
-
-    # Auto-seed git identity from `git config --global` (issue #777). Shared
-    # with scripts/install.sh via seed_git_identity() in install-prompts.sh, so
-    # the later personalize_git_identity step becomes confirm-only whenever the
-    # user already has a global git identity configured.
-    if seed_git_identity "$CLAUDE_DIR/git-identity.md"; then
-        success "git-identity.md: git config로 자동 채우기 완료 (${SEED_GIT_IDENTITY_NAME} <${SEED_GIT_IDENTITY_EMAIL}>)"
-    fi
+    unset seed_tmp
 
     # Reinstall: keep the previously chosen language policy (issue #780).
     seed_language_from_settings "$HOME/.claude/settings.json"
@@ -488,6 +507,17 @@ install_global() {
                 manifest_track_key "conversation-language.md"
                 info "conversation-language.md 로컬 변경 유지"
             fi
+        fi
+    fi
+
+    # global/.claudeignore. Guaranteed under ~/.claude/ by
+    # docs/CLAUDE_DOCKER_CONTRACT.md for every full-install entry point,
+    # including bootstrap; only install.sh honoured it before #914.
+    if [ -f "$INSTALL_DIR/global/.claudeignore" ]; then
+        if manifest_copy_file "$INSTALL_DIR/global/.claudeignore" "$CLAUDE_DIR/.claudeignore" ".claudeignore"; then
+            success ".claudeignore 설치됨"
+        else
+            info ".claudeignore 로컬 변경 유지"
         fi
     fi
 

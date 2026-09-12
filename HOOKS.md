@@ -31,6 +31,8 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | Auto-commit working tree after Task/Agent runs | [Post Task/Agent Checkpoint](#19-post-taskagent-checkpoint-posttooluse) |
 | Block Edit/Write on files that weren't Read first | [Pre-edit Read Guard](#20-pre-edit-read-guard-pretooluseposttooluse) |
 | Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
+| Understand how Bash guards are dispatched on Windows | [Bash Guard Dispatcher](#bash-guard-dispatcher-windows) |
+| Understand how Edit/Write/Read guards are dispatched on Windows | [Edit Guard Dispatcher](#edit-guard-dispatcher-windows) |
 | Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
 | Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
 
@@ -42,6 +44,18 @@ Hooks are user-defined commands that automatically execute during specific Claud
 | `project/.claude/settings.json` | Project Hook settings | Current project only |
 
 ## Global Hooks (global/settings.json)
+
+> **Registration differs by platform for the `Bash` and `Edit|Write|Read`
+> matchers.** On POSIX, `global/settings.json` registers each guard as its own
+> hook, so the per-guard `Timeout:` values in the sections below are the values
+> in force. On Windows, `global/settings.windows.json` registers exactly one hook
+> on each of those matchers — [`bash-guard-dispatcher.ps1`](#bash-guard-dispatcher-windows)
+> and [`edit-guard-dispatcher.ps1`](#edit-guard-dispatcher-windows) — which front
+> their guards: the guards share the dispatcher's 25 s internal budget rather
+> than carrying their own. Sections 2, 5, and 10 through 15 describe
+> Bash-matcher guards; `sensitive-file-guard`, `pre-edit-read-guard` and
+> `memory-write-guard` are the `Edit|Write|Read` ones. All are affected. The
+> `TeamCreate` matcher is registered identically on both platforms.
 
 ### 1. Sensitive File Protection (PreToolUse)
 
@@ -121,7 +135,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 
 **Behavior**:
 - Returns JSON with `permissionDecision: "deny"` listing broken anchors
-- Timeout: 30 seconds
+- Timeout: 30 seconds on POSIX; on Windows, shared with the other Bash guards inside the [dispatcher](#bash-guard-dispatcher-windows)
 
 ### 6. Team Limit Guard (PreToolUse)
 
@@ -233,7 +247,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 **Behavior**:
 - Returns JSON with `permissionDecision: "deny"` listing the failed rule
 - Defers to the git `commit-msg` hook for command-substitution messages (`-m "$(..."`)
-- Timeout: 5 seconds
+- Timeout: 5 seconds on POSIX; on Windows, shared with the other Bash guards inside the [dispatcher](#bash-guard-dispatcher-windows)
 - Cross-platform: `commit-message-guard.sh` and `commit-message-guard.ps1`
 
 **Shared validation library**: Both this PreToolUse hook and the git `commit-msg` hook (installed by `hooks/install-hooks.sh`) source the same validator at `hooks/lib/validate-commit-message.sh`, ensuring rule consistency across enforcement layers.
@@ -322,7 +336,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 **Behavior**:
 - Returns JSON with `permissionDecision: "deny"` listing the first non-ASCII grapheme found
 - Defers to other layers for command-substitution and `--body-file` cases
-- Timeout: 5 seconds
+- Timeout: 5 seconds on POSIX; on Windows, shared with the other Bash guards inside the [dispatcher](#bash-guard-dispatcher-windows)
 - Cross-platform: `pr-language-guard.sh` and `pr-language-guard.ps1`
 
 **Configuration**:
@@ -376,7 +390,7 @@ A diagnostic is written to stderr in each fail-open case so the user can see why
 **Behavior**:
 - Returns JSON with `permissionDecision: "deny"` listing every non-passing check
 - Fail-open on any gh CLI error; diagnostics written to stderr
-- Timeout: 30 seconds (longer than other guards because it makes an external API call)
+- Timeout: 30 seconds on POSIX, longer than the other guards because it makes an external API call. On Windows it has no budget of its own: it runs inside the [dispatcher](#bash-guard-dispatcher-windows) and gets whatever remains of the shared 25 s after the guards ahead of it, so an API stall here can exhaust the budget for the guards behind it
 - Cross-platform: `merge-gate-guard.sh` and `merge-gate-guard.ps1`
 
 **Configuration**:
@@ -443,7 +457,7 @@ Issue #480 extended scope from `gh (pr|issue) (create|edit|comment)` to include 
 **Behavior**:
 - Returns JSON with `permissionDecision: "deny"` when attribution is detected
 - Defers to other layers for command-substitution and file-based cases
-- Timeout: 5 seconds
+- Timeout: 5 seconds on POSIX; on Windows, shared with the other Bash guards inside the [dispatcher](#bash-guard-dispatcher-windows)
 - Cross-platform: `attribution-guard.sh` and `attribution-guard.ps1`
 
 **Configuration**:
@@ -893,6 +907,153 @@ Hook commands use `pwsh -NoProfile -File` for fast, profile-independent executio
 }
 ```
 
+### Bash Guard Dispatcher (Windows)
+
+*Single entry point for every Bash guard on Windows, in place of 15 individual hook registrations.*
+
+**Purpose**: Each registered hook is its own `pwsh -NoProfile` process. With the
+Bash guards registered individually, one Bash tool call started 15 of them.
+Process start dominates the cost (~350 ms each, measured) while the guard logic
+itself costs ~13 ms. The dispatcher pays the process cost once, reads stdin
+once, imports `CommonHelpers` once, and invokes only the guards whose command
+family is present in the tool input.
+
+**Registration**: `global/settings.windows.json` registers
+`bash-guard-dispatcher.ps1` as the only hook on the `Bash` matcher, with
+`timeout: 30`. POSIX is unchanged and still registers its 14 `.sh` guards
+individually, because a `bash` process is cheap to start and there is nothing to
+consolidate; a POSIX dispatcher would need its own payload-passing mechanism and
+is tracked as a follow-up in `CHANGELOG.md`. This is also why there is no
+`bash-guard-dispatcher.sh`: the `.sh`/`.ps1` parity audit in
+`.github/workflows/validate-hooks-doc.yml` exempts `*-dispatcher.*`, since a
+`.sh` twin would be exactly the dormant unwired file that audit exists to catch.
+
+**Routing table**: the prefilter is deliberately *coarser* than each guard's own
+filter. It skips a guard only when its command family is definitely absent, and
+every guard then re-applies its own precise filter. Too narrow would silently
+disable a guard; too wide costs a few milliseconds.
+
+| Routed when | Guards | Fail policy |
+|-------------|--------|-------------|
+| always | `dangerous-command-guard`, `bash-sensitive-read-guard`, `shell-env-secret-guard`, `bash-write-guard` | closed |
+| command contains `gh` | `gh-write-verb-guard`, `pr-target-guard` | closed |
+| command contains `gh` | `github-api-preflight`, `traceability-guard`, `attribution-guard`, `pr-language-guard`, `merge-gate-guard` | open |
+| command contains `git` | `push-target-guard` | closed |
+| command contains `git` | `markdown-anchor-validator`, `commit-message-guard`, `conflict-guard` | open |
+
+**Fail policy**: `closed` means a crash in that guard **denies** the call, because
+a security or branch-policy gate must never fail silently open. `open` means a
+crash warns through `additionalContext` and allows, and is reserved for
+validators whose authoritative gate lives elsewhere, such as the `commit-msg`
+git hook or CI. Unparseable hook input is fail-closed for the dispatcher as a
+whole, matching `dangerous-command-guard`, the strictest guard it fronts.
+
+**Time budget**: 25 s internally, inside the harness's 30 s `timeout`. When the
+internal budget runs out the dispatcher does not truncate silently: it names
+every guard it skipped in `additionalContext`. The individually-registered POSIX
+guards have no equivalent internal budget, where a harness timeout is fail-open
+and therefore invisible (see [Timeout occurring](#timeout-occurring)). The
+`Edit|Write|Read` matcher gained the same internal budget in
+[its own dispatcher](#edit-guard-dispatcher-windows).
+
+### Edit Guard Dispatcher (Windows)
+
+*Single entry point for every `Edit|Write|Read` guard on Windows, in place of 3 individual hook registrations.*
+
+**Purpose**: the same process-cost problem as the Bash dispatcher, on the matcher
+that fires most often. One file operation started three `pwsh -NoProfile`
+processes. Measured on this profile, 5 runs each with the same payload: the
+three-process chain p50 1,068 ms (spread 21 ms) against the dispatcher's p50
+410 ms (spread 36 ms), a 62% reduction.
+
+**Registration**: `global/settings.windows.json` registers
+`edit-guard-dispatcher.ps1` as the only hook on the `Edit|Write|Read` matcher,
+with `timeout: 30`. POSIX is unchanged and still registers its three `.sh` guards
+individually, for the same reason the Bash axis does — a `bash` process is cheap
+to start — and there is likewise no `edit-guard-dispatcher.sh`, which the
+`*-dispatcher.*` exemption in `.github/workflows/validate-hooks-doc.yml` allows.
+
+**Routing table**: order is load-bearing, and it lives here rather than in the
+settings file.
+
+| Order | Routed when | Guard | Fail policy | Short-circuit |
+|-------|-------------|-------|-------------|---------------|
+| 1 | always | `sensitive-file-guard` | closed | yes |
+| 2 | always | `pre-edit-read-guard` | open | no |
+| 3 | `Edit`/`Write` and path contains `memory-shared` | `memory-write-guard` | open | no |
+
+**Short-circuit**: a `deny` from `sensitive-file-guard` returns immediately and
+the remaining guards do not run, so a file it rejects is never recorded in
+`pre-edit-read-guard`'s read-set tracker (issues #424, #521). Separate
+registrations could not enforce this: the harness runs later hooks even after a
+denial. Measured across 212 denied calls in a local transcript window, guards
+after the denying one still ran, and two live trackers contained `*.env` paths
+that `sensitive-file-guard` denies. Consolidation is what made the documented
+order enforceable, and issue #920 fixed the invariant along with the latency.
+Only guard 1 short-circuits; a `deny` from the other two is collected and merged
+as usual, so the caller still sees every applicable reason.
+
+**Prefilter**: `memory-write-guard` is the only heavy guard here — it shells out
+to `validate.sh`, `secret-check.sh` and `injection-check.sh` — and its own gate
+accepts nothing outside `$HOME/.claude/memory-shared/memories/*.md`. The
+prefilter matches the coarse `memory-shared` substring instead, keeping every
+path the guard could act on. As on the Bash dispatcher, too narrow would silently
+disable a guard; too wide costs a few milliseconds.
+
+**Fail policy**: unparseable hook input is fail-closed for the dispatcher as a
+whole, matching `sensitive-file-guard`. The other two guards fail open on their
+own, but stdin can only be drained once, so the dispatcher must pick one policy
+for all three and weakening the security guard is not an option.
+
+**Time budget**: 25 s internally, inside the harness's 30 s `timeout`, with the
+same no-silent-truncation rule as the Bash dispatcher.
+
+**Payload delivery**: as with the Bash dispatcher, the payload reaches each guard
+through the process-lifetime cache in `Read-HookInput`
+(`global/hooks/lib/CommonHelpers.psm1`), not through a parameter — no guard
+declares a `param()` block, so the `-HookInput` argument lands in `$args` and is
+ignored. `tests/hooks/test-edit-guard-dispatcher.ps1` asserts the deny *reason*,
+not just the decision, because a broken cache would still produce a deny from a
+fail-closed guard.
+
+**Standalone contract**: every guard still accepts an optional `-HookInput`
+parameter carrying the already-parsed payload and falls back to reading stdin
+when it is absent, so each guard runs standalone and its own test suite is
+unaffected. Guards are invoked with `&`, never dot-sourced, so a guard's `exit`
+terminates only that guard.
+
+**Coverage guard**: `tests/scripts/test-windows-hooks-parity.sh` expands the
+dispatcher registration into its routed guard names before diffing against the
+POSIX registrations, so a guard dropped from the routing table fails CI. One
+asymmetry is allowlisted: `markdown-anchor-validator` is project-owned and lives
+in `project/.claude/settings.json` on POSIX, but Windows has no project settings
+variant, so the Windows global file is its sole carrier.
+
+**Measured effect**: an accidental revert produced an A-B-A-B sequence, so the
+payoff can be read off real sessions rather than a bench. `PreToolUse:Bash` hook
+durations from all local transcripts:
+
+| Phase | Dates | Bash configuration | n | median | p90 | p99 | vs P0 |
+|-------|-------|--------------------|--:|-------:|----:|----:|------:|
+| P0 | .. 2026-07-26 | 15 individual hooks | 9,072 | 828 ms | 951 ms | 1,462 ms | - |
+| P1 | 07-28 .. 07-31 | dispatcher prototype | 2,991 | 424 ms | 1,067 ms | 1,972 ms | **-48.8%** |
+| P2 | 08-01 .. 08-05 | 15 individual hooks | 37,061 | 908 ms | 1,272 ms | 3,089 ms | +9.7% |
+| P3 | 2026-08-06 .. | dispatcher (shipped) | 12,656 | 534 ms | 1,117 ms | 1,564 ms | **-35.5%** |
+
+The `Edit|Write|Read` matcher is the control. No transition touched it and it
+stays flat across all four: 415 / 437 / 448 / 426 ms over 34,625 runs. Session
+load or machine state would have moved both channels together, so the Bash
+channel's two-fold swings are attributable to hook topology.
+
+Two cautions for anyone re-running this. **Segment by phase.** A naive
+before-and-after split at 2026-07-27 reports roughly no improvement, because P2
+lands in the "after" bucket. **P1 was never in this repository**: the dispatcher
+first shipped here on 2026-08-06 (#895). P1 is a local prototype whose guard-side
+half had been reverted by 2026-08-01, leaving the dispatcher unwireable until
+#895 replaced that approach; see the `Read-HookInput` entry in `CHANGELOG.md`.
+A measurement taken from an unshipped local prototype has to be re-confirmed
+after the change actually lands.
+
 ### PowerShell Hook Scripts
 
 | Hook | File | Description |
@@ -995,7 +1156,29 @@ To disable a specific hook, remove or comment out the corresponding entry.
 
 ### Timeout occurring
 
-Increase the `timeout` value (unit: seconds, max: 300)
+Increase the `timeout` value (unit: seconds, max: 300).
+
+**A PreToolUse timeout is fail-open.** When a hook exceeds its budget the
+harness cancels it and the tool call proceeds; the hook never gets to deny. An
+under-budgeted *security* guard is therefore silently skipped rather than
+enforced, which is the opposite of what the guard exists to do. Budget
+generously and read a timeout as a coverage gap, not as noise.
+
+Timeouts appear in the session transcript as a `hook_cancelled` attachment
+carrying `timedOut: true` next to `timeoutMs` and the actual `durationMs`. A
+user-pressed Esc also produces `hook_cancelled` but without those two fields,
+so the two causes are distinguishable.
+
+Contention, not guard logic, produces the tail, and it takes out a whole
+matcher at once: every timeout observed locally on `Edit|Write|Read` arrived in
+a burst of three with near-identical durations, meaning all three guards of a
+single tool call were killed at the same deadline and that call ran unguarded.
+Budget for the matcher's worst case, not its median.
+
+| Matcher | Registered | Timeout | Why |
+|---------|-----------|---------|-----|
+| `Edit\|Write\|Read` | 3 guards, one process each | 30 s | Fail-open makes a skipped guard worse than a slow one. Median 429 ms and p99 1,020 ms over 35,276 local runs, worst case 11,141 ms (#897). |
+| `Bash` | `bash-guard-dispatcher.ps1` on Windows | 30 s | 25 s internal guard budget plus process-start slack. The dispatcher names any guard it had to skip instead of truncating silently. |
 
 ### Formatter not working
 
@@ -1096,6 +1279,7 @@ this catalog for the canonical hook inventory.
 | [`pre-compact-snapshot.sh`](#pre-compact-snapshot) | PreCompact (async) | yes |
 | [`pre-edit-read-guard.sh`](#pre-edit-read-guard) | PreToolUse (Edit|Write) + PostToolUse (Read) | yes |
 | [`prompt-validator.sh`](#prompt-validator) | UserPromptSubmit | yes |
+| [`prune-permission-rules.sh`](#prune-permission-rules) | SessionEnd | yes |
 | [`push-target-guard.sh`](#push-target-guard) | PreToolUse (Bash) | yes |
 | [`sensitive-file-guard.sh`](#sensitive-file-guard) | PreToolUse (Edit|Write|Read) | yes |
 | [`session-logger.sh`](#session-logger) | SessionStart, SessionEnd, Stop, TeammateIdle | yes |
@@ -1110,7 +1294,7 @@ this catalog for the canonical hook inventory.
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
 | [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 38 bash hooks, 38 with PowerShell counterparts._
+_Total: 39 bash hooks, 39 with PowerShell counterparts._
 
 ### Hook Details
 
@@ -1541,6 +1725,24 @@ Validates user prompts for dangerous operations
 | Response format | hookSpecificOutput with additionalContext (UserPromptSubmit) |
 | PowerShell counterpart | present (`prompt-validator.ps1`) |
 | Source | `global/hooks/prompt-validator.sh` |
+
+### prune-permission-rules
+
+_File:_ `prune-permission-rules.sh`
+
+_Anchor:_ `#prune-permission-rules`
+
+Prunes permissions.allow entries that can never match again from the project-scope settings.local.json
+
+| Field | Value |
+|---|---|
+| Hook Type | SessionEnd |
+| Trigger / Matcher | — |
+| Exit codes | 0=always (fail-open; teardown is never blocked) |
+| Response format | none (lifecycle event, no JSON output needed) |
+| Fail policy | fail-open - any parse, classification, or IO error leaves the file byte-identical |
+| PowerShell counterpart | present (`prune-permission-rules.ps1`) |
+| Source | `global/hooks/prune-permission-rules.sh` |
 
 ### push-target-guard
 

@@ -31,6 +31,10 @@ on:
       - 'global/settings.windows.json'
       - 'scripts/backup.sh'
       - 'scripts/backup.ps1'
+      # The enterprise tree is manifest-tracked on Windows since #903. Without
+      # this entry a PR that only edits enterprise/rules/*.md runs no workflow
+      # at all, so content drift there has no regression guard.
+      - 'enterprise/**'
 
 # Cancel in-progress runs of the same PR / schedule so a fast follow-up commit
 # does not pile up.
@@ -139,6 +143,9 @@ jobs:
 
       - name: Run formatter ownership regression test
         run: bash tests/scripts/test-no-duplicate-formatter.sh
+
+      - name: Run installer prompt helper tests
+        run: bash tests/scripts/test-install-prompts.sh
 
       - name: Run install manifest helper tests
         run: bash tests/scripts/test-install-manifest-helpers.sh

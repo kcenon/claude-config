@@ -1,9 +1,10 @@
 # Claude Configuration Auto-Installer (PowerShell)
 # =================================================
 # Installs backed up CLAUDE.md settings to a new Windows system
-# Requires: PowerShell 7+ (pwsh) recommended
+# Requires: PowerShell 7+ (pwsh). Not optional -- this script uses the
+# three-argument Join-Path (-AdditionalChildPath), which is PowerShell 6+ only.
 
-#Requires -Version 5.1
+#Requires -Version 7.0
 
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -209,6 +210,10 @@ function Install-GlobalSettingsAndHooks {
         Remove-Item -LiteralPath $settingsTmp -Force -ErrorAction SilentlyContinue
         Copy-Item -LiteralPath $settingsSource -Destination $settingsTmp -Force -ErrorAction Stop
 
+        # Carry machine-local keys forward before the policy injection, so the
+        # policy still wins on the keys it owns (issue #915).
+        $carriedKeys = Merge-LocalSettingsKeys -StagedPath $settingsTmp -LivePath $destSettings
+
         $settingsUpdated = Update-ClaudeSettingsJson -SettingsPath $settingsTmp -AgentLang $agentLanguage -ContentLang $contentLanguage
 
         Deploy-InstallHooks -ClaudeDir $ClaudeDir
@@ -222,6 +227,9 @@ function Install-GlobalSettingsAndHooks {
     }
 
     Write-Success "Hook settings (settings.json) installed! [Windows version]"
+    if ($carriedKeys -and $carriedKeys.Count -gt 0) {
+        Write-Info "machine-local settings keys preserved: $($carriedKeys -join ', ')"
+    }
     if ($settingsUpdated) {
         Write-Success "settings.json updated with language=$agentLanguage and CLAUDE_CONTENT_LANGUAGE=$contentLanguage"
     } else {
@@ -368,6 +376,12 @@ function Confirm-ClaudeCli {
 function Install-Enterprise {
     $enterpriseDir = Get-EnterpriseDir
 
+    # Every exit path sets this so the closing summary reports what actually
+    # happened. Before, the summary printed the enterprise paths under
+    # "Installed files:" for install types 4 and 5 unconditionally, including
+    # when this function had returned early and deployed nothing.
+    $script:EnterpriseInstallState = 'skipped'
+
     Write-Host ""
     Write-Host "======================================================"
     Write-Info "Enterprise settings installation..."
@@ -401,6 +415,7 @@ function Install-Enterprise {
             if ([string]::IsNullOrEmpty($deployTemplate)) { $deployTemplate = 'n' }
             if ($deployTemplate -ne 'y') {
                 Write-Info "Enterprise installation skipped. Customize enterprise/CLAUDE.md first."
+                $script:EnterpriseInstallState = 'skipped-uncustomized'
                 return
             }
             Write-Warn "Proceeding with uncustomized template deployment."
@@ -416,6 +431,7 @@ function Install-Enterprise {
         Write-Err "This operation requires administrator privileges."
         Write-Info "Please run PowerShell as Administrator and try again."
         Write-Info "  Right-click PowerShell -> 'Run as administrator'"
+        $script:EnterpriseInstallState = 'skipped-not-admin'
         return
     }
 
@@ -424,24 +440,108 @@ function Install-Enterprise {
     $rulesDir = Join-Path $enterpriseDir "rules"
     New-Item -ItemType Directory -Path $rulesDir -Force | Out-Null
 
-    # Copy files
-    Copy-Item -Path $enterpriseMd -Destination $enterpriseDir -Force
-    Write-Success "CLAUDE.md installed"
+    # Load the manifest helper. Unlike the global and project blocks, this
+    # cannot be assumed already dot-sourced: Install-Enterprise runs before
+    # the global block, and install type 4 never enters that block at all.
+    if (-not (Get-Command Invoke-ManifestTrackedCopy -ErrorAction SilentlyContinue)) {
+        $manifestHelper = Join-Path $BackupDir 'scripts\install-manifest.ps1'
+        if (-not (Test-Path -LiteralPath $manifestHelper)) {
+            throw "install-manifest.ps1 helper not found at: $manifestHelper"
+        }
+        . $manifestHelper
+    }
 
-    # Copy rules directory
+    # The enterprise tree gets its OWN manifest file, keyed relative to the
+    # enterprise root. It cannot share ~/.claude/.install-manifest.json: the
+    # global tree already tracks a key named `CLAUDE.md`, so the two roots
+    # would overwrite each other's stored hash and every subsequent guarded
+    # copy would compare against the wrong baseline.
+    #
+    # The manifest lives beside the files it describes. That keeps the
+    # "one manifest per install root" invariant, and the write is safe because
+    # this function has already established administrator rights above. Reads
+    # need no elevation, so a drift audit can run unprivileged.
+    #
+    # try/finally, not a plain restore: Write-ManifestFiles has no error
+    # handling and $ErrorActionPreference is 'Stop' at the top of this script,
+    # so an unwritable manifest would otherwise leave MANIFEST_PATH pointing at
+    # the enterprise root for the rest of the install, redirecting the global
+    # manifest into C:\Program Files.
+    # Every file this run will touch, with the destination hash BEFORE the copy.
+    # The report below is derived from these rather than from the copy helpers'
+    # return values: Invoke-ManifestTrackedCopy returns $true for a real write,
+    # for a destination that was already byte-identical, and for a MISSING
+    # SOURCE alike, and Copy-ManifestTree discards its per-file results
+    # entirely, so no return value can distinguish "wrote it" from "left it".
+    $planned = [System.Collections.Generic.List[hashtable]]::new()
+    $planned.Add(@{ Rel = 'CLAUDE.md'; Src = $enterpriseMd
+                    Dest = (Join-Path $enterpriseDir 'CLAUDE.md') })
     $sourceRules = Join-Path $BackupDir "enterprise/rules"
     if (Test-Path $sourceRules) {
-        $items = Get-ChildItem -Path $sourceRules
-        if ($items.Count -gt 0) {
-            try {
-                Copy-Item -Path "$sourceRules\*" -Destination $rulesDir -Recurse -Force -ErrorAction Stop
-                Write-Success "rules directory installed"
-            } catch {
-                Write-Err "Failed to copy rules: $_"
-            }
+        foreach ($f in @(Get-ChildItem -LiteralPath $sourceRules -File -Recurse)) {
+            $rel = $f.FullName.Substring($sourceRules.Length).TrimStart('\', '/')
+            $planned.Add(@{ Rel = "rules/$($rel -replace '\\', '/')"; Src = $f.FullName
+                            Dest = (Join-Path $rulesDir $rel) })
         }
     }
 
+    $previousManifestPath = $env:MANIFEST_PATH
+    $env:MANIFEST_PATH = Join-Path $enterpriseDir ".install-manifest.json"
+    try {
+        Reset-ManifestManagedKeys
+        foreach ($p in $planned) { $p.Before = Get-FileSha256 -Path $p.Dest }
+
+        $null = Invoke-ManifestTrackedCopy -Src $enterpriseMd -Dest (Join-Path $enterpriseDir 'CLAUDE.md') -Key 'CLAUDE.md'
+
+        if (Test-Path $sourceRules) {
+            if (@(Get-ChildItem -Path $sourceRules).Count -gt 0) {
+                Copy-ManifestTree -SourceDir $sourceRules -DestinationDir $rulesDir -KeyPrefix 'rules'
+            }
+        }
+    }
+    catch {
+        # Previously only the rules copy was guarded, so a throw from the
+        # CLAUDE.md copy or from the manifest write unwound past this function
+        # under $ErrorActionPreference = 'Stop': the state stayed 'skipped' and
+        # the closing summary never ran at all.
+        Write-Err "Enterprise deployment failed: $_"
+        $script:EnterpriseInstallState = 'failed'
+        return
+    }
+    finally {
+        $env:MANIFEST_PATH = $previousManifestPath
+    }
+
+    # Report what is on disk now, not what the helpers returned.
+    $script:EnterpriseKeptFiles = @()
+    foreach ($p in $planned) {
+        $src = Get-FileSha256 -Path $p.Src
+        $now = Get-FileSha256 -Path $p.Dest
+        if ($null -eq $src) {
+            Write-Warn "  $($p.Rel): source missing, nothing deployed"
+            $script:EnterpriseKeptFiles += $p.Rel
+        } elseif ($now -ne $src) {
+            Write-Warn "  $($p.Rel): local copy kept, differs from the repo version"
+            $script:EnterpriseKeptFiles += $p.Rel
+        } elseif ($p.Before -ne $src) {
+            Write-Success "  $($p.Rel): updated"
+        } else {
+            Write-Info "  $($p.Rel): already current"
+        }
+    }
+
+    # Deliberately no Invoke-ManifestPruneTracked here. Tracking exists so drift
+    # becomes visible; deleting files out of a managed-policy directory is a
+    # separate decision. Retired enterprise rules therefore still linger, as
+    # they did before, and docs/install.md says so.
+
+    if ($script:EnterpriseKeptFiles.Count -gt 0) {
+        $script:EnterpriseInstallState = 'installed-with-kept'
+        Write-Warn "Enterprise settings deployed, $($script:EnterpriseKeptFiles.Count) file(s) not updated."
+        return
+    }
+
+    $script:EnterpriseInstallState = 'installed'
     Write-Success "Enterprise settings installation complete!"
     Write-Host ""
     Write-Warn "Important: Customize enterprise/CLAUDE.md for your organization's policies!"
@@ -521,6 +621,12 @@ if ($contentLanguage -ne 'english') {
 
 # ── Enterprise installation ──────────────────────────────────
 
+# Read by the closing summary. 'not-attempted' is what stays if the enterprise
+# block never runs, so the summary can never claim a deployment that was not
+# even tried.
+$script:EnterpriseInstallState = 'not-attempted'
+$script:EnterpriseKeptFiles = @()
+
 if ($installType -eq '4' -or $installType -eq '5') {
     Install-Enterprise
 }
@@ -564,21 +670,32 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
             }
             Remove-Item -LiteralPath $tmpFile -Force -ErrorAction SilentlyContinue
         } elseif (Test-Path $src) {
-            if (Invoke-ManifestTrackedCopy -Src $src -Dest (Join-Path $claudeDir $gf) -Key $gf) {
+            # git-identity.md is seeded on a staged copy of the SOURCE, never on
+            # the deployed file. Seeding afterwards left the manifest holding
+            # the repo hash while the file on disk held the seeded one, so the
+            # next install saw a divergence it had created itself and prompted
+            # for it, every time (#916). Rendering first is the same shape
+            # Invoke-GuardedTemplateCopy already uses for the .tmpl files above.
+            $effectiveSrc = $src
+            $seedTmp = $null
+            if ($gf -eq 'git-identity.md' -and (Get-Command Set-GitIdentitySeed -ErrorAction SilentlyContinue)) {
+                $seedTmp = Join-Path ([System.IO.Path]::GetTempPath()) "git-identity_$([guid]::NewGuid()).md"
+                Copy-Item -LiteralPath $src -Destination $seedTmp -Force
+                $seeded = Set-GitIdentitySeed -Path $seedTmp
+                if ($seeded) {
+                    $effectiveSrc = $seedTmp
+                    Write-Success "git-identity.md auto-filled from git config ($($seeded.Name) <$($seeded.Email)>)"
+                } else {
+                    Remove-Item -LiteralPath $seedTmp -Force -ErrorAction SilentlyContinue
+                    $seedTmp = $null
+                }
+            }
+            if (Invoke-ManifestTrackedCopy -Src $effectiveSrc -Dest (Join-Path $claudeDir $gf) -Key $gf) {
                 Write-Success "$gf installed"
             } else {
                 Write-Info "$gf local changes preserved"
             }
-        }
-    }
-
-    # Auto-seed git identity from `git config --global` (issue #777). Shared
-    # with bootstrap.ps1 via Set-GitIdentitySeed in InstallPrompts.psm1, so a
-    # fresh install produces a usable git-identity.md without manual editing.
-    if (Get-Command Set-GitIdentitySeed -ErrorAction SilentlyContinue) {
-        $gitIdTarget = Join-Path $claudeDir 'git-identity.md'
-        if (Set-GitIdentitySeed -Path $gitIdTarget) {
-            Write-Success "git-identity.md auto-filled from git config ($($script:SeededGitName) <$($script:SeededGitEmail)>)"
+            if ($seedTmp) { Remove-Item -LiteralPath $seedTmp -Force -ErrorAction SilentlyContinue }
         }
     }
 
@@ -598,6 +715,20 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         } else {
             Add-ManifestManagedKey -Key 'conversation-language.md'
             Write-Info "conversation-language.md local changes preserved"
+        }
+    }
+
+    # global/.claudeignore. docs/CLAUDE_DOCKER_CONTRACT.md guarantees this file
+    # under ~/.claude/ after a full install from ANY of the four entry points,
+    # and claude-docker's entrypoint mirrors the layout into the container.
+    # Only install.sh honoured that; the Windows paths and bootstrap.sh did not,
+    # so verify.{ps1,sh} reported a permanent MISS here (issue #914).
+    $globalClaudeIgnore = Join-Path $BackupDir "global/.claudeignore"
+    if (Test-Path -LiteralPath $globalClaudeIgnore) {
+        if (Invoke-ManifestTrackedCopy -Src $globalClaudeIgnore -Dest (Join-Path $claudeDir ".claudeignore") -Key ".claudeignore") {
+            Write-Success ".claudeignore installed"
+        } else {
+            Write-Info ".claudeignore local changes preserved"
         }
     }
 
@@ -898,9 +1029,36 @@ Write-Host ""
 Write-Info "Installed files:"
 if ($installType -eq '4' -or $installType -eq '5') {
     $ed = Get-EnterpriseDir
-    Write-Host "  Enterprise settings:"
-    Write-Host "    - $ed\CLAUDE.md"
-    Write-Host "    - $ed\rules\"
+    switch ($script:EnterpriseInstallState) {
+        'installed' {
+            Write-Host "  Enterprise settings:"
+            Write-Host "    - $ed\CLAUDE.md"
+            Write-Host "    - $ed\rules\"
+            Write-Host "    - $ed\.install-manifest.json"
+        }
+        'installed-with-kept' {
+            Write-Host "  Enterprise settings: deployed, with exceptions"
+            Write-Host "    - $ed\.install-manifest.json"
+            Write-Warn "    Not updated -- the deployed copy still differs from the repo:"
+            foreach ($kept in $script:EnterpriseKeptFiles) {
+                Write-Warn "      $ed\$($kept -replace '/', '\')"
+            }
+        }
+        'skipped-not-admin' {
+            Write-Warn "  Enterprise settings: NOT installed (administrator privileges required)"
+            Write-Warn "    $ed was left untouched. Re-run as Administrator to deploy it."
+        }
+        'skipped-uncustomized' {
+            Write-Warn "  Enterprise settings: NOT installed (enterprise/CLAUDE.md is still the template)"
+            Write-Warn "    $ed was left untouched."
+        }
+        'failed' {
+            Write-Err "  Enterprise settings: deployment FAILED partway; $ed may be inconsistent"
+        }
+        default {
+            Write-Warn "  Enterprise settings: NOT installed; $ed was left untouched"
+        }
+    }
 }
 
 if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {

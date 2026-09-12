@@ -3,7 +3,7 @@ name: preflight
 description: "Reproduce CI checks locally before pushing so failures surface on the developer machine, not on GitHub. Aligns with the ci-fix skill's pattern catalogue and catches MSVC C4996, CMake FetchContent shallow-clone, and deprecated-API issues pre-push. Invoke manually with /preflight or automatically via CLAUDE_PREFLIGHT=1 in the pre-push hook."
 argument-hint: "[--only <check>] [--skip <check>] [--verbose]"
 user-invocable: true
-disable-model-invocation: false
+disable-model-invocation: true
 allowed-tools: "Bash(act *),Bash(docker *),Bash(cmake *)"
 loop_safe: true
 halt_conditions:

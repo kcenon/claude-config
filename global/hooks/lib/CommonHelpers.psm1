@@ -95,7 +95,22 @@ function Read-HookInput {
         momentarily false), which would otherwise yield an empty read and a
         spurious fail-closed deny. Once stdin IS redirected, an empty payload is
         treated as genuinely empty (the stream is consumed and not retried).
+
+        The result is cached for the lifetime of the process, because stdin can
+        only be drained once. bash-guard-dispatcher.ps1 reads the payload and
+        then invokes each guard in-process with `&`; without this cache every
+        guard's own Read-HookInput call would hit an already-consumed stream and
+        see $null, which fail-closed guards turn into a spurious deny and
+        fail-open guards turn into a silently disabled check.
+
+        The cache lives in the GLOBAL scope on purpose. Module scope would not
+        survive: every guard re-imports this module with -Force, which resets
+        module-scope state. A guard invoked standalone runs in a fresh process,
+        so the cache starts empty and stdin is read exactly as before.
     #>
+    if ($global:ClaudeHookInputCacheSet) { return $global:ClaudeHookInputCache }
+
+    $result = $null
     for ($attempt = 0; $attempt -lt 10; $attempt++) {
         try {
             if ([Console]::IsInputRedirected) {
@@ -111,18 +126,22 @@ function Read-HookInput {
                 finally {
                     $reader.Dispose()
                 }
-                if ([string]::IsNullOrWhiteSpace($raw)) {
-                    return $null
+                if (-not [string]::IsNullOrWhiteSpace($raw)) {
+                    $result = ($raw | ConvertFrom-Json)
                 }
-                return ($raw | ConvertFrom-Json)
+                break
             }
         }
         catch {
-            return $null
+            $result = $null
+            break
         }
         Start-Sleep -Milliseconds 20
     }
-    return $null
+
+    $global:ClaudeHookInputCache    = $result
+    $global:ClaudeHookInputCacheSet = $true
+    return $result
 }
 
 # ──────────────────────────────────────────────────────────────

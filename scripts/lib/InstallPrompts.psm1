@@ -306,36 +306,58 @@ function Show-LegacySettingsWarning {
 }
 
 function Set-GitIdentitySeed {
-    # Auto-fill the name/email placeholders in a deployed git-identity.md from
+    # Auto-fill the name/email placeholders in a git-identity.md from
     # `git config --global user.name` / `user.email`. PowerShell mirror of
     # seed_git_identity() in scripts/lib/install-prompts.sh (issue #777).
     #
     # Idempotent and non-destructive: no-op when the file is absent, when git
-    # config lacks either value, or when no placeholder tokens remain. Uses
-    # literal String.Replace (not regex), so names/emails with special
-    # characters are substituted safely. Returns $true and sets
-    # $script:SeededGitName / $script:SeededGitEmail when values were seeded.
+    # config lacks either value, or when the two field lines no longer hold
+    # placeholders.
+    #
+    # Anchored to the `name:` and `email:` lines. The previous version replaced
+    # the tokens document-wide, which also rewrote the sentence explaining what
+    # the placeholders are -- "replace the `YOUR NAME` / `YOUR EMAIL`
+    # placeholders by hand" came out naming the substituted values (#916). The
+    # replacement is built by concatenation rather than by -replace, so a name
+    # containing `$1` cannot be expanded as a substitution group; that is the
+    # same concern the old literal String.Replace was chosen for.
+    #
+    # Returns a PSCustomObject with Name and Email when it seeded, or $null.
+    # It cannot report through $script: variables: this is a module, so those
+    # land in the module's scope and the importer reads empty strings -- which
+    # is what install.ps1 and bootstrap.ps1 were printing.
     [CmdletBinding()]
+    [OutputType([psobject])]
     param([Parameter(Mandatory)][string]$Path)
 
-    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+    if (-not (Test-Path -LiteralPath $Path)) { return $null }
 
-    $name  = (git config --global user.name  2>$null)
+    $name = (git config --global user.name 2>$null)
     $email = (git config --global user.email 2>$null)
     if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($email)) {
-        return $false
+        return $null
     }
-    $name  = $name.Trim()
+    $name = $name.Trim()
     $email = $email.Trim()
 
-    $content = Get-Content -Raw -LiteralPath $Path
-    if ($content -notmatch 'YOUR NAME|YOUR EMAIL') { return $false }
+    # Split on "`n" only: each element keeps any trailing "`r", so re-joining
+    # restores the file's original line endings byte for byte.
+    $lines = (Get-Content -Raw -LiteralPath $Path) -split "`n"
+    $changed = $false
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -match '^(name:\s*)YOUR NAME(\s*)$') {
+            $lines[$i] = $Matches[1] + $name + $Matches[2]
+            $changed = $true
+        }
+        elseif ($lines[$i] -match '^(email:\s*)YOUR EMAIL(\s*)$') {
+            $lines[$i] = $Matches[1] + $email + $Matches[2]
+            $changed = $true
+        }
+    }
+    if (-not $changed) { return $null }
 
-    $seeded = $content.Replace('YOUR NAME', $name).Replace('YOUR EMAIL', $email)
-    Set-Content -LiteralPath $Path -Value $seeded -NoNewline
-    $script:SeededGitName  = $name
-    $script:SeededGitEmail = $email
-    return $true
+    Set-Content -LiteralPath $Path -Value ($lines -join "`n") -NoNewline
+    return [pscustomobject]@{ Name = $name; Email = $email }
 }
 
 Export-ModuleMember -Function Show-LanguageProfilePrompt, Get-PolicyPhrase, Invoke-PolicyTemplate, Invoke-PolicyTemplatesInDir, Get-AllPolicyValues, Test-LegacyContentLanguage, Read-SettingsContentLanguage, Read-SettingsAgentLanguage, Seed-LanguageFromSettings, Show-LegacySettingsWarning, Set-GitIdentitySeed

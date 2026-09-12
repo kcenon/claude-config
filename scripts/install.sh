@@ -176,7 +176,7 @@ ensure_claude_cli() {
     # bootstrap.sh and lives in $ANTHROPIC_INSTALLER_SHA256. Bare
     # 'curl | bash' is no longer used — every install path verifies.
     local installer_url="${ANTHROPIC_INSTALLER_URL:-https://claude.ai/install.sh}"
-    local installer_sha="${ANTHROPIC_INSTALLER_SHA256:-b315b46925a9bfb9422f2503dd5aa649f680832f4c076b22d87c39d578c3d830}"
+    local installer_sha="${ANTHROPIC_INSTALLER_SHA256:-3a68d3406cf674e17bed1733a4dcf37805e2e47d87417700007d7e1aa766a944}"
     local install_status=1
 
     local script_dir repo_root
@@ -378,6 +378,11 @@ install_global_settings_and_hooks() {
     rm -f "$settings_tmp"
     cp "$settings_src" "$settings_tmp" || error "settings.json 스테이징 실패"
 
+    # Carry machine-local keys forward before the policy injection, so the
+    # policy still wins on the keys it owns (issue #915).
+    local carried_keys
+    carried_keys="$(merge_local_settings_keys "$settings_tmp" "$settings_dst" | tr '\n' ' ' | sed -e 's/ *$//')"
+
     # CLAUDE_CONTENT_LANGUAGE env 주입 및 Agent Language 속성 업데이트
     if update_claude_settings_json "$settings_tmp" "$AGENT_LANGUAGE" "$CONTENT_LANGUAGE"; then
         settings_updated=1
@@ -394,6 +399,9 @@ install_global_settings_and_hooks() {
     }
 
     success "Hook 설정 (settings.json) 설치 완료!"
+    if [ -n "$carried_keys" ]; then
+        info "machine-local settings keys preserved: $carried_keys"
+    fi
     if [ "$settings_updated" = "1" ]; then
         success "settings.json: language=$AGENT_LANGUAGE, CLAUDE_CONTENT_LANGUAGE=$CONTENT_LANGUAGE 업데이트 완료."
     else
@@ -482,56 +490,75 @@ install_enterprise() {
     warning "관리자 권한이 필요합니다."
     echo ""
 
-    # sudo 필요 여부 확인
+    # The manifest helper cannot be assumed in scope here. install_enterprise
+    # runs before the global block that sources it, and INSTALL_TYPE=4 never
+    # enters that block at all, so under `set -euo pipefail` an enterprise-only
+    # install would die on the first helper call.
+    if ! type manifest_copy_file >/dev/null 2>&1; then
+        # shellcheck source=scripts/install-manifest.sh
+        source "$BACKUP_DIR/scripts/install-manifest.sh"
+    fi
+
+    # One deployment path, one privilege decision. This used to be three
+    # near-identical branches (sudo POSIX / plain POSIX / Windows), which is how
+    # a bare-cp defect survived here in triplicate.
+    local needs_sudo=0
     if [ "$(uname -s)" = "Darwin" ] || [ "$(uname -s)" = "Linux" ]; then
         if [ ! -w "$(dirname "$enterprise_dir")" ]; then
+            needs_sudo=1
             info "sudo를 사용하여 설치합니다."
-
-            # 디렉토리 생성
-            sudo mkdir -p "$enterprise_dir"
-            sudo mkdir -p "$enterprise_dir/rules"
-
-            # 파일 복사
-            sudo cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/" || error "CLAUDE.md 복사 실패"
-            success "CLAUDE.md 설치됨"
-
-            # rules 디렉토리 복사
-            if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
-                sudo cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" || error "rules 복사 실패"
-                success "rules 디렉토리 설치됨"
-            fi
-
-            # 권한 설정 (읽기 전용)
-            sudo chmod 755 "$enterprise_dir"
-            sudo chmod 644 "$enterprise_dir/CLAUDE.md"
-            sudo chmod 755 "$enterprise_dir/rules"
-            if [ -n "$(ls -A "$enterprise_dir/rules" 2>/dev/null)" ]; then
-                sudo chmod 644 "$enterprise_dir/rules"/* || error "rules 권한 설정 실패"
-            fi
-        else
-            # sudo 불필요
-            mkdir -p "$enterprise_dir"
-            mkdir -p "$enterprise_dir/rules"
-            cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/" || error "CLAUDE.md 복사 실패"
-            success "CLAUDE.md 설치됨"
-
-            if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
-                cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" || error "rules 복사 실패"
-                success "rules 디렉토리 설치됨"
-            fi
-        fi
-    else
-        # Windows
-        mkdir -p "$enterprise_dir"
-        mkdir -p "$enterprise_dir/rules"
-        cp "$BACKUP_DIR/enterprise/CLAUDE.md" "$enterprise_dir/" || error "CLAUDE.md 복사 실패"
-        success "CLAUDE.md 설치됨"
-
-        if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
-            cp -r "$BACKUP_DIR/enterprise/rules"/* "$enterprise_dir/rules/" || error "rules 복사 실패"
-            success "rules 디렉토리 설치됨"
         fi
     fi
+
+    # The enterprise tree gets its OWN manifest file, keyed relative to the
+    # enterprise root. It cannot share ~/.claude/.install-manifest.json: the
+    # global tree already tracks a key named `CLAUDE.md`, so the two roots would
+    # overwrite each other's stored hash and every later guarded copy would
+    # compare against the wrong baseline.
+    #
+    # Restoring MANIFEST_PATH matters more here than in the project layer,
+    # because install_enterprise runs BEFORE the global block: a leaked value
+    # would redirect the entire ~/.claude manifest into the enterprise root.
+    local previous_manifest_path="${MANIFEST_PATH:-}"
+    local previous_elevate="${MANIFEST_ELEVATE:-}"
+    MANIFEST_PATH="$enterprise_dir/.install-manifest.json"
+    if [ "$needs_sudo" = "1" ]; then
+        MANIFEST_ELEVATE="sudo"
+    fi
+    manifest_reset_managed_keys
+
+    _manifest_run mkdir -p "$enterprise_dir"
+    _manifest_run mkdir -p "$enterprise_dir/rules"
+
+    manifest_copy_file "$BACKUP_DIR/enterprise/CLAUDE.md" \
+        "$enterprise_dir/CLAUDE.md" "CLAUDE.md" || true
+    success "CLAUDE.md 설치됨"
+
+    if [ -d "$BACKUP_DIR/enterprise/rules" ] && [ -n "$(ls -A "$BACKUP_DIR/enterprise/rules" 2>/dev/null)" ]; then
+        manifest_copy_tree "$BACKUP_DIR/enterprise/rules" \
+            "$enterprise_dir/rules" "rules"
+        success "rules 디렉토리 설치됨"
+    fi
+
+    # 권한 설정 (읽기 전용)
+    if [ "$needs_sudo" = "1" ]; then
+        sudo chmod 755 "$enterprise_dir"
+        sudo chmod 644 "$enterprise_dir/CLAUDE.md"
+        sudo chmod 755 "$enterprise_dir/rules"
+        if [ -n "$(ls -A "$enterprise_dir/rules" 2>/dev/null)" ]; then
+            sudo chmod 644 "$enterprise_dir/rules"/* || error "rules 권한 설정 실패"
+        fi
+        # World-readable by design: a drift audit must be able to hash the
+        # deployed files and the manifest without elevation.
+        sudo chmod 644 "$MANIFEST_PATH"
+    fi
+
+    # Deliberately no manifest_prune_tracked here, matching the Windows side.
+    # Tracking exists so drift becomes visible; deleting files out of a managed
+    # policy directory is a separate decision.
+
+    MANIFEST_PATH="$previous_manifest_path"
+    MANIFEST_ELEVATE="$previous_elevate"
 
     success "Enterprise 설정 설치 완료!"
     echo ""
@@ -792,9 +819,28 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     manifest_reset_managed_keys
 
     # 파일 설치 (매니페스트 가드 사용)
+    _seeded_identity=""
     for gf in CLAUDE.md commit-settings.md git-identity.md token-management.md; do
         if [ -f "$BACKUP_DIR/global/$gf" ]; then
-            if manifest_copy_file "$BACKUP_DIR/global/$gf" "$HOME/.claude/$gf" "$gf"; then
+            # git-identity.md is seeded on a staged copy of the SOURCE, never on
+            # the deployed file. Seeding afterwards left the manifest holding the
+            # repo hash while the file on disk held the seeded one, so the next
+            # install saw a divergence it had created itself and prompted for it,
+            # every time (#916).
+            _src="$BACKUP_DIR/global/$gf"
+            _seed_tmp=""
+            if [ "$gf" = "git-identity.md" ]; then
+                _seed_tmp="$(mktemp)"
+                cp "$_src" "$_seed_tmp"
+                if seed_git_identity "$_seed_tmp"; then
+                    _src="$_seed_tmp"
+                    _seeded_identity="${SEED_GIT_IDENTITY_NAME} <${SEED_GIT_IDENTITY_EMAIL}>"
+                else
+                    rm -f "$_seed_tmp"
+                    _seed_tmp=""
+                fi
+            fi
+            if manifest_copy_file "$_src" "$HOME/.claude/$gf" "$gf"; then
                 if [ "$gf" = "git-identity.md" ] || [ "$gf" = "token-management.md" ]; then
                     chmod 600 "$HOME/.claude/$gf"
                 else
@@ -804,17 +850,18 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
             else
                 info "$gf 로컬 변경 유지"
             fi
+            [ -n "$_seed_tmp" ] && rm -f "$_seed_tmp"
         fi
     done
+    unset _src _seed_tmp
 
-    # Git identity auto-fill (issue #748; extracted to shared lib in #777).
-    # seed_git_identity() lives in scripts/lib/install-prompts.sh so bootstrap.sh
-    # and install.sh share one implementation. It only patches placeholder
-    # lines and only when both git config values are present, never overwriting
-    # a user-customized file.
+    # Git identity auto-fill (issue #748; extracted to shared lib in #777;
+    # moved ahead of the copy in #916). The messaging below still distinguishes
+    # "already customized" from "git config missing", which the seed result
+    # alone cannot.
     _git_identity_target="$HOME/.claude/git-identity.md"
-    if seed_git_identity "$_git_identity_target"; then
-        success "git-identity.md: git global config로 자동 채우기 완료 (${SEED_GIT_IDENTITY_NAME} <${SEED_GIT_IDENTITY_EMAIL}>)"
+    if [ -n "$_seeded_identity" ]; then
+        success "git-identity.md: git global config로 자동 채우기 완료 (${_seeded_identity})"
     elif [ -f "$_git_identity_target" ]; then
         # Not seeded: either the file was already customized, or git config is
         # missing. Preserve the pre-extraction messaging for both cases.
@@ -825,7 +872,7 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
             warning "git config --global user.name / user.email 미설정 — git-identity.md를 수동으로 편집하세요"
         fi
     fi
-    unset _git_identity_target
+    unset _git_identity_target _seeded_identity
 
     # conversation-language.md 템플릿 렌더링
     # AGENT_DISPLAY_LANG is populated by prompt_language_profile() in
@@ -887,11 +934,11 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         success ".claudeignore 설치 완료!"
     fi
 
-    # tmux.conf 설치
-    if [ -f "$BACKUP_DIR/global/tmux.conf" ]; then
-        cp "$BACKUP_DIR/global/tmux.conf" "$HOME/.claude/"
-        success "tmux.conf 설치 완료!"
-    fi
+    # tmux.conf is intentionally NOT deployed here. tmux reads ~/.tmux.conf,
+    # which bootstrap.{sh,ps1} install; the copy this block used to place at
+    # ~/.claude/tmux.conf was read by nothing, is absent from the guaranteed
+    # subtree in docs/CLAUDE_DOCKER_CONTRACT.md, and had no Windows peer --
+    # the only global/ payload the two installers disagreed on (issue #914).
 
     # policies 디렉토리 설치 (있는 경우 정책 JSON 파일 배포)
     if [ -d "$BACKUP_DIR/global/policies" ]; then

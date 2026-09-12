@@ -115,7 +115,7 @@ PowerShell read-only discovery allowlist.
 | `version` | Undocumented | — | claude-config's own version string; not a Claude Code field. |
 | `respectGitignore` | Stable | 2.0.0+ | Controls `@` file picker. Default `true`. |
 | `cleanupPeriodDays` | Stable | 2.0.0+ | Session file retention. Minimum 1, rejected at 0. |
-| `minimumVersion` | Stable | 2.2.0+ | Hard minimum Claude Code version for settings features used by this profile. |
+| `minimumVersion` | Stable | 2.1.199+ | **Deliberately not set** (#902). An *update floor*, not a startup guard: the CLI still launches, but `claude update` refuses every release below the value and stays put. Observed pinning 2.1.199 while 2.1.201 was current. Any value here must be a version that has already shipped. |
 | `worktree.baseRef` | Stable | 2.1.0+ | Worktree fan-out base policy. This repo uses `head` for same-branch task work. |
 | `language` | Stable | 2.0.0+ | Preferred response language. |
 | `outputStyle` | Stable | 2.0.0+ | Adjusts the system prompt (e.g. `"Explanatory"`). |
@@ -246,16 +246,18 @@ The README v1.7.0 changelog originally claimed "All 42 bash scripts now have Pow
 
 | Surface | Bash count | PowerShell count | Coverage |
 |---|---:|---:|---:|
-| `global/hooks/*.sh` | 38 | 38 | 38/38 (100%) |
+| `global/hooks/*.sh` | 39 | 39 | 39/39 (100%) |
 
-The `*.sh` ↔ `*.ps1` mapping is 1:1; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if the counts diverge. The same job also compares this hardcoded table against the live hook count so the documented coverage cannot drift silently.
+The `*.sh` ↔ `*.ps1` mapping is 1:1 for guards; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if the counts diverge. The same job also compares this hardcoded table against the live hook count so the documented coverage cannot drift silently.
+
+Dispatchers (`global/hooks/*-dispatcher.*`) are excluded from both counts. A dispatcher is a per-platform execution strategy rather than a policy guard: `bash-guard-dispatcher.ps1` exists because 15 `pwsh` cold starts per Bash tool call dominated hook latency, whereas POSIX spawns a cheap `bash` per guard and has nothing to consolidate. A `.sh` twin would therefore be a dormant unwired file — the exact condition this audit exists to catch. Windows guard coverage is enforced separately by `tests/scripts/test-windows-hooks-parity.sh`, which diffs the dispatcher's routing table against the POSIX registrations.
 
 Behavioral PowerShell hook coverage runs twice: the Linux/macOS hook workflow
 executes `tests/hooks/test-runner.ps1` under `pwsh`, and the native Windows job
 executes the same runner on `windows-latest` to catch Windows console encoding,
 path, and shell behavior differences.
 
-The script that produces the live count: `bash -c 'b=$(ls global/hooks/*.sh | wc -l); p=$(ls global/hooks/*.ps1 | wc -l); echo "$p/$b"'`.
+The script that produces the live count: `bash -c 'b=$(find global/hooks -maxdepth 1 -type f -name "*.sh" ! -name "*-dispatcher.sh" | wc -l); p=$(find global/hooks -maxdepth 1 -type f -name "*.ps1" ! -name "*-dispatcher.ps1" | wc -l); echo "$p/$b"'`.
 
 #### Cross-platform `timeout` fallback (`global/hooks/lib/timeout-wrapper.sh`)
 
