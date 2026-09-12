@@ -20,6 +20,7 @@ on:
       - 'scripts/install.ps1'
       - 'scripts/install-manifest.sh'
       - 'scripts/install-manifest.ps1'
+      - 'scripts/check-installer-pins.sh'
       - 'bootstrap.sh'
       - 'bootstrap.ps1'
       - '.github/workflows/*.yml'
@@ -161,6 +162,12 @@ jobs:
 
       - name: Run installer fetch integrity tests
         run: bash tests/scripts/test-installer-fetch.sh
+
+      - name: Run installer pin check tests
+        # scripts/check-installer-pins.sh over file:// fixtures, then --offline
+        # against this repository: a reshaped pin line or bash pins that differ
+        # between bootstrap.sh and scripts/install.sh fail the PR (#936).
+        run: bash tests/scripts/test-check-installer-pins.sh
 
       - name: Run install permissions policy lint
         # Lint test: install.sh must enforce 700 / 600 / 644 on tracked files.

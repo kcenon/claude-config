@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- The pinned sha256 of the upstream Anthropic PowerShell installer
+  (`https://claude.ai/install.ps1`) is rotated from `acc15c3d844b...11df`
+  (pinned 2026-05-09) to
+  `cd17c6b555f761d60373659824bf805e1510538226e4c7028e19d7494937a333` in
+  `bootstrap.ps1`. Upstream changed the script by 2026-09-10, so
+  `hooks/lib/InstallerFetch.psm1` returned 12 (MISMATCH) and `bootstrap.ps1`
+  continued without the claude CLI unless `ANTHROPIC_INSTALLER_SHA256` was
+  overridden. The current script contacts only `downloads.claude.ai` and
+  verifies the downloaded binary against the manifest sha256 before running
+  it. No earlier copy existed to diff against. (#936, PR #937)
+- The Anthropic installer drift check now covers both installers and both
+  copies of the bash pin. `scripts/check-installer-pins.sh` compares the
+  `bootstrap.sh` pin with its copy in `scripts/install.sh` (no network) and
+  with `https://claude.ai/install.sh`, and the `bootstrap.ps1` pin with
+  `https://claude.ai/install.ps1`. Every check runs even when another fails,
+  the job summary lists each result, and the exit code names the failure: 1
+  drift, 2 an unreadable pin line, 3 a failed download. Before this the check
+  read only `bootstrap.sh` and fetched only `install.sh`, so the PowerShell
+  pin drifted without an alert, and a rotation that updated one of the two
+  bash pins passed. (#936)
+
+### Added
+
+- `tests/scripts/test-check-installer-pins.sh`, wired into
+  `validate-hooks.yml`, runs the checker over `file://` fixtures for every
+  exit code, with positive controls that a failing check does not stop the
+  checks after it. Its last case runs `--offline` against the repository, so
+  a PR that reshapes a pin line or leaves the two bash pins different fails
+  before merge. (#936)
+
 ## 1.13.0 - 2026-09-13
 
 ### Added
