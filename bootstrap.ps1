@@ -27,7 +27,7 @@ if ($env:GITHUB_BRANCH) {
 }
 $GitHubRef = if ($env:GITHUB_REF) { $env:GITHUB_REF }
              elseif ($env:GITHUB_BRANCH) { $env:GITHUB_BRANCH }
-             else { 'v1.12.0' }
+             else { 'v1.13.0' }
 
 # Anthropic Claude Code installer pin (#620 — supply-chain parity with bash).
 # The Anthropic-hosted PowerShell installer is pinned by sha256 to prevent

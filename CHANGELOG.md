@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## 1.13.0 - 2026-09-13
 
 ### Added
 
@@ -173,6 +173,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   had returned early because administrator rights were missing or because the
   operator declined to deploy an uncustomized template. Each exit path now
   records its outcome and the summary reports it. (#903)
+- `global/hooks/prune-permission-rules.{sh,ps1}`, a `SessionEnd` hook that
+  removes `permissions.allow` entries from the project-scope
+  `.claude/settings.local.json` that can never match again. One measured file
+  held 1,738 entries, 67% of them permanently unreachable, and a manual cleanup
+  grew back to four digits within a month. Removed: denylisted
+  unbounded-argument rules, entries carrying a session UUID path, compound
+  entries containing `;` or `|`, literals over 120 characters, and entries
+  subsumed by a broader `Tool(prefix:*)` rule in the same file;
+  `Tool(prefix:*)` rules and bare tool names are kept. The target comes from
+  the payload's `cwd`, never a fixed path. The hook filters lines rather than
+  round-tripping the JSON, so kept entries are written back byte for byte; it
+  fails open (a malformed file, a missing `cwd`, or any IO error leaves the file
+  byte-identical and exits 0); it replaces atomically through a temp file in
+  the target's own directory; and it discards a candidate that does not
+  re-parse or that changes any key other than the pruned array, so
+  `skillOverrides` cannot be lost. `SessionEnd` was confirmed as the right
+  event by measurement: the pruned file's hash survived the process exit and
+  was the next session's starting hash. Wired into both settings profiles; the
+  `COMPATIBILITY.md` parity row moves from 38/38 to 39/39. (#923)
 
 ### Changed
 
@@ -349,6 +368,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   version that has already shipped. The key remains valid in
   `scripts/schemas/settings-json.schema.json`; this repo simply does not set
   it. (#902)
+- The nightly Batch Drift Regression failed on every scheduled run the API
+  lists (2026-08-27 onward) without ever reaching the thresholds it was written
+  for: the repository has no `SCRATCH_REPO_TOKEN` or `ANTHROPIC_API_KEY`
+  secret, so seeding exited 3 ("gh CLI not authenticated") and the report step
+  then failed on the missing summary. A new "Check credentials" step writes
+  "skipped" to the job summary and succeeds when either secret is unset, and
+  every later step is gated on the credentials being present. "Fail job on
+  threshold breach" is unchanged, so a credentialed run that breaches a
+  threshold or produces no summary still fails. `batch-drift-regression.yml`
+  and `check-anthropic-installer.yml` now open with a comment stating what a
+  failure means and who acts on it. (#929)
+
+### Security
+
+- The pinned sha256 of the upstream Anthropic installer
+  (`https://claude.ai/install.sh`) is rotated from `b315b46925a9...d830`
+  (pinned 2026-05-03) to
+  `3a68d3406cf674e17bed1733a4dcf37805e2e47d87417700007d7e1aa766a944` in
+  `bootstrap.sh` and `scripts/install.sh`. Upstream changed the script, so
+  `hooks/lib/installer-fetch.sh` aborted on the mismatch and installing the
+  claude CLI through either entry point failed unless
+  `ANTHROPIC_INSTALLER_SHA256` was overridden; the weekly installer drift check
+  had failed on every run the API lists since 2026-06-15. As
+  `docs/SUPPLY_CHAIN.md` requires, the reviewer re-computed the hash
+  independently and read the full current script: it contacts only
+  `downloads.claude.ai` and verifies the downloaded binary against the manifest
+  sha256 before running it. No earlier copy existed to diff against.
+  `bootstrap.ps1` pins `https://claude.ai/install.ps1` separately; that
+  installer has drifted too, is not covered by the drift check, and is not
+  rotated here. (#929)
 
 ### Known limitation
 
