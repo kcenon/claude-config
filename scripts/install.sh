@@ -176,7 +176,7 @@ ensure_claude_cli() {
     # bootstrap.sh and lives in $ANTHROPIC_INSTALLER_SHA256. Bare
     # 'curl | bash' is no longer used — every install path verifies.
     local installer_url="${ANTHROPIC_INSTALLER_URL:-https://claude.ai/install.sh}"
-    local installer_sha="${ANTHROPIC_INSTALLER_SHA256:-b315b46925a9bfb9422f2503dd5aa649f680832f4c076b22d87c39d578c3d830}"
+    local installer_sha="${ANTHROPIC_INSTALLER_SHA256:-3a68d3406cf674e17bed1733a4dcf37805e2e47d87417700007d7e1aa766a944}"
     local install_status=1
 
     local script_dir repo_root

@@ -39,7 +39,7 @@ GITHUB_REF="${GITHUB_REF:-v1.12.0}"
 # workflow `.github/workflows/check-anthropic-installer.yml` fails when the
 # upstream sha256 deviates from this value.
 ANTHROPIC_INSTALLER_URL="${ANTHROPIC_INSTALLER_URL:-https://claude.ai/install.sh}"
-ANTHROPIC_INSTALLER_SHA256="${ANTHROPIC_INSTALLER_SHA256:-b315b46925a9bfb9422f2503dd5aa649f680832f4c076b22d87c39d578c3d830}"  # pinned 2026-05-03
+ANTHROPIC_INSTALLER_SHA256="${ANTHROPIC_INSTALLER_SHA256:-3a68d3406cf674e17bed1733a4dcf37805e2e47d87417700007d7e1aa766a944}"  # pinned 2026-09-10
 
 # 설치 디렉토리
 INSTALL_DIR="${INSTALL_DIR:-$HOME/claude_config_backup}"
