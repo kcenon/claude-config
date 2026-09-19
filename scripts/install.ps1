@@ -830,6 +830,7 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
     }
 
     Add-RetiredManagedManifestEntries -Root $claudeDir -Entries @{
+        'commands/_policy.md' = 'dc099752233e505ecec34e8ea87f0b4d5af2409fef2090fb36719caa0faf58c8'
         'commands/branch-cleanup.md' = '3e7fc38c324cfc9cea639e95394d7819e7768364d12023ec0b36b91f9230b09d'
         'commands/doc-review.md' = 'be659114c43ef29423c74d7b33e0f594b80c134b38fb7c5b61e6935cae88c26f'
         'commands/implement-all-levels.md' = 'b675f8e689e8aca71eb67e8666acc98018ad70b746d16655476b5939380737be'

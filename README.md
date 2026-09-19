@@ -266,8 +266,6 @@ claude_config_backup/
 │   ├── tmux.conf               # tmux auto-logging configuration
 │   ├── ccstatusline/           # Status line configuration
 │   │   └── settings.json      # Status line display settings
-│   ├── commands/               # Global command policies
-│   │   └── _policy.md         # Shared policies for all commands
 │   ├── hooks/                  # Hook scripts, each in .sh + .ps1 — authoritative catalog: HOOKS.md
 │   │   └── lib/               # Shared libraries
 │   │       ├── AttributionValidator.psm1

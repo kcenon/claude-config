@@ -62,6 +62,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   principles-only: the plugin does not ship `project/.claude/reference/`,
   and no example mirrors were added to `reference-map.yml`. (#926)
 
+### Removed
+
+- `global/commands/_policy.md`, a 413-byte stub left over from the
+  pre-skills layout. It installed as `~/.claude/commands/_policy.md` and
+  registered the slash name `_policy` under the same H1 as
+  `global/skills/_policy.md`, so Claude Code kept one of the two and dropped
+  the other without a message. Every line of the stub is already stated in
+  `global/commit-settings.md`, the `git-commit-format.md` and
+  `github-issue-5w1h.md` workflow rules, and the CI gate in
+  `global/CLAUDE.md`. All four installers now list `commands/_policy.md` as
+  a retired managed file, so an upgrade removes an unmodified deployed copy
+  and keeps an edited one. `scripts/install.sh` lists `~/.claude/commands/`
+  in its summary only when that directory exists, as `scripts/install.ps1`
+  already did. (#927)
+
 ## 1.13.0 - 2026-09-13
 
 ### Added

@@ -243,8 +243,6 @@ claude_config_backup/
 │   ├── commit-settings.md      # 커밋/PR 정책 (Claude 정보 비활성화)
 │   ├── tmux.conf               # tmux 자동 로깅 설정
 │   ├── ccstatusline/           # 상태줄 설정
-│   ├── commands/               # 글로벌 명령어 정책
-│   │   └── _policy.md         # 모든 명령어 공통 정책
 │   ├── hooks/                  # 훅 스크립트(.sh + .ps1) — 전체 정본 목록은 HOOKS.md 참조
 │   │   └── lib/               # 공유 라이브러리
 │   │       ├── AttributionValidator.psm1
