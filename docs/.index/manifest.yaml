@@ -10,7 +10,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 75907
+    size: 77037
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
@@ -18,32 +18,32 @@ documents:
       - {h: "Security", l: 10, e: 32}
       - {h: "Added", l: 33, e: 41}
       - {h: "Changed", l: 42, e: 64}
-      - {h: "Removed", l: 65, e: 79}
-      - {h: "1.13.0 - 2026-09-13", l: 80, e: 81}
-      - {h: "Added", l: 82, e: 267}
-      - {h: "Changed", l: 268, e: 320}
-      - {h: "Fixed", l: 321, e: 454}
-      - {h: "Security", l: 455, e: 473}
-      - {h: "Known limitation", l: 474, e: 481}
-      - {h: "1.12.0 - 2026-08-01", l: 482, e: 483}
-      - {h: "Added", l: 484, e: 615}
-      - {h: "Fixed", l: 616, e: 858}
-      - {h: "1.11.0 - 2026-07-03", l: 859, e: 860}
-      - {h: "Fixed", l: 861, e: 874}
-      - {h: "Security", l: 875, e: 952}
-      - {h: "Added", l: 953, e: 981}
-      - {h: "Changed", l: 982, e: 1028}
-      - {h: "1.10.0 - 2026-04-20", l: 1029, e: 1037}
-      - {h: "1.9.0 - 2026-04-13", l: 1038, e: 1047}
-      - {h: "1.8.0 - 2026-04-13", l: 1048, e: 1053}
-      - {h: "1.7.0 - 2026-04-06", l: 1054, e: 1068}
-      - {h: "1.6.0 - 2026-04-03", l: 1069, e: 1081}
-      - {h: "1.5.0 - 2026-03-21", l: 1082, e: 1100}
-      - {h: "1.4.0 - 2026-01-22", l: 1101, e: 1106}
-      - {h: "1.3.0 - 2026-01-15", l: 1107, e: 1115}
-      - {h: "1.2.0 - 2026-01-15", l: 1116, e: 1124}
-      - {h: "1.1.0 - 2025-01-15", l: 1125, e: 1135}
-      - {h: "1.0.0 - 2025-12-03", l: 1136, e: 1142}
+      - {h: "Removed", l: 65, e: 96}
+      - {h: "1.13.0 - 2026-09-13", l: 97, e: 98}
+      - {h: "Added", l: 99, e: 284}
+      - {h: "Changed", l: 285, e: 337}
+      - {h: "Fixed", l: 338, e: 471}
+      - {h: "Security", l: 472, e: 490}
+      - {h: "Known limitation", l: 491, e: 498}
+      - {h: "1.12.0 - 2026-08-01", l: 499, e: 500}
+      - {h: "Added", l: 501, e: 632}
+      - {h: "Fixed", l: 633, e: 875}
+      - {h: "1.11.0 - 2026-07-03", l: 876, e: 877}
+      - {h: "Fixed", l: 878, e: 891}
+      - {h: "Security", l: 892, e: 969}
+      - {h: "Added", l: 970, e: 998}
+      - {h: "Changed", l: 999, e: 1045}
+      - {h: "1.10.0 - 2026-04-20", l: 1046, e: 1054}
+      - {h: "1.9.0 - 2026-04-13", l: 1055, e: 1064}
+      - {h: "1.8.0 - 2026-04-13", l: 1065, e: 1070}
+      - {h: "1.7.0 - 2026-04-06", l: 1071, e: 1085}
+      - {h: "1.6.0 - 2026-04-03", l: 1086, e: 1098}
+      - {h: "1.5.0 - 2026-03-21", l: 1099, e: 1117}
+      - {h: "1.4.0 - 2026-01-22", l: 1118, e: 1123}
+      - {h: "1.3.0 - 2026-01-15", l: 1124, e: 1132}
+      - {h: "1.2.0 - 2026-01-15", l: 1133, e: 1141}
+      - {h: "1.1.0 - 2025-01-15", l: 1142, e: 1152}
+      - {h: "1.0.0 - 2025-12-03", l: 1153, e: 1159}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -6734,15 +6734,13 @@ documents:
     description: ""
     category: config
     scope: project
-    size: 3698
+    size: 2896
     tags: [config,project]
     sections:
-      - {h: "Auto-Loaded Rules", l: 6, e: 15}
-      - {h: "On-Demand Rules (path-triggered)", l: 16, e: 32}
-      - {h: "Reference Docs", l: 33, e: 50}
-      - {h: "Agents", l: 51, e: 54}
-      - {h: "Skills", l: 55, e: 63}
-      - {h: "MCP", l: 64, e: 67}
+      - {h: "On-Demand Rules (path-triggered)", l: 6, e: 22}
+      - {h: "Reference Docs", l: 23, e: 40}
+      - {h: "Skills", l: 41, e: 48}
+      - {h: "MCP", l: 49, e: 52}
   - path: "project/VERSION_HISTORY.md"
     title: "Project Guidelines Version History"
     description: ""
