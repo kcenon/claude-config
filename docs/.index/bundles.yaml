@@ -50,7 +50,6 @@ auto:
     description: "Slash command implementations"
     estimated_tokens: 3107
     docs:
-      - "global/commands/_policy.md"
       - "project/.claude/commands/_policy.md"
       - "project/.claude/commands/code-quality.md"
       - "project/.claude/commands/git-status.md"
