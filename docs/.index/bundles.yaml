@@ -29,6 +29,9 @@ auto:
       - "project/.claude/rules/api/architecture.md"
       - "project/.claude/rules/api/observability.md"
       - "project/.claude/rules/api/rest-api.md"
+      - "project/.claude/reference/api/api-design-examples.md"
+      - "project/.claude/reference/api/architecture-examples.md"
+      - "project/.claude/reference/api/observability-examples.md"
   coding:
     description: "Coding standards, error handling, performance, and safety rules"
     estimated_tokens: 12491
@@ -40,6 +43,9 @@ auto:
       - "project/.claude/reference/coding/anti-patterns.md"
       - "project/.claude/rules/coding/safety.md"
       - "project/.claude/rules/coding/standards.md"
+      - "project/.claude/reference/coding/error-handling-examples.md"
+      - "project/.claude/reference/coding/performance-examples.md"
+      - "project/.claude/reference/coding/safety-examples.md"
   commands:
     description: "Slash command implementations"
     estimated_tokens: 3107
@@ -93,6 +99,9 @@ auto:
       - "project/.claude/rules/project-management/build.md"
       - "project/.claude/rules/project-management/documentation.md"
       - "project/.claude/rules/project-management/testing.md"
+      - "project/.claude/reference/project-management/build-examples.md"
+      - "project/.claude/reference/project-management/documentation-templates.md"
+      - "project/.claude/reference/project-management/testing-examples.md"
   root:
     description: "Project overview: README, HOOKS, QUICKSTART"
     estimated_tokens: 146796
@@ -211,6 +220,7 @@ auto:
       - "plugin/skills/security-audit/reference/error-handling.md"
       - "plugin/skills/security-audit/reference/security.md"
       - "project/.claude/rules/security.md"
+      - "project/.claude/reference/security-examples.md"
       - "project/.claude/skills/security-audit/SKILL.md"
       - "project/.claude/skills/security-audit/reference/api-design.md"
       - "project/.claude/skills/security-audit/reference/error-handling.md"

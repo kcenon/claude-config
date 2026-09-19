@@ -39,6 +39,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a PR that reshapes a pin line or leaves the two bash pins different fails
   before merge. (#936)
 
+### Changed
+
+- Ten path-triggered rules under `project/.claude/rules/` keep their
+  principles and hand their worked examples to `project/.claude/reference/`.
+  A `paths:` rule is injected whole when one matching file is read, so the
+  examples were paid for on every such read: the ten rules shrink from
+  107,065 to 26,977 LF bytes (each under 4,000), which takes one read under
+  `**/api/**` from 41,500 bytes of injected rules to 7,520. The
+  examples move verbatim to `api/{api-design,architecture,observability}-examples.md`,
+  `coding/{performance,error-handling,safety}-examples.md`,
+  `project-management/{documentation-templates,build-examples,testing-examples}.md`
+  and `security-examples.md`; each rule ends with a pointer to its file and
+  `project/CLAUDE.md` lists all ten under `## Reference Docs` for
+  `@load: reference/<name>`. `api/api-design.md` keeps the
+  `Standardized Error Responses` block, now under `## Error Handling`,
+  because `api/rest-api.md` cites it as the canonical error format.
+  Frontmatter and `paths:` are unchanged. The 29 skill mirrors regenerated
+  from these rules by `scripts/sync_references.sh` shrink from 293,020 to
+  77,402 bytes, and because skills pull them in with `@./reference/<name>.md`
+  a skill invocation gets lighter by the same text. Plugin skills become
+  principles-only: the plugin does not ship `project/.claude/reference/`,
+  and no example mirrors were added to `reference-map.yml`. (#926)
+
 ## 1.13.0 - 2026-09-13
 
 ### Added

@@ -32,7 +32,8 @@ Loaded when matching files are open:
 
 ## Reference Docs
 
-Stored in `.claude/reference/` (`coding/`, `workflow/`), outside the auto-loaded
+Stored in `.claude/reference/` (`api/`, `coding/`, `project-management/`, `workflow/`,
+and `security-examples.md` at its root), outside the auto-loaded
 `.claude/rules/` tree so they are never injected by default. Load with `@load: reference/<name>`:
 - `anti-patterns` -- Before/after examples for core principles
 - `5w1h-examples` -- Issue/PR templates with full 5W1H
@@ -42,6 +43,10 @@ Stored in `.claude/reference/` (`coding/`, `workflow/`), outside the auto-loaded
 - `automation-patterns` -- GitHub Actions patterns
 - `issue-examples` -- Issue splitting and examples
 - `label-definitions` -- GitHub label taxonomy
+- `api-design-examples`, `architecture-examples`, `observability-examples` -- Worked samples for the `api/` rules
+- `performance-examples`, `error-handling-examples`, `safety-examples` -- Worked samples for the `coding/` rules
+- `documentation-templates`, `build-examples`, `testing-examples` -- Templates and samples for the `project-management/` rules
+- `security-examples` -- Worked samples for `security.md`
 
 ## Agents
 
