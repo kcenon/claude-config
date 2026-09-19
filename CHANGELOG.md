@@ -77,6 +77,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in its summary only when that directory exists, as `scripts/install.ps1`
   already did. (#927)
 
+- Three lists in `project/CLAUDE.md` that a session can rebuild from what it
+  already holds: `## Auto-Loaded Rules` (the six `alwaysApply: true` rules,
+  which are injected into the same context with their paths whenever the
+  file loads), `## Agents` (the eight file names under
+  `project/.claude/agents/`) and the skill-name line under `## Skills` (the
+  eleven directory names under `project/.claude/skills/`). The file goes
+  from 3,698 to 2,896 LF bytes, and that text was resident in every session
+  of every project that installs the template. This reverses the #908
+  decision to keep the skill list: the names are one directory listing
+  away, and a hand-maintained list drifts where a listing cannot -- one
+  deployed copy had both name blocks removed on 2026-08-25 and the
+  divergence from the source went unnoticed until 2026-09-05. The
+  `skillOverrides` caveat that #908 added stays as the body of `## Skills`,
+  reworded to say that a directory listing of `.claude/skills/` does not
+  tell which skills are active. `## On-Demand Rules (path-triggered)`,
+  `## Reference Docs` and `## MCP` are unchanged. (#928)
+
 ## 1.13.0 - 2026-09-13
 
 ### Added
