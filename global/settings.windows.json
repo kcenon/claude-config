@@ -506,6 +506,21 @@
       "Edit(.env.*)",
       "Edit(**/.env)",
       "Edit(**/.env.*)"
+    ],
+    "ask": [
+      "PowerShell(gh api *-X POST*)",
+      "PowerShell(gh api *-X PATCH*)",
+      "PowerShell(gh api *-X PUT*)",
+      "PowerShell(gh api *-X DELETE*)",
+      "PowerShell(gh api *--method POST*)",
+      "PowerShell(gh api *--method PATCH*)",
+      "PowerShell(gh api *--method PUT*)",
+      "PowerShell(gh api *--method DELETE*)",
+      "PowerShell(gh api *-f *)",
+      "PowerShell(gh api *-F *)",
+      "PowerShell(gh api *--field *)",
+      "PowerShell(gh api *--raw-field *)",
+      "PowerShell(gh api *--input *)"
     ]
   }
 }

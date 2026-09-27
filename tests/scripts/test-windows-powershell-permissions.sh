@@ -27,6 +27,7 @@ settings = json.loads(settings_path.read_text(encoding="utf-8"))
 perms = settings.get("permissions") or {}
 allow = set(perms.get("allow") or [])
 deny = set(perms.get("deny") or [])
+ask = set(perms.get("ask") or [])
 
 required = {
     "PowerShell(Get-ChildItem:*)",
@@ -109,6 +110,27 @@ required_deny = {
     "Edit(.env)",
 }
 
+# The PowerShell channel has no PreToolUse guard (gh-write-verb-guard only
+# covers Bash), so the broad `gh api repos/*` style allows must not
+# auto-approve write calls. These ask rules take precedence over allow and
+# force a prompt for explicit write methods and for the field/input flags
+# that make gh api default to POST.
+required_ask = {
+    "PowerShell(gh api *-X POST*)",
+    "PowerShell(gh api *-X PATCH*)",
+    "PowerShell(gh api *-X PUT*)",
+    "PowerShell(gh api *-X DELETE*)",
+    "PowerShell(gh api *--method POST*)",
+    "PowerShell(gh api *--method PATCH*)",
+    "PowerShell(gh api *--method PUT*)",
+    "PowerShell(gh api *--method DELETE*)",
+    "PowerShell(gh api *-f *)",
+    "PowerShell(gh api *-F *)",
+    "PowerShell(gh api *--field *)",
+    "PowerShell(gh api *--raw-field *)",
+    "PowerShell(gh api *--input *)",
+}
+
 errors = []
 missing = sorted(required - allow)
 if missing:
@@ -121,6 +143,10 @@ if present_forbidden:
 missing_deny = sorted(required_deny - deny)
 if missing_deny:
     errors.append("sensitive-file deny entries missing: " + ", ".join(missing_deny))
+
+missing_ask = sorted(required_ask - ask)
+if missing_ask:
+    errors.append("gh api write ask entries missing: " + ", ".join(missing_ask))
 
 # Write(path) deny rules are never matched by file permission checks; the
 # harness warns about them at startup. Edit(path) rules cover all
