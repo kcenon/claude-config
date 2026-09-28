@@ -148,8 +148,8 @@ Claude Code Plugin으로 설치하여 쉽게 배포하고 업데이트할 수 �
 # 마켓플레이스 추가
 /plugin marketplace add kcenon/claude-config
 
-# 플러그인 설치
-/plugin install claude-config@kcenon/claude-config
+# 플러그인 설치 (마켓플레이스: kcenon-plugins)
+/plugin install claude-config@kcenon-plugins
 ```
 
 또는 로컬에서 테스트:
@@ -186,8 +186,9 @@ cd ~\claude_config_backup
 전체 구성 없이 핵심 동작 교정만 원하시나요?
 
 ```bash
-# lite plugin 설치
-claude plugins add kcenon/claude-config-lite
+# lite plugin 설치 (마켓플레이스: kcenon-plugins)
+claude plugin marketplace add kcenon/claude-config
+claude plugin install claude-config-lite@kcenon-plugins
 
 # 또는 로컬 테스트
 claude --plugin-dir ./plugin-lite
@@ -324,11 +325,6 @@ claude_config_backup/
 │       ├── reference/          # 온디맨드 레퍼런스 문서 (rules/ 밖, 자동 로드 안 됨)
 │       │   ├── coding/         # anti-patterns.md
 │       │   └── workflow/       # 5W1H 예시, 레이블, 자동화, Agent Teams
-│       ├── commands/           # 사용자 정의 슬래시 명령어
-│       │   ├── _policy.md
-│       │   ├── pr-review.md
-│       │   ├── code-quality.md
-│       │   └── git-status.md
 │       ├── agents/             # 특화 에이전트 설정
 │       │   ├── code-reviewer.md
 │       │   ├── codebase-analyzer.md
@@ -347,6 +343,7 @@ claude_config_backup/
 │           ├── documentation/
 │           ├── ci-debugging/
 │           ├── code-quality/   # 사용자 호출형
+│           ├── doc-update/     # 사용자 호출형
 │           ├── git-status/     # 사용자 호출형
 │           └── pr-review/      # 사용자 호출형
 │
@@ -806,7 +803,7 @@ cd .claude-config
 # 타입: 2 (프로젝트만)
 
 # 팀 멤버
-git clone https://github.com/your-org/project.git
+git clone YOUR_PROJECT_REPO_URL project
 cd project/.claude-config
 ./scripts/install.sh
 # 타입: 2 (프로젝트만)
@@ -987,15 +984,15 @@ bash scripts/install.sh
 
 ### Q5: Private repo로 사용하고 싶어요
 
-**A:** 설치 시 Personal Access Token을 사용하세요:
+**A:** 비공개 포크를 쓰려면 bootstrap이 두 곳에서 포크를 가리켜야 합니다:
 
-```bash
-# Token 생성: GitHub Settings > Developer settings > Personal access tokens
+1. [Private Repository](#private-repository)처럼 Personal Access Token으로 포크의 `bootstrap.sh`를 받습니다.
+   URL에는 포크 소유자를 넣습니다. Token은 GitHub Settings > Developer settings > Personal access tokens에서 만듭니다.
+2. 고급 사용법의 *환경 변수로 커스터마이즈*처럼 `GITHUB_USER`를 포크 소유자로 지정합니다(이름을 바꿨다면 `GITHUB_REPO`도).
+   지정하지 않으면 bootstrap은 `kcenon/claude-config`를 클론합니다. 포크에 기본 릴리스 태그가 없으면 `GITHUB_REF`도 지정합니다.
 
-# 설치
-curl -sSL -H "Authorization: token YOUR_TOKEN" \
-  https://raw.githubusercontent.com/your-user/claude-config/main/bootstrap.sh | bash
-```
+bootstrap은 포크를 일반 `git clone`으로 클론합니다. 1단계의 token은 넘어가지 않으므로,
+git이 포크에 접근할 자격 증명을 따로 갖고 있어야 합니다(예: credential helper).
 
 ---
 
