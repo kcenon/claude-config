@@ -189,8 +189,8 @@ Install as a Claude Code Plugin for easy distribution and updates:
 # Add marketplace
 /plugin marketplace add kcenon/claude-config
 
-# Install plugin
-/plugin install claude-config@kcenon/claude-config
+# Install plugin (marketplace: kcenon-plugins)
+/plugin install claude-config@kcenon-plugins
 ```
 
 Or test locally:
@@ -207,8 +207,9 @@ See [plugin/README.md](plugin/README.md) for more details.
 Want just the core behavioral corrections without the full suite?
 
 ```bash
-# Install lite plugin
-claude plugins add kcenon/claude-config-lite
+# Install lite plugin (marketplace: kcenon-plugins)
+claude plugin marketplace add kcenon/claude-config
+claude plugin install claude-config-lite@kcenon-plugins
 
 # Or test locally
 claude --plugin-dir ./plugin-lite
@@ -349,7 +350,6 @@ claude_config_backup/
 │       ├── reference/          # On-demand reference docs (outside rules/, never auto-loaded)
 │       │   ├── coding/         # anti-patterns.md
 │       │   └── workflow/       # 5W1H examples, labels, automation, agent teams
-│       ├── skills/             # 11 project skills (migrated from slash commands) — e.g. pr-review, code-quality, git-status, security-audit
 │       ├── agents/             # Specialized agent configurations
 │       │   ├── code-reviewer.md
 │       │   ├── codebase-analyzer.md
@@ -368,6 +368,7 @@ claude_config_backup/
 │           ├── documentation/
 │           ├── ci-debugging/
 │           ├── code-quality/   # User-invocable
+│           ├── doc-update/     # User-invocable
 │           ├── git-status/     # User-invocable
 │           └── pr-review/      # User-invocable
 │
@@ -838,7 +839,7 @@ cd .claude-config
 # Type: 2 (Project only)
 
 # Team member
-git clone https://github.com/your-org/project.git
+git clone YOUR_PROJECT_REPO_URL project
 cd project/.claude-config
 ./scripts/install.sh
 # Type: 2 (Project only)
@@ -1030,15 +1031,17 @@ bash scripts/install.sh
 
 ### Q5: I want to use a private repo
 
-**A:** Use Personal Access Token during installation:
+**A:** For a private fork, bootstrap needs the fork in two places:
 
-```bash
-# Create token: GitHub Settings > Developer settings > Personal access tokens
+1. Download `bootstrap.sh` from the fork with a Personal Access Token, as in
+   [Private Repository](#private-repository), with the fork's owner in the URL.
+   Create the token under GitHub Settings > Developer settings > Personal access tokens.
+2. Set `GITHUB_USER` to the fork's owner (and `GITHUB_REPO` if you renamed it), as in
+   *Customize with Environment Variables* under Advanced Usage. Without them bootstrap
+   clones `kcenon/claude-config`. Set `GITHUB_REF` too if the fork lacks the default release tag.
 
-# Installation
-curl -sSL -H "Authorization: token YOUR_TOKEN" \
-  https://raw.githubusercontent.com/your-user/claude-config/main/bootstrap.sh | bash
-```
+bootstrap clones the fork with a plain `git clone`; the token from step 1 is not passed on,
+so git needs its own credentials for the fork (for example, a credential helper).
 
 ---
 

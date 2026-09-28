@@ -94,6 +94,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tell which skills are active. `## On-Demand Rules (path-triggered)`,
   `## Reference Docs` and `## MCP` are unchanged. (#928)
 
+### Fixed
+
+- `README.md` and `README.ko.md` now match the repository in five places.
+  Both plugin install commands name the marketplace `kcenon-plugins` from
+  `.claude-plugin/marketplace.json`: the lite plugin pointed at
+  `kcenon/claude-config-lite`, a repository that does not exist, and the
+  full plugin used `@kcenon/claude-config` as the marketplace name. The
+  `project/.claude/` tree lists all eleven skills, including `doc-update`,
+  once; the English copy listed `skills/` twice and the Korean copy showed a
+  `commands/` directory that the template no longer has. The team-member
+  clone uses the placeholder `YOUR_PROJECT_REPO_URL` instead of a link to
+  `your-org/project`. The private-repository answer no longer downloads from
+  `your-user/claude-config`; it says that a private fork also needs
+  `GITHUB_USER` (bootstrap otherwise clones `kcenon/claude-config`) and that
+  the clone uses git's own credentials, not the download token. (#930)
+
 ## 1.13.0 - 2026-09-13
 
 ### Added
