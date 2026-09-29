@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `scripts/readme_lint.py`, a standard-library README lint ported from
+  kcenon/dcmtk-docker (itself from kcenon/common_system `c2f4037`). It checks
+  `README.md` and `README.ko.md`: at most 300 lines, a `Status:` line and a
+  release link that matches the `suite` field of `VERSION_MAP.yml` within the
+  first 20 lines, badges only for workflows in this repository, no
+  promotional qualifiers, and no unsourced measurements. Its 23 behavior tests
+  are in `tests/scripts/test_readme_lint.py`; `.github/workflows/doc-audit.yml`
+  runs both on pull requests, and `docs/contributing/README_POLICY.md` states
+  the rules. (#931)
+
+### Changed
+
+- `README.md` and `README.ko.md` are entry pages of 153 lines each, down from
+  1,112 and 1,063: status and release, quick start, what you get, a short
+  installation section, a documentation index, versioning, contributing and
+  license. The other sections moved verbatim to `docs/guides/INSTALLATION.md`,
+  `STRUCTURE.md`, `FEATURES.md` and `USE_CASES.md`, each with a Korean copy
+  (`*.ko.md`). While moving, the plugin size column (no source), the list of
+  three workflows (the directory holds ten), the Agent Teams key bindings
+  (defined by Claude Code, now a link to its documentation) and four
+  qualifiers were removed or rewritten, and the pages no longer carry the
+  "86% reduction" figure; `docs/TOKEN_OPTIMIZATION.md` keeps the measurements.
+  (#931)
+- The static version and license badges are gone. The `suite` version now
+  lives in the status-line release link, which `scripts/sync_versions.sh` /
+  `.ps1` update and `scripts/check_versions.sh` / `.ps1` check in label and
+  tag; the documented `GITHUB_REF` examples they maintain moved with the
+  installation text to `docs/guides/INSTALLATION.md` and its Korean copy.
+  (#931)
+
 ## 1.14.0 - 2026-09-29
 
 ### Added
