@@ -73,6 +73,8 @@ findings() {
 fail() {
     echo "FAIL: $1"
     findings
+    echo "--- verify.sh output, last 40 lines"
+    tail -40 "$OUT"
     exit 1
 }
 expect() {
