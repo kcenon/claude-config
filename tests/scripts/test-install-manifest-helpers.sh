@@ -79,6 +79,38 @@ fi
 
 echo "manifest_copy_tree/prune: PASS"
 
+# Test that prune removes the directories it empties (#945). A retired file's
+# directory goes, a directory that still holds a user file stays, the empty
+# directory of an already-missing file goes, and the install root stays even
+# when nothing is left in it. The manifest lives outside both roots so that it
+# does not keep a root non-empty.
+saved_manifest_path="$MANIFEST_PATH"
+MANIFEST_PATH="$TEST_DIR/empty-dirs.manifest.json"
+EMPTY_ROOT="$TEST_DIR/empty-root"
+mkdir -p "$EMPTY_ROOT/commands" "$EMPTY_ROOT/keep/sub" "$EMPTY_ROOT/gone/deep"
+echo "retired command" > "$EMPTY_ROOT/commands/_policy.md"
+echo "retired rule" > "$EMPTY_ROOT/keep/sub/old.md"
+echo "user file" > "$EMPTY_ROOT/keep/user.md"
+manifest_seed_retired_managed "$EMPTY_ROOT" \
+    "commands/_policy.md" "$(_manifest_hash "$EMPTY_ROOT/commands/_policy.md")" \
+    "keep/sub/old.md" "$(_manifest_hash "$EMPTY_ROOT/keep/sub/old.md")" >/dev/null
+_manifest_write "gone/deep/missing.md" "0000"
+manifest_prune_removed "$EMPTY_ROOT" "current.md" >/dev/null
+[ ! -e "$EMPTY_ROOT/commands" ] || { echo "FAIL: prune left the emptied commands/ directory"; exit 1; }
+[ ! -e "$EMPTY_ROOT/keep/sub" ] || { echo "FAIL: prune left the emptied keep/sub/ directory"; exit 1; }
+[ -f "$EMPTY_ROOT/keep/user.md" ] || { echo "FAIL: prune removed a user file"; exit 1; }
+[ ! -e "$EMPTY_ROOT/gone" ] || { echo "FAIL: prune left the empty directory of a missing file"; exit 1; }
+
+BARE_ROOT="$TEST_DIR/bare-root"
+mkdir -p "$BARE_ROOT/only"
+echo "retired" > "$BARE_ROOT/only/one.md"
+_manifest_write "only/one.md" "$(_manifest_hash "$BARE_ROOT/only/one.md")"
+manifest_prune_removed "$BARE_ROOT" "current.md" >/dev/null
+[ ! -e "$BARE_ROOT/only" ] || { echo "FAIL: prune left the emptied only/ directory"; exit 1; }
+[ -d "$BARE_ROOT" ] || { echo "FAIL: prune removed the install root"; exit 1; }
+MANIFEST_PATH="$saved_manifest_path"
+echo "manifest prune removes emptied directories: PASS"
+
 # Test idempotent reset: english policy must remove .env.CLAUDE_CONTENT_LANGUAGE
 # left over from a prior non-default selection.
 if command -v jq >/dev/null 2>&1; then

@@ -102,6 +102,9 @@ against the current managed keys for that root.
 
 This is the deletion counterpart to guarded copy: repository removals are
 propagated only when the deployed file still matches the last managed hash.
+After a file is deleted or a stale entry is removed, each directory above it is
+removed while it is empty, up to but never including the install root; the
+first directory that still holds anything, such as a user file, stays.
 The installers also carry a small retired-file ownership table for legacy
 command files removed before directory manifests existed. Those files are
 seeded into the manifest only when their current bytes match a known
