@@ -110,6 +110,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `GITHUB_USER` (bootstrap otherwise clones `kcenon/claude-config`) and that
   the clone uses git's own credentials, not the download token. (#930)
 
+- Manifest prune now removes the directories it empties. Both
+  `Invoke-ManifestPrune` (`scripts/install-manifest.ps1`) and
+  `manifest_prune_removed` (`scripts/install-manifest.sh`) deleted only the
+  file, so pruning the retired `commands/_policy.md` left an empty
+  `~/.claude/commands/`. After a file is deleted, or a stale entry is removed
+  because its file is already gone, each directory above it is removed while
+  it is empty, up to but never including the install root. A directory that
+  still holds any file stays. (#945)
+
 ## 1.13.0 - 2026-09-13
 
 ### Added

@@ -173,6 +173,24 @@ if not isinstance(files, dict):
     sys.exit(0)
 
 changed = False
+
+
+def remove_empty_parents(path):
+    # Remove the directories above a pruned path while they are empty. Stop at
+    # the first one that still holds anything and never remove dest_root.
+    parent = os.path.dirname(path)
+    while parent.startswith(dest_root + os.sep):
+        try:
+            if os.listdir(parent):
+                break
+            os.rmdir(parent)
+        except OSError:
+            break
+        print("  Pruned empty directory: {}".format(
+            os.path.relpath(parent, dest_root).replace(os.sep, "/")))
+        parent = os.path.dirname(parent)
+
+
 for key, stored_sha in sorted(list(files.items())):
     if key in managed:
         continue
@@ -195,6 +213,7 @@ for key, stored_sha in sorted(list(files.items())):
         del files[key]
         changed = True
         print("  Removed stale manifest entry for missing file: {}".format(key))
+        remove_empty_parents(dest)
         continue
 
     if not os.path.isfile(dest):
@@ -217,6 +236,7 @@ for key, stored_sha in sorted(list(files.items())):
         del files[key]
         changed = True
         print("  Pruned removed managed file: {}".format(key))
+        remove_empty_parents(dest)
     else:
         print("  Preserved locally edited removed managed file: {}".format(key))
 

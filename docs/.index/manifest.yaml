@@ -10,7 +10,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 77998
+    size: 78534
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
@@ -19,32 +19,32 @@ documents:
       - {h: "Added", l: 33, e: 41}
       - {h: "Changed", l: 42, e: 64}
       - {h: "Removed", l: 65, e: 96}
-      - {h: "Fixed", l: 97, e: 112}
-      - {h: "1.13.0 - 2026-09-13", l: 113, e: 114}
-      - {h: "Added", l: 115, e: 300}
-      - {h: "Changed", l: 301, e: 353}
-      - {h: "Fixed", l: 354, e: 487}
-      - {h: "Security", l: 488, e: 506}
-      - {h: "Known limitation", l: 507, e: 514}
-      - {h: "1.12.0 - 2026-08-01", l: 515, e: 516}
-      - {h: "Added", l: 517, e: 648}
-      - {h: "Fixed", l: 649, e: 891}
-      - {h: "1.11.0 - 2026-07-03", l: 892, e: 893}
-      - {h: "Fixed", l: 894, e: 907}
-      - {h: "Security", l: 908, e: 985}
-      - {h: "Added", l: 986, e: 1014}
-      - {h: "Changed", l: 1015, e: 1061}
-      - {h: "1.10.0 - 2026-04-20", l: 1062, e: 1070}
-      - {h: "1.9.0 - 2026-04-13", l: 1071, e: 1080}
-      - {h: "1.8.0 - 2026-04-13", l: 1081, e: 1086}
-      - {h: "1.7.0 - 2026-04-06", l: 1087, e: 1101}
-      - {h: "1.6.0 - 2026-04-03", l: 1102, e: 1114}
-      - {h: "1.5.0 - 2026-03-21", l: 1115, e: 1133}
-      - {h: "1.4.0 - 2026-01-22", l: 1134, e: 1139}
-      - {h: "1.3.0 - 2026-01-15", l: 1140, e: 1148}
-      - {h: "1.2.0 - 2026-01-15", l: 1149, e: 1157}
-      - {h: "1.1.0 - 2025-01-15", l: 1158, e: 1168}
-      - {h: "1.0.0 - 2025-12-03", l: 1169, e: 1175}
+      - {h: "Fixed", l: 97, e: 121}
+      - {h: "1.13.0 - 2026-09-13", l: 122, e: 123}
+      - {h: "Added", l: 124, e: 309}
+      - {h: "Changed", l: 310, e: 362}
+      - {h: "Fixed", l: 363, e: 496}
+      - {h: "Security", l: 497, e: 515}
+      - {h: "Known limitation", l: 516, e: 523}
+      - {h: "1.12.0 - 2026-08-01", l: 524, e: 525}
+      - {h: "Added", l: 526, e: 657}
+      - {h: "Fixed", l: 658, e: 900}
+      - {h: "1.11.0 - 2026-07-03", l: 901, e: 902}
+      - {h: "Fixed", l: 903, e: 916}
+      - {h: "Security", l: 917, e: 994}
+      - {h: "Added", l: 995, e: 1023}
+      - {h: "Changed", l: 1024, e: 1070}
+      - {h: "1.10.0 - 2026-04-20", l: 1071, e: 1079}
+      - {h: "1.9.0 - 2026-04-13", l: 1080, e: 1089}
+      - {h: "1.8.0 - 2026-04-13", l: 1090, e: 1095}
+      - {h: "1.7.0 - 2026-04-06", l: 1096, e: 1110}
+      - {h: "1.6.0 - 2026-04-03", l: 1111, e: 1123}
+      - {h: "1.5.0 - 2026-03-21", l: 1124, e: 1142}
+      - {h: "1.4.0 - 2026-01-22", l: 1143, e: 1148}
+      - {h: "1.3.0 - 2026-01-15", l: 1149, e: 1157}
+      - {h: "1.2.0 - 2026-01-15", l: 1158, e: 1166}
+      - {h: "1.1.0 - 2025-01-15", l: 1167, e: 1177}
+      - {h: "1.0.0 - 2025-12-03", l: 1178, e: 1184}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -1740,23 +1740,23 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 14621
+    size: 14847
     tags: [docs]
     sections:
       - {h: "Install Behavior", l: 1, e: 6}
       - {h: "Manifest", l: 7, e: 36}
       - {h: "Copy Decision", l: 62, e: 89}
-      - {h: "Prune Decision", l: 90, e: 109}
-      - {h: "Non-Interactive Override", l: 110, e: 116}
-      - {h: "Pick the install type and accept every other default.", l: 117, e: 119}
-      - {h: "Force bootstrap defaults. The bootstrap default install type is 1.", l: 120, e: 124}
-      - {h: "Pick the install type and accept every other default.", l: 125, e: 127}
-      - {h: "Force bootstrap defaults. The bootstrap default install type is 1.", l: 128, e: 150}
-      - {h: "Toolchain Fallback", l: 151, e: 161}
-      - {h: "Template Files", l: 162, e: 227}
-      - {h: "Tracked Files", l: 228, e: 249}
-      - {h: "Machine-local settings keys", l: 262, e: 293}
-      - {h: "Regression Test", l: 294, e: 317}
+      - {h: "Prune Decision", l: 90, e: 112}
+      - {h: "Non-Interactive Override", l: 113, e: 119}
+      - {h: "Pick the install type and accept every other default.", l: 120, e: 122}
+      - {h: "Force bootstrap defaults. The bootstrap default install type is 1.", l: 123, e: 127}
+      - {h: "Pick the install type and accept every other default.", l: 128, e: 130}
+      - {h: "Force bootstrap defaults. The bootstrap default install type is 1.", l: 131, e: 153}
+      - {h: "Toolchain Fallback", l: 154, e: 164}
+      - {h: "Template Files", l: 165, e: 230}
+      - {h: "Tracked Files", l: 231, e: 252}
+      - {h: "Machine-local settings keys", l: 265, e: 296}
+      - {h: "Regression Test", l: 297, e: 320}
   - path: "docs/loop-patterns.md"
     title: "Loop-Safety Patterns for Skills"
     description: ""
