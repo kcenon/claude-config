@@ -5,30 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Security
-
-- The pinned sha256 of the upstream Anthropic PowerShell installer
-  (`https://claude.ai/install.ps1`) is rotated from `acc15c3d844b...11df`
-  (pinned 2026-05-09) to
-  `cd17c6b555f761d60373659824bf805e1510538226e4c7028e19d7494937a333` in
-  `bootstrap.ps1`. Upstream changed the script by 2026-09-10, so
-  `hooks/lib/InstallerFetch.psm1` returned 12 (MISMATCH) and `bootstrap.ps1`
-  continued without the claude CLI unless `ANTHROPIC_INSTALLER_SHA256` was
-  overridden. The current script contacts only `downloads.claude.ai` and
-  verifies the downloaded binary against the manifest sha256 before running
-  it. No earlier copy existed to diff against. (#936, PR #937)
-- The Anthropic installer drift check now covers both installers and both
-  copies of the bash pin. `scripts/check-installer-pins.sh` compares the
-  `bootstrap.sh` pin with its copy in `scripts/install.sh` (no network) and
-  with `https://claude.ai/install.sh`, and the `bootstrap.ps1` pin with
-  `https://claude.ai/install.ps1`. Every check runs even when another fails,
-  the job summary lists each result, and the exit code names the failure: 1
-  drift, 2 an unreadable pin line, 3 a failed download. Before this the check
-  read only `bootstrap.sh` and fetched only `install.sh`, so the PowerShell
-  pin drifted without an alert, and a rotation that updated one of the two
-  bash pins passed. (#936)
+## 1.14.0 - 2026-09-29
 
 ### Added
 
@@ -135,6 +112,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   section: a missing optional npm package returned 1 under `set -e`, which
   ended the script on any machine without both packages, and
   `claude-limitline`, which ignores `--version`, waited for input. (#944)
+
+### Security
+
+- The pinned sha256 of the upstream Anthropic PowerShell installer
+  (`https://claude.ai/install.ps1`) is rotated from `acc15c3d844b...11df`
+  (pinned 2026-05-09) to
+  `cd17c6b555f761d60373659824bf805e1510538226e4c7028e19d7494937a333` in
+  `bootstrap.ps1`. Upstream changed the script by 2026-09-10, so
+  `hooks/lib/InstallerFetch.psm1` returned 12 (MISMATCH) and `bootstrap.ps1`
+  continued without the claude CLI unless `ANTHROPIC_INSTALLER_SHA256` was
+  overridden. The current script contacts only `downloads.claude.ai` and
+  verifies the downloaded binary against the manifest sha256 before running
+  it. No earlier copy existed to diff against. (#936, PR #937)
+- The Anthropic installer drift check now covers both installers and both
+  copies of the bash pin. `scripts/check-installer-pins.sh` compares the
+  `bootstrap.sh` pin with its copy in `scripts/install.sh` (no network) and
+  with `https://claude.ai/install.sh`, and the `bootstrap.ps1` pin with
+  `https://claude.ai/install.ps1`. Every check runs even when another fails,
+  the job summary lists each result, and the exit code names the failure: 1
+  drift, 2 an unreadable pin line, 3 a failed download. Before this the check
+  read only `bootstrap.sh` and fetched only `install.sh`, so the PowerShell
+  pin drifted without an alert, and a rotation that updated one of the two
+  bash pins passed. (#936)
+
+- The four `gh api` allow rules in both settings profiles combined a
+  mid-pattern `*` with the trailing `:*` prefix syntax (`Bash(gh api repos/*:*)`
+  and three more). Claude Code matches such a rule as a literal prefix, so
+  none of them ever approved a real `gh api` call, and each printed a startup
+  warning. They now use the plain wildcard form (`Bash(gh api repos/*)`), as
+  do the four matching `PowerShell(...)` rules in
+  `global/settings.windows.json`. Because the rules now work, that profile
+  also gains a `permissions.ask` list of 13 PowerShell rules for `gh api`
+  write calls: `-X` and `--method` with `POST`, `PATCH`, `PUT` or `DELETE`,
+  and `-f`, `-F`, `--field`, `--raw-field` and `--input`, which make
+  `gh api` default to POST. PowerShell has no PreToolUse guard, so without
+  them a write call would run without a prompt; on Bash,
+  `gh-write-verb-guard.sh` already covers writes. (PR #942)
 
 ## 1.13.0 - 2026-09-13
 
