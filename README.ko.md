@@ -1,8 +1,8 @@
 # Claude Configuration Backup & Deployment System
 
+Status: active · Release: [v1.14.0](https://github.com/kcenon/claude-config/releases/tag/v1.14.0) · [English](README.md)
+
 <p align="center">
-  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.14.0-blue.svg" alt="Version"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
 </p>
 
@@ -10,26 +10,11 @@
   <strong>여러 시스템 간에 CLAUDE.md 설정을 쉽게 공유하고 동기화하는 도구</strong>
 </p>
 
-<p align="center">
-  <em>문서 참고 사항 (2026): Claude Code 문서는 <code>code.claude.com/docs/en/*</code>로 이동했습니다. 모든 문서 링크는 새 URL을 사용하며, 이전 host는 migration 및 version-history 참고에만 남아 있습니다. settings field 안정성 분류는 <a href="COMPATIBILITY.md#settings-field-inventory-and-stability">COMPATIBILITY.md</a>를 확인하세요.</em>
-</p>
-
-<p align="center">
-  <a href="#빠른-시작">빠른 시작</a> •
-  <a href="#설치하면-무엇이-달라지나요">설치 효과</a> •
-  <a href="#원라인-설치">설치</a> •
-  <a href="#토큰-최적화">토큰 최적화</a> •
-  <a href="#구조">구조</a> •
-  <a href="#사용-시나리오">시나리오</a> •
-  <a href="#faq">FAQ</a> •
-  <a href="README.md">English</a>
-</p>
+Claude Code 문서는 `code.claude.com/docs/en/*`로 이동했고, 이 문서의 링크는 새 주소를 씁니다. settings 필드별 안정성 분류는 [COMPATIBILITY.md](COMPATIBILITY.md#settings-field-inventory-and-stability)를 확인하세요.
 
 ---
 
 ## 빠른 시작
-
-3분 만에 설정 완료:
 
 ```bash
 # 1. 원라인 설치
@@ -52,7 +37,7 @@ grep -E "^(name|email):" ~/.claude/git-identity.md
 | 열린 이슈 일괄 처리 | `./scripts/batch-issue-work.sh <org/repo>` | `.\scripts\batch-issue-work.ps1 -OrgProject <org/repo>` |
 | 실패 PR 일괄 처리 | `./scripts/batch-pr-work.sh <org/repo>` | `.\scripts\batch-pr-work.ps1 -OrgProject <org/repo>` |
 
-상세 시나리오는 [사용 시나리오](#사용-시나리오)를 참조하세요.
+상세 시나리오는 [사용 시나리오와 FAQ](docs/guides/USE_CASES.ko.md)를 참조하세요.
 
 ---
 
@@ -68,7 +53,7 @@ claude-config을 설치하면 Claude Code에 다음 기능이 즉시 적용됩�
 
 **커밋 품질 관리** — 깨진 마크다운 링크, AI 어트리뷰션, 비표준 커밋 메시지가 저장소에 들어가기 전에 자동으로 검출됩니다.
 
-**컨텐츠 언어 정책 선택** — 설치 시점에 커밋 메시지·PR 본문·문서의 언어를 English (ASCII 및 허용된 English typography) 또는 Korean (산출물 단위 엄격, 인라인 혼용 금지) 중에서 선택합니다. 세 옵션 프리셋 UI는 `CLAUDE_CONTENT_LANGUAGE=english|exclusive_bilingual` 로 매핑되며, 레거시 값 (`korean_plus_english`, `any`) 은 settings.json 직접 편집을 통해서만 사용 가능합니다.
+**컨텐츠 언어 정책 선택** — 설치 시점에 커밋 메시지·PR 본문·문서의 언어를 English (ASCII 및 허용된 English typography) 또는 Korean (산출물 단위 엄격, 인라인 혼용 금지) 중에서 선택합니다. 세 옵션 프리셋 UI는 `CLAUDE_CONTENT_LANGUAGE=english|exclusive_bilingual` 로 매핑되며, 레거시 값 (`korean_plus_english`, `any`) 은 `settings.json` 직접 편집을 통해서만 사용 가능합니다.
 
 **주문형 코드 분석** — `/security-audit`, `/performance-review`, `/code-quality`, `/pr-review`로 필요할 때 전문 분석을 실행합니다.
 
@@ -76,11 +61,13 @@ claude-config을 설치하면 Claude Code에 다음 기능이 즉시 적용됩�
 
 **크로스 플랫폼** — macOS, Linux, Windows (PowerShell) 모두 지원합니다. Memory sync scheduler는 예외적으로 Unix 전용입니다. 자세한 내용은 [`COMPATIBILITY.md`](COMPATIBILITY.md#cross-platform-notes)를 확인하세요.
 
+**필요할 때만 로드** — 규칙과 스킬은 현재 작업에 필요할 때만 로드되고, 자세한 레퍼런스는 요청할 때까지 `.claude/reference/`에 남아 있습니다. [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md)를 참조하세요.
+
 ---
 
-## 원라인 설치
+## 설치
 
-### Public Repository
+bootstrap은 고정해 둔 릴리스 태그를 클론하고, Claude Code CLI를 확인한 뒤, 글로벌 설정을 `~/.claude/`에 배포합니다. 선택하면 프로젝트 설정도 배포합니다.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash
@@ -90,335 +77,35 @@ curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.
 irm https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.ps1 | iex
 ```
 
-> **bootstrap이 자동으로 처리하는 것.** Claude Code CLI 미설치 시 사용자 동의 후 Anthropic 공식 native installer(`https://claude.ai/install.sh`)를 실행해 `claude` 바이너리를 `~/.local/bin/`에 배치하고 백그라운드 자동 업데이트를 활성화합니다. npm 패키지 `@anthropic-ai/claude-code`는 더 이상 사용되지 않습니다. PowerShell은 `claude.ai/install.ps1`로 동일하게 동작합니다. 자세한 내용은 [PREREQUISITES.md → Auto-installed by bootstrap](PREREQUISITES.md#auto-installed-by-bootstrap).
-
-### 비대화형 설치
-
-CI·무인 설치 환경에서는 `scripts/install.sh`와 동일한 환경 변수로 응답을 미리
-지정하거나(프롬프트 없음), `--yes`로 모든 기본값을 강제할 수 있습니다:
+이 저장소의 마켓플레이스(`kcenon-plugins`)에서 Claude Code 플러그인으로 설치하려면:
 
 ```bash
-# 무인 설치: 설치 타입만 env로 지정하고 나머지는 기본값 사용
-curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | INSTALL_TYPE=3 bash
-
-# 모든 프롬프트를 기본값으로 강제
-curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash -s -- --yes
-```
-
-```powershell
-# 무인 설치: 설치 타입만 env로 지정하고 나머지는 기본값 사용
-$env:INSTALL_TYPE = '3'; irm https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.ps1 | iex
-
-# 모든 프롬프트를 기본값으로 강제
-$env:FORCE_MODE = '1'; irm https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.ps1 | iex
-```
-
-인식되는 오버라이드: `INSTALL_TYPE`, `PROJECT_DIR`, `INSTALL_NPM`, `OVERWRITE`,
-`AGENT_LANGUAGE`, `CONTENT_LANGUAGE`. PowerShell은 Bash의 `--yes`와 같은
-기본값 강제 무인 경로로 `FORCE_MODE=1`도 인식합니다. `curl | bash`로
-대화형 실행 시, bootstrap은 스크립트 본문 대신 `/dev/tty`에서 응답을 읽습니다.
-
-### Private Repository
-
-```bash
-# GitHub Personal Access Token 사용
-curl -sSL -H "Authorization: token YOUR_GITHUB_TOKEN" \
-  https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash
-```
-
-### Git Clone 방식
-
-```bash
-# 1. 저장소 클론
-git clone https://github.com/kcenon/claude-config.git ~/claude_config_backup
-
-# 2. 설치 스크립트 실행
-cd ~/claude_config_backup
-./scripts/install.sh
-
-# 3. Git identity 확인 (누락되었거나 틀린 경우에만 수정)
-grep -E "^(name|email):" ~/.claude/git-identity.md
-```
-
-### Plugin 설치 (Beta)
-
-Claude Code Plugin으로 설치하여 쉽게 배포하고 업데이트할 수 있습니다:
-
-```bash
-# 마켓플레이스 추가
-/plugin marketplace add kcenon/claude-config
-
-# 플러그인 설치 (마켓플레이스: kcenon-plugins)
-/plugin install claude-config@kcenon-plugins
-```
-
-또는 로컬에서 테스트:
-
-```bash
-# 플러그인 직접 로드 (개발/테스트용)
-claude --plugin-dir ./plugin
-```
-
-자세한 내용은 [plugin/README.md](plugin/README.md)를 참조하세요.
-
-### Windows (PowerShell)
-
-```powershell
-# 1. 저장소 클론
-git clone https://github.com/kcenon/claude-config.git ~\claude_config_backup
-
-# 2. 설치 스크립트 실행 (PowerShell 7+ 권장)
-cd ~\claude_config_backup
-.\scripts\install.ps1
-```
-
-> **참고**: PowerShell 7+ (`pwsh`)가 필요합니다. `winget install Microsoft.PowerShell`로 설치하세요.
-> 실행 정책 오류 시: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
-
-#### Docker 호환 dual-variant 설치
-
-`install.ps1`은 모든 hook 및 유틸리티 스크립트의 PowerShell(`.ps1`)·bash(`.sh`) 변종을 **둘 다** `~/.claude/hooks/`와 `~/.claude/scripts/`에 배포합니다. `.sh` 파일은 LF 줄바꿈(UTF-8, BOM 없음)으로 작성됩니다.
-
-이는 Windows 호스트의 `~/.claude/`가 Linux Claude Code 컨테이너에 bind-mount될 때(예: 동반 [claude-docker](https://github.com/kcenon/claude-docker) 프로젝트) 중요합니다: 컨테이너 entrypoint가 `pwsh ... -File foo.ps1` hook 명령을 `foo.sh`로 재작성하는데, 마운트에 대응 `.sh` 파일이 있어야만 동작합니다. 설치 스크립트는 페어링 감사를 실행해 `.sh` 짝이 없는 `.ps1`(또는 그 반대)을 경고하여 Docker 측 재작성이 누락 파일로 조용히 해석되지 않게 합니다.
-
-### 경량 Plugin (Behavioral Guardrails Only)
-
-전체 구성 없이 핵심 동작 교정만 원하시나요?
-
-```bash
-# lite plugin 설치 (마켓플레이스: kcenon-plugins)
 claude plugin marketplace add kcenon/claude-config
-claude plugin install claude-config-lite@kcenon-plugins
-
-# 또는 로컬 테스트
-claude --plugin-dir ./plugin-lite
+claude plugin install claude-config@kcenon-plugins        # 전체 구성
+claude plugin install claude-config-lite@kcenon-plugins   # 행동 가드레일만
 ```
 
-| 방식 | 포함 내용 | 크기 |
-|------|----------|------|
-| Full plugin | 모든 스킬, 에이전트, 훅을 포함한 전체 설정 | ~384KB |
-| **Lite plugin** | LLM 코딩 실수를 위한 핵심 동작 가드레일 | ~5KB |
-| Bootstrap 스크립트 | ~/.claude/에 배포되는 전체 시스템 설정 | 전체 repo |
-
-자세한 내용은 [plugin-lite/README.md](plugin-lite/README.md)를 참조하세요.
+비대화형 설치, 비공개 포크, Git clone, Windows 참고 사항, Enterprise 설정, `CLAUDE.local.md`, 환경 변수는 [설치 안내](docs/guides/INSTALLATION.ko.md)에 있습니다.
 
 ---
 
-## 토큰 최적화
+## 문서
 
-규칙과 스킬은 필요할 때만 로드됩니다 — 현재 작업에 관련된 것만 컨텍스트에 로드됩니다. 별도 설정이 필요 없습니다.
-
-### 레퍼런스 문서 로드
-
-상세 레퍼런스 문서는 자동 로드되는 `.claude/rules/` 트리 밖의 `.claude/reference/`에 위치하므로 초기 컨텍스트에 주입되지 않습니다. 필요할 때 로드하세요:
-
-```markdown
-# 특정 레퍼런스 로드 요청
-@load: reference/agent-teams
-
-# 또는 파일을 직접 참조
-.claude/reference/workflow/label-definitions.md를 검토해주세요.
-```
-
-고급 커스터마이징은 [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md)를 참조하세요.
-
----
-
-## 구조
-
-<details>
-<summary>디렉토리 구조 펼치기</summary>
-
-```
-claude_config_backup/
-├── enterprise/                  # Enterprise 설정 (시스템 전체)
-│   ├── CLAUDE.md               # 조직 전체 정책
-│   └── rules/                  # Enterprise 규칙
-│       ├── security.md         # 보안 규칙 템플릿
-│       └── compliance.md       # 컴플라이언스 규칙 템플릿
-│
-├── global/                      # 글로벌 설정 백업 (~/.claude/)
-│   ├── CLAUDE.md               # 메인 설정 파일
-│   ├── settings.json           # Hook 설정 (macOS/Linux)
-│   ├── settings.windows.json   # Hook 설정 (Windows PowerShell)
-│   ├── commit-settings.md      # 커밋/PR 정책 (Claude 정보 비활성화)
-│   ├── tmux.conf               # tmux 자동 로깅 설정
-│   ├── ccstatusline/           # 상태줄 설정
-│   ├── hooks/                  # 훅 스크립트(.sh + .ps1) — 전체 정본 목록은 HOOKS.md 참조
-│   │   └── lib/               # 공유 라이브러리
-│   │       ├── AttributionValidator.psm1
-│   │       ├── CommonHelpers.psm1  # PowerShell 공유 모듈
-│   │       ├── LanguageValidator.psm1
-│   │       ├── path-utils.sh
-│   │       ├── rotate.sh/.ps1
-│   │       ├── timeout-wrapper.sh
-│   │       └── tokenize-shell.sh
-│   ├── scripts/                # 유틸리티 스크립트
-│   │   ├── statusline-command.sh/.ps1
-│   │   └── weekly-usage.sh
-│   └── skills/                 # 글로벌 Skills (사용자 호출형)
-│       └── _internal/          # claude-config 전용 스킬 (strict 검증)
-│           ├── _shared/        # 스킬 공통 헬퍼 (invariants.md)
-│           ├── branch-cleanup/ # 병합/오래된 브랜치 정리
-│           ├── ci-fix/         # CI 실패 수정 워크플로우
-│           ├── doc-index/      # 문서 인덱스 파일 생성
-│           ├── doc-review/     # 마크다운 문서 리뷰
-│           ├── evidence-pack/  # 릴리스 증거 패키지 조립
-│           ├── fleet-orchestrator/ # Fleet 오케스트레이션 패턴
-│           ├── harness/        # Agent team & skill 아키텍처 설계
-│           ├── implement-all-levels/ # 완전 구현 강제
-│           ├── issue-create/   # GitHub 이슈 생성 (5W1H)
-│           ├── issue-work/     # GitHub 이슈 워크플로우
-│           ├── memory-review/  # 오래된/플래그/중복 메모리 검토
-│           ├── pr-work/        # PR CI/CD 실패 수정
-│           ├── preflight/      # 푸시 전 CI 사전점검
-│           ├── release/        # 자동 릴리스 생성
-│           ├── research/       # 리서치/문헌 조사
-│           ├── risk-control/   # 위험/해저드 기록 관리 (규제 트랙)
-│           ├── sonar-fix/      # SonarCloud 결함 분류 및 수정
-│           ├── soup-inventory/ # SOUP(서드파티) 레지스터 관리
-│           └── traceability/   # 양방향 추적성 매트릭스
-│
-├── project/                     # 프로젝트 설정 백업
-│   ├── CLAUDE.md               # 프로젝트 메인 설정
-│   ├── CLAUDE.local.md.template # 로컬 설정 템플릿 (커밋 제외)
-│   ├── .mcp.json               # MCP 서버 설정 템플릿
-│   ├── .mcp.json.example       # MCP 설정 예시
-│   ├── claude-guidelines/      # 독립형 가이드라인 (.claude 비의존)
-│   └── .claude/
-│       ├── settings.json       # Hook 설정 (자동 포맷팅)
-│       ├── settings.local.json.template  # 로컬 설정 템플릿
-│       ├── rules/              # 통합 가이드라인 모듈 (자동 로드)
-│       │   ├── coding/         # 코딩 표준
-│       │   │   ├── standards.md
-│       │   │   ├── implementation-standards.md
-│       │   │   ├── error-handling.md
-│       │   │   ├── safety.md
-│       │   │   ├── performance.md
-│       │   │   └── cpp-specifics.md
-│       │   ├── api/            # API 및 아키텍처
-│       │   │   ├── api-design.md
-│       │   │   ├── architecture.md
-│       │   │   ├── observability.md
-│       │   │   └── rest-api.md
-│       │   ├── workflow/       # 워크플로우 및 GitHub 가이드라인
-│       │   │   ├── git-commit-format.md
-│       │   │   ├── github-issue-5w1h.md
-│       │   │   ├── github-pr-5w1h.md
-│       │   │   ├── build-verification.md
-│       │   │   ├── ci-resilience.md
-│       │   │   ├── performance-analysis.md
-│       │   │   └── session-resume.md
-│       │   ├── core/           # 핵심 설정
-│       │   │   ├── environment.md
-│       │   │   ├── communication.md
-│       │   │   └── principles.md
-│       │   ├── project-management/
-│       │   │   ├── build.md
-│       │   │   ├── testing.md
-│       │   │   └── documentation.md
-│       │   ├── operations/
-│       │   │   └── ops.md
-│       │   ├── tools/
-│       │   │   └── gh-cli-scripts.md
-│       │   └── security.md     # 보안 가이드라인
-│       ├── reference/          # 온디맨드 레퍼런스 문서 (rules/ 밖, 자동 로드 안 됨)
-│       │   ├── coding/         # anti-patterns.md
-│       │   └── workflow/       # 5W1H 예시, 레이블, 자동화, Agent Teams
-│       ├── agents/             # 특화 에이전트 설정
-│       │   ├── code-reviewer.md
-│       │   ├── codebase-analyzer.md
-│       │   ├── dependency-auditor.md
-│       │   ├── documentation-writer.md
-│       │   ├── qa-reviewer.md
-│       │   ├── refactor-assistant.md
-│       │   ├── structure-explorer.md
-│       │   └── test-strategist.md
-│       └── skills/             # Claude Code Skills
-│           ├── coding-guidelines/
-│           ├── security-audit/
-│           ├── performance-review/
-│           ├── api-design/
-│           ├── project-workflow/
-│           ├── documentation/
-│           ├── ci-debugging/
-│           ├── code-quality/   # 사용자 호출형
-│           ├── doc-update/     # 사용자 호출형
-│           ├── git-status/     # 사용자 호출형
-│           └── pr-review/      # 사용자 호출형
-│
-├── scripts/                     # 자동화 스크립트
-│   ├── install.sh              # 새 시스템에 설치 (macOS/Linux)
-│   ├── install.ps1             # 새 시스템에 설치 (Windows PowerShell)
-│   ├── backup.sh               # 현재 설정 백업
-│   ├── sync.sh                 # 설정 동기화
-│   ├── verify.sh               # 백업 무결성 검증
-│   ├── validate_skills.sh      # SKILL.md 파일 검증
-│   └── gh/                     # GitHub CLI 헬퍼 스크립트
-│
-├── hooks/                       # Git hooks
-│   ├── pre-commit              # 커밋 전 스킬 검증
-│   ├── pre-push                # 보호 브랜치 직접 푸시 차단
-│   ├── pre-push.ps1            # Pre-push (PowerShell)
-│   ├── commit-msg              # 커밋 메시지 형식 검증
-│   ├── install-hooks.sh/.ps1   # Hook 설치 스크립트
-│   └── lib/
-│       ├── InstallerFetch.psm1
-│       ├── installer-fetch.sh
-│       ├── validate-commit-message.sh  # 공유 검증 라이브러리
-│       ├── validate-language.sh
-│       └── validate-traceability.sh
-│
-├── .github/
-│   └── workflows/
-│       ├── validate-skills.yml     # CI 스킬 검증 (main 대상 PR만)
-│       ├── validate-hooks.yml      # CI 훅 검증 (main 대상 PR만)
-│       └── validate-pr-target.yml  # develop 외 브랜치의 main 머지 차단
-│
-├── docs/                        # 설계 문서 및 가이드
-│   ├── branching-strategy.md   # 브랜치 모델, CI 정책, 릴리스 워크플로우
-│   ├── CLAUDE_DOCKER_CONTRACT.md  # claude-docker와의 통합 계약 (SSOT)
-│   ├── install.md              # 설치 흐름, 매니페스트, 사후 검증
-│   ├── SANDBOX_TLS.md          # 샌드박스/TLS 트러블슈팅 (gh, curl)
-│   ├── TOKEN_OPTIMIZATION.md
-│   ├── SKILL_TOKEN_REPORT.md
-│   ├── CUSTOM_EXTENSIONS.md
-│   ├── ad-sdlc-integration.md
-│   ├── plugin-vs-global.md
-│   ├── hooks-ownership.md
-│   └── design/                 # 아키텍처 설계 문서
-│       ├── optimization-discoveries.md
-│       ├── optimization-phases.md
-│       └── command-optimization.md
-│
-├── plugin/                      # Claude Code Plugin (Beta)
-│   ├── .claude-plugin/
-│   │   └── plugin.json         # 플러그인 매니페스트
-│   ├── agents/                 # 번들 에이전트 정의
-│   ├── skills/                 # 독립형 스킬 (심볼릭 링크 없음)
-│   └── hooks/                  # 플러그인 후크
-│
-├── plugin-lite/                 # 경량 Plugin (Guardrails Only)
-│   ├── .claude-plugin/
-│   │   └── plugin.json
-│   └── skills/
-│       └── behavioral-guardrails/
-│           └── SKILL.md        # 단일 행동 가드레일 스킬
-│
-├── tests/                       # Hook + skill 골든 코퍼스, 회귀 러너
-├── bootstrap.sh/.ps1            # 원라인 설치 스크립트 (Claude Code CLI 자동 설치 포함)
-├── VERSION_MAP.yml              # 컴포넌트 SemVer SSOT (아래 "버전 관리" 섹션 참조)
-├── COMPATIBILITY.md             # Claude Code 릴리스 대비 settings.json 필드 안정성 매트릭스
-├── ENFORCEMENT.md               # 어트리뷰션/커밋 가드 3-레이어 강제 모델
-├── PREREQUISITES.md             # 도구 목록과 플랫폼별 설치 명령
-├── THIRD_PARTY_NOTICES.md       # 외부 출처 코드 스니펫 어트리뷰션
-├── README.md                    # 상세 가이드 (영문)
-├── README.ko.md                 # 상세 가이드 (한글)
-├── QUICKSTART.md                # 빠른 시작 가이드
-└── HOOKS.md                     # Hook 설정 가이드
-```
-
-</details>
+| 주제 | 문서 |
+|------|------|
+| 설치, Enterprise·개인 설정, 고급 사용법 | [docs/guides/INSTALLATION.ko.md](docs/guides/INSTALLATION.ko.md) |
+| 저장소 구조 | [docs/guides/STRUCTURE.ko.md](docs/guides/STRUCTURE.ko.md) |
+| 자동 동작, 규칙, 스킬, 에이전트, MCP, 스크립트, Git hooks | [docs/guides/FEATURES.ko.md](docs/guides/FEATURES.ko.md) |
+| 사용 시나리오, FAQ, memory sync | [docs/guides/USE_CASES.ko.md](docs/guides/USE_CASES.ko.md) |
+| Hooks 레퍼런스 | [HOOKS.md](HOOKS.md) |
+| 사전 요구 사항과 호환성 | [PREREQUISITES.md](PREREQUISITES.md), [COMPATIBILITY.md](COMPATIBILITY.md) |
+| 설치기 내부 (manifest, prune, drift) | [docs/install.md](docs/install.md) |
+| 브랜치 모델과 릴리스 절차 | [docs/branching-strategy.md](docs/branching-strategy.md) |
+| 공식 기능과 커스텀 기능 구분 | [docs/CUSTOM_EXTENSIONS.md](docs/CUSTOM_EXTENSIONS.md) |
+| 컨텍스트 크기와 스킬별 소모 | [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md), [docs/SKILL_TOKEN_REPORT.md](docs/SKILL_TOKEN_REPORT.md) |
+| Memory sync 운영과 위협 모델 | [docs/MEMORY_SYNC.md](docs/MEMORY_SYNC.md), [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) |
+| README 규칙과 이를 검사하는 lint | [docs/contributing/README_POLICY.md](docs/contributing/README_POLICY.md) |
+| 릴리스 기록 | [CHANGELOG.md](CHANGELOG.md) |
 
 ---
 
@@ -428,616 +115,23 @@ claude-config는 **저장소 단일 버전을 사용하지 않습니다**. 출�
 
 | 필드 | 추적 산출물 | Consumer 파일 |
 |------|------------|---------------|
-| `suite` | README 뱃지와 원라인 설치 핀에 노출되는 사용자용 "릴리스" 식별자 | `README.md`, `README.ko.md` shields URL 및 문서화된 `GITHUB_REF` 예시; `bootstrap.sh`, `bootstrap.ps1` 기본 `GITHUB_REF` 핀 |
+| `suite` | 상태 줄에 표시되고 원라인 설치가 고정하는 사용자용 릴리스 식별자 | `README.md`, `README.ko.md`의 릴리스 링크; `docs/guides/INSTALLATION.md`, `docs/guides/INSTALLATION.ko.md`의 `GITHUB_REF` 예시; `bootstrap.sh`, `bootstrap.ps1` 기본 `GITHUB_REF` 핀 |
 | `plugin` | 마켓플레이스 플러그인 버전 | `plugin/.claude-plugin/plugin.json` |
 | `plugin-lite` | 경량 플러그인 (행동 가드레일) | `plugin-lite/.claude-plugin/plugin.json` |
 | `settings-schema` | 훅 발사 `settings.json` 스키마 | `global/settings.json`, `global/settings.windows.json` |
 | `hooks` | 출하 훅 번들 (롤아웃마다 bump) | _없음 — `check_versions`로 SemVer만 검증하며 consumer 파일은 없습니다. `/release --target hooks`로 bump합니다 (tag `hooks-v<version>`)._ |
 
-`scripts/check_versions.sh`가 각 Consumer 파일이 `VERSION_MAP.yml`에 선언된 필드와 일치하는지 검증합니다. 한 번에 한 필드만 bump하려면 `/release <field> <new-version>` (또는 `scripts/sync_versions.sh`)을 사용하세요. 다섯 필드를 한꺼번에 동기화하면 의도된 "독립 진화" 설계를 무력화하고, 무관한 이유로 변경되는 "X.Y와 호환" 뱃지를 양산하게 됩니다. `suite` 필드와 claude-docker 태그 라인의 결합 관계는 [`docs/CLAUDE_DOCKER_CONTRACT.md`](docs/CLAUDE_DOCKER_CONTRACT.md)에 정의됩니다.
-
----
-
-## 자동으로 적용되는 동작
-
-설치 직후 별도의 설정 없이 자동으로 활성화되는 동작입니다.
-
-### 코드를 편집할 때
-- 사용 중인 언어에 맞게 파일이 자동 포맷됩니다 (Python, TypeScript, Go, Rust, C++, Kotlin)
-- 지원 포매터: `black`, `prettier`, `gofmt`, `rustfmt`, `clang-format`, `ktlint`
-
-### 커밋할 때
-- 마크다운 상호 참조 앵커가 검증됩니다 — 깨진 링크는 커밋을 차단합니다
-- 커밋 메시지 형식이 확인됩니다 (Conventional Commits)
-- AI/Claude 어트리뷰션이 자동으로 제거됩니다
-- 커밋 / PR / 이슈 내용이 선택된 `CLAUDE_CONTENT_LANGUAGE` 정책으로 검증됩니다 (아래 [컨텐츠 언어 정책](#컨텐츠-언어-정책) 참조)
-
-### Claude가 파일에 접근할 때
-- `.env`, `.pem`, `.key` 및 `secrets/` 디렉토리 접근이 차단됩니다
-- 위험한 명령어 (`rm -rf /`, `chmod 777`, 파이프 실행)가 차단됩니다
-- GitHub API 호출 전 연결이 검증됩니다
-
-### 세션이 실행될 때
-- 세션 시작/종료 시간이 `~/.claude/session.log`에 기록됩니다
-- 알려진 문제가 있는 Claude Code 버전에 대해 경고가 표시됩니다
-- 세션 종료 시 오래된 임시 파일이 정리됩니다
-- 자동 압축 전 컨텍스트가 스냅샷됩니다
-
-### PR을 생성할 때
-- `develop` 외 브랜치에서 `main`을 타겟하는 PR이 차단됩니다 (PreToolUse hook)
-- 서버 측: GitHub Actions가 위반 PR을 자동으로 닫고 안내 코멘트를 남깁니다
-- 릴리즈 PR (`develop` → `main`)은 `/release` 스킬을 통해 허용됩니다
-
-### Agent Teams 사용 시
-- 동시 팀 수가 제한됩니다 (`MAX_TEAMS`로 설정 가능)
-- 팀원의 유휴 이벤트와 작업 완료가 기록됩니다
-- Worktree 생성 및 정리가 자동으로 관리됩니다
-
-> 전체 Hook 설정 세부사항 및 커스터마이징은 [HOOKS.md](HOOKS.md)를 참조하세요.
-
-### 컨텐츠 언어 정책
-
-두 installer (`install.sh`, `install.ps1`)는 설치 타입 선택 후에 세 옵션 Language Profile Preset을 묻습니다. 산출물 언어 정책은 아래 고정 보장으로 매핑됩니다:
-
-| UI 선택 | `CLAUDE_CONTENT_LANGUAGE` 값 | 검증자가 수용하는 범위 | 규칙 문서 phrase |
-|---------|------------------------------|----------------------|-----------------|
-| English (기본) | `english` | ASCII printable + whitespace 및 허용된 English typographic punctuation | `English` |
-| Korean | `exclusive_bilingual` | 산출물 단위로 영어 전용 또는 한국어 전용 (제한된 ASCII container 허용), 인라인 혼용 금지 | `English or Korean (document-exclusive)` |
-
-검증자는 UI에 노출되지 **않는** 두 레거시 값도 추가로 수용합니다 — 필요 시 `settings.json` 직접 편집으로 설정합니다:
-
-| 레거시 값 | 사용 시점 | 검증자가 수용하는 범위 |
-|-----------|-----------|----------------------|
-| `korean_plus_english` | issue #447 이전 설치 호환 (인라인 혼용 의존 시) | ASCII + 한글 음절 / 자모 / 호환 자모 |
-| `any` | 모든 언어 기여를 받는 OSS 저장소 | 언어 검증 전체 생략 |
-
-Installer는 선택된 phrase를 세 규칙 문서 템플릿 (`global/commit-settings.md.tmpl`, `project/.claude/rules/core/communication.md.tmpl`, `project/.claude/rules/workflow/git-commit-format.md.tmpl`)에 치환합니다. 규칙 문서의 표현과 검증자의 실제 동작이 일치하도록 유지합니다.
-
-재설치 시 prompt 기본값은 기존 `settings.json`에서 seed되어 이전 `.language`와 `CLAUDE_CONTENT_LANGUAGE` 선택을 유지합니다. 명시적인 `AGENT_LANGUAGE` 및 `CONTENT_LANGUAGE` 환경 변수 override가 있으면 그 값이 우선합니다.
-
-**스코프 경계**: AI/Claude 어트리뷰션 차단은 이 env var의 영향을 **받지 않습니다** — `attribution-guard`와 `commit-message-guard` 내부의 attribution 검사는 모든 정책에서 그대로 작동합니다.
-
-**Enterprise 충돌 감지**: 배포된 enterprise `CLAUDE.md`가 영어를 강제하는데 운영자가 더 허용적인 정책을 선택하면, installer가 경고를 출력하고 진행 전에 확인을 요청합니다.
-
-자세한 설계 배경, phrase 테이블, 드리프트 검증 불변식은 [`docs/content-language-policy.md`](docs/content-language-policy.md)를 참조하세요.
-
----
-
-## Enterprise 설정
-
-Enterprise 설정은 조직의 모든 개발자에게 적용되는 조직 전체 정책을 제공합니다. Claude Code의 메모리 계층에서 **가장 높은 우선순위**를 가집니다.
-
-### 메모리 계층
-
-| 레벨 | 위치 | 범위 | 우선순위 |
-|------|------|------|----------|
-| **Enterprise Policy** | 시스템 전체 | 조직 | **최고** |
-| Project Memory | `./CLAUDE.md` | 팀 | 높음 |
-| Project Rules | `./.claude/rules/*.md` | 팀 | 높음 |
-| User Memory | `~/.claude/CLAUDE.md` | 개인 | 중간 |
-| Project Local | `./CLAUDE.local.md` | 개인 | 낮음 |
-
-### OS별 Enterprise 경로
-
-| OS | 경로 |
-|----|------|
-| **macOS** | `/Library/Application Support/ClaudeCode/CLAUDE.md` |
-| **Linux** | `/etc/claude-code/CLAUDE.md` |
-| **Windows** | `C:\Program Files\ClaudeCode\CLAUDE.md` |
-
-### Enterprise 설정 설치
-
-```bash
-./scripts/install.sh
-
-# 옵션 선택:
-#   4) Enterprise 설정만 설치 (관리자 권한 필요)
-#   5) 전체 설치 (Enterprise + Global + Project)
-```
-
-**참고**: Enterprise 설치는 관리자 권한이 필요합니다 (macOS/Linux에서 `sudo`).
-
-### Enterprise 템플릿 내용
-
-기본 enterprise 템플릿에는 다음이 포함됩니다:
-- **보안 요구사항**: 커밋 서명, 비밀 정보 보호, 접근 제어
-- **컴플라이언스**: 데이터 처리, 감사 요구사항, 규정 준수
-- **승인된 도구**: 패키지 레지스트리, 컨테이너 이미지, 의존성
-- **코드 표준**: 품질 게이트, 리뷰 요구사항, 브랜치 보호
-
-배포 전에 조직의 정책에 맞게 `enterprise/CLAUDE.md`를 커스터마이즈하세요.
-
-두 설치기 모두 이 트리의 SHA-256 매니페스트를 `<enterprise-dir>/.install-manifest.json`에 기록합니다. 따라서 재설치가 로컬에서 편집한 정책 파일을 덮어쓰지 않고 보존하며, 드리프트 점검이 낡은 배포와 편집된 파일을 구분할 수 있습니다. 프롬프트 없이 덮어쓰려면 `BOOTSTRAP_FORCE=1`을 설정하세요. POSIX에서는 enterprise 루트에 쓰기 권한이 없을 때 복사와 매니페스트 배치가 `sudo`를 거치며, 매니페스트 자체는 읽기 가능하게 남겨 두어 감사에 권한이 필요 없습니다. 퇴역한 규칙은 삭제되지 않습니다. [docs/install.md](docs/install.md)를 참고하세요.
-
----
-
-## 개인 설정 (CLAUDE.local.md)
-
-버전 관리에 포함되지 않아야 하는 머신별 설정은 프로젝트 루트에 `CLAUDE.local.md`를 생성하세요.
-
-```bash
-# 템플릿 복사
-cp project/CLAUDE.local.md.template CLAUDE.local.md
-```
-
-로컬 서버 URL, 머신별 경로, 개인 워크플로우 선호도에 사용하세요. 자격 증명이나 API 키는 여기에 넣지 **마세요** — 환경 변수를 사용하세요.
-
-이 파일은 gitignore되며 Claude Code의 메모리 계층에서 가장 낮은 우선순위를 가집니다.
-
----
-
-## Rules
-
-Rules는 `.claude/rules/`에 있는 모듈형 설정 파일로, 파일 경로에 따라 조건부로 로드됩니다.
-
-### 사용 가능한 Rules
-
-| Rule | 자동 로드 대상 | 설명 |
-|------|---------------|------|
-| `coding.md` | `**/*.ts`, `**/*.py`, `**/*.go` 등 | 일반 코딩 표준 |
-| `testing.md` | `**/*.test.ts`, `**/test_*.py` 등 | 테스트 관례 |
-| `security.md` | 모든 코드 파일 | 보안 모범 사례 |
-| `documentation.md` | `**/docs/**`, `**/README*`, `**/CHANGELOG*` | 문서화 표준 |
-| `api/rest-api.md` | `**/api/**`, `**/routes/**` | REST API 설계 패턴 |
-
-### Rules 작동 방식
-
-Rules는 YAML frontmatter에 `paths`를 사용하여 로드 시점을 정의합니다:
-
-```yaml
----
-alwaysApply: false
-paths:
-  - "**/*.ts"
-  - "**/*.tsx"
----
-
-# Rule 내용
-```
-
-이 패턴과 일치하는 파일을 작업할 때 해당 Rule이 자동으로 로드됩니다.
-
----
-
-## 스킬 — 무엇을 할 수 있나요
-
-스킬 호출 방식은 두 가지입니다.
-
-1. **슬래시 카탈로그 스킬** (`/code-quality`, `/security-audit`, `/performance-review`, `/pr-review`, `/git-status` 및 아래의 `plugin/` 스킬들) — `~/.claude/skills/`의 1단계 폴더로 위치하며 Claude Code의 `/` 자동완성 카탈로그에 노출됩니다. 명령어를 입력하면 하네스가 디스패치합니다.
-2. **키워드 별칭(alias) 스킬** (`/issue-work`, `/pr-work`, `/release`, `/issue-create`, `/branch-cleanup`, `/harness`, `/doc-index`, `/doc-review`, `/implement-all-levels`) — 의도적으로 `~/.claude/skills/_internal/` 하위에 격리되고 frontmatter에 `disable-model-invocation: true`가 적용되어 **`/` 자동완성 카탈로그에 노출되지 않습니다**. 메시지를 키워드로 시작하면 `global/CLAUDE.md`의 **Skill Aliases** 표가 매핑하여 실행합니다 (앞의 `/`는 선택사항). `issue-work`, `/issue-work` 둘 다 동작하지만 탭 자동완성은 제안되지 않습니다.
-
-아래 표에 각 명령의 호출 모드를 표시합니다.
-
-### 워크플로우 자동화
-
-이 그룹의 모든 명령은 **키워드 별칭** 호출입니다 (슬래시 자동완성 없음, alias 표가 처리).
-
-| 명령어 | 기능 |
-|--------|------|
-| `/issue-work` | GitHub 이슈 선택, 브랜치 생성, 구현, 테스트, PR 생성 |
-| `/pr-work` | 실패한 CI 체크 진단, 수정, 재시도, 필요시 에스컬레이션 |
-| `/release` | 커밋에서 변경 로그 생성, 태그된 릴리스 생성 |
-| `/issue-create` | 5W1H 프레임워크를 사용한 체계적인 GitHub 이슈 생성 |
-| `/branch-cleanup` | 로컬 및 원격에서 병합된 브랜치와 오래된 브랜치 제거 |
-
-### 코드 분석
-
-| 명령어 | 기능 |
-|--------|------|
-| `/code-quality` | 복잡도, 코드 스멜, SOLID 위반, 유지보수성 분석 |
-| `/security-audit` | OWASP Top 10, 입력 검증, 인증, 의존성 취약점 |
-| `/performance-review` | 프로파일링, 캐싱, 메모리 누수, 동시성 패턴 |
-| `/pr-review` | 품질, 보안, 성능, 테스트를 포함한 종합 PR 분석 |
-
-### 설계 및 문서화
-
-`/git-status`는 슬래시 카탈로그 스킬, 나머지는 키워드 별칭입니다.
-
-| 명령어 | 모드 | 기능 |
-|--------|------|------|
-| `/harness` | keyword | Agent team 설계 및 모든 도메인에 대한 스킬 생성 |
-| `/doc-index` | keyword | 문서 인덱스 파일 생성 (manifest, bundles, graph, router) |
-| `/doc-review` | keyword | 정확성, 앵커, 상호 참조에 대한 마크다운 문서 리뷰 |
-| `/git-status` | slash | 실행 가능한 인사이트가 포함된 저장소 상태 |
-| `/implement-all-levels` | keyword | 계층형 기능의 모든 티어에 대한 완전한 구현 강제 |
-
----
-
-## Agents
-
-`.claude/agents/`에 있는 특수 에이전트가 특정 작업에 집중된 지원을 제공합니다.
-
-### 사용 가능한 Agents
-
-| Agent | 설명 | Model |
-|-------|------|-------|
-| `code-reviewer` | 종합 코드 리뷰 | sonnet |
-| `documentation-writer` | 기술 문서 작성 | sonnet |
-| `refactor-assistant` | 안전한 코드 리팩토링 | sonnet |
-| `codebase-analyzer` | 코드베이스 아키텍처 및 패턴 분석 | sonnet |
-| `qa-reviewer` | 통합 일관성 검증 | sonnet |
-| `structure-explorer` | 프로젝트 디렉토리 구조 매핑 | haiku |
-| `dependency-auditor` | 의존성 CVE 및 라이선스 감사 | sonnet |
-| `test-strategist` | 테스트 커버리지 및 전략 분석 | sonnet |
-
-### Agent 설정
-
-Agents는 YAML frontmatter로 동작을 정의합니다:
-
-```yaml
----
-name: agent-name
-description: 에이전트의 역할
-model: sonnet
-tools: Read, Edit
----
-```
-
----
-
-## Agent Teams
-
-Agent Teams는 여러 Claude 인스턴스가 공유 작업 목록과 다이렉트 메시징을 통해 병렬로 작업할 수 있게 합니다.
-
-> **상태**: 실험적. 이 설정에 이미 활성화되어 있습니다.
-
-### 빠른 시작
-
-자연어로 팀을 시작하세요:
-
-```
-Create a team to implement the notification system:
-- Teammate "backend": API endpoints
-- Teammate "frontend": UI components
-- Teammate "tests": Integration tests
-```
-
-### 주요 조작법
-
-| 동작 | 방법 |
-|------|------|
-| 팀원 간 순환 | `Shift+Down` |
-| 공유 작업 목록 | `Ctrl+T` |
-| 메시지 전송 | `Enter` (포커스된 팀원에게) |
-| 리드로 복귀 | `Escape` |
-
-최적의 조정을 위해 팀을 2-3명으로 유지하세요. 파일 충돌을 피하기 위해 각 팀원에게 별도의 파일 세트를 할당하세요.
-
-아키텍처 패턴, 표시 모드, 훅, 고급 설정은 `.claude/reference/workflow/agent-teams.md`를 참조하세요.
-
----
-
-## MCP 설정
-
-`.mcp.json` 템플릿은 일반적인 MCP 서버 설정을 제공합니다.
-
-### 사용 가능한 서버
-
-| 서버 | 설명 |
-|------|------|
-| `filesystem` | 파일 시스템 접근 |
-| `github` | GitHub 연동 |
-| `postgres` | PostgreSQL 데이터베이스 접근 |
-| `slack` | Slack 메시징 |
-| `memory` | 영구 메모리 저장소 |
-
-### 설정 방법
-
-1. `.mcp.json`을 프로젝트 루트에 복사
-2. 토큰에 대한 환경 변수 설정
-3. 사용하지 않는 서버 제거
-
----
-
-## 스크립트 설명
-
-| 스크립트 | 목적 | 사용법 |
-|----------|------|--------|
-| `install.sh` / `.ps1` | 새 시스템에 설정 설치 | `./scripts/install.sh` |
-| `backup.sh` / `.ps1` | 현재 설정을 백업에 저장 | `./scripts/backup.sh` |
-| `sync.sh` / `.ps1` | 시스템과 백업 간 양방향 동기화 | `./scripts/sync.sh` |
-| `verify.sh` / `.ps1` | 백업 무결성과 완전성 확인 | `./scripts/verify.sh` |
-| `validate_skills.sh` / `.ps1` | SKILL.md 형식 준수 여부 검증 | `./scripts/validate_skills.sh` |
-
-설치 후 `~/.claude/git-identity.md`는 `git config --global user.name` 및 `git config --global user.email` 값이 모두 있으면 자동으로 채워집니다. 값이 누락되었거나 틀린 경우에만 수정하세요.
-재설치 시에는 기존 `~/.claude/settings.json`의 언어 정책 기본값을 유지하며, `AGENT_LANGUAGE` 또는 `CONTENT_LANGUAGE`를 명시한 경우에만 그 값이 우선합니다.
-기존 파일은 `.backup_YYYYMMDD_HHMMSS` 형식으로 자동 백업됩니다.
-
----
-
-## Git Hooks
-
-SKILL.md 파일을 커밋 전 자동으로 검증하려면 git hook을 설치하세요:
-
-```bash
-./hooks/install-hooks.sh
-```
-
-설치 스크립트는 `pre-commit`, `commit-msg`, `pre-push`를 `.git/hooks/`에 배포합니다.
-
-### Pre-commit Hook
-- SKILL.md 파일 변경 감지
-- `validate_skills.sh` 자동 실행
-- 유효하지 않은 SKILL.md 파일이 있으면 커밋 차단
-
-### Commit-msg Hook
-- Conventional Commits 형식 검증
-- attribution trailer/prose 및 emoji 차단
-- 공유 검증기 `hooks/lib/validate-commit-message.sh` 사용
-
-### Pre-push Hook
-- 보호 브랜치(`main`, `develop`)로의 직접 push 차단
-- 보호 브랜치는 pull request 워크플로 필요
-- `.git/hooks/pre-push`로 설치되며, `pre-push.ps1`은 PowerShell 동등 구현입니다
-
----
-
-## 사용 시나리오
-
-### 시나리오 A: 회사 + 집 컴퓨터 동기화
-
-```bash
-# 회사에서 (초기 설정)
-cd ~/claude_config_backup
-./scripts/backup.sh
-git add . && git commit -m "Update settings"
-git push
-
-# 집에서
-cd ~/claude_config_backup
-git pull
-./scripts/sync.sh
-# 선택: 1 (백업 → 시스템)
-```
-
----
-
-### 시나리오 B: 팀 프로젝트 설정 공유
-
-```bash
-# 프로젝트 리더
-cd project_root
-git clone https://github.com/kcenon/claude-config.git .claude-config
-cd .claude-config
-./scripts/install.sh
-# 타입: 2 (프로젝트만)
-
-# 팀 멤버
-git clone YOUR_PROJECT_REPO_URL project
-cd project/.claude-config
-./scripts/install.sh
-# 타입: 2 (프로젝트만)
-```
-
----
-
-### 시나리오 C: 새 개발 머신 설정
-
-```bash
-# 원라인 설치
-curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh | bash
-
-# 또는 수동 설치
-git clone https://github.com/kcenon/claude-config.git ~/claude_config_backup
-cd ~/claude_config_backup
-./scripts/install.sh
-# 타입: 3 (둘 다)
-
-# Git identity 확인; 누락되었거나 틀린 경우에만 수정
-grep -E "^(name|email):" ~/.claude/git-identity.md
-```
-
----
-
-### 시나리오 D: 열린 이슈 또는 실패 PR 일괄 처리
-
-각 항목마다 새 `claude` 프로세스를 띄우는 외부 오케스트레이터입니다. 한 프로세스가 정확히 하나의 이슈(또는 PR)를 처리하므로 항목 사이에 컨텍스트 상태가 누출될 수 없습니다 — 항목 N+1은 항목 1과 동일한 CLAUDE.md / 스킬 attention pool로 시작합니다. `/issue-work`와 `/pr-work`의 in-session 배치 모드를 보완하며, 격리를 OS 프로세스 경계로 끌어올립니다.
-
-다음 상황에서 사용하세요:
-
-- 배치가 in-session 안전 캡(기본 5, `--force-large` 없을 때 하드 캡 10)을 초과할 것으로 예상되고 항목별로 더 엄격한 격리를 원할 때
-- 무인 운영(cron, CI, 야간) 중이며 배치가 얼마나 길게 돌아가든 각 항목이 깨끗한 상태에서 시작하기를 원할 때
-- 라이브 터미널의 단일 스크롤백이 아닌 사후 분석용 항목별 디스크 로그가 필요할 때
-
-```bash
-# 저장소에서 최대 5개의 열린 이슈 처리 (기본 limit)
-./scripts/batch-issue-work.sh kcenon/claude-config
-
-# 최대 3개 이슈 처리
-./scripts/batch-issue-work.sh kcenon/claude-config 3
-
-# 실패한 PR을 대신 처리
-./scripts/batch-pr-work.sh kcenon/claude-config
-```
-
-```powershell
-# PowerShell 동등 명령
-.\scripts\batch-issue-work.ps1 -OrgProject kcenon/claude-config
-.\scripts\batch-issue-work.ps1 -OrgProject kcenon/claude-config -Limit 3
-.\scripts\batch-pr-work.ps1    -OrgProject kcenon/claude-config
-```
-
-항목별 로그는 `~/.claude/batch-logs/<timestamp>/`에 기록됩니다:
-
-- `issue-<번호>.log`: `batch-issue-work`이 처리한 각 이슈
-- `pr-<번호>.log`: `batch-pr-work`이 처리한 각 PR
-
-항목 실패 시 배치는 **일시 중지하고 비-0 코드로 종료**합니다. 성공한 항목은 롤백되지 않습니다. 실패한 항목의 로그를 확인해 근본 원인을 수정한 뒤 오케스트레이터를 다시 실행하세요 — 이미 머지된 항목은 더 이상 열린 목록에 없으므로 자동으로 건너뜁니다.
-
----
-
-<details>
-<summary><strong>고급 사용법</strong> (GitHub Actions, 환경 변수)</summary>
-
-## 고급 사용법
-
-### GitHub Actions 자동 동기화
-
-`.github/workflows/sync.yml` 파일 생성:
-
-```yaml
-name: Sync Claude Config
-
-on:
-  push:
-    branches: [main]
-  schedule:
-    - cron: '0 0 * * 0'  # 매주 일요일
-
-jobs:
-  verify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Verify backup integrity
-        run: ./scripts/verify.sh
-```
-
-### 특정 파일만 백업
-
-```bash
-# 글로벌 CLAUDE.md만 백업
-cp ~/.claude/CLAUDE.md ~/claude_config_backup/global/
-
-# 프로젝트 설정만 백업
-cp -r ~/project/.claude ~/claude_config_backup/project/
-```
-
-### 환경 변수로 커스터마이즈
-
-```bash
-# bootstrap.sh 사용 시
-GITHUB_USER=your-username \
-GITHUB_REPO=your-repo \
-GITHUB_REF=v1.14.0 \
-INSTALL_DIR=~/my-claude-config \
-bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh)"
-```
-
-| 변수 | 기본값 | 목적 |
-|------|--------|------|
-| `GITHUB_USER` | `kcenon` | 저장소를 소유한 GitHub user/org |
-| `GITHUB_REPO` | `claude-config` | 저장소 이름 |
-| `GITHUB_REF` | 최신 release tag (예: `v1.14.0`) | clone할 tag, branch, commit. tag pinning은 SLSA-aligned supply-chain hardening으로 설치를 재현 가능하게 하고 `main`의 일시적 손상에 덜 취약하게 만듭니다. 개발 테스트에만 `develop`으로 override하세요. |
-| `INSTALL_DIR` | `~/claude_config_backup` | 저장소를 clone할 위치 |
-
-> **Deprecated**: `GITHUB_BRANCH`는 `GITHUB_REF`의 한 release alias로 보존되며, 설정 시 stderr deprecation warning을 출력합니다. 다음 major release 전 `GITHUB_REF`로 이전하세요.
-
-</details>
-
----
-
-## FAQ
-
-### Q1: Git identity를 왜 개인화해야 하나요?
-
-**A:** `git-identity.md`는 개인 정보(이름, 이메일)를 포함하므로, 각 설치는 사용자 본인의 값을 사용해야 합니다. 설치 프로그램은 `git config --global user.name` 및 `git config --global user.email` 값이 모두 있으면 자동으로 채우며, 값이 누락되었거나 틀린 경우에만 파일을 수정하면 됩니다.
-
-```bash
-vi ~/.claude/git-identity.md
-# 설치된 값이 누락되었거나 틀린 경우에만 name과 email 변경
-```
-
----
-
-### Q2: 백업을 여러 곳에서 관리하면?
-
-**A:** Git으로 버전 관리하세요:
-
-```bash
-cd ~/claude_config_backup
-git add .
-git commit -m "Update settings"
-git push
-```
-
----
-
-### Q3: 프로젝트마다 다른 설정을 쓰고 싶어요
-
-**A:** 프로젝트별로 브랜치를 분리하거나, 별도 디렉토리를 사용하세요:
-
-```bash
-git checkout -b project-a
-# 프로젝트 A 설정 수정
-git commit -m "Settings for project A"
-
-git checkout -b project-b
-# 프로젝트 B 설정 수정
-git commit -m "Settings for project B"
-```
-
----
-
-### Q4: 스크립트가 실행 안 돼요
-
-**A:** 실행 권한을 확인하세요:
-
-```bash
-chmod +x scripts/*.sh bootstrap.sh
-
-# 또는 직접 실행
-bash scripts/install.sh
-```
-
----
-
-### Q5: Private repo로 사용하고 싶어요
-
-**A:** 비공개 포크를 쓰려면 bootstrap이 두 곳에서 포크를 가리켜야 합니다:
-
-1. [Private Repository](#private-repository)처럼 Personal Access Token으로 포크의 `bootstrap.sh`를 받습니다.
-   URL에는 포크 소유자를 넣습니다. Token은 GitHub Settings > Developer settings > Personal access tokens에서 만듭니다.
-2. 고급 사용법의 *환경 변수로 커스터마이즈*처럼 `GITHUB_USER`를 포크 소유자로 지정합니다(이름을 바꿨다면 `GITHUB_REPO`도).
-   지정하지 않으면 bootstrap은 `kcenon/claude-config`를 클론합니다. 포크에 기본 릴리스 태그가 없으면 `GITHUB_REF`도 지정합니다.
-
-bootstrap은 포크를 일반 `git clone`으로 클론합니다. 1단계의 token은 넘어가지 않으므로,
-git이 포크에 접근할 자격 증명을 따로 갖고 있어야 합니다(예: credential helper).
-
----
-
-## Memory sync (다중 머신)
-
-Memory sync는 Claude Code의 auto-memory를 비공개 git 저장소를 통해 모든 머신 간에 일관되게 유지합니다. 다음 문서를 참조하세요:
-
-Scheduler 자동화는 Unix 전용입니다. macOS는 `launchd`, Linux는 `systemd` user timer를 사용하며, Windows 사용자는 WSL에서 Linux 경로로 실행해야 합니다. Memory sync의 native PowerShell scheduling은 지원하지 않습니다.
-
-- [운영 가이드](docs/MEMORY_SYNC.md) — 일상 운영, 문제 해결, 롤백, 충돌 해결
-- [위협 모델](docs/THREAT_MODEL.md) — 보안 분석, 7가지 위협 카테고리, 5층 방어
-- [검증 명세](docs/MEMORY_VALIDATION_SPEC.md) — 검증기 계약과 frontmatter 스키마
-- [신뢰 모델](docs/MEMORY_TRUST_MODEL.md) — 신뢰 계층과 라이프사이클
-
----
-
-## 추가 리소스
-
-- **설정 예제**: `global/` 및 `project/` 디렉토리 참조
-- **브랜칭 전략**: [docs/branching-strategy.md](docs/branching-strategy.md) - 브랜치 모델, CI 정책, 릴리스 워크플로우
-- **커스텀 확장 가이드**: [docs/CUSTOM_EXTENSIONS.md](docs/CUSTOM_EXTENSIONS.md) - 공식 기능과 커스텀 기능 구분
-- **토큰 최적화**: [docs/TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md) - 규칙 최적화 (86% 절감)
-- **스킬 토큰 리포트**: [docs/SKILL_TOKEN_REPORT.md](docs/SKILL_TOKEN_REPORT.md) - 스킬별 토큰 소모 분석
-- **AD-SDLC 통합**: [docs/ad-sdlc-integration.md](docs/ad-sdlc-integration.md) - AI 에이전트 기반 SDLC 통합
-- **문제 해결**: 각 스크립트의 에러 메시지 확인
-
----
-
-## 버전
-
-**현재**: [`VERSION_MAP.yml`](VERSION_MAP.yml)에서 추적 (단일 진실의 출처 — `suite` 필드). 이 README 상단의 shields.io 뱃지는 동일한 필드로부터 `scripts/sync_versions.sh`가 생성합니다. 이 문서에 버전 번호를 하드코딩하지 마세요. 대신 `/release <field> <new-version>`으로 bump하세요.
-
-이전 릴리스 기록은 [`CHANGELOG.md`](CHANGELOG.md)에 있습니다.
+`scripts/check_versions.sh`가 각 Consumer 파일이 `VERSION_MAP.yml`에 선언된 필드와 일치하는지 검증합니다. 한 번에 한 필드만 bump하려면 `/release <field> <new-version>` (또는 `scripts/sync_versions.sh`)을 사용하세요. `suite`가 claude-docker의 태그 라인과 어떻게 연결되는지는 [`docs/CLAUDE_DOCKER_CONTRACT.md`](docs/CLAUDE_DOCKER_CONTRACT.md)를 참조하세요. 이전 릴리스 기록은 [`CHANGELOG.md`](CHANGELOG.md)에 있습니다.
 
 ---
 
 ## 기여
 
-이 백업 시스템을 개선하고 싶으시다면:
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. 저장소를 Fork합니다
+2. `develop`에서 기능 브랜치를 만듭니다 (`git checkout -b feature/amazing-feature`)
+3. 변경을 커밋합니다 (`git commit -m 'Add amazing feature'`)
+4. 브랜치를 push합니다 (`git push origin feature/amazing-feature`)
+5. `develop`을 대상으로 Pull Request를 엽니다
 
 ---
 
@@ -1057,7 +151,3 @@ AI 에이전트 기반 소프트웨어 개발 자동화 플랫폼입니다. AD-S
 This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.
 
 This project includes third-party content. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for details.
-
----
-
-**Happy Coding with Claude!**

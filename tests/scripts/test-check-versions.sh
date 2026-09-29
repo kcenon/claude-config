@@ -93,12 +93,14 @@ hooks: 1.1.1
              elseif ($env:GITHUB_BRANCH) { $env:GITHUB_BRANCH }
              else { '"'"'v1.10.0'"'"' }
 '
-    write_file "$repo/README.md" '<img src="https://img.shields.io/badge/version-1.11.0-blue.svg">
-GITHUB_REF=v1.10.0 \
+    write_file "$repo/README.md" 'Status: active · Release: [v1.10.0](https://github.com/kcenon/claude-config/releases/tag/v1.10.0)
+'
+    write_file "$repo/README.ko.md" 'Status: active · Release: [v1.10.0](https://github.com/kcenon/claude-config/releases/tag/v1.10.0)
+'
+    write_file "$repo/docs/guides/INSTALLATION.md" 'GITHUB_REF=v1.10.0 \
 | `GITHUB_REF` | latest release tag (e.g. `v1.10.0`) |
 '
-    write_file "$repo/README.ko.md" '<img src="https://img.shields.io/badge/version-1.11.0-blue.svg">
-GITHUB_REF=v1.10.0 \
+    write_file "$repo/docs/guides/INSTALLATION.ko.md" 'GITHUB_REF=v1.10.0 \
 | `GITHUB_REF` | 최신 release tag (예: `v1.10.0`) |
 '
 }
@@ -109,9 +111,10 @@ REPO="$WORK/repo"
 write_fixture_repo "$REPO"
 
 out=$(bash "$REPO/scripts/check_versions.sh" 2>&1); rc=$?
-assert_exit 2 "$rc" "stale bootstrap and README GITHUB_REF pins fail"
+assert_exit 2 "$rc" "stale bootstrap pins, README release links and guide GITHUB_REF pins fail"
 assert_contains "bootstrap.sh GITHUB_REF=1.10.0, VERSION_MAP[suite]=1.11.0" "$out" "bootstrap.sh drift is reported"
-assert_contains "README.md GITHUB_REF pin=1.10.0, VERSION_MAP[suite]=1.11.0" "$out" "README.md drift is reported"
+assert_contains "README.md release link=[v1.10.0](.../tag/v1.10.0), VERSION_MAP[suite]=1.11.0" "$out" "README.md release link drift is reported"
+assert_contains "docs/guides/INSTALLATION.md GITHUB_REF pin=1.10.0, VERSION_MAP[suite]=1.11.0" "$out" "install guide pin drift is reported"
 
 out=$(bash "$REPO/scripts/sync_versions.sh" 2>&1); rc=$?
 assert_exit 0 "$rc" "sync exits 0"
@@ -119,8 +122,23 @@ out=$(bash "$REPO/scripts/check_versions.sh" 2>&1); rc=$?
 assert_exit 0 "$rc" "sync restores version drift"
 assert_file_contains "$REPO/bootstrap.sh" 'GITHUB_REF="${GITHUB_REF:-v1.11.0}"' "bootstrap.sh pin synced"
 assert_file_contains "$REPO/bootstrap.ps1" "else { 'v1.11.0' }" "bootstrap.ps1 pin synced"
-assert_file_contains "$REPO/README.md" 'GITHUB_REF=v1.11.0 \' "README.md code pin synced"
-assert_file_contains "$REPO/README.ko.md" '예: `v1.11.0`' "README.ko.md table pin synced"
+assert_file_contains "$REPO/README.md" '[v1.11.0](https://github.com/kcenon/claude-config/releases/tag/v1.11.0)' "README.md release link synced"
+assert_file_contains "$REPO/README.ko.md" '[v1.11.0](https://github.com/kcenon/claude-config/releases/tag/v1.11.0)' "README.ko.md release link synced"
+assert_file_contains "$REPO/docs/guides/INSTALLATION.md" 'GITHUB_REF=v1.11.0 \' "install guide code pin synced"
+assert_file_contains "$REPO/docs/guides/INSTALLATION.ko.md" '예: `v1.11.0`' "Korean install guide table pin synced"
+
+# A release link whose label and tag disagree, or no release link at all, is
+# drift even when one half matches.
+write_file "$REPO/README.md" 'Status: active · Release: [v1.11.0](https://github.com/kcenon/claude-config/releases/tag/v1.10.0)
+'
+out=$(bash "$REPO/scripts/check_versions.sh" 2>&1); rc=$?
+assert_exit 2 "$rc" "a release link with a stale tag fails"
+assert_contains "README.md release link=[v1.11.0](.../tag/v1.10.0)" "$out" "label/tag mismatch is reported"
+write_file "$REPO/README.md" 'Status: active
+'
+out=$(bash "$REPO/scripts/check_versions.sh" 2>&1); rc=$?
+assert_exit 2 "$rc" "a README without a release link fails"
+assert_contains "README.md has no release link" "$out" "missing release link is reported"
 
 echo ""
 echo "=== Summary ==="

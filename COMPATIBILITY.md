@@ -208,7 +208,7 @@ When upgrading claude-config to a new version:
 
 1. **Check minimum Claude Code version** in the table above. If your Claude Code is older than the minimum, unsupported features will be silently ignored.
 
-2. **Review the changelog** in [README.md](README.md#version) or the version-specific `VERSION_HISTORY.md` files for breaking changes.
+2. **Review the changelog** in [CHANGELOG.md](CHANGELOG.md) or the version-specific `VERSION_HISTORY.md` files for breaking changes.
 
 3. **Run the install script** to deploy updated files:
    ```bash
