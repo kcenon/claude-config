@@ -119,6 +119,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it is empty, up to but never including the install root. A directory that
   still holds any file stays. (#945)
 
+- `scripts/verify.ps1` and `scripts/verify.sh` now compare what the
+  installers actually deploy. `verify.ps1` checked only the top-level `.sh`
+  hooks and `*.md` skill files, so on Windows none of the hooks that run was
+  compared: an install missing `edit-guard-dispatcher.ps1` passed, and no
+  installed project was compared at all. Both verifiers now check the hook
+  file lists of their platform's installer (on Windows `.ps1`, `.sh` and
+  `.json`, and `hooks/lib/` `.ps1`, `.psm1` and `.sh`), the three shared
+  `validate-*.sh` libraries, every file under `global/skills`, and an
+  installed project given by `-ProjectDir` / `--project-dir` or found through
+  the install manifest in the current directory. Rules rendered from
+  `X.md.tmpl` are checked for leftover placeholders. Content is compared after
+  removing a BOM and CR, exactly and case-sensitively. On Windows the remedy
+  names `install.ps1`. Two older `verify.sh` faults stopped it before the sync
+  section: a missing optional npm package returned 1 under `set -e`, which
+  ended the script on any machine without both packages, and
+  `claude-limitline`, which ignores `--version`, waited for input. (#944)
+
 ## 1.13.0 - 2026-09-13
 
 ### Added

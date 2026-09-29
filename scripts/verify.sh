@@ -17,6 +17,32 @@ NC='\033[0m'
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BACKUP_DIR="$(dirname "$SCRIPT_DIR")"
 
+# --project-dir <dir>: installed project to compare with project/. When
+# omitted, the current directory is used if it holds a project install
+# manifest and is not this checkout; otherwise the comparison is skipped.
+PROJECT_DIR=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --project-dir)
+            [ $# -ge 2 ] || { echo "--project-dir needs a directory" >&2; exit 2; }
+            PROJECT_DIR="$2"
+            shift 2
+            ;;
+        --project-dir=*)
+            PROJECT_DIR="${1#*=}"
+            shift
+            ;;
+        -h | --help)
+            echo "usage: $0 [--project-dir <dir>]"
+            exit 0
+            ;;
+        *)
+            echo "unknown argument: $1" >&2
+            exit 2
+            ;;
+    esac
+done
+
 echo -e "${BLUE}"
 cat << 'EOF'
 ╔═══════════════════════════════════════════════════════════════╗
@@ -98,7 +124,9 @@ check_npm_package() {
 
     if command -v "$pkg" &> /dev/null; then
         local version
-        version=$("$pkg" --version 2>/dev/null || echo "unknown")
+        # stdin is closed because a statusline command such as
+        # claude-limitline ignores --version and waits for input (#944).
+        version=$("$pkg" --version < /dev/null 2>/dev/null || echo "unknown")
         success "$desc (v${version})"
         PASSED_CHECKS=$((PASSED_CHECKS + 1))
         return 0
@@ -263,8 +291,10 @@ info "npm 패키지 검증 (선택사항)"
 echo "======================================================"
 echo ""
 
-check_npm_package "ccstatusline" "ccstatusline (Statusline 디스플레이)"
-check_npm_package "claude-limitline" "claude-limitline (사용량 표시)"
+# A missing optional package returns 1; under set -e that ended the whole
+# script here, before the sync section, on every machine without both (#944).
+check_npm_package "ccstatusline" "ccstatusline (Statusline 디스플레이)" || true
+check_npm_package "claude-limitline" "claude-limitline (사용량 표시)" || true
 
 if [ $WARNING_CHECKS -gt 0 ]; then
     echo ""
@@ -351,6 +381,25 @@ SYNC_OK=0
 SYNC_DIFF=0
 SYNC_MISS=0
 
+# A Windows tree (Git Bash / MSYS) is deployed by install.ps1, which ships
+# settings.windows.json and the .ps1 hooks as well; POSIX is deployed by
+# install.sh.
+case "${OS:-}$(uname -s 2> /dev/null)" in
+    Windows_NT* | *MINGW* | *MSYS* | *CYGWIN*) windows_tree=1 ;;
+    *) windows_tree=0 ;;
+esac
+if [ "$windows_tree" -eq 1 ]; then
+    INSTALL_CMD="./scripts/install.ps1"
+else
+    INSTALL_CMD="./scripts/install.sh"
+fi
+
+# File content as the installers leave it: a UTF-8 BOM dropped and CR removed
+# (the PowerShell installer rewrites every .sh with LF endings).
+_sync_text() {
+    LC_ALL=C sed "1s/^$(printf '\357\273\277')//" "$1" | tr -d '\r'
+}
+
 # Compare a source file with its installed counterpart
 check_sync() {
     local src="$1"
@@ -361,13 +410,68 @@ check_sync() {
     if [ ! -f "$dst" ]; then
         warning "MISS: $label"
         SYNC_MISS=$((SYNC_MISS + 1))
-    elif diff -q "$src" "$dst" > /dev/null 2>&1; then
+    elif cmp -s <(_sync_text "$src") <(_sync_text "$dst"); then
         success "SYNC: $label"
         SYNC_OK=$((SYNC_OK + 1))
     else
         error "DIFF: $label"
         SYNC_DIFF=$((SYNC_DIFF + 1))
     fi
+}
+
+# A rule rendered from X.md.tmpl at install time carries the chosen language
+# policy, so it cannot equal any source file. Check instead that it exists and
+# that no placeholder or tmpl-contract marker survived the rendering.
+check_sync_rendered() {
+    local dst="$1"
+    local label="$2"
+    SYNC_TOTAL=$((SYNC_TOTAL + 1))
+
+    if [ ! -f "$dst" ]; then
+        warning "MISS: $label"
+        SYNC_MISS=$((SYNC_MISS + 1))
+    elif grep -qE '\{\{[A-Z_]+\}\}|tmpl-contract' "$dst"; then
+        error "DIFF: $label (unrendered placeholder)"
+        SYNC_DIFF=$((SYNC_DIFF + 1))
+    else
+        success "SYNC: $label (rendered)"
+        SYNC_OK=$((SYNC_OK + 1))
+    fi
+}
+
+# check_sync_tree <src_dir> <dst_dir> <label_prefix> <depth> <name pattern>...
+# Compares the files under src_dir that match a pattern with their copies
+# under dst_dir. depth is "top" (non-recursive, like the hook copies) or "all"
+# (like manifest_copy_tree). The installers render X.md.tmpl over its X.md
+# sibling, so X.md is checked with check_sync_rendered instead.
+check_sync_tree() {
+    local src_dir="$1" dst_dir="$2" prefix="$3" depth="$4"
+    shift 4
+    [ -d "$src_dir" ] || return 0
+
+    local find_args=("$src_dir")
+    [ "$depth" = "top" ] && find_args+=(-maxdepth 1)
+    find_args+=(-type f "(")
+    local pat first=1
+    for pat in "$@"; do
+        [ "$first" -eq 1 ] || find_args+=(-o)
+        find_args+=(-name "$pat")
+        first=0
+    done
+    find_args+=(")")
+
+    local src_file rel
+    while IFS= read -r src_file; do
+        rel="${src_file#"$src_dir"/}"
+        case "$rel" in
+            *.md.tmpl)
+                check_sync_rendered "$dst_dir/${rel%.tmpl}" "$prefix/${rel%.tmpl}"
+                continue
+                ;;
+        esac
+        [ -f "$src_file.tmpl" ] && continue
+        check_sync "$src_file" "$dst_dir/$rel" "$prefix/$rel"
+    done < <(find "${find_args[@]}" | LC_ALL=C sort)
 }
 
 # settings.json cannot be diffed against its source profile: the installer
@@ -441,33 +545,63 @@ done
 
 # A Windows tree publishes settings.windows.json as ~/.claude/settings.json,
 # and this script also runs under Git Bash / MSYS on such a tree.
-case "${OS:-}$(uname -s 2> /dev/null)" in
-    Windows_NT* | *MINGW* | *MSYS* | *CYGWIN*) settings_profile='settings.windows.json' ;;
-    *) settings_profile='settings.json' ;;
-esac
+if [ "$windows_tree" -eq 1 ]; then
+    settings_profile='settings.windows.json'
+else
+    settings_profile='settings.json'
+fi
 if [ -f "$BACKUP_DIR/global/$settings_profile" ]; then
     check_sync_settings "$BACKUP_DIR/global/$settings_profile" "$GLOBAL_DST/settings.json"
 fi
 
-# Global skills (including reference/ subdirectories)
+# Global skills: every file, not only *.md -- skills also ship scripts and
+# JSON (#944).
 echo ""
 info "글로벌 스킬 동기화:"
-if [ -d "$BACKUP_DIR/global/skills" ]; then
-    while IFS= read -r src_file; do
-        rel="${src_file#$BACKUP_DIR/global/skills/}"
-        check_sync "$src_file" "$GLOBAL_DST/skills/$rel" "skills/$rel"
-    done < <(find "$BACKUP_DIR/global/skills" -name "*.md" -type f | sort)
-fi
+check_sync_tree "$BACKUP_DIR/global/skills" "$GLOBAL_DST/skills" "skills" all "*"
 
-# Global hooks
+# Global hooks: the same file lists the installers deploy (install.sh
+# deploy_install_hooks, install.ps1 Deploy-InstallHooks). Before #944 only the
+# top-level .sh files were checked, so lib/ and every .ps1 hook were not.
 echo ""
 info "글로벌 Hook 스크립트 동기화:"
-if [ -d "$BACKUP_DIR/global/hooks" ]; then
-    for src_file in "$BACKUP_DIR/global/hooks"/*.sh; do
-        if [ -f "$src_file" ]; then
-            base=$(basename "$src_file")
-            check_sync "$src_file" "$GLOBAL_DST/hooks/$base" "hooks/$base"
+if [ "$windows_tree" -eq 1 ]; then
+    check_sync_tree "$BACKUP_DIR/global/hooks" "$GLOBAL_DST/hooks" "hooks" top "*.ps1" "*.sh" "*.json"
+    check_sync_tree "$BACKUP_DIR/global/hooks/lib" "$GLOBAL_DST/hooks/lib" "hooks/lib" top "*.ps1" "*.psm1" "*.sh"
+else
+    check_sync_tree "$BACKUP_DIR/global/hooks" "$GLOBAL_DST/hooks" "hooks" top "*.sh"
+    check_sync_tree "$BACKUP_DIR/global/hooks/lib" "$GLOBAL_DST/hooks/lib" "hooks/lib" top "*.sh"
+fi
+for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
+    if [ -f "$BACKUP_DIR/hooks/lib/$lib" ]; then
+        check_sync "$BACKUP_DIR/hooks/lib/$lib" "$GLOBAL_DST/hooks/lib/$lib" "hooks/lib/$lib"
+    fi
+done
+
+# Installed project, compared with project/ the way the installers deploy it.
+# A directory is detected only through its install manifest, so running verify
+# inside an unrelated project skips this section.
+echo ""
+if [ -z "$PROJECT_DIR" ] && [ -f "$PWD/.claude/.install-manifest.json" ] \
+    && [ "$(cd "$PWD" && pwd -P)" != "$(cd "$BACKUP_DIR" && pwd -P)" ]; then
+    PROJECT_DIR="$PWD"
+fi
+if [ -z "$PROJECT_DIR" ]; then
+    info "프로젝트 설치본 동기화: 건너뜀 (--project-dir <경로>로 지정)"
+elif [ ! -d "$PROJECT_DIR" ]; then
+    info "프로젝트 설치본 동기화: $PROJECT_DIR"
+    warning "MISS: project directory $PROJECT_DIR"
+    SYNC_TOTAL=$((SYNC_TOTAL + 1))
+    SYNC_MISS=$((SYNC_MISS + 1))
+else
+    info "프로젝트 설치본 동기화: $PROJECT_DIR"
+    for f in CLAUDE.md .claudeignore .claude/settings.json; do
+        if [ -f "$BACKUP_DIR/project/$f" ]; then
+            check_sync "$BACKUP_DIR/project/$f" "$PROJECT_DIR/$f" "project/$f"
         fi
+    done
+    for d in rules reference skills commands agents; do
+        check_sync_tree "$BACKUP_DIR/project/.claude/$d" "$PROJECT_DIR/.claude/$d" "project/.claude/$d" all "*"
     done
 fi
 
@@ -487,7 +621,7 @@ echo "  ────────────────────────
 if [ "$SYNC_DIFF" -gt 0 ] || [ "$SYNC_MISS" -gt 0 ]; then
     echo ""
     warning "시스템이 소스와 동기화되지 않았습니다."
-    info "동기화 방법: ./scripts/install.sh (옵션 1: 글로벌 설정)"
+    info "동기화 방법: $INSTALL_CMD (1: 글로벌, 2: 프로젝트, 3: 둘 다)"
 fi
 
 # Add sync failures to main failure count
@@ -538,12 +672,21 @@ if [ $FAILED_CHECKS -eq 0 ]; then
     echo ""
     echo "다음 단계:"
     echo "  1. 다른 시스템에 복사"
-    echo "  2. ./scripts/install.sh 실행"
+    echo "  2. $INSTALL_CMD 실행"
     exit 0
 else
     warning "일부 검증 실패 (성공률: ${SUCCESS_RATE}%)"
-    echo ""
-    info "누락된 파일이 있습니다. 백업을 다시 생성하세요:"
-    echo "  ./scripts/backup.sh"
+    # Sync failures are fixed by reinstalling; only the remaining failures
+    # concern the backup tree itself.
+    if [ $((SYNC_DIFF + SYNC_MISS)) -gt 0 ]; then
+        echo ""
+        info "설치본이 소스와 다릅니다. 다시 설치하세요:"
+        echo "  $INSTALL_CMD"
+    fi
+    if [ $((FAILED_CHECKS - SYNC_DIFF - SYNC_MISS)) -gt 0 ]; then
+        echo ""
+        info "누락된 파일이 있습니다. 백업을 다시 생성하세요:"
+        echo "  ./scripts/backup.sh"
+    fi
     exit 1
 fi
