@@ -291,8 +291,10 @@ info "npm 패키지 검증 (선택사항)"
 echo "======================================================"
 echo ""
 
-check_npm_package "ccstatusline" "ccstatusline (Statusline 디스플레이)"
-check_npm_package "claude-limitline" "claude-limitline (사용량 표시)"
+# A missing optional package returns 1; under set -e that ended the whole
+# script here, before the sync section, on every machine without both (#944).
+check_npm_package "ccstatusline" "ccstatusline (Statusline 디스플레이)" || true
+check_npm_package "claude-limitline" "claude-limitline (사용량 표시)" || true
 
 if [ $WARNING_CHECKS -gt 0 ]; then
     echo ""

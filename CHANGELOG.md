@@ -131,8 +131,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the install manifest in the current directory. Rules rendered from
   `X.md.tmpl` are checked for leftover placeholders. Content is compared after
   removing a BOM and CR, exactly and case-sensitively. On Windows the remedy
-  names `install.ps1`. `verify.sh` also no longer hangs on a machine with
-  `claude-limitline`, which ignores `--version` and waits for input. (#944)
+  names `install.ps1`. Two older `verify.sh` faults stopped it before the sync
+  section: a missing optional npm package returned 1 under `set -e`, which
+  ended the script on any machine without both packages, and
+  `claude-limitline`, which ignores `--version`, waited for input. (#944)
 
 ## 1.13.0 - 2026-09-13
 
