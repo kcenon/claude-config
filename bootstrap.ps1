@@ -27,13 +27,13 @@ if ($env:GITHUB_BRANCH) {
 }
 $GitHubRef = if ($env:GITHUB_REF) { $env:GITHUB_REF }
              elseif ($env:GITHUB_BRANCH) { $env:GITHUB_BRANCH }
-             else { 'v1.13.0' }
+             else { 'v1.14.0' }
 
 # Anthropic Claude Code installer pin (#620 — supply-chain parity with bash).
 # The Anthropic-hosted PowerShell installer is pinned by sha256 to prevent
 # MITM substitution. Rotation policy mirrors docs/SUPPLY_CHAIN.md.
 $AnthropicInstallerUrl    = if ($env:ANTHROPIC_INSTALLER_URL) { $env:ANTHROPIC_INSTALLER_URL } else { 'https://claude.ai/install.ps1' }
-$AnthropicInstallerSha256 = if ($env:ANTHROPIC_INSTALLER_SHA256) { $env:ANTHROPIC_INSTALLER_SHA256 } else { 'acc15c3d844b8952e702a24b584d2fdc0b589ee1061c11202529cdd5702711df' }  # pinned 2026-05-09
+$AnthropicInstallerSha256 = if ($env:ANTHROPIC_INSTALLER_SHA256) { $env:ANTHROPIC_INSTALLER_SHA256 } else { 'cd17c6b555f761d60373659824bf805e1510538226e4c7028e19d7494937a333' }  # pinned 2026-09-12
 
 # Installation directory
 $InstallDir = if ($env:INSTALL_DIR) { $env:INSTALL_DIR } else { Join-Path $HOME 'claude_config_backup' }
@@ -542,6 +542,7 @@ function Install-GlobalSettings {
     Install-BootstrapSettingsAndHooks
 
     Add-RetiredManagedManifestEntries -Root $ClaudeDir -Entries @{
+        'commands/_policy.md' = 'dc099752233e505ecec34e8ea87f0b4d5af2409fef2090fb36719caa0faf58c8'
         'commands/branch-cleanup.md' = '3e7fc38c324cfc9cea639e95394d7819e7768364d12023ec0b36b91f9230b09d'
         'commands/doc-review.md' = 'be659114c43ef29423c74d7b33e0f594b80c134b38fb7c5b61e6935cae88c26f'
         'commands/implement-all-levels.md' = 'b675f8e689e8aca71eb67e8666acc98018ad70b746d16655476b5939380737be'

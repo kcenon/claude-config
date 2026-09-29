@@ -1,17 +1,26 @@
 name: Anthropic installer drift check
 
-# Re-validates the sha256 pin for the Anthropic Claude Code installer that
-# `bootstrap.sh` invokes. Fails (alerts maintainers) when the upstream
-# installer drifts from the pinned hash. Auto-rotation is intentionally
-# NOT performed — pin rotation requires human review per
+# Re-validates the sha256 pins for the Anthropic Claude Code installers:
+# https://claude.ai/install.sh, pinned in bootstrap.sh and copied into
+# scripts/install.sh, and https://claude.ai/install.ps1, pinned in
+# bootstrap.ps1. It also fails when the two copies of the bash pin differ.
+# The checks live in scripts/check-installer-pins.sh; each one runs even when
+# another fails, and the job summary lists every result. Auto-rotation is
+# intentionally NOT performed — pin rotation requires human review per
 # docs/SUPPLY_CHAIN.md.
 #
-# What a failure means: bootstrap.sh and scripts/install.sh refuse to run
-# the upstream installer until the pin matches again, so installing the
-# claude CLI through this repository is blocked. Who acts: the repository
-# maintainer reviews the new installer and rotates the pin (see "Rotating
-# the pin" in docs/SUPPLY_CHAIN.md), or re-runs the workflow when the
-# failure was a network error (kcenon/claude-config#929).
+# What a failure means, by the exit code in the log:
+#   1  Drift: an upstream installer no longer matches its pin, or
+#      bootstrap.sh and scripts/install.sh carry different bash pins. The
+#      entry point with the stale pin refuses to run the upstream installer,
+#      so installing the claude CLI through it is blocked (bootstrap.ps1
+#      warns and continues without the CLI).
+#   2  A pin line changed shape, so the script could not read it.
+#   3  An upstream installer could not be downloaded.
+# Who acts: the repository maintainer. For 1, review the new installer and
+# rotate the pin (see "Rotating the pin" in docs/SUPPLY_CHAIN.md); for 2, fix
+# the pin line or the script; for 3, re-run the workflow
+# (kcenon/claude-config#929, #936).
 
 on:
   schedule:
@@ -29,26 +38,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify pinned sha256 against upstream
-        run: |
-          set -euo pipefail
-          PINNED=$(grep -E '^ANTHROPIC_INSTALLER_SHA256=' bootstrap.sh \
-                    | sed -E 's/.*:-([0-9a-f]{64}).*/\1/')
-          if [ -z "$PINNED" ] || [ "${#PINNED}" -ne 64 ]; then
-            echo "Could not extract pinned sha256 from bootstrap.sh" >&2
-            exit 2
-          fi
-          ACTUAL=$(curl -fsSL https://claude.ai/install.sh | sha256sum | awk '{print $1}')
-          echo "PINNED=$PINNED"
-          echo "ACTUAL=$ACTUAL"
-          if [ "$PINNED" != "$ACTUAL" ]; then
-            {
-              echo "Anthropic installer sha256 drift detected."
-              echo "  pinned: $PINNED"
-              echo "  actual: $ACTUAL"
-              echo "Open a PR updating ANTHROPIC_INSTALLER_SHA256 in bootstrap.sh"
-              echo "after reviewing the upstream change. See docs/SUPPLY_CHAIN.md."
-            } >&2
-            exit 1
-          fi
-          echo "sha256 pin matches upstream."
+      - name: Verify pinned sha256 values against upstream
+        run: bash scripts/check-installer-pins.sh

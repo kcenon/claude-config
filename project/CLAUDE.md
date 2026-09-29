@@ -3,16 +3,6 @@
 Conventions for this repository. Works with `~/.claude/CLAUDE.md` (global).
 Rules use YAML frontmatter for automatic loading. Defer to language-specific conventions (PEP 8, C++ Core Guidelines, etc.).
 
-## Auto-Loaded Rules
-
-Loaded every session via `alwaysApply: true`:
-- `core/principles.md` -- Think, Minimize, Surgical Precision, Verify
-- `core/communication.md` -- Code identifiers in English, prose per `CLAUDE_CONTENT_LANGUAGE` policy
-- `core/environment.md` -- KST timezone, Korean locale, platform notes
-- `workflow/git-commit-format.md` -- Conventional Commits format
-- `workflow/session-resume.md` -- Resume interrupted workflows
-- `workflow/branching-strategy.md` -- Branch model, CI policy
-
 ## On-Demand Rules (path-triggered)
 
 Loaded when matching files are open:
@@ -32,7 +22,8 @@ Loaded when matching files are open:
 
 ## Reference Docs
 
-Stored in `.claude/reference/` (`coding/`, `workflow/`), outside the auto-loaded
+Stored in `.claude/reference/` (`api/`, `coding/`, `project-management/`, `workflow/`,
+and `security-examples.md` at its root), outside the auto-loaded
 `.claude/rules/` tree so they are never injected by default. Load with `@load: reference/<name>`:
 - `anti-patterns` -- Before/after examples for core principles
 - `5w1h-examples` -- Issue/PR templates with full 5W1H
@@ -42,19 +33,18 @@ Stored in `.claude/reference/` (`coding/`, `workflow/`), outside the auto-loaded
 - `automation-patterns` -- GitHub Actions patterns
 - `issue-examples` -- Issue splitting and examples
 - `label-definitions` -- GitHub label taxonomy
-
-## Agents
-
-`code-reviewer`, `codebase-analyzer`, `dependency-auditor`, `documentation-writer`, `qa-reviewer`, `refactor-assistant`, `structure-explorer`, `test-strategist`
+- `api-design-examples`, `architecture-examples`, `observability-examples` -- Worked samples for the `api/` rules
+- `performance-examples`, `error-handling-examples`, `safety-examples` -- Worked samples for the `coding/` rules
+- `documentation-templates`, `build-examples`, `testing-examples` -- Templates and samples for the `project-management/` rules
+- `security-examples` -- Worked samples for `security.md`
 
 ## Skills
 
-`api-design`, `ci-debugging`, `code-quality`, `coding-guidelines`, `doc-update`, `documentation`, `git-status`, `performance-review`, `pr-review`, `project-workflow`, `security-audit`
-
 > Presence is not availability: `skillOverrides` in `.claude/settings.local.json`
 > disables individual skills, and a disabled skill fails silently. That file is
-> machine-local -- no installer creates it, `.gitignore` excludes it -- so this
-> list cannot reflect it. Absent the key, as in the shipped template, all are enabled.
+> machine-local -- no installer creates it, `.gitignore` excludes it -- so a
+> directory listing of `.claude/skills/` does not tell you which skills are
+> active. Absent the key, as in the shipped template, all are enabled.
 
 ## MCP
 

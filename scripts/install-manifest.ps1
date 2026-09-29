@@ -142,6 +142,41 @@ function Join-ManagedManifestPath {
     return $null
 }
 
+function Remove-EmptyManagedParents {
+    <#
+    .SYNOPSIS
+    Removes the directories above a pruned path while they are empty. Stops at
+    the first directory that still holds anything and never removes the root.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$Root,
+        [Parameter(Mandatory)][string]$Path
+    )
+
+    $comparison = if (Test-ManifestWindowsPlatform) {
+        [System.StringComparison]::OrdinalIgnoreCase
+    } else {
+        [System.StringComparison]::Ordinal
+    }
+    $rootPrefix = [System.IO.Path]::GetFullPath($Root).TrimEnd(
+        [System.IO.Path]::DirectorySeparatorChar,
+        [System.IO.Path]::AltDirectorySeparatorChar
+    ) + [System.IO.Path]::DirectorySeparatorChar
+
+    $dir = Split-Path -Parent ([System.IO.Path]::GetFullPath($Path))
+    while ($dir -and $dir.StartsWith($rootPrefix, $comparison)) {
+        if (-not (Test-Path -LiteralPath $dir -PathType Container)) { break }
+        if (@(Get-ChildItem -LiteralPath $dir -Force).Count -gt 0) { break }
+        try {
+            Remove-Item -LiteralPath $dir -Force -ErrorAction Stop
+        } catch {
+            break
+        }
+        Write-Host "Manifest prune: removed empty directory: $($dir.Substring($rootPrefix.Length) -replace '\\', '/')"
+        $dir = Split-Path -Parent $dir
+    }
+}
+
 function Invoke-ManifestPrune {
     <#
     .SYNOPSIS
@@ -200,6 +235,7 @@ function Invoke-ManifestPrune {
 
         if (-not (Test-Path -LiteralPath $path)) {
             Write-Host "Manifest prune: removed stale manifest entry for missing file: $key"
+            Remove-EmptyManagedParents -Root $Root -Path $path
             $files.Remove($key)
             $missing++
             $removedEntries++
@@ -212,6 +248,7 @@ function Invoke-ManifestPrune {
         if ($currentSha -and $storedSha -and ($currentSha -eq $storedSha)) {
             Remove-Item -LiteralPath $path -Force
             Write-Host "Manifest prune: deleted obsolete managed file: $key"
+            Remove-EmptyManagedParents -Root $Root -Path $path
             $files.Remove($key)
             $deleted++
             $removedEntries++

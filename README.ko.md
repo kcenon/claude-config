@@ -1,7 +1,7 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
-  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.13.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.14.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
 </p>
@@ -148,8 +148,8 @@ Claude Code Plugin으로 설치하여 쉽게 배포하고 업데이트할 수 �
 # 마켓플레이스 추가
 /plugin marketplace add kcenon/claude-config
 
-# 플러그인 설치
-/plugin install claude-config@kcenon/claude-config
+# 플러그인 설치 (마켓플레이스: kcenon-plugins)
+/plugin install claude-config@kcenon-plugins
 ```
 
 또는 로컬에서 테스트:
@@ -186,8 +186,9 @@ cd ~\claude_config_backup
 전체 구성 없이 핵심 동작 교정만 원하시나요?
 
 ```bash
-# lite plugin 설치
-claude plugins add kcenon/claude-config-lite
+# lite plugin 설치 (마켓플레이스: kcenon-plugins)
+claude plugin marketplace add kcenon/claude-config
+claude plugin install claude-config-lite@kcenon-plugins
 
 # 또는 로컬 테스트
 claude --plugin-dir ./plugin-lite
@@ -243,8 +244,6 @@ claude_config_backup/
 │   ├── commit-settings.md      # 커밋/PR 정책 (Claude 정보 비활성화)
 │   ├── tmux.conf               # tmux 자동 로깅 설정
 │   ├── ccstatusline/           # 상태줄 설정
-│   ├── commands/               # 글로벌 명령어 정책
-│   │   └── _policy.md         # 모든 명령어 공통 정책
 │   ├── hooks/                  # 훅 스크립트(.sh + .ps1) — 전체 정본 목록은 HOOKS.md 참조
 │   │   └── lib/               # 공유 라이브러리
 │   │       ├── AttributionValidator.psm1
@@ -326,11 +325,6 @@ claude_config_backup/
 │       ├── reference/          # 온디맨드 레퍼런스 문서 (rules/ 밖, 자동 로드 안 됨)
 │       │   ├── coding/         # anti-patterns.md
 │       │   └── workflow/       # 5W1H 예시, 레이블, 자동화, Agent Teams
-│       ├── commands/           # 사용자 정의 슬래시 명령어
-│       │   ├── _policy.md
-│       │   ├── pr-review.md
-│       │   ├── code-quality.md
-│       │   └── git-status.md
 │       ├── agents/             # 특화 에이전트 설정
 │       │   ├── code-reviewer.md
 │       │   ├── codebase-analyzer.md
@@ -349,6 +343,7 @@ claude_config_backup/
 │           ├── documentation/
 │           ├── ci-debugging/
 │           ├── code-quality/   # 사용자 호출형
+│           ├── doc-update/     # 사용자 호출형
 │           ├── git-status/     # 사용자 호출형
 │           └── pr-review/      # 사용자 호출형
 │
@@ -808,7 +803,7 @@ cd .claude-config
 # 타입: 2 (프로젝트만)
 
 # 팀 멤버
-git clone https://github.com/your-org/project.git
+git clone YOUR_PROJECT_REPO_URL project
 cd project/.claude-config
 ./scripts/install.sh
 # 타입: 2 (프로젝트만)
@@ -914,7 +909,7 @@ cp -r ~/project/.claude ~/claude_config_backup/project/
 # bootstrap.sh 사용 시
 GITHUB_USER=your-username \
 GITHUB_REPO=your-repo \
-GITHUB_REF=v1.13.0 \
+GITHUB_REF=v1.14.0 \
 INSTALL_DIR=~/my-claude-config \
 bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh)"
 ```
@@ -923,7 +918,7 @@ bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main
 |------|--------|------|
 | `GITHUB_USER` | `kcenon` | 저장소를 소유한 GitHub user/org |
 | `GITHUB_REPO` | `claude-config` | 저장소 이름 |
-| `GITHUB_REF` | 최신 release tag (예: `v1.13.0`) | clone할 tag, branch, commit. tag pinning은 SLSA-aligned supply-chain hardening으로 설치를 재현 가능하게 하고 `main`의 일시적 손상에 덜 취약하게 만듭니다. 개발 테스트에만 `develop`으로 override하세요. |
+| `GITHUB_REF` | 최신 release tag (예: `v1.14.0`) | clone할 tag, branch, commit. tag pinning은 SLSA-aligned supply-chain hardening으로 설치를 재현 가능하게 하고 `main`의 일시적 손상에 덜 취약하게 만듭니다. 개발 테스트에만 `develop`으로 override하세요. |
 | `INSTALL_DIR` | `~/claude_config_backup` | 저장소를 clone할 위치 |
 
 > **Deprecated**: `GITHUB_BRANCH`는 `GITHUB_REF`의 한 release alias로 보존되며, 설정 시 stderr deprecation warning을 출력합니다. 다음 major release 전 `GITHUB_REF`로 이전하세요.
@@ -989,15 +984,15 @@ bash scripts/install.sh
 
 ### Q5: Private repo로 사용하고 싶어요
 
-**A:** 설치 시 Personal Access Token을 사용하세요:
+**A:** 비공개 포크를 쓰려면 bootstrap이 두 곳에서 포크를 가리켜야 합니다:
 
-```bash
-# Token 생성: GitHub Settings > Developer settings > Personal access tokens
+1. [Private Repository](#private-repository)처럼 Personal Access Token으로 포크의 `bootstrap.sh`를 받습니다.
+   URL에는 포크 소유자를 넣습니다. Token은 GitHub Settings > Developer settings > Personal access tokens에서 만듭니다.
+2. 고급 사용법의 *환경 변수로 커스터마이즈*처럼 `GITHUB_USER`를 포크 소유자로 지정합니다(이름을 바꿨다면 `GITHUB_REPO`도).
+   지정하지 않으면 bootstrap은 `kcenon/claude-config`를 클론합니다. 포크에 기본 릴리스 태그가 없으면 `GITHUB_REF`도 지정합니다.
 
-# 설치
-curl -sSL -H "Authorization: token YOUR_TOKEN" \
-  https://raw.githubusercontent.com/your-user/claude-config/main/bootstrap.sh | bash
-```
+bootstrap은 포크를 일반 `git clone`으로 클론합니다. 1단계의 token은 넘어가지 않으므로,
+git이 포크에 접근할 자격 증명을 따로 갖고 있어야 합니다(예: credential helper).
 
 ---
 

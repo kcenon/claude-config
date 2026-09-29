@@ -5,6 +5,151 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.14.0 - 2026-09-29
+
+### Added
+
+- `tests/scripts/test-check-installer-pins.sh`, wired into
+  `validate-hooks.yml`, runs the checker over `file://` fixtures for every
+  exit code, with positive controls that a failing check does not stop the
+  checks after it. Its last case runs `--offline` against the repository, so
+  a PR that reshapes a pin line or leaves the two bash pins different fails
+  before merge. (#936)
+
+### Changed
+
+- Ten path-triggered rules under `project/.claude/rules/` keep their
+  principles and hand their worked examples to `project/.claude/reference/`.
+  A `paths:` rule is injected whole when one matching file is read, so the
+  examples were paid for on every such read: the ten rules shrink from
+  107,065 to 26,977 LF bytes (each under 4,000), which takes one read under
+  `**/api/**` from 41,500 bytes of injected rules to 7,520. The
+  examples move verbatim to `api/{api-design,architecture,observability}-examples.md`,
+  `coding/{performance,error-handling,safety}-examples.md`,
+  `project-management/{documentation-templates,build-examples,testing-examples}.md`
+  and `security-examples.md`; each rule ends with a pointer to its file and
+  `project/CLAUDE.md` lists all ten under `## Reference Docs` for
+  `@load: reference/<name>`. `api/api-design.md` keeps the
+  `Standardized Error Responses` block, now under `## Error Handling`,
+  because `api/rest-api.md` cites it as the canonical error format.
+  Frontmatter and `paths:` are unchanged. The 29 skill mirrors regenerated
+  from these rules by `scripts/sync_references.sh` shrink from 293,020 to
+  77,402 bytes, and because skills pull them in with `@./reference/<name>.md`
+  a skill invocation gets lighter by the same text. Plugin skills become
+  principles-only: the plugin does not ship `project/.claude/reference/`,
+  and no example mirrors were added to `reference-map.yml`. (#926)
+
+### Removed
+
+- `global/commands/_policy.md`, a 413-byte stub left over from the
+  pre-skills layout. It installed as `~/.claude/commands/_policy.md` and
+  registered the slash name `_policy` under the same H1 as
+  `global/skills/_policy.md`, so Claude Code kept one of the two and dropped
+  the other without a message. Every line of the stub is already stated in
+  `global/commit-settings.md`, the `git-commit-format.md` and
+  `github-issue-5w1h.md` workflow rules, and the CI gate in
+  `global/CLAUDE.md`. All four installers now list `commands/_policy.md` as
+  a retired managed file, so an upgrade removes an unmodified deployed copy
+  and keeps an edited one. `scripts/install.sh` lists `~/.claude/commands/`
+  in its summary only when that directory exists, as `scripts/install.ps1`
+  already did. (#927)
+
+- Three lists in `project/CLAUDE.md` that a session can rebuild from what it
+  already holds: `## Auto-Loaded Rules` (the six `alwaysApply: true` rules,
+  which are injected into the same context with their paths whenever the
+  file loads), `## Agents` (the eight file names under
+  `project/.claude/agents/`) and the skill-name line under `## Skills` (the
+  eleven directory names under `project/.claude/skills/`). The file goes
+  from 3,698 to 2,896 LF bytes, and that text was resident in every session
+  of every project that installs the template. This reverses the #908
+  decision to keep the skill list: the names are one directory listing
+  away, and a hand-maintained list drifts where a listing cannot -- one
+  deployed copy had both name blocks removed on 2026-08-25 and the
+  divergence from the source went unnoticed until 2026-09-05. The
+  `skillOverrides` caveat that #908 added stays as the body of `## Skills`,
+  reworded to say that a directory listing of `.claude/skills/` does not
+  tell which skills are active. `## On-Demand Rules (path-triggered)`,
+  `## Reference Docs` and `## MCP` are unchanged. (#928)
+
+### Fixed
+
+- `README.md` and `README.ko.md` now match the repository in five places.
+  Both plugin install commands name the marketplace `kcenon-plugins` from
+  `.claude-plugin/marketplace.json`: the lite plugin pointed at
+  `kcenon/claude-config-lite`, a repository that does not exist, and the
+  full plugin used `@kcenon/claude-config` as the marketplace name. The
+  `project/.claude/` tree lists all eleven skills, including `doc-update`,
+  once; the English copy listed `skills/` twice and the Korean copy showed a
+  `commands/` directory that the template no longer has. The team-member
+  clone uses the placeholder `YOUR_PROJECT_REPO_URL` instead of a link to
+  `your-org/project`. The private-repository answer no longer downloads from
+  `your-user/claude-config`; it says that a private fork also needs
+  `GITHUB_USER` (bootstrap otherwise clones `kcenon/claude-config`) and that
+  the clone uses git's own credentials, not the download token. (#930)
+
+- Manifest prune now removes the directories it empties. Both
+  `Invoke-ManifestPrune` (`scripts/install-manifest.ps1`) and
+  `manifest_prune_removed` (`scripts/install-manifest.sh`) deleted only the
+  file, so pruning the retired `commands/_policy.md` left an empty
+  `~/.claude/commands/`. After a file is deleted, or a stale entry is removed
+  because its file is already gone, each directory above it is removed while
+  it is empty, up to but never including the install root. A directory that
+  still holds any file stays. (#945)
+
+- `scripts/verify.ps1` and `scripts/verify.sh` now compare what the
+  installers actually deploy. `verify.ps1` checked only the top-level `.sh`
+  hooks and `*.md` skill files, so on Windows none of the hooks that run was
+  compared: an install missing `edit-guard-dispatcher.ps1` passed, and no
+  installed project was compared at all. Both verifiers now check the hook
+  file lists of their platform's installer (on Windows `.ps1`, `.sh` and
+  `.json`, and `hooks/lib/` `.ps1`, `.psm1` and `.sh`), the three shared
+  `validate-*.sh` libraries, every file under `global/skills`, and an
+  installed project given by `-ProjectDir` / `--project-dir` or found through
+  the install manifest in the current directory. Rules rendered from
+  `X.md.tmpl` are checked for leftover placeholders. Content is compared after
+  removing a BOM and CR, exactly and case-sensitively. On Windows the remedy
+  names `install.ps1`. Two older `verify.sh` faults stopped it before the sync
+  section: a missing optional npm package returned 1 under `set -e`, which
+  ended the script on any machine without both packages, and
+  `claude-limitline`, which ignores `--version`, waited for input. (#944)
+
+### Security
+
+- The pinned sha256 of the upstream Anthropic PowerShell installer
+  (`https://claude.ai/install.ps1`) is rotated from `acc15c3d844b...11df`
+  (pinned 2026-05-09) to
+  `cd17c6b555f761d60373659824bf805e1510538226e4c7028e19d7494937a333` in
+  `bootstrap.ps1`. Upstream changed the script by 2026-09-10, so
+  `hooks/lib/InstallerFetch.psm1` returned 12 (MISMATCH) and `bootstrap.ps1`
+  continued without the claude CLI unless `ANTHROPIC_INSTALLER_SHA256` was
+  overridden. The current script contacts only `downloads.claude.ai` and
+  verifies the downloaded binary against the manifest sha256 before running
+  it. No earlier copy existed to diff against. (#936, PR #937)
+- The Anthropic installer drift check now covers both installers and both
+  copies of the bash pin. `scripts/check-installer-pins.sh` compares the
+  `bootstrap.sh` pin with its copy in `scripts/install.sh` (no network) and
+  with `https://claude.ai/install.sh`, and the `bootstrap.ps1` pin with
+  `https://claude.ai/install.ps1`. Every check runs even when another fails,
+  the job summary lists each result, and the exit code names the failure: 1
+  drift, 2 an unreadable pin line, 3 a failed download. Before this the check
+  read only `bootstrap.sh` and fetched only `install.sh`, so the PowerShell
+  pin drifted without an alert, and a rotation that updated one of the two
+  bash pins passed. (#936)
+
+- The four `gh api` allow rules in both settings profiles combined a
+  mid-pattern `*` with the trailing `:*` prefix syntax (`Bash(gh api repos/*:*)`
+  and three more). Claude Code matches such a rule as a literal prefix, so
+  none of them ever approved a real `gh api` call, and each printed a startup
+  warning. They now use the plain wildcard form (`Bash(gh api repos/*)`), as
+  do the four matching `PowerShell(...)` rules in
+  `global/settings.windows.json`. Because the rules now work, that profile
+  also gains a `permissions.ask` list of 13 PowerShell rules for `gh api`
+  write calls: `-X` and `--method` with `POST`, `PATCH`, `PUT` or `DELETE`,
+  and `-f`, `-F`, `--field`, `--raw-field` and `--input`, which make
+  `gh api` default to POST. PowerShell has no PreToolUse guard, so without
+  them a write call would run without a prompt; on Bash,
+  `gh-write-verb-guard.sh` already covers writes. (PR #942)
+
 ## 1.13.0 - 2026-09-13
 
 ### Added

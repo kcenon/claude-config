@@ -1,7 +1,7 @@
 # Claude Configuration Backup & Deployment System
 
 <p align="center">
-  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.13.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/kcenon/claude-config/releases"><img src="https://img.shields.io/badge/version-1.14.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green.svg" alt="License"></a>
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
 </p>
@@ -189,8 +189,8 @@ Install as a Claude Code Plugin for easy distribution and updates:
 # Add marketplace
 /plugin marketplace add kcenon/claude-config
 
-# Install plugin
-/plugin install claude-config@kcenon/claude-config
+# Install plugin (marketplace: kcenon-plugins)
+/plugin install claude-config@kcenon-plugins
 ```
 
 Or test locally:
@@ -207,8 +207,9 @@ See [plugin/README.md](plugin/README.md) for more details.
 Want just the core behavioral corrections without the full suite?
 
 ```bash
-# Install lite plugin
-claude plugins add kcenon/claude-config-lite
+# Install lite plugin (marketplace: kcenon-plugins)
+claude plugin marketplace add kcenon/claude-config
+claude plugin install claude-config-lite@kcenon-plugins
 
 # Or test locally
 claude --plugin-dir ./plugin-lite
@@ -266,8 +267,6 @@ claude_config_backup/
 │   ├── tmux.conf               # tmux auto-logging configuration
 │   ├── ccstatusline/           # Status line configuration
 │   │   └── settings.json      # Status line display settings
-│   ├── commands/               # Global command policies
-│   │   └── _policy.md         # Shared policies for all commands
 │   ├── hooks/                  # Hook scripts, each in .sh + .ps1 — authoritative catalog: HOOKS.md
 │   │   └── lib/               # Shared libraries
 │   │       ├── AttributionValidator.psm1
@@ -351,7 +350,6 @@ claude_config_backup/
 │       ├── reference/          # On-demand reference docs (outside rules/, never auto-loaded)
 │       │   ├── coding/         # anti-patterns.md
 │       │   └── workflow/       # 5W1H examples, labels, automation, agent teams
-│       ├── skills/             # 11 project skills (migrated from slash commands) — e.g. pr-review, code-quality, git-status, security-audit
 │       ├── agents/             # Specialized agent configurations
 │       │   ├── code-reviewer.md
 │       │   ├── codebase-analyzer.md
@@ -370,6 +368,7 @@ claude_config_backup/
 │           ├── documentation/
 │           ├── ci-debugging/
 │           ├── code-quality/   # User-invocable
+│           ├── doc-update/     # User-invocable
 │           ├── git-status/     # User-invocable
 │           └── pr-review/      # User-invocable
 │
@@ -840,7 +839,7 @@ cd .claude-config
 # Type: 2 (Project only)
 
 # Team member
-git clone https://github.com/your-org/project.git
+git clone YOUR_PROJECT_REPO_URL project
 cd project/.claude-config
 ./scripts/install.sh
 # Type: 2 (Project only)
@@ -957,7 +956,7 @@ cp -r ~/project/.claude ~/claude_config_backup/project/
 # When using bootstrap.sh
 GITHUB_USER=your-username \
 GITHUB_REPO=your-repo \
-GITHUB_REF=v1.13.0 \
+GITHUB_REF=v1.14.0 \
 INSTALL_DIR=~/my-claude-config \
 bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main/bootstrap.sh)"
 ```
@@ -966,7 +965,7 @@ bash -c "$(curl -sSL https://raw.githubusercontent.com/kcenon/claude-config/main
 |----------|---------|---------|
 | `GITHUB_USER` | `kcenon` | GitHub user/org owning the repo |
 | `GITHUB_REPO` | `claude-config` | Repository name |
-| `GITHUB_REF` | latest release tag (e.g. `v1.13.0`) | Tag, branch, or commit to clone. Pinning to a tag is SLSA-aligned supply-chain hardening — the install is reproducible and resistant to a transient compromise of `main`. Override with `develop` only for development testing. |
+| `GITHUB_REF` | latest release tag (e.g. `v1.14.0`) | Tag, branch, or commit to clone. Pinning to a tag is SLSA-aligned supply-chain hardening — the install is reproducible and resistant to a transient compromise of `main`. Override with `develop` only for development testing. |
 | `INSTALL_DIR` | `~/claude_config_backup` | Where to clone the repo |
 
 > **Deprecated**: `GITHUB_BRANCH` is preserved as a one-release alias for `GITHUB_REF` and emits a stderr deprecation warning when set. Migrate to `GITHUB_REF` before the next major release.
@@ -1032,15 +1031,17 @@ bash scripts/install.sh
 
 ### Q5: I want to use a private repo
 
-**A:** Use Personal Access Token during installation:
+**A:** For a private fork, bootstrap needs the fork in two places:
 
-```bash
-# Create token: GitHub Settings > Developer settings > Personal access tokens
+1. Download `bootstrap.sh` from the fork with a Personal Access Token, as in
+   [Private Repository](#private-repository), with the fork's owner in the URL.
+   Create the token under GitHub Settings > Developer settings > Personal access tokens.
+2. Set `GITHUB_USER` to the fork's owner (and `GITHUB_REPO` if you renamed it), as in
+   *Customize with Environment Variables* under Advanced Usage. Without them bootstrap
+   clones `kcenon/claude-config`. Set `GITHUB_REF` too if the fork lacks the default release tag.
 
-# Installation
-curl -sSL -H "Authorization: token YOUR_TOKEN" \
-  https://raw.githubusercontent.com/your-user/claude-config/main/bootstrap.sh | bash
-```
+bootstrap clones the fork with a plain `git clone`; the token from step 1 is not passed on,
+so git needs its own credentials for the fork (for example, a credential helper).
 
 ---
 

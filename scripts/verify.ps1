@@ -4,6 +4,15 @@
 # =======================================
 # Ported from verify.sh
 
+param(
+    # Deployed global layer to compare with global/.
+    [string]$ClaudeDir = (Join-Path $HOME '.claude'),
+    # Installed project to compare with project/. When omitted, the current
+    # directory is used if it holds a project install manifest and is not this
+    # checkout; otherwise the project comparison is skipped.
+    [string]$ProjectDir
+)
+
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
@@ -404,6 +413,21 @@ $SYNC_OK    = 0
 $SYNC_DIFF  = 0
 $SYNC_MISS  = 0
 
+function Get-SyncText {
+    # File content as the installers leave it: a UTF-8 BOM dropped and CRLF
+    # folded to LF (Install-BashScript rewrites every .sh that way). The
+    # comparison is exact and case-sensitive after that; Compare-Object, used
+    # before #944, ignored line order and case.
+    param([string]$Path)
+
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $start = 0
+    if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+        $start = 3
+    }
+    return [System.Text.Encoding]::UTF8.GetString($bytes, $start, $bytes.Length - $start).Replace("`r`n", "`n")
+}
+
 function Test-SyncFile {
     param(
         [string]$Source,
@@ -417,17 +441,78 @@ function Test-SyncFile {
         Write-WarningMessage "MISS: $Label"
         $script:SYNC_MISS++
     }
+    elseif ((Get-SyncText -Path $Source) -ceq (Get-SyncText -Path $Destination)) {
+        Write-SuccessMessage "SYNC: $Label"
+        $script:SYNC_OK++
+    }
     else {
-        $srcContent = Get-Content -LiteralPath $Source -ErrorAction SilentlyContinue
-        $dstContent = Get-Content -LiteralPath $Destination -ErrorAction SilentlyContinue
-        $diff = Compare-Object $srcContent $dstContent -ErrorAction SilentlyContinue
-        if ($null -eq $diff -or $diff.Count -eq 0) {
-            Write-SuccessMessage "SYNC: $Label"
-            $script:SYNC_OK++
+        Write-ErrorMessage "DIFF: $Label"
+        $script:SYNC_DIFF++
+    }
+}
+
+function Test-SyncRendered {
+    # A rule rendered from X.md.tmpl at install time carries the chosen
+    # language policy, so it cannot equal any source file. Check instead that
+    # it exists and that no placeholder or tmpl-contract marker survived.
+    param(
+        [string]$Destination,
+        [string]$Label
+    )
+
+    $script:SYNC_TOTAL++
+
+    if (-not (Test-Path -LiteralPath $Destination -PathType Leaf)) {
+        Write-WarningMessage "MISS: $Label"
+        $script:SYNC_MISS++
+    }
+    elseif ((Get-SyncText -Path $Destination) -cmatch '\{\{[A-Z_]+\}\}|tmpl-contract') {
+        Write-ErrorMessage "DIFF: $Label (unrendered placeholder)"
+        $script:SYNC_DIFF++
+    }
+    else {
+        Write-SuccessMessage "SYNC: $Label (rendered)"
+        $script:SYNC_OK++
+    }
+}
+
+function Test-SyncTree {
+    # Compares the files under $SourceDir that match $Filters with their
+    # copies under $DestDir, the way Copy-ManifestTree and
+    # Copy-InstallHookFiles deploy them. The installers render X.md.tmpl over
+    # its X.md sibling, so X.md is checked with Test-SyncRendered instead.
+    param(
+        [string]$SourceDir,
+        [string]$DestDir,
+        [string]$LabelPrefix,
+        [string[]]$Filters = @('*'),
+        [switch]$Recurse
+    )
+
+    if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) { return }
+    $root = [System.IO.Path]::GetFullPath($SourceDir).TrimEnd(
+        [System.IO.Path]::DirectorySeparatorChar,
+        [System.IO.Path]::AltDirectorySeparatorChar
+    )
+    $files = @(foreach ($filter in $Filters) {
+        Get-ChildItem -LiteralPath $SourceDir -Filter $filter -File -Recurse:$Recurse -ErrorAction SilentlyContinue
+    }) | Sort-Object FullName -Unique
+
+    $rendered = @{}
+    foreach ($tmpl in ($files | Where-Object { $_.Name -like '*.md.tmpl' })) {
+        $rendered[$tmpl.FullName.Substring(0, $tmpl.FullName.Length - '.tmpl'.Length)] = $true
+    }
+    foreach ($srcFile in $files) {
+        $full = $srcFile.FullName
+        if ($full -like '*.md.tmpl') { $full = $full.Substring(0, $full.Length - '.tmpl'.Length) }
+        elseif ($rendered.ContainsKey($full)) { continue }
+        $rel = $full.Substring($root.Length + 1) -replace '\\', '/'
+        $dest = Join-Path $DestDir $rel
+        if ($rendered.ContainsKey($full)) {
+            Test-SyncRendered -Destination $dest -Label "$LabelPrefix/$rel"
         }
         else {
-            Write-ErrorMessage "DIFF: $Label"
-            $script:SYNC_DIFF++
+            Test-SyncFile -Source $srcFile.FullName -Destination $dest -Label "$LabelPrefix/$rel"
         }
     }
 }
@@ -494,7 +579,8 @@ function Test-SyncSettings {
     $script:SYNC_OK++
 }
 
-$GlobalDst = Join-Path $HOME '.claude'
+$GlobalDst = $ClaudeDir
+$installCmd = if ($IsWindows) { './scripts/install.ps1' } else { './scripts/install.sh' }
 
 # Global config files. settings.json is excluded from the byte-wise loop and
 # handled by Test-SyncSettings below.
@@ -517,22 +603,62 @@ if (Test-Path -LiteralPath $settingsSrc -PathType Leaf) {
 # Global skills
 Write-Host ""
 Write-InfoMessage "글로벌 스킬 동기화:"
-$globalSkillsDir = Join-Path $BackupDir 'global' 'skills'
-if (Test-Path -LiteralPath $globalSkillsDir -PathType Container) {
-    foreach ($srcFile in (Get-ChildItem -LiteralPath $globalSkillsDir -Recurse -Filter '*.md' | Sort-Object FullName)) {
-        $rel = $srcFile.FullName.Substring($globalSkillsDir.Length + 1)
-        Test-SyncFile -Source $srcFile.FullName -Destination (Join-Path $GlobalDst 'skills' $rel) -Label "skills/$rel"
-    }
-}
+# Every file, not only *.md: skills also ship scripts and JSON (#944).
+Test-SyncTree -SourceDir (Join-Path $BackupDir 'global' 'skills') -DestDir (Join-Path $GlobalDst 'skills') `
+    -LabelPrefix 'skills' -Recurse
 
-# Global hooks
+# Global hooks: the same file lists the installer deploys. Windows runs the
+# .ps1 hooks and also receives .sh/.json for WSL and container parity
+# (install.ps1 Deploy-InstallHooks); POSIX receives .sh only (install.sh
+# deploy_install_hooks). Before #944 only the top-level .sh files were checked.
 Write-Host ""
 Write-InfoMessage "글로벌 Hook 스크립트 동기화:"
 $globalHooksDir = Join-Path $BackupDir 'global' 'hooks'
-if (Test-Path -LiteralPath $globalHooksDir -PathType Container) {
-    foreach ($srcFile in (Get-ChildItem -LiteralPath $globalHooksDir -Filter '*.sh')) {
-        $base = $srcFile.Name
-        Test-SyncFile -Source $srcFile.FullName -Destination (Join-Path $GlobalDst 'hooks' $base) -Label "hooks/$base"
+$hookFilters = if ($IsWindows) { @('*.ps1', '*.sh', '*.json') } else { @('*.sh') }
+$hookLibFilters = if ($IsWindows) { @('*.ps1', '*.psm1', '*.sh') } else { @('*.sh') }
+Test-SyncTree -SourceDir $globalHooksDir -DestDir (Join-Path $GlobalDst 'hooks') -LabelPrefix 'hooks' -Filters $hookFilters
+Test-SyncTree -SourceDir (Join-Path $globalHooksDir 'lib') -DestDir (Join-Path $GlobalDst 'hooks' 'lib') `
+    -LabelPrefix 'hooks/lib' -Filters $hookLibFilters
+foreach ($lib in @('validate-commit-message.sh', 'validate-language.sh', 'validate-traceability.sh')) {
+    $src = Join-Path $BackupDir 'hooks' 'lib' $lib
+    if (Test-Path -LiteralPath $src -PathType Leaf) {
+        Test-SyncFile -Source $src -Destination (Join-Path $GlobalDst 'hooks' 'lib' $lib) -Label "hooks/lib/$lib"
+    }
+}
+
+# Installed project, compared with project/ the way install.ps1 and install.sh
+# deploy it. A directory is detected only through its install manifest, so
+# running verify inside an unrelated project skips this section.
+Write-Host ""
+if (-not $ProjectDir) {
+    $cwd = (Get-Location).Path
+    $cwdIsCheckout = [System.IO.Path]::GetFullPath($cwd).TrimEnd('\', '/') -eq
+        [System.IO.Path]::GetFullPath($BackupDir).TrimEnd('\', '/')
+    if (-not $cwdIsCheckout -and (Test-Path -LiteralPath (Join-Path $cwd '.claude' '.install-manifest.json') -PathType Leaf)) {
+        $ProjectDir = $cwd
+    }
+}
+if (-not $ProjectDir) {
+    Write-InfoMessage "프로젝트 설치본 동기화: 건너뜀 (-ProjectDir <경로>로 지정)"
+}
+elseif (-not (Test-Path -LiteralPath $ProjectDir -PathType Container)) {
+    Write-InfoMessage "프로젝트 설치본 동기화: $ProjectDir"
+    Write-WarningMessage "MISS: project directory $ProjectDir"
+    $SYNC_TOTAL++
+    $SYNC_MISS++
+}
+else {
+    Write-InfoMessage "프로젝트 설치본 동기화: $ProjectDir"
+    $projectSrc = Join-Path $BackupDir 'project'
+    foreach ($f in @('CLAUDE.md', '.claudeignore', '.claude/settings.json')) {
+        $src = Join-Path $projectSrc $f
+        if (Test-Path -LiteralPath $src -PathType Leaf) {
+            Test-SyncFile -Source $src -Destination (Join-Path $ProjectDir $f) -Label "project/$f"
+        }
+    }
+    foreach ($d in @('rules', 'reference', 'skills', 'commands', 'agents')) {
+        Test-SyncTree -SourceDir (Join-Path $projectSrc '.claude' $d) -DestDir (Join-Path $ProjectDir '.claude' $d) `
+            -LabelPrefix "project/.claude/$d" -Recurse
     }
 }
 
@@ -552,7 +678,7 @@ Write-Host "  ──────────────────────
 if ($SYNC_DIFF -gt 0 -or $SYNC_MISS -gt 0) {
     Write-Host ""
     Write-WarningMessage "시스템이 소스와 동기화되지 않았습니다."
-    Write-InfoMessage "동기화 방법: ./scripts/install.sh (옵션 1: 글로벌 설정)"
+    Write-InfoMessage "동기화 방법: $installCmd (1: 글로벌, 2: 프로젝트, 3: 둘 다)"
 }
 
 # Add sync failures to main failure count
@@ -618,13 +744,22 @@ if ($script:FAILED_CHECKS -eq 0) {
     Write-Host ""
     Write-Host "다음 단계:"
     Write-Host "  1. 다른 시스템에 복사"
-    Write-Host "  2. ./scripts/install.sh 실행"
+    Write-Host "  2. $installCmd 실행"
     exit 0
 }
 else {
     Write-WarningMessage "일부 검증 실패 (성공률: ${successRate}%)"
-    Write-Host ""
-    Write-InfoMessage "누락된 파일이 있습니다. 백업을 다시 생성하세요:"
-    Write-Host "  ./scripts/backup.sh"
+    # Sync failures are fixed by reinstalling; only the remaining failures
+    # concern the backup tree itself.
+    if (($SYNC_DIFF + $SYNC_MISS) -gt 0) {
+        Write-Host ""
+        Write-InfoMessage "설치본이 소스와 다릅니다. 다시 설치하세요:"
+        Write-Host "  $installCmd"
+    }
+    if (($script:FAILED_CHECKS - $SYNC_DIFF - $SYNC_MISS) -gt 0) {
+        Write-Host ""
+        Write-InfoMessage "누락된 파일이 있습니다. 백업을 다시 생성하세요:"
+        Write-Host "  ./scripts/backup.sh"
+    }
     exit 1
 }

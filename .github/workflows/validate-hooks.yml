@@ -20,6 +20,7 @@ on:
       - 'scripts/install.ps1'
       - 'scripts/install-manifest.sh'
       - 'scripts/install-manifest.ps1'
+      - 'scripts/check-installer-pins.sh'
       - 'bootstrap.sh'
       - 'bootstrap.ps1'
       - '.github/workflows/*.yml'
@@ -31,6 +32,8 @@ on:
       - 'global/settings.windows.json'
       - 'scripts/backup.sh'
       - 'scripts/backup.ps1'
+      - 'scripts/verify.sh'
+      - 'scripts/verify.ps1'
       # The enterprise tree is manifest-tracked on Windows since #903. Without
       # this entry a PR that only edits enterprise/rules/*.md runs no workflow
       # at all, so content drift there has no regression guard.
@@ -162,6 +165,12 @@ jobs:
       - name: Run installer fetch integrity tests
         run: bash tests/scripts/test-installer-fetch.sh
 
+      - name: Run installer pin check tests
+        # scripts/check-installer-pins.sh over file:// fixtures, then --offline
+        # against this repository: a reshaped pin line or bash pins that differ
+        # between bootstrap.sh and scripts/install.sh fail the PR (#936).
+        run: bash tests/scripts/test-check-installer-pins.sh
+
       - name: Run install permissions policy lint
         # Lint test: install.sh must enforce 700 / 600 / 644 on tracked files.
         run: bash tests/scripts/test-install-permissions-policy.sh
@@ -208,6 +217,16 @@ jobs:
         # settings.json), install.sh error() being terminal, and the
         # backup.sh/.ps1 copy-then-swap staging (silent-data-loss fix).
         run: bash tests/scripts/test-installer-robustness.sh
+
+      - name: Run verify sync coverage test
+        # #944: verify.sh compares hook libraries, every skill file and an
+        # installed project, and a line-ending-only difference is not drift.
+        run: bash tests/scripts/test-verify-sync.sh
+
+      - name: Run verify sync coverage test (PowerShell)
+        # Same contract for verify.ps1. The Windows job below runs it natively,
+        # where the .ps1 hooks are part of the comparison.
+        run: pwsh -NoProfile -File tests/scripts/test-verify-sync.ps1
 
       - name: Run bootstrap non-tty smoke test
         # Exercises the advertised `curl ... | INSTALL_TYPE=3 bash` entrypoint
@@ -285,6 +304,11 @@ jobs:
       - name: Run dual-variant installer test on native Windows
         shell: pwsh
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File tests/scripts/test-install-dual-variant.ps1
+
+      - name: Run verify sync coverage test on native Windows
+        # #944: on Windows verify.ps1 must also compare the .ps1 hooks.
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File tests/scripts/test-verify-sync.ps1
 
   shellcheck:
     runs-on: ${{ matrix.os }}

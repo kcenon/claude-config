@@ -157,6 +157,53 @@ try {
     }
     Write-Host "Add-RetiredManagedManifestEntries: PASS"
 
+    # Prune removes the directories it empties (#945). A retired file's
+    # directory goes, a directory that still holds a user file stays, the empty
+    # directory of an already-missing file goes, and the install root stays
+    # even when nothing is left in it. The manifest lives outside both roots so
+    # that it does not keep a root non-empty.
+    $previousManifestPath = $env:MANIFEST_PATH
+    $env:MANIFEST_PATH = Join-Path $testDir "empty-dirs.manifest.json"
+    $emptyRoot = Join-Path $testDir "empty-root"
+    foreach ($d in @('commands', 'keep/sub', 'gone/deep')) {
+        New-Item -ItemType Directory -Path (Join-Path $emptyRoot $d) -Force | Out-Null
+    }
+    [System.IO.File]::WriteAllText((Join-Path $emptyRoot 'commands/_policy.md'), "retired command`n", $utf8NoBom)
+    [System.IO.File]::WriteAllText((Join-Path $emptyRoot 'keep/sub/old.md'), "retired rule`n", $utf8NoBom)
+    [System.IO.File]::WriteAllText((Join-Path $emptyRoot 'keep/user.md'), "user file`n", $utf8NoBom)
+    Add-RetiredManagedManifestEntries -Root $emptyRoot -Entries @{
+        'commands/_policy.md' = (Get-FileSha256 -Path (Join-Path $emptyRoot 'commands/_policy.md'))
+        'keep/sub/old.md'     = (Get-FileSha256 -Path (Join-Path $emptyRoot 'keep/sub/old.md'))
+    }
+    Write-ManifestEntry -Key 'gone/deep/missing.md' -Sha '0000'
+    Invoke-ManifestPrune -Root $emptyRoot -ManagedKeys @('current.md') | Out-Null
+    if (Test-Path -LiteralPath (Join-Path $emptyRoot 'commands')) {
+        throw "FAIL: prune left the emptied commands/ directory"
+    }
+    if (Test-Path -LiteralPath (Join-Path $emptyRoot 'keep/sub')) {
+        throw "FAIL: prune left the emptied keep/sub/ directory"
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $emptyRoot 'keep/user.md'))) {
+        throw "FAIL: prune removed a user file"
+    }
+    if (Test-Path -LiteralPath (Join-Path $emptyRoot 'gone')) {
+        throw "FAIL: prune left the empty directory of a missing file"
+    }
+
+    $bareRoot = Join-Path $testDir "bare-root"
+    New-Item -ItemType Directory -Path (Join-Path $bareRoot 'only') -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $bareRoot 'only/one.md'), "retired`n", $utf8NoBom)
+    Write-ManifestEntry -Key 'only/one.md' -Sha (Get-FileSha256 -Path (Join-Path $bareRoot 'only/one.md'))
+    Invoke-ManifestPrune -Root $bareRoot -ManagedKeys @('current.md') | Out-Null
+    if (Test-Path -LiteralPath (Join-Path $bareRoot 'only')) {
+        throw "FAIL: prune left the emptied only/ directory"
+    }
+    if (-not (Test-Path -LiteralPath $bareRoot -PathType Container)) {
+        throw "FAIL: prune removed the install root"
+    }
+    $env:MANIFEST_PATH = $previousManifestPath
+    Write-Host "Invoke-ManifestPrune removes emptied directories: PASS"
+
     # Idempotent reset: english policy must remove .env.CLAUDE_CONTENT_LANGUAGE
     # and prune an empty .env object left over from a prior non-default selection.
     '{"test": 1}' | Set-Content -LiteralPath $settingsPath -Encoding UTF8
