@@ -163,6 +163,16 @@
         "autoAllowBashIfSandboxed":   { "type": "boolean" },
         "allowUnsandboxedCommands":   { "type": "boolean" },
         "excludedCommands":           { "type": "array", "items": { "type": "string" } },
+        "filesystem": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "allowWrite":         { "type": "array", "items": { "type": "string" } },
+            "denyWrite":          { "type": "array", "items": { "type": "string" } },
+            "allowRead":          { "type": "array", "items": { "type": "string" } },
+            "denyRead":           { "type": "array", "items": { "type": "string" } }
+          }
+        },
         "network": {
           "type": "object",
           "additionalProperties": true,

@@ -15,6 +15,7 @@ Global settings applied every session. Routing index only — procedural detail 
 - Read-before-Edit: Read any file before Edit/Write
 - Conflicts: never auto-resolve source code; `git merge --abort` if intractable
 - Command length: keep each Bash/PowerShell call short enough to parse (target <~900 bytes); extract longer logic to a `.ps1`/`.sh` file and invoke by path
+- `gh` calls: `gh` runs outside the sandbox through `sandbox.excludedCommands`, which matches only when the whole call is `gh`; keep one `gh` command per Bash call (shape output with `--jq`, pass `--repo owner/name` literally, wait with `gh pr checks --watch` or `gh run watch`), never pipe, chain, or loop it, and never set `dangerouslyDisableSandbox` for it
 
 ## Routing
 
