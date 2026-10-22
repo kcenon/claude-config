@@ -10,11 +10,11 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 83501
+    size: 83508
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
-      - {h: "[Unreleased]", l: 8, e: 9}
+      - {h: "1.15.0 - 2026-10-23", l: 8, e: 9}
       - {h: "Added", l: 10, e: 21}
       - {h: "Changed", l: 22, e: 52}
       - {h: "Fixed", l: 53, e: 59}
