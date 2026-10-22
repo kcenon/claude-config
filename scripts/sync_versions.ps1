@@ -2,8 +2,9 @@
 # Use after editing VERSION_MAP.yml (typically invoked by the /release skill).
 #
 # Consumers:
-#   suite           -> README.md, README.ko.md (shields.io badge and
-#                      GITHUB_REF pins), bootstrap.sh, bootstrap.ps1
+#   suite           -> README.md, README.ko.md (status-line release link),
+#                      docs/guides/INSTALLATION.md, docs/guides/INSTALLATION.ko.md
+#                      (GITHUB_REF pins), bootstrap.sh, bootstrap.ps1
 #   plugin          -> plugin/.claude-plugin/plugin.json
 #   plugin-lite     -> plugin-lite/.claude-plugin/plugin.json
 #   settings-schema -> global/settings.json, global/settings.windows.json
@@ -53,7 +54,9 @@ function Set-JsonVersion {
     Write-Host "synced: $File -> version=$NewVersion"
 }
 
-function Set-ReadmeBadge {
+# The README status line links the release: [vX.Y.Z](.../releases/tag/vX.Y.Z).
+# Both the label and the tag in the URL follow the suite field (#931).
+function Set-ReadmeRelease {
     param([string]$File, [string]$NewVersion)
     $path = Join-Path $RootDir $File
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
@@ -61,11 +64,11 @@ function Set-ReadmeBadge {
         return
     }
     $content = Get-Content -LiteralPath $path -Raw
-    $pattern = '(shields\.io/badge/version-)\d+\.\d+\.\d+'
-    $replacement = '${1}' + $NewVersion
+    $pattern = '\[v\d+\.\d+\.\d+\](\(https://github\.com/kcenon/claude-config/releases/tag/)v\d+\.\d+\.\d+\)'
+    $replacement = '[v' + $NewVersion + ']${1}v' + $NewVersion + ')'
     $updated = [regex]::Replace($content, $pattern, $replacement)
     Set-Content -LiteralPath $path -Value $updated -NoNewline
-    Write-Host "synced: $File -> badge=$NewVersion"
+    Write-Host "synced: $File -> release=v$NewVersion"
 }
 
 function Set-BootstrapRefBash {
@@ -116,12 +119,12 @@ Set-JsonVersion 'plugin/.claude-plugin/plugin.json'      $Plugin
 Set-JsonVersion 'plugin-lite/.claude-plugin/plugin.json' $PluginLite
 Set-JsonVersion 'global/settings.json'                   $SettingsSchema
 Set-JsonVersion 'global/settings.windows.json'           $SettingsSchema
-Set-ReadmeBadge 'README.md'    $Suite
-Set-ReadmeBadge 'README.ko.md' $Suite
+Set-ReadmeRelease 'README.md'    $Suite
+Set-ReadmeRelease 'README.ko.md' $Suite
 Set-BootstrapRefBash 'bootstrap.sh'       $Suite
 Set-BootstrapRefPowerShell 'bootstrap.ps1' $Suite
-Set-ReadmeGitHubRefPins 'README.md'    $Suite
-Set-ReadmeGitHubRefPins 'README.ko.md' $Suite
+Set-ReadmeGitHubRefPins 'docs/guides/INSTALLATION.md'    $Suite
+Set-ReadmeGitHubRefPins 'docs/guides/INSTALLATION.ko.md' $Suite
 
 Write-Host ""
 Write-Host "sync_versions: done. Run scripts/check_versions.ps1 to verify."

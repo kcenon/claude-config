@@ -510,9 +510,15 @@
     "autoAllowBashIfSandboxed": true,
     "allowUnsandboxedCommands": true,
     "excludedCommands": [
-      "docker",
-      "watchman"
+      "docker *",
+      "watchman *",
+      "gh *"
     ],
+    "filesystem": {
+      "allowWrite": [
+        "~/.npm"
+      ]
+    },
     "network": {
       "allowedDomains": [
         "github.com",

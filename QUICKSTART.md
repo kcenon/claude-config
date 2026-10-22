@@ -205,7 +205,7 @@ See `README.md` for detailed information:
 
 ### Try a skill
 
-> **Two invocation modes.** `/git-status`, `/code-quality`, `/security-audit`, `/performance-review`, `/pr-review` are slash-catalog skills — Claude Code's `/`-autocomplete will suggest them. The workflow-automation set (`issue-work`, `pr-work`, `release`, `issue-create`, `branch-cleanup`, `harness`, `doc-index`, `doc-review`, `implement-all-levels`) is intentionally hidden under `~/.claude/skills/_internal/` and resolved by the **Skill Aliases** table in `global/CLAUDE.md`. Type the keyword as the leading command — the leading `/` is optional, but `/`-autocomplete will not suggest these. See [README → Skills](README.md#skills--what-you-can-do).
+> **Two invocation modes.** `/git-status`, `/code-quality`, `/security-audit`, `/performance-review`, `/pr-review` are slash-catalog skills — Claude Code's `/`-autocomplete will suggest them. The workflow-automation set (`issue-work`, `pr-work`, `release`, `issue-create`, `branch-cleanup`, `harness`, `doc-index`, `doc-review`, `implement-all-levels`) is intentionally hidden under `~/.claude/skills/_internal/` and resolved by the **Skill Aliases** table in `global/CLAUDE.md`. Type the keyword as the leading command — the leading `/` is optional, but `/`-autocomplete will not suggest these. See [Features → Skills](docs/guides/FEATURES.md#skills--what-you-can-do).
 
 ````bash
 # Slash-catalog skills (autocompleted)
@@ -222,10 +222,10 @@ issue-work my-project 42                 # automate an issue from start to PR
 | I want to... | Go to |
 |--------------|-------|
 | Understand what I just installed | [What You Get](README.md#what-you-get) |
-| See all available skills | [Skills](README.md#skills--what-you-can-do) |
+| See all available skills | [Skills](docs/guides/FEATURES.md#skills--what-you-can-do) |
 | Customize hooks and settings | [HOOKS.md](HOOKS.md) |
-| Set up for my team | [Enterprise Settings](README.md#enterprise-settings) |
-| Understand token optimization | [Token Optimization](README.md#token-optimization) |
+| Set up for my team | [Enterprise Settings](docs/guides/INSTALLATION.md#enterprise-settings) |
+| Understand token optimization | [Token Optimization](docs/guides/FEATURES.md#token-optimization) |
 | Design multi-agent teams | Run `/harness` in Claude Code |
 
 ---

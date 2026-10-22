@@ -2,8 +2,9 @@
 # Exits non-zero on drift. Each field tracks an independent SemVer.
 #
 # Consumers:
-#   suite           -> README.md, README.ko.md (shields.io badge and
-#                      GITHUB_REF pins), bootstrap.sh, bootstrap.ps1
+#   suite           -> README.md, README.ko.md (status-line release link),
+#                      docs/guides/INSTALLATION.md, docs/guides/INSTALLATION.ko.md
+#                      (GITHUB_REF pins), bootstrap.sh, bootstrap.ps1
 #   plugin          -> plugin/.claude-plugin/plugin.json
 #   plugin-lite     -> plugin-lite/.claude-plugin/plugin.json
 #   settings-schema -> global/settings.json, global/settings.windows.json
@@ -64,7 +65,9 @@ function Test-JsonVersion {
     }
 }
 
-function Test-ReadmeBadge {
+# Every release link in the README must name the suite version, in the label
+# and in the tag (#931: the status line replaced the shields.io badge).
+function Test-ReadmeRelease {
     param([string]$File, [string]$Expected)
     $path = Join-Path $RootDir $File
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
@@ -73,15 +76,20 @@ function Test-ReadmeBadge {
         return
     }
     $content = Get-Content -LiteralPath $path -Raw
-    if ($content -match 'shields\.io/badge/version-(\d+\.\d+\.\d+)') {
-        $actual = $Matches[1]
-        if ($actual -ne $Expected) {
-            Write-Host "FAIL: $File badge=$actual, VERSION_MAP[suite]=$Expected" -ForegroundColor Red
+    $links = [regex]::Matches($content,
+        '\[v(\d+\.\d+\.\d+)\]\(https://github\.com/kcenon/claude-config/releases/tag/v(\d+\.\d+\.\d+)\)')
+    if ($links.Count -eq 0) {
+        Write-Host "FAIL: $File has no release link" -ForegroundColor Red
+        $script:drift = 1
+        return
+    }
+    foreach ($link in $links) {
+        $label = $link.Groups[1].Value
+        $tag = $link.Groups[2].Value
+        if ($label -ne $Expected -or $tag -ne $Expected) {
+            Write-Host "FAIL: $File release link=[v$label](.../tag/v$tag), VERSION_MAP[suite]=$Expected" -ForegroundColor Red
             $script:drift = 1
         }
-    } else {
-        Write-Host "FAIL: $File has no shields.io version badge" -ForegroundColor Red
-        $script:drift = 1
     }
 }
 
@@ -161,12 +169,12 @@ Test-JsonVersion 'plugin/.claude-plugin/plugin.json'      $Plugin         'plugi
 Test-JsonVersion 'plugin-lite/.claude-plugin/plugin.json' $PluginLite     'plugin-lite'
 Test-JsonVersion 'global/settings.json'                   $SettingsSchema 'settings-schema'
 Test-JsonVersion 'global/settings.windows.json'           $SettingsSchema 'settings-schema'
-Test-ReadmeBadge 'README.md'    $Suite
-Test-ReadmeBadge 'README.ko.md' $Suite
+Test-ReadmeRelease 'README.md'    $Suite
+Test-ReadmeRelease 'README.ko.md' $Suite
 Test-BootstrapRefBash 'bootstrap.sh'       $Suite
 Test-BootstrapRefPowerShell 'bootstrap.ps1' $Suite
-Test-ReadmeGitHubRefPins 'README.md'    $Suite
-Test-ReadmeGitHubRefPins 'README.ko.md' $Suite
+Test-ReadmeGitHubRefPins 'docs/guides/INSTALLATION.md'    $Suite
+Test-ReadmeGitHubRefPins 'docs/guides/INSTALLATION.ko.md' $Suite
 
 # hooks has no consumer file to mirror; validate only that the declared value
 # is well-formed SemVer so the field cannot silently rot (deep-audit P1).

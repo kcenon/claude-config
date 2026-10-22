@@ -101,12 +101,16 @@ $GitHubRef = if ($env:GITHUB_REF) { $env:GITHUB_REF }
              else { 'v1.10.0' }
 '@
     Write-Fixture (Join-Path $Repo 'README.md') @'
-<img src="https://img.shields.io/badge/version-1.11.0-blue.svg">
+Status: active · Release: [v1.10.0](https://github.com/kcenon/claude-config/releases/tag/v1.10.0)
+'@
+    Write-Fixture (Join-Path $Repo 'README.ko.md') @'
+Status: active · Release: [v1.10.0](https://github.com/kcenon/claude-config/releases/tag/v1.10.0)
+'@
+    Write-Fixture (Join-Path $Repo 'docs/guides/INSTALLATION.md') @'
 GITHUB_REF=v1.10.0 \
 | `GITHUB_REF` | latest release tag (e.g. `v1.10.0`) |
 '@
-    Write-Fixture (Join-Path $Repo 'README.ko.md') @'
-<img src="https://img.shields.io/badge/version-1.11.0-blue.svg">
+    Write-Fixture (Join-Path $Repo 'docs/guides/INSTALLATION.ko.md') @'
 GITHUB_REF=v1.10.0 \
 | `GITHUB_REF` | 최신 release tag (예: `v1.10.0`) |
 '@
@@ -119,9 +123,10 @@ try {
     Write-FixtureRepo $Repo
 
     $out = & pwsh -NoProfile -File (Join-Path $Repo 'scripts/check_versions.ps1') 2>&1 | Out-String
-    Assert-Exit 2 $LASTEXITCODE 'stale bootstrap and README GITHUB_REF pins fail'
+    Assert-Exit 2 $LASTEXITCODE 'stale bootstrap pins, README release links and guide GITHUB_REF pins fail'
     Assert-Contains 'bootstrap.sh GITHUB_REF=1.10.0, VERSION_MAP[suite]=1.11.0' $out 'bootstrap.sh drift is reported'
-    Assert-Contains 'README.md GITHUB_REF pin=1.10.0, VERSION_MAP[suite]=1.11.0' $out 'README.md drift is reported'
+    Assert-Contains 'README.md release link=[v1.10.0](.../tag/v1.10.0), VERSION_MAP[suite]=1.11.0' $out 'README.md release link drift is reported'
+    Assert-Contains 'docs/guides/INSTALLATION.md GITHUB_REF pin=1.10.0, VERSION_MAP[suite]=1.11.0' $out 'install guide pin drift is reported'
 
     $out = & pwsh -NoProfile -File (Join-Path $Repo 'scripts/sync_versions.ps1') 2>&1 | Out-String
     Assert-Exit 0 $LASTEXITCODE 'sync exits 0'
@@ -129,8 +134,25 @@ try {
     Assert-Exit 0 $LASTEXITCODE 'sync restores version drift'
     Assert-FileContains (Join-Path $Repo 'bootstrap.sh') 'GITHUB_REF="${GITHUB_REF:-v1.11.0}"' 'bootstrap.sh pin synced'
     Assert-FileContains (Join-Path $Repo 'bootstrap.ps1') "else { 'v1.11.0' }" 'bootstrap.ps1 pin synced'
-    Assert-FileContains (Join-Path $Repo 'README.md') 'GITHUB_REF=v1.11.0 \' 'README.md code pin synced'
-    Assert-FileContains (Join-Path $Repo 'README.ko.md') '예: `v1.11.0`' 'README.ko.md table pin synced'
+    Assert-FileContains (Join-Path $Repo 'README.md') '[v1.11.0](https://github.com/kcenon/claude-config/releases/tag/v1.11.0)' 'README.md release link synced'
+    Assert-FileContains (Join-Path $Repo 'README.ko.md') '[v1.11.0](https://github.com/kcenon/claude-config/releases/tag/v1.11.0)' 'README.ko.md release link synced'
+    Assert-FileContains (Join-Path $Repo 'docs/guides/INSTALLATION.md') 'GITHUB_REF=v1.11.0 \' 'install guide code pin synced'
+    Assert-FileContains (Join-Path $Repo 'docs/guides/INSTALLATION.ko.md') '예: `v1.11.0`' 'Korean install guide table pin synced'
+
+    # A release link whose label and tag disagree, or no release link at all,
+    # is drift even when one half matches.
+    Write-Fixture (Join-Path $Repo 'README.md') @'
+Status: active · Release: [v1.11.0](https://github.com/kcenon/claude-config/releases/tag/v1.10.0)
+'@
+    $out = & pwsh -NoProfile -File (Join-Path $Repo 'scripts/check_versions.ps1') 2>&1 | Out-String
+    Assert-Exit 2 $LASTEXITCODE 'a release link with a stale tag fails'
+    Assert-Contains 'README.md release link=[v1.11.0](.../tag/v1.10.0)' $out 'label/tag mismatch is reported'
+    Write-Fixture (Join-Path $Repo 'README.md') @'
+Status: active
+'@
+    $out = & pwsh -NoProfile -File (Join-Path $Repo 'scripts/check_versions.ps1') 2>&1 | Out-String
+    Assert-Exit 2 $LASTEXITCODE 'a README without a release link fails'
+    Assert-Contains 'README.md has no release link' $out 'missing release link is reported'
 }
 finally {
     Remove-Item -LiteralPath $Work -Recurse -Force -ErrorAction SilentlyContinue

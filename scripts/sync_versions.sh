@@ -3,8 +3,9 @@
 # Use after editing VERSION_MAP.yml (typically invoked by the /release skill).
 #
 # Consumers:
-#   suite           -> README.md, README.ko.md (shields.io badge and
-#                      GITHUB_REF pins), bootstrap.sh, bootstrap.ps1
+#   suite           -> README.md, README.ko.md (status-line release link),
+#                      docs/guides/INSTALLATION.md, docs/guides/INSTALLATION.ko.md
+#                      (GITHUB_REF pins), bootstrap.sh, bootstrap.ps1
 #   plugin          -> plugin/.claude-plugin/plugin.json
 #   plugin-lite     -> plugin-lite/.claude-plugin/plugin.json
 #   settings-schema -> global/settings.json, global/settings.windows.json
@@ -68,7 +69,9 @@ set_json_version() {
     echo "synced: $file -> version=$new"
 }
 
-set_readme_badge() {
+# The README status line links the release: [vX.Y.Z](.../releases/tag/vX.Y.Z).
+# Both the label and the tag in the URL follow the suite field (#931).
+set_readme_release() {
     local file="$1"
     local new="$2"
     local path="$ROOT_DIR/$file"
@@ -76,8 +79,9 @@ set_readme_badge() {
         echo "SKIP: $file (not found)" >&2
         return
     fi
-    sed_inplace 's|(shields\.io/badge/version-)[0-9]+\.[0-9]+\.[0-9]+|\1'"${new}"'|' "$path"
-    echo "synced: $file -> badge=$new"
+    sed_inplace 's|\[v[0-9]+\.[0-9]+\.[0-9]+\](\(https://github\.com/kcenon/claude-config/releases/tag/)|[v'"${new}"']\1|g' "$path"
+    sed_inplace 's|(github\.com/kcenon/claude-config/releases/tag/v)[0-9]+\.[0-9]+\.[0-9]+|\1'"${new}"'|g' "$path"
+    echo "synced: $file -> release=v$new"
 }
 
 set_bootstrap_ref_sh() {
@@ -121,12 +125,12 @@ set_json_version "plugin/.claude-plugin/plugin.json"       "$PLUGIN"
 set_json_version "plugin-lite/.claude-plugin/plugin.json"  "$PLUGIN_LITE"
 set_json_version "global/settings.json"                    "$SETTINGS_SCHEMA"
 set_json_version "global/settings.windows.json"            "$SETTINGS_SCHEMA"
-set_readme_badge "README.md"    "$SUITE"
-set_readme_badge "README.ko.md" "$SUITE"
+set_readme_release "README.md"    "$SUITE"
+set_readme_release "README.ko.md" "$SUITE"
 set_bootstrap_ref_sh "bootstrap.sh"     "$SUITE"
 set_bootstrap_ref_ps1 "bootstrap.ps1"   "$SUITE"
-set_readme_github_ref_pins "README.md"    "$SUITE"
-set_readme_github_ref_pins "README.ko.md" "$SUITE"
+set_readme_github_ref_pins "docs/guides/INSTALLATION.md"    "$SUITE"
+set_readme_github_ref_pins "docs/guides/INSTALLATION.ko.md" "$SUITE"
 
 echo ""
 echo "sync_versions: done. Run scripts/check_versions.sh to verify."

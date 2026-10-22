@@ -67,28 +67,77 @@ env-var configuration. Neither `GODEBUG=x509roots=fallback` nor
 because Darwin's `systemRoots` always succeeds-or-errors before the fallback
 is consulted.
 
-Two options for `gh` commands specifically:
+TLS is not the only blocker. `gh` keeps its token in the macOS keyring by
+default, and a sandboxed `gh auth status` reports `The token in keyring is
+invalid` because the sandbox cannot read the keyring either. A fix that
+restores TLS alone (`enableWeakerNetworkIsolation`, a CGO-free build) still
+leaves `gh` unauthenticated inside the sandbox.
 
-1. **Bash allowlist (preferred for day-to-day use)**: add patterns to
-   `global/settings.json` `permissions.allow` so the sandbox-bypass
-   confirmation prompt does not re-appear for safe `gh` verbs:
+Options for `gh` commands specifically:
 
-   ```json
-   "permissions": {
-     "allow": [
-       "Bash(gh issue *)",
-       "Bash(gh pr view*)",
-       "Bash(gh pr list*)",
-       "Bash(gh pr checks*)",
-       "Bash(gh run list*)",
-       "Bash(gh repo view*)"
-     ]
-   }
-   ```
+1. **Exclude `gh` from the sandbox (shipped default, issue #952)**:
+   `global/settings.json` lists `gh *` in `sandbox.excludedCommands`, the
+   remediation Claude Code's sandboxing guide gives for Go-based CLIs on macOS.
+   A matching call runs outside the sandbox from the start, with the keyring
+   token, and goes through the regular permission flow, where the
+   `Bash(gh ...:*)` rules in `permissions.allow` approve it without a prompt.
+   Two rules decide whether a call matches:
 
-2. **Rebuild gh without CGO**: `CGO_ENABLED=0 go install github.com/cli/cli/v2/cmd/gh@latest`
-   produces a pure-Go binary that respects `SSL_CERT_FILE`. Not recommended
-   for most users since it forfeits the Homebrew update pipeline.
+   - **The whole call must match.** `gh pr checks 1 | head` stays sandboxed
+     because `head` matches no entry, fails TLS, and the unsandboxed retry
+     then prompts. A redirect to a file, a `cd`, or a `$(...)` substitution
+     also keeps the call sandboxed. Keep one `gh` command per Bash call: shape
+     output with `--jq`, pass `--repo owner/name` literally (no `R=...;`
+     prefix), and wait with `gh pr checks --watch` or `gh run watch` instead
+     of a polling loop. `global/CLAUDE.md` carries this as an always-on
+     invariant.
+   - **End each entry with ` *`.** Entries use `Bash(...)` rule syntax, where
+     a pattern without a wildcard is an exact match: `docker` matches only the
+     bare word, never `docker ps`. The `docker` and `watchman` entries were
+     bare words until #952.
+
+   A `gh` command a helper script runs is not matched, because matching reads
+   the text of the call. Such a script still needs an unsandboxed retry.
+
+2. **Bash allowlist alone (before #952)**: the `Bash(gh ...:*)` rules in
+   `permissions.allow` approve an unsandboxed retry of a single `gh` command,
+   but not a compound call. In a review of six days of sessions, 80 of 83
+   prompted `gh` calls were compound, and a `PreToolUse` hook returning
+   `allow` did not reliably approve the retry either. Without the
+   `excludedCommands` entry, most `gh` work prompts.
+
+3. **Rebuild gh without CGO**: `CGO_ENABLED=0 go install github.com/cli/cli/v2/cmd/gh@latest`
+   produces a pure-Go binary that respects `SSL_CERT_FILE`. It does not fix
+   the keyring token, and it forfeits the Homebrew update pipeline.
+
+## Other Sandbox Collisions
+
+The same review found two more sources of unsandboxed retries:
+
+- **`npm` cache**: the sandbox can write only `~/.npm/_logs`, so `npm view`,
+  `npm ci`, and `npx` fail on the cache (`EPERM`, "sudo chown -R ... ~/.npm").
+  `global/settings.json` adds `~/.npm` to `sandbox.filesystem.allowWrite`.
+- **Read denies that match source code**: the `Read(...)` deny rules in
+  `permissions.deny` become sandbox read denies, so `**/secrets` blocks a
+  source directory such as `src/security/secrets`, and `**/*password*` blocks
+  files such as `password_callback.hpp` or a test fixture. `git status`,
+  builds, and test runners in those repositories then fail or report the
+  files as deleted. Re-open the specific paths with
+  `sandbox.filesystem.allowRead`; a literal path re-opens a region that a
+  `**/` glob denies (verified on macOS, 2026-10-23). Keep these entries out
+  of `global/settings.json`, because the paths are per machine and the
+  installer replaces the user-level `sandbox` key. Put them in the
+  `.claude/settings.local.json` of the directory sessions start from:
+
+  ```json
+  {
+    "sandbox": {
+      "filesystem": {
+        "allowRead": ["~/Sources/example/src/security/secrets"]
+      }
+    }
+  }
+  ```
 
 ## Platform Fallback Ladder
 
@@ -127,7 +176,7 @@ SSL_CERT_DIR=/etc/ssl/certs
 [OK] git ls-remote origin
 
 2 / 4 probes passed. git and curl work without sandbox bypass.
-For gh, use the Bash allowlist remediation documented above.
+For gh, use the excludedCommands remediation (option 1 under "gh Caveat").
 ```
 
 The script reports `gh` as a FAIL on macOS even after this fix. That is the

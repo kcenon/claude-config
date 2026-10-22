@@ -72,7 +72,7 @@ When this skill runs in the claude-config repository (or any repo that declares 
 
 | Field             | Consumers                                                  |
 |-------------------|------------------------------------------------------------|
-| `suite`           | `README.md`, `README.ko.md` (shields.io badge and documented `GITHUB_REF` pins); `bootstrap.sh`, `bootstrap.ps1` (default `GITHUB_REF` pin) |
+| `suite`           | `README.md`, `README.ko.md` (status-line release link); `docs/guides/INSTALLATION.md`, `docs/guides/INSTALLATION.ko.md` (documented `GITHUB_REF` pins); `bootstrap.sh`, `bootstrap.ps1` (default `GITHUB_REF` pin) |
 | `plugin`          | `plugin/.claude-plugin/plugin.json`                        |
 | `plugin-lite`     | `plugin-lite/.claude-plugin/plugin.json`                   |
 | `settings-schema` | `global/settings.json`, `global/settings.windows.json`     |
@@ -257,7 +257,7 @@ if [ -f VERSION_MAP.yml ]; then
     git add VERSION_MAP.yml
     git add plugin/.claude-plugin/plugin.json plugin-lite/.claude-plugin/plugin.json 2>/dev/null || true
     git add global/settings.json global/settings.windows.json 2>/dev/null || true
-    git add README.md README.ko.md 2>/dev/null || true
+    git add README.md README.ko.md docs/guides/INSTALLATION.md docs/guides/INSTALLATION.ko.md 2>/dev/null || true
     git commit -m "chore(release): bump ${TARGET} to ${VERSION}"
     git push origin develop
 fi

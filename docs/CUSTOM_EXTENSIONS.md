@@ -276,7 +276,7 @@ Five independent version fields are declared across the suite. `VERSION_MAP.yml`
 
 | Field             | Consumers                                                  |
 |-------------------|------------------------------------------------------------|
-| `suite`           | `README.md`, `README.ko.md` (shields.io badge URL and documented `GITHUB_REF` pins); `bootstrap.sh`, `bootstrap.ps1` (default `GITHUB_REF` pin) |
+| `suite`           | `README.md`, `README.ko.md` (status-line release link); `docs/guides/INSTALLATION.md`, `docs/guides/INSTALLATION.ko.md` (documented `GITHUB_REF` pins); `bootstrap.sh`, `bootstrap.ps1` (default `GITHUB_REF` pin) |
 | `plugin`          | `plugin/.claude-plugin/plugin.json` (`version`)            |
 | `plugin-lite`     | `plugin-lite/.claude-plugin/plugin.json` (`version`)       |
 | `settings-schema` | `global/settings.json`, `global/settings.windows.json`     |

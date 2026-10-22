@@ -3,8 +3,9 @@
 # Exits non-zero on drift. Each field tracks an independent SemVer.
 #
 # Consumers:
-#   suite           -> README.md, README.ko.md (shields.io badge and
-#                      GITHUB_REF pins), bootstrap.sh, bootstrap.ps1
+#   suite           -> README.md, README.ko.md (status-line release link),
+#                      docs/guides/INSTALLATION.md, docs/guides/INSTALLATION.ko.md
+#                      (GITHUB_REF pins), bootstrap.sh, bootstrap.ps1
 #   plugin          -> plugin/.claude-plugin/plugin.json
 #   plugin-lite     -> plugin-lite/.claude-plugin/plugin.json
 #   settings-schema -> global/settings.json, global/settings.windows.json
@@ -61,7 +62,9 @@ check_json_version() {
     fi
 }
 
-check_readme_badge() {
+# Every release link in the README must name the suite version, in the label
+# and in the tag (#931: the status line replaced the shields.io badge).
+check_readme_release() {
     local file="$1"
     local expected="$2"
     local path="$ROOT_DIR/$file"
@@ -70,17 +73,22 @@ check_readme_badge() {
         drift=1
         return
     fi
-    local actual
-    actual=$(grep -oE 'shields\.io/badge/version-[0-9]+\.[0-9]+\.[0-9]+' "$path" | head -1 | sed -E 's|.*badge/version-||')
-    if [ -z "$actual" ]; then
-        echo "FAIL: $file has no shields.io version badge" >&2
+    local links
+    links=$(grep -oE '\[v[0-9]+\.[0-9]+\.[0-9]+\]\(https://github\.com/kcenon/claude-config/releases/tag/v[0-9]+\.[0-9]+\.[0-9]+\)' "$path" || true)
+    if [ -z "$links" ]; then
+        echo "FAIL: $file has no release link" >&2
         drift=1
         return
     fi
-    if [ "$actual" != "$expected" ]; then
-        echo "FAIL: $file badge=$actual, VERSION_MAP[suite]=$expected" >&2
-        drift=1
-    fi
+    local link label tag
+    while IFS= read -r link; do
+        label=$(printf '%s' "$link" | sed -E 's/^\[v([^]]+)\].*/\1/')
+        tag=$(printf '%s' "$link" | sed -E 's/.*releases\/tag\/v([^)]+)\)$/\1/')
+        if [ "$label" != "$expected" ] || [ "$tag" != "$expected" ]; then
+            echo "FAIL: $file release link=[v$label](.../tag/v$tag), VERSION_MAP[suite]=$expected" >&2
+            drift=1
+        fi
+    done <<< "$links"
 }
 
 check_bootstrap_ref_sh() {
@@ -158,12 +166,12 @@ check_json_version "plugin/.claude-plugin/plugin.json"       "$PLUGIN"          
 check_json_version "plugin-lite/.claude-plugin/plugin.json"  "$PLUGIN_LITE"     "plugin-lite"
 check_json_version "global/settings.json"                    "$SETTINGS_SCHEMA" "settings-schema"
 check_json_version "global/settings.windows.json"            "$SETTINGS_SCHEMA" "settings-schema"
-check_readme_badge "README.md"    "$SUITE"
-check_readme_badge "README.ko.md" "$SUITE"
+check_readme_release "README.md"    "$SUITE"
+check_readme_release "README.ko.md" "$SUITE"
 check_bootstrap_ref_sh "bootstrap.sh"     "$SUITE"
 check_bootstrap_ref_ps1 "bootstrap.ps1"   "$SUITE"
-check_readme_github_ref_pins "README.md"    "$SUITE"
-check_readme_github_ref_pins "README.ko.md" "$SUITE"
+check_readme_github_ref_pins "docs/guides/INSTALLATION.md"    "$SUITE"
+check_readme_github_ref_pins "docs/guides/INSTALLATION.ko.md" "$SUITE"
 
 # hooks has no consumer file to mirror; validate only that the declared value
 # is well-formed SemVer so the field cannot silently rot (deep-audit P1).
