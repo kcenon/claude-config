@@ -38,6 +38,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tag; the documented `GITHUB_REF` examples they maintain moved with the
   installation text to `docs/guides/INSTALLATION.md` and its Korean copy.
   (#931)
+- `gh` runs outside the sandbox: `global/settings.json` lists `gh *` in
+  `sandbox.excludedCommands`, so a single `gh` command no longer fails TLS
+  (`OSStatus -26276`) and keyring access inside the sandbox and then prompts
+  for an unsandboxed retry; the existing `Bash(gh ...:*)` allow rules approve
+  it. `global/CLAUDE.md` adds an always-on invariant to keep one `gh` command
+  per Bash call, because the exclusion applies only when the whole call
+  matches. `docs/SANDBOX_TLS.md` documents the remediation, the keyring, and
+  per-machine `allowRead` entries for source trees that hit a read deny.
+  (#952)
+- `global/settings.json` adds `~/.npm` to `sandbox.filesystem.allowWrite`, so
+  `npm` and `npx` can use their cache inside the sandbox. (#952)
+
+### Fixed
+
+- `sandbox.excludedCommands` entries `docker` and `watchman` in
+  `global/settings.json` and `global/settings.windows.json` are now
+  `docker *` and `watchman *`. A pattern without a wildcard is an exact match,
+  so the bare entries never excluded a command with arguments. (#952)
 
 ## 1.14.0 - 2026-09-29
 

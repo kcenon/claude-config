@@ -21,8 +21,8 @@
     "autoAllowBashIfSandboxed": true,
     "allowUnsandboxedCommands": true,
     "excludedCommands": [
-      "docker",
-      "watchman"
+      "docker *",
+      "watchman *"
     ],
     "network": {
       "allowedDomains": [

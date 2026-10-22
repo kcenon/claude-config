@@ -10,44 +10,45 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 82454
+    size: 83501
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "[Unreleased]", l: 8, e: 9}
       - {h: "Added", l: 10, e: 21}
-      - {h: "Changed", l: 22, e: 41}
-      - {h: "1.14.0 - 2026-09-29", l: 42, e: 43}
-      - {h: "Added", l: 44, e: 52}
-      - {h: "Changed", l: 53, e: 75}
-      - {h: "Removed", l: 76, e: 107}
-      - {h: "Fixed", l: 108, e: 149}
-      - {h: "Security", l: 150, e: 186}
-      - {h: "1.13.0 - 2026-09-13", l: 187, e: 188}
-      - {h: "Added", l: 189, e: 374}
-      - {h: "Changed", l: 375, e: 427}
-      - {h: "Fixed", l: 428, e: 561}
-      - {h: "Security", l: 562, e: 580}
-      - {h: "Known limitation", l: 581, e: 588}
-      - {h: "1.12.0 - 2026-08-01", l: 589, e: 590}
-      - {h: "Added", l: 591, e: 722}
-      - {h: "Fixed", l: 723, e: 965}
-      - {h: "1.11.0 - 2026-07-03", l: 966, e: 967}
-      - {h: "Fixed", l: 968, e: 981}
-      - {h: "Security", l: 982, e: 1059}
-      - {h: "Added", l: 1060, e: 1088}
-      - {h: "Changed", l: 1089, e: 1135}
-      - {h: "1.10.0 - 2026-04-20", l: 1136, e: 1144}
-      - {h: "1.9.0 - 2026-04-13", l: 1145, e: 1154}
-      - {h: "1.8.0 - 2026-04-13", l: 1155, e: 1160}
-      - {h: "1.7.0 - 2026-04-06", l: 1161, e: 1175}
-      - {h: "1.6.0 - 2026-04-03", l: 1176, e: 1188}
-      - {h: "1.5.0 - 2026-03-21", l: 1189, e: 1207}
-      - {h: "1.4.0 - 2026-01-22", l: 1208, e: 1213}
-      - {h: "1.3.0 - 2026-01-15", l: 1214, e: 1222}
-      - {h: "1.2.0 - 2026-01-15", l: 1223, e: 1231}
-      - {h: "1.1.0 - 2025-01-15", l: 1232, e: 1242}
-      - {h: "1.0.0 - 2025-12-03", l: 1243, e: 1249}
+      - {h: "Changed", l: 22, e: 52}
+      - {h: "Fixed", l: 53, e: 59}
+      - {h: "1.14.0 - 2026-09-29", l: 60, e: 61}
+      - {h: "Added", l: 62, e: 70}
+      - {h: "Changed", l: 71, e: 93}
+      - {h: "Removed", l: 94, e: 125}
+      - {h: "Fixed", l: 126, e: 167}
+      - {h: "Security", l: 168, e: 204}
+      - {h: "1.13.0 - 2026-09-13", l: 205, e: 206}
+      - {h: "Added", l: 207, e: 392}
+      - {h: "Changed", l: 393, e: 445}
+      - {h: "Fixed", l: 446, e: 579}
+      - {h: "Security", l: 580, e: 598}
+      - {h: "Known limitation", l: 599, e: 606}
+      - {h: "1.12.0 - 2026-08-01", l: 607, e: 608}
+      - {h: "Added", l: 609, e: 740}
+      - {h: "Fixed", l: 741, e: 983}
+      - {h: "1.11.0 - 2026-07-03", l: 984, e: 985}
+      - {h: "Fixed", l: 986, e: 999}
+      - {h: "Security", l: 1000, e: 1077}
+      - {h: "Added", l: 1078, e: 1106}
+      - {h: "Changed", l: 1107, e: 1153}
+      - {h: "1.10.0 - 2026-04-20", l: 1154, e: 1162}
+      - {h: "1.9.0 - 2026-04-13", l: 1163, e: 1172}
+      - {h: "1.8.0 - 2026-04-13", l: 1173, e: 1178}
+      - {h: "1.7.0 - 2026-04-06", l: 1179, e: 1193}
+      - {h: "1.6.0 - 2026-04-03", l: 1194, e: 1206}
+      - {h: "1.5.0 - 2026-03-21", l: 1207, e: 1225}
+      - {h: "1.4.0 - 2026-01-22", l: 1226, e: 1231}
+      - {h: "1.3.0 - 2026-01-15", l: 1232, e: 1240}
+      - {h: "1.2.0 - 2026-01-15", l: 1241, e: 1249}
+      - {h: "1.1.0 - 2025-01-15", l: 1250, e: 1260}
+      - {h: "1.0.0 - 2025-12-03", l: 1261, e: 1267}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -678,16 +679,17 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 4716
+    size: 7744
     tags: [docs]
     sections:
       - {h: "Symptom", l: 7, e: 20}
       - {h: "Root Cause", l: 21, e: 28}
       - {h: "Fix", l: 29, e: 45}
       - {h: "Coverage Matrix", l: 46, e: 59}
-      - {h: "gh Caveat", l: 60, e: 92}
-      - {h: "Platform Fallback Ladder", l: 93, e: 109}
-      - {h: "Verification", l: 110, e: 135}
+      - {h: "gh Caveat", l: 60, e: 112}
+      - {h: "Other Sandbox Collisions", l: 113, e: 141}
+      - {h: "Platform Fallback Ladder", l: 142, e: 158}
+      - {h: "Verification", l: 159, e: 184}
   - path: "docs/SKILL_DRIFT_CONTRACT.md"
     title: "SKILL.md Drift Contract"
     description: "`SKILL.md` files are copied across multiple distribution layers. A shared skill name must not gain different permissions, routing, severity behavior, or mutation authority by accident."
@@ -1893,14 +1895,14 @@ documents:
     description: ""
     category: config
     scope: global
-    size: 4490
+    size: 4850
     tags: [config,global]
     sections:
       - {h: "Core Settings", l: 5, e: 9}
-      - {h: "Always-on Invariants", l: 10, e: 18}
-      - {h: "Routing", l: 19, e: 32}
-      - {h: "Skill Aliases (post-D2 relocation, see #491, #492)", l: 33, e: 60}
-      - {h: "Updating", l: 61, e: 67}
+      - {h: "Always-on Invariants", l: 10, e: 19}
+      - {h: "Routing", l: 20, e: 33}
+      - {h: "Skill Aliases (post-D2 relocation, see #491, #492)", l: 34, e: 61}
+      - {h: "Updating", l: 62, e: 68}
   - path: "global/VERSION_HISTORY.md"
     title: "Global Configuration Version History"
     description: ""
