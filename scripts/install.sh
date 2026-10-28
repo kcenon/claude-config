@@ -664,6 +664,10 @@ install_memory_sync() {
         if [ -x "$HOME/.claude/memory-shared/scripts/install-hooks.sh" ]; then
             (cd "$HOME/.claude/memory-shared" && ./scripts/install-hooks.sh) || \
                 warning "[install] memory repo install-hooks.sh failed"
+        else
+            # A clone of a branch without the hook installer (#959) would
+            # otherwise leave the data-side pre-commit gate missing silently.
+            warning "[install] memory repo has no scripts/install-hooks.sh; pre-commit validator gate not installed"
         fi
     else
         info "[install] memory repo already cloned at $HOME/.claude/memory-shared"
