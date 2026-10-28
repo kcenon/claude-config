@@ -605,7 +605,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 22129
+    size: 22849
     tags: [ci,docs,memory]
     sections:
       - {h: "Table of Contents", l: 9, e: 23}
@@ -617,49 +617,50 @@ documents:
       - {h: "Filename pattern (REQUIRED)", l: 68, e: 95}
       - {h: "Correction note (§3.1)", l: 96, e: 104}
       - {h: "3. Frontmatter Schema", l: 105, e: 108}
-      - {h: "Required fields", l: 109, e: 116}
-      - {h: "Recommended fields (Phase 2 backfill)", l: 117, e: 129}
-      - {h: "Minimal valid example", l: 130, e: 142}
-      - {h: "Full example with recommended fields", l: 143, e: 161}
-      - {h: "4. Field Semantics", l: 162, e: 163}
-      - {h: "`name`", l: 164, e: 172}
-      - {h: "`description`", l: 173, e: 181}
-      - {h: "`type`", l: 182, e: 193}
-      - {h: "`source-machine`", l: 194, e: 200}
-      - {h: "`created-at`", l: 201, e: 208}
-      - {h: "`trust-level`", l: 209, e: 232}
-      - {h: "`last-verified`", l: 233, e: 241}
-      - {h: "5. Body Content Rules", l: 242, e: 245}
-      - {h: "Length bounds", l: 246, e: 252}
-      - {h: "Structural markers for `feedback` and `project` types", l: 253, e: 273}
-      - {h: "Frontmatter-only files", l: 274, e: 278}
-      - {h: "Secret-shaped strings in body", l: 279, e: 291}
-      - {h: "6. Owner Identity Allowlist", l: 292, e: 297}
-      - {h: "Recognized owner email patterns", l: 298, e: 316}
-      - {h: "Correction note (§3.2)", l: 317, e: 323}
-      - {h: "Recognized owner paths", l: 324, e: 328}
-      - {h: "Token patterns that always trigger findings", l: 329, e: 345}
-      - {h: "7. Validator Exit-Code Contract", l: 346, e: 352}
-      - {h: "Full exit-code table", l: 353, e: 365}
-      - {h: "Usage code", l: 366, e: 370}
-      - {h: "`--all` mode", l: 371, e: 376}
-      - {h: "Distinction between exit 1 and exit 2 in `validate.sh`", l: 377, e: 389}
-      - {h: "`injection-check.sh` never blocks", l: 390, e: 399}
-      - {h: "8. Bash Compatibility Constraints", l: 400, e: 408}
-      - {h: "Empty-array guards", l: 409, e: 430}
-      - {h: "BASH_REMATCH save-then-use pattern", l: 431, e: 450}
-      - {h: "`wc -l` output normalization", l: 451, e: 470}
-      - {h: "Correction note (§3.3 and §3.4)", l: 471, e: 482}
-      - {h: "9. Baseline Behavior Expectation", l: 483, e: 493}
-      - {h: "validate.sh --all", l: 494, e: 510}
-      - {h: "secret-check.sh --all", l: 511, e: 522}
-      - {h: "injection-check.sh --all", l: 523, e: 544}
-      - {h: "How to verify", l: 545, e: 558}
-      - {h: "10. Versioning", l: 559, e: 560}
-      - {h: "Spec version", l: 561, e: 573}
-      - {h: "Change log", l: 574, e: 575}
-      - {h: "v1.0.1 — 2026-05-01", l: 576, e: 593}
-      - {h: "v1.0.0 — 2026-05-01", l: 594, e: 611}
+      - {h: "Required fields", l: 109, e: 131}
+      - {h: "Recommended fields (Phase 2 backfill)", l: 132, e: 144}
+      - {h: "Minimal valid example", l: 145, e: 157}
+      - {h: "Full example with recommended fields", l: 158, e: 176}
+      - {h: "4. Field Semantics", l: 177, e: 178}
+      - {h: "`name`", l: 179, e: 187}
+      - {h: "`description`", l: 188, e: 196}
+      - {h: "`type`", l: 197, e: 208}
+      - {h: "`source-machine`", l: 209, e: 215}
+      - {h: "`created-at`", l: 216, e: 223}
+      - {h: "`trust-level`", l: 224, e: 247}
+      - {h: "`last-verified`", l: 248, e: 256}
+      - {h: "5. Body Content Rules", l: 257, e: 260}
+      - {h: "Length bounds", l: 261, e: 267}
+      - {h: "Structural markers for `feedback` and `project` types", l: 268, e: 288}
+      - {h: "Frontmatter-only files", l: 289, e: 293}
+      - {h: "Secret-shaped strings in body", l: 294, e: 306}
+      - {h: "6. Owner Identity Allowlist", l: 307, e: 312}
+      - {h: "Recognized owner email patterns", l: 313, e: 331}
+      - {h: "Correction note (§3.2)", l: 332, e: 338}
+      - {h: "Recognized owner paths", l: 339, e: 343}
+      - {h: "Token patterns that always trigger findings", l: 344, e: 360}
+      - {h: "7. Validator Exit-Code Contract", l: 361, e: 367}
+      - {h: "Full exit-code table", l: 368, e: 380}
+      - {h: "Usage code", l: 381, e: 385}
+      - {h: "`--all` mode", l: 386, e: 391}
+      - {h: "Distinction between exit 1 and exit 2 in `validate.sh`", l: 392, e: 404}
+      - {h: "`injection-check.sh` never blocks", l: 405, e: 414}
+      - {h: "8. Bash Compatibility Constraints", l: 415, e: 423}
+      - {h: "Empty-array guards", l: 424, e: 445}
+      - {h: "BASH_REMATCH save-then-use pattern", l: 446, e: 465}
+      - {h: "`wc -l` output normalization", l: 466, e: 485}
+      - {h: "Correction note (§3.3 and §3.4)", l: 486, e: 497}
+      - {h: "9. Baseline Behavior Expectation", l: 498, e: 508}
+      - {h: "validate.sh --all", l: 509, e: 525}
+      - {h: "secret-check.sh --all", l: 526, e: 537}
+      - {h: "injection-check.sh --all", l: 538, e: 559}
+      - {h: "How to verify", l: 560, e: 573}
+      - {h: "10. Versioning", l: 574, e: 575}
+      - {h: "Spec version", l: 576, e: 588}
+      - {h: "Change log", l: 589, e: 590}
+      - {h: "v1.1.0 — 2026-10-29", l: 591, e: 596}
+      - {h: "v1.0.1 — 2026-05-01", l: 597, e: 614}
+      - {h: "v1.0.0 — 2026-05-01", l: 615, e: 632}
   - path: "docs/PLUGIN_BUILD.md"
     title: "Plugin Build Policy"
     description: ""

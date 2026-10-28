@@ -274,14 +274,23 @@ PROMPT_HEADER
     [[ "$base" == "MEMORY.md" ]] && continue
 
     # Best-effort type extraction from optional YAML frontmatter `type:` line.
+    # A top-level `type:` wins; otherwise fall back to the indented `type:`
+    # that auto-memory nests under `metadata:`.
     type="$(awk '
-      /^---[[:space:]]*$/ { fm = !fm; next }
+      /^---[[:space:]]*$/ { if (fm) exit; fm = 1; next }
       fm && /^type:[[:space:]]+/ {
         sub(/^type:[[:space:]]+/, "")
         gsub(/^["[:space:]]+|["[:space:]]+$/, "")
         print
+        found = 1
         exit
       }
+      fm && nested == "" && /^[[:space:]]+type:[[:space:]]+/ {
+        nested = $0
+        sub(/^[[:space:]]+type:[[:space:]]+/, "", nested)
+        gsub(/^["[:space:]]+|["[:space:]]+$/, "", nested)
+      }
+      END { if (!found && nested != "") print nested }
     ' "$f" 2>/dev/null)"
     [[ -z "$type" ]] && type="(unspecified)"
 

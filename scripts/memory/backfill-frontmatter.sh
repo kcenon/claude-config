@@ -78,6 +78,24 @@ get_field() {
   printf '%s\n' "$fm" | grep -E "^${key}:" | head -1 | sed "s/^${key}:[[:space:]]*//"
 }
 
+# Read a single-line field from the first indentation level of a top-level
+# `metadata:` map. Mirrors validate.sh get_metadata_field() so both scripts
+# accept the auto-memory layout that nests `type` under `metadata:`.
+get_metadata_field() {
+  local fm="$1"
+  local key="$2"
+  printf '%s\n' "$fm" | awk -v key="$key" '
+    /^metadata:[[:space:]]*$/ { in_md = 1; indent = ""; next }
+    in_md && /^[^[:space:]]/ { in_md = 0 }
+    in_md && indent == "" && match($0, /^[[:space:]]+/) { indent = substr($0, 1, RLENGTH) }
+    in_md && indent != "" && index($0, indent key ":") == 1 {
+      v = substr($0, length(indent key ":") + 1)
+      sub(/^[[:space:]]+/, "", v)
+      print v
+      exit
+    }'
+}
+
 print_help() {
   cat <<'EOF'
 backfill-frontmatter.sh -- add Phase 2 frontmatter fields to memory files.
@@ -160,6 +178,7 @@ plan_file() {
 
   local type sm ca tl lv
   type="$(strip_quotes "$(get_field "$fm" "type")")"
+  [[ -z "$type" ]] && type="$(strip_quotes "$(get_metadata_field "$fm" "type")")"
   sm="$(get_field "$fm" "source-machine")"
   ca="$(get_field "$fm" "created-at")"
   tl="$(get_field "$fm" "trust-level")"
