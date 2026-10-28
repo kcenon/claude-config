@@ -77,6 +77,25 @@ get_field() {
   printf '%s\n' "$fm" | grep -E "^${key}:" | head -1 | sed "s/^${key}:[[:space:]]*//"
 }
 
+# Read a single-line field from the first indentation level of a top-level
+# `metadata:` map, the layout Claude Code's auto-memory writer emits for
+# `type`. Echoes the raw value; empty string when there is no metadata block
+# or the key is absent. Deeper nested maps are ignored.
+get_metadata_field() {
+  local fm="$1"
+  local key="$2"
+  printf '%s\n' "$fm" | awk -v key="$key" '
+    /^metadata:[[:space:]]*$/ { in_md = 1; indent = ""; next }
+    in_md && /^[^[:space:]]/ { in_md = 0 }
+    in_md && indent == "" && match($0, /^[[:space:]]+/) { indent = substr($0, 1, RLENGTH) }
+    in_md && indent != "" && index($0, indent key ":") == 1 {
+      v = substr($0, length(indent key ":") + 1)
+      sub(/^[[:space:]]+/, "", v)
+      print v
+      exit
+    }'
+}
+
 print_result() {
   local rel="$1"
   local code="$2"
@@ -159,6 +178,8 @@ validate_file() {
   name="$(get_field "$fm" "name")"
   desc="$(get_field "$fm" "description")"
   type="$(get_field "$fm" "type")"
+  # Auto-memory nests `type` under `metadata:`; a top-level value wins.
+  [[ -z "$type" ]] && type="$(get_metadata_field "$fm" "type")"
 
   [[ -z "$name" ]] && errors+=("missing required field: name")
   [[ -z "$desc" ]] && errors+=("missing required field: description")

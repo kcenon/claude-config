@@ -102,6 +102,17 @@ type: feedback
 body body body body body. **Why:** test reason. **How to apply:** key is AKIAIOSFODNN7EXAMPLE oh no.
 "
 
+NESTED_TYPE_BODY="---
+name: Nested type memory
+description: Auto-memory layout with type nested under metadata.
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+This is a body. **Why:** because auto-memory writes type under metadata. **How to apply:** accept the nested layout when validating memory writes.
+"
+
 INJECTION_BODY="---
 name: Strict rule
 description: Multiple absolute commands.
@@ -150,6 +161,7 @@ fi
 echo ""
 echo "[Memory write decisions]"
 assert_decision "$(build_payload Write "$MEM/feedback_clean.md" "$CLEAN_BODY")" 'allow' 'Clean memory write -> allow'
+assert_decision "$(build_payload Write "$MEM/feedback_nested.md" "$NESTED_TYPE_BODY")" 'allow' 'Auto-memory metadata.type layout -> allow (#956)'
 assert_decision "$(build_payload Write "$MEM/feedback_leak.md" "$SECRET_BODY")" 'deny'  'Secret in memory -> deny'
 assert_decision "$(build_payload Write "$MEM/feedback_strict.md" "$INJECTION_BODY")" 'allow' 'Injection density -> allow with feedback (warn-only)'
 

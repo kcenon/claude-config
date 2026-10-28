@@ -114,6 +114,21 @@ Every memory file must open with a YAML frontmatter block delimited by `---`.
 | `description` | string | 1–256 chars, no newlines, single-line summary |
 | `type` | enum | one of: `user`, `feedback`, `project`, `reference` |
 
+`type` may sit at the top level or one indentation level under a top-level
+`metadata:` map, the layout Claude Code's auto-memory writer emits. A top-level
+`type` wins when both are present; deeper nested maps are not read. The other
+fields are read from the top level only.
+
+```markdown
+---
+name: CI merge policy enforcement
+description: Never merge when any CI check is incomplete or failing.
+metadata:
+  node_type: memory
+  type: feedback
+---
+```
+
 ### Recommended fields (Phase 2 backfill)
 
 | Field | Type | Constraint |
@@ -560,7 +575,7 @@ Per-file output order may vary.
 
 ### Spec version
 
-This document is **v1.0.0**. The version follows Semantic Versioning:
+This document is **v1.1.0**. The version follows Semantic Versioning:
 
 - **MAJOR**: Breaking change to the spec (e.g., removing a required field, changing
   exit codes in an incompatible way).
@@ -572,6 +587,12 @@ Validator implementations must declare which spec version they target. A validat
 targeting v1.0.0 must satisfy every rule in this document.
 
 ### Change log
+
+#### v1.1.0 — 2026-10-29
+
+MINOR release (#956): §3 accepts `type` one indentation level under a top-level
+`metadata:` map, the layout Claude Code's auto-memory writer emits. A top-level
+`type` still wins when both are present. Files that passed v1.0.1 keep passing.
 
 #### v1.0.1 — 2026-05-01
 
