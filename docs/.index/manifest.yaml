@@ -95,13 +95,13 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 86821
+    size: 86839
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
-      - {h: "Quick Navigation", l: 11, e: 36}
+      - {h: "Quick Navigation", l: 11, e: 38}
       - {h: "Configuration File Locations", l: 39, e: 45}
-      - {h: "Global Hooks (global/settings.json)", l: 46, e: 47}
+      - {h: "Global Hooks (global/settings.json)", l: 46, e: 59}
       - {h: "1. Sensitive File Protection (PreToolUse)", l: 60, e: 73}
       - {h: "2. Dangerous Command Blocking (PreToolUse)", l: 74, e: 84}
       - {h: "3. Session Logging (SessionStart/SessionEnd)", l: 85, e: 98}
@@ -150,7 +150,7 @@ documents:
       - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 1192, e: 1231}
       - {h: "References", l: 1232, e: 1244}
       - {h: "Auto-Generated Hook Catalog", l: 1245, e: 1252}
-      - {h: "Index", l: 1253, e: 1297}
+      - {h: "Index", l: 1253, e: 1298}
       - {h: "Hook Details", l: 1299, e: 1300}
       - {h: "attribution-guard", l: 1301, e: 1317}
       - {h: "bash-sensitive-read-guard", l: 1318, e: 1334}
