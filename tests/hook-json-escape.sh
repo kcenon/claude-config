@@ -5,9 +5,11 @@
 # deny/allow response payloads. Replaces the previously hand-crafted JSON in
 # the response helpers with `jq -nc --arg reason ...`.
 #
-# The hook exposes three response helpers, with two distinct allow contracts:
+# The hook exposes four response helpers, with two distinct allow contracts:
 #   deny_response(reason)      -> decision "deny",  reason under
 #                                 permissionDecisionReason.
+#   ask_response(reason)       -> decision "ask",   reason under
+#                                 permissionDecisionReason (issue #964).
 #   allow_with_context(reason) -> warning-class allow: decision "allow", reason
 #                                 under additionalContext because the context
 #                                 has decision value for the model.
@@ -83,6 +85,7 @@ call_response() {
         source "$1"
         case "$2" in
             deny)      deny_response "$3" ;;
+            ask)       ask_response "$3" ;;
             allow_ctx) allow_with_context "$3" ;;
             *)         allow_response "$3" ;;
         esac
@@ -223,6 +226,19 @@ echo "Case 7: end-to-end deny dispatcher"
 out=$(run_hook "rm -rf /")
 assert_valid_json "$out" "dispatcher deny output"
 assert_decision "$out" "deny" "dispatcher deny stays deny"
+
+# Case 8: ask_response (issue #964) carries its reason under
+# permissionDecisionReason exactly like deny_response.
+echo
+echo "Case 8: ask_response with nasty and exploit reasons"
+out=$(call_response ask "$nasty_reason")
+assert_valid_json "$out" "ask + nasty reason"
+assert_decision "$out" "ask" "ask + nasty reason keeps ask"
+assert_reason_roundtrip "$out" "$nasty_reason" "ask + nasty reason roundtrip"
+out=$(call_response ask "$exploit")
+assert_valid_json "$out" "ask + exploit reason"
+assert_decision "$out" "ask" "exploit cannot flip ask -> allow"
+assert_reason_roundtrip "$out" "$exploit" "exploit string roundtrips as literal on ask"
 
 # ---- Summary ---------------------------------------------------------------
 echo

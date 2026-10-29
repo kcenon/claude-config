@@ -1440,7 +1440,7 @@ _File:_ `dangerous-command-guard.sh`
 
 _Anchor:_ `#dangerous-command-guard`
 
-Blocks dangerous bash commands and records every decision.
+Denies irreversible shell operations and asks before destructive local ones.
 
 | Field | Value |
 |---|---|

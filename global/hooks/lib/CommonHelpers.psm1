@@ -29,7 +29,7 @@ function Write-ErrorMessage {
 
 # ──────────────────────────────────────────────────────────────
 # Group 2: Hook Response Builders
-# Replaces bash deny_response(), allow_response()
+# Replaces bash deny_response(), ask_response(), allow_response()
 # ──────────────────────────────────────────────────────────────
 
 function New-HookDenyResponse {
@@ -44,6 +44,29 @@ function New-HookDenyResponse {
             permissionDecisionReason = $Reason
         }
     }
+    return ($response | ConvertTo-Json -Depth 3 -Compress)
+}
+
+function New-HookAskResponse {
+    <#
+    .SYNOPSIS
+        PreToolUse "ask": Claude Code prompts the user, showing the reason in
+        the permission prompt. Optional context still reaches the model.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$Reason,
+        [string]$AdditionalContext = '',
+        [string]$EventName = 'PreToolUse'
+    )
+    $output = @{
+        hookEventName            = $EventName
+        permissionDecision       = 'ask'
+        permissionDecisionReason = $Reason
+    }
+    if ($AdditionalContext) {
+        $output['additionalContext'] = $AdditionalContext
+    }
+    $response = @{ hookSpecificOutput = $output }
     return ($response | ConvertTo-Json -Depth 3 -Compress)
 }
 
@@ -530,6 +553,7 @@ Export-ModuleMember -Function @(
     'Write-WarningMessage'
     'Write-ErrorMessage'
     'New-HookDenyResponse'
+    'New-HookAskResponse'
     'New-HookAllowResponse'
     'New-HookWarningResponse'
     'Read-HookInput'

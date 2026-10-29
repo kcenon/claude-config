@@ -77,8 +77,13 @@ if ($cmd -match '(?i)(^|[\s`(;&|])git\s') {
 
 # ──────────────────────────────────────────────────────────────
 # Execution and decision merge
+#   deny > ask > allow, the precedence Claude Code itself applies across
+#   PreToolUse hooks. Any deny (including a fail-closed guard crash) wins;
+#   otherwise any ask becomes one ask whose reason joins every guard's
+#   reason, so the user sees all of them in the permission prompt.
 # ──────────────────────────────────────────────────────────────
 $denies   = [System.Collections.Generic.List[string]]::new()
+$asks     = [System.Collections.Generic.List[string]]::new()
 $contexts = [System.Collections.Generic.List[string]]::new()
 $budgetMs = 25000
 $sw       = [System.Diagnostics.Stopwatch]::StartNew()
@@ -108,7 +113,7 @@ foreach ($g in $guards) {
         $r = ($lastLine | ConvertFrom-Json).hookSpecificOutput
         switch ($r.permissionDecision) {
             'deny' { $denies.Add("[$($g.name)] $($r.permissionDecisionReason)") }
-            'ask'  { $denies.Add("[$($g.name)] $($r.permissionDecisionReason)") }
+            'ask'  { $asks.Add("[$($g.name)] $($r.permissionDecisionReason)") }
         }
         if ($r.additionalContext) { $contexts.Add([string]$r.additionalContext) }
     }
@@ -123,6 +128,8 @@ foreach ($g in $guards) {
 
 if ($denies.Count -gt 0) {
     New-HookDenyResponse -Reason ($denies -join "`n")
+} elseif ($asks.Count -gt 0) {
+    New-HookAskResponse -Reason ($asks -join "`n") -AdditionalContext ($contexts -join "`n")
 } else {
     New-HookAllowResponse -AdditionalContext ($contexts -join "`n")
 }
