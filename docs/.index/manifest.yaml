@@ -530,7 +530,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 8736
+    size: 8997
     tags: [docs,memory]
     sections:
       - {h: "1. Purpose", l: 11, e: 21}
@@ -540,10 +540,10 @@ documents:
       - {h: "5. Injection-Flagged Files (Confirmation)", l: 78, e: 99}
       - {h: "6. Follow-Up", l: 100, e: 114}
       - {h: "7. Application", l: 115, e: 134}
-      - {h: "8. Runtime Owner Identity (OWNER_EMAILS)", l: 135, e: 154}
-      - {h: "9. Cross-References", l: 155, e: 173}
-      - {h: "10. Change Log", l: 174, e: 175}
-      - {h: "v1.0.0 -- 2026-05-01", l: 176, e: 181}
+      - {h: "8. Runtime Owner Identity (OWNER_EMAILS)", l: 135, e: 159}
+      - {h: "9. Cross-References", l: 160, e: 178}
+      - {h: "10. Change Log", l: 179, e: 180}
+      - {h: "v1.0.0 -- 2026-05-01", l: 181, e: 186}
   - path: "docs/MEMORY_TRUST_MODEL.md"
     title: "Memory Trust Model"
     description: ""
@@ -605,7 +605,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 22849
+    size: 24001
     tags: [ci,docs,memory]
     sections:
       - {h: "Table of Contents", l: 9, e: 23}
@@ -635,32 +635,33 @@ documents:
       - {h: "Frontmatter-only files", l: 289, e: 293}
       - {h: "Secret-shaped strings in body", l: 294, e: 306}
       - {h: "6. Owner Identity Allowlist", l: 307, e: 312}
-      - {h: "Recognized owner email patterns", l: 313, e: 331}
-      - {h: "Correction note (§3.2)", l: 332, e: 338}
-      - {h: "Recognized owner paths", l: 339, e: 343}
-      - {h: "Token patterns that always trigger findings", l: 344, e: 360}
-      - {h: "7. Validator Exit-Code Contract", l: 361, e: 367}
-      - {h: "Full exit-code table", l: 368, e: 380}
-      - {h: "Usage code", l: 381, e: 385}
-      - {h: "`--all` mode", l: 386, e: 391}
-      - {h: "Distinction between exit 1 and exit 2 in `validate.sh`", l: 392, e: 404}
-      - {h: "`injection-check.sh` never blocks", l: 405, e: 414}
-      - {h: "8. Bash Compatibility Constraints", l: 415, e: 423}
-      - {h: "Empty-array guards", l: 424, e: 445}
-      - {h: "BASH_REMATCH save-then-use pattern", l: 446, e: 465}
-      - {h: "`wc -l` output normalization", l: 466, e: 485}
-      - {h: "Correction note (§3.3 and §3.4)", l: 486, e: 497}
-      - {h: "9. Baseline Behavior Expectation", l: 498, e: 508}
-      - {h: "validate.sh --all", l: 509, e: 525}
-      - {h: "secret-check.sh --all", l: 526, e: 537}
-      - {h: "injection-check.sh --all", l: 538, e: 559}
-      - {h: "How to verify", l: 560, e: 573}
-      - {h: "10. Versioning", l: 574, e: 575}
-      - {h: "Spec version", l: 576, e: 588}
-      - {h: "Change log", l: 589, e: 590}
-      - {h: "v1.1.0 — 2026-10-29", l: 591, e: 596}
-      - {h: "v1.0.1 — 2026-05-01", l: 597, e: 614}
-      - {h: "v1.0.0 — 2026-05-01", l: 615, e: 632}
+      - {h: "Recognized owner email patterns", l: 313, e: 336}
+      - {h: "Correction note (§3.2)", l: 337, e: 343}
+      - {h: "Recognized owner paths", l: 344, e: 352}
+      - {h: "Token patterns that always trigger findings", l: 353, e: 369}
+      - {h: "7. Validator Exit-Code Contract", l: 370, e: 376}
+      - {h: "Full exit-code table", l: 377, e: 389}
+      - {h: "Usage code", l: 390, e: 394}
+      - {h: "`--all` mode", l: 395, e: 400}
+      - {h: "Distinction between exit 1 and exit 2 in `validate.sh`", l: 401, e: 413}
+      - {h: "`injection-check.sh` never blocks", l: 414, e: 423}
+      - {h: "8. Bash Compatibility Constraints", l: 424, e: 432}
+      - {h: "Empty-array guards", l: 433, e: 454}
+      - {h: "BASH_REMATCH save-then-use pattern", l: 455, e: 474}
+      - {h: "`wc -l` output normalization", l: 475, e: 494}
+      - {h: "Correction note (§3.3 and §3.4)", l: 495, e: 506}
+      - {h: "9. Baseline Behavior Expectation", l: 507, e: 517}
+      - {h: "validate.sh --all", l: 518, e: 534}
+      - {h: "secret-check.sh --all", l: 535, e: 547}
+      - {h: "injection-check.sh --all", l: 548, e: 569}
+      - {h: "How to verify", l: 570, e: 583}
+      - {h: "10. Versioning", l: 584, e: 585}
+      - {h: "Spec version", l: 586, e: 598}
+      - {h: "Change log", l: 599, e: 600}
+      - {h: "v1.2.0 — 2026-10-29", l: 601, e: 610}
+      - {h: "v1.1.0 — 2026-10-29", l: 611, e: 616}
+      - {h: "v1.0.1 — 2026-05-01", l: 617, e: 634}
+      - {h: "v1.0.0 — 2026-05-01", l: 635, e: 652}
   - path: "docs/PLUGIN_BUILD.md"
     title: "Plugin Build Policy"
     description: ""

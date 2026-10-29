@@ -28,6 +28,9 @@
 #   fixtures/secret-positive/   secret-check.sh expects exit 1
 #   fixtures/injection-positive/ injection-check.sh expects exit 3
 #   fixtures/baseline/          optional; the 17 real memories. Skipped if empty.
+#
+# The owner identity default cases (#957) generate their fixtures in a temp
+# directory, because the expected verdict depends on USER.
 
 set -u
 
@@ -313,6 +316,58 @@ else
   else
     record_fail "baseline regression: injection-check.sh" "summary mismatch (got '${isummary}')"
   fi
+fi
+printf '\n'
+
+# ----- assertion 6: owner identity defaults (#957) -----
+# secret-check.sh ships no maintainer identity: OWNER_HOME_USER defaults to
+# the account running the check and OWNER_GITHUB_HANDLE has no default. Each
+# case runs with both optional owner variables removed and USER pinned, plus
+# any VAR=value overrides the case passes.
+printf -- '--- owner identity defaults (secret-check.sh, #957) ---\n'
+owner_tmp="$(mktemp -d "${TMPDIR:-/tmp}/owner-defaults.XXXXXX")"
+if [[ -z "$owner_tmp" ]] || [[ ! -d "$owner_tmp" ]]; then
+  record_fail "owner defaults" "cannot create temp directory"
+else
+  trap 'rm -rf "$owner_tmp"' EXIT
+  owner_n=0
+  # owner_case <expected-exit> <body-text> [VAR=value ...]
+  owner_case() {
+    local expected="$1"
+    local text="$2"
+    shift 2
+    owner_n=$((owner_n + 1))
+    local f="${owner_tmp}/user_owner_case_${owner_n}.md"
+    printf -- '---\nname: Owner default case\ndescription: Generated owner identity fixture.\ntype: user\n---\n\nThe owner noted %s while testing defaults.\n' \
+      "$text" > "$f"
+    local label="owner-default: ${text}"
+    if [[ $# -gt 0 ]]; then
+      label="${label} [$*]"
+    fi
+    local rc=0
+    env -u OWNER_HOME_USER -u OWNER_GITHUB_HANDLE USER=fixture-user \
+      OWNER_EMAILS=test-owner@example.com "$@" \
+      bash "$SECRET_SH" "$f" >/dev/null 2>&1 || rc=$?
+    if [[ "$rc" -eq "$expected" ]]; then
+      record_pass "${label} (exit ${rc})"
+    else
+      record_fail "$label" "expected exit ${expected}, got ${rc}"
+    fi
+  }
+  # The current account's home paths are owner paths without OWNER_HOME_USER.
+  owner_case 0 '/Users/fixture-user/x'
+  owner_case 0 '/home/fixture-user/x'
+  # Another account's home paths stay foreign.
+  owner_case 1 '/Users/other-user/x'
+  owner_case 1 '/home/other-user/x'
+  # An explicit OWNER_HOME_USER wins over the current account.
+  owner_case 0 '/Users/override-user/x' OWNER_HOME_USER=override-user
+  owner_case 1 '/Users/fixture-user/x' OWNER_HOME_USER=override-user
+  # Without a handle, no no-reply address is an owner email.
+  owner_case 1 '12345+test-owner@users.noreply.github.com'
+  owner_case 1 '123+@users.noreply.github.com'
+  # A configured handle restores the no-reply allowlist.
+  owner_case 0 '12345+test-owner@users.noreply.github.com' OWNER_GITHUB_HANDLE=test-owner
 fi
 printf '\n'
 
