@@ -182,9 +182,9 @@ check_dependencies() {
     info "의존성 확인 중..."
 
     # Required tools enforced by claude-config hooks (see PREREQUISITES.md).
-    # `gh` and `perl` are checked in addition to git/curl because several
-    # PreToolUse guards (merge-gate-guard, attribution-guard, markdown-anchor-
-    # validator) and the `lib/timeout-wrapper.sh` fallback rely on them.
+    # `gh` and `perl` are checked in addition to git/curl because the
+    # merge-gate-guard PreToolUse guard and the `lib/timeout-wrapper.sh`
+    # fallback rely on them.
     local missing=()
     for cmd in jq gh git perl; do
         if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -347,8 +347,8 @@ deploy_bootstrap_hooks() {
         copy_bootstrap_files "$hooks_lib_src" "$hooks_dst/lib" "*.sh" 1 "hooks/lib" || return 1
     fi
 
-    # 공유 검증 라이브러리 설치 (commit-message-guard.sh, pr-language-guard.sh,
-    # traceability-guard.sh가 사용). scripts/install.sh와 같은 런타임 계약.
+    # 공유 검증 라이브러리 설치. 이를 쓰던 PreToolUse 가드는 #964에서 제거되었지만
+    # scripts/install.sh와 같은 런타임 계약을 유지한다.
     if [ -d "$shared_lib_src" ]; then
         for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
             if [ -f "$shared_lib_src/$lib" ]; then

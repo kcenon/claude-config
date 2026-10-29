@@ -4,7 +4,7 @@
 #
 # Sourced by:
 #   - global/hooks/sensitive-file-guard.sh
-#   - global/hooks/bash-write-guard.sh
+#   (bash-write-guard.sh also sourced it until #964 removed that guard.)
 #
 # Rationale (Issue #569)
 # ----------------------

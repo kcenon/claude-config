@@ -5,7 +5,10 @@
 #
 # Sourced by:
 #   - hooks/pre-push                       (git hook — terminal-side gate)
-#   - global/hooks/traceability-guard.sh   (PreToolUse — Claude-side feedback loop)
+#   - the pr-work skill (global/skills/_internal/pr-work/SKILL.md)
+#
+# The traceability-guard PreToolUse hook also sourced it until #964 removed
+# that hook.
 #
 # Opt-in: when docs/.index/graph.yaml is absent, validate_traceability_range
 # returns 0 silently so non-regulated repos are unaffected.

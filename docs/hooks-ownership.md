@@ -18,22 +18,10 @@ that could be registered from multiple surfaces.
 | `PreToolUse` | `Edit\|Write\|Read` | `pre-edit-read-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `PreToolUse` | `Edit\|Write\|Read` | `memory-write-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `PreToolUse` | `Bash` | `dangerous-command-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PreToolUse` | `Bash` | `bash-sensitive-read-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PreToolUse` | `Bash` | `shell-env-secret-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PreToolUse` | `Bash` | `bash-write-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PreToolUse` | `Bash` | `gh-write-verb-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PreToolUse` | `Bash` | `github-api-preflight.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PreToolUse` | `Bash` | `markdown-anchor-validator.ps1` | `global/settings.windows.json` |
-| `PreToolUse` | `Bash` | `commit-message-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PreToolUse` | `Bash` | `traceability-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PreToolUse` | `Bash` | `conflict-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PreToolUse` | `Bash` | `pr-target-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PreToolUse` | `Bash` | `push-target-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PreToolUse` | `Bash` | `pr-language-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
+| `PreToolUse` | `Bash` | `bash-sensitive-read-guard.ps1` (Windows-only, #964) | `global/settings.windows.json` |
+| `PreToolUse` | `Bash` | `shell-env-secret-guard.ps1` (Windows-only, #964) | `global/settings.windows.json` |
 | `PreToolUse` | `Bash` | `merge-gate-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PreToolUse` | `Bash` | `attribution-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `PreToolUse` | `TeamCreate` | `team-limit-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PreToolUse` | `Bash` | `markdown-anchor-validator.sh` | `project/.claude/settings.json` (project-only override) |
 | `SessionStart` | — | `session-logger.{sh,ps1} start` | `global/settings.json` + `global/settings.windows.json` |
 | `SessionStart` | — | `version-check.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `SessionStart` | — | `memory-integrity-check.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
@@ -76,6 +64,12 @@ list lives in the dispatcher's routing table;
 `tests/scripts/test-windows-hooks-parity.sh` expands that table so a
 guard dropped from it still fails parity. Execution order and fail-open
 / fail-closed behaviour are documented in `HOOKS.md`, not here.
+
+`bash-sensitive-read-guard.ps1` and `shell-env-secret-guard.ps1` are
+the only Windows-only rows (#964). macOS and Linux cover secret reads
+through the shell with the Bash sandbox read-deny, but Windows has no OS
+sandbox, so the Windows Bash dispatcher keeps both guards. The parity
+test lists them in `WIN_ONLY_ALLOW`.
 
 The plugin bundle (`plugin/hooks/hooks.json`) also registers simplified
 inline `PreToolUse: Edit|Write|Read` and `PreToolUse: Bash` guards. These

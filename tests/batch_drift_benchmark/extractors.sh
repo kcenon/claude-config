@@ -42,9 +42,9 @@ extract_language_violations() {
 
 # extract_attribution_leaks <text>
 # Counts matches of the SSOT attribution regex (claude, anthropic, ai-assisted,
-# co-authored-by: claude, generated with). Same regex used by commit-msg hook
-# and the attribution-guard PreToolUse hook — divergence here would create a
-# silent gap between enforcement and measurement.
+# co-authored-by: claude, generated with). Same regex used by the commit-msg
+# hook — divergence here would create a silent gap between enforcement and
+# measurement.
 extract_attribution_leaks() {
     local text="${1:-}"
     if [ -z "$text" ]; then

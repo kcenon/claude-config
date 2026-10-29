@@ -74,7 +74,7 @@ function New-Fixture {
     Set-Content -LiteralPath (Join-Path $hooks 'example.sh') -Value "#!/bin/sh`nexit 0`n" -NoNewline
     Set-Content -LiteralPath (Join-Path $hooks 'known-issues.json') -Value '{}' -NoNewline
 
-    foreach ($name in @('CommonHelpers.psm1', 'LanguageValidator.psm1', 'AttributionValidator.psm1')) {
+    foreach ($name in @('CommonHelpers.psm1', 'LanguageValidator.psm1')) {
         Set-Content -LiteralPath (Join-Path $hooksLib $name) -Value '' -NoNewline
     }
     foreach ($name in @('tokenize-shell.sh', 'path-utils.sh', 'timeout-wrapper.sh', 'rotate.sh')) {

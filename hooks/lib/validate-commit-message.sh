@@ -5,7 +5,9 @@
 #
 # Sourced by:
 #   - hooks/commit-msg          (git hook — terminal-side gate)
-#   - global/hooks/commit-message-guard.sh (PreToolUse — Claude-side feedback loop)
+#
+# The commit-message-guard PreToolUse hook also sourced it until #964
+# removed that hook; the commit-msg git hook is now the only gate.
 #
 # Usage:
 #   . /path/to/validate-commit-message.sh
@@ -16,11 +18,9 @@
 # Allowed commit types (Conventional Commits)
 readonly CMV_TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|security"
 
-# AI attribution patterns — single source of truth shared with attribution-guard
-# (PR/issue body / release notes checks). Same patterns enforced across commit
-# messages, PR titles/bodies, issue titles/bodies, release notes, and PR
-# review bodies so an attribution leak cannot slip through one channel while
-# being blocked in another.
+# AI attribution patterns — single source of truth for the commit-msg gate.
+# Until #964 the attribution-guard PreToolUse hook applied the same patterns
+# to PR/issue titles and bodies, release notes, and PR review bodies.
 #
 # Three-pattern design (was: single broad case-insensitive prose match) —
 # the broad form caused false positives on legitimate technical writing
@@ -53,9 +53,8 @@ readonly CMV_ATTRIBUTION_REGEX="$CMV_ATTRIBUTION_TRAILER_REGEX"
 # Returns 0 if text contains no AI/Claude attribution, 1 if attribution is found.
 # On failure, prints reason to stderr.
 #
-# Used by both validate_commit_message (this file) and attribution-guard.sh
-# (the PR/issue/release-notes/review-body PreToolUse hook) so the patterns
-# stay in one place.
+# Used by validate_commit_message (this file) so the patterns stay in one
+# place.
 validate_no_attribution() {
     local text="$1"
 

@@ -7,8 +7,9 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -WarningActio
 # Hook Type: PreToolUse (Bash)
 # Exit codes: 0 (always - the decision travels in the JSON payload)
 #
-# Why this exists: the 15 Bash guards were each registered as their own hook
-# command, so one Bash tool call spawned 15 `pwsh -NoProfile` processes. Cold
+# Why this exists: the Bash guards (15 before #964, 4 since) were each
+# registered as their own hook command, so one Bash tool call spawned one
+# `pwsh -NoProfile` process per guard. Cold
 # process start dominates (~350ms each, measured) while the actual guard logic
 # costs ~13ms. This dispatcher pays the process cost once, reads stdin once,
 # imports CommonHelpers once, and invokes only the guards whose command family
@@ -51,28 +52,16 @@ try { $cmd = [string]$json.tool_input.command } catch {}
 $guards = [System.Collections.Generic.List[hashtable]]::new()
 
 # Always-on: these have no command filter of their own.
+# bash-sensitive-read-guard and shell-env-secret-guard are Windows-only (#964):
+# macOS and Linux cover those reads with the Bash sandbox read-deny, but the
+# sandbox does not run on Windows, so the guards stay here.
 $guards.Add(@{ name = 'dangerous-command-guard';   closed = $true  })
 $guards.Add(@{ name = 'bash-sensitive-read-guard'; closed = $true  })
 $guards.Add(@{ name = 'shell-env-secret-guard';    closed = $true  })
-$guards.Add(@{ name = 'bash-write-guard';          closed = $true  })
 
 # gh family.
 if ($cmd -match '(?i)(^|[\s`(;&|])gh\s') {
-    $guards.Add(@{ name = 'gh-write-verb-guard';  closed = $true  })
-    $guards.Add(@{ name = 'pr-target-guard';      closed = $true  })
-    $guards.Add(@{ name = 'github-api-preflight'; closed = $false })
-    $guards.Add(@{ name = 'traceability-guard';   closed = $false })
-    $guards.Add(@{ name = 'attribution-guard';    closed = $false })
-    $guards.Add(@{ name = 'pr-language-guard';    closed = $false })
     $guards.Add(@{ name = 'merge-gate-guard';     closed = $false })
-}
-
-# git family.
-if ($cmd -match '(?i)(^|[\s`(;&|])git\s') {
-    $guards.Add(@{ name = 'push-target-guard';         closed = $true  })
-    $guards.Add(@{ name = 'markdown-anchor-validator'; closed = $false })
-    $guards.Add(@{ name = 'commit-message-guard';      closed = $false })
-    $guards.Add(@{ name = 'conflict-guard';            closed = $false })
 }
 
 # ──────────────────────────────────────────────────────────────

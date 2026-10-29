@@ -8,6 +8,10 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 # Hook Type: PreToolUse (Bash)
 # Exit codes: 0 (always - decision is in JSON)
 #
+# Windows-only since #964: macOS and Linux rely on the Bash sandbox there, so
+# the bash twin was removed; Windows has no OS sandbox, so this guard stays and
+# the Windows Bash dispatcher runs it.
+#
 # Rationale: Codex scrubs *KEY*/*SECRET*/*TOKEN*/AWS_* env vars from the child
 # process via config.toml [shell_environment_policy].exclude. A Claude hook
 # runs out-of-process and cannot mutate the Bash child's env, so the achievable

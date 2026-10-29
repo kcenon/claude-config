@@ -17,10 +17,11 @@
 #                           translation forms is allowed in Korean mode)
 #   - any → validation skipped (always valid)
 #
-# NOTE: These validators do NOT gate AI/Claude attribution. attribution-guard.ps1
-# and the attribution checks in commit-message-guard.ps1 remain active for
-# every policy value — attribution blocking is a hard rule, not a language
-# concern. See issue #410 for the scope boundary.
+# NOTE: These validators do NOT gate AI/Claude attribution. Attribution
+# blocking is a hard rule, not a language concern, and lives in the commit-msg
+# git hook (hooks/lib/validate-commit-message.sh) for every policy value. See
+# issue #410 for the scope boundary. Since #964 no PreToolUse hook imports
+# this module; tests/hooks/test-language-validator.ps1 still covers it.
 
 # Get-ContentLanguagePolicy
 # Returns the resolved policy string (english | korean_plus_english | any).
