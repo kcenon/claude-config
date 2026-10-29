@@ -22,10 +22,8 @@ if (Test-Path -LiteralPath $tempDir -PathType Container) {
         Remove-Item -Force -ErrorAction SilentlyContinue
 }
 
-# Rotate logs
-Invoke-LogRotation -FilePath (Join-Path $HOME '.claude' 'session.log') -MaxMB 5 -MaxArchives 3
-Invoke-LogRotation -FilePath (Join-Path $HOME '.claude' 'logs' 'subagents.log') -MaxMB 5 -MaxArchives 3
-Invoke-LogRotation -FilePath (Join-Path $HOME '.claude' 'logs' 'tasks.log') -MaxMB 5 -MaxArchives 3
-Invoke-LogRotation -FilePath (Join-Path $HOME '.claude' 'logs' 'tool-failures.log') -MaxMB 5 -MaxArchives 3
+# No log rotation here: the loggers whose logs this hook used to rotate were
+# removed by #964, and the hooks that still log rotate their own files. Logs
+# the removed loggers left behind are deliberately not touched.
 
 exit 0

@@ -95,7 +95,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 77963
+    size: 70150
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
@@ -150,32 +150,18 @@ documents:
       - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 1192, e: 1231}
       - {h: "References", l: 1232, e: 1244}
       - {h: "Auto-Generated Hook Catalog", l: 1245, e: 1252}
-      - {h: "Index", l: 1253, e: 1283}
-      - {h: "Hook Details", l: 1284, e: 1285}
-      - {h: "cleanup", l: 1286, e: 1302}
-      - {h: "config-change-logger", l: 1303, e: 1319}
-      - {h: "cwd-change-logger", l: 1320, e: 1336}
-      - {h: "dangerous-command-guard", l: 1337, e: 1353}
-      - {h: "instructions-loaded-reinforcer", l: 1354, e: 1370}
-      - {h: "memory-access-logger", l: 1371, e: 1387}
-      - {h: "memory-integrity-check", l: 1388, e: 1404}
-      - {h: "memory-write-guard", l: 1405, e: 1421}
-      - {h: "merge-gate-guard", l: 1422, e: 1439}
-      - {h: "permission-denial-logger", l: 1440, e: 1457}
-      - {h: "post-compact-restore", l: 1458, e: 1475}
-      - {h: "post-task-checkpoint", l: 1476, e: 1492}
-      - {h: "pre-compact-snapshot", l: 1493, e: 1509}
-      - {h: "prompt-validator", l: 1510, e: 1526}
-      - {h: "prune-permission-rules", l: 1527, e: 1544}
-      - {h: "session-logger", l: 1545, e: 1561}
-      - {h: "subagent-logger", l: 1562, e: 1578}
-      - {h: "task-completed-logger", l: 1579, e: 1595}
-      - {h: "task-created-validator", l: 1596, e: 1612}
-      - {h: "team-limit-guard", l: 1613, e: 1629}
-      - {h: "tool-failure-logger", l: 1630, e: 1646}
-      - {h: "version-check", l: 1647, e: 1663}
-      - {h: "worktree-create", l: 1664, e: 1680}
-      - {h: "worktree-remove", l: 1681, e: 1698}
+      - {h: "Index", l: 1253, e: 1269}
+      - {h: "Hook Details", l: 1270, e: 1271}
+      - {h: "cleanup", l: 1272, e: 1288}
+      - {h: "dangerous-command-guard", l: 1289, e: 1305}
+      - {h: "memory-access-logger", l: 1306, e: 1322}
+      - {h: "memory-integrity-check", l: 1323, e: 1339}
+      - {h: "memory-write-guard", l: 1340, e: 1356}
+      - {h: "merge-gate-guard", l: 1357, e: 1374}
+      - {h: "permission-denial-logger", l: 1375, e: 1392}
+      - {h: "prune-permission-rules", l: 1393, e: 1410}
+      - {h: "worktree-create", l: 1411, e: 1427}
+      - {h: "worktree-remove", l: 1428, e: 1445}
   - path: "PREREQUISITES.md"
     title: "Prerequisites"
     description: ""
@@ -1711,11 +1697,11 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 6869
+    size: 4933
     tags: [docs,hook,hooks]
     sections:
-      - {h: "Ownership Table", l: 13, e: 83}
-      - {h: "Adding a new hook", l: 84, e: 93}
+      - {h: "Ownership Table", l: 13, e: 67}
+      - {h: "Adding a new hook", l: 68, e: 77}
   - path: "docs/install.md"
     title: "Install Behavior"
     description: ""

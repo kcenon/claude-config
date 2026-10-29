@@ -93,8 +93,8 @@ def extract(path):
                         for guard in dispatcher_guards(base):
                             tuples.add((event, matcher, guard))
                         continue
-                    # Collapse common pairs: session-logger.sh start vs
-                    # session-logger.ps1 start — strip trailing args by
+                    # Collapse common pairs: <name>.sh <args> vs
+                    # <name>.ps1 <args> — strip trailing args by
                     # basename alone.
                     tuples.add((event, matcher, base))
     return tuples

@@ -19,30 +19,14 @@ that could be registered from multiple surfaces.
 | `PreToolUse` | `Bash` | `bash-sensitive-read-guard.ps1` (Windows-only, #964) | `global/settings.windows.json` |
 | `PreToolUse` | `Bash` | `shell-env-secret-guard.ps1` (Windows-only, #964) | `global/settings.windows.json` |
 | `PreToolUse` | `Bash` | `merge-gate-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PreToolUse` | `TeamCreate` | `team-limit-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `SessionStart` | — | `session-logger.{sh,ps1} start` | `global/settings.json` + `global/settings.windows.json` |
-| `SessionStart` | — | `version-check.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `SessionStart` | — | `memory-integrity-check.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `SessionStart` | — | `export TZ=Asia/Seoul` | `project/.claude/settings.json` |
-| `SessionEnd` | — | `session-logger.{sh,ps1} end` + `cleanup.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `UserPromptSubmit` | — | `prompt-validator.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `Stop` | — | `session-logger.{sh,ps1} stop` | `global/settings.json` + `global/settings.windows.json` |
+| `SessionEnd` | — | `cleanup.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
+| `SessionEnd` | — | `prune-permission-rules.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `PostToolUse` | `Edit\|Write` | inline formatter (black/isort/prettier/clang-format/ktlint/gofmt/rustfmt) | **`plugin/hooks/hooks.json`** (canonical; do not duplicate in settings files) |
-| `PostToolUse` | `Task\|Agent` | `post-task-checkpoint.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `PostToolUse` | `Read` | `memory-access-logger.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PostToolUseFailure` | `.*` | `tool-failure-logger.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `SubagentStart` | `.*` | `subagent-logger.{sh,ps1} start` | `global/settings.json` + `global/settings.windows.json` |
-| `SubagentStop` | `.*` | `subagent-logger.{sh,ps1} stop` | `global/settings.json` + `global/settings.windows.json` |
-| `PreCompact` | — | `pre-compact-snapshot.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `SessionStart` | `compact` | `post-compact-restore.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `InstructionsLoaded` | — | `instructions-loaded-reinforcer.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `TaskCreated` | — | `task-created-validator.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `WorktreeCreate` | — | `worktree-create.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `WorktreeRemove` | — | `worktree-remove.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `TaskCompleted` | — | `task-completed-logger.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `ConfigChange` | — | `config-change-logger.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `TeammateIdle` | — | `session-logger.{sh,ps1} teammate-idle` | `global/settings.json` + `global/settings.windows.json` |
-| `CwdChanged` | — | `cwd-change-logger.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `PermissionDenied` | — | `permission-denial-logger.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 
 "`global/settings.json` + `global/settings.windows.json`" means the
