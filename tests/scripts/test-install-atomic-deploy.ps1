@@ -72,7 +72,6 @@ function New-Fixture {
 '@ -NoNewline
     Set-Content -LiteralPath (Join-Path $hooks 'example.ps1') -Value 'exit 0' -NoNewline
     Set-Content -LiteralPath (Join-Path $hooks 'example.sh') -Value "#!/bin/sh`nexit 0`n" -NoNewline
-    Set-Content -LiteralPath (Join-Path $hooks 'known-issues.json') -Value '{}' -NoNewline
 
     foreach ($name in @('CommonHelpers.psm1', 'LanguageValidator.psm1')) {
         Set-Content -LiteralPath (Join-Path $hooksLib $name) -Value '' -NoNewline

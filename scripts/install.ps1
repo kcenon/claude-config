@@ -304,8 +304,8 @@ function Test-Administrator {
 }
 
 # Verify Claude Code CLI presence and offer interactive installation.
-# version-check.ps1 hook and batch-* scripts call `claude --version` / `claude`
-# directly; deploying configuration without the CLI causes silent failures.
+# batch-* scripts call `claude` directly; deploying configuration without the
+# CLI causes silent failures.
 # Uses Anthropic's official native installer (recommended method).
 # Reference: https://code.claude.com/docs/en/setup
 function Confirm-ClaudeCli {
@@ -324,8 +324,8 @@ function Confirm-ClaudeCli {
     }
 
     Write-Warn "Claude Code CLI is not installed."
-    Write-Host "  Hooks (version-check) and batch scripts (issue-work, pr-work) call the"
-    Write-Host "  'claude' command directly. Some features will not work without it."
+    Write-Host "  Batch scripts (issue-work, pr-work) call the 'claude' command"
+    Write-Host "  directly. Some features will not work without it."
     Write-Host ""
 
     $installClaude = Read-Host "Install Claude Code CLI now? (y/n) [default: y]"

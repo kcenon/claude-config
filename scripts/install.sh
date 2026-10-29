@@ -135,8 +135,8 @@ check_dependencies() {
 }
 
 # 함수: Claude Code CLI 설치 확인 및 자동 설치
-# version-check.sh 등 hook 스크립트와 batch-issue-work.sh / batch-pr-work.sh가
-# `claude --version` / `claude` 명령을 직접 호출한다. 미설치 상태에서 설정만
+# batch-issue-work.sh / batch-pr-work.sh가
+# `claude` 명령을 직접 호출한다. 미설치 상태에서 설정만
 # 배포되면 silent failure가 발생하므로 설치 시점에 Anthropic 공식 native
 # installer를 통한 동의 기반 자동 설치를 제공한다.
 # 참고: https://code.claude.com/docs/en/setup
@@ -151,7 +151,7 @@ ensure_claude_cli() {
     fi
 
     warning "Claude Code CLI가 설치되어 있지 않습니다."
-    echo "  설치된 hook(version-check) 및 batch 스크립트가 'claude' 명령을 호출하므로,"
+    echo "  설치된 batch 스크립트가 'claude' 명령을 호출하므로,"
     echo "  미설치 상태에서는 일부 기능이 정상 동작하지 않습니다."
     echo ""
 

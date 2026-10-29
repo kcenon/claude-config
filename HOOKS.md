@@ -1255,31 +1255,17 @@ this catalog for the canonical hook inventory.
 | Hook | Hook Type | PowerShell |
 |---|---|---|
 | [`cleanup.sh`](#cleanup) | SessionEnd | yes |
-| [`config-change-logger.sh`](#config-change-logger) | ConfigChange | yes |
-| [`cwd-change-logger.sh`](#cwd-change-logger) | CwdChanged | yes |
 | [`dangerous-command-guard.sh`](#dangerous-command-guard) | PreToolUse (Bash) | yes |
-| [`instructions-loaded-reinforcer.sh`](#instructions-loaded-reinforcer) | InstructionsLoaded (sync) | yes |
 | [`memory-access-logger.sh`](#memory-access-logger) | PostToolUse (Read) | yes |
 | [`memory-integrity-check.sh`](#memory-integrity-check) | SessionStart (sync) | yes |
 | [`memory-write-guard.sh`](#memory-write-guard) | PreToolUse (Edit|Write) | yes |
 | [`merge-gate-guard.sh`](#merge-gate-guard) | PreToolUse (Bash) | yes |
 | [`permission-denial-logger.sh`](#permission-denial-logger) | PermissionDenied | yes |
-| [`post-compact-restore.sh`](#post-compact-restore) | SessionStart (matcher: compact, sync) | yes |
-| [`post-task-checkpoint.sh`](#post-task-checkpoint) | PostToolUse | yes |
-| [`pre-compact-snapshot.sh`](#pre-compact-snapshot) | PreCompact (async) | yes |
-| [`prompt-validator.sh`](#prompt-validator) | UserPromptSubmit | yes |
 | [`prune-permission-rules.sh`](#prune-permission-rules) | SessionEnd | yes |
-| [`session-logger.sh`](#session-logger) | SessionStart, SessionEnd, Stop, TeammateIdle | yes |
-| [`subagent-logger.sh`](#subagent-logger) | SubagentStart, SubagentStop | yes |
-| [`task-completed-logger.sh`](#task-completed-logger) | TaskCompleted | yes |
-| [`task-created-validator.sh`](#task-created-validator) | TaskCreated (sync, blocking) | yes |
-| [`team-limit-guard.sh`](#team-limit-guard) | PreToolUse (TeamCreate) | yes |
-| [`tool-failure-logger.sh`](#tool-failure-logger) | PostToolUseFailure | yes |
-| [`version-check.sh`](#version-check) | SessionStart | yes |
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
 | [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 24 bash hooks, 24 with PowerShell counterparts._
+_Total: 10 bash hooks, 10 with PowerShell counterparts._
 
 ### Hook Details
 
@@ -1300,40 +1286,6 @@ Cleans up temporary files created during session
 | PowerShell counterpart | present (`cleanup.ps1`) |
 | Source | `global/hooks/cleanup.sh` |
 
-### config-change-logger
-
-_File:_ `config-change-logger.sh`
-
-_Anchor:_ `#config-change-logger`
-
-Logs configuration file changes during session
-
-| Field | Value |
-|---|---|
-| Hook Type | ConfigChange |
-| Trigger / Matcher | — |
-| Exit codes | — |
-| Response format | none (lifecycle event, no JSON output needed) |
-| PowerShell counterpart | present (`config-change-logger.ps1`) |
-| Source | `global/hooks/config-change-logger.sh` |
-
-### cwd-change-logger
-
-_File:_ `cwd-change-logger.sh`
-
-_Anchor:_ `#cwd-change-logger`
-
-Logs working-directory changes during a session for audit trails.
-
-| Field | Value |
-|---|---|
-| Hook Type | CwdChanged |
-| Trigger / Matcher | — |
-| Exit codes | — |
-| Response format | none (observation-only event; CwdChanged cannot block, exit 2 only shows stderr) |
-| PowerShell counterpart | present (`cwd-change-logger.ps1`) |
-| Source | `global/hooks/cwd-change-logger.sh` |
-
 ### dangerous-command-guard
 
 _File:_ `dangerous-command-guard.sh`
@@ -1350,23 +1302,6 @@ Denies irreversible shell operations and asks before destructive local ones.
 | Response format | hookSpecificOutput with hookEventName |
 | PowerShell counterpart | present (`dangerous-command-guard.ps1`) |
 | Source | `global/hooks/dangerous-command-guard.sh` |
-
-### instructions-loaded-reinforcer
-
-_File:_ `instructions-loaded-reinforcer.sh`
-
-_Anchor:_ `#instructions-loaded-reinforcer`
-
-Re-asserts critical policy after CLAUDE.md / .claude/rules/*.md loads.
-
-| Field | Value |
-|---|---|
-| Hook Type | InstructionsLoaded (sync) |
-| Trigger / Matcher | sync |
-| Exit codes | 0 (always — context is delivered via JSON) |
-| Response format | hookSpecificOutput.additionalContext |
-| PowerShell counterpart | present (`instructions-loaded-reinforcer.ps1`) |
-| Source | `global/hooks/instructions-loaded-reinforcer.sh` |
 
 ### memory-access-logger
 
@@ -1455,75 +1390,6 @@ Appends a redacted JSONL audit record for every denied tool call.
 | PowerShell counterpart | present (`permission-denial-logger.ps1`) |
 | Source | `global/hooks/permission-denial-logger.sh` |
 
-### post-compact-restore
-
-_File:_ `post-compact-restore.sh`
-
-_Anchor:_ `#post-compact-restore`
-
-Re-asserts the four core principles after automatic context compaction. Pairs with pre-compact-snapshot.sh (PreCompact event).
-
-| Field | Value |
-|---|---|
-| Hook Type | SessionStart (matcher: compact, sync) |
-| Trigger / Matcher | matcher: compact, sync |
-| Exit codes | 0 (always - silent no-op unless stdin source is "compact") |
-| Response format | hookSpecificOutput.additionalContext |
-| Fail policy | fails quiet - no JSON parser or non-compact source means no output |
-| PowerShell counterpart | present (`post-compact-restore.ps1`) |
-| Source | `global/hooks/post-compact-restore.sh` |
-
-### post-task-checkpoint
-
-_File:_ `post-task-checkpoint.sh`
-
-_Anchor:_ `#post-task-checkpoint`
-
-Auto-commits working-tree changes after a Task or Agent tool call completes, preventing a later sub-agent from silently overwriting a prior agent's output.
-
-| Field | Value |
-|---|---|
-| Hook Type | PostToolUse |
-| Trigger / Matcher | Task|Agent |
-| Exit codes | — |
-| Response format | — |
-| PowerShell counterpart | present (`post-task-checkpoint.ps1`) |
-| Source | `global/hooks/post-task-checkpoint.sh` |
-
-### pre-compact-snapshot
-
-_File:_ `pre-compact-snapshot.sh`
-
-_Anchor:_ `#pre-compact-snapshot`
-
-Captures working state before automatic context compaction
-
-| Field | Value |
-|---|---|
-| Hook Type | PreCompact (async) |
-| Trigger / Matcher | async |
-| Exit codes | — |
-| Response format | — |
-| PowerShell counterpart | present (`pre-compact-snapshot.ps1`) |
-| Source | `global/hooks/pre-compact-snapshot.sh` |
-
-### prompt-validator
-
-_File:_ `prompt-validator.sh`
-
-_Anchor:_ `#prompt-validator`
-
-Validates user prompts for dangerous operations
-
-| Field | Value |
-|---|---|
-| Hook Type | UserPromptSubmit |
-| Trigger / Matcher | — |
-| Exit codes | 0=allow (with optional warning) |
-| Response format | hookSpecificOutput with additionalContext (UserPromptSubmit) |
-| PowerShell counterpart | present (`prompt-validator.ps1`) |
-| Source | `global/hooks/prompt-validator.sh` |
-
 ### prune-permission-rules
 
 _File:_ `prune-permission-rules.sh`
@@ -1541,125 +1407,6 @@ Prunes permissions.allow entries that can never match again from the project-sco
 | Fail policy | fail-open - any parse, classification, or IO error leaves the file byte-identical |
 | PowerShell counterpart | present (`prune-permission-rules.ps1`) |
 | Source | `global/hooks/prune-permission-rules.sh` |
-
-### session-logger
-
-_File:_ `session-logger.sh`
-
-_Anchor:_ `#session-logger`
-
-Logs session start/end events
-
-| Field | Value |
-|---|---|
-| Hook Type | SessionStart, SessionEnd, Stop, TeammateIdle |
-| Trigger / Matcher | — |
-| Exit codes | — |
-| Response format | none (lifecycle event, no JSON output needed) |
-| PowerShell counterpart | present (`session-logger.ps1`) |
-| Source | `global/hooks/session-logger.sh` |
-
-### subagent-logger
-
-_File:_ `subagent-logger.sh`
-
-_Anchor:_ `#subagent-logger`
-
-Logs subagent start/stop events for monitoring.
-
-| Field | Value |
-|---|---|
-| Hook Type | SubagentStart, SubagentStop |
-| Trigger / Matcher | — |
-| Exit codes | 0 (always — lifecycle event) |
-| Response format | none (lifecycle event, no JSON output needed) |
-| PowerShell counterpart | present (`subagent-logger.ps1`) |
-| Source | `global/hooks/subagent-logger.sh` |
-
-### task-completed-logger
-
-_File:_ `task-completed-logger.sh`
-
-_Anchor:_ `#task-completed-logger`
-
-Logs task completion events for audit trail
-
-| Field | Value |
-|---|---|
-| Hook Type | TaskCompleted |
-| Trigger / Matcher | — |
-| Exit codes | — |
-| Response format | — |
-| PowerShell counterpart | present (`task-completed-logger.ps1`) |
-| Source | `global/hooks/task-completed-logger.sh` |
-
-### task-created-validator
-
-_File:_ `task-created-validator.sh`
-
-_Anchor:_ `#task-created-validator`
-
-Validates task quality at creation time.
-
-| Field | Value |
-|---|---|
-| Hook Type | TaskCreated (sync, blocking) |
-| Trigger / Matcher | sync, blocking |
-| Exit codes | 0 = approve, 2 = block (stderr message shown to model) |
-| Response format | — |
-| PowerShell counterpart | present (`task-created-validator.ps1`) |
-| Source | `global/hooks/task-created-validator.sh` |
-
-### team-limit-guard
-
-_File:_ `team-limit-guard.sh`
-
-_Anchor:_ `#team-limit-guard`
-
-Limits the maximum number of concurrent Agent Teams
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (TeamCreate) |
-| Trigger / Matcher | TeamCreate |
-| Exit codes | 0 (always — decision is in JSON) |
-| Response format | hookSpecificOutput with hookEventName |
-| PowerShell counterpart | present (`team-limit-guard.ps1`) |
-| Source | `global/hooks/team-limit-guard.sh` |
-
-### tool-failure-logger
-
-_File:_ `tool-failure-logger.sh`
-
-_Anchor:_ `#tool-failure-logger`
-
-Logs tool execution failures for debugging and analysis.
-
-| Field | Value |
-|---|---|
-| Hook Type | PostToolUseFailure |
-| Trigger / Matcher | — |
-| Exit codes | 0 (always — lifecycle event) |
-| Response format | none (lifecycle event, no JSON output needed) |
-| PowerShell counterpart | present (`tool-failure-logger.ps1`) |
-| Source | `global/hooks/tool-failure-logger.sh` |
-
-### version-check
-
-_File:_ `version-check.sh`
-
-_Anchor:_ `#version-check`
-
-Checks Claude Code version against known problematic versions
-
-| Field | Value |
-|---|---|
-| Hook Type | SessionStart |
-| Trigger / Matcher | — |
-| Exit codes | — |
-| Response format | none (lifecycle event, no JSON output needed) |
-| PowerShell counterpart | present (`version-check.ps1`) |
-| Source | `global/hooks/version-check.sh` |
 
 ### worktree-create
 

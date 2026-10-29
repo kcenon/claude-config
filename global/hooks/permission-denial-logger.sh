@@ -12,8 +12,8 @@
 #   tool_input, and appends one JSON line to
 #   ${CLAUDE_LOG_DIR:-$HOME/.claude/logs}/permission-denials.jsonl.
 #   The hook is purely passive: it emits no permission-altering output and
-#   always exits 0, mirroring the logging-style hooks (config-change-logger,
-#   tool-failure-logger) rather than the gating guards.
+#   always exits 0, like the other passive logger (memory-access-logger)
+#   rather than the gating guards.
 #
 # Opt-out:
 #   Set CLAUDE_PERMISSION_LOGGER=0 to disable (early no-op exit).

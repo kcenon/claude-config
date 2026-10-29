@@ -3,11 +3,10 @@
 #
 # Regression test for issue #579: extends the smoke test of #567 across the
 # hooks in group 2 of the JSON-escape conversion sweep. #964 removed
-# pr-language-guard, pr-target-guard, pre-edit-read-guard and
-# sensitive-file-guard; the hooks that remain are:
+# pr-language-guard, pr-target-guard, pre-edit-read-guard,
+# sensitive-file-guard and team-limit-guard; the hook that remains is:
 #
 #   1. global/hooks/merge-gate-guard.sh      (deny_response, allow_response)
-#   2. global/hooks/team-limit-guard.sh      (deny_response, allow_response)
 #
 # Each hook MUST escape user-controlled `reason` strings via
 # `jq -nc --arg ... ...` so that adversarial characters
@@ -234,17 +233,10 @@ test_deny_allow_pair \
     "$REPO_ROOT/global/hooks/merge-gate-guard.sh" \
     "deny_response" "allow_response" "no"
 
-# 2. team-limit-guard.sh — deny_response(reason), allow_response()
-test_deny_allow_pair \
-    "team-limit-guard" \
-    "$REPO_ROOT/global/hooks/team-limit-guard.sh" \
-    "deny_response" "allow_response" "no"
-
 # ---- Acceptance: no remaining heredoc with bare `$reason` interpolation ----
 echo
 echo "=== Acceptance: no remaining heredoc with bare \$reason ==="
-HOOK_GLOBS="$REPO_ROOT/global/hooks/merge-gate-guard.sh \
-$REPO_ROOT/global/hooks/team-limit-guard.sh"
+HOOK_GLOBS="$REPO_ROOT/global/hooks/merge-gate-guard.sh"
 # shellcheck disable=SC2086
 hits=$(grep -nE 'permissionDecisionReason":"\$' $HOOK_GLOBS 2>/dev/null || true)
 if [ -z "$hits" ]; then

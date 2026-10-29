@@ -2,9 +2,8 @@
 # Test suite for cleanup.sh
 # Run: bash tests/hooks/test-cleanup.sh
 #
-# cleanup.sh uses ${TMPDIR:-/tmp} for file cleanup and sources lib/rotate.sh.
+# cleanup.sh uses ${TMPDIR:-/tmp} for file cleanup.
 # Tests override TMPDIR to an isolated directory for safe testing.
-# rotate.sh errors are suppressed (tested separately if it exists).
 
 HOOK="global/hooks/cleanup.sh"
 PASS=0
@@ -173,6 +172,39 @@ else
     echo "  FAIL: Nested file in subdirectory preserved"
 fi
 rm -rf "$SUBDIR"
+
+# --- Logs of the loggers retired by #964 are left alone ---
+# session-logger, subagent-logger, task-completed-logger and
+# tool-failure-logger no longer exist, so cleanup must not rotate, compress
+# or delete the logs they left on a user's machine. Each file is over the
+# old 5 MB rotation threshold, so a leftover rotate call would show up as a
+# .1.gz archive or a changed size.
+echo ""
+echo "[Retired logger logs untouched (#964)]"
+LOG_HOME="$TEST_DIR/home"
+mkdir -p "$LOG_HOME/.claude/logs"
+OLD_LOGS=(
+    "$LOG_HOME/.claude/session.log"
+    "$LOG_HOME/.claude/logs/subagents.log"
+    "$LOG_HOME/.claude/logs/tasks.log"
+    "$LOG_HOME/.claude/logs/tool-failures.log"
+)
+for f in "${OLD_LOGS[@]}"; do
+    dd if=/dev/zero of="$f" bs=1048576 count=6 2>/dev/null
+done
+HOME="$LOG_HOME" TMPDIR="$TEST_DIR" bash "$HOOK" >/dev/null 2>&1
+for f in "${OLD_LOGS[@]}"; do
+    size=$(wc -c < "$f" 2>/dev/null | tr -d ' ')
+    if [ "$size" = "6291456" ] && [ ! -e "$f.1.gz" ]; then
+        ((PASS++))
+        echo "  PASS: ${f#"$LOG_HOME"/} left as is"
+    else
+        ((FAIL++))
+        ERRORS+=("FAIL: ${f#"$LOG_HOME"/} was rotated or changed (size=${size:-missing})")
+        echo "  FAIL: ${f#"$LOG_HOME"/} left as is"
+    fi
+done
+rm -rf "$LOG_HOME"
 
 # --- Source-level checks ---
 echo ""
