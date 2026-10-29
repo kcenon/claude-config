@@ -289,18 +289,18 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 6322
+    size: 7534
     tags: [docs]
     sections:
       - {h: "Scope", l: 5, e: 10}
       - {h: "Invariants", l: 11, e: 12}
-      - {h: "1. Directory Structure Spec", l: 13, e: 42}
-      - {h: "2. Hook Command Grammar", l: 43, e: 52}
-      - {h: "3. Dual-Variant Pairing", l: 53, e: 58}
-      - {h: "4. Probe Contract", l: 59, e: 70}
-      - {h: "5. CRLF Normalization Guarantee", l: 71, e: 86}
-      - {h: "Breaking-Change Process", l: 87, e: 95}
-      - {h: "Out of Scope", l: 96, e: 103}
+      - {h: "1. Directory Structure Spec", l: 13, e: 47}
+      - {h: "2. Hook Command Grammar", l: 48, e: 57}
+      - {h: "3. Dual-Variant Pairing", l: 58, e: 65}
+      - {h: "4. Probe Contract", l: 66, e: 77}
+      - {h: "5. CRLF Normalization Guarantee", l: 78, e: 93}
+      - {h: "Breaking-Change Process", l: 94, e: 102}
+      - {h: "Out of Scope", l: 103, e: 110}
   - path: "docs/CUSTOM_EXTENSIONS.md"
     title: "Custom Extensions vs Official Features"
     description: ""
@@ -453,78 +453,78 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 56612
+    size: 57529
     tags: [docs,memory]
     sections:
       - {h: "Table of Contents", l: 11, e: 34}
       - {h: "1. What This Is", l: 35, e: 59}
       - {h: "2. Architecture", l: 60, e: 96}
       - {h: "Component map", l: 97, e: 115}
-      - {h: "3. Installation", l: 116, e: 131}
-      - {h: "Manual install (after global config is already in place)", l: 132, e: 145}
-      - {h: "Verification", l: 146, e: 147}
-      - {h: "macOS", l: 148, e: 158}
-      - {h: "Linux", l: 159, e: 171}
-      - {h: "Behavior notes", l: 172, e: 189}
-      - {h: "4. Single-Machine Migration", l: 190, e: 210}
-      - {h: "5. Adding a New Machine", l: 211, e: 228}
-      - {h: "5.1 Pre-flight checklist", l: 229, e: 249}
-      - {h: "5.2 Phase 1 — Set up SSH signing on the new machine", l: 250, e: 276}
-      - {h: "5.3 Phase 2 — Install the global tracker config and the memory sync", l: 277, e: 326}
-      - {h: "5.4 Phase 3 — First incoming sync (pull-only, observed)", l: 327, e: 356}
-      - {h: "5.5 Phase 4 — Verify the SessionStart integrity hook", l: 357, e: 371}
-      - {h: "5.6 Phase 5 — Test the write path", l: 372, e: 397}
-      - {h: "5.7 Phase 6 — Redirect the project memory directory", l: 398, e: 456}
-      - {h: "5.8 Phase 7 — Verify primary picked up the change", l: 457, e: 476}
-      - {h: "5.9 Phase 8 — Schedule and stabilize", l: 477, e: 498}
-      - {h: "5.10 Common pitfalls", l: 499, e: 542}
-      - {h: "5.11 End-to-end verification", l: 543, e: 561}
-      - {h: "5.12 Edge cases", l: 562, e: 576}
-      - {h: "5.13 Rollback", l: 577, e: 604}
-      - {h: "6. Daily Operations", l: 605, e: 606}
-      - {h: "Manual sync", l: 607, e: 635}
-      - {h: "Reading `memory-status.sh` output", l: 636, e: 659}
-      - {h: "Acting on `memory-integrity-check` warnings at SessionStart", l: 660, e: 693}
-      - {h: "7. Validators", l: 694, e: 717}
-      - {h: "Continuous integration", l: 718, e: 734}
-      - {h: "8. Trust Tiers", l: 735, e: 764}
-      - {h: "9. Audit", l: 765, e: 766}
-      - {h: "Weekly audit ([#528](https://github.com/kcenon/claude-config/issues/528))", l: 767, e: 786}
-      - {h: "Exit codes", l: 787, e: 793}
-      - {h: "Idempotency", l: 794, e: 799}
-      - {h: "Network and dependency tolerance", l: 800, e: 807}
-      - {h: "Schedule", l: 808, e: 815}
-      - {h: "Monthly semantic review ([#530](https://github.com/kcenon/claude-config/issues/530))", l: 816, e: 835}
-      - {h: "Schedule", l: 836, e: 865}
-      - {h: "Cost and opt-in note", l: 866, e: 877}
-      - {h: "`/memory-review` interactive review", l: 878, e: 913}
-      - {h: "10. Privacy: Memory-Access Logging", l: 914, e: 940}
-      - {h: "Privacy summary", l: 941, e: 951}
-      - {h: "11. Conflict Resolution", l: 952, e: 986}
-      - {h: "Resolution rules", l: 987, e: 997}
-      - {h: "When to abort instead of resolving", l: 998, e: 1016}
-      - {h: "12. Rollback Procedures", l: 1017, e: 1018}
-      - {h: "Single-machine rollback", l: 1019, e: 1042}
-      - {h: "Whole-system rollback", l: 1043, e: 1054}
-      - {h: "Disaster recovery (repository loss)", l: 1055, e: 1063}
-      - {h: "13. SSH Commit Signing", l: 1064, e: 1072}
-      - {h: "Initial setup", l: 1073, e: 1085}
-      - {h: "Rotation procedure", l: 1086, e: 1098}
-      - {h: "Compromise procedure", l: 1099, e: 1120}
-      - {h: "14. Uninstall", l: 1121, e: 1146}
-      - {h: "15. Test Mode", l: 1147, e: 1171}
-      - {h: "16. Troubleshooting", l: 1172, e: 1173}
-      - {h: "\"memory-sync.sh exits 5 (lock contention)\"", l: 1174, e: 1195}
-      - {h: "\"Last sync 28h ago — sync may be stuck\"", l: 1196, e: 1219}
-      - {h: "\"Auto-quarantine on post-pull validation\"", l: 1220, e: 1246}
-      - {h: "\"Merge conflict — manual resolution required\" (exit 3)", l: 1247, e: 1250}
-      - {h: "\"memory-write-guard hook blocked write\"", l: 1251, e: 1269}
-      - {h: "\"claude-memory push refused: signed commits required\"", l: 1270, e: 1286}
-      - {h: "Common pitfalls cross-reference", l: 1287, e: 1296}
-      - {h: "17. Glossary", l: 1297, e: 1314}
-      - {h: "18. Versioning", l: 1315, e: 1333}
-      - {h: "19. Related", l: 1334, e: 1344}
-      - {h: "Issues by phase", l: 1345, e: 1353}
+      - {h: "3. Installation", l: 116, e: 144}
+      - {h: "Manual install (after global config is already in place)", l: 145, e: 158}
+      - {h: "Verification", l: 159, e: 160}
+      - {h: "macOS", l: 161, e: 171}
+      - {h: "Linux", l: 172, e: 184}
+      - {h: "Behavior notes", l: 185, e: 202}
+      - {h: "4. Single-Machine Migration", l: 203, e: 223}
+      - {h: "5. Adding a New Machine", l: 224, e: 241}
+      - {h: "5.1 Pre-flight checklist", l: 242, e: 262}
+      - {h: "5.2 Phase 1 — Set up SSH signing on the new machine", l: 263, e: 289}
+      - {h: "5.3 Phase 2 — Install the global tracker config and the memory sync", l: 290, e: 339}
+      - {h: "5.4 Phase 3 — First incoming sync (pull-only, observed)", l: 340, e: 369}
+      - {h: "5.5 Phase 4 — Verify the SessionStart integrity hook", l: 370, e: 384}
+      - {h: "5.6 Phase 5 — Test the write path", l: 385, e: 410}
+      - {h: "5.7 Phase 6 — Redirect the project memory directory", l: 411, e: 469}
+      - {h: "5.8 Phase 7 — Verify primary picked up the change", l: 470, e: 489}
+      - {h: "5.9 Phase 8 — Schedule and stabilize", l: 490, e: 511}
+      - {h: "5.10 Common pitfalls", l: 512, e: 555}
+      - {h: "5.11 End-to-end verification", l: 556, e: 574}
+      - {h: "5.12 Edge cases", l: 575, e: 589}
+      - {h: "5.13 Rollback", l: 590, e: 617}
+      - {h: "6. Daily Operations", l: 618, e: 619}
+      - {h: "Manual sync", l: 620, e: 648}
+      - {h: "Reading `memory-status.sh` output", l: 649, e: 672}
+      - {h: "Acting on `memory-integrity-check` warnings at SessionStart", l: 673, e: 706}
+      - {h: "7. Validators", l: 707, e: 730}
+      - {h: "Continuous integration", l: 731, e: 747}
+      - {h: "8. Trust Tiers", l: 748, e: 777}
+      - {h: "9. Audit", l: 778, e: 779}
+      - {h: "Weekly audit ([#528](https://github.com/kcenon/claude-config/issues/528))", l: 780, e: 799}
+      - {h: "Exit codes", l: 800, e: 806}
+      - {h: "Idempotency", l: 807, e: 812}
+      - {h: "Network and dependency tolerance", l: 813, e: 820}
+      - {h: "Schedule", l: 821, e: 828}
+      - {h: "Monthly semantic review ([#530](https://github.com/kcenon/claude-config/issues/530))", l: 829, e: 848}
+      - {h: "Schedule", l: 849, e: 878}
+      - {h: "Cost and opt-in note", l: 879, e: 890}
+      - {h: "`/memory-review` interactive review", l: 891, e: 926}
+      - {h: "10. Privacy: Memory-Access Logging", l: 927, e: 953}
+      - {h: "Privacy summary", l: 954, e: 964}
+      - {h: "11. Conflict Resolution", l: 965, e: 999}
+      - {h: "Resolution rules", l: 1000, e: 1010}
+      - {h: "When to abort instead of resolving", l: 1011, e: 1029}
+      - {h: "12. Rollback Procedures", l: 1030, e: 1031}
+      - {h: "Single-machine rollback", l: 1032, e: 1055}
+      - {h: "Whole-system rollback", l: 1056, e: 1067}
+      - {h: "Disaster recovery (repository loss)", l: 1068, e: 1076}
+      - {h: "13. SSH Commit Signing", l: 1077, e: 1085}
+      - {h: "Initial setup", l: 1086, e: 1098}
+      - {h: "Rotation procedure", l: 1099, e: 1111}
+      - {h: "Compromise procedure", l: 1112, e: 1133}
+      - {h: "14. Uninstall", l: 1134, e: 1159}
+      - {h: "15. Test Mode", l: 1160, e: 1184}
+      - {h: "16. Troubleshooting", l: 1185, e: 1186}
+      - {h: "\"memory-sync.sh exits 5 (lock contention)\"", l: 1187, e: 1208}
+      - {h: "\"Last sync 28h ago — sync may be stuck\"", l: 1209, e: 1232}
+      - {h: "\"Auto-quarantine on post-pull validation\"", l: 1233, e: 1259}
+      - {h: "\"Merge conflict — manual resolution required\" (exit 3)", l: 1260, e: 1263}
+      - {h: "\"memory-write-guard hook blocked write\"", l: 1264, e: 1282}
+      - {h: "\"claude-memory push refused: signed commits required\"", l: 1283, e: 1299}
+      - {h: "Common pitfalls cross-reference", l: 1300, e: 1309}
+      - {h: "17. Glossary", l: 1310, e: 1327}
+      - {h: "18. Versioning", l: 1328, e: 1346}
+      - {h: "19. Related", l: 1347, e: 1357}
+      - {h: "Issues by phase", l: 1358, e: 1366}
   - path: "docs/MEMORY_TRUST_BASELINE.md"
     title: "Memory Trust Baseline Classification"
     description: ""

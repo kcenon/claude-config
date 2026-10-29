@@ -578,6 +578,20 @@ for lib in validate-commit-message.sh validate-language.sh validate-traceability
     fi
 done
 
+# Memory sync scripts and validators, deployed from scripts/ by install.sh and
+# bootstrap.sh (#958). Memory sync is Unix-only (#795): install.ps1 does not
+# deploy them, so a Windows tree skips the section.
+if [ "$windows_tree" -eq 0 ]; then
+    echo ""
+    info "메모리 동기화 스크립트 동기화:"
+    for f in memory-sync.sh memory-status.sh memory-notify.sh; do
+        if [ -f "$BACKUP_DIR/scripts/$f" ]; then
+            check_sync "$BACKUP_DIR/scripts/$f" "$GLOBAL_DST/scripts/$f" "scripts/$f"
+        fi
+    done
+    check_sync_tree "$BACKUP_DIR/scripts/memory" "$GLOBAL_DST/scripts/memory" "scripts/memory" top "*.sh"
+fi
+
 # Installed project, compared with project/ the way the installers deploy it.
 # A directory is detected only through its install manifest, so running verify
 # inside an unrelated project skips this section.

@@ -27,7 +27,12 @@ After a full install (`scripts/install.{sh,ps1}` with the global or all profile,
 │   ├── lib/
 │   └── known-issues.json
 ├── scripts/
-│   └── *.{sh,ps1}            (also paired)
+│   ├── *.{sh,ps1}            (also paired)
+│   ├── memory-sync.sh        (Unix installers only, unpaired — see invariant #3)
+│   ├── memory-status.sh      (Unix installers only, unpaired)
+│   ├── memory-notify.sh      (Unix installers only, unpaired)
+│   └── memory/
+│       └── *.sh              (memory validators; Unix installers only, unpaired)
 ├── skills/
 │   ├── _internal/
 │   ├── _shared/              (optional)
@@ -52,9 +57,11 @@ If a new hook needs syntax outside the supported subset, the corresponding bash 
 
 ### 3. Dual-Variant Pairing
 
-Every script in `~/.claude/hooks/` and `~/.claude/scripts/` MUST exist as a `.sh` + `.ps1` pair with semantically equivalent behavior. The container ignores `.ps1`; PowerShell sessions ignore `.sh`. But the rewriter at `entrypoint.sh:50-61` translates `<name>.ps1` → `<name>.sh` in hook commands, so an orphan `.ps1` becomes a "hook references missing script" warning at container start (`entrypoint.sh:199-208`) and the hook never fires.
+Every script in `~/.claude/hooks/` and `~/.claude/scripts/` MUST exist as a `.sh` + `.ps1` pair with semantically equivalent behavior, except the Unix-only memory sync scripts described at the end of this section. The container ignores `.ps1`; PowerShell sessions ignore `.sh`. But the rewriter at `entrypoint.sh:50-61` translates `<name>.ps1` → `<name>.sh` in hook commands, so an orphan `.ps1` becomes a "hook references missing script" warning at container start (`entrypoint.sh:199-208`) and the hook never fires.
 
 `install.sh` and `install.ps1` perform a pairing audit at install time and warn about orphans. Hooks added by hand without going through the installer MUST also be added in pairs.
+
+**Exception — memory sync scripts (Unix-only).** `scripts/install.sh` and `bootstrap.sh` deploy `memory-sync.sh`, `memory-status.sh` and `memory-notify.sh` to `~/.claude/scripts/`, and the memory validators (`scripts/memory/*.sh`) to `~/.claude/scripts/memory/`, on every global install (claude-config issue #958). Memory sync is Unix-only (claude-config issue #795), so these files have no `.ps1` counterpart and the PowerShell installers do not deploy them. The exception does not reach the rewriter: no hook command in `global/settings.json` or `global/settings.windows.json` references them. They are run by the launchd / systemd scheduler, by the user, and by `memory-write-guard.sh`, which calls the validators by path from inside the hook rather than through a hook command.
 
 ### 4. Probe Contract
 

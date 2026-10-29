@@ -377,9 +377,25 @@ deploy_bootstrap_hooks() {
 deploy_bootstrap_scripts() {
     local scripts_src="$INSTALL_DIR/global/scripts"
     local scripts_dst="$CLAUDE_DIR/scripts"
+    local memory_script
 
-    [ -d "$scripts_src" ] || return 0
-    copy_bootstrap_files "$scripts_src" "$scripts_dst" "*.sh" 1 "scripts" || return 1
+    if [ -d "$scripts_src" ]; then
+        copy_bootstrap_files "$scripts_src" "$scripts_dst" "*.sh" 1 "scripts" || return 1
+    fi
+
+    # Memory sync scripts and validators (issue #958), same set as
+    # scripts/install.sh. settings.json registers memory-write-guard.sh, which
+    # allows the write unchecked when ~/.claude/scripts/memory/ lacks the
+    # validators, so they ship before settings.json is published. Unix-only
+    # (#795): bootstrap.ps1 has no counterpart.
+    if [ -d "$INSTALL_DIR/scripts/memory" ]; then
+        for memory_script in memory-sync.sh memory-status.sh memory-notify.sh; do
+            if [ -f "$INSTALL_DIR/scripts/$memory_script" ]; then
+                copy_bootstrap_files "$INSTALL_DIR/scripts" "$scripts_dst" "$memory_script" 1 "scripts" || return 1
+            fi
+        done
+        copy_bootstrap_files "$INSTALL_DIR/scripts/memory" "$scripts_dst/memory" "*.sh" 1 "scripts/memory" || return 1
+    fi
 
     return 0
 }

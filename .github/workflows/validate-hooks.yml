@@ -259,6 +259,12 @@ jobs:
         # and warns when the clone has none (#959).
         run: bash tests/scripts/test-install-memory-sync-hooks.sh
 
+      - name: Run memory script deployment test
+        # Proves a global install deploys the memory sync scripts and the
+        # validators memory-write-guard.sh needs, so the guard denies a secret
+        # instead of failing open (#958).
+        run: bash tests/scripts/test-install-deploys-memory-scripts.sh
+
       - name: Run hook-wiring parity test (settings.json <-> settings.windows.json)
         # Catches dormant guards: a .ps1 hook present in global/hooks/ but not
         # wired into settings.windows.json (or POSIX-only drift). This is the

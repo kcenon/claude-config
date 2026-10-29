@@ -107,7 +107,7 @@ pile-up when a previous run is still active.
 | Quarantine restore | [`scripts/memory/quarantine-restore.sh`](../scripts/memory/quarantine-restore.sh) | B ([#514](https://github.com/kcenon/claude-config/issues/514)) |
 | Backfill helper | [`scripts/memory/backfill-frontmatter.sh`](../scripts/memory/backfill-frontmatter.sh) | B ([#512](https://github.com/kcenon/claude-config/issues/512)) |
 | SSH signing setup | [`scripts/memory/setup-ssh-signing.sh`](../scripts/memory/setup-ssh-signing.sh) | C ([#518](https://github.com/kcenon/claude-config/issues/518)) |
-| Validators | (in `claude-memory` repo) `scripts/{validate,secret-check,injection-check}.sh` | A ([#507–#509](https://github.com/kcenon/claude-config/issues/507)) |
+| Validators | [`scripts/memory/`](../scripts/memory/)`{validate,secret-check,injection-check}.sh`, deployed to `~/.claude/scripts/memory/`; the `claude-memory` repo carries copies under `scripts/` | A ([#507–#509](https://github.com/kcenon/claude-config/issues/507)) |
 | Audit | (in `claude-memory` repo) `scripts/audit.sh` | F ([#528](https://github.com/kcenon/claude-config/issues/528)) |
 | Semantic review | [`scripts/semantic-review.sh`](../scripts/semantic-review.sh) | F ([#530](https://github.com/kcenon/claude-config/issues/530)) |
 
@@ -128,6 +128,19 @@ CLAUDE_MEMORY_REPO_URL=git@github.com:<owner>/claude-memory.git \
 The function also clones `$CLAUDE_MEMORY_REPO_URL` into
 `~/.claude/memory-shared` on first install, then runs the memory repo's
 `scripts/install-hooks.sh` if present.
+
+The scripts themselves are deployed by every global install
+(`scripts/install.sh` profile 1, 3 or 5, and `bootstrap.sh`), whether or not
+`CLAUDE_MEMORY_REPO_URL` is set: `memory-sync.sh`, `memory-status.sh` and
+`memory-notify.sh` go to `~/.claude/scripts/`, and `scripts/memory/*.sh`
+(the validators, quarantine and backfill helpers) to
+`~/.claude/scripts/memory/`. `memory-write-guard.sh` is registered by every
+global install and needs those validators. The files are tracked in
+`~/.claude/.install-manifest.json`, so a reinstall upgrades unedited copies
+and asks before replacing a locally edited one (the default keeps it), and
+`scripts/verify.sh` compares them with their sources.
+Memory sync is Unix-only ([#795](https://github.com/kcenon/claude-config/issues/795)),
+so `install.ps1` does not deploy them.
 
 ### Manual install (after global config is already in place)
 

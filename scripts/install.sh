@@ -916,6 +916,23 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         success "Statusline 스크립트 (scripts/) 설치 완료!"
     fi
 
+    # Memory sync scripts and validators (issue #958). They live in scripts/,
+    # not global/, so the copy above never reached them. memory-write-guard.sh
+    # is registered by every global install and allows the write unchecked when
+    # ~/.claude/scripts/memory/{validate,secret-check,injection-check}.sh are
+    # missing, so they ship whether or not CLAUDE_MEMORY_REPO_URL is set. They
+    # must be tracked before manifest_prune_tracked below, or every reinstall
+    # prunes them. Unix-only (#795): install.ps1 has no counterpart.
+    if [ -d "$BACKUP_DIR/scripts/memory" ]; then
+        for _memory_script in memory-sync.sh memory-status.sh memory-notify.sh; do
+            manifest_copy_file "$BACKUP_DIR/scripts/$_memory_script" \
+                "$HOME/.claude/scripts/$_memory_script" "scripts/$_memory_script" 1 || true
+        done
+        unset _memory_script
+        manifest_copy_files "$BACKUP_DIR/scripts/memory" "$HOME/.claude/scripts/memory" "scripts/memory" "*.sh" 1
+        success "메모리 동기화 스크립트 및 검증기 (scripts/memory/) 설치 완료!"
+    fi
+
     # commit-settings.md 설치 (CLAUDE.md에서 @./commit-settings.md로 참조)
     # issue #411: .tmpl이 있으면 정책 phrase를 치환해서 생성. 없으면 원본 복사.
     if [ -f "$BACKUP_DIR/global/commit-settings.md.tmpl" ]; then
@@ -1024,7 +1041,8 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     # Memory sync scheduler (issue #527).
     # Opt-in via CLAUDE_MEMORY_REPO_URL env var; no-op when unset.
     # Installed only on global-touching profiles (1, 3, 5) since the scheduler
-    # invokes ~/.claude/scripts/memory-sync.sh which lives under the global tree.
+    # invokes ~/.claude/scripts/memory-sync.sh, which the memory scripts block
+    # above deploys from scripts/ (the source does not live under global/).
     echo ""
     info "메모리 동기화 스케줄러 설치 중..."
     install_memory_sync
