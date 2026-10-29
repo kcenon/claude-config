@@ -147,6 +147,11 @@ export OWNER_EMAILS="you@example.com you+other@example.com"
 # export OWNER_HOME_USER="your-unix-user"
 ```
 
+The optional variables carry no maintainer defaults either (issue #957).
+`OWNER_HOME_USER` defaults to the account running the check.
+`OWNER_GITHUB_HANDLE` has no default, so the owner's GitHub no-reply
+address is flagged as a non-owner email until it is set.
+
 A copy-pasteable template lives at `scripts/memory/secret-check.env.example`.
 Trust-level assignment in this document remains valid regardless of the
 runtime owner identity — owner-email matching is one of several heuristics

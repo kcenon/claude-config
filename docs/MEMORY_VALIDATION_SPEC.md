@@ -1,7 +1,7 @@
 # Memory Validation Specification
 
-**Version**: 1.0.1
-**Last updated**: 2026-05-01
+**Version**: 1.2.0
+**Last updated**: 2026-10-29
 **Status**: Active
 
 ---
@@ -329,6 +329,11 @@ The following patterns are recognized as owner emails and do not trigger a findi
    ```
    Example: `kcenon@users.noreply.github.com`
 
+Patterns 2 and 3 use the configured `OWNER_GITHUB_HANDLE`. There is no default
+handle: while `OWNER_GITHUB_HANDLE` is unset or empty, neither no-reply form is
+recognized, so the owner's own no-reply address is flagged until the variable is
+set.
+
 ### Correction note (§3.2)
 
 The original design only compared email addresses against a single configured address.
@@ -338,7 +343,11 @@ would produce false-positive findings. Both GitHub no-reply formats must be reco
 
 ### Recognized owner paths
 
-Home directory paths containing the configured `OWNER_HOME_USER` value are not flagged.
+Home directory paths under `/Users/<OWNER_HOME_USER>/` or `/home/<OWNER_HOME_USER>/`
+are not flagged. `OWNER_HOME_USER` defaults to the account running the check (`USER`,
+or `id -un` when `USER` is empty); an explicit value always wins. If neither source
+yields a name, the value stays empty and every home path is flagged (fail safe).
+`/home/<OWNER_GITHUB_HANDLE>/` is also exempt, but only when a handle is configured.
 Paths under `/Users/<other-user>/` or `/home/<other-user>/` are flagged.
 
 ### Token patterns that always trigger findings
@@ -531,7 +540,8 @@ a structural or format error. This is the expected state before migration backfi
 | SECRET-DETECTED | 0 |
 
 `user_github.md` contains `4158198+kcenon@users.noreply.github.com`. This is the
-owner's GitHub no-reply address (see Section 6) and must be recognized as CLEAN.
+owner's GitHub no-reply address (see Section 6) and must be recognized as CLEAN
+when `OWNER_GITHUB_HANDLE` is set to the owner's handle.
 Any implementation that produces a finding on this file is incorrectly applying the
 allowlist.
 
@@ -575,7 +585,7 @@ Per-file output order may vary.
 
 ### Spec version
 
-This document is **v1.1.0**. The version follows Semantic Versioning:
+This document is **v1.2.0**. The version follows Semantic Versioning:
 
 - **MAJOR**: Breaking change to the spec (e.g., removing a required field, changing
   exit codes in an incompatible way).
@@ -587,6 +597,16 @@ Validator implementations must declare which spec version they target. A validat
 targeting v1.0.0 must satisfy every rule in this document.
 
 ### Change log
+
+#### v1.2.0 — 2026-10-29
+
+MINOR release (#957): §6 states the owner identity defaults. `OWNER_HOME_USER`
+defaults to the account running the check instead of a maintainer account, and
+`OWNER_GITHUB_HANDLE` has no default, so the GitHub no-reply allowlist and the
+`/home/<handle>/` exemption apply only when it is set. The owner's no-reply
+address is flagged until `OWNER_GITHUB_HANDLE` is set, and §9 now says so for
+the baseline no-reply verdict. Installations that set all three owner variables
+see no change.
 
 #### v1.1.0 — 2026-10-29
 
