@@ -2,9 +2,9 @@
 # path-utils.sh
 # Shared path-resolution helpers for hook scripts.
 #
-# Sourced by:
-#   - global/hooks/sensitive-file-guard.sh
-#   (bash-write-guard.sh also sourced it until #964 removed that guard.)
+# Sourced by: no hook since #964, which removed both consumers
+# (bash-write-guard.sh and sensitive-file-guard.sh). The installers still
+# deploy and require it; retiring it is a separate change.
 #
 # Rationale (Issue #569)
 # ----------------------

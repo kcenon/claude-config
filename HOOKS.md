@@ -1267,10 +1267,8 @@ this catalog for the canonical hook inventory.
 | [`post-compact-restore.sh`](#post-compact-restore) | SessionStart (matcher: compact, sync) | yes |
 | [`post-task-checkpoint.sh`](#post-task-checkpoint) | PostToolUse | yes |
 | [`pre-compact-snapshot.sh`](#pre-compact-snapshot) | PreCompact (async) | yes |
-| [`pre-edit-read-guard.sh`](#pre-edit-read-guard) | PreToolUse (Edit|Write) + PostToolUse (Read) | yes |
 | [`prompt-validator.sh`](#prompt-validator) | UserPromptSubmit | yes |
 | [`prune-permission-rules.sh`](#prune-permission-rules) | SessionEnd | yes |
-| [`sensitive-file-guard.sh`](#sensitive-file-guard) | PreToolUse (Edit|Write|Read) | yes |
 | [`session-logger.sh`](#session-logger) | SessionStart, SessionEnd, Stop, TeammateIdle | yes |
 | [`subagent-logger.sh`](#subagent-logger) | SubagentStart, SubagentStop | yes |
 | [`task-completed-logger.sh`](#task-completed-logger) | TaskCompleted | yes |
@@ -1281,7 +1279,7 @@ this catalog for the canonical hook inventory.
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
 | [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 26 bash hooks, 26 with PowerShell counterparts._
+_Total: 24 bash hooks, 24 with PowerShell counterparts._
 
 ### Hook Details
 
@@ -1509,23 +1507,6 @@ Captures working state before automatic context compaction
 | PowerShell counterpart | present (`pre-compact-snapshot.ps1`) |
 | Source | `global/hooks/pre-compact-snapshot.sh` |
 
-### pre-edit-read-guard
-
-_File:_ `pre-edit-read-guard.sh`
-
-_Anchor:_ `#pre-edit-read-guard`
-
-Enforces the "Read before Edit/Write" tool contract.
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Edit|Write) + PostToolUse (Read) |
-| Trigger / Matcher | Read |
-| Exit codes | 0 (always — decision is in JSON for PreToolUse, no JSON for PostToolUse) |
-| Response format | hookSpecificOutput with hookEventName (PreToolUse only) |
-| PowerShell counterpart | present (`pre-edit-read-guard.ps1`) |
-| Source | `global/hooks/pre-edit-read-guard.sh` |
-
 ### prompt-validator
 
 _File:_ `prompt-validator.sh`
@@ -1560,23 +1541,6 @@ Prunes permissions.allow entries that can never match again from the project-sco
 | Fail policy | fail-open - any parse, classification, or IO error leaves the file byte-identical |
 | PowerShell counterpart | present (`prune-permission-rules.ps1`) |
 | Source | `global/hooks/prune-permission-rules.sh` |
-
-### sensitive-file-guard
-
-_File:_ `sensitive-file-guard.sh`
-
-_Anchor:_ `#sensitive-file-guard`
-
-Blocks access to sensitive files
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Edit|Write|Read) |
-| Trigger / Matcher | Edit|Write|Read |
-| Exit codes | 0 (always — decision is in JSON) |
-| Response format | hookSpecificOutput with hookEventName |
-| PowerShell counterpart | present (`sensitive-file-guard.ps1`) |
-| Source | `global/hooks/sensitive-file-guard.sh` |
 
 ### session-logger
 

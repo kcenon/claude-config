@@ -323,6 +323,30 @@ check "install.ps1 no longer reads module scope"   "$(hasnot scripts/install.ps1
 check "bootstrap.ps1 no longer reads module scope" "$(hasnot bootstrap.ps1 '$script:SeededGitName')"
 
 echo ""
+echo "[full-suite probe keeps advertising sensitive-file coverage (#964)]"
+# sensitive-file-guard.sh is gone; permissions.deny in the published settings
+# covers sensitive files now. Keying the probe on the deleted hook file would
+# report false after the manifest prune and wake the plugin's inline guard for
+# every full-suite user. The key name and schema stay for installed plugins.
+check "install.sh probe no longer tests the hook file" "$(hasnot scripts/install.sh 'hooks/sensitive-file-guard.sh')"
+check "install.sh probe follows the settings deployment" \
+    "$(has_in_func scripts/install.sh write_full_suite_probe '[ "$settings_deployed" = "true" ] && sens_guard=true')"
+check "install.sh probe keeps the key name"  "$(has_in_func scripts/install.sh write_full_suite_probe '"sensitive-file-guard": flag("SENS")')"
+check "install.sh probe keeps schema 1"      "$(has_in_func scripts/install.sh write_full_suite_probe '"schema": 1,')"
+check "install.sh settings publish reports true" \
+    "$(has_in_func scripts/install.sh install_global_settings_and_hooks 'write_full_suite_probe true')"
+check "install.sh hooks-only deploy reports false" \
+    "$(has_in_func scripts/install.sh install_global_settings_and_hooks 'write_full_suite_probe false')"
+check "install.ps1 probe no longer tests the hook file" "$(hasnot scripts/install.ps1 "'sensitive-file-guard.sh'")"
+check "install.ps1 probe follows the settings deployment" \
+    "$(has_in_ps_func scripts/install.ps1 Write-FullSuiteProbe "'sensitive-file-guard'    = \$SettingsDeployed")"
+check "install.ps1 probe keeps schema 1" "$(has_in_ps_func scripts/install.ps1 Write-FullSuiteProbe 'schema = 1')"
+check "install.ps1 settings publish reports true" \
+    "$(has_in_ps_func scripts/install.ps1 Install-GlobalSettingsAndHooks 'Write-FullSuiteProbe -ClaudeDir $ClaudeDir -SettingsDeployed $true')"
+check "install.ps1 hooks-only deploy reports false" \
+    "$(has_in_ps_func scripts/install.ps1 Install-GlobalSettingsAndHooks 'Write-FullSuiteProbe -ClaudeDir $ClaudeDir -SettingsDeployed $false')"
+
+echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
 if [ ${#ERRORS[@]} -gt 0 ]; then
     echo ""

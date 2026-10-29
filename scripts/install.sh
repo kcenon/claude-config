@@ -319,12 +319,19 @@ deploy_install_hooks() {
     return 0
 }
 
+# write_full_suite_probe <settings-deployed>
+#   <settings-deployed> is "true" when this run published global/settings.json.
+#   The probe key "sensitive-file-guard" keeps its name for installed plugins
+#   (schema 1), but since #964 no hook file backs it: the full suite covers
+#   sensitive files through permissions.deny in settings.json, so the key
+#   follows the settings deployment instead of a hook file's presence.
 write_full_suite_probe() {
+    local settings_deployed="${1:-false}"
     local probe_dir="$HOME/.claude"
     local probe_file="$probe_dir/.full-suite-active"
     local tmp_probe sens_guard=false dang_guard=false
 
-    [ -f "$HOME/.claude/hooks/sensitive-file-guard.sh" ] && sens_guard=true
+    [ "$settings_deployed" = "true" ] && sens_guard=true
     [ -f "$HOME/.claude/hooks/dangerous-command-guard.sh" ] && dang_guard=true
 
     if command -v python3 >/dev/null 2>&1; then
@@ -369,7 +376,7 @@ install_global_settings_and_hooks() {
         if [ -d "$BACKUP_DIR/global/hooks" ]; then
             deploy_install_hooks || error "Hook 스크립트 배포 실패."
             success "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
-            write_full_suite_probe
+            write_full_suite_probe false
         fi
         return 0
     fi
@@ -416,7 +423,7 @@ install_global_settings_and_hooks() {
     fi
 
     success "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
-    write_full_suite_probe
+    write_full_suite_probe true
 }
 
 # Note: get_policy_phrase, render_policy_tmpl, and render_policy_tmpls_in_dir

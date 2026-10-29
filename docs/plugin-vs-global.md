@@ -3,7 +3,8 @@
 The Claude Config plugin (`plugin/`) ships a reduced standalone subset of
 the security guards in the full global suite (`global/hooks/`). Its
 sensitive-file guard matches the same filename pattern set as the
-canonical `global/hooks/sensitive-file-guard.sh`, but the plugin's guards
+global suite's `permissions.deny` rules (the canonical
+`sensitive-file-guard.sh` until #964), but the plugin's guards
 are inline shell approximations rather than the canonical scripts, and
 they stop short of the full suite in the ways listed under
 [Retained Divergences](#retained-divergences). Both surfaces are
@@ -58,6 +59,11 @@ Schema:
   means "the global suite owns this hook on this machine." `false` or a
   missing key means "the plugin should keep its inline fallback active
   for this hook."
+- `sensitive-file-guard` keeps its key name for installed plugins, but
+  since #964 no hook script backs it: the global suite covers sensitive
+  files with `permissions.deny` rules in the settings it publishes. The
+  installer writes `true` when the same run published the global
+  settings, and `false` for a hooks-only deploy.
 - The installer writes the probe atomically (POSIX: `mktemp` + `mv`;
   PowerShell: `Move-Item -Force`) so a partial write cannot produce a
   half-valid probe.
@@ -89,15 +95,17 @@ when the full suite is installed but one of its hook scripts is absent
 ## Retained Divergences
 
 The plugin's sensitive-file guard matches the same *filename* pattern set
-as `global/hooks/sensitive-file-guard.sh` — the `.env.*` family, the `*.env`
+as the removed `sensitive-file-guard.sh` — the `.env.*` family, the `*.env`
 suffix, non-template `*.env.*` hybrids, `.envrc`, credential containers, SSH
 private keys, and AWS credential files, with `.env.example` / `.env.sample` /
-`.env.template` allowed through. The differences below remain by design. They
+`.env.template` allowed through. Since #964 the global suite carries those
+patterns as `permissions.deny` `Read(...)` rules, whose `Read(.env.*)` rule
+also denies the templates. The differences below remain by design. They
 are documented limitations, not oversights.
 
 | Area | Global suite | Plugin | Disposition |
 |------|--------------|--------|-------------|
-| Path canonicalization | `resolve_path` (`global/hooks/lib/path-utils.sh`) expands `~`/`$HOME`, collapses symlinks through `realpath`, and canonicalizes macOS `/var` → `/private/var` before matching | Basename only — strips the directory prefix, trims surrounding whitespace, folds case | Limitation. A symlink pointing at a sensitive file is not caught. Resolving symlinks inside a single-line `bash -c` string would be a fragile approximation of the real check. |
+| Path canonicalization | `permissions.deny` `Read(...)` rules (#964): Claude Code matches gitignore patterns relative to the working directory, and a deny rule applies when either the requested path or the file a symlink resolves to matches; the rules also feed the sandbox read-deny | Basename only — strips the directory prefix, trims surrounding whitespace, folds case | Limitation. A symlink pointing at a sensitive file is not caught. Resolving symlinks inside a single-line `bash -c` string would be a fragile approximation of the real check. |
 | Decision protocol | Reads hook JSON on stdin, replies with `permissionDecision` on stdout, always exits 0 | Reads `CLAUDE_FILE_PATH`, writes to stderr, exits 2 to deny | Intentional, not a gap. The plugin ships without the `jq` dependency and the `lib/` helpers the canonical hooks source. |
 | Sensitive-directory patterns | `secrets`, `credentials`, `passwords` | Same, plus `private` | Plugin is broader. Kept — narrowing it would remove shipped coverage. |
 | `Bash` matcher scope | Three hooks: `dangerous-command-guard.sh`, `bash-write-guard.sh` (read-before-write, via shell tokenization), `bash-sensitive-read-guard.sh` (secret reads through the Bash channel) | One inline guard, three regexes: recursive delete of `/`, `chmod 777`/`a+rwx`, and `curl`/`wget` piped to a shell | Limitation. The plugin covers only part of the destructive-command class. Reading a secret via `cat`, and writing a file without reading it first, are unguarded on the plugin-only surface. |
@@ -119,8 +127,9 @@ baseline, not a substitute for `scripts/install.sh`.
   denial messages but never a gap in coverage.
 - **Partial install.** If only some canonical hook scripts are present
   in `~/.claude/hooks/`, the installer records `false` for the missing
-  ones in the probe. The plugin keeps its fallback active for those
-  hooks only, so gaps are always filled.
+  ones in the probe; a hooks-only deploy that publishes no settings
+  records `false` for `sensitive-file-guard`. The plugin keeps its
+  fallback active for those hooks only, so gaps are always filled.
 - **Schema evolution.** A future release that bumps `schema` to `2`
   will cause older plugins to see an unknown schema and revert to
   active fallback. Users on the mismatched pair get safe duplication,

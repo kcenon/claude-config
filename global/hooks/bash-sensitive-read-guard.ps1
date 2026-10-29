@@ -73,8 +73,9 @@ $readToolPrefix = '\b(cat|head|tail|less|more|bat|view|grep|egrep|fgrep|rg|find|
 
 # Env-file templates (.env.example, .env.example.*, .env.sample, .env.template)
 # are committed on purpose and never carry real secrets; sensitive-file-guard.ps1
-# allows the same four names on the file channel, so denying them here was a
-# cross-channel divergence (issue #866).
+# allowed the same four names on the file channel until #964 replaced it with
+# permissions.deny, so denying them here was a cross-channel divergence
+# (issue #866).
 #
 # This guard matches patterns against the whole command string rather than
 # against extracted paths, so a plain "allow and exit" would also let

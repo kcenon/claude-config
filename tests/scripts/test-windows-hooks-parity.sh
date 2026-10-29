@@ -7,7 +7,7 @@
 # Windows routes some matchers through a dispatcher that runs the guards in one
 # process instead of one process per guard: PreToolUse/Bash through
 # global/hooks/bash-guard-dispatcher.ps1 (issue #895) and
-# PreToolUse/Edit|Write|Read through global/hooks/edit-guard-dispatcher.ps1
+# PreToolUse/Edit|Write through global/hooks/edit-guard-dispatcher.ps1
 # (issue #920). A naive basename diff would compare the POSIX guards against a
 # single dispatcher entry and report drift for every guard, which would force an
 # allow-list so broad that the test stops guaranteeing anything. Instead each

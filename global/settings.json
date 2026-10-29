@@ -126,6 +126,23 @@
       "Read(**/*.key)",
       "Read(**/*.p12)",
       "Read(**/*password*)",
+      "Read(**/.envrc)",
+      "Read(**/*.env)",
+      "Read(**/*.env.*)",
+      "Read(**/*.pfx)",
+      "Read(**/id_rsa)",
+      "Read(**/id_rsa.*)",
+      "Read(**/id_ed25519)",
+      "Read(**/id_ed25519.*)",
+      "Read(**/id_ecdsa)",
+      "Read(**/id_ecdsa.*)",
+      "Read(**/id_dsa)",
+      "Read(**/id_dsa.*)",
+      "Read(**/.aws/**/credentials)",
+      "Read(**/.aws/**/config)",
+      "Read(**/*secrets/**)",
+      "Read(**/*credentials/**)",
+      "Read(**/*passwords/**)",
       "Edit(.env)",
       "Edit(.env.*)",
       "Edit(**/.env)",
@@ -135,19 +152,9 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Edit|Write|Read",
-        "_note": "Hook order is load-bearing: sensitive-file-guard must run before pre-edit-read-guard so denied files are not tracked. memory-write-guard runs after pre-edit-read-guard so it only validates writes the harness has cleared. See docs/hooks-ownership.md and issues #424, #521. Timeout is 30s rather than the 5s default: a PreToolUse timeout is fail-OPEN - the harness cancels the hook and the tool call proceeds - so an under-budgeted security guard is silently skipped, never denied. Across 35,276 local hook runs on this matcher the median is 429ms and p99 is 1,020ms, but four contention bursts timed out all three guards of a single call together, peaking at 11,141ms. 30s covers every observed case and matches the Bash channel. See issue #897.",
+        "matcher": "Edit|Write",
+        "_note": "memory-write-guard is the only file-channel hook since #964: sensitive files are denied by permissions.deny, and read-before-edit is the native Edit/Write contract. The guard acts only on Edit and Write under ~/.claude/memory-shared/memories/ and allows everything else. Timeout is 30s rather than the 5s default: a PreToolUse timeout is fail-OPEN - the harness cancels the hook and the tool call proceeds - so an under-budgeted security guard is silently skipped, never denied. Across 35,276 local hook runs on this matcher the median is 429ms and p99 is 1,020ms, but four contention bursts timed out all three guards of a single call together, peaking at 11,141ms. 30s covers every observed case and matches the Bash channel. See issues #897 and #964.",
         "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/sensitive-file-guard.sh",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/pre-edit-read-guard.sh",
-            "timeout": 30
-          },
           {
             "type": "command",
             "command": "~/.claude/hooks/memory-write-guard.sh",
@@ -266,12 +273,6 @@
       {
         "matcher": "Read",
         "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/pre-edit-read-guard.sh",
-            "timeout": 5,
-            "async": true
-          },
           {
             "type": "command",
             "command": "~/.claude/hooks/memory-access-logger.sh",
