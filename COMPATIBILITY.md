@@ -64,6 +64,7 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | Spinner verbs | `spinnerVerbs` | 2.1.0+ |
 | Sandbox config | `sandbox` | 2.0.0+ |
 | Permissions deny | `permissions.deny` | 1.0.0+ |
+| `Read(...)` deny also blocks the Write tool on the same path (sensitive-file coverage since #964) | `permissions.deny` | 2.1.228+ |
 | LLM hook (prompt type) | `hooks[].hooks[].type: "prompt"` | 2.0.0+ |
 | Async hooks | `hooks[].hooks[].async: true` | 2.0.0+ |
 | Tool search | `env.ENABLE_TOOL_SEARCH` | 2.1.0+ |
@@ -125,7 +126,7 @@ PowerShell read-only discovery allowlist.
 | `enableAllProjectMcpServers` | Stable | 2.0.0+ | Keeps project `.mcp.json` servers opt-in by default. |
 | `enabledMcpjsonServers` | Stable | 2.0.0+ | Explicit allowlist of project `.mcp.json` servers. Empty by default. |
 | `permissions.defaultMode` | Stable | 2.0.0+ | Valid: `default`, `acceptEdits`, `plan`, `auto`, `dontAsk`, `bypassPermissions`. |
-| `permissions.deny` / `allow` / `ask` | Stable | 1.0.0+ | Permission rule arrays. |
+| `permissions.deny` / `allow` / `ask` | Stable | 1.0.0+ | Permission rule arrays. Since #964 the `Read(...)` deny rules are the only file-channel sensitive-file control; they block the Write tool on the same path from 2.1.228. |
 | `hooks` | Stable | 1.0.0+ | Lifecycle hook events. See [HOOKS.md](HOOKS.md). |
 | `statusLine` | Stable | 2.1.0+ | Custom status line script. |
 | `sandbox.enabled` / `autoAllowBashIfSandboxed` / `allowUnsandboxedCommands` / `excludedCommands` | Stable | 2.0.0+ | Bash sandboxing (macOS, Linux, WSL2). |
@@ -246,7 +247,7 @@ The README v1.7.0 changelog originally claimed "All 42 bash scripts now have Pow
 
 | Surface | Bash count | PowerShell count | Coverage |
 |---|---:|---:|---:|
-| `global/hooks/*.sh` | 26 | 26 | 26/26 (100%) |
+| `global/hooks/*.sh` | 24 | 24 | 24/24 (100%) |
 
 The counts cover paired guards only: `bash-sensitive-read-guard.ps1` and `shell-env-secret-guard.ps1` are Windows-only (#964), because macOS and Linux cover secret reads through the shell with the Bash sandbox read-deny while Windows has no OS sandbox, so both are excluded from the counts and from the parity audit.
 

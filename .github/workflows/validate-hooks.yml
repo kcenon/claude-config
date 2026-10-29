@@ -281,11 +281,6 @@ jobs:
         # without broad PowerShell(*) or state-changing gh grants.
         run: bash tests/scripts/test-windows-powershell-permissions.sh
 
-      - name: Run hook ordering test
-        # Asserts the load-bearing PreToolUse hook order (sensitive-file-guard
-        # before pre-edit-read-guard, etc.) is preserved across both settings.
-        run: bash tests/scripts/test-hook-ordering.sh
-
       - name: Run skill severity enum test
         # Validates code-review skill frontmatter severity/finding_levels enums.
         run: bash tests/scripts/test-severity-enum.sh

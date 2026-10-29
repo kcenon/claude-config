@@ -152,8 +152,16 @@ function Deploy-InstallHooks {
     }
 }
 
+# -SettingsDeployed is true when this run published global/settings.windows.json.
+# The probe key 'sensitive-file-guard' keeps its name for installed plugins
+# (schema 1), but since #964 no hook file backs it: the full suite covers
+# sensitive files through permissions.deny in settings.json, so the key follows
+# the settings deployment instead of a hook file's presence.
 function Write-FullSuiteProbe {
-    param([Parameter(Mandatory)][string]$ClaudeDir)
+    param(
+        [Parameter(Mandatory)][string]$ClaudeDir,
+        [bool]$SettingsDeployed = $false
+    )
 
     $hooksDir = Join-Path $ClaudeDir "hooks"
     $probeFile = Join-Path $ClaudeDir ".full-suite-active"
@@ -161,7 +169,7 @@ function Write-FullSuiteProbe {
     $probeDoc  = [ordered]@{
         schema = 1
         hooks  = [ordered]@{
-            'sensitive-file-guard'    = (Test-Path (Join-Path $hooksDir 'sensitive-file-guard.sh'))
+            'sensitive-file-guard'    = $SettingsDeployed
             'dangerous-command-guard' = (Test-Path (Join-Path $hooksDir 'dangerous-command-guard.sh'))
         }
     }
@@ -191,7 +199,7 @@ function Install-GlobalSettingsAndHooks {
             try {
                 Deploy-InstallHooks -ClaudeDir $ClaudeDir
                 Write-Success "Hook scripts installed (hooks/*.ps1 + *.sh + lib/ + *.json)!"
-                Write-FullSuiteProbe -ClaudeDir $ClaudeDir
+                Write-FullSuiteProbe -ClaudeDir $ClaudeDir -SettingsDeployed $false
             }
             catch {
                 Write-Err "Hook scripts deployment failed. $_"
@@ -237,7 +245,7 @@ function Install-GlobalSettingsAndHooks {
     }
 
     Write-Success "Hook scripts installed (hooks/*.ps1 + *.sh + lib/ + *.json)!"
-    Write-FullSuiteProbe -ClaudeDir $ClaudeDir
+    Write-FullSuiteProbe -ClaudeDir $ClaudeDir -SettingsDeployed $true
 }
 
 function New-LocalClaude {

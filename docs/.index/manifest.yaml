@@ -54,29 +54,29 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 18881
+    size: 19160
     tags: [compatibility,config]
     sections:
       - {h: "Compatibility Guide", l: 1, e: 6}
       - {h: "Minimum Requirements", l: 7, e: 22}
       - {h: "Feature Dependencies", l: 23, e: 24}
       - {h: "Hook Event Types", l: 25, e: 52}
-      - {h: "Settings Features", l: 53, e: 70}
-      - {h: "Component Dependencies", l: 71, e: 86}
-      - {h: "Settings Field Inventory and Stability", l: 87, e: 108}
-      - {h: "settings.json top-level fields", l: 109, e: 145}
-      - {h: "env fields in settings.json", l: 146, e: 156}
-      - {h: "Operational guidance", l: 157, e: 162}
-      - {h: "SessionStart version check (optional)", l: 163, e: 168}
-      - {h: "Skill Directory Layout (P4)", l: 169, e: 178}
-      - {h: "Strict-schema kill switch", l: 179, e: 186}
-      - {h: "Known Problematic Versions", l: 187, e: 202}
-      - {h: "Upgrade Guidance", l: 203, e: 204}
-      - {h: "Upgrading claude-config", l: 205, e: 224}
-      - {h: "Upgrading Claude Code", l: 225, e: 234}
-      - {h: "Cross-Platform Notes", l: 235, e: 242}
-      - {h: "PowerShell parity status", l: 243, e: 263}
-      - {h: "Cross-platform `timeout` fallback (`global/hooks/lib/timeout-wrapper.sh`)", l: 264, e: 278}
+      - {h: "Settings Features", l: 53, e: 71}
+      - {h: "Component Dependencies", l: 72, e: 87}
+      - {h: "Settings Field Inventory and Stability", l: 88, e: 109}
+      - {h: "settings.json top-level fields", l: 110, e: 146}
+      - {h: "env fields in settings.json", l: 147, e: 157}
+      - {h: "Operational guidance", l: 158, e: 163}
+      - {h: "SessionStart version check (optional)", l: 164, e: 169}
+      - {h: "Skill Directory Layout (P4)", l: 170, e: 179}
+      - {h: "Strict-schema kill switch", l: 180, e: 187}
+      - {h: "Known Problematic Versions", l: 188, e: 203}
+      - {h: "Upgrade Guidance", l: 204, e: 205}
+      - {h: "Upgrading claude-config", l: 206, e: 225}
+      - {h: "Upgrading Claude Code", l: 226, e: 235}
+      - {h: "Cross-Platform Notes", l: 236, e: 243}
+      - {h: "PowerShell parity status", l: 244, e: 264}
+      - {h: "Cross-platform `timeout` fallback (`global/hooks/lib/timeout-wrapper.sh`)", l: 265, e: 279}
   - path: "ENFORCEMENT.md"
     title: "Enforcement Cheat Sheet"
     description: ""
@@ -95,7 +95,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 79187
+    size: 77963
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
@@ -150,34 +150,32 @@ documents:
       - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 1192, e: 1231}
       - {h: "References", l: 1232, e: 1244}
       - {h: "Auto-Generated Hook Catalog", l: 1245, e: 1252}
-      - {h: "Index", l: 1253, e: 1285}
-      - {h: "Hook Details", l: 1286, e: 1287}
-      - {h: "cleanup", l: 1288, e: 1304}
-      - {h: "config-change-logger", l: 1305, e: 1321}
-      - {h: "cwd-change-logger", l: 1322, e: 1338}
-      - {h: "dangerous-command-guard", l: 1339, e: 1355}
-      - {h: "instructions-loaded-reinforcer", l: 1356, e: 1372}
-      - {h: "memory-access-logger", l: 1373, e: 1389}
-      - {h: "memory-integrity-check", l: 1390, e: 1406}
-      - {h: "memory-write-guard", l: 1407, e: 1423}
-      - {h: "merge-gate-guard", l: 1424, e: 1441}
-      - {h: "permission-denial-logger", l: 1442, e: 1459}
-      - {h: "post-compact-restore", l: 1460, e: 1477}
-      - {h: "post-task-checkpoint", l: 1478, e: 1494}
-      - {h: "pre-compact-snapshot", l: 1495, e: 1511}
-      - {h: "pre-edit-read-guard", l: 1512, e: 1528}
-      - {h: "prompt-validator", l: 1529, e: 1545}
-      - {h: "prune-permission-rules", l: 1546, e: 1563}
-      - {h: "sensitive-file-guard", l: 1564, e: 1580}
-      - {h: "session-logger", l: 1581, e: 1597}
-      - {h: "subagent-logger", l: 1598, e: 1614}
-      - {h: "task-completed-logger", l: 1615, e: 1631}
-      - {h: "task-created-validator", l: 1632, e: 1648}
-      - {h: "team-limit-guard", l: 1649, e: 1665}
-      - {h: "tool-failure-logger", l: 1666, e: 1682}
-      - {h: "version-check", l: 1683, e: 1699}
-      - {h: "worktree-create", l: 1700, e: 1716}
-      - {h: "worktree-remove", l: 1717, e: 1734}
+      - {h: "Index", l: 1253, e: 1283}
+      - {h: "Hook Details", l: 1284, e: 1285}
+      - {h: "cleanup", l: 1286, e: 1302}
+      - {h: "config-change-logger", l: 1303, e: 1319}
+      - {h: "cwd-change-logger", l: 1320, e: 1336}
+      - {h: "dangerous-command-guard", l: 1337, e: 1353}
+      - {h: "instructions-loaded-reinforcer", l: 1354, e: 1370}
+      - {h: "memory-access-logger", l: 1371, e: 1387}
+      - {h: "memory-integrity-check", l: 1388, e: 1404}
+      - {h: "memory-write-guard", l: 1405, e: 1421}
+      - {h: "merge-gate-guard", l: 1422, e: 1439}
+      - {h: "permission-denial-logger", l: 1440, e: 1457}
+      - {h: "post-compact-restore", l: 1458, e: 1475}
+      - {h: "post-task-checkpoint", l: 1476, e: 1492}
+      - {h: "pre-compact-snapshot", l: 1493, e: 1509}
+      - {h: "prompt-validator", l: 1510, e: 1526}
+      - {h: "prune-permission-rules", l: 1527, e: 1544}
+      - {h: "session-logger", l: 1545, e: 1561}
+      - {h: "subagent-logger", l: 1562, e: 1578}
+      - {h: "task-completed-logger", l: 1579, e: 1595}
+      - {h: "task-created-validator", l: 1596, e: 1612}
+      - {h: "team-limit-guard", l: 1613, e: 1629}
+      - {h: "tool-failure-logger", l: 1630, e: 1646}
+      - {h: "version-check", l: 1647, e: 1663}
+      - {h: "worktree-create", l: 1664, e: 1680}
+      - {h: "worktree-remove", l: 1681, e: 1698}
   - path: "PREREQUISITES.md"
     title: "Prerequisites"
     description: ""
@@ -1713,11 +1711,11 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 7133
+    size: 6869
     tags: [docs,hook,hooks]
     sections:
-      - {h: "Ownership Table", l: 13, e: 84}
-      - {h: "Adding a new hook", l: 85, e: 94}
+      - {h: "Ownership Table", l: 13, e: 83}
+      - {h: "Adding a new hook", l: 84, e: 93}
   - path: "docs/install.md"
     title: "Install Behavior"
     description: ""
@@ -1809,16 +1807,16 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 8879
+    size: 9572
     tags: [docs,global,plugin]
     sections:
-      - {h: "Decision Matrix", l: 16, e: 29}
-      - {h: "Probe File Contract", l: 30, e: 67}
-      - {h: "Behavior Matrix", l: 68, e: 88}
-      - {h: "Retained Divergences", l: 89, e: 108}
-      - {h: "Failure Modes", l: 109, e: 132}
-      - {h: "Spec Compliance", l: 133, e: 156}
-      - {h: "Related", l: 157, e: 163}
+      - {h: "Decision Matrix", l: 17, e: 30}
+      - {h: "Probe File Contract", l: 31, e: 73}
+      - {h: "Behavior Matrix", l: 74, e: 94}
+      - {h: "Retained Divergences", l: 95, e: 116}
+      - {h: "Failure Modes", l: 117, e: 141}
+      - {h: "Spec Compliance", l: 142, e: 165}
+      - {h: "Related", l: 166, e: 172}
   - path: "docs/tier2-benchmark-results.md"
     title: "Tier 2 Benchmark Results"
     description: ""
