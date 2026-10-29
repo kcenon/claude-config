@@ -2,16 +2,10 @@
 # tests/hook-json-escape-group1.sh
 #
 # Regression test for issue #578: extends the smoke test of #567 across the
-# 7 hooks in group 1 of the JSON-escape conversion sweep:
+# hooks in group 1 of the JSON-escape conversion sweep. #964 removed the six
+# Bash-channel policy hooks of this group; the one that remains is:
 #
-#   1. global/hooks/attribution-guard.sh       (deny_response, allow_response)
-#   2. global/hooks/bash-sensitive-read-guard.sh (deny_response, allow_response)
-#   3. global/hooks/bash-write-guard.sh        (deny_response, allow_response)
-#   4. global/hooks/commit-message-guard.sh    (deny_response, allow_response)
-#   5. global/hooks/conflict-guard.sh          (deny_response, allow_response)
-#   6. global/hooks/gh-write-verb-guard.sh     (deny_response, allow_response,
-#                                                allow_with_context)
-#   7. global/hooks/memory-write-guard.sh      (emit_deny, emit_allow)
+#   1. global/hooks/memory-write-guard.sh      (emit_deny, emit_allow)
 #
 # Each hook MUST escape user-controlled `reason` / `feedback` / `context`
 # strings via `jq -nc --arg ... ...` so that adversarial characters
@@ -246,60 +240,7 @@ test_deny_allow_pair() {
 
 echo "=== hook-json-escape group 1 (issue #578) ==="
 
-# 1. attribution-guard.sh — deny_response(reason), allow_response()
-test_deny_allow_pair \
-    "attribution-guard" \
-    "$REPO_ROOT/global/hooks/attribution-guard.sh" \
-    "deny_response" "allow_response" "no"
-
-# 2. bash-sensitive-read-guard.sh — deny_response(reason), allow_response()
-test_deny_allow_pair \
-    "bash-sensitive-read-guard" \
-    "$REPO_ROOT/global/hooks/bash-sensitive-read-guard.sh" \
-    "deny_response" "allow_response" "no"
-
-# 3. bash-write-guard.sh — deny_response(reason), allow_response()
-test_deny_allow_pair \
-    "bash-write-guard" \
-    "$REPO_ROOT/global/hooks/bash-write-guard.sh" \
-    "deny_response" "allow_response" "no"
-
-# 4. commit-message-guard.sh — deny_response(reason), allow_response()
-test_deny_allow_pair \
-    "commit-message-guard" \
-    "$REPO_ROOT/global/hooks/commit-message-guard.sh" \
-    "deny_response" "allow_response" "no"
-
-# 5. conflict-guard.sh — deny_response(reason), allow_response()
-test_deny_allow_pair \
-    "conflict-guard" \
-    "$REPO_ROOT/global/hooks/conflict-guard.sh" \
-    "deny_response" "allow_response" "no"
-
-# 6. gh-write-verb-guard.sh — deny + allow + allow_with_context
-#    allow_response also accepts an optional reason (not surfaced in JSON).
-test_deny_allow_pair \
-    "gh-write-verb-guard" \
-    "$REPO_ROOT/global/hooks/gh-write-verb-guard.sh" \
-    "deny_response" "allow_response" "yes"
-
-# Additional: allow_with_context must also escape its `context` argument and
-# emit a valid JSON document with `permissionDecision: allow` and an
-# additionalContext string carrying the exploit characters as a literal.
-echo
-echo "=== gh-write-verb-guard: allow_with_context ==="
-funcs_ghw="$TEST_LOG_DIR/_funcs_gh-write-verb-guard.sh"
-out=$(call_helper "$funcs_ghw" "allow_with_context" "$EXPLOIT")
-assert_valid_json "$out" "allow_with_context + exploit"
-assert_decision "$out" "allow" "exploit cannot flip allow_with_context to deny"
-assert_context_roundtrip "$out" "$EXPLOIT" "allow_with_context roundtrips exploit"
-
-out=$(call_helper "$funcs_ghw" "allow_with_context" "$NASTY_REASON")
-assert_valid_json "$out" "allow_with_context + nasty"
-assert_decision "$out" "allow" "nasty allow_with_context stays allow"
-assert_context_roundtrip "$out" "$NASTY_REASON" "allow_with_context roundtrips nasty"
-
-# 7. memory-write-guard.sh — emit_deny(reason), emit_allow(feedback?)
+# 1. memory-write-guard.sh — emit_deny(reason), emit_allow(feedback?)
 test_deny_allow_pair \
     "memory-write-guard" \
     "$REPO_ROOT/global/hooks/memory-write-guard.sh" \
@@ -323,13 +264,7 @@ assert_context_roundtrip "$out" "$NASTY_REASON" "emit_allow roundtrips nasty"
 # ---- Acceptance: no remaining heredoc with bare `$reason` interpolation ----
 echo
 echo "=== Acceptance: no remaining heredoc with bare \$reason ==="
-HOOK_GLOBS="$REPO_ROOT/global/hooks/attribution-guard.sh \
-$REPO_ROOT/global/hooks/bash-sensitive-read-guard.sh \
-$REPO_ROOT/global/hooks/bash-write-guard.sh \
-$REPO_ROOT/global/hooks/commit-message-guard.sh \
-$REPO_ROOT/global/hooks/conflict-guard.sh \
-$REPO_ROOT/global/hooks/gh-write-verb-guard.sh \
-$REPO_ROOT/global/hooks/memory-write-guard.sh"
+HOOK_GLOBS="$REPO_ROOT/global/hooks/memory-write-guard.sh"
 # shellcheck disable=SC2086
 hits=$(grep -nE 'permissionDecisionReason":"\$' $HOOK_GLOBS 2>/dev/null || true)
 if [ -z "$hits" ]; then

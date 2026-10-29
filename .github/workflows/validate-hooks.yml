@@ -11,7 +11,6 @@ on:
       - 'hooks/**'
       - 'tests/hooks/**'
       - 'tests/hooks/fixtures/**'
-      - 'tests/markdown-anchor-validator/**'
       - 'tests/batch_drift_benchmark/**'
       - 'plugin/**'
       - 'plugin-lite/**'
@@ -61,9 +60,8 @@ jobs:
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             sudo apt-get update && sudo apt-get install -y jq
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            # macOS ships with bash 3.2; install bash 4+ so hooks that need
-            # associative arrays (e.g., markdown-anchor-validator.sh) can
-            # re-exec into it via the PATH checks in the hook itself.
+            # macOS ships with bash 3.2; install bash 4+ so hooks and tests
+            # that need bash 4 features can run with it.
             brew install jq bash
           fi
 
@@ -95,12 +93,12 @@ jobs:
 
       - name: Run hook JSON-escape regression tests (group 1)
         # #578: user-controlled reason/feedback/context strings must be
-        # jq-escaped by 7 group-1 hooks so adversarial characters cannot flip
+        # jq-escaped by the group-1 hooks so adversarial characters cannot flip
         # the decision field or break the JSON literal.
         run: bash tests/hook-json-escape-group1.sh
 
       - name: Run hook JSON-escape regression tests (group 2)
-        # #579: same escaping contract across 6 group-2 hooks.
+        # #579: same escaping contract across the group-2 hooks.
         run: bash tests/hook-json-escape-group2.sh
 
       - name: Run sonar-fix fixture integrity test

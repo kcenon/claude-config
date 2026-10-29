@@ -165,69 +165,8 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/hooks/bash-sensitive-read-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/shell-env-secret-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/bash-write-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/gh-write-verb-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/github-api-preflight.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/commit-message-guard.sh",
-            "timeout": 5
-          },
-          {
-            "_note": "Opt-in: silently allows when the project lacks docs/.index/graph.yaml. Only fires for `gh pr create`. See issue #590.",
-            "type": "command",
-            "command": "~/.claude/hooks/traceability-guard.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/conflict-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/pr-target-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/push-target-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/pr-language-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": "~/.claude/hooks/merge-gate-guard.sh",
             "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/attribution-guard.sh",
-            "timeout": 5
           }
         ]
       },

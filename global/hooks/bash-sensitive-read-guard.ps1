@@ -4,7 +4,12 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 
 # bash-sensitive-read-guard.ps1
 # Blocks reading sensitive files via the Bash tool channel on Windows.
-# PowerShell parity for bash-sensitive-read-guard.sh.
+#
+# Windows-only since #964. macOS and Linux cover these reads with the Bash
+# sandbox read-deny, so the bash twin (bash-sensitive-read-guard.sh) was
+# removed there; Windows has no OS sandbox, so this guard stays and the
+# Windows Bash dispatcher runs it. References below to "the .sh guard" describe
+# the removed twin this file was ported from.
 #
 # This script is a regex-driven approximation of the bash tokenizer-based
 # sibling. The full sub-command splitter from lib/tokenize-shell.sh is

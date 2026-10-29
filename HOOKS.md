@@ -1254,19 +1254,11 @@ this catalog for the canonical hook inventory.
 
 | Hook | Hook Type | PowerShell |
 |---|---|---|
-| [`attribution-guard.sh`](#attribution-guard) | PreToolUse (Bash) | yes |
-| [`bash-sensitive-read-guard.sh`](#bash-sensitive-read-guard) | PreToolUse (Bash) | yes |
-| [`bash-write-guard.sh`](#bash-write-guard) | PreToolUse (Bash) | yes |
 | [`cleanup.sh`](#cleanup) | SessionEnd | yes |
-| [`commit-message-guard.sh`](#commit-message-guard) | PreToolUse (Bash) | yes |
 | [`config-change-logger.sh`](#config-change-logger) | ConfigChange | yes |
-| [`conflict-guard.sh`](#conflict-guard) | PreToolUse (Bash) | yes |
 | [`cwd-change-logger.sh`](#cwd-change-logger) | CwdChanged | yes |
 | [`dangerous-command-guard.sh`](#dangerous-command-guard) | PreToolUse (Bash) | yes |
-| [`gh-write-verb-guard.sh`](#gh-write-verb-guard) | PreToolUse (Bash) | yes |
-| [`github-api-preflight.sh`](#github-api-preflight) | PreToolUse (Bash) | yes |
 | [`instructions-loaded-reinforcer.sh`](#instructions-loaded-reinforcer) | InstructionsLoaded (sync) | yes |
-| [`markdown-anchor-validator.sh`](#markdown-anchor-validator) | PreToolUse (Bash) | yes |
 | [`memory-access-logger.sh`](#memory-access-logger) | PostToolUse (Read) | yes |
 | [`memory-integrity-check.sh`](#memory-integrity-check) | SessionStart (sync) | yes |
 | [`memory-write-guard.sh`](#memory-write-guard) | PreToolUse (Edit|Write) | yes |
@@ -1274,80 +1266,24 @@ this catalog for the canonical hook inventory.
 | [`permission-denial-logger.sh`](#permission-denial-logger) | PermissionDenied | yes |
 | [`post-compact-restore.sh`](#post-compact-restore) | SessionStart (matcher: compact, sync) | yes |
 | [`post-task-checkpoint.sh`](#post-task-checkpoint) | PostToolUse | yes |
-| [`pr-language-guard.sh`](#pr-language-guard) | PreToolUse (Bash) | yes |
-| [`pr-target-guard.sh`](#pr-target-guard) | PreToolUse (Bash) | yes |
 | [`pre-compact-snapshot.sh`](#pre-compact-snapshot) | PreCompact (async) | yes |
 | [`pre-edit-read-guard.sh`](#pre-edit-read-guard) | PreToolUse (Edit|Write) + PostToolUse (Read) | yes |
 | [`prompt-validator.sh`](#prompt-validator) | UserPromptSubmit | yes |
 | [`prune-permission-rules.sh`](#prune-permission-rules) | SessionEnd | yes |
-| [`push-target-guard.sh`](#push-target-guard) | PreToolUse (Bash) | yes |
 | [`sensitive-file-guard.sh`](#sensitive-file-guard) | PreToolUse (Edit|Write|Read) | yes |
 | [`session-logger.sh`](#session-logger) | SessionStart, SessionEnd, Stop, TeammateIdle | yes |
-| [`shell-env-secret-guard.sh`](#shell-env-secret-guard) | PreToolUse (Bash) | yes |
 | [`subagent-logger.sh`](#subagent-logger) | SubagentStart, SubagentStop | yes |
 | [`task-completed-logger.sh`](#task-completed-logger) | TaskCompleted | yes |
 | [`task-created-validator.sh`](#task-created-validator) | TaskCreated (sync, blocking) | yes |
 | [`team-limit-guard.sh`](#team-limit-guard) | PreToolUse (TeamCreate) | yes |
 | [`tool-failure-logger.sh`](#tool-failure-logger) | PostToolUseFailure | yes |
-| [`traceability-guard.sh`](#traceability-guard) | PreToolUse (Bash) | yes |
 | [`version-check.sh`](#version-check) | SessionStart | yes |
 | [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
 | [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 39 bash hooks, 39 with PowerShell counterparts._
+_Total: 26 bash hooks, 26 with PowerShell counterparts._
 
 ### Hook Details
-
-### attribution-guard
-
-_File:_ `attribution-guard.sh`
-
-_Anchor:_ `#attribution-guard`
-
-Blocks gh pr/issue/release commands whose user-facing text fields contain AI/Claude attribution markers. Scope (Issue #480 extended): pr create|edit|comment|review, issue create|edit|comment, release create|edit.
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Bash) |
-| Trigger / Matcher | Bash |
-| Exit codes | 0 (always — decision is in JSON) |
-| Response format | hookSpecificOutput with hookEventName |
-| PowerShell counterpart | present (`attribution-guard.ps1`) |
-| Source | `global/hooks/attribution-guard.sh` |
-
-### bash-sensitive-read-guard
-
-_File:_ `bash-sensitive-read-guard.sh`
-
-_Anchor:_ `#bash-sensitive-read-guard`
-
-Blocks reading sensitive files via the Bash tool channel.
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Bash) |
-| Trigger / Matcher | Bash |
-| Exit codes | 0 (always — decision is in JSON) |
-| Response format | hookSpecificOutput with hookEventName |
-| PowerShell counterpart | present (`bash-sensitive-read-guard.ps1`) |
-| Source | `global/hooks/bash-sensitive-read-guard.sh` |
-
-### bash-write-guard
-
-_File:_ `bash-write-guard.sh`
-
-_Anchor:_ `#bash-write-guard`
-
-Enforces the "Read before Edit/Write" invariant on the Bash tool channel.
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Bash) |
-| Trigger / Matcher | Bash |
-| Exit codes | 0 (always — decision is in JSON) |
-| Response format | — |
-| PowerShell counterpart | present (`bash-write-guard.ps1`) |
-| Source | `global/hooks/bash-write-guard.sh` |
 
 ### cleanup
 
@@ -1366,23 +1302,6 @@ Cleans up temporary files created during session
 | PowerShell counterpart | present (`cleanup.ps1`) |
 | Source | `global/hooks/cleanup.sh` |
 
-### commit-message-guard
-
-_File:_ `commit-message-guard.sh`
-
-_Anchor:_ `#commit-message-guard`
-
-Deterministic git commit message validator
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Bash) |
-| Trigger / Matcher | Bash |
-| Exit codes | 0 (always — decision is in JSON) |
-| Response format | hookSpecificOutput with hookEventName |
-| PowerShell counterpart | present (`commit-message-guard.ps1`) |
-| Source | `global/hooks/commit-message-guard.sh` |
-
 ### config-change-logger
 
 _File:_ `config-change-logger.sh`
@@ -1399,23 +1318,6 @@ Logs configuration file changes during session
 | Response format | none (lifecycle event, no JSON output needed) |
 | PowerShell counterpart | present (`config-change-logger.ps1`) |
 | Source | `global/hooks/config-change-logger.sh` |
-
-### conflict-guard
-
-_File:_ `conflict-guard.sh`
-
-_Anchor:_ `#conflict-guard`
-
-Guards against git operations that could cause conflicts
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Bash) |
-| Trigger / Matcher | Bash |
-| Exit codes | 0 (always — decision is in JSON) |
-| Response format | hookSpecificOutput with hookEventName |
-| PowerShell counterpart | present (`conflict-guard.ps1`) |
-| Source | `global/hooks/conflict-guard.sh` |
 
 ### cwd-change-logger
 
@@ -1451,40 +1353,6 @@ Denies irreversible shell operations and asks before destructive local ones.
 | PowerShell counterpart | present (`dangerous-command-guard.ps1`) |
 | Source | `global/hooks/dangerous-command-guard.sh` |
 
-### gh-write-verb-guard
-
-_File:_ `gh-write-verb-guard.sh`
-
-_Anchor:_ `#gh-write-verb-guard`
-
-Narrows the `gh` CLI surface on the Bash channel:
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Bash) |
-| Trigger / Matcher | Bash |
-| Exit codes | 0 (always — decision is in JSON) |
-| Response format | — |
-| PowerShell counterpart | present (`gh-write-verb-guard.ps1`) |
-| Source | `global/hooks/gh-write-verb-guard.sh` |
-
-### github-api-preflight
-
-_File:_ `github-api-preflight.sh`
-
-_Anchor:_ `#github-api-preflight`
-
-Checks GitHub API connectivity before executing GitHub-related commands
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Bash) |
-| Trigger / Matcher | Bash |
-| Exit codes | 0 (always — decision is in JSON, warning only) |
-| Response format | hookSpecificOutput with hookEventName |
-| PowerShell counterpart | present (`github-api-preflight.ps1`) |
-| Source | `global/hooks/github-api-preflight.sh` |
-
 ### instructions-loaded-reinforcer
 
 _File:_ `instructions-loaded-reinforcer.sh`
@@ -1501,23 +1369,6 @@ Re-asserts critical policy after CLAUDE.md / .claude/rules/*.md loads.
 | Response format | hookSpecificOutput.additionalContext |
 | PowerShell counterpart | present (`instructions-loaded-reinforcer.ps1`) |
 | Source | `global/hooks/instructions-loaded-reinforcer.sh` |
-
-### markdown-anchor-validator
-
-_File:_ `markdown-anchor-validator.sh`
-
-_Anchor:_ `#markdown-anchor-validator`
-
-Validates markdown anchor references before git commit
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Bash) |
-| Trigger / Matcher | Bash |
-| Exit codes | 0 (always — decision is in JSON) |
-| Response format | hookSpecificOutput with hookEventName |
-| PowerShell counterpart | present (`markdown-anchor-validator.ps1`) |
-| Source | `global/hooks/markdown-anchor-validator.sh` |
 
 ### memory-access-logger
 
@@ -1641,40 +1492,6 @@ Auto-commits working-tree changes after a Task or Agent tool call completes, pre
 | PowerShell counterpart | present (`post-task-checkpoint.ps1`) |
 | Source | `global/hooks/post-task-checkpoint.sh` |
 
-### pr-language-guard
-
-_File:_ `pr-language-guard.sh`
-
-_Anchor:_ `#pr-language-guard`
-
-Blocks gh commands that publish artifacts (PRs, issues, comments, reviews, releases) when their text content violates the resolved CLAUDE_CONTENT_LANGUAGE policy.
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Bash) |
-| Trigger / Matcher | Bash |
-| Exit codes | 0 (always — decision is in JSON) |
-| Response format | hookSpecificOutput with hookEventName |
-| PowerShell counterpart | present (`pr-language-guard.ps1`) |
-| Source | `global/hooks/pr-language-guard.sh` |
-
-### pr-target-guard
-
-_File:_ `pr-target-guard.sh`
-
-_Anchor:_ `#pr-target-guard`
-
-Blocks PRs targeting 'main' from non-develop branches
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Bash) |
-| Trigger / Matcher | Bash |
-| Exit codes | 0 (always — decision is in JSON) |
-| Response format | hookSpecificOutput with hookEventName |
-| PowerShell counterpart | present (`pr-target-guard.ps1`) |
-| Source | `global/hooks/pr-target-guard.sh` |
-
 ### pre-compact-snapshot
 
 _File:_ `pre-compact-snapshot.sh`
@@ -1744,23 +1561,6 @@ Prunes permissions.allow entries that can never match again from the project-sco
 | PowerShell counterpart | present (`prune-permission-rules.ps1`) |
 | Source | `global/hooks/prune-permission-rules.sh` |
 
-### push-target-guard
-
-_File:_ `push-target-guard.sh`
-
-_Anchor:_ `#push-target-guard`
-
-Blocks git pushes that bypass the two-layer defense (issue #782): 1. `git push --no-verify ...` — defeats the terminal-side pre-push hook. 2. Direct push to a protected branch (main / master / develop) — whether the target is explicit (`git push origin main`, `... HEAD:main`) or the resolved upstream of the current branch (`git push` while on main).
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Bash) |
-| Trigger / Matcher | Bash |
-| Exit codes | 0 (always — decision is in JSON) |
-| Response format | — |
-| PowerShell counterpart | present (`push-target-guard.ps1`) |
-| Source | `global/hooks/push-target-guard.sh` |
-
 ### sensitive-file-guard
 
 _File:_ `sensitive-file-guard.sh`
@@ -1794,23 +1594,6 @@ Logs session start/end events
 | Response format | none (lifecycle event, no JSON output needed) |
 | PowerShell counterpart | present (`session-logger.ps1`) |
 | Source | `global/hooks/session-logger.sh` |
-
-### shell-env-secret-guard
-
-_File:_ `shell-env-secret-guard.sh`
-
-_Anchor:_ `#shell-env-secret-guard`
-
-Blocks bash commands that would print or dump secret-bearing environment variables into the transcript.
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Bash) |
-| Trigger / Matcher | Bash |
-| Exit codes | 0 (always — decision is in JSON) |
-| Response format | hookSpecificOutput with hookEventName |
-| PowerShell counterpart | present (`shell-env-secret-guard.ps1`) |
-| Source | `global/hooks/shell-env-secret-guard.sh` |
 
 ### subagent-logger
 
@@ -1896,23 +1679,6 @@ Logs tool execution failures for debugging and analysis.
 | Response format | none (lifecycle event, no JSON output needed) |
 | PowerShell counterpart | present (`tool-failure-logger.ps1`) |
 | Source | `global/hooks/tool-failure-logger.sh` |
-
-### traceability-guard
-
-_File:_ `traceability-guard.sh`
-
-_Anchor:_ `#traceability-guard`
-
-Deterministic traceability cascade validator.
-
-| Field | Value |
-|---|---|
-| Hook Type | PreToolUse (Bash) |
-| Trigger / Matcher | Bash |
-| Exit codes | 0 (always — decision is in JSON) |
-| Response format | hookSpecificOutput with hookEventName |
-| PowerShell counterpart | present (`traceability-guard.ps1`) |
-| Source | `global/hooks/traceability-guard.sh` |
 
 ### version-check
 

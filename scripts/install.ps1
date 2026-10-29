@@ -141,7 +141,6 @@ function Deploy-InstallHooks {
         'rotate.sh',
         'CommonHelpers.psm1',
         'LanguageValidator.psm1',
-        'AttributionValidator.psm1',
         'validate-commit-message.sh',
         'validate-language.sh',
         'validate-traceability.sh'
