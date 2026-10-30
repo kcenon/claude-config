@@ -44,7 +44,7 @@ Issue #964 removed the other 32 registrations. A reinstall prunes their script f
 | `pre-edit-read-guard` (PreToolUse and PostToolUse) | The native Edit/Write contract; the `global/CLAUDE.md` invariant stays |
 | `sensitive-file-guard` | `permissions.deny` `Read(...)` rules, which also block Edit and Write on the path (Claude Code 2.1.228+) |
 | `bash-write-guard` | The Bash sandbox write allowlist (macOS, Linux); `global/CLAUDE.md` |
-| `bash-sensitive-read-guard`, `shell-env-secret-guard` (`.sh`) | The Bash sandbox read-deny covers secret files under the working directory on macOS and Linux, plus `~/.aws/credentials`; SSH keys in `~/.ssh` are a [known gap](ENFORCEMENT.md#secrets-outside-the-working-directory). Nothing there replaces the check on printing a secret-bearing environment variable. The `.ps1` guards stay on Windows |
+| `bash-sensitive-read-guard`, `shell-env-secret-guard` (`.sh`) | The Bash sandbox read-deny covers secret files under the working directory on macOS and Linux, plus the home credential files [listed in ENFORCEMENT.md](ENFORCEMENT.md#secrets-outside-the-working-directory), which also names the ones left readable on purpose. Nothing there replaces the check on printing a secret-bearing environment variable. The `.ps1` guards stay on Windows |
 | `gh-write-verb-guard`, `github-api-preflight` | The destructive `gh` arms of `dangerous-command-guard`; no `additionalContext` injection |
 | `commit-message-guard`, `attribution-guard` | The `commit-msg` git hook; `settings.json` `attribution: ""` |
 | `pr-language-guard`, `traceability-guard` | The `commit-settings.md` instruction; the `pre-push` git hook and the skills check traceability |
@@ -115,9 +115,9 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 **Denied targets**:
 - Filename patterns: `.env` (incl. `.envrc`, `.env.*`, and the `*.env` suffix form such as `production.env`), `.pem`, `.key`, `.p12`, `.pfx`, `*password*`, and SSH key basenames `id_rsa`, `id_ed25519`, `id_ecdsa`, `id_dsa` (incl. suffixed variants)
 - Path patterns: `secrets/`, `credentials/`, `passwords/`, plus `credentials` and `config` under `.aws/`. The plugin-only fallback shares the filename set but additionally blocks `private/`; it stands down when the full suite is active (see [Plugin vs Global](docs/plugin-vs-global.md#retained-divergences)).
-- Home-anchored: `~/.aws/credentials` (#973). The patterns above start with `**/` and are relative to the working directory, so they match only under it.
+- Home-anchored: the credential files listed in [Secrets outside the working directory](ENFORCEMENT.md#secrets-outside-the-working-directory) (#973, #982). The patterns above start with `**/` and are relative to the working directory, so they match only under it.
 
-**Shell channel**: on macOS and Linux the Bash sandbox read-deny covers `cat .env` and similar reads of files under the working directory, plus `~/.aws/credentials`. SSH private keys in `~/.ssh` are deliberately not denied, because sandboxed SSH commit signing reads the key file; see [Secrets outside the working directory](ENFORCEMENT.md#secrets-outside-the-working-directory). Windows has no OS sandbox, so `bash-sensitive-read-guard.ps1` runs in the [Bash dispatcher](#bash-guard-dispatcher-windows) there.
+**Shell channel**: on macOS and Linux the Bash sandbox read-deny covers `cat .env` and similar reads of files under the working directory, plus the home-anchored files. Such a rule also stops a sandboxed tool that reads the file for its own config, so some files stay readable on purpose; see [Secrets outside the working directory](ENFORCEMENT.md#secrets-outside-the-working-directory). Windows has no OS sandbox, so `bash-sensitive-read-guard.ps1` runs in the [Bash dispatcher](#bash-guard-dispatcher-windows) there.
 
 ### 2. Destructive Command Guard (PreToolUse)
 
@@ -340,7 +340,8 @@ block direct tool access to sensitive files:
 Since #964 these `Read(...)` rules are the whole file-channel sensitive-file
 control: a `Read` deny also blocks Edit and Write on the same path (Claude Code
 2.1.228+), and the rules feed the Bash sandbox read-deny on macOS and Linux.
-Both are relative to the working directory for `**/` patterns; see
+Both are relative to the working directory for `**/` patterns, so home
+credential files have their own `~/` rules; see
 [Secrets outside the working directory](ENFORCEMENT.md#secrets-outside-the-working-directory).
 
 The Windows profile also carries a narrow `permissions.allow` list for native

@@ -10,57 +10,57 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 94008
+    size: 94734
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "Unreleased", l: 8, e: 9}
-      - {h: "Fixed", l: 10, e: 13}
-      - {h: "1.16.0 - 2026-10-30", l: 14, e: 34}
-      - {h: "Removed", l: 35, e: 68}
-      - {h: "Changed", l: 69, e: 107}
-      - {h: "Fixed", l: 108, e: 169}
-      - {h: "1.15.0 - 2026-10-23", l: 170, e: 171}
-      - {h: "Added", l: 172, e: 183}
-      - {h: "Changed", l: 184, e: 214}
-      - {h: "Fixed", l: 215, e: 221}
-      - {h: "1.14.0 - 2026-09-29", l: 222, e: 223}
-      - {h: "Added", l: 224, e: 232}
-      - {h: "Changed", l: 233, e: 255}
-      - {h: "Removed", l: 256, e: 287}
-      - {h: "Fixed", l: 288, e: 329}
-      - {h: "Security", l: 330, e: 366}
-      - {h: "1.13.0 - 2026-09-13", l: 367, e: 368}
-      - {h: "Added", l: 369, e: 554}
-      - {h: "Changed", l: 555, e: 607}
-      - {h: "Fixed", l: 608, e: 741}
-      - {h: "Security", l: 742, e: 760}
-      - {h: "Known limitation", l: 761, e: 768}
-      - {h: "1.12.0 - 2026-08-01", l: 769, e: 770}
-      - {h: "Added", l: 771, e: 902}
-      - {h: "Fixed", l: 903, e: 1145}
-      - {h: "1.11.0 - 2026-07-03", l: 1146, e: 1147}
-      - {h: "Fixed", l: 1148, e: 1161}
-      - {h: "Security", l: 1162, e: 1239}
-      - {h: "Added", l: 1240, e: 1268}
-      - {h: "Changed", l: 1269, e: 1315}
-      - {h: "1.10.0 - 2026-04-20", l: 1316, e: 1324}
-      - {h: "1.9.0 - 2026-04-13", l: 1325, e: 1334}
-      - {h: "1.8.0 - 2026-04-13", l: 1335, e: 1340}
-      - {h: "1.7.0 - 2026-04-06", l: 1341, e: 1355}
-      - {h: "1.6.0 - 2026-04-03", l: 1356, e: 1368}
-      - {h: "1.5.0 - 2026-03-21", l: 1369, e: 1387}
-      - {h: "1.4.0 - 2026-01-22", l: 1388, e: 1393}
-      - {h: "1.3.0 - 2026-01-15", l: 1394, e: 1402}
-      - {h: "1.2.0 - 2026-01-15", l: 1403, e: 1411}
-      - {h: "1.1.0 - 2025-01-15", l: 1412, e: 1422}
-      - {h: "1.0.0 - 2025-12-03", l: 1423, e: 1429}
+      - {h: "Fixed", l: 10, e: 14}
+      - {h: "1.16.0 - 2026-10-30", l: 15, e: 35}
+      - {h: "Removed", l: 36, e: 69}
+      - {h: "Changed", l: 70, e: 108}
+      - {h: "Fixed", l: 109, e: 170}
+      - {h: "1.15.0 - 2026-10-23", l: 171, e: 172}
+      - {h: "Added", l: 173, e: 184}
+      - {h: "Changed", l: 185, e: 215}
+      - {h: "Fixed", l: 216, e: 222}
+      - {h: "1.14.0 - 2026-09-29", l: 223, e: 224}
+      - {h: "Added", l: 225, e: 233}
+      - {h: "Changed", l: 234, e: 256}
+      - {h: "Removed", l: 257, e: 288}
+      - {h: "Fixed", l: 289, e: 330}
+      - {h: "Security", l: 331, e: 367}
+      - {h: "1.13.0 - 2026-09-13", l: 368, e: 369}
+      - {h: "Added", l: 370, e: 555}
+      - {h: "Changed", l: 556, e: 608}
+      - {h: "Fixed", l: 609, e: 742}
+      - {h: "Security", l: 743, e: 761}
+      - {h: "Known limitation", l: 762, e: 769}
+      - {h: "1.12.0 - 2026-08-01", l: 770, e: 771}
+      - {h: "Added", l: 772, e: 903}
+      - {h: "Fixed", l: 904, e: 1146}
+      - {h: "1.11.0 - 2026-07-03", l: 1147, e: 1148}
+      - {h: "Fixed", l: 1149, e: 1162}
+      - {h: "Security", l: 1163, e: 1240}
+      - {h: "Added", l: 1241, e: 1269}
+      - {h: "Changed", l: 1270, e: 1316}
+      - {h: "1.10.0 - 2026-04-20", l: 1317, e: 1325}
+      - {h: "1.9.0 - 2026-04-13", l: 1326, e: 1335}
+      - {h: "1.8.0 - 2026-04-13", l: 1336, e: 1341}
+      - {h: "1.7.0 - 2026-04-06", l: 1342, e: 1356}
+      - {h: "1.6.0 - 2026-04-03", l: 1357, e: 1369}
+      - {h: "1.5.0 - 2026-03-21", l: 1370, e: 1388}
+      - {h: "1.4.0 - 2026-01-22", l: 1389, e: 1394}
+      - {h: "1.3.0 - 2026-01-15", l: 1395, e: 1403}
+      - {h: "1.2.0 - 2026-01-15", l: 1404, e: 1412}
+      - {h: "1.1.0 - 2025-01-15", l: 1413, e: 1423}
+      - {h: "1.0.0 - 2025-12-03", l: 1424, e: 1430}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
     category: config
     scope: root
-    size: 18646
+    size: 18590
     tags: [compatibility,config]
     sections:
       - {h: "Compatibility Guide", l: 1, e: 6}
@@ -88,22 +88,22 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 9273
+    size: 12340
     tags: [config]
     sections:
       - {h: "At-a-glance", l: 7, e: 27}
       - {h: "Not checked by a hook", l: 28, e: 42}
-      - {h: "Secrets outside the working directory", l: 43, e: 51}
-      - {h: "CI gates (server-side)", l: 52, e: 64}
-      - {h: "Fail-policy quick reference", l: 65, e: 70}
-      - {h: "Bypass", l: 71, e: 75}
-      - {h: "See also", l: 76, e: 81}
+      - {h: "Secrets outside the working directory", l: 43, e: 66}
+      - {h: "CI gates (server-side)", l: 67, e: 79}
+      - {h: "Fail-policy quick reference", l: 80, e: 85}
+      - {h: "Bypass", l: 86, e: 90}
+      - {h: "See also", l: 91, e: 96}
   - path: "HOOKS.md"
     title: "Claude Code Hook Configuration Guide"
     description: ""
     category: config
     scope: root
-    size: 50092
+    size: 50306
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
@@ -123,43 +123,43 @@ documents:
       - {h: "Hook Response Format", l: 246, e: 290}
       - {h: "Project Hooks (project/.claude/settings.json)", l: 291, e: 296}
       - {h: "1. Auto Formatting (PostToolUse)", l: 297, e: 317}
-      - {h: "Permission Settings", l: 318, e: 371}
-      - {h: "Over-length commands and the parse limit", l: 372, e: 394}
-      - {h: "Windows Support (PowerShell)", l: 395, e: 396}
-      - {h: "Overview", l: 397, e: 405}
-      - {h: "How It Works", l: 406, e: 420}
-      - {h: "Bash Guard Dispatcher (Windows)", l: 421, e: 468}
-      - {h: "Edit Guard Dispatcher (Windows)", l: 469, e: 556}
-      - {h: "PowerShell Hook Scripts", l: 557, e: 575}
-      - {h: "Key Differences from Bash Hooks", l: 576, e: 585}
-      - {h: "Prerequisites", l: 586, e: 596}
-      - {h: "Troubleshooting (Windows)", l: 597, e: 598}
-      - {h: "\"File cannot be loaded because running scripts is disabled\"", l: 599, e: 603}
-      - {h: "Hooks not executing", l: 604, e: 609}
-      - {h: "\"pwsh is not recognized\"", l: 610, e: 614}
-      - {h: "Customization", l: 615, e: 616}
-      - {h: "Disabling Hooks", l: 617, e: 620}
-      - {h: "Adding New Hooks", l: 621, e: 637}
-      - {h: "Matcher Patterns", l: 638, e: 646}
-      - {h: "Troubleshooting", l: 647, e: 648}
-      - {h: "Hook is not executing", l: 649, e: 654}
-      - {h: "Timeout occurring", l: 655, e: 681}
-      - {h: "Formatter not working", l: 682, e: 690}
-      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 691, e: 730}
-      - {h: "References", l: 731, e: 743}
-      - {h: "Auto-Generated Hook Catalog", l: 744, e: 751}
-      - {h: "Index", l: 752, e: 768}
-      - {h: "Hook Details", l: 769, e: 770}
-      - {h: "cleanup", l: 771, e: 787}
-      - {h: "dangerous-command-guard", l: 788, e: 804}
-      - {h: "memory-access-logger", l: 805, e: 821}
-      - {h: "memory-integrity-check", l: 822, e: 838}
-      - {h: "memory-write-guard", l: 839, e: 855}
-      - {h: "merge-gate-guard", l: 856, e: 873}
-      - {h: "permission-denial-logger", l: 874, e: 891}
-      - {h: "prune-permission-rules", l: 892, e: 909}
-      - {h: "worktree-create", l: 910, e: 926}
-      - {h: "worktree-remove", l: 927, e: 944}
+      - {h: "Permission Settings", l: 318, e: 372}
+      - {h: "Over-length commands and the parse limit", l: 373, e: 395}
+      - {h: "Windows Support (PowerShell)", l: 396, e: 397}
+      - {h: "Overview", l: 398, e: 406}
+      - {h: "How It Works", l: 407, e: 421}
+      - {h: "Bash Guard Dispatcher (Windows)", l: 422, e: 469}
+      - {h: "Edit Guard Dispatcher (Windows)", l: 470, e: 557}
+      - {h: "PowerShell Hook Scripts", l: 558, e: 576}
+      - {h: "Key Differences from Bash Hooks", l: 577, e: 586}
+      - {h: "Prerequisites", l: 587, e: 597}
+      - {h: "Troubleshooting (Windows)", l: 598, e: 599}
+      - {h: "\"File cannot be loaded because running scripts is disabled\"", l: 600, e: 604}
+      - {h: "Hooks not executing", l: 605, e: 610}
+      - {h: "\"pwsh is not recognized\"", l: 611, e: 615}
+      - {h: "Customization", l: 616, e: 617}
+      - {h: "Disabling Hooks", l: 618, e: 621}
+      - {h: "Adding New Hooks", l: 622, e: 638}
+      - {h: "Matcher Patterns", l: 639, e: 647}
+      - {h: "Troubleshooting", l: 648, e: 649}
+      - {h: "Hook is not executing", l: 650, e: 655}
+      - {h: "Timeout occurring", l: 656, e: 682}
+      - {h: "Formatter not working", l: 683, e: 691}
+      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 692, e: 731}
+      - {h: "References", l: 732, e: 744}
+      - {h: "Auto-Generated Hook Catalog", l: 745, e: 752}
+      - {h: "Index", l: 753, e: 769}
+      - {h: "Hook Details", l: 770, e: 771}
+      - {h: "cleanup", l: 772, e: 788}
+      - {h: "dangerous-command-guard", l: 789, e: 805}
+      - {h: "memory-access-logger", l: 806, e: 822}
+      - {h: "memory-integrity-check", l: 823, e: 839}
+      - {h: "memory-write-guard", l: 840, e: 856}
+      - {h: "merge-gate-guard", l: 857, e: 874}
+      - {h: "permission-denial-logger", l: 875, e: 892}
+      - {h: "prune-permission-rules", l: 893, e: 910}
+      - {h: "worktree-create", l: 911, e: 927}
+      - {h: "worktree-remove", l: 928, e: 945}
   - path: "PREREQUISITES.md"
     title: "Prerequisites"
     description: ""

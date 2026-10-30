@@ -5,11 +5,14 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 # bash-sensitive-read-guard.ps1
 # Blocks reading sensitive files via the Bash tool channel on Windows.
 #
-# Windows-only since #964. macOS and Linux cover these reads with the Bash
-# sandbox read-deny, so the bash twin (bash-sensitive-read-guard.sh) was
-# removed there; Windows has no OS sandbox, so this guard stays and the
-# Windows Bash dispatcher runs it. References below to "the .sh guard" describe
-# the removed twin this file was ported from.
+# Windows-only since #964. On macOS and Linux the bash twin
+# (bash-sensitive-read-guard.sh) was removed in favor of the Bash sandbox
+# read-deny. That deny covers files under the working directory and the
+# home-anchored rules in permissions.deny, not every read outside the working
+# directory; see "Secrets outside the working directory" in ENFORCEMENT.md.
+# Windows has no OS sandbox, so this guard stays and the Windows Bash dispatcher
+# runs it. References below to "the .sh guard" describe the removed twin this
+# file was ported from.
 #
 # This script is a regex-driven approximation of the bash tokenizer-based
 # sibling. The full sub-command splitter from lib/tokenize-shell.sh is
@@ -54,6 +57,12 @@ $sensitivePatterns = @(
     '(^|[\s/\\])\.dockerconfigjson(\s|$)',
     '(^|[\s/\\])\.docker[/\\]config\.json',
     '(^|[\s/\\])\.kube[/\\]config(\s|$)',
+    # The .sh guard never had these two (#982). This guard is the only Bash-channel
+    # control on Windows, where gh keeps its token file in %AppData%\GitHub CLI\
+    # rather than ~/.config/gh/. Only those directories count: hosts.yml is a
+    # common name elsewhere, for example in an Ansible inventory.
+    '(^|[\s/\\''">=])(?:gh|GitHub CLI)[/\\]hosts\.yml',
+    '(^|[\s/\\])\.aws[/\\](?:sso|cli)[/\\]cache',
     '\.(?:pem|key|p12|pfx|crt|cer)([\s''"]|$)',
     # Accept a command/path boundary before all three sensitive-directory
     # tokens so relative paths (`cat secrets/db.yml`) deny just like absolute
