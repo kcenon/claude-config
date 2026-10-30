@@ -108,6 +108,13 @@ deletes them. (#964)
   readable on purpose: sandboxed SSH commit signing reads the key file. The
   docs no longer claim the sandbox covers secret files outside the working
   directory; `ENFORCEMENT.md` records the `~/.ssh` gap. (#973)
+- `memory-write-guard.ps1` no longer fails open on PowerShell 7. It called
+  `Split-Path -LiteralPath` with `-Leaf` and `-Parent`, a parameter
+  combination PowerShell 7 rejects, so every path under the memory root
+  threw and `edit-guard-dispatcher.ps1` turned the crash into an allow. The
+  guard now uses `[System.IO.Path]`, which also resolves a new file through
+  its existing parent again. `tests/hooks/test-memory-write-guard.ps1`
+  mirrors the `.sh` suite. (#972)
 
 ## 1.15.0 - 2026-10-23
 
