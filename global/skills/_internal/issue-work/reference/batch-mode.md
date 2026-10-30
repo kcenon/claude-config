@@ -373,7 +373,7 @@ In interactive sessions without a wrapper to restart the process, leave `--auto-
 **Failure handling per item:**
 - Build/test/CI failure after 3 retries → mark FAILED, create draft PR if code was written, continue to next
 - Team mode failure → fallback to solo for THIS item, then continue
-- MAX_TEAMS exceeded → force solo for this item
+- `TeamCreate` refused (for example, a team is already active in this session) → force solo for this item
 - Issue closed by someone else during batch → mark SKIPPED, continue
 
 ### B-5. Batch Summary Report

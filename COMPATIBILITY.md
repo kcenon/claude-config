@@ -28,27 +28,15 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 
 | Hook Event | Used By | Purpose |
 |---|---|---|
-| `PreToolUse` | sensitive-file-guard, dangerous-command-guard, github-api-preflight, markdown-anchor-validator, prompt-validator (LLM), team-limit-guard | Block or allow tool calls before execution |
-| `PostToolUse` | post-task-checkpoint, pre-edit-read-guard, memory-access-logger | Run after a tool call completes (checkpointing, read-tracking, memory-access logging) |
-| `PostToolUseFailure` | tool-failure-logger | Log failed tool executions |
-| `SessionStart` | session-logger, version-check, post-compact-restore (matcher: `compact`) | Session lifecycle logging, version warnings, post-compaction principles restore |
-| `SessionEnd` | session-logger, cleanup | Session logging, temp file cleanup |
-| `Stop` | session-logger | Log when Claude stops generating |
-| `UserPromptSubmit` | prompt-validator | Validate user prompts before processing |
-| `SubagentStart` | subagent-logger | Track subagent lifecycle |
-| `SubagentStop` | subagent-logger | Track subagent lifecycle |
-| `PreCompact` | pre-compact-snapshot | Snapshot context before auto-compaction |
+| `PreToolUse` | dangerous-command-guard, merge-gate-guard (`Bash`); memory-write-guard (`Edit\|Write`) | Deny or ask before destructive operations; gate merges on CI; validate shared-memory writes |
+| `PostToolUse` | memory-access-logger (`Read`) | Log reads of shared-memory files (path only) |
+| `SessionStart` | memory-integrity-check | Print a short memory-sync health summary |
+| `SessionEnd` | cleanup, prune-permission-rules | Temp file cleanup; prune `permissions.allow` entries that can never match again |
 | `WorktreeCreate` | worktree-create | Custom worktree initialization |
 | `WorktreeRemove` | worktree-remove | Custom worktree cleanup |
-| `TaskCreated` | task-created-validator | Validate newly created tasks (Agent Teams) |
-| `TaskCompleted` | task-completed-logger | Log task completions (Agent Teams) |
-| `ConfigChange` | config-change-logger | Log configuration changes |
-| `CwdChanged` | cwd-change-logger | Log working-directory changes (observation only) |
-| `InstructionsLoaded` | instructions-loaded-reinforcer | Reinforce core instructions when context is (re)loaded |
-| `TeammateIdle` | session-logger | Log teammate idle events (Agent Teams) |
 | `PermissionDenied` | permission-denial-logger | Append a redacted JSONL audit record of denied tool calls (observation only) |
 
-> This table lists only the events **this config wires**. The full official catalog is larger (~30 events as of 2026-05; see `code.claude.com/docs/en/hooks`). Unwired official events are not defects -- see `docs/official-spec-rereview-2026-05-29.md`.
+> This table lists only the events **this config wires**. #964 cut the set to these 10 registrations; the `PostToolUseFailure`, `Stop`, `UserPromptSubmit`, `SubagentStart`, `SubagentStop`, `PreCompact`, `TaskCreated`, `TaskCompleted`, `ConfigChange`, `CwdChanged`, `InstructionsLoaded` and `TeammateIdle` events are no longer wired. The full official catalog is larger (~30 events as of 2026-05; see `code.claude.com/docs/en/hooks`). Unwired official events are not defects -- see `docs/official-spec-rereview-2026-05-29.md`.
 
 ### Settings Features
 
@@ -122,7 +110,6 @@ PowerShell read-only discovery allowlist.
 | `outputStyle` | Stable | 2.0.0+ | Adjusts the system prompt (e.g. `"Explanatory"`). |
 | `attribution.commit` | Stable | 2.0.0+ | Empty string hides commit attribution. |
 | `attribution.pr` | Stable | 2.0.0+ | Empty string hides PR attribution. |
-| `attribution.issue` | Undocumented | — | Not on settings reference; used by claude-config's `attribution-guard` hook. Verify on each CC release. |
 | `enableAllProjectMcpServers` | Stable | 2.0.0+ | Keeps project `.mcp.json` servers opt-in by default. |
 | `enabledMcpjsonServers` | Stable | 2.0.0+ | Explicit allowlist of project `.mcp.json` servers. Empty by default. |
 | `permissions.defaultMode` | Stable | 2.0.0+ | Valid: `default`, `acceptEdits`, `plan`, `auto`, `dontAsk`, `bypassPermissions`. |
@@ -149,7 +136,6 @@ PowerShell read-only discovery allowlist.
 | Field | Status | Min CC Version | Notes |
 |---|---|---:|---|
 | `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | **Experimental** | 2.1.0+ | Documented as experimental on `code.claude.com/docs/en/env-vars`. Set to `1` to enable agent teams. Subject to renaming or removal. |
-| `env.MAX_TEAMS` | Undocumented | 2.1.0+ | Paired with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`. Not on env-vars reference page. |
 | `env.ENABLE_TOOL_SEARCH` | Undocumented | 2.1.0+ | Deferred-tool schema loading. Mentioned indirectly on env-vars page but not formally documented. |
 | `env.MAX_MCP_OUTPUT_TOKENS` | Undocumented | 2.0.0+ | MCP output token cap. Not on env-vars reference page. |
 | `env.SSL_CERT_FILE` | POSIX-only | — | CA bundle path for POSIX HTTP/TLS tooling. Intentionally absent from the Windows profile. |
@@ -161,9 +147,9 @@ PowerShell read-only discovery allowlist.
 2. **When a flag silently stops working**: Run `/config` in an interactive session and check whether the field is rejected, then check code.claude.com for renaming.
 3. **Misplaced fields**: The two Misplaced rows are accepted today but may trigger schema validation errors in future CC versions. A follow-up migration is tracked separately.
 
-### SessionStart version check (optional)
+### Version check
 
-`global/hooks/version-check.sh` currently warns on known-bad versions (see "Known Problematic Versions" below). A future enhancement could extend it to warn when the detected Claude Code version has known breaking changes to any Experimental field above.
+No hook checks the Claude Code version: #964 removed the SessionStart version warning. Compare your version with "Known Problematic Versions" below and with the Experimental rows above before you upgrade.
 
 ---
 
@@ -187,7 +173,7 @@ EPIC #454 P4 introduced a strict/lenient schema split. claude-config-owned skill
 
 ## Known Problematic Versions
 
-The following Claude Code versions have confirmed bugs. The `version-check.sh` SessionStart hook warns users on these versions.
+The following Claude Code versions have confirmed bugs. No hook warns about them since #964; check this table before you upgrade.
 
 | Versions | Issue | Impact |
 |---|---|---|
@@ -197,7 +183,7 @@ The following Claude Code versions have confirmed bugs. The `version-check.sh` S
 - Resume cache regression: [anthropics/claude-code#34629](https://github.com/anthropics/claude-code/issues/34629)
 - Sentinel replacement: [anthropics/claude-code#40524](https://github.com/anthropics/claude-code/issues/40524)
 
-> To update the known-bad list, edit `global/hooks/version-check.sh` and modify the `KNOWN_CACHE_BUG_VERSIONS` variable.
+> Add a row here when a new known-bad version is confirmed.
 
 ---
 
@@ -231,7 +217,7 @@ When upgrading Claude Code itself:
 
 2. **New hook events** added in newer Claude Code versions may enable previously-ignored hooks in your configuration. This is generally safe -- hooks are designed to be forward-compatible.
 
-3. **Test hooks after upgrade** by starting a new session and checking `~/.claude/session.log` for any errors.
+3. **Test hooks after upgrade** by starting a new session with `claude --debug` and looking for hook errors.
 
 ### Cross-Platform Notes
 
@@ -253,7 +239,7 @@ The counts cover paired guards only: `bash-sensitive-read-guard.ps1` and `shell-
 
 The `*.sh` ↔ `*.ps1` mapping is 1:1 for guards; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if the counts diverge. The same job also compares this hardcoded table against the live hook count so the documented coverage cannot drift silently.
 
-Dispatchers (`global/hooks/*-dispatcher.*`) are excluded from both counts. A dispatcher is a per-platform execution strategy rather than a policy guard: `bash-guard-dispatcher.ps1` exists because 15 `pwsh` cold starts per Bash tool call dominated hook latency, whereas POSIX spawns a cheap `bash` per guard and has nothing to consolidate. A `.sh` twin would therefore be a dormant unwired file — the exact condition this audit exists to catch. Windows guard coverage is enforced separately by `tests/scripts/test-windows-hooks-parity.sh`, which diffs the dispatcher's routing table against the POSIX registrations.
+Dispatchers (`global/hooks/*-dispatcher.*`) are excluded from both counts. A dispatcher is a per-platform execution strategy rather than a policy guard: `bash-guard-dispatcher.ps1` exists because one `pwsh` cold start per guard on every Bash tool call dominated hook latency (15 guards before #964, 4 since), whereas POSIX spawns a cheap `bash` per guard and has nothing to consolidate. A `.sh` twin would therefore be a dormant unwired file — the exact condition this audit exists to catch. Windows guard coverage is enforced separately by `tests/scripts/test-windows-hooks-parity.sh`, which diffs the dispatcher's routing table against the POSIX registrations.
 
 Behavioral PowerShell hook coverage runs twice: the Linux/macOS hook workflow
 executes `tests/hooks/test-runner.ps1` under `pwsh`, and the native Windows job

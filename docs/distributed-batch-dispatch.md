@@ -56,7 +56,7 @@ The `/schedule` skill described in the session-level tool catalogue wraps Remote
 **Known**: The `create` body is free-form JSON; the API surface places no semantic constraints on the prompt field. A prompt of `/issue-work $ORG/$PROJECT $ISSUE_NUMBER --solo` should be representable as plain text, and the remote session would interpret it the same way the local CLI does because both resolve against the same `.claude/skills/` directory of the account.
 
 **Unknown — requires empirical test**:
-- Whether the remote execution environment receives the same environment variables, MCP server config, and hook settings as the local session (without these, `settings.json`-driven hooks like `commit-message-guard` or `pr-target-guard` may not apply).
+- Whether the remote execution environment receives the same environment variables, MCP server config, and hook settings as the local session (without these, `settings.json`-driven hooks like `dangerous-command-guard` or `merge-gate-guard` may not apply).
 - Whether interactive tools (`AskUserQuestion`, TTY prompts) are supported in remote sessions or are no-ops / errors.
 - Whether the remote session can push commits to the user's repo (git identity inheritance, SSH keys, `gh auth` token scope).
 

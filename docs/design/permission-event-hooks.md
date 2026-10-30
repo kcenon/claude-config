@@ -33,7 +33,7 @@ Per the official input schema, both events deliver the same payload to the hook:
 
 `tool_input` is the full pending invocation. `permission_suggestions` is the harness's pre-computed set of rules that, if added to `permissions.allow`, would let the call through next time.
 
-claude-config registers neither event. It ships a rich `PreToolUse` surface (`dangerous-command-guard.sh`, `sensitive-file-guard.sh`, `commit-message-guard.sh`) but no observation of the permission flow itself.
+When this proposal was written, claude-config registered neither event. It shipped a rich `PreToolUse` surface (`dangerous-command-guard.sh` plus file-channel and commit-message guards that #964 later removed) but no observation of the permission flow itself.
 
 ## Use Cases
 
@@ -66,17 +66,17 @@ The pair is silent on the request side; only denials are logged. `PermissionRequ
 }
 ```
 
-Redaction reuses the regex set already used by `global/hooks/session-logger.sh` so secrets in `tool_input` (env vars, tokens, file paths under `~/.ssh/`, etc.) are scrubbed before disk write.
+Redaction uses a scrubber of the logger's own (`redact_secrets` in `global/hooks/permission-denial-logger.sh`) so secrets in `tool_input` (env vars, tokens, file paths under `~/.ssh/`, etc.) are scrubbed before disk write. The session logger whose regex set this proposal first pointed to was removed in #964.
 
 ## Integration Risks
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
 | Event volume — every prompt fires the hook | Medium | Log denials only; tail-rotate `permission-denials.jsonl` at 10 MB |
-| `tool_input` may contain secrets | High | Reuse `session-logger.sh` redaction; never log raw `tool_input` |
+| `tool_input` may contain secrets | High | Redact with the logger's own scrubber; never log raw `tool_input` |
 | Hook latency adds to permission prompt delay | Low | Append-only log write is sub-millisecond; no network call |
 | Scope creep: hook auto-modifies `settings.json` | High | **Out of scope.** The hook MUST NOT write to `settings.json`. Suggestions are surfaced offline only. |
-| Privacy — the log persists denial patterns | Medium | Document in `global/hooks/known-issues.json`; user can disable via `CLAUDE_PERMISSION_LOGGER=0` |
+| Privacy — the log persists denial patterns | Medium | Document in the logger's header comment; user can disable via `CLAUDE_PERMISSION_LOGGER=0` |
 
 ## Out of Scope
 
@@ -96,7 +96,7 @@ Redaction reuses the regex set already used by `global/hooks/session-logger.sh` 
 
 **Conditional yes for Option A.** Proceed if and only if:
 
-1. `session-logger.sh`'s redaction regex is reviewed against `tool_input` (richer than the bash surface it was built for).
+1. The redaction regex is reviewed against `tool_input` (richer than the bash surface the original session-logging regex was built for).
 2. A `CLAUDE_PERMISSION_LOGGER=0` opt-out is documented.
 3. The follow-up issue references this proposal and the redaction review.
 

@@ -8,31 +8,66 @@ This document describes the Hook settings included in claude-config.
 
 Hooks are user-defined commands that automatically execute during specific Claude Code events.
 
+## Hook Policy
+
+Since #964 claude-config registers hooks only for destructive, irreversible operations and for a few functional contracts. Style, workflow and policy rules are not hooks: they are instructions in `global/CLAUDE.md` and `global/commit-settings.md`, or native controls: the tool contracts, `permissions.deny`, the Bash sandbox, the git hooks and the server-side workflows.
+
+A guard decides by this rule:
+
+1. **Deny** an operation when it is irreversible **and** it reaches beyond the working tree or affects shared state.
+2. **Ask** (`permissionDecision: "ask"`) when it is irreversible but scoped to the working tree, or when it rewrites or deletes a shared ref.
+3. **Allow** everything recoverable through the reflog, the remote or VCS history.
+
+### Registered hooks
+
+`global/settings.json` registers 10 hook entries:
+
+| Event / matcher | Hook | Role |
+|-----------------|------|------|
+| PreToolUse `Bash` | `dangerous-command-guard` | Deny and ask tiers for destructive shell, `git` and `gh` operations |
+| PreToolUse `Bash` | `merge-gate-guard` | Deny `gh pr merge` while any check is not green |
+| PreToolUse `Edit\|Write` | `memory-write-guard` | Validate writes to the shared memory repository; allow everything else |
+| SessionStart | `memory-integrity-check` | Memory-sync health summary; silent without memory sync |
+| PostToolUse `Read` | `memory-access-logger` | Log reads of shared-memory files (path only) |
+| SessionEnd | `cleanup`, `prune-permission-rules` | Temp file cleanup; prune `permissions.allow` entries that can never match again |
+| WorktreeCreate / WorktreeRemove | `worktree-create`, `worktree-remove` | Worktree contract |
+| PermissionDenied | `permission-denial-logger` | Redacted audit record of denied tool calls |
+
+A Bash call starts two hook processes and an Edit or Write call one; a Read starts only the async memory-access logger. `global/settings.windows.json` registers the same events. On Windows the `Bash` matcher goes through [`bash-guard-dispatcher.ps1`](#bash-guard-dispatcher-windows), which also runs the Windows-only `bash-sensitive-read-guard` and `shell-env-secret-guard`, because Windows has no OS sandbox.
+
+### Where the removed rules live now
+
+Issue #964 removed the other 32 registrations. A reinstall prunes their script files from `~/.claude/hooks/` and keeps any you edited locally.
+
+| Removed hook(s) | Replaced by |
+|-----------------|-------------|
+| `pre-edit-read-guard` (PreToolUse and PostToolUse) | The native Edit/Write contract; the `global/CLAUDE.md` invariant stays |
+| `sensitive-file-guard` | `permissions.deny` `Read(...)` rules, which also block Edit and Write on the path (Claude Code 2.1.228+) |
+| `bash-write-guard` | The Bash sandbox write allowlist (macOS, Linux); `global/CLAUDE.md` |
+| `bash-sensitive-read-guard`, `shell-env-secret-guard` (`.sh`) | The Bash sandbox read-deny covers secret files on macOS and Linux; nothing there replaces the check on printing a secret-bearing environment variable. The `.ps1` guards stay on Windows |
+| `gh-write-verb-guard`, `github-api-preflight` | The destructive `gh` arms of `dangerous-command-guard`; no `additionalContext` injection |
+| `commit-message-guard`, `attribution-guard` | The `commit-msg` git hook; `settings.json` `attribution: ""` |
+| `pr-language-guard`, `traceability-guard` | The `commit-settings.md` instruction; the `pre-push` git hook and the skills check traceability |
+| `conflict-guard` | git refuses most operations during a merge or rebase |
+| `pr-target-guard`, `push-target-guard` | `validate-pr-target.yml` (server-side); the protected-branch push arm moved into `dangerous-command-guard` |
+| `team-limit-guard` | Nothing; creating a team is not destructive |
+| `markdown-anchor-validator` (project layer) | Nothing |
+| `session-logger`, `subagent-logger`, `tool-failure-logger`, `task-completed-logger`, `config-change-logger`, `cwd-change-logger`, `pre-compact-snapshot`, `post-compact-restore`, `instructions-loaded-reinforcer`, `post-task-checkpoint`, `prompt-validator`, `task-created-validator`, `version-check` | Nothing; Claude Code's own transcripts and debug logs cover diagnostics |
+
 ## Quick Navigation
 
 | I want to... | See |
 |--------------|-----|
-| Protect sensitive files from being read | [Sensitive File Protection](#1-sensitive-file-protection-pretooluse) |
-| Block dangerous shell commands | [Dangerous Command Blocking](#2-dangerous-command-blocking-pretooluse) |
-| Validate markdown links before commit | [Markdown Anchor Validation](#5-markdown-anchor-validation-pretooluse) |
+| Know which hooks run and why | [Hook Policy](#hook-policy) |
+| Protect sensitive files from being read | [Sensitive File Protection](#1-sensitive-file-protection-permissionsdeny) |
+| Deny or confirm destructive commands | [Destructive Command Guard](#2-destructive-command-guard-pretooluse) |
+| Block gh pr merge when any check is non-passing | [Merge Gate Guard](#3-merge-gate-guard-pretooluse) |
+| Guard and observe the shared memory repository | [Memory Hooks](#4-memory-hooks) |
+| Clean up temp files and dead permission rules | [Session-End Housekeeping](#5-session-end-housekeeping-sessionend) |
 | Auto-format code after edits | [Auto Formatting](#1-auto-formatting-posttooluse) |
-| Limit concurrent Agent Teams | [Team Limit Guard](#6-team-limit-guard-pretooluse) |
-| Log session activity | [Session Logging](#3-session-logging-sessionstartsessionend) |
-| Check for known Claude Code bugs | [Version Check](#8-version-check-sessionstart) |
-| Validate commit messages before git commit | [Commit Message Guard](#10-commit-message-guard-pretooluse) |
-| Prevent git merge/rebase on dirty trees | [Conflict Guard](#11-conflict-guard-pretooluse) |
-| Block PRs targeting main from non-develop branches | [PR Target Guard](#12-pr-target-guard-pretooluse) |
-| Enforce the active content-language policy for gh PR/issue commands | [PR Language Guard](#13-pr-language-guard-pretooluse) |
-| Block gh pr merge when any check is non-passing | [Merge Gate Guard](#14-merge-gate-guard-pretooluse) |
-| Block AI/Claude attribution in gh PR/issue commands | [Attribution Guard](#15-attribution-guard-pretooluse) |
-| Re-inject critical policy after instruction load | [Instructions Loaded Reinforcer](#16-instructions-loaded-reinforcer-instructionsloaded) |
-| Restore core principles after context compaction | [Post-Compact Restore](#17-post-compact-restore-sessionstart) |
-| Validate task descriptions at creation time | [Task Created Validator](#18-task-created-validator-taskcreated) |
-| Auto-commit working tree after Task/Agent runs | [Post Task/Agent Checkpoint](#19-post-taskagent-checkpoint-posttooluse) |
-| Block Edit/Write on files that weren't Read first | [Pre-edit Read Guard](#20-pre-edit-read-guard-pretooluseposttooluse) |
 | Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
 | Understand how Bash guards are dispatched on Windows | [Bash Guard Dispatcher](#bash-guard-dispatcher-windows) |
-| Understand how Edit/Write/Read guards are dispatched on Windows | [Edit Guard Dispatcher](#edit-guard-dispatcher-windows) |
+| Understand how Edit/Write guards are dispatched on Windows | [Edit Guard Dispatcher](#edit-guard-dispatcher-windows) |
 | Add my own custom hook | [Adding New Hooks](#adding-new-hooks) |
 | Set up hooks on Windows | [Windows Support](#windows-support-powershell) |
 
@@ -45,325 +80,65 @@ Hooks are user-defined commands that automatically execute during specific Claud
 
 ## Global Hooks (global/settings.json)
 
-> **Registration differs by platform for the `Bash` and `Edit|Write|Read`
+> **Registration differs by platform for the `Bash` and `Edit|Write`
 > matchers.** On POSIX, `global/settings.json` registers each guard as its own
 > hook, so the per-guard `Timeout:` values in the sections below are the values
 > in force. On Windows, `global/settings.windows.json` registers exactly one hook
 > on each of those matchers — [`bash-guard-dispatcher.ps1`](#bash-guard-dispatcher-windows)
 > and [`edit-guard-dispatcher.ps1`](#edit-guard-dispatcher-windows) — which front
 > their guards: the guards share the dispatcher's 25 s internal budget rather
-> than carrying their own. Sections 2, 5, and 10 through 15 describe
-> Bash-matcher guards; `sensitive-file-guard`, `pre-edit-read-guard` and
-> `memory-write-guard` are the `Edit|Write|Read` ones. All are affected. The
-> `TeamCreate` matcher is registered identically on both platforms.
+> than carrying their own. Sections 2 and 3 describe the Bash-matcher guards;
+> `memory-write-guard` (section 4) is the `Edit|Write` one.
 
-### 1. Sensitive File Protection (PreToolUse)
+### 1. Sensitive File Protection (permissions.deny)
 
 *Prevents accidental exposure of secrets — Claude will never read your .env or credentials, even if asked directly.*
 
-**Purpose**: Block access to sensitive files like `.env`, `.pem`, `.key`
+**Mechanism**: no hook since #964. `permissions.deny` in `global/settings.json` and `global/settings.windows.json` lists a `Read(...)` rule for each pattern below, and a `Read` deny also blocks Edit and Write on the same path (Claude Code 2.1.228+). See [Permission Settings](#permission-settings).
 
-**Blocked targets (full global suite)**:
-- Filename patterns: `.env` (incl. `.envrc`, `.env.*`, the `*.env` suffix form such as `production.env`, and non-template `*.env.*` hybrids such as `prod.env.example`), `.pem`, `.key`, `.p12`, `.pfx`, and SSH key basenames `id_rsa`, `id_ed25519`, `id_ecdsa`, `id_dsa` (incl. suffixed variants)
-- Path patterns: `secrets/`, `credentials/`, `passwords/`, plus `credentials` and `config` basenames under `.aws/`. The plugin-only fallback shares the filename set but additionally blocks `private/`; it stands down when the full suite is active (see [Plugin vs Global](docs/plugin-vs-global.md#retained-divergences)).
+**Denied targets**:
+- Filename patterns: `.env` (incl. `.envrc`, `.env.*`, and the `*.env` suffix form such as `production.env`), `.pem`, `.key`, `.p12`, `.pfx`, `*password*`, and SSH key basenames `id_rsa`, `id_ed25519`, `id_ecdsa`, `id_dsa` (incl. suffixed variants)
+- Path patterns: `secrets/`, `credentials/`, `passwords/`, plus `credentials` and `config` under `.aws/`. The plugin-only fallback shares the filename set but additionally blocks `private/`; it stands down when the full suite is active (see [Plugin vs Global](docs/plugin-vs-global.md#retained-divergences)).
 
-**Behavior**:
-- Returns JSON with `permissionDecision: "deny"` and exits with code 0
-- Claude Code reads the deny reason from the JSON response
+**Shell channel**: on macOS and Linux the Bash sandbox read-deny covers `cat .env` and similar reads. Windows has no OS sandbox, so `bash-sensitive-read-guard.ps1` runs in the [Bash dispatcher](#bash-guard-dispatcher-windows) there.
 
-### 2. Dangerous Command Blocking (PreToolUse)
+### 2. Destructive Command Guard (PreToolUse)
 
-*Stops catastrophic mistakes before they happen — no accidental root deletion or unsafe permission changes.*
+*Stops irreversible mistakes before they happen, and asks before destructive ones.*
 
-**Purpose**: Block commands that could have catastrophic system impact
+**Files**: `global/hooks/dangerous-command-guard.sh`, `global/hooks/dangerous-command-guard.ps1`. The file name predates #964 and is kept: installed plugins read it as a probe key, and the decision log and the Windows dispatcher entry use it.
 
-**Blocked targets**:
-- `rm -rf /` (root deletion)
-- `chmod 777` (dangerous permission change)
-- `curl ... | sh` (remote script execution)
+**Deny** (irreversible and reaching beyond the working tree or shared state):
+- recursive `rm` of `/`, an absolute path, `~` or `$HOME`
+- a download piped to an interpreter (`curl ... | sh`)
+- `chmod 777` and setuid changes; IFS obfuscation
+- a direct `git push` to `main`, `master` or `develop`, including a refspec-less push whose upstream is one of them
+- `gh repo delete`, and `gh api -X DELETE repos/<owner>/<repo>`
 
-### 3. Session Logging (SessionStart/SessionEnd)
+**Ask** (irreversible but local, or rewriting or deleting a shared ref):
+- `git reset --hard`, `git checkout -- <path>` / `.` / `-f`, and `git restore` without `--staged`, only when the work tree has changes
+- `git clean -f`, `git stash drop` / `clear`
+- `git push --force` / `-f` / `+<ref>` (not `--force-with-lease`), `git push --delete` / `-d`, `git push <remote> :<ref>`
+- recursive `rm` of `.`, `..`, `*`, `.*`, `.git` or a path outside the repository; `find ... -delete` / `-exec rm`
+- `gh <group> delete` / `delete-asset` and every other `gh api -X DELETE`
 
-*Track when and how long Claude Code sessions run for audit and debugging purposes.*
+**Allow**: everything else, for example `rm -rf build`, `git reset --soft`, `git push --force-with-lease` to a work branch and `git branch -D`.
 
-**Purpose**: Record Claude Code session start/end times
+**Payload scanning**: the payload of `bash|sh|zsh|dash|ksh|fish -c '...'` and of `eval ...` is tokenized and checked with the same rules, up to three nested levels. A payload that cannot be inspected (unbalanced quotes, a bare variable expansion, deeper nesting) is denied. `source <file>` and `. <file>` are allowed; `eval "$(curl ...)"` is still remote execution.
 
-**Log location**: `~/.claude/session.log`
-
-**Log format**:
-```
-[Session] Claude Code session started: 2025-12-03 14:30:00
-[Session] Claude Code session ended: 2025-12-03 15:45:00
-```
-
-### 4. Temporary File Cleanup (SessionEnd)
-
-*Keeps your temp directory clean without manual intervention.*
-
-**Purpose**: Automatically delete old temporary files on session end
-
-**Cleanup targets**:
-- `/tmp/claude_*` (files older than 60 minutes)
-- `/tmp/tmp.*` (owned by current user, older than 60 minutes)
-
-### 5. Markdown Anchor Validation (PreToolUse)
-
-*Catch broken documentation links before they reach your repository — validates every cross-reference on commit.*
-
-**Purpose**: Validate markdown cross-reference anchors before git commit to prevent broken links
-
-**Trigger**: `git commit` commands only (all other commands pass through)
-
-**How it works**:
-1. Collects staged markdown files via `git diff --cached --name-only --diff-filter=d -- '*.md'`
-2. **Pass 1**: Builds the primary anchor registry from headings in those staged files (GitHub-style slug algorithm)
-3. **Pass 2**: Checks all `](#anchor)` (intra-file) and `](file.md#anchor)` (inter-file) references against the registry
-4. **Cross-file fallback**: when an inter-file reference's target is not in the primary registry (i.e. the target file is on disk but not staged), the validator lazy-parses the target file and caches its anchors. The reference passes if and only if the target heading exists. See issue #646 for the rationale — single-file edit PRs that legitimately reference unstaged sibling files must not produce false positives.
-5. Blocks commit if broken anchors are found
-
-**Anchor generation algorithm** (matches GitHub):
-- Strip inline formatting (bold, italic, code, links)
-- Lowercase → remove non-alphanumeric/space/hyphen (Unicode letters preserved) → spaces to hyphens
-- Duplicate headings get `-1`, `-2` suffixes
-
-**Features**:
-- Skips code blocks (``` and ~~~ delimiters)
-- Handles Korean/CJK characters in anchors
-- Validates both intra-file and inter-file references
-- Excludes external URLs (detects `:` in path)
-- Lazy cross-file anchor resolution with per-file caching (no double-parse)
+**Logging**: one JSON line per `deny` or `ask` decision in `~/.claude/logs/dangerous-command-guard.log` (`CLAUDE_LOG_DIR` overrides the directory). Allow decisions are not logged.
 
 **Behavior**:
-- Returns JSON with `permissionDecision: "deny"` listing broken anchors
-- Timeout: 30 seconds on POSIX; on Windows, shared with the other Bash guards inside the [dispatcher](#bash-guard-dispatcher-windows)
-
-### 6. Team Limit Guard (PreToolUse)
-
-*Prevent resource exhaustion by capping the number of concurrent Agent Teams across sessions.*
-
-**Purpose**: Enforce a maximum number of concurrent Agent Teams across sessions
-
-**Trigger**: `TeamCreate` tool invocation
-
-**How it works**:
-1. Reads `MAX_TEAMS` environment variable (default: 3)
-2. Counts directories in `~/.claude/teams/`
-3. Blocks team creation if the count meets or exceeds the limit
-
-**Behavior**:
-- Returns JSON with `permissionDecision: "deny"` when limit is reached
-- Timeout: 5 seconds
-- Cross-platform: `team-limit-guard.sh` (bash) and `team-limit-guard.ps1` (PowerShell)
-
-### 7. TeammateIdle (TeammateIdle)
-
-*React when teammates finish work — enforce quality gates or trigger follow-up actions.*
-
-**Purpose**: Fires when a teammate finishes its turn and is about to go idle. Use this to enforce quality gates or log teammate activity.
-
-**Hook input** (JSON via stdin):
-```json
-{
-  "session_id": "abc123",
-  "hook_event_name": "TeammateIdle",
-  "teammate_name": "researcher",
-  "team_name": "my-project",
-  "cwd": "/path/to/project",
-  "permission_mode": "default"
-}
-```
-
-**Decision control**: Uses **exit code only** (not JSON `permissionDecision`):
-
-| Exit Code | Effect |
-|-----------|--------|
-| `0` | Allow teammate to go idle |
-| `2` | Block idle — stderr message sent as feedback to teammate |
-
-### 8. Version Check (SessionStart)
-
-*Get warned early if your Claude Code version has known performance bugs.*
-
-**Purpose**: Warn when running Claude Code versions with known cache efficiency bugs
-
-**Trigger**: Every session start (async, non-blocking)
-
-**How it works**:
-1. Gets current Claude Code version via `claude --version`
-2. Compares against a hardcoded list of known problematic versions (2.1.69–2.1.81)
-3. Logs a warning to `~/.claude/session.log` if a match is found
-
-**Known bugs tracked**:
-- Resume cache regression ([#34629](https://github.com/anthropics/claude-code/issues/34629))
-- Sentinel replacement ([#40524](https://github.com/anthropics/claude-code/issues/40524))
-
-**Behavior**:
-- Lifecycle event hook — no JSON output required
-- Always exits 0 (non-blocking)
-- Timeout: 10 seconds, async
-- Cross-platform: `version-check.sh` (bash) and `version-check.ps1` (PowerShell)
-
-### 9. TaskCompleted (TaskCompleted)
-
-*Enforce quality gates before accepting task completion from teammates.*
-
-**Purpose**: Fires when a teammate completes a task from the shared task list. Use this to enforce quality gates before accepting task completion.
-
-**Hook input** (JSON via stdin):
-```json
-{
-  "session_id": "abc123",
-  "hook_event_name": "TaskCompleted",
-  "task_id": "task-456",
-  "task_subject": "Implement user validation",
-  "teammate_name": "backend",
-  "team_name": "my-project",
-  "cwd": "/path/to/project"
-}
-```
-
-**Decision control**: Uses **exit code only** (not JSON `permissionDecision`):
-
-| Exit Code | Effect |
-|-----------|--------|
-| `0` | Accept task completion |
-| `2` | Block completion — stderr message sent as feedback to teammate |
-
-### 10. Commit Message Guard (PreToolUse)
-
-*Blocks non-conventional commit messages at Claude's Bash tool boundary — deterministic, same input always yields same decision.*
-
-**Purpose**: Validate git commit messages against Conventional Commits rules before Claude invokes `git commit`.
-
-**Trigger**: Bash commands matching `git commit ... -m ...` only.
-
-**Rules enforced**:
-- Conventional Commits format: `type(scope): description` or `type: description`
-- Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, security
-- Description starts with lowercase, no trailing period
-- No AI/Claude attribution
-- No emojis
-
-**Behavior**:
-- Returns JSON with `permissionDecision: "deny"` listing the failed rule
-- Defers to the git `commit-msg` hook for command-substitution messages (`-m "$(..."`)
+- Returns JSON with `permissionDecision` `deny` or `ask` and a reason; a plain allow emits the minimal allow JSON
+- Fail-closed: unparseable hook input is denied
+- The work tree checks run `git status` / `git rev-parse` only after a command has matched an arm
 - Timeout: 5 seconds on POSIX; on Windows, shared with the other Bash guards inside the [dispatcher](#bash-guard-dispatcher-windows)
-- Cross-platform: `commit-message-guard.sh` and `commit-message-guard.ps1`
 
-**Shared validation library**: Both this PreToolUse hook and the git `commit-msg` hook (installed by `hooks/install-hooks.sh`) source the same validator at `hooks/lib/validate-commit-message.sh`, ensuring rule consistency across enforcement layers.
-
-### 11. Conflict Guard (PreToolUse)
-
-*Prevents git merge/rebase/cherry-pick/pull when the working tree is dirty or another operation is already in progress.*
-
-**Purpose**: Block conflict-prone git operations when conditions would cause data loss or nested conflicts.
-
-**Trigger**: Bash commands matching `git merge`, `git rebase`, `git cherry-pick`, or `git pull`.
-
-**Checks performed**:
-1. **Existing operation**: Denies if `MERGE_HEAD`, `REBASE_HEAD`, or `CHERRY_PICK_HEAD` exists (another operation is in progress)
-2. **Uncommitted changes**: Denies if `git status --porcelain` is non-empty (dirty working tree)
-
-**Behavior**:
-- Returns JSON with `permissionDecision: "deny"` describing the blocking condition
-- Fail-open: if parsing fails or git is not available, the command is allowed
-- Advisory only (conflict prevention), not security-critical
-- Cross-platform: `conflict-guard.sh` and `conflict-guard.ps1`
-
-### 12. PR Target Guard (PreToolUse)
-
-*Enforces branching policy: only `develop` or a `release/*` branch may merge into the repo default branch (`main`/`master`).*
-
-**Purpose**: Intercepts `gh pr create` commands and blocks those targeting the default branch (`main`/`master`) unless the source branch is `develop` or `release/*` (a legitimate release PR).
-
-**Trigger**: `Bash` tool calls containing `gh pr create`
-
-**Files**: `global/hooks/pr-target-guard.sh`, `global/hooks/pr-target-guard.ps1`
-
-**Logic**:
-1. Scope gate: only process `gh pr create` commands (all others pass through)
-2. Extract `--base` value (`--base main`, `--base=main`, `-B main`)
-3. If no `--base` flag is present, resolve the repo default branch: use `PR_TARGET_GUARD_DEFAULT_BRANCH_OVERRIDE` if set (test injection), else query `gh api repos/{owner}/{repo} --jq .default_branch` (honoring `--repo`/`-R` when supplied). If the default branch cannot be resolved, allow (graceful degradation)
-4. If the resolved base is `main` or `master`:
-   - Allow if the head branch is `develop` or matches `release/*` (legitimate release PR via `/release`)
-   - Deny otherwise with the branching-policy guidance message
-5. Otherwise (base is neither `main` nor `master`): allow
-
-**Fail policy**: Fail-closed (deny if JSON parsing fails)
-
-**Complements**:
-- `pre-push` git hook: blocks `git push origin main/develop`
-- `validate-pr-target.yml` GitHub Actions: auto-closes non-develop PRs to main (server-side)
-
-**Configuration**:
-```json
-{
-  "type": "command",
-  "command": "~/.claude/hooks/pr-target-guard.sh",
-  "timeout": 5
-}
-```
-
-### 13. PR Language Guard (PreToolUse)
-
-*Hard-blocks `gh pr` and `gh issue` titles/bodies that violate the active `CLAUDE_CONTENT_LANGUAGE` policy — eliminates the rule drift that lets off-policy content slip through in long-running batch workflows.*
-
-**Purpose**: Enforces the per-policy artifact rule from `commit-settings.md` (default policy `english`; other values: `korean_plus_english`, `exclusive_bilingual`, `any`) at the Bash tool boundary. Mirrors the `commit-message-guard` enforcement model that proved effective for commit messages.
-
-**Trigger**: `Bash` tool calls matching `gh (pr|issue) (create|edit|comment)`.
-
-**Files**: `global/hooks/pr-language-guard.sh`, `global/hooks/pr-language-guard.ps1`
-
-**Shared validation library**: `hooks/lib/validate-language.sh` (single source of truth — same pattern as `validate-commit-message.sh`).
-
-**Logic**:
-1. Scope gate: only process `gh (pr|issue) (create|edit|comment)` commands (all others pass through). Six combinations are guarded — `gh pr create`, `gh pr edit`, `gh pr comment`, `gh issue create`, `gh issue edit`, `gh issue comment`.
-2. Skip command-substitution / heredoc bodies (`--body "$(...)"`) and `--body-file` references — these cannot be parsed at the shell layer, so the hook defers to other safeguards.
-3. Extract `--title` / `-t`, `--body` / `-b`, and `--notes` / `-n` values, supporting both double-quoted and single-quoted forms and `--flag value` / `--flag=value` layouts.
-4. Dispatch to `validate_content_language` in `hooks/lib/validate-language.sh`, which selects the active validator from `CLAUDE_CONTENT_LANGUAGE` (default `english`).
-5. Deny reason includes the first offending substring and references `commit-settings.md` so Claude can self-correct under whichever policy is active.
-
-**Allowed characters (depends on `CLAUDE_CONTENT_LANGUAGE`)**:
-- `english` (default): ASCII printable + whitespace + allowlisted English typographic punctuation (em-dash, en-dash, curly quotes, ellipsis, NBSP).
-- `korean_plus_english`: ASCII + Hangul Syllables / Jamo / Compat Jamo, mixed inline.
-- `exclusive_bilingual`: per-artifact — English-only **or** Korean-only (Korean side allows fenced code, inline code, URLs, and the `한국어(English)` translation form as ASCII containers).
-- `any`: validation skipped.
-
-**Not covered**: `gh pr review --body` is intentionally not guarded (review comments may have different tone/content needs and would warrant a separate policy decision).
-
-**Fail policy**: Fail-open. If stdin parsing fails or the command is unrecognized, the hook returns `allow`. Server-side review and `commit-msg` hooks remain as additional layers.
-
-**Behavior**:
-- Returns JSON with `permissionDecision: "deny"` listing the first non-ASCII grapheme found
-- Defers to other layers for command-substitution and `--body-file` cases
-- Timeout: 5 seconds on POSIX; on Windows, shared with the other Bash guards inside the [dispatcher](#bash-guard-dispatcher-windows)
-- Cross-platform: `pr-language-guard.sh` and `pr-language-guard.ps1`
-
-**Configuration**:
-```json
-{
-  "type": "command",
-  "command": "~/.claude/hooks/pr-language-guard.sh",
-  "timeout": 5
-}
-```
-
-**Example deny response**:
-```json
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "PR/issue --body rejected: Text contains Korean (Hangul) characters (first run: '한국어'). Active CLAUDE_CONTENT_LANGUAGE='english' rejects this artifact. To allow Korean, set CLAUDE_CONTENT_LANGUAGE=exclusive_bilingual or korean_plus_english. See commit-settings.md."
-  }
-}
-```
-
-### 14. Merge Gate Guard (PreToolUse)
+### 3. Merge Gate Guard (PreToolUse)
 
 *Hard-blocks `gh pr merge` when any PR check is failing, pending, or cancelled — eliminates the rule drift that lets failing CI rationalizations slip through in long-running batch workflows.*
 
-**Purpose**: Enforces the "ABSOLUTE CI GATE" rule from `global/CLAUDE.md` at the Bash tool boundary. Mirrors the `commit-message-guard` and `pr-language-guard` enforcement model: a deterministic hook gate that catches drift where the model occasionally rationalizes failing checks as "unrelated", "infrastructure", or "pre-existing".
+**Purpose**: Enforces the "ABSOLUTE CI GATE" rule from `global/CLAUDE.md` at the Bash tool boundary: a deterministic hook gate that catches drift where the model occasionally rationalizes failing checks as "unrelated", "infrastructure", or "pre-existing". The merge method (`--squash`, `--merge`, `--rebase`) is not checked since #964; the repository's merge settings decide it.
 
 **Trigger**: `Bash` tool calls matching `gh pr merge`.
 
@@ -379,7 +154,7 @@ Hooks are user-defined commands that automatically execute during specific Claud
 
 **Allow policy**: A check qualifies as passing if its `bucket` is `pass` or `skipping`. The `skipping` bucket covers checks intentionally skipped (e.g. `paths-ignore` matches) and is treated as neutral, the same way GitHub itself does for branch protection rules.
 
-**Fail policy**: **Fail-OPEN** on `gh` CLI errors. Unlike most other guards, this hook allows the merge when:
+**Fail policy**: **Fail-OPEN** on `gh` CLI errors. Unlike `dangerous-command-guard`, this hook allows the merge when:
 - `gh` CLI is not installed
 - `gh pr checks` returns a non-zero exit code (e.g. transient network error, auth failure, unresolvable PR)
 - The JSON response cannot be parsed
@@ -390,7 +165,7 @@ A diagnostic is written to stderr in each fail-open case so the user can see why
 **Behavior**:
 - Returns JSON with `permissionDecision: "deny"` listing every non-passing check
 - Fail-open on any gh CLI error; diagnostics written to stderr
-- Timeout: 30 seconds on POSIX, longer than the other guards because it makes an external API call. On Windows it has no budget of its own: it runs inside the [dispatcher](#bash-guard-dispatcher-windows) and gets whatever remains of the shared 25 s after the guards ahead of it, so an API stall here can exhaust the budget for the guards behind it
+- Timeout: 30 seconds on POSIX, longer than `dangerous-command-guard` because it makes an external API call. On Windows it has no budget of its own: it runs inside the [dispatcher](#bash-guard-dispatcher-windows) and gets whatever remains of the shared 25 s after the guards ahead of it
 - Cross-platform: `merge-gate-guard.sh` and `merge-gate-guard.ps1`
 
 **Configuration**:
@@ -413,345 +188,37 @@ A diagnostic is written to stderr in each fail-open case so the user can see why
 }
 ```
 
-### 15. Attribution Guard (PreToolUse)
+### 4. Memory Hooks
 
-*Hard-blocks AI/Claude attribution markers (`Co-Authored-By: Claude`, `🤖 Claude`, "Generated with Claude", etc.) in PR/issue/release artifacts created via the `gh` CLI — closes the channels the commit-message guard cannot reach.*
+*Gate and observe the shared memory repository; every hook here is silent when memory sync is not set up.*
 
-**Purpose**: Enforces the "No AI/Claude attribution in commits, issues, or PRs" rule from `commit-settings.md`. The existing `commit-message-guard` only inspects `git commit -m` messages; PR titles/bodies, issue titles/bodies, PR review bodies, and release notes created via `gh` previously bypassed it. This hook closes that gap by gating the same Bash boundary that `pr-language-guard` uses.
+| Hook | Event | Behavior |
+|------|-------|----------|
+| `memory-write-guard` | PreToolUse `Edit\|Write` | Validates an Edit or Write under `~/.claude/memory-shared/memories/` before it reaches disk: a structure, secret or owner-configuration failure denies, an injection finding only warns. Allows every other path. Timeout 30 s. |
+| `memory-integrity-check` | SessionStart | Prints a short `[memory]` health summary from local metadata, with no network call |
+| `memory-access-logger` | PostToolUse `Read` (async) | Logs the path of each read under the shared memory tree |
 
-**Trigger**: `Bash` tool calls matching one of:
-- `gh pr (create|edit|comment|review)` — `--title`, `--body`
-- `gh issue (create|edit|comment)` — `--title`, `--body`
-- `gh release (create|edit)` — `--notes` (`-n` short flag also supported)
+See [docs/MEMORY_SYNC.md](docs/MEMORY_SYNC.md) for operations and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) for why these stay.
 
-Issue #480 extended scope from `gh (pr|issue) (create|edit|comment)` to include `pr review` and `release create|edit`. The `--notes` channel was the largest remaining attribution leak, since release notes are highly visible artifacts.
+### 5. Session-End Housekeeping (SessionEnd)
 
-**Files**: `global/hooks/attribution-guard.sh`, `global/hooks/attribution-guard.ps1`
+*Keeps your temp directory and your project permission rules clean without manual intervention.*
 
-**Shared validation library**: `hooks/lib/validate-commit-message.sh` exposes `CMV_ATTRIBUTION_TRAILER_REGEX`, `CMV_ATTRIBUTION_EMOJI_REGEX`, `CMV_ATTRIBUTION_PROSE_REGEX`, and the unified `validate_no_attribution()` function. Both bash hooks source this single source of truth so attribution rules stay in lockstep across enforcement layers. The PowerShell variant inlines equivalent patterns; update both when changing the design.
+**`cleanup`** deletes old temporary files on session end:
+- `$TMPDIR/claude_*` (older than 60 minutes)
+- `$TMPDIR/tmp.*` (owned by the current user, older than 60 minutes)
 
-**Three-pattern design** (issue #480 — replaces the earlier broad case-insensitive prose match that produced false positives on legitimate technical writing):
+It does not rotate or delete the logs that the loggers removed in #964 left behind in `~/.claude/logs/`.
 
-1. **Trailer-style attribution** anchored at the start of any line:
-   - `Co-Authored-By: Claude`, `Co-Author: Anthropic`
-   - `Generated-by: Claude`, `Generated by: Claude`
-   - `Created-by: Anthropic`, `Authored-by: Claude`
-   - `Signed-Off-By: Claude`, `Assisted-By: AI-Assisted`
-2. **Bot emoji** directly adjacent to Claude/Anthropic:
-   - `🤖 Claude`, `🤖 generated by Anthropic`
-3. **`Generated|Created|Authored|Written {with|by|using} {Claude|Anthropic|AI-Assistant}`** prose:
-   - "Generated with Claude", "Created by Anthropic", "Written using AI-Assistant"
+**`prune-permission-rules`** removes `permissions.allow` entries that can never match again from the project's `settings.local.json` (#923). It fails open: any parse, classification or IO error leaves the file byte-identical.
 
-**Allowed (deliberately) — false-positive prevention**:
-- Casual technical mentions: "feat: add Claude API integration", "fix: anthropic SDK fallback", "Compatible with Claude 4.7 models"
-- These describe what the code interacts with, not who authored the change. Blocking them was the most-reported friction in the prior broad-regex design.
+### 6. Worktree and Permission-Denial Hooks
 
-**Logic**:
-1. Scope gate: only process the extended `gh` subcommand set above.
-2. Skip command-substitution / heredoc bodies (`--body "$(...)"`, `--notes "$(...)"`) and file-based references (`--body-file`, `--notes-file`, `-F`) — these cannot be parsed at the shell layer.
-3. Extract `--title`/`-t`, `--body`/`-b`, `--notes`/`-n` using bash native `[[ =~ ]]` so multi-line values match correctly.
-4. Pass each value through `validate_no_attribution()`. Reject on match from any of the three patterns; the deny reason names which pattern fired.
-
-**Fail policy**: Fail-open. If stdin parsing fails or the command is unrecognized, the hook returns `allow`. The `commit-msg` git hook and `commit-message-guard` PreToolUse hook remain as additional layers for committed content.
-
-**Behavior**:
-- Returns JSON with `permissionDecision: "deny"` when attribution is detected
-- Defers to other layers for command-substitution and file-based cases
-- Timeout: 5 seconds on POSIX; on Windows, shared with the other Bash guards inside the [dispatcher](#bash-guard-dispatcher-windows)
-- Cross-platform: `attribution-guard.sh` and `attribution-guard.ps1`
-
-**Configuration**:
-```json
-{
-  "type": "command",
-  "command": "~/.claude/hooks/attribution-guard.sh",
-  "timeout": 5
-}
-```
-
-**Example deny response**:
-```json
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "release --notes rejected: Text contains AI/Claude attribution trailer (Co-Authored-By: / Generated-by: / Authored-by: Claude or Anthropic). Remove the trailer before submitting."
-  }
-}
-```
-
-### 16. Instructions Loaded Reinforcer (InstructionsLoaded)
-
-*Re-asserts critical policy (commit-settings, branching, conventional commits) immediately after `CLAUDE.md` and `.claude/rules/*.md` are loaded — closes the gap where long sessions drift away from policy that lives only in the system prompt.*
-
-**Purpose**: Inject a short, fixed policy digest right after Claude finishes loading instruction files. The digest restates the AI-attribution prohibition, the `CLAUDE_CONTENT_LANGUAGE` policy pointer (full rules stay in `commit-settings.md`), protected-branch policy, and Conventional Commits format so they remain in active context even when the original instruction files scroll out. The full `commit-settings.md` text already reaches context via the `CLAUDE.md` @import chain, so the hook never re-injects it verbatim (issue #716); the payload is capped at ~10 lines / ~500 bytes.
-
-**Trigger**: `InstructionsLoaded` event — fires once per session, after `CLAUDE.md` / `.claude/rules/*.md` have been ingested.
-
-**Files**: `global/hooks/instructions-loaded-reinforcer.sh`, `global/hooks/instructions-loaded-reinforcer.ps1`
-
-**Logic**:
-1. Compose a fixed four-item digest (attribution ban, content-language pointer, protected-branch rules, Conventional Commits format). No file is read into the payload.
-2. Emit JSON via `jq` if available; otherwise hand-escape and print the JSON literal.
-
-**Behavior**:
-- Returns JSON with `hookSpecificOutput.additionalContext` carrying the reinforcement text
-- Always exits 0 — the hook never blocks instruction loading; it only augments context
-- Cross-platform: `instructions-loaded-reinforcer.sh` and `instructions-loaded-reinforcer.ps1`
-
-**Configuration**:
-```json
-{
-  "type": "command",
-  "command": "~/.claude/hooks/instructions-loaded-reinforcer.sh",
-  "timeout": 5
-}
-```
-
-**Sample input** (JSON via stdin):
-```json
-{
-  "session_id": "abc123",
-  "hook_event_name": "InstructionsLoaded",
-  "cwd": "/path/to/project"
-}
-```
-
-**Sample output**:
-```json
-{
-  "hookSpecificOutput": {
-    "hookEventName": "InstructionsLoaded",
-    "additionalContext": "## Critical Policy Reinforcement (digest)\n\n- No AI/Claude attribution in commits, issues, or PRs.\n- Issue/PR/commit prose: follow the CLAUDE_CONTENT_LANGUAGE policy (see commit-settings.md).\n- Branches: work branches from develop; never push directly to main or develop; squash merge only.\n- Commits: Conventional Commits `type(scope): description`; lowercase first char, no trailing period."
-  }
-}
-```
-
-### 17. Post-Compact Restore (SessionStart)
-
-*Re-asserts the four core principles immediately after Claude Code automatically compacts the conversation - pairs with `pre-compact-snapshot` to keep the principles in context across long sessions.*
-
-**Purpose**: When automatic context compaction discards the original `CLAUDE.md` and rule files, this hook re-asserts the four core principles (Think, Minimize, Surgical, Verify) plus the senior-engineer self-check so the model does not regress to pre-policy defaults after compaction.
-
-**Trigger**: `SessionStart` event with matcher `compact` - fires once when the harness starts the fresh post-compaction context. The `PostCompact` event does NOT support `hookSpecificOutput` (Claude Code rejects such output with "Hook JSON output validation failed"); `SessionStart` with `source == "compact"` is the official channel for injecting context after compaction (issue #720). Pairs with the existing `pre-compact-snapshot` hook (PreCompact event) which captures pre-compact state.
-
-**Files**: `global/hooks/post-compact-restore.sh`, `global/hooks/post-compact-restore.ps1`
-
-**Logic**:
-1. Parse stdin JSON and exit 0 silently (no output) unless `source` is `"compact"` - defense in depth in case the hook is ever wired without a matcher, so startup/resume/clear sessions are never spammed.
-2. Append a restore record (timestamp, session id, working directory) to `~/.claude/logs/compact-snapshots.log` - the same log written by `pre-compact-snapshot.sh` so snapshot / restore pairs can be correlated.
-3. Emit a fixed short digest (~500 bytes) of the four core principles plus the self-check line. The hook never reads rule files into the payload; `.sh` and `.ps1` emit byte-equivalent `additionalContext`.
-
-**Behavior**:
-- Returns JSON with `hookSpecificOutput.{hookEventName: "SessionStart", additionalContext}` carrying the principles digest
-- Always exits 0 - the hook never blocks session start; it only augments the post-compact context
-- Silent no-op (no output) for any `source` other than `"compact"`, for empty stdin, and when no JSON parser is available
-- Writes to `~/.claude/logs/compact-snapshots.log` (created on demand)
-- Cross-platform: `post-compact-restore.sh` and `post-compact-restore.ps1`
-
-**Configuration**:
-```json
-{
-  "matcher": "compact",
-  "hooks": [
-    {
-      "type": "command",
-      "command": "~/.claude/hooks/post-compact-restore.sh",
-      "timeout": 5
-    }
-  ]
-}
-```
-
-**Sample input** (JSON via stdin):
-```json
-{
-  "session_id": "abc123",
-  "hook_event_name": "SessionStart",
-  "source": "compact",
-  "cwd": "/path/to/project"
-}
-```
-
-**Sample output**:
-```json
-{
-  "hookSpecificOutput": {
-    "hookEventName": "SessionStart",
-    "additionalContext": "## Post-Compaction Restore (digest)\n\nContext was just compacted. Re-asserting the four core principles:\n\n1. Think Before Acting - state assumptions explicitly; if uncertain, ask.\n..."
-  }
-}
-```
-
-### 18. Task Created Validator (TaskCreated)
-
-*Hard-blocks low-quality task descriptions at the `TaskCreate` boundary — enforces a minimum length and at least one acceptance-criteria checkbox so that downstream teammates and reviewers never receive vague work items.*
-
-**Purpose**: Validate that every task created via `TaskCreate` carries enough scope and acceptance criteria to be actionable. Mirrors the `commit-message-guard` enforcement model: a deterministic gate that catches the drift where short, ambiguous task descriptions leak into multi-agent batch workflows.
-
-**Trigger**: `TaskCreated` event — fires synchronously when any agent (lead or teammate) calls `TaskCreate`. Blocking: a non-zero exit halts task creation and surfaces the rejection reason to the calling model.
-
-**Files**: `global/hooks/task-created-validator.sh`, `global/hooks/task-created-validator.ps1`
-
-**Rules enforced**:
-1. **Description length**: trimmed description must be at least 20 characters.
-2. **Acceptance criteria**: description must contain at least one `- [ ]` markdown checkbox marker.
-
-**Logic**:
-1. Read JSON from stdin. If empty, fail open (nothing to validate).
-2. Extract description from one of `tool_input.description`, `description`, or `task.description` — supports `jq` first, falls back to `python3` / `python`. If neither parser is available, fail open.
-3. If no description field is present, fail open. If the field is present but fails either rule, exit 2 with a guidance message on stderr.
-
-**Decision control**: Uses **exit code only** (not JSON `permissionDecision`):
-
-| Exit Code | Effect |
-|-----------|--------|
-| `0` | Approve task creation |
-| `2` | Block creation — stderr message sent as feedback to the model |
-
-**Fail policy**: Fail-open on missing field, missing JSON parser, or unparseable input. Fail-closed only when the description is present and demonstrably violates a rule. The rationale matches `merge-gate-guard`: a tooling gap should not permanently block legitimate work.
-
-**Behavior**:
-- Returns exit code 0 on approval, exit code 2 on rejection with a stderr message naming the failed rule
-- Reads JSON from stdin via `jq` or `python` (no JSON parser → fail-open)
-- Timeout: 5 seconds
-- Cross-platform: `task-created-validator.sh` and `task-created-validator.ps1`
-
-**Configuration**:
-```json
-{
-  "type": "command",
-  "command": "~/.claude/hooks/task-created-validator.sh",
-  "timeout": 5
-}
-```
-
-**Sample input** (JSON via stdin):
-```json
-{
-  "session_id": "abc123",
-  "hook_event_name": "TaskCreated",
-  "tool_input": {
-    "subject": "Implement validation",
-    "description": "Add input validation to the user form.\n\nAcceptance:\n- [ ] Empty fields rejected\n- [ ] Email format validated"
-  }
-}
-```
-
-**Sample rejection** (stderr, exit 2):
-```
-TaskCreated rejected: description must be at least 20 characters (got 12). Add scope, context, and acceptance criteria.
-```
-
-```
-TaskCreated rejected: description must contain at least one '- [ ]' checkbox marker for acceptance criteria.
-```
-
-### 19. Post Task/Agent Checkpoint (PostToolUse)
-
-*Snapshots the working tree into a WIP commit after every `Task` or `Agent` call — prevents a later sub-agent from silently overwriting a prior agent's output in multi-agent workflows.*
-
-**Purpose**: Close the write-race window in multi-agent skills (issue-work team mode, harness fan-out, fleet-orchestrator) where a second agent can clobber uncommitted output from a first agent. The hook checkpoints after each `Task`/`Agent` completes so the previous agent's changes survive in git history even if the working tree is overwritten.
-
-**Trigger**: `PostToolUse` event, matcher `Task|Agent`. Non-matching tools pass through silently.
-
-**Files**: `global/hooks/post-task-checkpoint.sh`, `global/hooks/post-task-checkpoint.ps1`
-
-**Behavior**:
-1. Read JSON from stdin (tool_name, tool_input). Fail-open on malformed input.
-2. Skip silently if tool_name is not `Task` or `Agent`.
-3. No-op if not inside a git worktree (prevents errors in non-repo directories).
-4. No-op if working tree is clean (keeps history free of empty-commit spam).
-5. Otherwise: `git add -A && git commit -m "wip(agent): $AGENT_NAME checkpoint $TS" --no-verify --allow-empty`.
-
-**Commit message format**: `wip(agent): <sanitized-agent-name> checkpoint YYYY-MM-DD HH:MM:SS`. Agent name is extracted from `tool_input.subagent_type` (preferred) or `tool_input.name` (fallback); only `[A-Za-z0-9_-]` characters survive sanitization, clipped to 64 chars.
-
-**Why `--no-verify`**: This is an internal lifecycle-hook exception. User-initiated `git commit --no-verify` is blocked by `commit-message-guard`, but checkpoint commits use `wip(agent):`, which is not in the Conventional Commits type list that `commit-msg` accepts. Checkpoint commits are throwaway and expected to be squashed at PR merge.
-
-**Why `--allow-empty`**: Defensive — satisfies the acceptance criterion that "hook succeeds on empty tree" even if the no-op check is skipped for some reason (e.g., staged/unstaged boundary edge cases).
-
-**Decision control**: Always exits 0 — the hook never blocks a workflow. Any git, jq, or JSON failure is swallowed silently. The failure mode is "checkpoint didn't happen," not "workflow stopped."
-
-**Configuration**:
-```json
-{
-  "type": "command",
-  "command": "~/.claude/hooks/post-task-checkpoint.sh",
-  "timeout": 15,
-  "async": true
-}
-```
-
-**Limitations**:
-- WIP checkpoints pollute history before squash merge. Acceptable tradeoff for recoverability. Release-time squash cleans them up.
-- Async: the hook does not block the model's next turn. A rapid-fire agent could start before its predecessor's checkpoint lands, though the wall-clock gap in practice is < 100 ms.
-- Does not run in non-git directories (e.g., ad-hoc `/tmp` work) — nothing to checkpoint there.
-
-**Opt-out**: Remove the `PostToolUse` matcher block from `global/settings.json` and re-run `scripts/sync.sh`. Individual sessions can skip by running outside a git worktree.
-
-**Test fixture**: `tests/hooks/test-post-task-checkpoint.sh` exercises dirty/clean/non-repo paths, agent-name sanitization, malformed-JSON fail-open, and the two-agent overwrite scenario.
-
-### 20. Pre-edit Read Guard (PreToolUse/PostToolUse)
-
-*Converts "file was not read" tool-contract violations into an actionable Read-first deny message on the first attempt — no more silent Edit retries.*
-
-**Purpose**: Enforce the Claude Code contract that `Edit` and `Write` on an existing file require a prior `Read` in the same session. Without this guard the tool simply errors out and the model retries in the dark. With it, the hook denies the edit up-front with a reason that tells Claude exactly which file to Read.
-
-**Trigger**: A single script is registered under two hook entries:
-- `PreToolUse` matcher `Edit|Write` — the guard (returns `allow`/`deny` JSON).
-- `PostToolUse` matcher `Read` — the tracker (records the Read path, no JSON).
-
-**Files**: `global/hooks/pre-edit-read-guard.sh`, `global/hooks/pre-edit-read-guard.ps1`
-
-**Tracker**: `$TMPDIR/claude-read-set-<session-id>` on Unix, `%TEMP%\claude-read-set-<session-id>` on Windows. One absolute path per line, deduplicated. Cleared naturally when the temp directory rotates between sessions.
-
-**Behavior**:
-1. Read JSON from stdin (`tool_name`, `tool_input.file_path`, `session_id`).
-2. **If `tool_name == "Read"`**: resolve `file_path` to absolute, append to tracker if absent. Emit no JSON. Best-effort — any failure is swallowed.
-3. **If `tool_name in {"Edit","Write"}`**: resolve `file_path` to absolute, then:
-   - Tracker file missing → `allow` (first-run safety for fresh sessions).
-   - `Write` on a non-existent file → `allow` (new files cannot have been Read).
-   - Tracker contains the path → `allow`.
-   - Otherwise → `deny` with a message naming the exact file to Read first.
-4. **Any other `tool_name`**: `allow` (prevents interference with other matchers).
-
-**Deny reason format**:
-```
-Cannot Edit '/abs/path/to/file' without reading it first in this session. Call Read on '/abs/path/to/file' and retry. (Session <id>, tracker <path>.)
-```
-
-**Decision control**: Always exits 0. Fail-open on empty stdin or missing `jq` — the hook never blocks the workflow when it can't do its job correctly.
-
-**Configuration** (`global/settings.json`):
-```json
-{
-  "PreToolUse": [
-    {
-      "matcher": "Edit|Write",
-      "hooks": [
-        { "type": "command", "command": "~/.claude/hooks/pre-edit-read-guard.sh", "timeout": 5 }
-      ]
-    }
-  ],
-  "PostToolUse": [
-    {
-      "matcher": "Read",
-      "hooks": [
-        { "type": "command", "command": "~/.claude/hooks/pre-edit-read-guard.sh", "timeout": 5, "async": true }
-      ]
-    }
-  ]
-}
-```
-
-**Limitations**:
-- Session-scoped. Across restarts the tracker rotates with `$TMPDIR` and Claude must Read again.
-- Case-sensitive file match on case-insensitive filesystems (macOS default HFS+/APFS) can produce rare false negatives if the same path is Read with different casing — normalize via `realpath` where available.
-- `Edit` on a file that the user manually modified outside the session still passes once it is in the tracker. The hook verifies Read, not freshness.
-
-**Opt-out**: Remove the two matcher blocks from `global/settings.json` and `global/settings.windows.json`, then re-run `scripts/sync.sh`.
-
-**Test fixture**: `tests/hooks/test-pre-edit-read-guard.sh` exercises the deny/allow paths, first-run tracker-missing safety, Write on non-existent files, and Read-then-Edit unlocking.
+| Hook | Event | Behavior |
+|------|-------|----------|
+| `worktree-create` | WorktreeCreate (synchronous) | Creates an isolated worktree directory when isolation is requested outside a git repository and prints its absolute path; a non-zero exit fails the creation |
+| `worktree-remove` | WorktreeRemove (async) | Logs the removal; cannot block it |
+| `permission-denial-logger` | PermissionDenied (async) | Appends a redacted JSONL record of each denied tool call to `~/.claude/logs/permission-denials.jsonl`; `CLAUDE_PERMISSION_LOGGER=0` disables it |
 
 ### Hook Response Format
 
@@ -778,16 +245,31 @@ All PreToolUse hooks must output JSON to stdout and exit with code 0:
 }
 ```
 
+**Ask response** (Claude Code prompts the user and shows the reason):
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "ask",
+    "permissionDecisionReason": "Reason for confirming"
+  }
+}
+```
+
 **Input**: Hooks receive tool input as JSON via stdin. Use `jq` to extract fields:
 ```bash
 INPUT=$(cat)
 CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 ```
 
-**Exit codes**: Always exit 0 when returning JSON. The decision (allow/deny) is conveyed
+**Exit codes**: Always exit 0 when returning JSON. The decision (allow/ask/deny) is conveyed
 through the `permissionDecision` field, not through the exit code.
 
 ## Project Hooks (project/.claude/settings.json)
+
+`project/.claude/settings.json` registers one hook: a SessionStart entry that
+exports `TZ=Asia/Seoul`. The formatter below is owned by the plugin
+(`plugin/hooks/hooks.json`); see [docs/hooks-ownership.md](docs/hooks-ownership.md).
 
 ### 1. Auto Formatting (PostToolUse)
 
@@ -831,6 +313,10 @@ block direct tool access to sensitive files:
   }
 }
 ```
+
+Since #964 these `Read(...)` rules are the whole file-channel sensitive-file
+control: a `Read` deny also blocks Edit and Write on the same path (Claude Code
+2.1.228+), and the rules feed the Bash sandbox read-deny on macOS and Linux.
 
 The Windows profile also carries a narrow `permissions.allow` list for native
 `PowerShell(...)` read-only discovery commands. It covers common inspection
@@ -885,7 +371,7 @@ Decisions for this repo:
 
 ### Overview
 
-All hooks have PowerShell (`.ps1`) equivalents for native Windows support without Git Bash.
+Every hook has a PowerShell (`.ps1`) equivalent for native Windows support without Git Bash. Windows also runs two guards that have no `.sh` twin, `bash-sensitive-read-guard.ps1` and `shell-env-secret-guard.ps1`, because macOS and Linux cover those reads with the Bash sandbox and Windows has no OS sandbox.
 
 | Configuration | File |
 |---------------|------|
@@ -902,30 +388,28 @@ Hook commands use `pwsh -NoProfile -File` for fast, profile-independent executio
 ```json
 {
   "type": "command",
-  "command": "pwsh -NoProfile -File ~/.claude/hooks/sensitive-file-guard.ps1",
+  "command": "pwsh -NoProfile -File ~/.claude/hooks/memory-integrity-check.ps1",
   "timeout": 5
 }
 ```
 
 ### Bash Guard Dispatcher (Windows)
 
-*Single entry point for every Bash guard on Windows, in place of 15 individual hook registrations.*
+*Single entry point for every Bash guard on Windows, in place of one hook registration per guard.*
 
-**Purpose**: Each registered hook is its own `pwsh -NoProfile` process. With the
-Bash guards registered individually, one Bash tool call started 15 of them.
+**Purpose**: Each registered hook is its own `pwsh -NoProfile` process. Before
+the dispatcher (#895), one Bash tool call started 15 of them, one per guard.
 Process start dominates the cost (~350 ms each, measured) while the guard logic
 itself costs ~13 ms. The dispatcher pays the process cost once, reads stdin
 once, imports `CommonHelpers` once, and invokes only the guards whose command
-family is present in the tool input.
+family is present in the tool input. Since #964 it fronts four guards.
 
 **Registration**: `global/settings.windows.json` registers
 `bash-guard-dispatcher.ps1` as the only hook on the `Bash` matcher, with
-`timeout: 30`. POSIX is unchanged and still registers its 14 `.sh` guards
-individually, because a `bash` process is cheap to start and there is nothing to
-consolidate; a POSIX dispatcher would need its own payload-passing mechanism and
-is tracked as a follow-up in `CHANGELOG.md`. This is also why there is no
-`bash-guard-dispatcher.sh`: the `.sh`/`.ps1` parity audit in
-`.github/workflows/validate-hooks-doc.yml` exempts `*-dispatcher.*`, since a
+`timeout: 30`. POSIX registers its two `.sh` guards individually, because a
+`bash` process is cheap to start and there is nothing to consolidate. This is
+also why there is no `bash-guard-dispatcher.sh`: the `.sh`/`.ps1` parity audit
+in `.github/workflows/validate-hooks-doc.yml` exempts `*-dispatcher.*`, since a
 `.sh` twin would be exactly the dormant unwired file that audit exists to catch.
 
 **Routing table**: the prefilter is deliberately *coarser* than each guard's own
@@ -935,75 +419,67 @@ disable a guard; too wide costs a few milliseconds.
 
 | Routed when | Guards | Fail policy |
 |-------------|--------|-------------|
-| always | `dangerous-command-guard`, `bash-sensitive-read-guard`, `shell-env-secret-guard`, `bash-write-guard` | closed |
-| command contains `gh` | `gh-write-verb-guard`, `pr-target-guard` | closed |
-| command contains `gh` | `github-api-preflight`, `traceability-guard`, `attribution-guard`, `pr-language-guard`, `merge-gate-guard` | open |
-| command contains `git` | `push-target-guard` | closed |
-| command contains `git` | `markdown-anchor-validator`, `commit-message-guard`, `conflict-guard` | open |
+| always | `dangerous-command-guard`, `bash-sensitive-read-guard` (Windows-only), `shell-env-secret-guard` (Windows-only) | closed |
+| command contains `gh` | `merge-gate-guard` | open |
 
 **Fail policy**: `closed` means a crash in that guard **denies** the call, because
-a security or branch-policy gate must never fail silently open. `open` means a
-crash warns through `additionalContext` and allows, and is reserved for
-validators whose authoritative gate lives elsewhere, such as the `commit-msg`
-git hook or CI. Unparseable hook input is fail-closed for the dispatcher as a
-whole, matching `dangerous-command-guard`, the strictest guard it fronts.
+a security gate must never fail silently open. `open` means a crash warns
+through `additionalContext` and allows, and is reserved for a gate whose
+authoritative check lives elsewhere: for `merge-gate-guard`, server-side branch
+protection. Unparseable hook input is fail-closed for the dispatcher as a whole,
+matching `dangerous-command-guard`, the strictest guard it fronts.
+
+**Decision merge**: `deny` > `ask` > `allow`, the precedence Claude Code itself
+applies across PreToolUse hooks. Any deny wins; otherwise every `ask` is merged
+into one `ask` whose reason lists each guard's reason.
 
 **Time budget**: 25 s internally, inside the harness's 30 s `timeout`. When the
 internal budget runs out the dispatcher does not truncate silently: it names
 every guard it skipped in `additionalContext`. The individually-registered POSIX
 guards have no equivalent internal budget, where a harness timeout is fail-open
 and therefore invisible (see [Timeout occurring](#timeout-occurring)). The
-`Edit|Write|Read` matcher gained the same internal budget in
+`Edit|Write` matcher has the same internal budget in
 [its own dispatcher](#edit-guard-dispatcher-windows).
 
 ### Edit Guard Dispatcher (Windows)
 
-*Single entry point for every `Edit|Write|Read` guard on Windows, in place of 3 individual hook registrations.*
+*Single entry point for the `Edit|Write` guards on Windows.*
 
 **Purpose**: the same process-cost problem as the Bash dispatcher, on the matcher
-that fires most often. One file operation started three `pwsh -NoProfile`
-processes. Measured on this profile, 5 runs each with the same payload: the
-three-process chain p50 1,068 ms (spread 21 ms) against the dispatcher's p50
-410 ms (spread 36 ms), a 62% reduction.
+that fired most often. Before #964 one file operation started three
+`pwsh -NoProfile` processes. Measured then on this profile, 5 runs each with the
+same payload: the three-process chain p50 1,068 ms (spread 21 ms) against the
+dispatcher's p50 410 ms (spread 36 ms), a 62% reduction (#920).
 
 **Registration**: `global/settings.windows.json` registers
-`edit-guard-dispatcher.ps1` as the only hook on the `Edit|Write|Read` matcher,
-with `timeout: 30`. POSIX is unchanged and still registers its three `.sh` guards
-individually, for the same reason the Bash axis does — a `bash` process is cheap
-to start — and there is likewise no `edit-guard-dispatcher.sh`, which the
-`*-dispatcher.*` exemption in `.github/workflows/validate-hooks-doc.yml` allows.
+`edit-guard-dispatcher.ps1` as the only hook on the `Edit|Write` matcher, with
+`timeout: 30`. POSIX registers `memory-write-guard.sh` directly, and there is
+likewise no `edit-guard-dispatcher.sh`, which the `*-dispatcher.*` exemption in
+`.github/workflows/validate-hooks-doc.yml` allows. The dispatcher stays although
+it routes a single guard since #964, so a later file-channel guard needs no new
+registration.
 
-**Routing table**: order is load-bearing, and it lives here rather than in the
-settings file.
+**Routing table**:
 
-| Order | Routed when | Guard | Fail policy | Short-circuit |
-|-------|-------------|-------|-------------|---------------|
-| 1 | always | `sensitive-file-guard` | closed | yes |
-| 2 | always | `pre-edit-read-guard` | open | no |
-| 3 | `Edit`/`Write` and path contains `memory-shared` | `memory-write-guard` | open | no |
+| Routed when | Guard | Fail policy |
+|-------------|-------|-------------|
+| `Edit`/`Write` and path contains `memory-shared` | `memory-write-guard` | open |
 
-**Short-circuit**: a `deny` from `sensitive-file-guard` returns immediately and
-the remaining guards do not run, so a file it rejects is never recorded in
-`pre-edit-read-guard`'s read-set tracker (issues #424, #521). Separate
-registrations could not enforce this: the harness runs later hooks even after a
-denial. Measured across 212 denied calls in a local transcript window, guards
-after the denying one still ran, and two live trackers contained `*.env` paths
-that `sensitive-file-guard` denies. Consolidation is what made the documented
-order enforceable, and issue #920 fixed the invariant along with the latency.
-Only guard 1 short-circuits; a `deny` from the other two is collected and merged
-as usual, so the caller still sees every applicable reason.
+**Prefilter**: `memory-write-guard` shells out to `validate.sh`,
+`secret-check.sh` and `injection-check.sh`, and its own gate accepts nothing
+outside `$HOME/.claude/memory-shared/memories/*.md`. The prefilter matches the
+coarse `memory-shared` substring instead, keeping every path the guard could act
+on while skipping the subprocess cost for ordinary edits.
 
-**Prefilter**: `memory-write-guard` is the only heavy guard here — it shells out
-to `validate.sh`, `secret-check.sh` and `injection-check.sh` — and its own gate
-accepts nothing outside `$HOME/.claude/memory-shared/memories/*.md`. The
-prefilter matches the coarse `memory-shared` substring instead, keeping every
-path the guard could act on. As on the Bash dispatcher, too narrow would silently
-disable a guard; too wide costs a few milliseconds.
+**Ordering**: the routing table also supports a `shortCircuit` flag, so that a
+deny from one guard can hide the target from the guards after it. The harness
+runs later hooks even after a denial, so only a dispatcher can enforce an order
+(#424, #521, #920). No guard uses it since #964.
 
-**Fail policy**: unparseable hook input is fail-closed for the dispatcher as a
-whole, matching `sensitive-file-guard`. The other two guards fail open on their
-own, but stdin can only be drained once, so the dispatcher must pick one policy
-for all three and weakening the security guard is not an option.
+**Fail policy**: unparseable hook input is fail-open with a diagnostic for the
+dispatcher as a whole, matching `memory-write-guard`, which must not block
+legitimate work because of its own failure (#521). The fail-closed policy it
+replaced existed for the sensitive-file guard that #964 removed.
 
 **Time budget**: 25 s internally, inside the harness's 30 s `timeout`, with the
 same no-silent-truncation rule as the Bash dispatcher.
@@ -1013,8 +489,7 @@ through the process-lifetime cache in `Read-HookInput`
 (`global/hooks/lib/CommonHelpers.psm1`), not through a parameter — no guard
 declares a `param()` block, so the `-HookInput` argument lands in `$args` and is
 ignored. `tests/hooks/test-edit-guard-dispatcher.ps1` asserts the deny *reason*,
-not just the decision, because a broken cache would still produce a deny from a
-fail-closed guard.
+not just the decision, because a broken cache would still produce a deny.
 
 **Standalone contract**: every guard still accepts an optional `-HookInput`
 parameter carrying the already-parsed payload and falls back to reading stdin
@@ -1024,14 +499,14 @@ terminates only that guard.
 
 **Coverage guard**: `tests/scripts/test-windows-hooks-parity.sh` expands the
 dispatcher registration into its routed guard names before diffing against the
-POSIX registrations, so a guard dropped from the routing table fails CI. One
-asymmetry is allowlisted: `markdown-anchor-validator` is project-owned and lives
-in `project/.claude/settings.json` on POSIX, but Windows has no project settings
-variant, so the Windows global file is its sole carrier.
+POSIX registrations, so a guard dropped from the routing table fails CI. Its
+`WIN_ONLY_ALLOW` set lists the two Windows-only guards, `bash-sensitive-read-guard`
+and `shell-env-secret-guard`.
 
-**Measured effect**: an accidental revert produced an A-B-A-B sequence, so the
-payoff can be read off real sessions rather than a bench. `PreToolUse:Bash` hook
-durations from all local transcripts:
+**Measured effect** (before #964, when the Bash matcher carried 15 guards): an
+accidental revert produced an A-B-A-B sequence, so the payoff of the Bash
+dispatcher can be read off real sessions rather than a bench. `PreToolUse:Bash`
+hook durations from all local transcripts:
 
 | Phase | Dates | Bash configuration | n | median | p90 | p99 | vs P0 |
 |-------|-------|--------------------|--:|-------:|----:|----:|------:|
@@ -1040,10 +515,10 @@ durations from all local transcripts:
 | P2 | 08-01 .. 08-05 | 15 individual hooks | 37,061 | 908 ms | 1,272 ms | 3,089 ms | +9.7% |
 | P3 | 2026-08-06 .. | dispatcher (shipped) | 12,656 | 534 ms | 1,117 ms | 1,564 ms | **-35.5%** |
 
-The `Edit|Write|Read` matcher is the control. No transition touched it and it
-stays flat across all four: 415 / 437 / 448 / 426 ms over 34,625 runs. Session
-load or machine state would have moved both channels together, so the Bash
-channel's two-fold swings are attributable to hook topology.
+The `Edit|Write|Read` matcher of that time is the control. No transition touched
+it and it stays flat across all four: 415 / 437 / 448 / 426 ms over 34,625 runs.
+Session load or machine state would have moved both channels together, so the
+Bash channel's two-fold swings are attributable to hook topology.
 
 Two cautions for anyone re-running this. **Segment by phase.** A naive
 before-and-after split at 2026-07-27 reports roughly no improvement, because P2
@@ -1058,22 +533,20 @@ after the change actually lands.
 
 | Hook | File | Description |
 |------|------|-------------|
-| Sensitive File Guard | `sensitive-file-guard.ps1` | Blocks the `.env` family (incl. `.envrc`), `.pem`/`.key`/`.p12`/`.pfx`, SSH private keys, AWS credentials, and sensitive directories |
-| Dangerous Command Guard | `dangerous-command-guard.ps1` | Blocks `rm -rf /`, `chmod 777`, pipe execution |
-| Session Logger | `session-logger.ps1` | Logs session start/end/stop events |
+| Bash Guard Dispatcher | `bash-guard-dispatcher.ps1` | Runs the Bash guards in one process |
+| Edit Guard Dispatcher | `edit-guard-dispatcher.ps1` | Runs the `Edit\|Write` guards in one process |
+| Dangerous Command Guard | `dangerous-command-guard.ps1` | Denies irreversible operations and asks before destructive ones |
+| Merge Gate Guard | `merge-gate-guard.ps1` | Blocks `gh pr merge` while any check is not green |
+| Bash Sensitive Read Guard | `bash-sensitive-read-guard.ps1` | Windows-only: blocks secret reads through the shell (`cat .env`) |
+| Shell Env Secret Guard | `shell-env-secret-guard.ps1` | Windows-only: blocks printing secret-bearing environment variables |
+| Memory Write Guard | `memory-write-guard.ps1` | Validates writes to the shared memory repository |
+| Memory Integrity Check | `memory-integrity-check.ps1` | Memory-sync health summary at session start |
+| Memory Access Logger | `memory-access-logger.ps1` | Logs reads of shared-memory files |
 | Cleanup | `cleanup.ps1` | Removes old temp files from `$env:TEMP` |
-| Prompt Validator | `prompt-validator.ps1` | Warns on dangerous operation requests |
-| GitHub API Preflight | `github-api-preflight.ps1` | Tests GitHub API connectivity |
-| Tool Failure Logger | `tool-failure-logger.ps1` | Logs tool execution failures |
-| Subagent Logger | `subagent-logger.ps1` | Logs subagent start/stop events |
-| Pre-Compact Snapshot | `pre-compact-snapshot.ps1` | Captures state before compaction |
+| Prune Permission Rules | `prune-permission-rules.ps1` | Prunes dead `permissions.allow` entries on session end |
 | Worktree Create | `worktree-create.ps1` | Creates isolated worktree directory |
 | Worktree Remove | `worktree-remove.ps1` | Logs worktree removal events |
-| Task Completed Logger | `task-completed-logger.ps1` | Logs task completion events |
-| Config Change Logger | `config-change-logger.ps1` | Logs configuration changes |
-| Markdown Anchor Validator | `markdown-anchor-validator.ps1` | Validates markdown cross-reference anchors before commit |
-| Team Limit Guard | `team-limit-guard.ps1` | Enforces MAX_TEAMS concurrent team limit |
-| Version Check | `version-check.ps1` | Warns about known cache bug versions on session start |
+| Permission Denial Logger | `permission-denial-logger.ps1` | Logs denied tool calls (redacted) |
 
 ### Key Differences from Bash Hooks
 
@@ -1170,15 +643,16 @@ user-pressed Esc also produces `hook_cancelled` but without those two fields,
 so the two causes are distinguishable.
 
 Contention, not guard logic, produces the tail, and it takes out a whole
-matcher at once: every timeout observed locally on `Edit|Write|Read` arrived in
-a burst of three with near-identical durations, meaning all three guards of a
-single tool call were killed at the same deadline and that call ran unguarded.
-Budget for the matcher's worst case, not its median.
+matcher at once: before #964, when `Edit|Write|Read` carried three guards, every
+timeout observed locally on it arrived in a burst of three with near-identical
+durations, meaning all three guards of a single tool call were killed at the
+same deadline and that call ran unguarded. Budget for the matcher's worst case,
+not its median.
 
 | Matcher | Registered | Timeout | Why |
 |---------|-----------|---------|-----|
-| `Edit\|Write\|Read` | 3 guards, one process each | 30 s | Fail-open makes a skipped guard worse than a slow one. Median 429 ms and p99 1,020 ms over 35,276 local runs, worst case 11,141 ms (#897). |
-| `Bash` | `bash-guard-dispatcher.ps1` on Windows | 30 s | 25 s internal guard budget plus process-start slack. The dispatcher names any guard it had to skip instead of truncating silently. |
+| `Edit\|Write` | `memory-write-guard` on POSIX; `edit-guard-dispatcher.ps1` on Windows | 30 s | Fail-open makes a skipped guard worse than a slow one. Measured before #964 with three guards on `Edit\|Write\|Read`: median 429 ms and p99 1,020 ms over 35,276 local runs, worst case 11,141 ms (#897). |
+| `Bash` | `dangerous-command-guard` (5 s) and `merge-gate-guard` (30 s) on POSIX; `bash-guard-dispatcher.ps1` on Windows | 5 s / 30 s; 30 s | `merge-gate-guard` makes a network call. The Windows dispatcher has a 25 s internal guard budget plus process-start slack, and names any guard it had to skip instead of truncating silently. |
 
 ### Formatter not working
 
@@ -1218,7 +692,7 @@ which clang-format
 **Behavior**:
 - Exits with code 1 to block the push when targeting a protected branch
 - Exits with code 0 to allow the push for non-protected branches
-- Bypass attempt: `git push --no-verify` is denied by `push-target-guard` in Claude Code before the terminal-side hook can be skipped.
+- Bypass: `git push --no-verify` skips this hook, and no Claude Code hook denies `--no-verify` since #964. A Claude-driven push to a protected branch is still denied by `dangerous-command-guard`, with or without the flag; GitHub branch protection is the server-side gate.
 
 **Cross-platform**:
 

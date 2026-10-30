@@ -170,5 +170,5 @@ When the schema or workflow grows new failure modes, add them here first:
 - Row schema referenced by these rules: `matrix-schema.md`
 - Skill that emits the findings: `../SKILL.md`
 - Catalogue producer that builds the inputs: `../../doc-index/SKILL.md`
-- Sibling enforcement layer (PreToolUse): `kcenon/claude-config#590` (`traceability-guard`)
+- Sibling enforcement layer: the `pre-push` git hook and the skill itself, `kcenon/claude-config#590` (cascade logic in `hooks/lib/validate-traceability.sh`)
 - Sibling clause-mapping layer: `kcenon/claude-config#591` (`compliance/<standard>.md` rules)

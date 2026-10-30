@@ -4,9 +4,9 @@
 # Single source of truth for the content-language rule applied to GitHub
 # Issue and Pull Request titles and bodies created via the gh CLI.
 #
-# Sourced by: tests/hooks/test-language-validator.sh. The pr-language-guard
-# PreToolUse hook, which gated gh pr/issue commands at the Bash tool boundary,
-# sourced it until #964 removed that hook; the installers still deploy it.
+# Sourced by: tests/hooks/test-language-validator.sh. A PreToolUse hook that
+# gated gh pr/issue commands at the Bash tool boundary sourced it until #964
+# removed that hook; the installers still deploy it.
 #
 # The default rule mirrors commit-settings.md: "All GitHub Issues and Pull
 # Requests must be written in English." The terminal-side enforcement layer

@@ -29,30 +29,26 @@
 - 지원 포매터: `black`, `prettier`, `gofmt`, `rustfmt`, `clang-format`, `ktlint`
 
 ### 커밋할 때
-- 마크다운 상호 참조 앵커가 검증됩니다 — 깨진 링크는 커밋을 차단합니다
-- 커밋 메시지 형식이 확인됩니다 (Conventional Commits)
-- AI/Claude 어트리뷰션이 자동으로 제거됩니다
-- 커밋 / PR / 이슈 내용이 선택된 `CLAUDE_CONTENT_LANGUAGE` 정책으로 검증됩니다 (아래 [컨텐츠 언어 정책](#컨텐츠-언어-정책) 참조)
+- `settings.json`의 `attribution: ""` 설정으로 Claude가 어트리뷰션 trailer를 붙이지 않습니다
+- `hooks/install-hooks.sh`로 `commit-msg` git hook을 설치한 저장소에서는 커밋 메시지가 검사됩니다 (Conventional Commits, AI/Claude 어트리뷰션 금지, 이모지 금지)
+- PR과 이슈 내용은 선택된 `CLAUDE_CONTENT_LANGUAGE` 정책을 지시로 따릅니다 (아래 [컨텐츠 언어 정책](#컨텐츠-언어-정책) 참조). 이를 검사하는 hook은 없습니다
 
 ### Claude가 파일에 접근할 때
-- `.env`, `.pem`, `.key` 및 `secrets/` 디렉토리 접근이 차단됩니다
-- 위험한 명령어 (`rm -rf /`, `chmod 777`, 파이프 실행)가 차단됩니다
-- GitHub API 호출 전 연결이 검증됩니다
+- `.env`, `.pem`, `.key` 및 `secrets/` 경로는 `permissions.deny`로 Read와 Edit/Write 모두 차단됩니다
+- 되돌릴 수 없는 명령어는 거부됩니다: `rm -rf /`, 다운로드를 셸로 파이프, `chmod 777`, `main`/`develop`로 직접 push, `gh repo delete`
+- 그 밖의 파괴적인 명령어는 확인을 요청합니다: 변경이 있는 트리에서 `git reset --hard`, `git clean -f`, `git push --force`, `rm -r .`, `find -delete`, `gh release delete`
 
 ### 세션이 실행될 때
-- 세션 시작/종료 시간이 `~/.claude/session.log`에 기록됩니다
-- 알려진 문제가 있는 Claude Code 버전에 대해 경고가 표시됩니다
 - 세션 종료 시 오래된 임시 파일이 정리됩니다
-- 자동 압축 전 컨텍스트가 스냅샷됩니다
+- 세션 종료 시 다시는 일치할 수 없는 `permissions.allow` 항목이 프로젝트의 `settings.local.json`에서 정리됩니다
+- 메모리 동기화가 설정되어 있으면 세션 시작 시 짧은 메모리 상태 요약이 표시됩니다
 
 ### PR을 생성할 때
-- `develop` 외 브랜치에서 `main`을 타겟하는 PR이 차단됩니다 (PreToolUse hook)
-- 서버 측: GitHub Actions가 위반 PR을 자동으로 닫고 안내 코멘트를 남깁니다
+- PR 체크가 하나라도 실패 또는 대기 중이면 `gh pr merge`가 차단됩니다
+- 서버 측: GitHub Actions가 `develop` 외 브랜치에서 `main`으로 향하는 PR을 자동으로 닫고 안내 코멘트를 남깁니다
 - 릴리즈 PR (`develop` → `main`)은 `/release` 스킬을 통해 허용됩니다
 
 ### Agent Teams 사용 시
-- 동시 팀 수가 제한됩니다 (`MAX_TEAMS`로 설정 가능)
-- 팀원의 유휴 이벤트와 작업 완료가 기록됩니다
 - Worktree 생성 및 정리가 자동으로 관리됩니다
 
 > 전체 Hook 설정 세부사항 및 커스터마이징은 [HOOKS.md](../../HOOKS.md)를 참조하세요.
@@ -77,7 +73,7 @@ Installer는 선택된 phrase를 세 규칙 문서 템플릿 (`global/commit-set
 
 재설치 시 prompt 기본값은 기존 `settings.json`에서 seed되어 이전 `.language`와 `CLAUDE_CONTENT_LANGUAGE` 선택을 유지합니다. 명시적인 `AGENT_LANGUAGE` 및 `CONTENT_LANGUAGE` 환경 변수 override가 있으면 그 값이 우선합니다.
 
-**스코프 경계**: AI/Claude 어트리뷰션 차단은 이 env var의 영향을 **받지 않습니다** — `attribution-guard`와 `commit-message-guard` 내부의 attribution 검사는 모든 정책에서 그대로 작동합니다.
+**스코프 경계**: AI/Claude 어트리뷰션 규칙은 이 env var의 영향을 **받지 않습니다** — `commit-msg` git hook의 attribution 검사는 모든 정책에서 그대로 작동합니다.
 
 **Enterprise 충돌 감지**: 배포된 enterprise `CLAUDE.md`가 영어를 강제하는데 운영자가 더 허용적인 정책을 선택하면, installer가 경고를 출력하고 진행 전에 확인을 요청합니다.
 

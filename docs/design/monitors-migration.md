@@ -26,7 +26,7 @@ Searches across `global/`, `scripts/`, `tests/` for canonical loop patterns:
 |---------|--------|
 | `tail -F` | 0 hits |
 | `while true` | 0 hits |
-| `tail -f` (lower-case) | 1 hit — `tests/hooks/test-bash-sensitive-read-guard.sh:77`, an `assert_deny "tail -f .env.local"` fixture; not a migration candidate |
+| `tail -f` (lower-case) | 1 hit at the time of writing: an `assert_deny "tail -f .env.local"` fixture in a Bash-channel guard test that #964 later removed; not a migration candidate |
 
 A broader sweep for polling loops (`gh pr checks` + `sleep`) surfaces these in-skill candidates:
 

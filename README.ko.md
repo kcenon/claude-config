@@ -45,13 +45,13 @@ grep -E "^(name|email):" ~/.claude/git-identity.md
 
 claude-config을 설치하면 Claude Code에 다음 기능이 즉시 적용됩니다:
 
-**보안** — `.env`, `.pem`, 인증 정보 파일이 자동으로 읽기/쓰기 차단됩니다. `rm -rf /` 같은 위험한 명령도 실행 전에 차단됩니다.
+**보안** — `.env`, `.pem`, 인증 정보 파일이 자동으로 읽기/쓰기 차단됩니다. `rm -rf /` 같은 되돌릴 수 없는 명령은 거부되고, `git reset --hard`나 `git push --force` 같은 파괴적인 명령은 먼저 확인을 요청합니다.
 
 **자동 포맷팅** — 코드 저장 시 자동 포맷: Python (black), TypeScript (prettier), Go (gofmt), Rust (rustfmt), C++ (clang-format), Kotlin (ktlint).
 
 **워크플로우 자동화** — `/issue-work`로 GitHub 이슈를 선택해서 PR 생성까지 한 번에 처리합니다. `/release`는 변경 로그를 자동 생성하고, `/pr-work`는 CI 실패를 진단·수정합니다.
 
-**커밋 품질 관리** — 깨진 마크다운 링크, AI 어트리뷰션, 비표준 커밋 메시지가 저장소에 들어가기 전에 자동으로 검출됩니다.
+**커밋 품질 관리** — `commit-msg` git hook이 AI 어트리뷰션과 비표준 커밋 메시지를 저장소에 들어가기 전에 검출합니다.
 
 **컨텐츠 언어 정책 선택** — 설치 시점에 커밋 메시지·PR 본문·문서의 언어를 English (ASCII 및 허용된 English typography) 또는 Korean (산출물 단위 엄격, 인라인 혼용 금지) 중에서 선택합니다. 세 옵션 프리셋 UI는 `CLAUDE_CONTENT_LANGUAGE=english|exclusive_bilingual` 로 매핑되며, 레거시 값 (`korean_plus_english`, `any`) 은 `settings.json` 직접 편집을 통해서만 사용 가능합니다.
 
