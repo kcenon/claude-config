@@ -390,13 +390,17 @@ while [ "${#BIG}" -lt 1000000 ]; do BIG="$BIG$BIG"; done
 BIGQ=$(printf 'echo "0123456789 x"; %.0s' $(seq 1 1100))
 while [ "${#BIGQ}" -lt 1000000 ]; do BIGQ="$BIGQ$BIGQ"; done
 # check_in_time: check, within the 5 s the hook gets on POSIX. Past that the
-# harness kills the hook, and the command runs uninspected.
+# harness kills the hook, and the command runs uninspected. The slowest answer
+# goes into the results line, the one line the CI runner prints of this suite,
+# so that the margin stays visible.
+SLOWEST_MS=0
 check_in_time() {
     local t0 t1 ms
     t0=$(python3 -c 'import time; print(int(time.time()*1000))')
     check "$@"
     t1=$(python3 -c 'import time; print(int(time.time()*1000))')
     ms=$((t1 - t0))
+    [ "$ms" -le "$SLOWEST_MS" ] || SLOWEST_MS="$ms"
     if [ "$ms" -le 5000 ]; then
         ((PASS++)); echo "    PASS: answered in ${ms} ms"
     else
@@ -564,7 +568,7 @@ else
 fi
 
 echo ""
-echo "=== Results: $PASS passed, $FAIL failed ==="
+echo "=== Results: $PASS passed, $FAIL failed (slowest 1 MB input: ${SLOWEST_MS} ms) ==="
 if [ ${#ERRORS[@]} -gt 0 ]; then
     echo ""
     for err in "${ERRORS[@]}"; do
