@@ -16,8 +16,8 @@ Since #964 the Claude Code hooks guard destructive operations only: they **deny*
 | `gh release delete`, `gh issue delete`, any other `gh api -X DELETE` | `dangerous-command-guard` (PreToolUse) | Permission prompt (`ask`) | Confirm |
 | `bash -c '<command>'`, `sh -c ...`, `eval '<command>'` | `dangerous-command-guard` (payload scan) | The inner command gets the same decision; a payload that cannot be inspected is denied | Run the inner command directly |
 | `gh pr merge <N>` while any check is pending/failing | `merge-gate-guard` (PreToolUse) | Merge blocked until every `gh pr checks <N>` bucket is `pass` or `skipping` | Wait for CI; fix failures; never rationalize |
-| Read, Edit or Write on `.env`, `.pem`, `.key`, `secrets/`, `credentials/`, SSH keys, AWS credentials | `permissions.deny` `Read(...)` rules (a `Read` deny also blocks Edit/Write on the path) | Tool call denied | Do not exfiltrate secrets; reference variable names instead |
-| `cat .env`, `grep AWS_ ~/.aws/credentials` via Bash | Bash sandbox read-deny (macOS, Linux); `bash-sensitive-read-guard` in the Windows Bash dispatcher | Read denied | Use a non-secret config; if you really need it, ask the user out-of-band |
+| Read, Edit or Write on `.env`, `.pem`, `.key`, `secrets/`, `credentials/`, SSH keys, AWS credentials under the working directory, or on `~/.aws/credentials` | `permissions.deny` `Read(...)` rules (a `Read` deny also blocks Edit/Write on the path) | Tool call denied | Do not exfiltrate secrets; reference variable names instead |
+| `cat .env`, `grep AWS_ ~/.aws/credentials` via Bash | Bash sandbox read-deny of the same files (macOS, Linux; see [Secrets outside the working directory](#secrets-outside-the-working-directory)); `bash-sensitive-read-guard` in the Windows Bash dispatcher | Read denied | Use a non-secret config; if you really need it, ask the user out-of-band |
 | `echo $API_KEY`, `printenv GITHUB_TOKEN` via Bash on Windows | `shell-env-secret-guard` in the Windows Bash dispatcher | Denied (a bare `env` dump only warns) | Reference the variable name, not its value |
 | `Edit`/`Write` on a file you have not yet `Read` | Native Edit/Write tool contract | Tool error | Call `Read` on the exact path, then retry |
 | Edit/Write under `~/.claude/memory-shared/memories/` | `memory-write-guard` (PreToolUse) | Denied when the structure, secret or owner check fails | Fix the memory file; see `docs/MEMORY_VALIDATION_SPEC.md` |
@@ -38,6 +38,15 @@ Issue #964 removed the hooks that enforced these rules. They stay as instruction
 | Shell writes go through Edit/Write | Bash sandbox write allowlist (macOS, Linux); `global/CLAUDE.md` |
 | No secret-bearing environment variable printed to the transcript (macOS, Linux) | None; the sandbox read-deny covers files, not the environment |
 | Team and task limits | None; Claude Code allows one team per session |
+
+## Secrets outside the working directory
+
+The `**/` patterns in `permissions.deny` are relative to the working directory, and so is the Bash sandbox read-deny that Claude Code builds from them. They deny a matching file at any depth under the directory the session runs in, and nowhere else.
+
+- `~/.aws/credentials` has its own home-anchored rule, `Read(~/.aws/credentials)` (#973), so it is denied from every working directory.
+- **Known gap on macOS and Linux: SSH private keys in `~/.ssh`.** No rule denies them. From another project directory, the Read tool asks before it reads `~/.ssh/id_ed25519` (the file is outside the working directory), and the sandbox does not deny a Bash read of it. Before #964, `bash-sensitive-read-guard.sh` denied such reads anywhere.
+- The gap is deliberate. The sandbox blocks the `ssh-agent` socket, so a sandboxed `git commit` signed with an SSH key, as [docs/SSH_COMMIT_SIGNING.md](docs/SSH_COMMIT_SIGNING.md) sets up, reads the private key file directly. A `Read(~/.ssh/...)` deny would make every sandboxed signed commit fail.
+- On Windows, `bash-sensitive-read-guard.ps1` matches `.ssh/id_*` in the command wherever the file is, so the gap does not apply there.
 
 ## CI gates (server-side)
 

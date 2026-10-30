@@ -117,7 +117,7 @@ FIXTURE="$WORK/fixture"
 make_fixture "$FIXTURE"
 
 # Deployed-path keys, relative to ~/.claude: the three top-level scripts and
-# every scripts/memory/*.sh (secret-check.env.example is not a script).
+# every scripts/memory/*.sh (secret-check-env.example is not a script).
 KEYS=()
 for name in memory-sync.sh memory-status.sh memory-notify.sh; do
     KEYS+=("scripts/$name")
@@ -150,8 +150,8 @@ for key in "${KEYS[@]}"; do
     assert_true "$key tracked in the install manifest" \
         "[ \"\$(manifest_entry '$home_g' '$key')\" = \"\$(sha256_of '$FIXTURE/$key')\" ]"
 done
-assert_true "secret-check.env.example not deployed" \
-    "[ ! -e '$home_g/.claude/scripts/memory/secret-check.env.example' ]"
+assert_true "secret-check-env.example not deployed" \
+    "[ ! -e '$home_g/.claude/scripts/memory/secret-check-env.example' ]"
 
 echo ""
 echo "[Deployed CLIs answer --help without a memory clone]"

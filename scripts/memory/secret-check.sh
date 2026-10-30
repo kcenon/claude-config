@@ -24,7 +24,7 @@
 #   OWNER_HOME_USER      owner Unix home directory user (default: the
 #                        account running the check, $USER or `id -un`)
 #
-# See scripts/memory/secret-check.env.example for a sample configuration.
+# See scripts/memory/secret-check-env.example for a sample configuration.
 
 set -u
 
@@ -52,7 +52,7 @@ Set the OWNER_EMAILS environment variable (space-separated) before invocation:
 
     export OWNER_EMAILS="you@example.com"
 
-See scripts/memory/secret-check.env.example for the full configuration template
+See scripts/memory/secret-check-env.example for the full configuration template
 and docs/MEMORY_TRUST_BASELINE.md for the trust-model rationale.
 EOF
     exit 2
@@ -77,7 +77,7 @@ Environment:
   OWNER_HOME_USER       optional Unix home directory user
                         (default: the account running the check)
 
-See scripts/memory/secret-check.env.example for a sample.
+See scripts/memory/secret-check-env.example for a sample.
 EOF
 }
 
