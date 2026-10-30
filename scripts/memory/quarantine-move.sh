@@ -295,7 +295,7 @@ main() {
   #     quarantined-by / last-verified line with the new value (or drop and
   #     re-emit at end). This keeps key order stable for fields we don't touch.
   #   - Append any missing fields after the last existing line.
-  # No `awk` redirections per implementation notes (bash-write-guard).
+  # No `awk` redirections, per the original implementation notes.
 
   local tmp
   tmp="$(mktemp 2>/dev/null || mktemp -t quar-move)"

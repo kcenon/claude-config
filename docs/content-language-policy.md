@@ -74,41 +74,19 @@ explaining that the simplified UI no longer surfaces that value and
 that the new selection will replace it. Operators who want to keep the
 legacy value cancel the installer and edit `settings.json` directly.
 
-## Hook coverage (gh artifact gate)
+## Enforcement
 
-The `pr-language-guard.{sh,ps1}` PreToolUse hook intercepts every
-`gh` invocation that would publish artifact text to GitHub, validating
-the `--title`, `--body`, and `--notes` arguments against the resolved
-policy before the command reaches the API.
+No hook gates `gh` artifact text. Issue #964 removed the PreToolUse hook
+that validated the `--title`, `--body` and `--notes` arguments of
+`gh pr`, `gh issue` and `gh release` commands: a language rule is a
+policy, not a destructive operation. The policy reaches Claude as an
+instruction instead. `commit-settings.md` states it, and the skills that
+write GitHub text (`issue-work`, `pr-work` and the others) resolve it from
+`CLAUDE_CONTENT_LANGUAGE` before they write.
 
-| `gh` command surface | Validated argument(s) | Notes |
-|-----------------------|------------------------|-------|
-| `gh pr      create \| edit`           | `--title`, `--body`         | |
-| `gh pr      comment`                  | `--body`                    | |
-| `gh pr      review`                   | `--body`                    | review-thread comment |
-| `gh issue   create \| edit`           | `--title`, `--body`         | |
-| `gh issue   comment`                  | `--body`                    | |
-| `gh release create \| edit`           | `--title`, `--notes`        | release notes |
-
-Out-of-scope `gh` commands (no artifact text — `view`, `list`, `merge`,
-`checkout`, `release delete`, `release upload`, etc.) bypass the hook.
-
-### Parsing limits
-
-The hook returns `allow` for arguments it cannot reliably parse at the
-shell layer. These cases defer to other safeguards (server-side review,
-the `commit-msg` hook for committed content):
-
-- `$(...)` command substitution inside `--body`/`--title`/`--notes`
-- Heredoc bodies
-- File references: `--body-file`, `--notes-file`, `-F` (release notes file)
-
-### Direct API bypass
-
-`gh api` is not in the default `settings.json` allowlist. Calls to
-`gh api` therefore require explicit per-invocation user permission,
-which provides a stronger gate than the hook would. The hook does not
-attempt to parse `gh api` arguments.
+`hooks/lib/validate-language.sh` keeps the per-policy rules below as the
+single source of truth. `tests/hooks/test-language-validator.sh`
+exercises it; no hook sources it at runtime.
 
 ## Policies (full validator surface)
 
@@ -130,9 +108,10 @@ preserves backward compatibility with installs that pre-date the
 documented escape hatch for OSS repositories that accept contributions
 in any language. Attribution enforcement is unaffected by both.
 
-Attribution enforcement is **not** governed by this env var.
-`attribution-guard.{sh,ps1}` and the attribution checks inside
-`commit-message-guard` remain active for every policy value.
+Attribution enforcement is **not** governed by this env var. The
+attribution checks in the `commit-msg` git hook
+(`hooks/lib/validate-commit-message.sh`) stay active for every policy
+value.
 
 ## The `exclusive_bilingual` Policy (issue #447)
 
@@ -260,7 +239,7 @@ Edit `~/.claude/settings.json` directly:
 }
 ```
 
-Restart the Claude Code session so the hooks re-inherit the env var.
+Restart the Claude Code session so it picks up the new value.
 Rule documents on disk stay at the previously rendered phrase - re-run
 the installer to re-render them, or edit the `.md` files in place.
 

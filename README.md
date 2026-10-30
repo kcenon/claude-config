@@ -45,13 +45,13 @@ For detailed scenarios, see [Use Cases and FAQ](docs/guides/USE_CASES.md).
 
 Install claude-config and Claude Code immediately gains these capabilities:
 
-**Security** — `.env`, `.pem`, and credentials are automatically blocked from being read or written. Dangerous commands like `rm -rf /` are intercepted before execution.
+**Security** — `.env`, `.pem`, and credentials are automatically blocked from being read or written. Irreversible commands like `rm -rf /` are denied, and destructive ones like `git reset --hard` or `git push --force` ask for confirmation first.
 
 **Auto-formatting** — Code is formatted on every save: Python (black), TypeScript (prettier), Go (gofmt), Rust (rustfmt), C++ (clang-format), Kotlin (ktlint).
 
 **Workflow automation** — `/issue-work` takes a GitHub issue from open to merged PR in one command. `/release` generates changelogs and creates releases. `/pr-work` diagnoses and fixes CI failures.
 
-**Commit quality** — Broken markdown links, AI attribution, and non-conventional commit messages are caught before they reach your repository.
+**Commit quality** — The `commit-msg` git hook catches AI attribution and non-conventional commit messages before they reach your repository.
 
 **Configurable content language** — Pick at install time whether commit messages, PR bodies, and documentation are written in English (ASCII plus allowlisted English typography) or Korean (per-artifact strict, no inline mixing). The three-option preset installer prompt maps to `CLAUDE_CONTENT_LANGUAGE=english|exclusive_bilingual`; advanced legacy values (`korean_plus_english`, `any`) remain available via direct `settings.json` edit.
 

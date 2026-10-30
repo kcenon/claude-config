@@ -40,7 +40,7 @@ Format:
     "conversation-language.md": "sha256-hex",
     "git-identity.md": "sha256-hex",
     "token-management.md": "sha256-hex",
-    "hooks/sensitive-file-guard.sh": "sha256-hex",
+    "hooks/dangerous-command-guard.sh": "sha256-hex",
     "skills/_internal/issue-work/SKILL.md": "sha256-hex"
   }
 }

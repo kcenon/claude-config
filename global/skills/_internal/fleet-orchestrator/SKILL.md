@@ -450,9 +450,13 @@ Expected outcome: final report lists the 2 pre-excluded repos separately from th
 
 ## Dependencies and Related Skills
 
-- **`hooks/post-task-checkpoint.sh`** (issue #360 — closed): ensures worker-side
-  checkpoints don't overwrite each other. The fleet orchestrator leans on this
-  for cross-worker file safety inside `_workspace/`.
+- **Per-worker directories and the `flock` manifest**: each worker writes only
+  under `_workspace/fleet/{repo-slug}/` and updates `fleet-status.json` under
+  `flock`, which is what keeps workers from overwriting each other inside
+  `_workspace/`. The PostToolUse checkpoint hook from issue #360, which also
+  auto-committed the working tree after every worker, was removed in #964;
+  nothing commits on a worker's behalf, so each worker commits its own changes
+  through `issue-work`.
 - **Atomic Multi-Phase Execution rule** (issue #361 — closed, in `_policy.md`):
   keeps workers from stopping mid-PR for confirmation.
 - **`harness`**: the meta-skill that produced this pattern. Fleet orchestrator

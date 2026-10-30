@@ -5,6 +5,87 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+**Breaking:** the hook set shrinks from 42 registrations in
+`global/settings.json` to 10, and the removed guards no longer block
+anything: commit messages, PR and issue text, `gh` writes, merges and pushes
+of a policy kind, inline interpreters, and Edit/Write without a prior Read all
+pass the Claude Code hook layer now. A reinstall over an existing install
+prunes the retired hook files from `~/.claude/hooks/` through the install
+manifest and keeps any file you edited locally. The native controls that
+replace them are `permissions.deny` (sensitive files; a `Read` deny also
+blocks Edit and Write on the path from Claude Code 2.1.228), the native
+Edit/Write read-before-edit contract, the Bash sandbox read-deny and write
+allowlist on macOS and Linux, the `commit-msg` and `pre-push` git hooks,
+`settings.json` `attribution: ""`, and the server-side workflows. Logs that
+the removed loggers wrote stay in `~/.claude/logs/`; nothing rotates or
+deletes them. (#964)
+
+### Removed
+
+- Bash-channel policy guards: `bash-write-guard`,
+  `bash-sensitive-read-guard` and `shell-env-secret-guard` (`.sh` only; the
+  `.ps1` guards stay on Windows, which has no OS sandbox),
+  `gh-write-verb-guard`, `github-api-preflight`, `commit-message-guard`,
+  `attribution-guard`, `pr-language-guard`, `traceability-guard`,
+  `conflict-guard`, `pr-target-guard` and `push-target-guard`, with their
+  tests. `markdown-anchor-validator` leaves the project layer, the Windows
+  Bash dispatcher and `global/hooks/`; `AttributionValidator.psm1`, which
+  nothing imported any more, goes too. PreToolUse `Bash` runs 2 hooks instead
+  of 14. (#967)
+- File-channel policy guards: `pre-edit-read-guard` (its PreToolUse guard and
+  its PostToolUse `Read` tracker) and `sensitive-file-guard`, with their tests
+  and the hook-ordering test that pinned their order. (#968)
+- Loggers, context injectors and the team limit: `session-logger`,
+  `version-check`, `post-compact-restore`, `prompt-validator`,
+  `post-task-checkpoint`, `tool-failure-logger`, `subagent-logger`,
+  `pre-compact-snapshot`, `instructions-loaded-reinforcer`,
+  `task-created-validator`, `task-completed-logger`, `config-change-logger`,
+  `cwd-change-logger` and `team-limit-guard`, with their tests, plus
+  `global/hooks/known-issues.json` and `env.MAX_TEAMS` in both settings
+  files. `post-task-checkpoint` no longer auto-commits after `Task`/`Agent`
+  calls, and team creation is no longer capped. (#969)
+
+### Changed
+
+- `dangerous-command-guard` keeps its file name (installed plugins read it as
+  a probe key) and gains an `ask` tier. It still denies recursive `rm` of
+  `/`, absolute paths, `~` and `$HOME`, a download piped to an interpreter,
+  `chmod 777`/setuid and IFS obfuscation, and now also denies a direct push
+  to `main`/`master`/`develop`, `gh repo delete` and `gh api -X DELETE` on
+  `repos/<owner>/<repo>`. It asks before `git reset --hard` and discarding
+  `checkout`/`restore` on a dirty work tree, `git clean -f`,
+  `git stash drop|clear`, `git push --force`/`+<ref>`/`--delete`/`:<ref>`,
+  recursive `rm` of `.`, `..`, `*`, `.*`, `.git` or a path outside the
+  repository, `find -delete`/`-exec rm`, `gh <group> delete` and other
+  `gh api -X DELETE` calls. The payloads of `bash|sh|... -c` and `eval` are
+  scanned with the same rules (three levels deep, fail-closed when they
+  cannot be inspected) instead of being denied outright, `source`/`.` of a
+  file is allowed, and only `deny` and `ask` decisions are logged. On Windows
+  `bash-guard-dispatcher.ps1` merges `deny` > `ask` > `allow` instead of
+  turning `ask` into `deny`. (#966)
+- `merge-gate-guard` keeps only the checks-not-green deny; the squash-only
+  merge-method arm is gone and repository settings decide the merge method.
+  (#967)
+- `permissions.deny` in both settings files gains 17 `Read(...)` rules that
+  carry every pattern `sensitive-file-guard` denied. A `Read` deny also
+  blocks Edit and Write on the same path, which needs Claude Code 2.1.228 or
+  later. `memory-write-guard` is the only file-channel hook and registers on
+  `Edit|Write`; the Windows `edit-guard-dispatcher.ps1` routes it alone and
+  fails open on unparseable input. The full-suite probe now follows the
+  settings deployment, so the plugin's inline sensitive-file guard stays
+  dormant for full-suite installs. (#968)
+- `cleanup` no longer rotates the logs of the removed loggers. (#969)
+- `HOOKS.md` opens with a hook policy section (the deny / ask / allow rule,
+  the kept set, and where each removed rule lives now), and
+  `ENFORCEMENT.md`, `COMPATIBILITY.md`, `PREREQUISITES.md`, the READMEs,
+  `global/commit-settings.md`, the `global/CLAUDE.md` read-before-edit line
+  and the skills that cited a removed hook describe the minimal set. Past
+  changelog entries, `global/VERSION_HISTORY.md`, the dated audit reports
+  under `docs/` and `.github/.issue-drafts/` keep the old names as history.
+  (#964)
+
 ## 1.15.0 - 2026-10-23
 
 ### Added

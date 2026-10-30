@@ -19,17 +19,17 @@ done
 | Tool | Min version | Why claude-config needs it |
 |------|------------:|----------------------------|
 | `git` | 2.30+ | Repository operations, hook installation, worktrees |
-| `jq` | 1.6+ | JSON parsing in `commit-message-guard`, `merge-gate-guard`, `attribution-guard`, `pr-language-guard`, `task-created-validator`, and other PreToolUse hooks |
+| `jq` | 1.6+ | JSON parsing in `dangerous-command-guard`, `merge-gate-guard`, `memory-write-guard`, `prune-permission-rules`, and `permission-denial-logger` |
 | `gh` | 2.40+ | `merge-gate-guard` calls `gh pr checks`; the `/issue-work`, `/pr-work`, and `/release` skills shell out to `gh` for PR/issue lifecycle |
-| `perl` | 5.20+ | `validate-hooks.yml` and `markdown-anchor-validator` use Perl regex; `lib/timeout-wrapper.sh` falls back to `perl alarm` when `timeout`/`gtimeout` are unavailable |
-| `bash` | 4.0+ | `markdown-anchor-validator` requires associative arrays; macOS ships bash 3.2 — install GNU bash via Homebrew or use the Linux runner |
+| `perl` | 5.20+ | `validate-hooks.yml` uses Perl regex; `lib/timeout-wrapper.sh` falls back to `perl alarm` when `timeout`/`gtimeout` are unavailable |
+| `bash` | 4.0+ | Repository scripts such as `scripts/validate-rule-frontmatter.sh` use `mapfile`; macOS ships bash 3.2, so install GNU bash via Homebrew or use the Linux runner |
 
 ## Optional Tools
 
 | Tool | Min version | Used by |
 |------|------------:|---------|
 | `pwsh` (PowerShell) | 7.0+ | Windows hook scripts (`global/hooks/*.ps1`); not needed on macOS/Linux unless you maintain the `.ps1` counterparts |
-| `python3` | 3.8+ | Fallback JSON parser in `task-created-validator.sh`; `tests/scripts/*.py`; `scripts/spec_lint.py` |
+| `python3` | 3.8+ | Path-resolution fallback in `memory-write-guard.sh` and `memory-access-logger.sh`; JSON parsing in `worktree-remove.sh`; `tests/scripts/*.py`; `scripts/spec_lint.py` |
 | `shellcheck` | 0.7+ | Optional lint for `global/hooks/*.sh`; required only if running `validate-hooks.yml` locally |
 | `coreutils` (`gtimeout`) | — | Faster `merge-gate-guard` timeout; the perl-alarm fallback in `lib/timeout-wrapper.sh` works without it |
 
@@ -39,7 +39,7 @@ done
 
 | Tool | How it is installed | Why claude-config needs it |
 |------|---------------------|----------------------------|
-| `claude` (Claude Code CLI) | Native installer via `bootstrap.{sh,ps1}` (consent prompt) or manual `curl -fsSL https://claude.ai/install.sh \| bash` | Hooks like `version-check`, batch scripts (`/issue-work`, `/pr-work`, `/release`), and the `claude --version` probe rely on the binary being on `PATH` |
+| `claude` (Claude Code CLI) | Native installer via `bootstrap.{sh,ps1}` (consent prompt) or manual `curl -fsSL https://claude.ai/install.sh \| bash` | Batch scripts (`/issue-work`, `/pr-work`, `/release`) and the `claude --version` probe rely on the binary being on `PATH` |
 
 ## Install Commands by Platform
 
@@ -116,15 +116,12 @@ The table below shows which hook needs which tool, so an operator can decide whe
 
 | Hook | Required tool(s) | Behavior if missing |
 |------|------------------|---------------------|
-| `commit-message-guard.sh` | `jq` | Hook fails open; `commit-msg` git hook still gates |
+| `dangerous-command-guard.sh` | `jq` | The hook cannot emit a decision and exits non-zero, which Claude Code treats as a non-blocking error: the guard does not run. Install `jq` |
 | `merge-gate-guard.sh` | `gh`, `jq` | Hook fails open; server-side branch protection still gates |
-| `pr-language-guard.sh` | `jq` | Hook fails open; server-side review still catches |
-| `attribution-guard.sh` | `jq` | Hook fails open; `commit-msg` hook still gates committed content |
-| `markdown-anchor-validator.sh` | `bash` 4+, `perl` | Auto-skip on macOS bash 3.2 with a notice |
-| `task-created-validator.sh` | `jq` or `python3` | Hook fails open |
-| `pre-edit-read-guard.sh` | `jq` | Hook fails open |
-| `instructions-loaded-reinforcer.sh` | `jq` (preferred), falls back to hand-escape | Hook still emits JSON, with reduced robustness |
-| `post-compact-restore.sh` | `jq` (preferred) or `python3` | No parser: silent no-op; no `jq`: hand-escaped JSON |
+| `memory-write-guard.sh` | `jq` | Hook fails open with a diagnostic; memory validation is skipped |
+| `prune-permission-rules.sh` | `jq` | Silent no-op; `settings.local.json` is left untouched |
+| `permission-denial-logger.sh` | `jq` | Logs a placeholder line without the payload |
+| `worktree-remove.sh` | `python3` | Logs the removal with the path from `CLAUDE_WORKTREE_PATH`, or `unknown` |
 
 ## Verifying After Install
 

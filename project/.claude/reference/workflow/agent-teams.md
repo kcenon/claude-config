@@ -50,24 +50,11 @@ Add to `settings.json`:
 
 ### Team Limit
 
-Control the maximum number of concurrent teams via `MAX_TEAMS` environment variable.
-A `PreToolUse` hook on `TeamCreate` enforces this limit by counting directories in `~/.claude/teams/`.
-
-```json
-{
-  "env": {
-    "MAX_TEAMS": "3"
-  }
-}
-```
-
-| Value | Meaning |
-|-------|---------|
-| `1` | Single team only (strictest) |
-| `3` | Default — allows 3 concurrent teams across sessions |
-| `0` or unset | No limit (hook still runs but defaults to 3) |
-
-When the limit is reached, `TeamCreate` is blocked with a message to delete unused teams first.
+Claude Code allows one team per session. claude-config adds no limit across
+sessions: the `TeamCreate` hook and the `MAX_TEAMS` environment key that capped
+concurrent teams were removed in #964, because creating a team is not a
+destructive operation. Shut down idle teams yourself; their state lives under
+`~/.claude/teams/`.
 
 ### Display Mode
 
@@ -342,15 +329,18 @@ exit 0  # Allow idle
 
 ### Example: settings.json Configuration
 
+claude-config registers no `TeammateIdle` hook. To wire the quality gate above,
+save it as a project script and register it synchronously (an `async` hook
+cannot block):
+
 ```json
 "TeammateIdle": [
   {
     "hooks": [
       {
         "type": "command",
-        "command": "~/.claude/hooks/session-logger.sh teammate-idle",
-        "timeout": 5,
-        "async": true
+        "command": "./scripts/teammate-idle-gate.sh",
+        "timeout": 30
       }
     ]
   }
@@ -401,7 +391,7 @@ Include task-specific context in the spawn prompt since teammates start with a f
 
 - No session resumption with in-process teammates
 - Task status may lag (manual updates sometimes needed)
-- One team per session maximum; cross-session limit controlled by `MAX_TEAMS` (default: 3)
+- One team per session maximum; claude-config sets no cross-session limit
 - No nested teams — only the lead can create teams
 - Teammates cannot spawn their own teammates
 - Lead is fixed for lifetime of team

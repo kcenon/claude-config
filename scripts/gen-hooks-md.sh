@@ -13,7 +13,7 @@
 # outside the markers is preserved verbatim.
 #
 # The generator extracts the following fields per hook:
-#   - filename (e.g., attribution-guard.sh)
+#   - filename (e.g., merge-gate-guard.sh)
 #   - one-line summary (first non-banner comment line after the filename
 #     comment, trimmed)
 #   - Hook Type
@@ -47,7 +47,7 @@ esac
 
 # Build a slug from a filename for stable section anchors.
 slugify() {
-    # e.g., attribution-guard.sh -> attribution-guard
+    # e.g., merge-gate-guard.sh -> merge-gate-guard
     local name="$1"
     name="${name%.sh}"
     printf '%s\n' "$name"

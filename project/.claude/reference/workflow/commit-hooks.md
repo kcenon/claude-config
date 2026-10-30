@@ -8,7 +8,7 @@ alwaysApply: false
 
 ## Git Hook Setup
 
-The canonical `commit-msg` hook script lives at `hooks/commit-msg` and is installed by `hooks/install-hooks.sh` on macOS/Linux or `hooks/install-hooks.ps1` on Windows. It sources shared validation logic from `hooks/lib/validate-commit-message.sh` — the same library used by the PreToolUse-layer `commit-message-guard` hook.
+The canonical `commit-msg` hook script lives at `hooks/commit-msg` and is installed by `hooks/install-hooks.sh` on macOS/Linux or `hooks/install-hooks.ps1` on Windows. It sources shared validation logic from `hooks/lib/validate-commit-message.sh`. There is no PreToolUse commit-message hook since #964; the `commit-msg` git hook is the only gate.
 
 To install:
 
@@ -23,7 +23,6 @@ Do not copy inline scripts from prior versions of this document — they are dep
 | Layer | Artifact | Role | Bypassable? |
 |-------|----------|------|-------------|
 | Attribution config | `settings.json` `attribution: ""` | Prevents Claude from adding attribution | N/A |
-| PreToolUse (Claude-only) | `global/hooks/commit-message-guard.sh` | Feedback loop — lets Claude self-correct and retry | Yes (outside Claude) |
 | git `commit-msg` hook | `hooks/commit-msg` | Terminal gate — git itself rejects the commit | Only via `--no-verify` |
 
 All enforcement layers share rules from `hooks/lib/validate-commit-message.sh` to prevent drift.

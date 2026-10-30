@@ -442,15 +442,14 @@ projects see no behavior change from this extension.
 After the push in Step 8 (and on every subsequent iteration that pushes new
 commits), compute the traceability cascade impacted by the diff and inject a
 `## Traceability Impact` section into the PR body. This surfaces, in narrative
-form, the same information the `traceability-guard` PreToolUse hook (#590,
-PR #593) checks silently. Reviewers see which downstream tests, risks, and
-clauses are touched without leaving the PR conversation.
+form, the same information the `pre-push` git hook (#590, PR #593) checks
+silently. Reviewers see which downstream tests, risks, and clauses are touched
+without leaving the PR conversation.
 
 **Reuse rule (mandatory):** the cascade walk MUST source the shared library at
 `hooks/lib/validate-traceability.sh`. Do NOT re-derive cascade-walk logic in
 this skill body. The library is the single source of truth for cascade rules
-and is already used by `traceability-guard` (PreToolUse) and `pre-push` (git
-hook).
+and is already used by the `pre-push` git hook.
 
 ```bash
 # Skip when the regulated track is off.

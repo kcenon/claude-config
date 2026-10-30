@@ -10,164 +10,157 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 83508
+    size: 88441
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
-      - {h: "1.15.0 - 2026-10-23", l: 8, e: 9}
-      - {h: "Added", l: 10, e: 21}
-      - {h: "Changed", l: 22, e: 52}
-      - {h: "Fixed", l: 53, e: 59}
-      - {h: "1.14.0 - 2026-09-29", l: 60, e: 61}
-      - {h: "Added", l: 62, e: 70}
-      - {h: "Changed", l: 71, e: 93}
-      - {h: "Removed", l: 94, e: 125}
-      - {h: "Fixed", l: 126, e: 167}
-      - {h: "Security", l: 168, e: 204}
-      - {h: "1.13.0 - 2026-09-13", l: 205, e: 206}
-      - {h: "Added", l: 207, e: 392}
-      - {h: "Changed", l: 393, e: 445}
-      - {h: "Fixed", l: 446, e: 579}
-      - {h: "Security", l: 580, e: 598}
-      - {h: "Known limitation", l: 599, e: 606}
-      - {h: "1.12.0 - 2026-08-01", l: 607, e: 608}
-      - {h: "Added", l: 609, e: 740}
-      - {h: "Fixed", l: 741, e: 983}
-      - {h: "1.11.0 - 2026-07-03", l: 984, e: 985}
-      - {h: "Fixed", l: 986, e: 999}
-      - {h: "Security", l: 1000, e: 1077}
-      - {h: "Added", l: 1078, e: 1106}
-      - {h: "Changed", l: 1107, e: 1153}
-      - {h: "1.10.0 - 2026-04-20", l: 1154, e: 1162}
-      - {h: "1.9.0 - 2026-04-13", l: 1163, e: 1172}
-      - {h: "1.8.0 - 2026-04-13", l: 1173, e: 1178}
-      - {h: "1.7.0 - 2026-04-06", l: 1179, e: 1193}
-      - {h: "1.6.0 - 2026-04-03", l: 1194, e: 1206}
-      - {h: "1.5.0 - 2026-03-21", l: 1207, e: 1225}
-      - {h: "1.4.0 - 2026-01-22", l: 1226, e: 1231}
-      - {h: "1.3.0 - 2026-01-15", l: 1232, e: 1240}
-      - {h: "1.2.0 - 2026-01-15", l: 1241, e: 1249}
-      - {h: "1.1.0 - 2025-01-15", l: 1250, e: 1260}
-      - {h: "1.0.0 - 2025-12-03", l: 1261, e: 1267}
+      - {h: "Unreleased", l: 8, e: 24}
+      - {h: "Removed", l: 25, e: 49}
+      - {h: "Changed", l: 50, e: 88}
+      - {h: "1.15.0 - 2026-10-23", l: 89, e: 90}
+      - {h: "Added", l: 91, e: 102}
+      - {h: "Changed", l: 103, e: 133}
+      - {h: "Fixed", l: 134, e: 140}
+      - {h: "1.14.0 - 2026-09-29", l: 141, e: 142}
+      - {h: "Added", l: 143, e: 151}
+      - {h: "Changed", l: 152, e: 174}
+      - {h: "Removed", l: 175, e: 206}
+      - {h: "Fixed", l: 207, e: 248}
+      - {h: "Security", l: 249, e: 285}
+      - {h: "1.13.0 - 2026-09-13", l: 286, e: 287}
+      - {h: "Added", l: 288, e: 473}
+      - {h: "Changed", l: 474, e: 526}
+      - {h: "Fixed", l: 527, e: 660}
+      - {h: "Security", l: 661, e: 679}
+      - {h: "Known limitation", l: 680, e: 687}
+      - {h: "1.12.0 - 2026-08-01", l: 688, e: 689}
+      - {h: "Added", l: 690, e: 821}
+      - {h: "Fixed", l: 822, e: 1064}
+      - {h: "1.11.0 - 2026-07-03", l: 1065, e: 1066}
+      - {h: "Fixed", l: 1067, e: 1080}
+      - {h: "Security", l: 1081, e: 1158}
+      - {h: "Added", l: 1159, e: 1187}
+      - {h: "Changed", l: 1188, e: 1234}
+      - {h: "1.10.0 - 2026-04-20", l: 1235, e: 1243}
+      - {h: "1.9.0 - 2026-04-13", l: 1244, e: 1253}
+      - {h: "1.8.0 - 2026-04-13", l: 1254, e: 1259}
+      - {h: "1.7.0 - 2026-04-06", l: 1260, e: 1274}
+      - {h: "1.6.0 - 2026-04-03", l: 1275, e: 1287}
+      - {h: "1.5.0 - 2026-03-21", l: 1288, e: 1306}
+      - {h: "1.4.0 - 2026-01-22", l: 1307, e: 1312}
+      - {h: "1.3.0 - 2026-01-15", l: 1313, e: 1321}
+      - {h: "1.2.0 - 2026-01-15", l: 1322, e: 1330}
+      - {h: "1.1.0 - 2025-01-15", l: 1331, e: 1341}
+      - {h: "1.0.0 - 2025-12-03", l: 1342, e: 1348}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
     category: config
     scope: root
-    size: 19160
+    size: 18002
     tags: [compatibility,config]
     sections:
       - {h: "Compatibility Guide", l: 1, e: 6}
       - {h: "Minimum Requirements", l: 7, e: 22}
       - {h: "Feature Dependencies", l: 23, e: 24}
-      - {h: "Hook Event Types", l: 25, e: 52}
-      - {h: "Settings Features", l: 53, e: 71}
-      - {h: "Component Dependencies", l: 72, e: 87}
-      - {h: "Settings Field Inventory and Stability", l: 88, e: 109}
-      - {h: "settings.json top-level fields", l: 110, e: 146}
-      - {h: "env fields in settings.json", l: 147, e: 157}
-      - {h: "Operational guidance", l: 158, e: 163}
-      - {h: "SessionStart version check (optional)", l: 164, e: 169}
-      - {h: "Skill Directory Layout (P4)", l: 170, e: 179}
-      - {h: "Strict-schema kill switch", l: 180, e: 187}
-      - {h: "Known Problematic Versions", l: 188, e: 203}
-      - {h: "Upgrade Guidance", l: 204, e: 205}
-      - {h: "Upgrading claude-config", l: 206, e: 225}
-      - {h: "Upgrading Claude Code", l: 226, e: 235}
-      - {h: "Cross-Platform Notes", l: 236, e: 243}
-      - {h: "PowerShell parity status", l: 244, e: 264}
-      - {h: "Cross-platform `timeout` fallback (`global/hooks/lib/timeout-wrapper.sh`)", l: 265, e: 279}
+      - {h: "Hook Event Types", l: 25, e: 40}
+      - {h: "Settings Features", l: 41, e: 59}
+      - {h: "Component Dependencies", l: 60, e: 75}
+      - {h: "Settings Field Inventory and Stability", l: 76, e: 97}
+      - {h: "settings.json top-level fields", l: 98, e: 133}
+      - {h: "env fields in settings.json", l: 134, e: 143}
+      - {h: "Operational guidance", l: 144, e: 149}
+      - {h: "Version check", l: 150, e: 155}
+      - {h: "Skill Directory Layout (P4)", l: 156, e: 165}
+      - {h: "Strict-schema kill switch", l: 166, e: 173}
+      - {h: "Known Problematic Versions", l: 174, e: 189}
+      - {h: "Upgrade Guidance", l: 190, e: 191}
+      - {h: "Upgrading claude-config", l: 192, e: 211}
+      - {h: "Upgrading Claude Code", l: 212, e: 221}
+      - {h: "Cross-Platform Notes", l: 222, e: 229}
+      - {h: "PowerShell parity status", l: 230, e: 250}
+      - {h: "Cross-platform `timeout` fallback (`global/hooks/lib/timeout-wrapper.sh`)", l: 251, e: 265}
   - path: "ENFORCEMENT.md"
     title: "Enforcement Cheat Sheet"
     description: ""
     category: config
     scope: root
-    size: 7237
+    size: 7596
     tags: [config]
     sections:
-      - {h: "At-a-glance", l: 5, e: 28}
-      - {h: "CI gates (server-side)", l: 29, e: 41}
-      - {h: "Fail-policy quick reference", l: 42, e: 47}
-      - {h: "Bypass", l: 48, e: 53}
-      - {h: "See also", l: 54, e: 59}
+      - {h: "At-a-glance", l: 7, e: 26}
+      - {h: "Not checked by a hook", l: 27, e: 41}
+      - {h: "CI gates (server-side)", l: 42, e: 54}
+      - {h: "Fail-policy quick reference", l: 55, e: 60}
+      - {h: "Bypass", l: 61, e: 65}
+      - {h: "See also", l: 66, e: 71}
   - path: "HOOKS.md"
     title: "Claude Code Hook Configuration Guide"
     description: ""
     category: config
     scope: root
-    size: 70150
+    size: 45098
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
-      - {h: "Quick Navigation", l: 11, e: 38}
-      - {h: "Configuration File Locations", l: 39, e: 45}
-      - {h: "Global Hooks (global/settings.json)", l: 46, e: 59}
-      - {h: "1. Sensitive File Protection (PreToolUse)", l: 60, e: 73}
-      - {h: "2. Dangerous Command Blocking (PreToolUse)", l: 74, e: 84}
-      - {h: "3. Session Logging (SessionStart/SessionEnd)", l: 85, e: 98}
-      - {h: "4. Temporary File Cleanup (SessionEnd)", l: 99, e: 108}
-      - {h: "5. Markdown Anchor Validation (PreToolUse)", l: 109, e: 139}
-      - {h: "6. Team Limit Guard (PreToolUse)", l: 140, e: 157}
-      - {h: "7. TeammateIdle (TeammateIdle)", l: 158, e: 182}
-      - {h: "8. Version Check (SessionStart)", l: 183, e: 205}
-      - {h: "9. TaskCompleted (TaskCompleted)", l: 206, e: 231}
-      - {h: "10. Commit Message Guard (PreToolUse)", l: 232, e: 254}
-      - {h: "11. Conflict Guard (PreToolUse)", l: 255, e: 272}
-      - {h: "12. PR Target Guard (PreToolUse)", l: 273, e: 306}
-      - {h: "13. PR Language Guard (PreToolUse)", l: 307, e: 361}
-      - {h: "14. Merge Gate Guard (PreToolUse)", l: 362, e: 415}
-      - {h: "15. Attribution Guard (PreToolUse)", l: 416, e: 482}
-      - {h: "16. Instructions Loaded Reinforcer (InstructionsLoaded)", l: 483, e: 529}
-      - {h: "17. Post-Compact Restore (SessionStart)", l: 530, e: 585}
-      - {h: "18. Task Created Validator (TaskCreated)", l: 586, e: 649}
-      - {h: "19. Post Task/Agent Checkpoint (PostToolUse)", l: 650, e: 693}
-      - {h: "20. Pre-edit Read Guard (PreToolUse/PostToolUse)", l: 694, e: 755}
-      - {h: "Hook Response Format", l: 756, e: 789}
-      - {h: "Project Hooks (project/.claude/settings.json)", l: 790, e: 791}
-      - {h: "1. Auto Formatting (PostToolUse)", l: 792, e: 812}
-      - {h: "Permission Settings", l: 813, e: 860}
-      - {h: "Over-length commands and the parse limit", l: 861, e: 883}
-      - {h: "Windows Support (PowerShell)", l: 884, e: 885}
-      - {h: "Overview", l: 886, e: 894}
-      - {h: "How It Works", l: 895, e: 909}
-      - {h: "Bash Guard Dispatcher (Windows)", l: 910, e: 958}
-      - {h: "Edit Guard Dispatcher (Windows)", l: 959, e: 1056}
-      - {h: "PowerShell Hook Scripts", l: 1057, e: 1077}
-      - {h: "Key Differences from Bash Hooks", l: 1078, e: 1087}
-      - {h: "Prerequisites", l: 1088, e: 1098}
-      - {h: "Troubleshooting (Windows)", l: 1099, e: 1100}
-      - {h: "\"File cannot be loaded because running scripts is disabled\"", l: 1101, e: 1105}
-      - {h: "Hooks not executing", l: 1106, e: 1111}
-      - {h: "\"pwsh is not recognized\"", l: 1112, e: 1116}
-      - {h: "Customization", l: 1117, e: 1118}
-      - {h: "Disabling Hooks", l: 1119, e: 1122}
-      - {h: "Adding New Hooks", l: 1123, e: 1139}
-      - {h: "Matcher Patterns", l: 1140, e: 1148}
-      - {h: "Troubleshooting", l: 1149, e: 1150}
-      - {h: "Hook is not executing", l: 1151, e: 1156}
-      - {h: "Timeout occurring", l: 1157, e: 1182}
-      - {h: "Formatter not working", l: 1183, e: 1191}
-      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 1192, e: 1231}
-      - {h: "References", l: 1232, e: 1244}
-      - {h: "Auto-Generated Hook Catalog", l: 1245, e: 1252}
-      - {h: "Index", l: 1253, e: 1269}
-      - {h: "Hook Details", l: 1270, e: 1271}
-      - {h: "cleanup", l: 1272, e: 1288}
-      - {h: "dangerous-command-guard", l: 1289, e: 1305}
-      - {h: "memory-access-logger", l: 1306, e: 1322}
-      - {h: "memory-integrity-check", l: 1323, e: 1339}
-      - {h: "memory-write-guard", l: 1340, e: 1356}
-      - {h: "merge-gate-guard", l: 1357, e: 1374}
-      - {h: "permission-denial-logger", l: 1375, e: 1392}
-      - {h: "prune-permission-rules", l: 1393, e: 1410}
-      - {h: "worktree-create", l: 1411, e: 1427}
-      - {h: "worktree-remove", l: 1428, e: 1445}
+      - {h: "Hook Policy", l: 11, e: 20}
+      - {h: "Registered hooks", l: 21, e: 37}
+      - {h: "Where the removed rules live now", l: 38, e: 56}
+      - {h: "Quick Navigation", l: 57, e: 73}
+      - {h: "Configuration File Locations", l: 74, e: 80}
+      - {h: "Global Hooks (global/settings.json)", l: 81, e: 92}
+      - {h: "1. Sensitive File Protection (permissions.deny)", l: 93, e: 104}
+      - {h: "2. Destructive Command Guard (PreToolUse)", l: 105, e: 136}
+      - {h: "3. Merge Gate Guard (PreToolUse)", l: 137, e: 190}
+      - {h: "4. Memory Hooks", l: 191, e: 202}
+      - {h: "5. Session-End Housekeeping (SessionEnd)", l: 203, e: 214}
+      - {h: "6. Worktree and Permission-Denial Hooks", l: 215, e: 222}
+      - {h: "Hook Response Format", l: 223, e: 267}
+      - {h: "Project Hooks (project/.claude/settings.json)", l: 268, e: 273}
+      - {h: "1. Auto Formatting (PostToolUse)", l: 274, e: 294}
+      - {h: "Permission Settings", l: 295, e: 346}
+      - {h: "Over-length commands and the parse limit", l: 347, e: 369}
+      - {h: "Windows Support (PowerShell)", l: 370, e: 371}
+      - {h: "Overview", l: 372, e: 380}
+      - {h: "How It Works", l: 381, e: 395}
+      - {h: "Bash Guard Dispatcher (Windows)", l: 396, e: 443}
+      - {h: "Edit Guard Dispatcher (Windows)", l: 444, e: 531}
+      - {h: "PowerShell Hook Scripts", l: 532, e: 550}
+      - {h: "Key Differences from Bash Hooks", l: 551, e: 560}
+      - {h: "Prerequisites", l: 561, e: 571}
+      - {h: "Troubleshooting (Windows)", l: 572, e: 573}
+      - {h: "\"File cannot be loaded because running scripts is disabled\"", l: 574, e: 578}
+      - {h: "Hooks not executing", l: 579, e: 584}
+      - {h: "\"pwsh is not recognized\"", l: 585, e: 589}
+      - {h: "Customization", l: 590, e: 591}
+      - {h: "Disabling Hooks", l: 592, e: 595}
+      - {h: "Adding New Hooks", l: 596, e: 612}
+      - {h: "Matcher Patterns", l: 613, e: 621}
+      - {h: "Troubleshooting", l: 622, e: 623}
+      - {h: "Hook is not executing", l: 624, e: 629}
+      - {h: "Timeout occurring", l: 630, e: 656}
+      - {h: "Formatter not working", l: 657, e: 665}
+      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 666, e: 705}
+      - {h: "References", l: 706, e: 718}
+      - {h: "Auto-Generated Hook Catalog", l: 719, e: 726}
+      - {h: "Index", l: 727, e: 743}
+      - {h: "Hook Details", l: 744, e: 745}
+      - {h: "cleanup", l: 746, e: 762}
+      - {h: "dangerous-command-guard", l: 763, e: 779}
+      - {h: "memory-access-logger", l: 780, e: 796}
+      - {h: "memory-integrity-check", l: 797, e: 813}
+      - {h: "memory-write-guard", l: 814, e: 830}
+      - {h: "merge-gate-guard", l: 831, e: 848}
+      - {h: "permission-denial-logger", l: 849, e: 866}
+      - {h: "prune-permission-rules", l: 867, e: 884}
+      - {h: "worktree-create", l: 885, e: 901}
+      - {h: "worktree-remove", l: 902, e: 919}
   - path: "PREREQUISITES.md"
     title: "Prerequisites"
     description: ""
     category: config
     scope: root
-    size: 6725
+    size: 6569
     tags: [config]
     sections:
       - {h: "Quick Check", l: 5, e: 16}
@@ -180,8 +173,8 @@ documents:
       - {h: "RHEL / Fedora / CentOS (yum/dnf)", l: 78, e: 91}
       - {h: "Windows (winget — preferred)", l: 92, e: 105}
       - {h: "Windows (Chocolatey — alternative)", l: 106, e: 112}
-      - {h: "Per-Hook Tool Map", l: 113, e: 128}
-      - {h: "Verifying After Install", l: 129, e: 155}
+      - {h: "Per-Hook Tool Map", l: 113, e: 125}
+      - {h: "Verifying After Install", l: 126, e: 152}
   - path: "QUICKSTART.md"
     title: "Quick Start Guide"
     description: ""
@@ -213,7 +206,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 9084
+    size: 9169
     tags: [config,readme]
     sections:
       - {h: "Claude Configuration Backup & Deployment System", l: 1, e: 16}
@@ -231,7 +224,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 8412
+    size: 8487
     tags: [config,readme]
     sections:
       - {h: "Claude Configuration Backup & Deployment System", l: 1, e: 16}
@@ -260,18 +253,18 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 7534
+    size: 7916
     tags: [docs]
     sections:
       - {h: "Scope", l: 5, e: 10}
       - {h: "Invariants", l: 11, e: 12}
-      - {h: "1. Directory Structure Spec", l: 13, e: 47}
-      - {h: "2. Hook Command Grammar", l: 48, e: 57}
-      - {h: "3. Dual-Variant Pairing", l: 58, e: 65}
-      - {h: "4. Probe Contract", l: 66, e: 77}
-      - {h: "5. CRLF Normalization Guarantee", l: 78, e: 93}
-      - {h: "Breaking-Change Process", l: 94, e: 102}
-      - {h: "Out of Scope", l: 103, e: 110}
+      - {h: "1. Directory Structure Spec", l: 13, e: 46}
+      - {h: "2. Hook Command Grammar", l: 47, e: 56}
+      - {h: "3. Dual-Variant Pairing", l: 57, e: 66}
+      - {h: "4. Probe Contract", l: 67, e: 78}
+      - {h: "5. CRLF Normalization Guarantee", l: 79, e: 94}
+      - {h: "Breaking-Change Process", l: 95, e: 103}
+      - {h: "Out of Scope", l: 104, e: 111}
   - path: "docs/CUSTOM_EXTENSIONS.md"
     title: "Custom Extensions vs Official Features"
     description: ""
@@ -638,7 +631,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 4305
+    size: 4309
     tags: [build,docs,plugin]
     sections:
       - {h: "Self-Contained Principle (#568)", l: 6, e: 14}
@@ -962,32 +955,32 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 8482
+    size: 8763
     tags: [docs]
     sections:
       - {h: "Overview", l: 16, e: 22}
       - {h: "Architecture", l: 23, e: 46}
       - {h: "Components", l: 47, e: 59}
-      - {h: "Drift Signals", l: 60, e: 75}
-      - {h: "Thresholds", l: 76, e: 88}
-      - {h: "Tuning Thresholds", l: 89, e: 94}
-      - {h: "Running the Test", l: 95, e: 96}
-      - {h: "Locally", l: 97, e: 115}
-      - {h: "Via GitHub Actions", l: 116, e: 123}
-      - {h: "CI Requirements", l: 124, e: 132}
-      - {h: "Triage Guide", l: 133, e: 134}
-      - {h: "When the regression test fails", l: 135, e: 141}
-      - {h: "Common failure causes", l: 142, e: 151}
-      - {h: "Intentional regression testing", l: 152, e: 166}
-      - {h: "Outputs", l: 167, e: 175}
-      - {h: "Result freshness", l: 176, e: 197}
-      - {h: "Cost", l: 198, e: 209}
+      - {h: "Drift Signals", l: 60, e: 76}
+      - {h: "Thresholds", l: 77, e: 89}
+      - {h: "Tuning Thresholds", l: 90, e: 95}
+      - {h: "Running the Test", l: 96, e: 97}
+      - {h: "Locally", l: 98, e: 116}
+      - {h: "Via GitHub Actions", l: 117, e: 124}
+      - {h: "CI Requirements", l: 125, e: 133}
+      - {h: "Triage Guide", l: 134, e: 135}
+      - {h: "When the regression test fails", l: 136, e: 142}
+      - {h: "Common failure causes", l: 143, e: 152}
+      - {h: "Intentional regression testing", l: 153, e: 167}
+      - {h: "Outputs", l: 168, e: 176}
+      - {h: "Result freshness", l: 177, e: 198}
+      - {h: "Cost", l: 199, e: 210}
   - path: "docs/branching-strategy.md"
     title: "Branching Strategy"
     description: ""
     category: docs
     scope: docs
-    size: 9457
+    size: 9357
     tags: [docs]
     sections:
       - {h: "Overview", l: 5, e: 8}
@@ -1035,27 +1028,25 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 13254
+    size: 12253
     tags: [docs]
     sections:
       - {h: "Installer UI (simplified)", l: 13, e: 34}
       - {h: "Default preset", l: 35, e: 45}
       - {h: "Drift guards", l: 46, e: 67}
       - {h: "Legacy migration warning", l: 68, e: 76}
-      - {h: "Hook coverage (gh artifact gate)", l: 77, e: 95}
-      - {h: "Parsing limits", l: 96, e: 105}
-      - {h: "Direct API bypass", l: 106, e: 112}
-      - {h: "Policies (full validator surface)", l: 113, e: 136}
-      - {h: "The `exclusive_bilingual` Policy (issue #447)", l: 137, e: 143}
-      - {h: "Mode selection", l: 144, e: 157}
-      - {h: "Allowed ASCII containers in Korean mode", l: 158, e: 173}
-      - {h: "Accept / reject matrix", l: 174, e: 191}
-      - {h: "When to choose this policy", l: 192, e: 208}
-      - {h: "Install-time Substitution", l: 209, e: 227}
-      - {h: "Enterprise Conflict Detection", l: 228, e: 236}
-      - {h: "Drift Test", l: 237, e: 250}
-      - {h: "Changing Policy After Install", l: 251, e: 266}
-      - {h: "Sources of Truth", l: 267, e: 279}
+      - {h: "Enforcement", l: 77, e: 90}
+      - {h: "Policies (full validator surface)", l: 91, e: 115}
+      - {h: "The `exclusive_bilingual` Policy (issue #447)", l: 116, e: 122}
+      - {h: "Mode selection", l: 123, e: 136}
+      - {h: "Allowed ASCII containers in Korean mode", l: 137, e: 152}
+      - {h: "Accept / reject matrix", l: 153, e: 170}
+      - {h: "When to choose this policy", l: 171, e: 187}
+      - {h: "Install-time Substitution", l: 188, e: 206}
+      - {h: "Enterprise Conflict Detection", l: 207, e: 215}
+      - {h: "Drift Test", l: 216, e: 229}
+      - {h: "Changing Policy After Install", l: 230, e: 245}
+      - {h: "Sources of Truth", l: 246, e: 258}
   - path: "docs/contributing/README_POLICY.md"
     title: "README Evidence Policy"
     description: ""
@@ -1307,7 +1298,7 @@ documents:
     description: ""
     category: design
     scope: docs
-    size: 5917
+    size: 5938
     tags: [design,docs]
     sections:
       - {h: "Background", l: 15, e: 20}
@@ -1417,7 +1408,7 @@ documents:
     description: ""
     category: design
     scope: docs
-    size: 5129
+    size: 5307
     tags: [design,docs,hook,hooks]
     sections:
       - {h: "Background", l: 15, e: 37}
@@ -1433,7 +1424,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 16832
+    size: 16836
     tags: [docs]
     sections:
       - {h: "Background", l: 8, e: 19}
@@ -1484,7 +1475,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 7419
+    size: 7655
     tags: [docs]
     sections:
       - {h: "Background", l: 9, e: 26}
@@ -1501,7 +1492,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 13232
+    size: 13530
     tags: [docs]
     sections:
       - {h: "기능과 설정", l: 1, e: 4}
@@ -1509,38 +1500,38 @@ documents:
       - {h: "레퍼런스 문서 로드", l: 9, e: 22}
       - {h: "자동으로 적용되는 동작", l: 23, e: 26}
       - {h: "코드를 편집할 때", l: 27, e: 30}
-      - {h: "커밋할 때", l: 31, e: 36}
-      - {h: "Claude가 파일에 접근할 때", l: 37, e: 41}
-      - {h: "세션이 실행될 때", l: 42, e: 47}
-      - {h: "PR을 생성할 때", l: 48, e: 52}
-      - {h: "Agent Teams 사용 시", l: 53, e: 59}
-      - {h: "컨텐츠 언어 정책", l: 60, e: 85}
-      - {h: "Rules", l: 86, e: 89}
-      - {h: "사용 가능한 Rules", l: 90, e: 99}
-      - {h: "Rules 작동 방식", l: 100, e: 116}
-      - {h: "스킬 — 무엇을 할 수 있나요", l: 117, e: 125}
-      - {h: "워크플로우 자동화", l: 126, e: 137}
-      - {h: "코드 분석", l: 138, e: 146}
-      - {h: "설계 및 문서화", l: 147, e: 158}
-      - {h: "Agents", l: 159, e: 162}
-      - {h: "사용 가능한 Agents", l: 163, e: 175}
-      - {h: "Agent 설정", l: 176, e: 188}
-      - {h: "Agent Teams", l: 189, e: 194}
-      - {h: "빠른 시작", l: 195, e: 211}
-      - {h: "MCP 설정", l: 212, e: 215}
-      - {h: "사용 가능한 서버", l: 216, e: 225}
-      - {h: "설정 방법", l: 226, e: 231}
-      - {h: "스크립트 설명", l: 232, e: 245}
-      - {h: "Git Hooks", l: 246, e: 255}
-      - {h: "Pre-commit Hook", l: 256, e: 260}
-      - {h: "Commit-msg Hook", l: 261, e: 265}
-      - {h: "Pre-push Hook", l: 266, e: 269}
+      - {h: "커밋할 때", l: 31, e: 35}
+      - {h: "Claude가 파일에 접근할 때", l: 36, e: 40}
+      - {h: "세션이 실행될 때", l: 41, e: 45}
+      - {h: "PR을 생성할 때", l: 46, e: 50}
+      - {h: "Agent Teams 사용 시", l: 51, e: 55}
+      - {h: "컨텐츠 언어 정책", l: 56, e: 81}
+      - {h: "Rules", l: 82, e: 85}
+      - {h: "사용 가능한 Rules", l: 86, e: 95}
+      - {h: "Rules 작동 방식", l: 96, e: 112}
+      - {h: "스킬 — 무엇을 할 수 있나요", l: 113, e: 121}
+      - {h: "워크플로우 자동화", l: 122, e: 133}
+      - {h: "코드 분석", l: 134, e: 142}
+      - {h: "설계 및 문서화", l: 143, e: 154}
+      - {h: "Agents", l: 155, e: 158}
+      - {h: "사용 가능한 Agents", l: 159, e: 171}
+      - {h: "Agent 설정", l: 172, e: 184}
+      - {h: "Agent Teams", l: 185, e: 190}
+      - {h: "빠른 시작", l: 191, e: 207}
+      - {h: "MCP 설정", l: 208, e: 211}
+      - {h: "사용 가능한 서버", l: 212, e: 221}
+      - {h: "설정 방법", l: 222, e: 227}
+      - {h: "스크립트 설명", l: 228, e: 241}
+      - {h: "Git Hooks", l: 242, e: 251}
+      - {h: "Pre-commit Hook", l: 252, e: 256}
+      - {h: "Commit-msg Hook", l: 257, e: 261}
+      - {h: "Pre-push Hook", l: 262, e: 265}
   - path: "docs/guides/FEATURES.md"
     title: "Features and Configuration"
     description: ""
     category: docs
     scope: docs
-    size: 12478
+    size: 12686
     tags: [docs]
     sections:
       - {h: "Features and Configuration", l: 1, e: 4}
@@ -1548,32 +1539,32 @@ documents:
       - {h: "Loading reference documents", l: 9, e: 22}
       - {h: "What Happens Automatically", l: 23, e: 26}
       - {h: "When you edit code", l: 27, e: 30}
-      - {h: "When you commit", l: 31, e: 36}
-      - {h: "When Claude accesses files", l: 37, e: 41}
-      - {h: "When a session runs", l: 42, e: 47}
-      - {h: "When you create PRs", l: 48, e: 52}
-      - {h: "When using Agent Teams", l: 53, e: 59}
-      - {h: "Content Language Policy", l: 60, e: 85}
-      - {h: "Rules", l: 86, e: 89}
-      - {h: "Available Rules", l: 90, e: 99}
-      - {h: "How Rules Work", l: 100, e: 115}
-      - {h: "Skills — What You Can Do", l: 116, e: 124}
-      - {h: "Workflow Automation", l: 125, e: 136}
-      - {h: "Code Analysis", l: 137, e: 145}
-      - {h: "Design and Documentation", l: 146, e: 157}
-      - {h: "Agents", l: 158, e: 161}
-      - {h: "Available Agents", l: 162, e: 174}
-      - {h: "Agent Configuration", l: 175, e: 187}
-      - {h: "Agent Teams", l: 188, e: 193}
-      - {h: "Quick Start", l: 194, e: 210}
-      - {h: "MCP Configuration", l: 211, e: 214}
-      - {h: "Available Servers", l: 215, e: 224}
-      - {h: "Setup", l: 225, e: 230}
-      - {h: "Scripts", l: 231, e: 245}
-      - {h: "Git Hooks", l: 246, e: 256}
-      - {h: "Pre-commit Hook", l: 257, e: 262}
-      - {h: "Commit-msg Hook", l: 263, e: 268}
-      - {h: "Pre-push Hook", l: 269, e: 273}
+      - {h: "When you commit", l: 31, e: 35}
+      - {h: "When Claude accesses files", l: 36, e: 40}
+      - {h: "When a session runs", l: 41, e: 45}
+      - {h: "When you create PRs", l: 46, e: 50}
+      - {h: "When using Agent Teams", l: 51, e: 55}
+      - {h: "Content Language Policy", l: 56, e: 81}
+      - {h: "Rules", l: 82, e: 85}
+      - {h: "Available Rules", l: 86, e: 95}
+      - {h: "How Rules Work", l: 96, e: 111}
+      - {h: "Skills — What You Can Do", l: 112, e: 120}
+      - {h: "Workflow Automation", l: 121, e: 132}
+      - {h: "Code Analysis", l: 133, e: 141}
+      - {h: "Design and Documentation", l: 142, e: 153}
+      - {h: "Agents", l: 154, e: 157}
+      - {h: "Available Agents", l: 158, e: 170}
+      - {h: "Agent Configuration", l: 171, e: 183}
+      - {h: "Agent Teams", l: 184, e: 189}
+      - {h: "Quick Start", l: 190, e: 206}
+      - {h: "MCP Configuration", l: 207, e: 210}
+      - {h: "Available Servers", l: 211, e: 220}
+      - {h: "Setup", l: 221, e: 226}
+      - {h: "Scripts", l: 227, e: 241}
+      - {h: "Git Hooks", l: 242, e: 252}
+      - {h: "Pre-commit Hook", l: 253, e: 258}
+      - {h: "Commit-msg Hook", l: 259, e: 264}
+      - {h: "Pre-push Hook", l: 265, e: 269}
   - path: "docs/guides/INSTALLATION.ko.md"
     title: "설치 안내"
     description: ""
@@ -1707,7 +1698,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 14847
+    size: 14850
     tags: [docs]
     sections:
       - {h: "Install Behavior", l: 1, e: 6}
@@ -1793,7 +1784,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 9572
+    size: 9661
     tags: [docs,global,plugin]
     sections:
       - {h: "Decision Matrix", l: 17, e: 30}
@@ -1868,7 +1859,7 @@ documents:
     description: ""
     category: config
     scope: global
-    size: 4850
+    size: 4910
     tags: [config,global]
     sections:
       - {h: "Core Settings", l: 5, e: 9}
@@ -1890,7 +1881,7 @@ documents:
     description: ""
     category: root
     scope: global
-    size: 2318
+    size: 2304
     tags: [commit,global]
   - path: "global/git-identity.md"
     title: "Git Identity"
@@ -2173,7 +2164,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 22245
+    size: 22516
     tags: [global,skill]
     sections:
       - {h: "When to Use This Skill", l: 39, e: 51}
@@ -2204,11 +2195,11 @@ documents:
       - {h: "Normal Flow", l: 420, e: 432}
       - {h: "Failure Isolation Flow", l: 433, e: 442}
       - {h: "Pre-flight Exclusion Flow", l: 443, e: 450}
-      - {h: "Dependencies and Related Skills", l: 451, e: 463}
-      - {h: "References", l: 464, e: 469}
-      - {h: "Output Checklist", l: 470, e: 480}
-      - {h: "Reanchoring Loop Invariants", l: 481, e: 486}
-      - {h: "Side Effects and Loop-Safety", l: 487, e: 489}
+      - {h: "Dependencies and Related Skills", l: 451, e: 467}
+      - {h: "References", l: 468, e: 473}
+      - {h: "Output Checklist", l: 474, e: 484}
+      - {h: "Reanchoring Loop Invariants", l: 485, e: 490}
+      - {h: "Side Effects and Loop-Safety", l: 491, e: 493}
   - path: "global/skills/_internal/fleet-orchestrator/reference/worker-template.md"
     title: "Fleet Worker Prompt Template"
     description: ""
@@ -2836,7 +2827,7 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 21497
+    size: 21555
     tags: [global,reference,skill]
     sections:
       - {h: "B-0. Batch Discovery", l: 10, e: 41}
@@ -2938,7 +2929,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 36928
+    size: 36875
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 40, e: 65}
@@ -2964,31 +2955,31 @@ documents:
       - {h: "8. Push and Verify", l: 420, e: 425}
       - {h: "TLS/Sandbox Error Handling", l: 426, e: 429}
       - {h: "CI Monitoring", l: 430, e: 435}
-      - {h: "5b. Traceability impact injection (regulated track only)", l: 436, e: 517}
-      - {h: "9. Iterate if Needed", l: 518, e: 524}
-      - {h: "9b. Evidence-attachment gate (regulated track only)", l: 525, e: 641}
-      - {h: "10a. Sonar Gate (sonarcloud[bot] PR Decoration)", l: 642, e: 674}
-      - {h: "10. Auto-Merge on Success", l: 675, e: 705}
-      - {h: "11. Failure Escalation", l: 706, e: 713}
-      - {h: "Team Mode Instructions", l: 714, e: 717}
-      - {h: "Policies", l: 718, e: 721}
-      - {h: "Command-Specific Rules", l: 722, e: 730}
-      - {h: "Output", l: 731, e: 737}
-      - {h: "PR Fix Summary", l: 738, e: 749}
-      - {h: "Workflows Fixed", l: 750, e: 755}
-      - {h: "Commits Made", l: 756, e: 763}
-      - {h: "PR Fix Summary (INCOMPLETE)", l: 764, e: 774}
-      - {h: "Escalation", l: 775, e: 779}
-      - {h: "Action Required", l: 780, e: 783}
-      - {h: "Reanchoring Loop Invariants", l: 784, e: 791}
-      - {h: "Error Handling", l: 792, e: 795}
-      - {h: "Side Effects and Loop-Safety", l: 796, e: 798}
+      - {h: "5b. Traceability impact injection (regulated track only)", l: 436, e: 516}
+      - {h: "9. Iterate if Needed", l: 517, e: 523}
+      - {h: "9b. Evidence-attachment gate (regulated track only)", l: 524, e: 640}
+      - {h: "10a. Sonar Gate (sonarcloud[bot] PR Decoration)", l: 641, e: 673}
+      - {h: "10. Auto-Merge on Success", l: 674, e: 704}
+      - {h: "11. Failure Escalation", l: 705, e: 712}
+      - {h: "Team Mode Instructions", l: 713, e: 716}
+      - {h: "Policies", l: 717, e: 720}
+      - {h: "Command-Specific Rules", l: 721, e: 729}
+      - {h: "Output", l: 730, e: 736}
+      - {h: "PR Fix Summary", l: 737, e: 748}
+      - {h: "Workflows Fixed", l: 749, e: 754}
+      - {h: "Commits Made", l: 755, e: 762}
+      - {h: "PR Fix Summary (INCOMPLETE)", l: 763, e: 773}
+      - {h: "Escalation", l: 774, e: 778}
+      - {h: "Action Required", l: 779, e: 782}
+      - {h: "Reanchoring Loop Invariants", l: 783, e: 790}
+      - {h: "Error Handling", l: 791, e: 794}
+      - {h: "Side Effects and Loop-Safety", l: 795, e: 797}
   - path: "global/skills/_internal/pr-work/reference/batch-mode.md"
     title: "Batch Mode Instructions"
     description: ""
     category: reference
     scope: global
-    size: 17672
+    size: 17730
     tags: [global,reference,skill]
     sections:
       - {h: "B-0. Batch Discovery", l: 5, e: 54}
@@ -3101,7 +3092,7 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 6864
+    size: 6893
     tags: [global,reference,skill]
     sections:
       - {h: "Section Skeleton", l: 14, e: 22}
@@ -3364,7 +3355,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 18039
+    size: 18075
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 50, e: 66}
@@ -3535,7 +3526,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 21283
+    size: 21287
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 54, e: 68}
@@ -3624,7 +3615,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 12495
+    size: 12543
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 46, e: 56}
@@ -3669,7 +3660,7 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 6909
+    size: 6975
     tags: [global,reference,skill]
     sections:
       - {h: "Finding Taxonomy", l: 9, e: 24}
@@ -5171,52 +5162,52 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 15230
+    size: 15126
     tags: [project,reference,workflow]
     sections:
       - {h: "Decision Matrix", l: 14, e: 26}
       - {h: "Strategy Comparison", l: 27, e: 36}
       - {h: "Agent Teams Configuration", l: 37, e: 38}
       - {h: "Enable Agent Teams", l: 39, e: 50}
-      - {h: "Team Limit", l: 51, e: 71}
-      - {h: "Display Mode", l: 72, e: 93}
-      - {h: "When to Use Agent Teams", l: 94, e: 100}
-      - {h: "When NOT to Use Agent Teams", l: 101, e: 107}
-      - {h: "Recommended Team Sizing", l: 108, e: 117}
-      - {h: "Architecture Patterns", l: 118, e: 122}
-      - {h: "Pattern 1: Pipeline", l: 123, e: 136}
-      - {h: "Pattern 2: Fan-out / Fan-in", l: 137, e: 152}
-      - {h: "Pattern 3: Expert Pool", l: 153, e: 168}
-      - {h: "Pattern 4: Producer-Reviewer", l: 169, e: 184}
-      - {h: "Pattern 5: Supervisor", l: 185, e: 200}
-      - {h: "Pattern 6: Hierarchical Delegation", l: 201, e: 217}
-      - {h: "Compound Patterns", l: 218, e: 227}
-      - {h: "Pattern Selection Quick Reference", l: 228, e: 238}
-      - {h: "Launching Agent Teams", l: 239, e: 249}
-      - {h: "Coordination Commands", l: 250, e: 269}
-      - {h: "Plan Approval Workflow", l: 270, e: 286}
-      - {h: "Team Config Storage", l: 287, e: 293}
-      - {h: "Keyboard Shortcuts (In-Process Mode)", l: 294, e: 302}
-      - {h: "TeammateIdle Hook", l: 303, e: 306}
-      - {h: "Hook Input", l: 307, e: 319}
-      - {h: "Decision Control", l: 320, e: 328}
-      - {h: "Example: Quality Gate Hook", l: 329, e: 342}
-      - {h: "Example: settings.json Configuration", l: 343, e: 359}
-      - {h: "TaskCompleted Hook", l: 360, e: 363}
-      - {h: "Hook Input", l: 364, e: 377}
-      - {h: "Decision Control", l: 378, e: 388}
-      - {h: "Context Inheritance", l: 389, e: 399}
-      - {h: "Limitations (Experimental Feature)", l: 400, e: 409}
-      - {h: "Practical Examples", l: 410, e: 411}
-      - {h: "Example 1: Feature Development", l: 412, e: 420}
-      - {h: "Example 2: Code Review", l: 421, e: 429}
-      - {h: "Example 3: Debugging", l: 430, e: 438}
-      - {h: "Best Practices", l: 439, e: 448}
-      - {h: "Troubleshooting", l: 449, e: 450}
-      - {h: "Teammates not spawning", l: 451, e: 456}
-      - {h: "Tmux panes not splitting", l: 457, e: 462}
-      - {h: "Task list out of sync", l: 463, e: 467}
-      - {h: "Teammate stuck or unresponsive", l: 468, e: 476}
+      - {h: "Team Limit", l: 51, e: 58}
+      - {h: "Display Mode", l: 59, e: 80}
+      - {h: "When to Use Agent Teams", l: 81, e: 87}
+      - {h: "When NOT to Use Agent Teams", l: 88, e: 94}
+      - {h: "Recommended Team Sizing", l: 95, e: 104}
+      - {h: "Architecture Patterns", l: 105, e: 109}
+      - {h: "Pattern 1: Pipeline", l: 110, e: 123}
+      - {h: "Pattern 2: Fan-out / Fan-in", l: 124, e: 139}
+      - {h: "Pattern 3: Expert Pool", l: 140, e: 155}
+      - {h: "Pattern 4: Producer-Reviewer", l: 156, e: 171}
+      - {h: "Pattern 5: Supervisor", l: 172, e: 187}
+      - {h: "Pattern 6: Hierarchical Delegation", l: 188, e: 204}
+      - {h: "Compound Patterns", l: 205, e: 214}
+      - {h: "Pattern Selection Quick Reference", l: 215, e: 225}
+      - {h: "Launching Agent Teams", l: 226, e: 236}
+      - {h: "Coordination Commands", l: 237, e: 256}
+      - {h: "Plan Approval Workflow", l: 257, e: 273}
+      - {h: "Team Config Storage", l: 274, e: 280}
+      - {h: "Keyboard Shortcuts (In-Process Mode)", l: 281, e: 289}
+      - {h: "TeammateIdle Hook", l: 290, e: 293}
+      - {h: "Hook Input", l: 294, e: 306}
+      - {h: "Decision Control", l: 307, e: 315}
+      - {h: "Example: Quality Gate Hook", l: 316, e: 329}
+      - {h: "Example: settings.json Configuration", l: 330, e: 349}
+      - {h: "TaskCompleted Hook", l: 350, e: 353}
+      - {h: "Hook Input", l: 354, e: 367}
+      - {h: "Decision Control", l: 368, e: 378}
+      - {h: "Context Inheritance", l: 379, e: 389}
+      - {h: "Limitations (Experimental Feature)", l: 390, e: 399}
+      - {h: "Practical Examples", l: 400, e: 401}
+      - {h: "Example 1: Feature Development", l: 402, e: 410}
+      - {h: "Example 2: Code Review", l: 411, e: 419}
+      - {h: "Example 3: Debugging", l: 420, e: 428}
+      - {h: "Best Practices", l: 429, e: 438}
+      - {h: "Troubleshooting", l: 439, e: 440}
+      - {h: "Teammates not spawning", l: 441, e: 446}
+      - {h: "Tmux panes not splitting", l: 447, e: 452}
+      - {h: "Task list out of sync", l: 453, e: 457}
+      - {h: "Teammate stuck or unresponsive", l: 458, e: 466}
   - path: "project/.claude/reference/workflow/automation-patterns.md"
     title: "Automation Patterns Reference"
     description: ""
@@ -5244,13 +5235,13 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 2506
+    size: 2379
     tags: [ci,commit,hook,hooks,project,reference,workflow]
     sections:
       - {h: "Git Hook Setup", l: 9, e: 20}
-      - {h: "Enforcement Layers", l: 21, e: 30}
-      - {h: "CI/CD Verification", l: 31, e: 61}
-      - {h: "Verification Commands", l: 62, e: 74}
+      - {h: "Enforcement Layers", l: 21, e: 29}
+      - {h: "CI/CD Verification", l: 30, e: 60}
+      - {h: "Verification Commands", l: 61, e: 73}
   - path: "project/.claude/reference/workflow/issue-examples.md"
     title: "Issue Examples Reference"
     description: ""
@@ -5528,7 +5519,7 @@ documents:
     description: ""
     category: rule
     scope: project
-    size: 5374
+    size: 5418
     tags: [project,readme,rule]
     sections:
       - {h: "Populated Standards", l: 22, e: 29}
@@ -5735,7 +5726,7 @@ documents:
     description: ""
     category: rule
     scope: project
-    size: 1751
+    size: 1762
     tags: [project,rule,workflow]
     sections:
       - {h: "Branch Model", l: 8, e: 15}
