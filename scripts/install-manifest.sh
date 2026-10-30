@@ -475,12 +475,17 @@ merge_local_settings_keys() {
     [ -f "$live" ] || return 0
     command -v jq > /dev/null 2>&1 || return 0
 
+    # Both passes read the live file with SETTINGS_RETIRED_ENV_KEYS already
+    # removed from its env, so a retired key is neither carried nor reported.
     local carried
     carried="$(jq -r -n --slurpfile s "$staged" --slurpfile l "$live" \
         --argjson policy "$SETTINGS_POLICY_KEYS" \
         --argjson runtime "$SETTINGS_RUNTIME_KEYS" \
         --argjson retired "$SETTINGS_RETIRED_ENV_KEYS" '
-        ($s[0]) as $st | ($l[0]) as $lv
+        ($s[0]) as $st
+        | ($l[0] | if (.env | type) == "object"
+                   then .env |= with_entries(select(.key as $k | ($retired | index($k)) | not))
+                   else . end) as $lv
         | [ ($lv | keys_unsorted)[] as $k
             | select(($policy | index($k)) | not)
             | select($k != "env")
@@ -488,7 +493,6 @@ merge_local_settings_keys() {
             | $k ]
           + [ (($lv.env // {}) | keys_unsorted)[] as $k
               | select((($st.env // {}) | has($k)) | not)
-              | select(($retired | index($k)) | not)
               | "env." + $k ]
         | .[]
     ' 2> /dev/null | tr -d '\r')" || return 0
@@ -500,7 +504,10 @@ merge_local_settings_keys() {
         --argjson policy "$SETTINGS_POLICY_KEYS" \
         --argjson runtime "$SETTINGS_RUNTIME_KEYS" \
         --argjson retired "$SETTINGS_RETIRED_ENV_KEYS" '
-        ($s[0]) as $st | ($l[0]) as $lv
+        ($s[0]) as $st
+        | ($l[0] | if (.env | type) == "object"
+                   then .env |= with_entries(select(.key as $k | ($retired | index($k)) | not))
+                   else . end) as $lv
         | reduce ($lv | keys_unsorted)[] as $k ($st;
             if ($policy | index($k)) then .
             elif $k == "env" then .
@@ -508,9 +515,7 @@ merge_local_settings_keys() {
             else .[$k] = $lv[$k]
             end)
         | if (($lv | has("env")) or ($st | has("env")))
-          then .env = ((($lv.env // {})
-                        | with_entries(select(.key as $k | ($retired | index($k)) | not)))
-                       * ($st.env // {}))
+          then .env = (($lv.env // {}) * ($st.env // {}))
           else . end
     ' > "$tmpfile" 2> /dev/null; then
         mv "$tmpfile" "$staged"
