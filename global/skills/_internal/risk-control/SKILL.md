@@ -300,7 +300,7 @@ verbatim rather than inventing new mappings.
 |----------|-----|
 | `traceability` skill (P0-1) | Reads `risk-file.yaml` to populate `risk_ids[]` on requirement matrix rows. Bidirectional linking comes for free. |
 | `evidence-pack` skill (P1-1) | Mirrors `risk-file.yaml` (and the `risk-file/` directory if it exists) under the `risk_file` kind in the per-release evidence pack. |
-| `traceability-guard` PreToolUse hook (P0-2) | Reads `risk-file.yaml` (when present) to detect when a PR touches a `code_paths` entry that traces to a risk without updating the risk record. |
+| `pre-push` git hook and the skill itself (P0-2) | Detect when a PR touches a `code_paths` entry that traces to a risk without updating the risk record. The hook walks the cascade through `hooks/lib/validate-traceability.sh`. |
 | External auditor | Reads `risk-file.yaml` directly from the repo at any tagged release; consumes it alongside the matrix as the operational risk-management record. |
 
 ## References

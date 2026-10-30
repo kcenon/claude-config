@@ -1,7 +1,7 @@
 #!/bin/bash
 # secret-check.sh -- Detect PII / tokens / private network info in memory files.
 #
-# Per docs/MEMORY_VALIDATION_SPEC.md (v1.0.1) Sections 6 and 7.
+# Per docs/MEMORY_VALIDATION_SPEC.md (v1.2.0) Sections 6 and 7.
 #
 # Exit codes:
 #   0  -- CLEAN (no findings)
@@ -17,17 +17,25 @@
 # Required environment:
 #   OWNER_EMAILS         space-separated owner email allowlist (no default)
 # Optional environment overrides:
-#   OWNER_GITHUB_HANDLE  GitHub handle for no-reply allowlist
-#   OWNER_HOME_USER      owner Unix home directory user
+#   OWNER_GITHUB_HANDLE  GitHub handle for the no-reply allowlist and the
+#                        /home/<handle>/ exemption (no default; when empty,
+#                        both are disabled, so the owner's no-reply address
+#                        is flagged until this is set)
+#   OWNER_HOME_USER      owner Unix home directory user (default: the
+#                        account running the check, $USER or `id -un`)
 #
-# See scripts/memory/secret-check.env.example for a sample configuration.
+# See scripts/memory/secret-check-env.example for a sample configuration.
 
 set -u
 
 # Empty default — caller must export OWNER_EMAILS explicitly (issue #618).
 DEFAULT_OWNER_EMAILS=""
-DEFAULT_OWNER_GITHUB_HANDLE="kcenon"
-DEFAULT_OWNER_HOME_USER="raphaelshin"
+# No maintainer identity ships as a default (issue #957). The handle has no
+# default; the home user is the account running the check. If neither USER
+# nor `id -un` yields a name, the home user stays empty and every home path
+# counts as foreign (fail safe).
+DEFAULT_OWNER_GITHUB_HANDLE=""
+DEFAULT_OWNER_HOME_USER="${USER:-$(id -un 2>/dev/null || true)}"
 
 read -r -a OWNER_EMAILS_ARR <<< "${OWNER_EMAILS:-$DEFAULT_OWNER_EMAILS}"
 OWNER_GITHUB_HANDLE="${OWNER_GITHUB_HANDLE:-$DEFAULT_OWNER_GITHUB_HANDLE}"
@@ -44,7 +52,7 @@ Set the OWNER_EMAILS environment variable (space-separated) before invocation:
 
     export OWNER_EMAILS="you@example.com"
 
-See scripts/memory/secret-check.env.example for the full configuration template
+See scripts/memory/secret-check-env.example for the full configuration template
 and docs/MEMORY_TRUST_BASELINE.md for the trust-model rationale.
 EOF
     exit 2
@@ -64,10 +72,12 @@ Exit codes: 0=clean, 1=finding (blocks), 2=OWNER_EMAILS not set, 64=usage error.
 
 Environment:
   OWNER_EMAILS          required, space-separated allowlist
-  OWNER_GITHUB_HANDLE   optional GitHub handle for noreply allowlist
+  OWNER_GITHUB_HANDLE   optional GitHub handle for the noreply allowlist
+                        (no default; unset flags noreply addresses)
   OWNER_HOME_USER       optional Unix home directory user
+                        (default: the account running the check)
 
-See scripts/memory/secret-check.env.example for a sample.
+See scripts/memory/secret-check-env.example for a sample.
 EOF
 }
 
@@ -76,6 +86,8 @@ EOF
 #   1. exact match against any element of OWNER_EMAILS_ARR
 #   2. <numeric>+<HANDLE>@users.noreply.github.com
 #   3. <HANDLE>@users.noreply.github.com
+# Forms 2 and 3 apply only when OWNER_GITHUB_HANDLE is set; an empty handle
+# would otherwise make form 2 accept <numeric>+@users.noreply.github.com.
 is_owner_email() {
   local e="$1"
   local owned
@@ -84,6 +96,7 @@ is_owner_email() {
       [[ "$e" == "$owned" ]] && return 0
     done
   fi
+  [[ -n "$OWNER_GITHUB_HANDLE" ]] || return 1
   if [[ "$e" =~ ^[0-9]+\+${OWNER_GITHUB_HANDLE}@users\.noreply\.github\.com$ ]]; then
     return 0
   fi
@@ -139,7 +152,8 @@ scan_file() {
     fi
   done < <(grep -n -E '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' "$f" 2>/dev/null || true)
 
-  # 4. Foreign home directory paths.
+  # 4. Foreign home directory paths. The captured user name is never empty,
+  #    so an empty OWNER_HOME_USER or OWNER_GITHUB_HANDLE exempts nothing.
   while IFS=: read -r ln content; do
     [[ -z "$ln" ]] && continue
     if [[ "$content" =~ /Users/([A-Za-z0-9_-]+)/ ]]; then

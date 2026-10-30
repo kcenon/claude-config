@@ -4,7 +4,12 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 
 # bash-sensitive-read-guard.ps1
 # Blocks reading sensitive files via the Bash tool channel on Windows.
-# PowerShell parity for bash-sensitive-read-guard.sh.
+#
+# Windows-only since #964. macOS and Linux cover these reads with the Bash
+# sandbox read-deny, so the bash twin (bash-sensitive-read-guard.sh) was
+# removed there; Windows has no OS sandbox, so this guard stays and the
+# Windows Bash dispatcher runs it. References below to "the .sh guard" describe
+# the removed twin this file was ported from.
 #
 # This script is a regex-driven approximation of the bash tokenizer-based
 # sibling. The full sub-command splitter from lib/tokenize-shell.sh is
@@ -68,8 +73,9 @@ $readToolPrefix = '\b(cat|head|tail|less|more|bat|view|grep|egrep|fgrep|rg|find|
 
 # Env-file templates (.env.example, .env.example.*, .env.sample, .env.template)
 # are committed on purpose and never carry real secrets; sensitive-file-guard.ps1
-# allows the same four names on the file channel, so denying them here was a
-# cross-channel divergence (issue #866).
+# allowed the same four names on the file channel until #964 replaced it with
+# permissions.deny, so denying them here was a cross-channel divergence
+# (issue #866).
 #
 # This guard matches patterns against the whole command string rather than
 # against extracted paths, so a plain "allow and exit" would also let

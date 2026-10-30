@@ -44,6 +44,15 @@ done
 for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
     cp "$REPO_ROOT/hooks/lib/$lib" "$CLAUDE/hooks/lib/"
 done
+# Memory sync scripts and validators: install.sh / bootstrap.sh only (#958).
+# Memory sync is Unix-only (#795), so install.ps1 deploys none of them.
+if [ "$win" -eq 0 ]; then
+    mkdir -p "$CLAUDE/scripts/memory"
+    for f in memory-sync.sh memory-status.sh memory-notify.sh; do
+        cp "$REPO_ROOT/scripts/$f" "$CLAUDE/scripts/"
+    done
+    cp "$REPO_ROOT"/scripts/memory/*.sh "$CLAUDE/scripts/memory/"
+fi
 
 # Project layer. The installers render rules/X.md.tmpl over X.md.
 cp "$REPO_ROOT/project/CLAUDE.md" "$REPO_ROOT/project/.claudeignore" "$PROJ/"
@@ -86,6 +95,12 @@ run_verify "$PROJ"
 [ -z "$(findings)" ] || fail "a complete install reported differences"
 expect "SYNC: project/.claude/rules/core/communication.md (rendered)"
 expect "SYNC: hooks/lib/"
+if [ "$win" -eq 0 ]; then
+    expect "SYNC: scripts/memory-sync.sh"
+    expect "SYNC: scripts/memory/validate.sh"
+else
+    grep -q 'scripts/memory' "$OUT" && fail "a Windows tree checked the memory scripts"
+fi
 echo "complete install: PASS"
 
 # 2. Outside a project the section is skipped unless --project-dir is given.
@@ -96,7 +111,26 @@ run_verify "$TMP" --project-dir "$PROJ"
 expect "SYNC: project/CLAUDE.md"
 echo "project detection: PASS"
 
-# 3. Each kind of drift is reported; a CRLF and BOM rewrite is not.
+# 3. commit-settings.md is deployed rendered from its .tmpl for the content
+# policy, so verify compares it with the rendering for the policy the installed
+# settings.json records, not with the english-canonical .md (#974).
+# shellcheck disable=SC1091
+. "$REPO_ROOT/scripts/lib/install-prompts.sh"
+cp "$CLAUDE/settings.json" "$TMP/settings.json.orig"
+jq '.env.CLAUDE_CONTENT_LANGUAGE = "exclusive_bilingual"' "$TMP/settings.json.orig" > "$CLAUDE/settings.json"
+CONTENT_LANGUAGE=exclusive_bilingual render_policy_tmpl \
+    "$REPO_ROOT/global/commit-settings.md.tmpl" "$CLAUDE/commit-settings.md"
+run_verify "$PROJ"
+[ -z "$(findings)" ] || fail "an exclusive_bilingual install reported differences"
+expect "SYNC: commit-settings.md (rendered: exclusive_bilingual)"
+cp "$TMP/settings.json.orig" "$CLAUDE/settings.json"
+run_verify "$PROJ"
+expect "DIFF: commit-settings.md (rendered: english)"
+[ "$(findings | wc -l | tr -d ' ')" -eq 1 ] || fail "expected exactly 1 finding for a policy mismatch"
+cp "$REPO_ROOT/global/commit-settings.md" "$CLAUDE/commit-settings.md"
+echo "rendered commit-settings.md: PASS"
+
+# 4. Each kind of drift is reported; a CRLF and BOM rewrite is not.
 if [ "$win" -eq 1 ]; then
     hook_victim="edit-guard-dispatcher.ps1"
 else
@@ -119,6 +153,11 @@ echo "drift" >> "$PROJ/.claude/rules/security.md"
 echo "{{AGENT_LANGUAGE}}" >> "$PROJ/.claude/rules/core/communication.md"
 { printf '\357\273\277'; awk '{ printf "%s\r\n", $0 }' "$REPO_ROOT/global/CLAUDE.md"; } > "$crlf_victim.new"
 mv "$crlf_victim.new" "$crlf_victim"
+expected_findings=6
+if [ "$win" -eq 0 ]; then
+    echo "# drift" >> "$CLAUDE/scripts/memory/secret-check.sh"
+    expected_findings=7
+fi
 
 run_verify "$PROJ"
 expect "MISS: hooks/$hook_victim"
@@ -127,7 +166,11 @@ expect "DIFF: skills/$skill_victim"
 expect "MISS: project/.claude/reference/$ref_victim"
 expect "DIFF: project/.claude/rules/security.md"
 expect "DIFF: project/.claude/rules/core/communication.md (unrendered placeholder)"
-[ "$(findings | wc -l | tr -d ' ')" -eq 6 ] || fail "expected exactly 6 findings"
+if [ "$win" -eq 0 ]; then
+    expect "DIFF: scripts/memory/secret-check.sh"
+fi
+[ "$(findings | wc -l | tr -d ' ')" -eq "$expected_findings" ] \
+    || fail "expected exactly $expected_findings findings"
 echo "drift detection: PASS"
 
 echo "All verify sync tests passed!"

@@ -40,6 +40,6 @@ failing, pending, or incomplete) therefore applies to `develop` PRs as well.
 | Layer | Mechanism | Scope |
 |-------|-----------|-------|
 | Pre-push hook | `hooks/pre-push` | Blocks direct push to `main`/`develop` |
-| PreToolUse hook | `pr-target-guard` | Blocks `gh pr create --base main` (unless `--head develop`) |
+| PreToolUse hook | `dangerous-command-guard` | Denies a Claude-driven `git push` to `main`/`master`/`develop` |
 | GitHub Actions | `validate-pr-target.yml` | Auto-closes non-develop PRs targeting `main` |
 | Release skill | integrity check | Warns if `main` diverged from `develop` before release |

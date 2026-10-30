@@ -70,8 +70,9 @@ Five signals are measured on every PR produced during the batch:
 | `commit_format_violations` | Commits failing Conventional Commits format | `extract_commit_format_violations` |
 
 Attribution detection uses `CMV_ATTRIBUTION_REGEX` from
-`hooks/lib/validate-commit-message.sh` (SSOT) — the same regex enforced by the
-`commit-message-guard` and `attribution-guard` hooks.
+`hooks/lib/validate-commit-message.sh` (SSOT), the same regex the `commit-msg`
+git hook enforces. Since #964 no hook checks PR text, so `language_violations`
+and `attribution_leaks` measure how well the instructions hold.
 
 ## Thresholds
 
@@ -81,7 +82,7 @@ safe-zone baseline). They are defined in `tests/batch_drift_regression/threshold
 | Signal | Max Allowed | Rationale |
 |--------|-------------|-----------|
 | `language_violations` | 0 | Mandatory English — zero tolerance |
-| `attribution_leaks` | 0 | Enforced by hooks — zero tolerance |
+| `attribution_leaks` | 0 | `attribution: ""` and the instruction; zero tolerance |
 | `ci_gate_violations` | 0 | Absolute CI gate — zero tolerance |
 | `missing_closes` | 1 | Allow 1 transient miss (edge case in auto-close) |
 | `commit_format_violations` | 0 | Enforced by commit-msg hook — zero tolerance |
@@ -143,8 +144,8 @@ The workflow requires two repository secrets:
 
 | Signal | Likely Cause | Fix |
 |--------|-------------|-----|
-| `language_violations` | `pr-language-guard` hook disabled or bypassed | Verify hook in `global/hooks/` |
-| `attribution_leaks` | `attribution-guard` hook regex drift | Check SSOT regex in `hooks/lib/validate-commit-message.sh` |
+| `language_violations` | The content-language instruction drifted (no hook gates PR text since #964) | Check `commit-settings.md` and the language lines in the skill templates |
+| `attribution_leaks` | `attribution: ""` missing from `settings.json`, or the instruction drifted | Check `settings.json` and `commit-settings.md`; the SSOT regex is in `hooks/lib/validate-commit-message.sh` |
 | `ci_gate_violations` | `merge-gate-guard` hook weakened | Verify hook logic and test |
 | `missing_closes` | Skill template changed | Check `Closes #N` pattern in skill files |
 | `commit_format_violations` | `commit-msg` hook broken | Run `hooks/lib/validate-commit-message.sh` tests |
@@ -154,14 +155,14 @@ The workflow requires two repository secrets:
 To verify the test catches real drift, temporarily disable a hook and run:
 
 ```bash
-# 1. Disable pr-language-guard (backup first)
-mv global/hooks/pr-language-guard.sh global/hooks/pr-language-guard.sh.bak
+# 1. Disable merge-gate-guard (backup first)
+mv global/hooks/merge-gate-guard.sh global/hooks/merge-gate-guard.sh.bak
 
-# 2. Run regression — should FAIL on language_violations
+# 2. Run regression: should FAIL on ci_gate_violations once a merge slips through
 bash tests/batch_drift_regression/run-regression.sh --strategy subagent
 
 # 3. Restore hook
-mv global/hooks/pr-language-guard.sh.bak global/hooks/pr-language-guard.sh
+mv global/hooks/merge-gate-guard.sh.bak global/hooks/merge-gate-guard.sh
 ```
 
 ## Outputs

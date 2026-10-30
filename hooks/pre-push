@@ -72,8 +72,8 @@ fi
 
 # Traceability cascade enforcement (issue #590).
 # Opt-in: silently skipped when docs/.index/graph.yaml is absent.
-# Sources the same library used by the PreToolUse traceability-guard, so
-# both layers fail or pass identically for the same diff.
+# Sources the same library the pr-work skill uses, so both fail or pass
+# identically for the same diff.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TRACE_VALIDATOR=""
 if [ -f "$SCRIPT_DIR/lib/validate-traceability.sh" ]; then

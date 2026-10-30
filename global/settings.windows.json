@@ -61,8 +61,8 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Edit|Write|Read",
-        "_note": "Single registration: edit-guard-dispatcher.ps1 runs sensitive-file-guard, pre-edit-read-guard and memory-write-guard in one process. Three separate registrations spawned three pwsh processes per file operation; measured on this profile, 5 runs each, the chain was p50 1,068ms against the dispatcher's p50 410ms. Hook order is load-bearing and is now the dispatcher's routing table, not this list: sensitive-file-guard must run before pre-edit-read-guard so denied files are not tracked, and its deny short-circuits the chain. Separate registrations could not enforce that - the harness runs later hooks even after a denial, so denied paths were reaching the read-set tracker. memory-write-guard is prefiltered to memory-shared paths. See docs/hooks-ownership.md and issues #424, #521, #920. Timeout is 30s rather than the 5s default: a PreToolUse timeout is fail-OPEN - the harness cancels the hook and the tool call proceeds - so an under-budgeted security guard is silently skipped, never denied. Across 35,276 local hook runs on this matcher the median was 429ms and p99 1,020ms, but four contention bursts timed out all three guards of a single call together, peaking at 11,141ms. 30s covers every observed case and matches the Bash channel. See issue #897.",
+        "matcher": "Edit|Write",
+        "_note": "Single registration: edit-guard-dispatcher.ps1 routes the file channel. Since #964 its routing table holds only memory-write-guard, prefiltered to memory-shared paths: sensitive files are denied by permissions.deny, and read-before-edit is the native Edit/Write contract. The dispatcher stays so a later file-channel guard needs no new registration. See docs/hooks-ownership.md and issues #920, #964. Timeout is 30s rather than the 5s default: a PreToolUse timeout is fail-OPEN - the harness cancels the hook and the tool call proceeds - so an under-budgeted security guard is silently skipped, never denied. Across 35,276 local hook runs on this matcher the median was 429ms and p99 1,020ms, but four contention bursts timed out all three guards of a single call together, peaking at 11,141ms. 30s covers every observed case and matches the Bash channel. See issue #897.",
         "hooks": [
           {
             "type": "command",
@@ -80,16 +80,6 @@
             "timeout": 30
           }
         ]
-      },
-      {
-        "matcher": "TeamCreate",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/team-limit-guard.ps1",
-            "timeout": 5
-          }
-        ]
       }
     ],
     "SessionStart": [
@@ -97,28 +87,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/session-logger.ps1 start",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/version-check.ps1",
-            "timeout": 10,
-            "async": true
-          },
-          {
-            "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/memory-integrity-check.ps1",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/post-compact-restore.ps1",
             "timeout": 5
           }
         ]
@@ -129,7 +98,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -Command \"& ~/.claude/hooks/session-logger.ps1 end; & ~/.claude/hooks/cleanup.ps1\"",
+            "command": "pwsh -NoProfile -File ~/.claude/hooks/cleanup.ps1",
             "timeout": 10
           },
           {
@@ -140,127 +109,15 @@
         ]
       }
     ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/prompt-validator.ps1",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/session-logger.ps1 stop",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
-      {
-        "matcher": "Task|Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/post-task-checkpoint.ps1",
-            "timeout": 15,
-            "async": true
-          }
-        ]
-      },
       {
         "matcher": "Read",
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/pre-edit-read-guard.ps1",
-            "timeout": 5,
-            "async": true
-          },
-          {
-            "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/memory-access-logger.ps1",
             "timeout": 5,
             "async": true
-          }
-        ]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/tool-failure-logger.ps1",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/subagent-logger.ps1 start",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/subagent-logger.ps1 stop",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/pre-compact-snapshot.ps1",
-            "timeout": 10,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "InstructionsLoaded": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/instructions-loaded-reinforcer.ps1",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "TaskCreated": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/task-created-validator.ps1",
-            "timeout": 5
           }
         ]
       }
@@ -288,53 +145,6 @@
         ]
       }
     ],
-    "TaskCompleted": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/task-completed-logger.ps1",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "ConfigChange": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/config-change-logger.ps1",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "TeammateIdle": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/session-logger.ps1 teammate-idle",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "CwdChanged": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/cwd-change-logger.ps1",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
     "PermissionDenied": [
       {
         "hooks": [
@@ -351,8 +161,7 @@
   "env": {
     "MAX_MCP_OUTPUT_TOKENS": "50000",
     "ENABLE_TOOL_SEARCH": "auto:10",
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "MAX_TEAMS": "5"
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "permissions": {
     "defaultMode": "default",
@@ -502,6 +311,24 @@
       "Read(**/*.key)",
       "Read(**/*.p12)",
       "Read(**/*password*)",
+      "Read(**/.envrc)",
+      "Read(**/*.env)",
+      "Read(**/*.env.*)",
+      "Read(**/*.pfx)",
+      "Read(**/id_rsa)",
+      "Read(**/id_rsa.*)",
+      "Read(**/id_ed25519)",
+      "Read(**/id_ed25519.*)",
+      "Read(**/id_ecdsa)",
+      "Read(**/id_ecdsa.*)",
+      "Read(**/id_dsa)",
+      "Read(**/id_dsa.*)",
+      "Read(**/.aws/**/credentials)",
+      "Read(**/.aws/**/config)",
+      "Read(~/.aws/credentials)",
+      "Read(**/*secrets/**)",
+      "Read(**/*credentials/**)",
+      "Read(**/*passwords/**)",
       "Edit(.env)",
       "Edit(.env.*)",
       "Edit(**/.env)",

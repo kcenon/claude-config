@@ -75,7 +75,8 @@ function Assert-ReasonNotMatches {
 
 $benign    = '{"tool_name":"Bash","tool_input":{"command":"git status --short"}}'
 $dangerous = '{"tool_name":"Bash","tool_input":{"command":"rm -rf /"}}'
-$prToMain  = '{"tool_name":"Bash","tool_input":{"command":"gh pr create --base main --title x"}}'
+$readEnv   = '{"tool_name":"Bash","tool_input":{"command":"cat .env"}}'
+$ghMerge   = '{"tool_name":"Bash","tool_input":{"command":"gh pr merge --merge"}}'
 
 Write-Host '=== bash-guard-dispatcher.ps1 tests ==='
 Write-Host ''
@@ -90,8 +91,14 @@ Assert-Decision -InputJson $dangerous -Expected 'deny'  -Label 'rm -rf / -> deny
 Assert-Decision -InputJson $benign    -Expected 'allow' -Label 'git status --short -> allow'
 
 Write-Host ''
+Write-Host '[Routing: Windows-only sensitive-read guard (#964)]'
+Assert-Decision -InputJson $readEnv -Expected 'deny' -Label 'cat .env -> deny'
+
+Write-Host ''
 Write-Host '[Routing: gh family]'
-Assert-Decision -InputJson $prToMain -Expected 'deny' -Label 'gh pr create --base main -> deny'
+# merge-gate-guard no longer restricts the merge method (#964). Without a PR
+# number it never calls gh, so the --merge decision is deterministic: allow.
+Assert-Decision -InputJson $ghMerge -Expected 'allow' -Label 'gh pr merge --merge -> allow'
 
 Write-Host ''
 Write-Host '[Payload reaches the guards (process-lifetime cache)]'
@@ -104,8 +111,60 @@ Assert-ReasonNotMatches -InputJson $dangerous -Pattern 'failed to parse hook inp
     -Label 'Deny is NOT a parse failure (cache delivered the payload)'
 Assert-ReasonNotMatches -InputJson $dangerous -Pattern 'guard failed \(fail-closed\)' `
     -Label 'No guard crashed while being invoked'
-Assert-ReasonMatches    -InputJson $prToMain  -Pattern 'pr-target-guard' `
-    -Label 'gh-family deny is attributed to pr-target-guard'
+Assert-ReasonMatches    -InputJson $readEnv   -Pattern 'bash-sensitive-read-guard' `
+    -Label 'sensitive-read deny is attributed to bash-sensitive-read-guard'
+
+Write-Host ''
+Write-Host '[Decision merge: deny > ask > allow (#964)]'
+# Real guards: dangerous-command-guard asks before `git stash clear`, and
+# bash-sensitive-read-guard denies a read of .env. The ask must survive the
+# merge instead of being turned into a deny, and a deny must still win over it.
+$askOnly  = '{"tool_name":"Bash","tool_input":{"command":"git stash clear"}}'
+$askDeny  = '{"tool_name":"Bash","tool_input":{"command":"git stash clear && cat .env"}}'
+Assert-Decision      -InputJson $askOnly -Expected 'ask'  -Label 'ask alone -> ask'
+Assert-ReasonMatches -InputJson $askOnly -Pattern '\[dangerous-command-guard\]' `
+    -Label 'ask reason is attributed to the guard that asked'
+Assert-Decision      -InputJson $askDeny -Expected 'deny' -Label 'ask + deny -> deny'
+Assert-ReasonMatches -InputJson $askDeny -Pattern '\[bash-sensitive-read-guard\]' `
+    -Label 'ask + deny reason names the denying guard'
+Assert-Decision      -InputJson $benign  -Expected 'allow' -Label 'allow only -> allow'
+
+# Stub guards pin the merge itself, independent of any real guard's rules:
+# a copy of the dispatcher runs next to stubs that answer from markers in
+# the command (ASK:<guard> / DENY:<guard>).
+$stubRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("bgd-" + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path (Join-Path $stubRoot 'lib') -Force | Out-Null
+Copy-Item -LiteralPath $script:HookPath -Destination $stubRoot
+Copy-Item -LiteralPath (Join-Path $script:RepoRoot 'global' 'hooks' 'lib' 'CommonHelpers.psm1') -Destination (Join-Path $stubRoot 'lib')
+$stub = @'
+param($HookInput)
+$name = [System.IO.Path]::GetFileNameWithoutExtension($PSCommandPath)
+$cmd = [string]$HookInput.tool_input.command
+$d = 'allow'
+if ($cmd -match "DENY:$name\b") { $d = 'deny' } elseif ($cmd -match "ASK:$name\b") { $d = 'ask' }
+$o = @{ hookEventName = 'PreToolUse'; permissionDecision = $d }
+if ($d -ne 'allow') { $o.permissionDecisionReason = "stub $d from $name" }
+@{ hookSpecificOutput = $o } | ConvertTo-Json -Compress -Depth 3
+'@
+foreach ($g in @('dangerous-command-guard', 'bash-sensitive-read-guard', 'shell-env-secret-guard')) {
+    Set-Content -LiteralPath (Join-Path $stubRoot "$g.ps1") -Value $stub
+}
+$realHook = $script:HookPath
+$script:HookPath = Join-Path $stubRoot 'bash-guard-dispatcher.ps1'
+$stubAsk     = '{"tool_name":"Bash","tool_input":{"command":"echo ASK:dangerous-command-guard"}}'
+$stubAskDeny = '{"tool_name":"Bash","tool_input":{"command":"echo ASK:dangerous-command-guard DENY:shell-env-secret-guard"}}'
+$stubTwoAsks = '{"tool_name":"Bash","tool_input":{"command":"echo ASK:dangerous-command-guard ASK:shell-env-secret-guard"}}'
+$stubAllow   = '{"tool_name":"Bash","tool_input":{"command":"echo hello"}}'
+Assert-Decision      -InputJson $stubAsk     -Expected 'ask'   -Label 'stub: ask alone -> ask'
+Assert-Decision      -InputJson $stubAskDeny -Expected 'deny'  -Label 'stub: ask + deny -> deny'
+Assert-ReasonNotMatches -InputJson $stubAskDeny -Pattern 'stub ask' `
+    -Label 'stub: deny reason does not carry the ask reason'
+Assert-Decision      -InputJson $stubTwoAsks -Expected 'ask'   -Label 'stub: two asks -> one ask'
+Assert-ReasonMatches -InputJson $stubTwoAsks -Pattern '(?s)\[dangerous-command-guard\].*\[shell-env-secret-guard\]' `
+    -Label 'stub: one ask joins every asking guard''s reason'
+Assert-Decision      -InputJson $stubAllow   -Expected 'allow' -Label 'stub: allow only -> allow'
+$script:HookPath = $realHook
+Remove-Item -LiteralPath $stubRoot -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host ''
 # Emit the summary in the repo-standard shape. test-runner.ps1 aggregates with

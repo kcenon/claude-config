@@ -1,6 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input": {
-    "command": "gh api -X POST repos/kcenon/claude-config/issues/478/comments -f body=hi"
-  }
-}

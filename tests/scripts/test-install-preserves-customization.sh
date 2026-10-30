@@ -190,6 +190,140 @@ else
     PASS=$((PASS + 1))
 fi
 
+# --- Case 10: a hand-aligned file refreshes the stored hash (#974) ---------
+# The user copies the new upstream file over the deployed one by hand. Nothing
+# needs copying, but the stored hash must follow, or the next upstream change
+# reports a local edit that does not exist and prompts for it.
+new_case "hash-refresh"
+src="$CASE_DIR/source.md"
+dest="$CASE_DIR/dest.md"
+printf 'v1\n' > "$src"
+guarded_copy "$src" "$dest" "source.md"
+printf 'v2\n' > "$src"
+cp "$src" "$dest"
+guarded_copy "$src" "$dest" "source.md"
+assert_equal "hash-refresh: stored hash follows the aligned file" \
+    "$(_manifest_hash "$src")" "$(_manifest_read "source.md")"
+printf 'v3\n' > "$src"
+refresh_out=""
+if refresh_out="$(guarded_copy "$src" "$dest" "source.md" < /dev/null 2>&1)"; then :; fi
+assert_equal "hash-refresh: next upstream change upgrades" "v3" "$(cat "$dest")"
+assert_not_contains "hash-refresh: no prompt" "Local changes detected" "$refresh_out"
+
+# --- Installer cases (#974) ------------------------------------------------
+# The real scripts/install.sh (global, --yes) on a minimal fixture and a
+# temporary HOME, installed with the exclusive_bilingual content policy and
+# then reinstalled over.
+if command -v jq > /dev/null 2>&1; then
+    INSTALL_FIXTURE="$WORK/install-fixture"
+    FAKE_BIN="$WORK/fake-bin"
+    mkdir -p "$INSTALL_FIXTURE/scripts/lib" "$INSTALL_FIXTURE/global/hooks/lib" \
+        "$INSTALL_FIXTURE/hooks/lib" "$FAKE_BIN"
+    printf '%s\n' '#!/bin/sh' 'echo "claude test"' > "$FAKE_BIN/claude"
+    chmod +x "$FAKE_BIN/claude"
+    cp scripts/install.sh scripts/install-manifest.sh "$INSTALL_FIXTURE/scripts/"
+    cp scripts/lib/install-prompts.sh "$INSTALL_FIXTURE/scripts/lib/"
+    cp global/commit-settings.md global/commit-settings.md.tmpl "$INSTALL_FIXTURE/global/"
+    printf 'CLAUDE.md v1\n' > "$INSTALL_FIXTURE/global/CLAUDE.md"
+    printf '%s\n' '{"fixture": "974", "env": {"ENABLE_TOOL_SEARCH": "auto:10"}}' \
+        > "$INSTALL_FIXTURE/global/settings.json"
+    printf '%s\n' '#!/bin/sh' 'exit 0' > "$INSTALL_FIXTURE/global/hooks/example.sh"
+    for lib in tokenize-shell.sh timeout-wrapper.sh rotate.sh; do
+        printf '%s\n' '#!/bin/sh' 'return 0 2>/dev/null || exit 0' > "$INSTALL_FIXTURE/global/hooks/lib/$lib"
+    done
+    for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
+        printf '%s\n' '#!/bin/sh' 'return 0 2>/dev/null || exit 0' > "$INSTALL_FIXTURE/hooks/lib/$lib"
+    done
+
+    # run_install <output>: answers every guarded-copy prompt with k.
+    INSTALL_HOME="$WORK/install-home"
+    mkdir -p "$INSTALL_HOME"
+    run_install() {
+        printf 'k\nk\nk\nk\n' | env -u MANIFEST_PATH -u BOOTSTRAP_FORCE -u CLAUDE_MEMORY_REPO_URL \
+            HOME="$INSTALL_HOME" USERPROFILE="$INSTALL_HOME" PATH="$FAKE_BIN:$PATH" \
+            AGENT_LANGUAGE=korean CONTENT_LANGUAGE=exclusive_bilingual INSTALL_NPM=n \
+            LAUNCHD_TARGET_DIR="$INSTALL_HOME/launchd-staging" \
+            SYSTEMD_USER_DIR="$INSTALL_HOME/systemd-staging" \
+            bash "$INSTALL_FIXTURE/scripts/install.sh" --type 1 --yes > "$1" 2>&1
+    }
+    installed="$INSTALL_HOME/.claude"
+    installed_manifest() {
+        jq -r --arg k "$1" '.files[$k] // empty' "$installed/.install-manifest.json"
+    }
+
+    # The only upstream revision of hooks/known-issues.json (removed in #969).
+    # A pre-manifest install left it untracked, so the prune never saw it.
+    known_issues="$WORK/known-issues.json"
+    cat > "$known_issues" << 'JSON'
+{
+  "known_issues": [
+    {
+      "versions": "2.1.69-2.1.81",
+      "version_list": ["2.1.69","2.1.70","2.1.71","2.1.72","2.1.73","2.1.74","2.1.75","2.1.76","2.1.77","2.1.78","2.1.79","2.1.80","2.1.81"],
+      "severity": "warning",
+      "description": "Cache efficiency regression and sentinel replacement bug",
+      "references": [
+        "https://github.com/anthropics/claude-code/issues/34629",
+        "https://github.com/anthropics/claude-code/issues/40524"
+      ]
+    }
+  ],
+  "minimum_recommended": "2.2.0",
+  "last_updated": "2026-04-05"
+}
+JSON
+    known_sha="$(_manifest_hash "$known_issues")"
+    assert_contains "bootstrap.sh seeds hooks/known-issues.json" \
+        "\"hooks/known-issues.json\" \"$known_sha\"" "$(cat bootstrap.sh)"
+
+    install_out="$WORK/install-1.out"
+    if run_install "$install_out"; then PASS=$((PASS + 1)); else
+        FAIL=$((FAIL + 1)); ERRORS+=("installer: first install failed: $(tail -5 "$install_out")")
+    fi
+
+    # Reinstall over: CLAUDE.md aligned with a newer upstream by hand, an
+    # untracked known-issues.json, a retired and a machine-local env key, and a
+    # locally edited commit-settings.md.
+    printf 'CLAUDE.md v2\n' > "$INSTALL_FIXTURE/global/CLAUDE.md"
+    cp "$INSTALL_FIXTURE/global/CLAUDE.md" "$installed/CLAUDE.md"
+    cp "$known_issues" "$installed/hooks/known-issues.json"
+    jq '.env.MAX_TEAMS = "4" | .env.SOME_LOCAL_KEY = "keep me"' "$installed/settings.json" \
+        > "$WORK/settings.json" && mv "$WORK/settings.json" "$installed/settings.json"
+    printf '\nlocal edit\n' >> "$installed/commit-settings.md"
+    install_out="$WORK/install-2.out"
+    run_install "$install_out" || true
+    out="$(cat "$install_out")"
+    assert_equal "installer: one prompt for an edited commit-settings.md" "1" \
+        "$(grep -cF "Local changes detected in: $installed/commit-settings.md" "$install_out")"
+    assert_contains "installer: edited commit-settings.md kept" "local edit" "$(cat "$installed/commit-settings.md")"
+    assert_missing "installer: unedited untracked known-issues.json pruned" "$installed/hooks/known-issues.json"
+    assert_contains "installer: known-issues.json prune logged" \
+        "Pruned removed managed file: hooks/known-issues.json" "$out"
+    assert_equal "installer: env.MAX_TEAMS dropped" "false" "$(jq -r '.env | has("MAX_TEAMS")' "$installed/settings.json")"
+    assert_equal "installer: env.SOME_LOCAL_KEY kept" "keep me" "$(jq -r .env.SOME_LOCAL_KEY "$installed/settings.json")"
+    assert_contains "installer: retired setting reported" "removed retired setting: env.MAX_TEAMS" "$out"
+    preserved_line="$(grep -F 'machine-local settings keys preserved:' "$install_out" || true)"
+    assert_contains "installer: machine-local key reported" "env.SOME_LOCAL_KEY" "$preserved_line"
+    assert_not_contains "installer: retired key not reported as preserved" "MAX_TEAMS" "$preserved_line"
+    assert_equal "installer: stored CLAUDE.md hash follows the aligned file" \
+        "$(_manifest_hash "$INSTALL_FIXTURE/global/CLAUDE.md")" "$(installed_manifest CLAUDE.md)"
+
+    # Next upstream CLAUDE.md, and an edited untracked known-issues.json.
+    printf 'CLAUDE.md v3\n' > "$INSTALL_FIXTURE/global/CLAUDE.md"
+    sed -e 's/"warning"/"error"/' "$known_issues" > "$installed/hooks/known-issues.json"
+    install_out="$WORK/install-3.out"
+    run_install "$install_out" || true
+    out="$(cat "$install_out")"
+    assert_equal "installer: newer CLAUDE.md upgrades the aligned file" "CLAUDE.md v3" "$(cat "$installed/CLAUDE.md")"
+    assert_not_contains "installer: no prompt for the aligned CLAUDE.md" \
+        "Local changes detected in: $installed/CLAUDE.md" "$out"
+    assert_contains "installer: edited known-issues.json kept" '"error"' "$(cat "$installed/hooks/known-issues.json")"
+    assert_contains "installer: edited known-issues.json reported" \
+        "preserved locally edited retired file: hooks/known-issues.json" "$out"
+else
+    echo "SKIP: installer cases need jq"
+fi
+
 # --- Summary --------------------------------------------------------------
 echo ""
 echo "Passed: $PASS"

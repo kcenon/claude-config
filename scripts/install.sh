@@ -135,8 +135,8 @@ check_dependencies() {
 }
 
 # 함수: Claude Code CLI 설치 확인 및 자동 설치
-# version-check.sh 등 hook 스크립트와 batch-issue-work.sh / batch-pr-work.sh가
-# `claude --version` / `claude` 명령을 직접 호출한다. 미설치 상태에서 설정만
+# batch-issue-work.sh / batch-pr-work.sh가
+# `claude` 명령을 직접 호출한다. 미설치 상태에서 설정만
 # 배포되면 silent failure가 발생하므로 설치 시점에 Anthropic 공식 native
 # installer를 통한 동의 기반 자동 설치를 제공한다.
 # 참고: https://code.claude.com/docs/en/setup
@@ -151,7 +151,7 @@ ensure_claude_cli() {
     fi
 
     warning "Claude Code CLI가 설치되어 있지 않습니다."
-    echo "  설치된 hook(version-check) 및 batch 스크립트가 'claude' 명령을 호출하므로,"
+    echo "  설치된 batch 스크립트가 'claude' 명령을 호출하므로,"
     echo "  미설치 상태에서는 일부 기능이 정상 동작하지 않습니다."
     echo ""
 
@@ -304,7 +304,6 @@ deploy_install_hooks() {
 
     for lib in \
         tokenize-shell.sh \
-        path-utils.sh \
         timeout-wrapper.sh \
         rotate.sh \
         validate-commit-message.sh \
@@ -319,12 +318,19 @@ deploy_install_hooks() {
     return 0
 }
 
+# write_full_suite_probe <settings-deployed>
+#   <settings-deployed> is "true" when this run published global/settings.json.
+#   The probe key "sensitive-file-guard" keeps its name for installed plugins
+#   (schema 1), but since #964 no hook file backs it: the full suite covers
+#   sensitive files through permissions.deny in settings.json, so the key
+#   follows the settings deployment instead of a hook file's presence.
 write_full_suite_probe() {
+    local settings_deployed="${1:-false}"
     local probe_dir="$HOME/.claude"
     local probe_file="$probe_dir/.full-suite-active"
     local tmp_probe sens_guard=false dang_guard=false
 
-    [ -f "$HOME/.claude/hooks/sensitive-file-guard.sh" ] && sens_guard=true
+    [ "$settings_deployed" = "true" ] && sens_guard=true
     [ -f "$HOME/.claude/hooks/dangerous-command-guard.sh" ] && dang_guard=true
 
     if command -v python3 >/dev/null 2>&1; then
@@ -369,7 +375,7 @@ install_global_settings_and_hooks() {
         if [ -d "$BACKUP_DIR/global/hooks" ]; then
             deploy_install_hooks || error "Hook 스크립트 배포 실패."
             success "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
-            write_full_suite_probe
+            write_full_suite_probe false
         fi
         return 0
     fi
@@ -381,7 +387,8 @@ install_global_settings_and_hooks() {
 
     # Carry machine-local keys forward before the policy injection, so the
     # policy still wins on the keys it owns (issue #915).
-    local carried_keys
+    local carried_keys retired_keys
+    retired_keys="$(retired_local_settings_keys "$settings_tmp" "$settings_dst" | tr '\n' ' ' | sed -e 's/ *$//')"
     carried_keys="$(merge_local_settings_keys "$settings_tmp" "$settings_dst" | tr '\n' ' ' | sed -e 's/ *$//')"
 
     # CLAUDE_CONTENT_LANGUAGE env 주입 및 Agent Language 속성 업데이트
@@ -403,6 +410,9 @@ install_global_settings_and_hooks() {
     if [ -n "$carried_keys" ]; then
         info "machine-local settings keys preserved: $carried_keys"
     fi
+    if [ -n "$retired_keys" ]; then
+        info "removed retired setting: $retired_keys"
+    fi
     if [ "$settings_updated" = "1" ]; then
         success "settings.json: language=$AGENT_LANGUAGE, CLAUDE_CONTENT_LANGUAGE=$CONTENT_LANGUAGE 업데이트 완료."
     else
@@ -416,7 +426,7 @@ install_global_settings_and_hooks() {
     fi
 
     success "Hook 스크립트 (hooks/ + lib/) 설치 완료!"
-    write_full_suite_probe
+    write_full_suite_probe true
 }
 
 # Note: get_policy_phrase, render_policy_tmpl, and render_policy_tmpls_in_dir
@@ -664,6 +674,10 @@ install_memory_sync() {
         if [ -x "$HOME/.claude/memory-shared/scripts/install-hooks.sh" ]; then
             (cd "$HOME/.claude/memory-shared" && ./scripts/install-hooks.sh) || \
                 warning "[install] memory repo install-hooks.sh failed"
+        else
+            # A clone of a branch without the hook installer (#959) would
+            # otherwise leave the data-side pre-commit gate missing silently.
+            warning "[install] memory repo has no scripts/install-hooks.sh; pre-commit validator gate not installed"
         fi
     else
         info "[install] memory repo already cloned at $HOME/.claude/memory-shared"
@@ -822,6 +836,12 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     # 파일 설치 (매니페스트 가드 사용)
     _seeded_identity=""
     for gf in CLAUDE.md commit-settings.md git-identity.md token-management.md; do
+        # commit-settings.md is rendered from its .tmpl further down. Copying
+        # the raw file here first guarded the same file twice, so a local edit
+        # got two prompts and the first one offered the unrendered text (#974).
+        if [ "$gf" = "commit-settings.md" ] && [ -f "$BACKUP_DIR/global/commit-settings.md.tmpl" ]; then
+            continue
+        fi
         if [ -f "$BACKUP_DIR/global/$gf" ]; then
             # git-identity.md is seeded on a staged copy of the SOURCE, never on
             # the deployed file. Seeding afterwards left the manifest holding the
@@ -912,6 +932,23 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         success "Statusline 스크립트 (scripts/) 설치 완료!"
     fi
 
+    # Memory sync scripts and validators (issue #958). They live in scripts/,
+    # not global/, so the copy above never reached them. memory-write-guard.sh
+    # is registered by every global install and allows the write unchecked when
+    # ~/.claude/scripts/memory/{validate,secret-check,injection-check}.sh are
+    # missing, so they ship whether or not CLAUDE_MEMORY_REPO_URL is set. They
+    # must be tracked before manifest_prune_tracked below, or every reinstall
+    # prunes them. Unix-only (#795): install.ps1 has no counterpart.
+    if [ -d "$BACKUP_DIR/scripts/memory" ]; then
+        for _memory_script in memory-sync.sh memory-status.sh memory-notify.sh; do
+            manifest_copy_file "$BACKUP_DIR/scripts/$_memory_script" \
+                "$HOME/.claude/scripts/$_memory_script" "scripts/$_memory_script" 1 || true
+        done
+        unset _memory_script
+        manifest_copy_files "$BACKUP_DIR/scripts/memory" "$HOME/.claude/scripts/memory" "scripts/memory" "*.sh" 1
+        success "메모리 동기화 스크립트 및 검증기 (scripts/memory/) 설치 완료!"
+    fi
+
     # commit-settings.md 설치 (CLAUDE.md에서 @./commit-settings.md로 참조)
     # issue #411: .tmpl이 있으면 정책 phrase를 치환해서 생성. 없으면 원본 복사.
     if [ -f "$BACKUP_DIR/global/commit-settings.md.tmpl" ]; then
@@ -967,6 +1004,10 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         success "Commands 디렉토리 설치 완료!"
     fi
 
+    # Retired files that can sit in ~/.claude without a manifest entry, each
+    # with the hash of its upstream copy. hooks/known-issues.json (one
+    # revision, removed in #969) reached installs untracked, so the prune
+    # never saw it (#974).
     manifest_seed_retired_managed "$HOME/.claude" \
         "commands/_policy.md" "dc099752233e505ecec34e8ea87f0b4d5af2409fef2090fb36719caa0faf58c8" \
         "commands/branch-cleanup.md" "3e7fc38c324cfc9cea639e95394d7819e7768364d12023ec0b36b91f9230b09d" \
@@ -975,7 +1016,8 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         "commands/issue-create.md" "c654ab412f320b9d97553f92a510cf5de13a5d0a7ed5e14212ca62534887ae71" \
         "commands/issue-work.md" "048a26140b03862c5b10630853115ee656056f45cedfd0a0b6ec814bf7225684" \
         "commands/pr-work.md" "2ecf1a78271c553e2310b57b2a1deb026a07ae01b84c1f856638293ab41f1199" \
-        "commands/release.md" "93fd6d2f7800deada2868b97b65ef486f42482b5e2f1224c35f732ebfeb1c013"
+        "commands/release.md" "93fd6d2f7800deada2868b97b65ef486f42482b5e2f1224c35f732ebfeb1c013" \
+        "hooks/known-issues.json" "2b853ec2b2f40482e44f7d88996af00d97e97ca8bf6376ab7ea22bc1307a6e07"
     manifest_prune_tracked "$HOME/.claude"
 
     # ccstatusline 설정 복사 (~/.config/ccstatusline/ — ccstatusline의 기본 설정 경로)
@@ -1020,7 +1062,8 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     # Memory sync scheduler (issue #527).
     # Opt-in via CLAUDE_MEMORY_REPO_URL env var; no-op when unset.
     # Installed only on global-touching profiles (1, 3, 5) since the scheduler
-    # invokes ~/.claude/scripts/memory-sync.sh which lives under the global tree.
+    # invokes ~/.claude/scripts/memory-sync.sh, which the memory scripts block
+    # above deploys from scripts/ (the source does not live under global/).
     echo ""
     info "메모리 동기화 스케줄러 설치 중..."
     install_memory_sync

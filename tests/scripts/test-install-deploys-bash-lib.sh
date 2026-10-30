@@ -3,8 +3,9 @@
 #
 # Asserts that the shared bash validator libraries (hooks/lib/validate-*.sh)
 # is deployed to ~/.claude/hooks/lib/ by both installers. Without this,
-# pr-language-guard.sh falls through to its inline english-only fallback
-# regardless of CLAUDE_CONTENT_LANGUAGE.
+# pr-language-guard.sh fell through to its inline english-only fallback
+# regardless of CLAUDE_CONTENT_LANGUAGE. #964 removed that hook; the
+# deployment contract stays until a follow-up retires it.
 #
 # Coverage split:
 #   1. Source-of-truth:   repo-root hooks/lib/ must exist and define the

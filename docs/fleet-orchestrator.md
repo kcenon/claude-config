@@ -2,7 +2,7 @@
 
 > **Type**: Skill documentation
 > **Skill location**: `global/skills/_internal/fleet-orchestrator/`
-> **Related issues**: #366 (this skill), #360 (post-task-checkpoint hook, closed), #361 (atomic multi-phase rule, closed)
+> **Related issues**: #366 (this skill), #360 (checkpoint hook, removed in #964), #361 (atomic multi-phase rule, closed)
 > **Related skills**: [`harness`](../global/skills/_internal/harness/SKILL.md), [`issue-work`](../global/skills/_internal/issue-work/SKILL.md), [`pr-work`](../global/skills/_internal/pr-work/SKILL.md)
 > **Purpose**: Fan out a single directive across N repositories as parallel worker Agents, with a supervisor that polls a shared manifest and aggregates results.
 
@@ -125,7 +125,7 @@ Three failure classes to know:
 
 This skill assumes the following infrastructure is in place:
 
-- **`hooks/post-task-checkpoint.sh`** (issue #360 — closed): prevents worker-side checkpoint clobbers when multiple workers run in parallel.
+- **Per-worker directories and the `flock` manifest**: each worker writes only under `_workspace/fleet/{repo-slug}/` and updates the manifest under `flock`, so parallel workers do not overwrite each other. The PostToolUse checkpoint hook from issue #360, which also auto-committed after every worker, was removed in #964; each worker commits its own changes through `issue-work`.
 - **Atomic Multi-Phase Execution rule** in `_policy.md` (issue #361 — closed): keeps workers from pausing mid-PR for confirmation. Without this rule, parallel workers would deadlock on per-phase prompts.
 - **`flock` and `jq`**: the manifest update protocol uses both. They are allowlisted in the skill's `allowed-tools` frontmatter.
 

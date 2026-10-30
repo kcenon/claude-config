@@ -32,7 +32,8 @@
 #     identifying their boundaries.
 #   - Heredoc body content is treated as a separate sub-command, which is
 #     conservative: a heredoc carrying a payload to `bash -s` will still be
-#     scanned.
+#     scanned. The body is copied without quote tracking, so prose in it
+#     (an apostrophe) cannot change how the rest of the command splits.
 
 # split_subcommands <cmd>
 #   Walks the input character-by-character maintaining quote state and
@@ -49,7 +50,20 @@ split_subcommands() {
     local quote=""        # one of: '', '"', $'
     local depth=0         # depth of $( / <( / >( / `
     local stack=()        # parallel stack of sub-command buffers per depth
+    local qstack=()       # quote state to restore when that depth closes
+    local hd_words=()     # pending heredoc delimiters, in order
+    local hd_tabs=()      # 1 when the matching heredoc is `<<-`
+    local hd_tab hd_raw hd_line hd_k
     local ch next prev
+    # A substitution opened inside double quotes ("...$(cmd)...") is parsed
+    # unquoted and restores the double-quote state when it closes. Without
+    # that, the closing `)` was never seen and every command after the
+    # string stayed inside the substitution buffer, uninspected.
+    #
+    # Re-packing after a pop uses ${stack[@]+"${stack[@]}"}: bash 3.2 (macOS
+    # /bin/bash, the hooks' shebang runtime) treats "${stack[@]}" of an empty
+    # array as unbound under the callers' `set -u`, which killed the splitter
+    # after the first substitution and dropped every later sub-command.
 
     flush() {
         # Trim leading/trailing whitespace and emit if non-empty.
@@ -112,7 +126,9 @@ split_subcommands() {
             if [ "$ch" = '$' ] && [ "$next" = '(' ]; then
                 buf+="\$("
                 stack+=("$buf")
+                qstack+=('"')
                 buf=""
+                quote=""
                 depth=$((depth+1))
                 i=$((i+2))
                 continue
@@ -120,6 +136,7 @@ split_subcommands() {
             if [ "$ch" = '`' ]; then
                 buf+='`'
                 stack+=("$buf")
+                qstack+=('"')
                 buf=""
                 depth=$((depth+1))
                 # Mark the opener so the close path can match.
@@ -139,10 +156,12 @@ split_subcommands() {
                 flush "$buf"
                 buf="${stack[${#stack[@]}-1]}"
                 unset 'stack[${#stack[@]}-1]'
-                stack=("${stack[@]}")
+                stack=(${stack[@]+"${stack[@]}"})
+                quote="${qstack[${#qstack[@]}-1]}"
+                unset 'qstack[${#qstack[@]}-1]'
+                qstack=(${qstack[@]+"${qstack[@]}"})
                 buf+=" "  # placeholder so the outer command still parses
                 depth=$((depth-1))
-                quote=""
                 i=$((i+1))
                 continue
             fi
@@ -181,6 +200,7 @@ split_subcommands() {
                     # $( ... ) — start of command substitution.
                     buf+="\$("
                     stack+=("$buf")
+                    qstack+=("")
                     buf=""
                     depth=$((depth+1))
                     i=$((i+2))
@@ -193,35 +213,104 @@ split_subcommands() {
                     # <( ... ) process substitution.
                     buf+="<("
                     stack+=("$buf")
+                    qstack+=("")
                     buf=""
                     depth=$((depth+1))
                     i=$((i+2))
                     continue
                 fi
                 if [ "$next" = '<' ]; then
-                    # `<<` heredoc or `<<<` here-string. Treat the body as
-                    # a continuation of the current sub-command — the next
-                    # whitespace-delimited token is the payload for `<<<`.
+                    # `<<<` here-string: the next token is the payload and
+                    # parses as an ordinary word.
+                    if [ "${cmd:$((i+2)):1}" = '<' ]; then
+                        buf+="<<<"
+                        i=$((i+3))
+                        continue
+                    fi
+                    # `<<` / `<<-` heredoc: record the delimiter word; the
+                    # body is consumed at the next unquoted newline.
                     buf+="<<"
                     i=$((i+2))
+                    hd_tab=0
+                    if [ "${cmd:$i:1}" = '-' ]; then
+                        buf+="-"
+                        hd_tab=1
+                        i=$((i+1))
+                    fi
+                    while [ "$i" -lt "$len" ]; do
+                        case "${cmd:$i:1}" in
+                            ' '|$'\t') buf+="${cmd:$i:1}"; i=$((i+1)) ;;
+                            *) break ;;
+                        esac
+                    done
+                    hd_raw=""
+                    while [ "$i" -lt "$len" ]; do
+                        case "${cmd:$i:1}" in
+                            ' '|$'\t'|$'\n'|';'|'&'|'|'|'<'|'>'|'('|')') break ;;
+                        esac
+                        hd_raw+="${cmd:$i:1}"
+                        i=$((i+1))
+                    done
+                    buf+="$hd_raw"
+                    hd_raw="${hd_raw//\'/}"
+                    hd_raw="${hd_raw//\"/}"
+                    hd_raw="${hd_raw//\\/}"
+                    if [ -n "$hd_raw" ]; then
+                        hd_words+=("$hd_raw")
+                        hd_tabs+=("$hd_tab")
+                    fi
                     continue
                 fi
                 buf+="$ch"
                 ;;
+            $'\n')
+                # Heredoc bodies are data, not shell: copy them into the
+                # buffer line by line (callers still see and inspect each
+                # line) without quote tracking, so an apostrophe in prose
+                # cannot open a quote that swallows the rest of the command.
+                buf+="$ch"
+                i=$((i+1))
+                for ((hd_k = 0; hd_k < ${#hd_words[@]}; hd_k++)); do
+                    while [ "$i" -lt "$len" ]; do
+                        hd_line="${cmd:$i}"
+                        hd_line="${hd_line%%$'\n'*}"
+                        buf+="$hd_line"
+                        i=$((i + ${#hd_line}))
+                        if [ "$i" -lt "$len" ]; then
+                            buf+=$'\n'
+                            i=$((i+1))
+                        fi
+                        if [ "${hd_tabs[$hd_k]}" = 1 ]; then
+                            hd_line="${hd_line#"${hd_line%%[!$'\t']*}"}"
+                        fi
+                        if [ "$hd_line" = "${hd_words[$hd_k]}" ]; then
+                            break
+                        fi
+                    done
+                done
+                hd_words=()
+                hd_tabs=()
+                continue
+                ;;
             '`')
                 buf+='`'
                 stack+=("$buf")
+                qstack+=("")
                 buf=""
                 depth=$((depth+1))
                 quote='`'
                 ;;
             ')')
                 if [ "$depth" -gt 0 ]; then
-                    # Close the current subshell substitution.
+                    # Close the current subshell substitution and return to
+                    # the quote state it was opened in.
                     flush "$buf"
                     buf="${stack[${#stack[@]}-1]}"
                     unset 'stack[${#stack[@]}-1]'
-                    stack=("${stack[@]}")
+                    stack=(${stack[@]+"${stack[@]}"})
+                    quote="${qstack[${#qstack[@]}-1]}"
+                    unset 'qstack[${#qstack[@]}-1]'
+                    qstack=(${qstack[@]+"${qstack[@]}"})
                     buf+=") "
                     depth=$((depth-1))
                     i=$((i+1))
@@ -282,7 +371,7 @@ split_subcommands() {
         flush "$buf"
         buf="${stack[${#stack[@]}-1]}"
         unset 'stack[${#stack[@]}-1]'
-        stack=("${stack[@]}")
+        stack=(${stack[@]+"${stack[@]}"})
         depth=$((depth-1))
     done
 

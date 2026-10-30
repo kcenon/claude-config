@@ -143,11 +143,11 @@ asserted by hand. Reviewer prose belongs outside the sentinel comments.
 | Leading whitespace on a row | None. The pipe character starts the line. |
 | Trailing whitespace | None. Trim before writing. |
 | Encoding | UTF-8 without BOM. |
-| Non-ASCII glyphs | Avoid in the injected block to keep the `pr-language-guard` hook happy. ASCII `->` for arrows, ASCII hyphen-minus for dashes. |
+| Non-ASCII glyphs | Avoid in the injected block so it stays valid under every `CLAUDE_CONTENT_LANGUAGE` policy. ASCII `->` for arrows, ASCII hyphen-minus for dashes. |
 
 The encoding rules are the same `pr-work` already enforces on commit
-messages and PR comments; the injected block respects them so the
-language-guard hook never trips on the skill's own output.
+messages and PR comments; the injected block respects them so the skill's
+own output never breaks the active content-language policy.
 
 ## Cross-references
 

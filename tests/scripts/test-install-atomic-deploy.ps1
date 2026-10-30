@@ -72,12 +72,9 @@ function New-Fixture {
 '@ -NoNewline
     Set-Content -LiteralPath (Join-Path $hooks 'example.ps1') -Value 'exit 0' -NoNewline
     Set-Content -LiteralPath (Join-Path $hooks 'example.sh') -Value "#!/bin/sh`nexit 0`n" -NoNewline
-    Set-Content -LiteralPath (Join-Path $hooks 'known-issues.json') -Value '{}' -NoNewline
 
-    foreach ($name in @('CommonHelpers.psm1', 'LanguageValidator.psm1', 'AttributionValidator.psm1')) {
-        Set-Content -LiteralPath (Join-Path $hooksLib $name) -Value '' -NoNewline
-    }
-    foreach ($name in @('tokenize-shell.sh', 'path-utils.sh', 'timeout-wrapper.sh', 'rotate.sh')) {
+    Set-Content -LiteralPath (Join-Path $hooksLib 'CommonHelpers.psm1') -Value '' -NoNewline
+    foreach ($name in @('tokenize-shell.sh', 'timeout-wrapper.sh', 'rotate.sh')) {
         Set-Content -LiteralPath (Join-Path $hooksLib $name) -Value "#!/bin/sh`nreturn 0 2>/dev/null || exit 0`n" -NoNewline
     }
     foreach ($name in @('validate-commit-message.sh', 'validate-language.sh', 'validate-traceability.sh')) {

@@ -325,7 +325,7 @@ verbatim rather than inventing new mappings.
 | `traceability` skill (P0-1) | Reads `soup.yaml` to populate `soup_ids[]` on requirement matrix rows. Bidirectional linking comes for free. |
 | `evidence-pack` skill (P1-1) | Mirrors `soup.yaml` (and the per-supplier `soup.md` report when present) under the `soup_register` kind in the per-release evidence pack. See `global/skills/_internal/evidence-pack/reference/source-mapping.md` (kind: `soup_register`) and `manifest-schema.md` (allowed kinds, schema `1.1.0`). |
 | `risk-control` skill (P1-2) | Cross-references SOUP records when a hazard's failure mode involves third-party software; the link is recorded as a `verification_refs[]` entry pointing to the relevant `H-NN` id. |
-| `traceability-guard` PreToolUse hook (P0-2) | Could be extended to detect when a PR adds or bumps a lockfile entry without updating the SOUP register. |
+| `pre-push` git hook and the skill itself (P0-2) | Could be extended to detect when a PR adds or bumps a lockfile entry without updating the SOUP register. |
 | External auditor | Reads `soup.yaml` and `soup.md` directly from the repo at any tagged release; consumes them alongside the matrix as the operational SOUP-management record. |
 
 ## References

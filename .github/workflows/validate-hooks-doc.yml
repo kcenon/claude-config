@@ -62,6 +62,13 @@ jobs:
           # enforced by tests/scripts/test-windows-hooks-parity.sh, which diffs
           # the dispatcher's routing table against the POSIX registrations, so a
           # guard dropped from the routing table still fails CI.
+          #
+          # Windows-only guards (#964) are exempt too and are not counted:
+          # macOS and Linux cover secret reads through the shell with the Bash
+          # sandbox read-deny, but Windows has no OS sandbox, so these two
+          # guards ship only as .ps1. Keep this list in sync with
+          # WIN_ONLY_ALLOW in tests/scripts/test-windows-hooks-parity.sh.
+          windows_only="bash-sensitive-read-guard shell-env-secret-guard"
           missing=0
           sh_count=0
           ps_count=0
@@ -77,8 +84,9 @@ jobs:
           done
           for ps in global/hooks/*.ps1; do
             case "$ps" in */*-dispatcher.ps1) continue ;; esac
-            ps_count=$((ps_count + 1))
             base=$(basename "$ps" .ps1)
+            case " $windows_only " in *" $base "*) continue ;; esac
+            ps_count=$((ps_count + 1))
             sh="global/hooks/${base}.sh"
             if [ ! -f "$sh" ]; then
               echo "MISSING bash counterpart for $ps -> $sh" >&2
@@ -94,10 +102,12 @@ jobs:
 
       - name: Verify COMPATIBILITY.md parity count
         run: |
-          # Dispatchers are excluded here for the same reason as the audit
-          # above: the row states guard parity, and a dispatcher is not a guard.
+          # Dispatchers and the Windows-only guards are excluded here for the
+          # same reasons as the audit above: the row states paired-guard
+          # parity, and neither a dispatcher nor a Windows-only guard has a
+          # bash twin. Keep the names in sync with windows_only above.
           sh_count=$(find global/hooks -maxdepth 1 -type f -name '*.sh' ! -name '*-dispatcher.sh' | wc -l | tr -d ' ')
-          ps_count=$(find global/hooks -maxdepth 1 -type f -name '*.ps1' ! -name '*-dispatcher.ps1' | wc -l | tr -d ' ')
+          ps_count=$(find global/hooks -maxdepth 1 -type f -name '*.ps1' ! -name '*-dispatcher.ps1' ! -name 'bash-sensitive-read-guard.ps1' ! -name 'shell-env-secret-guard.ps1' | wc -l | tr -d ' ')
           expected="| \`global/hooks/*.sh\` | ${sh_count} | ${ps_count} | ${ps_count}/${sh_count} (100%) |"
           if ! grep -Fqx "$expected" COMPATIBILITY.md; then
             echo "COMPATIBILITY.md hook parity row is stale." >&2

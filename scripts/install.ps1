@@ -136,12 +136,9 @@ function Deploy-InstallHooks {
 
     $requiredLibs = @(
         'tokenize-shell.sh',
-        'path-utils.sh',
         'timeout-wrapper.sh',
         'rotate.sh',
         'CommonHelpers.psm1',
-        'LanguageValidator.psm1',
-        'AttributionValidator.psm1',
         'validate-commit-message.sh',
         'validate-language.sh',
         'validate-traceability.sh'
@@ -153,8 +150,16 @@ function Deploy-InstallHooks {
     }
 }
 
+# -SettingsDeployed is true when this run published global/settings.windows.json.
+# The probe key 'sensitive-file-guard' keeps its name for installed plugins
+# (schema 1), but since #964 no hook file backs it: the full suite covers
+# sensitive files through permissions.deny in settings.json, so the key follows
+# the settings deployment instead of a hook file's presence.
 function Write-FullSuiteProbe {
-    param([Parameter(Mandatory)][string]$ClaudeDir)
+    param(
+        [Parameter(Mandatory)][string]$ClaudeDir,
+        [bool]$SettingsDeployed = $false
+    )
 
     $hooksDir = Join-Path $ClaudeDir "hooks"
     $probeFile = Join-Path $ClaudeDir ".full-suite-active"
@@ -162,7 +167,7 @@ function Write-FullSuiteProbe {
     $probeDoc  = [ordered]@{
         schema = 1
         hooks  = [ordered]@{
-            'sensitive-file-guard'    = (Test-Path (Join-Path $hooksDir 'sensitive-file-guard.sh'))
+            'sensitive-file-guard'    = $SettingsDeployed
             'dangerous-command-guard' = (Test-Path (Join-Path $hooksDir 'dangerous-command-guard.sh'))
         }
     }
@@ -192,7 +197,7 @@ function Install-GlobalSettingsAndHooks {
             try {
                 Deploy-InstallHooks -ClaudeDir $ClaudeDir
                 Write-Success "Hook scripts installed (hooks/*.ps1 + *.sh + lib/ + *.json)!"
-                Write-FullSuiteProbe -ClaudeDir $ClaudeDir
+                Write-FullSuiteProbe -ClaudeDir $ClaudeDir -SettingsDeployed $false
             }
             catch {
                 Write-Err "Hook scripts deployment failed. $_"
@@ -212,6 +217,7 @@ function Install-GlobalSettingsAndHooks {
 
         # Carry machine-local keys forward before the policy injection, so the
         # policy still wins on the keys it owns (issue #915).
+        $retiredKeys = Get-RetiredLocalSettingsKeys -StagedPath $settingsTmp -LivePath $destSettings
         $carriedKeys = Merge-LocalSettingsKeys -StagedPath $settingsTmp -LivePath $destSettings
 
         $settingsUpdated = Update-ClaudeSettingsJson -SettingsPath $settingsTmp -AgentLang $agentLanguage -ContentLang $contentLanguage
@@ -230,6 +236,9 @@ function Install-GlobalSettingsAndHooks {
     if ($carriedKeys -and $carriedKeys.Count -gt 0) {
         Write-Info "machine-local settings keys preserved: $($carriedKeys -join ', ')"
     }
+    if ($retiredKeys -and $retiredKeys.Count -gt 0) {
+        Write-Info "removed retired setting: $($retiredKeys -join ', ')"
+    }
     if ($settingsUpdated) {
         Write-Success "settings.json updated with language=$agentLanguage and CLAUDE_CONTENT_LANGUAGE=$contentLanguage"
     } else {
@@ -238,7 +247,7 @@ function Install-GlobalSettingsAndHooks {
     }
 
     Write-Success "Hook scripts installed (hooks/*.ps1 + *.sh + lib/ + *.json)!"
-    Write-FullSuiteProbe -ClaudeDir $ClaudeDir
+    Write-FullSuiteProbe -ClaudeDir $ClaudeDir -SettingsDeployed $true
 }
 
 function New-LocalClaude {
@@ -297,8 +306,8 @@ function Test-Administrator {
 }
 
 # Verify Claude Code CLI presence and offer interactive installation.
-# version-check.ps1 hook and batch-* scripts call `claude --version` / `claude`
-# directly; deploying configuration without the CLI causes silent failures.
+# batch-* scripts call `claude` directly; deploying configuration without the
+# CLI causes silent failures.
 # Uses Anthropic's official native installer (recommended method).
 # Reference: https://code.claude.com/docs/en/setup
 function Confirm-ClaudeCli {
@@ -317,8 +326,8 @@ function Confirm-ClaudeCli {
     }
 
     Write-Warn "Claude Code CLI is not installed."
-    Write-Host "  Hooks (version-check) and batch scripts (issue-work, pr-work) call the"
-    Write-Host "  'claude' command directly. Some features will not work without it."
+    Write-Host "  Batch scripts (issue-work, pr-work) call the 'claude' command"
+    Write-Host "  directly. Some features will not work without it."
     Write-Host ""
 
     $installClaude = Read-Host "Install Claude Code CLI now? (y/n) [default: y]"
@@ -838,6 +847,9 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         'commands/issue-work.md' = '048a26140b03862c5b10630853115ee656056f45cedfd0a0b6ec814bf7225684'
         'commands/pr-work.md' = '2ecf1a78271c553e2310b57b2a1deb026a07ae01b84c1f856638293ab41f1199'
         'commands/release.md' = '93fd6d2f7800deada2868b97b65ef486f42482b5e2f1224c35f732ebfeb1c013'
+        # Copied untracked by every PowerShell installer before v1.12.0;
+        # removed in #969 (#974).
+        'hooks/known-issues.json' = '2b853ec2b2f40482e44f7d88996af00d97e97ca8bf6376ab7ea22bc1307a6e07'
     }
     $null = Invoke-ManifestPruneTracked -Root $claudeDir
 

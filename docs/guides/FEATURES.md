@@ -29,30 +29,26 @@ These behaviors activate immediately after installation — no configuration nee
 - Supported formatters: `black`, `prettier`, `gofmt`, `rustfmt`, `clang-format`, `ktlint`
 
 ### When you commit
-- Markdown cross-reference anchors are validated — broken links block the commit
-- Commit message format is checked (Conventional Commits)
-- AI/Claude attribution is stripped automatically
-- Commit / PR / issue content is validated against the selected `CLAUDE_CONTENT_LANGUAGE` policy (see [Content Language Policy](#content-language-policy))
+- `settings.json` sets `attribution: ""`, so Claude adds no attribution trailer
+- In a repository where `hooks/install-hooks.sh` installed the `commit-msg` git hook, commit messages are checked (Conventional Commits, no AI/Claude attribution, no emojis)
+- PR and issue content follows the selected `CLAUDE_CONTENT_LANGUAGE` policy as an instruction (see [Content Language Policy](#content-language-policy)); no hook checks it
 
 ### When Claude accesses files
-- `.env`, `.pem`, `.key`, and `secrets/` directories are blocked
-- Dangerous commands (`rm -rf /`, `chmod 777`, pipe execution) are intercepted
-- GitHub API connectivity is validated before API calls
+- `.env`, `.pem`, `.key`, and `secrets/` paths are denied by `permissions.deny`, for Read and for Edit/Write
+- Irreversible commands are denied: `rm -rf /`, a download piped to a shell, `chmod 777`, a direct push to `main`/`develop`, `gh repo delete`
+- Other destructive commands ask for confirmation: `git reset --hard` on a dirty tree, `git clean -f`, `git push --force`, `rm -r .`, `find -delete`, `gh release delete`
 
 ### When a session runs
-- Session start/end times are logged to `~/.claude/session.log`
-- Known problematic Claude Code versions trigger a warning
 - Old temporary files are cleaned up on session end
-- Context is snapshot before auto-compaction
+- `permissions.allow` entries that can never match again are pruned from the project's `settings.local.json` on session end
+- With memory sync set up, a short memory health summary is shown at session start
 
 ### When you create PRs
-- PRs targeting `main` from non-`develop` branches are blocked (PreToolUse hook)
-- Server-side: GitHub Actions auto-closes violating PRs with an explanatory comment
+- `gh pr merge` is blocked while any PR check is failing or pending
+- Server-side: GitHub Actions auto-closes PRs into `main` from non-`develop` branches with an explanatory comment
 - Release PRs (`develop` → `main`) are allowed through the `/release` skill
 
 ### When using Agent Teams
-- Concurrent team count is limited (configurable via `MAX_TEAMS`)
-- Teammate idle events and task completions are logged
 - Worktree creation and cleanup is managed automatically
 
 > For full hook configuration details and customization, see [HOOKS.md](../../HOOKS.md).
@@ -77,7 +73,7 @@ The installer substitutes the chosen phrase into three rule-document templates (
 
 On reinstall, the prompt defaults are seeded from the existing `settings.json` so the prior `.language` and `CLAUDE_CONTENT_LANGUAGE` choices are preserved. Explicit `AGENT_LANGUAGE` and `CONTENT_LANGUAGE` environment overrides still win.
 
-**Scope boundary**: AI/Claude attribution enforcement is **not** governed by this env var — `attribution-guard` and the attribution checks in `commit-message-guard` remain active for every policy.
+**Scope boundary**: AI/Claude attribution rules are **not** governed by this env var — the attribution checks in the `commit-msg` git hook stay active for every policy.
 
 **Enterprise conflict detection**: When the deployed enterprise `CLAUDE.md` requires English and the operator selects a more permissive policy, the installer prints a warning and asks for confirmation before proceeding.
 

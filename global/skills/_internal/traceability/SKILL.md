@@ -236,7 +236,7 @@ or `router.yaml`. Those remain `doc-index`'s responsibility.
 
 | Consumer | Use |
 |----------|-----|
-| `traceability-guard` PreToolUse hook (sibling issue #590) | Reads `traceability.yaml` to detect when a PR touches a `code_paths` entry without updating its row. |
+| `pre-push` git hook and the skill itself (sibling issue #590) | Detect when a PR touches a `code_paths` entry without updating its row. The hook walks the cascade through `hooks/lib/validate-traceability.sh`. |
 | `compliance/<standard>.md` rules (sibling issue #591) | Reference clauses validated by this skill's `dangling_clause_ref` finding. |
 | `pr-work` skill (future P2) | Auto-injects impacted matrix rows into the PR body. |
 | External auditor | Reads `traceability.md` directly from the repo at any tagged release. |

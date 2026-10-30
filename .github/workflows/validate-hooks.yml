@@ -11,7 +11,6 @@ on:
       - 'hooks/**'
       - 'tests/hooks/**'
       - 'tests/hooks/fixtures/**'
-      - 'tests/markdown-anchor-validator/**'
       - 'tests/batch_drift_benchmark/**'
       - 'plugin/**'
       - 'plugin-lite/**'
@@ -61,9 +60,8 @@ jobs:
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             sudo apt-get update && sudo apt-get install -y jq
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            # macOS ships with bash 3.2; install bash 4+ so hooks that need
-            # associative arrays (e.g., markdown-anchor-validator.sh) can
-            # re-exec into it via the PATH checks in the hook itself.
+            # macOS ships with bash 3.2; install bash 4+ so hooks and tests
+            # that need bash 4 features can run with it.
             brew install jq bash
           fi
 
@@ -95,12 +93,12 @@ jobs:
 
       - name: Run hook JSON-escape regression tests (group 1)
         # #578: user-controlled reason/feedback/context strings must be
-        # jq-escaped by 7 group-1 hooks so adversarial characters cannot flip
+        # jq-escaped by the group-1 hooks so adversarial characters cannot flip
         # the decision field or break the JSON literal.
         run: bash tests/hook-json-escape-group1.sh
 
       - name: Run hook JSON-escape regression tests (group 2)
-        # #579: same escaping contract across 6 group-2 hooks.
+        # #579: same escaping contract across the group-2 hooks.
         run: bash tests/hook-json-escape-group2.sh
 
       - name: Run sonar-fix fixture integrity test
@@ -254,6 +252,17 @@ jobs:
         # for scripts/install.ps1 using an isolated fixture and HOME.
         run: pwsh tests/scripts/test-install-atomic-deploy.ps1
 
+      - name: Run install_memory_sync hook installer test
+        # Proves scripts/install.sh runs the memory repo's install-hooks.sh
+        # and warns when the clone has none (#959).
+        run: bash tests/scripts/test-install-memory-sync-hooks.sh
+
+      - name: Run memory script deployment test
+        # Proves a global install deploys the memory sync scripts and the
+        # validators memory-write-guard.sh needs, so the guard denies a secret
+        # instead of failing open (#958).
+        run: bash tests/scripts/test-install-deploys-memory-scripts.sh
+
       - name: Run hook-wiring parity test (settings.json <-> settings.windows.json)
         # Catches dormant guards: a .ps1 hook present in global/hooks/ but not
         # wired into settings.windows.json (or POSIX-only drift). This is the
@@ -271,11 +280,6 @@ jobs:
         # Ensures Windows gets narrow read-only PowerShell discovery allowances
         # without broad PowerShell(*) or state-changing gh grants.
         run: bash tests/scripts/test-windows-powershell-permissions.sh
-
-      - name: Run hook ordering test
-        # Asserts the load-bearing PreToolUse hook order (sensitive-file-guard
-        # before pre-edit-read-guard, etc.) is preserved across both settings.
-        run: bash tests/scripts/test-hook-ordering.sh
 
       - name: Run skill severity enum test
         # Validates code-review skill frontmatter severity/finding_levels enums.

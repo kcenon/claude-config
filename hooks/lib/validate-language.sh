@@ -4,14 +4,13 @@
 # Single source of truth for the content-language rule applied to GitHub
 # Issue and Pull Request titles and bodies created via the gh CLI.
 #
-# Sourced by:
-#   - global/hooks/pr-language-guard.sh (PreToolUse — Claude-side feedback loop)
+# Sourced by: tests/hooks/test-language-validator.sh. A PreToolUse hook that
+# gated gh pr/issue commands at the Bash tool boundary sourced it until #964
+# removed that hook; the installers still deploy it.
 #
 # The default rule mirrors commit-settings.md: "All GitHub Issues and Pull
 # Requests must be written in English." The terminal-side enforcement layer
-# for git commits lives in validate-commit-message.sh; this library is the
-# analogous gate for gh pr/issue commands intercepted at the Bash tool
-# boundary.
+# for git commits lives in validate-commit-message.sh.
 #
 # The CLAUDE_CONTENT_LANGUAGE environment variable selects the policy
 # (see validate_content_language below). See issue #410 for the design.
@@ -183,7 +182,7 @@ validate_korean_with_tech_terms() {
 #   - any → skip validation (always returns 0)
 #
 # NOTE: This dispatcher does NOT control AI/Claude attribution enforcement.
-# attribution-guard.{sh,ps1} and validate_no_attribution remain active for
+# validate_no_attribution (validate-commit-message.sh) remains active for
 # every policy value — attribution blocking is a hard rule, not a language
 # concern. See issue #410 for the scope boundary.
 validate_content_language() {

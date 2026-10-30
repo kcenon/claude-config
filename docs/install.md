@@ -40,7 +40,7 @@ Format:
     "conversation-language.md": "sha256-hex",
     "git-identity.md": "sha256-hex",
     "token-management.md": "sha256-hex",
-    "hooks/sensitive-file-guard.sh": "sha256-hex",
+    "hooks/dangerous-command-guard.sh": "sha256-hex",
     "skills/_internal/issue-work/SKILL.md": "sha256-hex"
   }
 }
@@ -70,7 +70,7 @@ On each run, the installer compares three hashes per tracked file:
 | Condition | Outcome |
 |-----------|---------|
 | destination missing | copy and record `src_hash` |
-| `src_hash == dest_hash` | no-op (record `src_hash` if manifest is empty) |
+| `src_hash == dest_hash` | no copy; record `src_hash` if the stored hash differs or is missing |
 | `dest_hash == stored_hash` and `src_hash != dest_hash` | silent upgrade; record `src_hash` |
 | destination diverges from both | prompt user (keep / overwrite) |
 
@@ -85,7 +85,12 @@ the diff (first 40 lines) and prompts:
 Pressing `Enter` keeps the local file unchanged. The manifest is not
 updated in this case, so subsequent re-installs will prompt again until
 the user either overwrites or aligns their local file with an upstream
-version.
+version. A file aligned by hand is recognized on the next run: its bytes equal
+the source, so the stored hash is refreshed and the following upstream change
+upgrades it silently.
+
+`commit-settings.md` is guarded once, as the rendering of
+`commit-settings.md.tmpl`; the raw `commit-settings.md` is not copied first.
 
 ## Prune Decision
 
@@ -106,7 +111,8 @@ After a file is deleted or a stale entry is removed, each directory above it is
 removed while it is empty, up to but never including the install root; the
 first directory that still holds anything, such as a user file, stays.
 The installers also carry a small retired-file ownership table for legacy
-command files removed before directory manifests existed. Those files are
+command files removed before directory manifests existed, and for
+`hooks/known-issues.json`, which reached installs untracked. Those files are
 seeded into the manifest only when their current bytes match a known
 upstream hash; edited copies are preserved.
 
@@ -281,6 +287,7 @@ the policy injection still runs last and still wins. Rules, in order:
 | any other key the profile defines | repo profile | the profile has an opinion, so it is configuration rather than machine state |
 | any key the profile does not define | the deployed file | `model`, `agentPushNotifEnabled`, `skipWorkflowUsageWarning`, and anything Claude Code adds later |
 | `env` | merged one level, profile winning per key | a machine-local variable survives without letting a stale value shadow the profile |
+| `env.MAX_TEAMS` | neither; dropped | the repo removed it (#969) and nothing reads it, so carrying it forward would keep dead configuration alive as "machine-local" |
 
 `effortLevel` is the only entry in the runtime list, and adding to that list has
 a cost worth stating plainly: a key on it is one the repo can no longer change
@@ -289,7 +296,11 @@ profiles so the general rule covers it -- would change the shipped default for
 new installs and is a product decision, not an installer one.
 
 The run prints `machine-local settings keys preserved: ...` naming what it
-carried, because the original defect was silence rather than loss.
+carried, because the original defect was silence rather than loss. For the
+same reason it prints `removed retired setting: ...` for each retired `env` key
+it drops. The retired list (`SETTINGS_RETIRED_ENV_KEYS` in
+`install-manifest.sh`, `$SettingsRetiredEnvKeys` in `install-manifest.ps1`)
+holds only keys the repo profiles used to ship.
 
 An unparseable deployed file is not fatal: nothing is carried and the publish
 replaces it wholesale, which is the pre-#915 behaviour.

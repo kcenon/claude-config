@@ -9,7 +9,7 @@
       1. Both .ps1 and .sh hook variants land in ~/.claude/hooks/
       2. All installed .sh files use LF-only line endings (no CRLF)
       3. All installed .sh files are UTF-8 without BOM
-      4. hooks/lib/ and hooks/known-issues.json are present
+      4. hooks/lib/ is present
       5. scripts/ contains both .ps1 and .sh variants
       6. Every hook stem present in BOTH variants in the source lands in BOTH
          variants in the destination. Pre-existing source-level orphans (a
@@ -156,7 +156,6 @@ try {
 
     # --- 5. Supporting files -------------------------------------------------
     Assert-True (Test-Path (Join-Path $hooksDir 'lib'))             "hooks/lib/ directory present"
-    Assert-True (Test-Path (Join-Path $hooksDir 'known-issues.json')) "hooks/known-issues.json present"
 
     # --- 6. Utility scripts: both variants -----------------------------------
     $ps1Scripts = @(Get-ChildItem -Path $scriptsDir -Filter '*.ps1' -File -ErrorAction SilentlyContinue)

@@ -102,7 +102,33 @@ try {
     Assert-Contains $out 'SYNC: project/CLAUDE.md'
     Write-Host 'project detection: PASS'
 
-    # 3. Each kind of drift is reported; a CRLF and BOM rewrite is not.
+    # 3. commit-settings.md is deployed rendered from its .tmpl for the content
+    # policy, so verify compares it with the rendering for the policy the
+    # installed settings.json records, not with the english-canonical .md
+    # (#974).
+    Import-Module (Join-Path $repoRoot 'scripts' 'lib' 'InstallPrompts.psm1') -Force -DisableNameChecking
+    $settingsPath = Join-Path $claude 'settings.json'
+    $settingsOrig = [System.IO.File]::ReadAllText($settingsPath)
+    $settings = $settingsOrig | ConvertFrom-Json
+    $settings.env | Add-Member -NotePropertyName 'CLAUDE_CONTENT_LANGUAGE' -NotePropertyValue 'exclusive_bilingual' -Force
+    [System.IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 32), $utf8NoBom)
+    Invoke-PolicyTemplate -Source (Join-Path $repoRoot 'global' 'commit-settings.md.tmpl') `
+        -Destination (Join-Path $claude 'commit-settings.md') -ContentLanguage 'exclusive_bilingual'
+    $out = Invoke-Verify -Dir $proj -Arguments @()
+    if ((Get-Findings $out).Count -ne 0) {
+        throw "FAIL: an exclusive_bilingual install reported differences`n$((Get-Findings $out) -join "`n")"
+    }
+    Assert-Contains $out 'SYNC: commit-settings.md (rendered: exclusive_bilingual)'
+    [System.IO.File]::WriteAllText($settingsPath, $settingsOrig, $utf8NoBom)
+    $out = Invoke-Verify -Dir $proj -Arguments @()
+    Assert-Contains $out 'DIFF: commit-settings.md (rendered: english)'
+    if ((Get-Findings $out).Count -ne 1) {
+        throw "FAIL: expected exactly 1 finding for a policy mismatch`n$((Get-Findings $out) -join "`n")"
+    }
+    Copy-Item -LiteralPath (Join-Path $repoRoot 'global' 'commit-settings.md') -Destination (Join-Path $claude 'commit-settings.md') -Force
+    Write-Host 'rendered commit-settings.md: PASS'
+
+    # 4. Each kind of drift is reported; a CRLF and BOM rewrite is not.
     $hookVictim = if ($IsWindows) {
         'edit-guard-dispatcher.ps1'
     } else {

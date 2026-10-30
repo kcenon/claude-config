@@ -110,8 +110,8 @@ required_deny = {
     "Edit(.env)",
 }
 
-# The PowerShell channel has no PreToolUse guard (gh-write-verb-guard only
-# covers Bash), so the broad `gh api repos/*` style allows must not
+# The PowerShell channel has no PreToolUse gh guard, so the broad
+# `gh api repos/*` style allows must not
 # auto-approve write calls. These ask rules take precedence over allow and
 # force a prompt for explicit write methods and for the field/input flags
 # that make gh api default to POST.

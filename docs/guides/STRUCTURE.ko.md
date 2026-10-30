@@ -24,11 +24,8 @@ claude_config_backup/
 │   ├── ccstatusline/           # 상태줄 설정
 │   ├── hooks/                  # 훅 스크립트(.sh + .ps1) — 전체 정본 목록은 HOOKS.md 참조
 │   │   └── lib/               # 공유 라이브러리
-│   │       ├── AttributionValidator.psm1
 │   │       ├── CommonHelpers.psm1  # PowerShell 공유 모듈
-│   │       ├── LanguageValidator.psm1
-│   │       ├── path-utils.sh
-│   │       ├── rotate.sh/.ps1
+│   │       ├── rotate.sh
 │   │       ├── timeout-wrapper.sh
 │   │       └── tokenize-shell.sh
 │   ├── scripts/                # 유틸리티 스크립트

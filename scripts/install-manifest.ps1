@@ -412,8 +412,12 @@ function Invoke-GuardedCopy {
     $destSha   = Get-FileSha256 -Path $Dest
     $storedSha = Read-ManifestEntry -Key $Key
 
+    # Nothing to copy. Record the source hash whenever the stored one differs:
+    # a file brought in line with the source by hand otherwise keeps an older
+    # stored hash, and the next upstream change reports a local edit that does
+    # not exist (#974).
     if ($srcSha -and ($srcSha -eq $destSha)) {
-        if (-not $storedSha) { Write-ManifestEntry -Key $Key -Sha $srcSha }
+        if ($storedSha -ne $srcSha) { Write-ManifestEntry -Key $Key -Sha $srcSha }
         return $true
     }
 
@@ -483,6 +487,12 @@ $script:SettingsPolicyKeys = @('language', 'permissions', 'hooks')
 # installs. See docs/install.md, "Machine-local settings keys".
 $script:SettingsRuntimeKeys = @('effortLevel')
 
+# env keys the repo profile used to ship and has removed. Nothing reads them
+# any more, so a live copy is dropped instead of being carried forward as
+# machine-local, and the installer says so. `MAX_TEAMS` went with
+# team-limit-guard in #969 (#974).
+$script:SettingsRetiredEnvKeys = @('MAX_TEAMS')
+
 function Merge-LocalSettingsKeys {
     <#
     .SYNOPSIS
@@ -503,7 +513,9 @@ function Merge-LocalSettingsKeys {
       - any other key the profile defines -> repo wins
       - any key the profile does not define -> carried forward
       - env: merged one level, profile winning per key, so a machine-local
-        variable survives without letting a stale value shadow the profile
+        variable survives without letting a stale value shadow the profile;
+        $SettingsRetiredEnvKeys are dropped (Get-RetiredLocalSettingsKeys
+        names them)
 
     Returns the names carried, so the caller can say what it preserved.
     #>
@@ -549,6 +561,7 @@ function Merge-LocalSettingsKeys {
         }
         foreach ($e in $liveEnv.Value.PSObject.Properties) {
             if ($staged.env.PSObject.Properties.Name -contains $e.Name) { continue }
+            if ($script:SettingsRetiredEnvKeys -contains $e.Name) { continue }
             $staged.env | Add-Member -NotePropertyName $e.Name -NotePropertyValue $e.Value -Force
             $carried.Add("env.$($e.Name)")
         }
@@ -558,6 +571,43 @@ function Merge-LocalSettingsKeys {
         ($staged | ConvertTo-Json -Depth 32) | Set-Content -LiteralPath $StagedPath -Encoding UTF8
     }
     return $carried.ToArray()
+}
+
+function Get-RetiredLocalSettingsKeys {
+    <#
+    .SYNOPSIS
+    Names the $SettingsRetiredEnvKeys entries that the deployed settings.json
+    still holds and the staged profile does not define, as env.<key>: the keys
+    Merge-LocalSettingsKeys drops. Mirrors retired_local_settings_keys.
+    #>
+    [OutputType([string[]])]
+    param(
+        [Parameter(Mandatory)][string]$StagedPath,
+        [Parameter(Mandatory)][string]$LivePath
+    )
+
+    if (-not (Test-Path -LiteralPath $LivePath -PathType Leaf)) { return @() }
+
+    try {
+        $staged = Get-Content -Raw -LiteralPath $StagedPath | ConvertFrom-Json
+        $live = Get-Content -Raw -LiteralPath $LivePath | ConvertFrom-Json
+    }
+    catch {
+        return @()
+    }
+
+    $liveEnv = $live.PSObject.Properties['env']
+    if (-not ($liveEnv -and $liveEnv.Value)) { return @() }
+    $stagedEnv = $staged.PSObject.Properties['env']
+    $profileEnvKeys = if ($stagedEnv -and $stagedEnv.Value) { @($stagedEnv.Value.PSObject.Properties.Name) } else { @() }
+
+    $retired = [System.Collections.Generic.List[string]]::new()
+    foreach ($e in $liveEnv.Value.PSObject.Properties) {
+        if ($script:SettingsRetiredEnvKeys -notcontains $e.Name) { continue }
+        if ($profileEnvKeys -contains $e.Name) { continue }
+        $retired.Add("env.$($e.Name)")
+    }
+    return $retired.ToArray()
 }
 
 function Update-ClaudeSettingsJson {

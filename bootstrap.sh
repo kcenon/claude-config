@@ -31,7 +31,7 @@ if [ -n "${GITHUB_BRANCH:-}" ]; then
     echo "warning: GITHUB_BRANCH is deprecated, use GITHUB_REF" >&2
     GITHUB_REF="${GITHUB_REF:-$GITHUB_BRANCH}"
 fi
-GITHUB_REF="${GITHUB_REF:-v1.15.0}"
+GITHUB_REF="${GITHUB_REF:-v1.16.0}"
 
 # Anthropic Claude Code installer pin (M1.2b — supply-chain hardening, see #565).
 # The Anthropic-hosted install script is pinned by sha256 to prevent MITM
@@ -182,9 +182,9 @@ check_dependencies() {
     info "의존성 확인 중..."
 
     # Required tools enforced by claude-config hooks (see PREREQUISITES.md).
-    # `gh` and `perl` are checked in addition to git/curl because several
-    # PreToolUse guards (merge-gate-guard, attribution-guard, markdown-anchor-
-    # validator) and the `lib/timeout-wrapper.sh` fallback rely on them.
+    # `gh` and `perl` are checked in addition to git/curl because the
+    # merge-gate-guard PreToolUse guard and the `lib/timeout-wrapper.sh`
+    # fallback rely on them.
     local missing=()
     for cmd in jq gh git perl; do
         if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -204,7 +204,7 @@ check_dependencies() {
 }
 
 # Claude Code CLI 설치 확인 및 자동 설치
-# version-check.sh, batch-issue-work.sh 등이 `claude --version` / `claude` 명령을
+# batch-issue-work.sh 등이 `claude` 명령을
 # 호출하므로 미설치 시 silent failure가 발생한다. 본 함수는 부트스트랩 시점에
 # 사용자 동의 하에 Anthropic 공식 native installer로 Claude Code CLI를 설치한다.
 # 참고: https://code.claude.com/docs/en/setup
@@ -219,7 +219,7 @@ ensure_claude_cli() {
     fi
 
     warning "Claude Code CLI가 설치되어 있지 않습니다."
-    echo "  Claude Code CLI는 hooks(version-check), batch scripts(issue-work, pr-work) 등이"
+    echo "  Claude Code CLI는 batch scripts(issue-work, pr-work) 등이"
     echo "  의존하는 핵심 도구입니다. 미설치 상태에서는 일부 기능이 동작하지 않습니다."
     echo ""
 
@@ -347,8 +347,8 @@ deploy_bootstrap_hooks() {
         copy_bootstrap_files "$hooks_lib_src" "$hooks_dst/lib" "*.sh" 1 "hooks/lib" || return 1
     fi
 
-    # 공유 검증 라이브러리 설치 (commit-message-guard.sh, pr-language-guard.sh,
-    # traceability-guard.sh가 사용). scripts/install.sh와 같은 런타임 계약.
+    # 공유 검증 라이브러리 설치. 이를 쓰던 PreToolUse 가드는 #964에서 제거되었지만
+    # scripts/install.sh와 같은 런타임 계약을 유지한다.
     if [ -d "$shared_lib_src" ]; then
         for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
             if [ -f "$shared_lib_src/$lib" ]; then
@@ -359,7 +359,6 @@ deploy_bootstrap_hooks() {
 
     for lib in \
         tokenize-shell.sh \
-        path-utils.sh \
         timeout-wrapper.sh \
         rotate.sh \
         validate-commit-message.sh \
@@ -377,9 +376,25 @@ deploy_bootstrap_hooks() {
 deploy_bootstrap_scripts() {
     local scripts_src="$INSTALL_DIR/global/scripts"
     local scripts_dst="$CLAUDE_DIR/scripts"
+    local memory_script
 
-    [ -d "$scripts_src" ] || return 0
-    copy_bootstrap_files "$scripts_src" "$scripts_dst" "*.sh" 1 "scripts" || return 1
+    if [ -d "$scripts_src" ]; then
+        copy_bootstrap_files "$scripts_src" "$scripts_dst" "*.sh" 1 "scripts" || return 1
+    fi
+
+    # Memory sync scripts and validators (issue #958), same set as
+    # scripts/install.sh. settings.json registers memory-write-guard.sh, which
+    # allows the write unchecked when ~/.claude/scripts/memory/ lacks the
+    # validators, so they ship before settings.json is published. Unix-only
+    # (#795): bootstrap.ps1 has no counterpart.
+    if [ -d "$INSTALL_DIR/scripts/memory" ]; then
+        for memory_script in memory-sync.sh memory-status.sh memory-notify.sh; do
+            if [ -f "$INSTALL_DIR/scripts/$memory_script" ]; then
+                copy_bootstrap_files "$INSTALL_DIR/scripts" "$scripts_dst" "$memory_script" 1 "scripts" || return 1
+            fi
+        done
+        copy_bootstrap_files "$INSTALL_DIR/scripts/memory" "$scripts_dst/memory" "*.sh" 1 "scripts/memory" || return 1
+    fi
 
     return 0
 }
@@ -401,7 +416,8 @@ install_bootstrap_settings_and_hooks() {
 
     # Carry machine-local keys forward before the policy injection, so the
     # policy still wins on the keys it owns (issue #915).
-    local carried_keys
+    local carried_keys retired_keys
+    retired_keys="$(retired_local_settings_keys "$settings_tmp" "$settings_dst" | tr '\n' ' ' | sed -e 's/ *$//')"
     carried_keys="$(merge_local_settings_keys "$settings_tmp" "$settings_dst" | tr '\n' ' ' | sed -e 's/ *$//')"
 
     if update_claude_settings_json "$settings_tmp" "$agent_language" "$content_language"; then
@@ -425,6 +441,9 @@ install_bootstrap_settings_and_hooks() {
 
     if [ -n "$carried_keys" ]; then
         info "machine-local settings keys preserved: $carried_keys"
+    fi
+    if [ -n "$retired_keys" ]; then
+        info "removed retired setting: $retired_keys"
     fi
     if [ "$settings_updated" = "1" ]; then
         success "settings.json (에이전트: $agent_language, 컨텐츠: $content_language) 설치 완료"
@@ -554,7 +573,8 @@ install_global() {
         "commands/issue-create.md" "c654ab412f320b9d97553f92a510cf5de13a5d0a7ed5e14212ca62534887ae71" \
         "commands/issue-work.md" "048a26140b03862c5b10630853115ee656056f45cedfd0a0b6ec814bf7225684" \
         "commands/pr-work.md" "2ecf1a78271c553e2310b57b2a1deb026a07ae01b84c1f856638293ab41f1199" \
-        "commands/release.md" "93fd6d2f7800deada2868b97b65ef486f42482b5e2f1224c35f732ebfeb1c013"
+        "commands/release.md" "93fd6d2f7800deada2868b97b65ef486f42482b5e2f1224c35f732ebfeb1c013" \
+        "hooks/known-issues.json" "2b853ec2b2f40482e44f7d88996af00d97e97ca8bf6376ab7ea22bc1307a6e07"
     manifest_prune_tracked "$CLAUDE_DIR"
 
     # tmux 설정 설치

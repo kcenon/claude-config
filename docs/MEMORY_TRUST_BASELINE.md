@@ -147,7 +147,12 @@ export OWNER_EMAILS="you@example.com you+other@example.com"
 # export OWNER_HOME_USER="your-unix-user"
 ```
 
-A copy-pasteable template lives at `scripts/memory/secret-check.env.example`.
+The optional variables carry no maintainer defaults either (issue #957).
+`OWNER_HOME_USER` defaults to the account running the check.
+`OWNER_GITHUB_HANDLE` has no default, so the owner's GitHub no-reply
+address is flagged as a non-owner email until it is set.
+
+A copy-pasteable template lives at `scripts/memory/secret-check-env.example`.
 Trust-level assignment in this document remains valid regardless of the
 runtime owner identity — owner-email matching is one of several heuristics
 applied during scanning, not the source of the per-file tier.
@@ -162,7 +167,7 @@ applied during scanning, not the source of the per-file tier.
   defaults this document confirms.
 - `scripts/memory/injection-check.sh` (#509) -- pre-screen that flagged
   the three CI-policy files referenced in Section 5.
-- `scripts/memory/secret-check.env.example` (#618) -- runtime owner
+- `scripts/memory/secret-check-env.example` (#618) -- runtime owner
   identity template.
 - Issue [#513](https://github.com/kcenon/claude-config/issues/513) --
   authoritative requirement for this decision record.

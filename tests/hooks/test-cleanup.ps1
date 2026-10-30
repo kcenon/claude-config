@@ -179,6 +179,50 @@ try {
     }
     Remove-Item -Recurse -Force $subDir -ErrorAction SilentlyContinue
 
+    # --- Logs of the loggers retired by #964 are left alone ---
+    # session-logger, subagent-logger, task-completed-logger and
+    # tool-failure-logger no longer exist, so cleanup must not rotate,
+    # compress or delete the logs they left on a user's machine. Each file is
+    # over the old 5 MB rotation threshold, so a leftover rotation call would
+    # show up as a .1.gz archive or a changed size.
+    Write-Host ''
+    Write-Host '[Retired logger logs untouched (#964)]'
+    $logHome = Join-Path $TestDir 'home'
+    New-Item -ItemType Directory -Path (Join-Path $logHome '.claude' 'logs') -Force | Out-Null
+    $oldLogs = @(
+        (Join-Path $logHome '.claude' 'session.log'),
+        (Join-Path $logHome '.claude' 'logs' 'subagents.log'),
+        (Join-Path $logHome '.claude' 'logs' 'tasks.log'),
+        (Join-Path $logHome '.claude' 'logs' 'tool-failures.log')
+    )
+    $logBytes = 6 * 1024 * 1024
+    foreach ($f in $oldLogs) {
+        [System.IO.File]::WriteAllBytes($f, [byte[]]::new($logBytes))
+    }
+    $origHome = $env:HOME
+    $origUserProfile = $env:USERPROFILE
+    try {
+        $env:HOME = $logHome
+        $env:USERPROFILE = $logHome
+        $null = Invoke-CleanupHook
+    } finally {
+        $env:HOME = $origHome
+        $env:USERPROFILE = $origUserProfile
+    }
+    foreach ($f in $oldLogs) {
+        $rel = $f.Substring($logHome.Length + 1)
+        $size = if (Test-Path -LiteralPath $f) { (Get-Item -LiteralPath $f).Length } else { -1 }
+        if ($size -eq $logBytes -and -not (Test-Path -LiteralPath "$f.1.gz")) {
+            $script:Passed++
+            Write-Host "  PASS: $rel left as is" -ForegroundColor Green
+        } else {
+            $script:Failed++
+            $script:Errors.Add("FAIL: $rel was rotated or changed (size=$size)")
+            Write-Host "  FAIL: $rel left as is" -ForegroundColor Red
+        }
+    }
+    Remove-Item -Recurse -Force $logHome -ErrorAction SilentlyContinue
+
     # --- Source-level checks ---
     Write-Host ''
     Write-Host '[Source verification]'

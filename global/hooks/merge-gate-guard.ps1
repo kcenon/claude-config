@@ -9,11 +9,12 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 # Response format: hookSpecificOutput with hookEventName
 #
 # Enforces the "ABSOLUTE CI GATE" rule from global/CLAUDE.md at the Bash
-# tool boundary. Mirrors the commit-message-guard / pr-language-guard
-# enforcement model.
+# tool boundary.
 #
 # Allow policy: every check must be in bucket "pass" or "skipping".
 # Anything in bucket "fail", "pending", or "cancel" blocks the merge.
+# The merge method (--squash, --merge, --rebase) is not checked here; the
+# repository's merge settings decide it (#964).
 #
 # Fail policy: FAIL-OPEN on gh CLI errors. If gh is missing, unauthenticated,
 # or the API call fails, the merge is allowed and a diagnostic is written
@@ -46,15 +47,6 @@ if (-not $CMD) {
 # Scope gate: only check 'gh pr merge' commands
 if ($CMD -notmatch 'gh\s+pr\s+merge') {
     New-HookAllowResponse
-    exit 0
-}
-
-# --- Squash-only enforcement (Issue #478) ---
-# The branching strategy mandates squash merges to develop/main. Reject
-# --merge and --rebase so the gh CLI cannot bypass that policy. Mirrors
-# merge-gate-guard.sh lines 82-88.
-if ($CMD -match '(^|\s)--(merge|rebase)(\s|=|$)') {
-    New-HookDenyResponse -Reason 'gh pr merge --merge/--rebase blocked: branching strategy requires squash merges (use --squash). See workflow/branching-strategy.md.'
     exit 0
 }
 

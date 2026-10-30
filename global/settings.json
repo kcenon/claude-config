@@ -9,7 +9,6 @@
     "MAX_MCP_OUTPUT_TOKENS": "50000",
     "ENABLE_TOOL_SEARCH": "auto:10",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "MAX_TEAMS": "5",
     "SSL_CERT_FILE": "/etc/ssl/cert.pem",
     "SSL_CERT_DIR": "/etc/ssl/certs"
   },
@@ -126,6 +125,24 @@
       "Read(**/*.key)",
       "Read(**/*.p12)",
       "Read(**/*password*)",
+      "Read(**/.envrc)",
+      "Read(**/*.env)",
+      "Read(**/*.env.*)",
+      "Read(**/*.pfx)",
+      "Read(**/id_rsa)",
+      "Read(**/id_rsa.*)",
+      "Read(**/id_ed25519)",
+      "Read(**/id_ed25519.*)",
+      "Read(**/id_ecdsa)",
+      "Read(**/id_ecdsa.*)",
+      "Read(**/id_dsa)",
+      "Read(**/id_dsa.*)",
+      "Read(**/.aws/**/credentials)",
+      "Read(**/.aws/**/config)",
+      "Read(~/.aws/credentials)",
+      "Read(**/*secrets/**)",
+      "Read(**/*credentials/**)",
+      "Read(**/*passwords/**)",
       "Edit(.env)",
       "Edit(.env.*)",
       "Edit(**/.env)",
@@ -135,19 +152,9 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Edit|Write|Read",
-        "_note": "Hook order is load-bearing: sensitive-file-guard must run before pre-edit-read-guard so denied files are not tracked. memory-write-guard runs after pre-edit-read-guard so it only validates writes the harness has cleared. See docs/hooks-ownership.md and issues #424, #521. Timeout is 30s rather than the 5s default: a PreToolUse timeout is fail-OPEN - the harness cancels the hook and the tool call proceeds - so an under-budgeted security guard is silently skipped, never denied. Across 35,276 local hook runs on this matcher the median is 429ms and p99 is 1,020ms, but four contention bursts timed out all three guards of a single call together, peaking at 11,141ms. 30s covers every observed case and matches the Bash channel. See issue #897.",
+        "matcher": "Edit|Write",
+        "_note": "memory-write-guard is the only file-channel hook since #964: sensitive files are denied by permissions.deny, and read-before-edit is the native Edit/Write contract. The guard acts only on Edit and Write under ~/.claude/memory-shared/memories/ and allows everything else. Timeout is 30s rather than the 5s default: a PreToolUse timeout is fail-OPEN - the harness cancels the hook and the tool call proceeds - so an under-budgeted security guard is silently skipped, never denied. Across 35,276 local hook runs on this matcher the median is 429ms and p99 is 1,020ms, but four contention bursts timed out all three guards of a single call together, peaking at 11,141ms. 30s covers every observed case and matches the Bash channel. See issues #897 and #964.",
         "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/sensitive-file-guard.sh",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/pre-edit-read-guard.sh",
-            "timeout": 30
-          },
           {
             "type": "command",
             "command": "~/.claude/hooks/memory-write-guard.sh",
@@ -165,79 +172,8 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/hooks/bash-sensitive-read-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/shell-env-secret-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/bash-write-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/gh-write-verb-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/github-api-preflight.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/commit-message-guard.sh",
-            "timeout": 5
-          },
-          {
-            "_note": "Opt-in: silently allows when the project lacks docs/.index/graph.yaml. Only fires for `gh pr create`. See issue #590.",
-            "type": "command",
-            "command": "~/.claude/hooks/traceability-guard.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/conflict-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/pr-target-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/push-target-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/pr-language-guard.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": "~/.claude/hooks/merge-gate-guard.sh",
             "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/attribution-guard.sh",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "TeamCreate",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/team-limit-guard.sh",
-            "timeout": 5
           }
         ]
       }
@@ -247,28 +183,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/session-logger.sh start",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/version-check.sh",
-            "timeout": 10,
-            "async": true
-          },
-          {
-            "type": "command",
             "command": "~/.claude/hooks/memory-integrity-check.sh",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/post-compact-restore.sh",
             "timeout": 5
           }
         ]
@@ -279,7 +194,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/session-logger.sh end && ~/.claude/hooks/cleanup.sh",
+            "command": "~/.claude/hooks/cleanup.sh",
             "timeout": 10
           },
           {
@@ -290,127 +205,15 @@
         ]
       }
     ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/prompt-validator.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/session-logger.sh stop",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
-      {
-        "matcher": "Task|Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/post-task-checkpoint.sh",
-            "timeout": 15,
-            "async": true
-          }
-        ]
-      },
       {
         "matcher": "Read",
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/pre-edit-read-guard.sh",
-            "timeout": 5,
-            "async": true
-          },
-          {
-            "type": "command",
             "command": "~/.claude/hooks/memory-access-logger.sh",
             "timeout": 5,
             "async": true
-          }
-        ]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/tool-failure-logger.sh",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/subagent-logger.sh start",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/subagent-logger.sh stop",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/pre-compact-snapshot.sh",
-            "timeout": 10,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "InstructionsLoaded": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/instructions-loaded-reinforcer.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "TaskCreated": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/task-created-validator.sh",
-            "timeout": 5
           }
         ]
       }
@@ -433,53 +236,6 @@
             "type": "command",
             "command": "~/.claude/hooks/worktree-remove.sh",
             "timeout": 10,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "TaskCompleted": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/task-completed-logger.sh",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "ConfigChange": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/config-change-logger.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "TeammateIdle": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/session-logger.sh teammate-idle",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "CwdChanged": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/cwd-change-logger.sh",
-            "timeout": 5,
             "async": true
           }
         ]

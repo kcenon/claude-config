@@ -29,7 +29,7 @@ function Write-ErrorMessage {
 
 # ──────────────────────────────────────────────────────────────
 # Group 2: Hook Response Builders
-# Replaces bash deny_response(), allow_response()
+# Replaces bash deny_response(), ask_response(), allow_response()
 # ──────────────────────────────────────────────────────────────
 
 function New-HookDenyResponse {
@@ -47,6 +47,29 @@ function New-HookDenyResponse {
     return ($response | ConvertTo-Json -Depth 3 -Compress)
 }
 
+function New-HookAskResponse {
+    <#
+    .SYNOPSIS
+        PreToolUse "ask": Claude Code prompts the user, showing the reason in
+        the permission prompt. Optional context still reaches the model.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$Reason,
+        [string]$AdditionalContext = '',
+        [string]$EventName = 'PreToolUse'
+    )
+    $output = @{
+        hookEventName            = $EventName
+        permissionDecision       = 'ask'
+        permissionDecisionReason = $Reason
+    }
+    if ($AdditionalContext) {
+        $output['additionalContext'] = $AdditionalContext
+    }
+    $response = @{ hookSpecificOutput = $output }
+    return ($response | ConvertTo-Json -Depth 3 -Compress)
+}
+
 function New-HookAllowResponse {
     param(
         [string]$AdditionalContext = '',
@@ -60,20 +83,6 @@ function New-HookAllowResponse {
         $output['additionalContext'] = $AdditionalContext
     }
     $response = @{ hookSpecificOutput = $output }
-    return ($response | ConvertTo-Json -Depth 3 -Compress)
-}
-
-function New-HookWarningResponse {
-    param(
-        [Parameter(Mandatory)][string]$Warning,
-        [string]$EventName = 'UserPromptSubmit'
-    )
-    $response = @{
-        hookSpecificOutput = @{
-            hookEventName     = $EventName
-            additionalContext = $Warning
-        }
-    }
     return ($response | ConvertTo-Json -Depth 3 -Compress)
 }
 
@@ -459,7 +468,7 @@ Set-Alias -Name Ensure-Directory -Value New-DirectoryIfMissing
 
 # ──────────────────────────────────────────────────────────────
 # Group 14: Path Resolution
-# Ported from global/hooks/lib/path-utils.sh resolve_path()
+# Ported from resolve_path() in the former global/hooks/lib/path-utils.sh
 # ──────────────────────────────────────────────────────────────
 
 function Resolve-HookPath {
@@ -467,8 +476,9 @@ function Resolve-HookPath {
     .SYNOPSIS
         Canonicalizes a file path for hook pattern matching.
     .DESCRIPTION
-        Port of resolve_path() from path-utils.sh, so the PowerShell guards
-        match on the same normalized form as their bash counterparts.
+        Port of resolve_path() from the former path-utils.sh, so the
+        PowerShell guards match on the same normalized form the bash guards
+        used.
 
         Expands a leading '~' or '$HOME' the same way the bash case statement
         does, then canonicalizes through [System.IO.Path]::GetFullPath. That
@@ -530,8 +540,8 @@ Export-ModuleMember -Function @(
     'Write-WarningMessage'
     'Write-ErrorMessage'
     'New-HookDenyResponse'
+    'New-HookAskResponse'
     'New-HookAllowResponse'
-    'New-HookWarningResponse'
     'Read-HookInput'
     'Get-Platform'
     'Get-EnterprisePath'

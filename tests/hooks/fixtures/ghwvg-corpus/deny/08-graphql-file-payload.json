@@ -1,6 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input": {
-    "command": "gh api graphql -F query=@./payload.graphql"
-  }
-}

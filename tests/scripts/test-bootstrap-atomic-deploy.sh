@@ -53,7 +53,7 @@ JSON
 #!/bin/sh
 exit 0
 SH
-    for lib in tokenize-shell.sh path-utils.sh timeout-wrapper.sh rotate.sh; do
+    for lib in tokenize-shell.sh timeout-wrapper.sh rotate.sh; do
         cat > "$fixture/global/hooks/lib/$lib" <<'SH'
 #!/bin/sh
 return 0 2>/dev/null || exit 0
@@ -69,6 +69,11 @@ SH
 #!/bin/sh
 echo statusline
 SH
+    # Memory sync scripts and validators live in scripts/, not global/ (#958).
+    mkdir -p "$fixture/scripts/memory"
+    printf '%s\n' '#!/bin/sh' 'exit 0' > "$fixture/scripts/memory-sync.sh"
+    printf '%s\n' '#!/bin/sh' 'exit 0' > "$fixture/scripts/memory/validate.sh"
+    printf '%s\n' 'OWNER_EMAILS=' > "$fixture/scripts/memory/secret-check-env.example"
 }
 
 run_atomic_deploy() {
@@ -110,6 +115,14 @@ assert_true "hook lib deployed executable" \
     "[ -x '$success_home/.claude/hooks/lib/tokenize-shell.sh' ]"
 assert_true "statusline utility script deployed executable" \
     "[ -x '$success_home/.claude/scripts/statusline-command.sh' ]"
+assert_true "memory sync script deployed executable" \
+    "[ -x '$success_home/.claude/scripts/memory-sync.sh' ]"
+assert_true "memory validator deployed executable" \
+    "[ -x '$success_home/.claude/scripts/memory/validate.sh' ]"
+assert_true "memory validator tracked in the install manifest" \
+    "grep -q '\"scripts/memory/validate.sh\"' '$success_home/.claude/.install-manifest.json'"
+assert_true "non-script memory file not deployed" \
+    "[ ! -e '$success_home/.claude/scripts/memory/secret-check-env.example' ]"
 
 failure_fixture="$WORK/failure-fixture"
 failure_home="$WORK/failure-home"

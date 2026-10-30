@@ -26,16 +26,12 @@ claude_config_backup/
 │   │   └── settings.json      # Status line display settings
 │   ├── hooks/                  # Hook scripts, each in .sh + .ps1 — authoritative catalog: HOOKS.md
 │   │   └── lib/               # Shared libraries
-│   │       ├── AttributionValidator.psm1
 │   │       ├── CommonHelpers.psm1  # PowerShell shared module
-│   │       ├── LanguageValidator.psm1
-│   │       ├── path-utils.sh
-│   │       ├── rotate.sh/.ps1
+│   │       ├── rotate.sh
 │   │       ├── timeout-wrapper.sh
 │   │       └── tokenize-shell.sh
 │   ├── scripts/                # Utility scripts
 │   │   ├── statusline-command.sh/.ps1
-│   │   ├── team-report.sh/.ps1
 │   │   └── weekly-usage.sh/.ps1
 │   └── skills/                 # Global skills (user-invocable)
 │       └── _internal/          # claude-config-owned skills (strict-validated)

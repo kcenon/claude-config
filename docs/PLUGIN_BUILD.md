@@ -22,8 +22,8 @@ never drift in `main`.
 
 > History: `plugin/hooks/lib/validate-commit-message.sh` and
 > `plugin-lite/hooks/lib/validate-commit-message.sh` were previously bundled on
-> the assumption that each plugin shipped `commit-message-guard.sh` and resolved
-> the sibling lib at runtime. Neither plugin ships that guard, so the bundled
+> the assumption that each plugin shipped the commit-message guard hook and
+> resolved the sibling lib at runtime. Neither plugin ships that guard, so the bundled
 > libs had no runtime consumer and were removed (deep-audit
 > `plugin-bundled-lib-no-consumer`). Re-introduce a bundled lib only together
 > with the component that sources it, and restore the `diff -q` gate at the same

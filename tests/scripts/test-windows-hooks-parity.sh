@@ -7,7 +7,7 @@
 # Windows routes some matchers through a dispatcher that runs the guards in one
 # process instead of one process per guard: PreToolUse/Bash through
 # global/hooks/bash-guard-dispatcher.ps1 (issue #895) and
-# PreToolUse/Edit|Write|Read through global/hooks/edit-guard-dispatcher.ps1
+# PreToolUse/Edit|Write through global/hooks/edit-guard-dispatcher.ps1
 # (issue #920). A naive basename diff would compare the POSIX guards against a
 # single dispatcher entry and report drift for every guard, which would force an
 # allow-list so broad that the test stops guaranteeing anything. Instead each
@@ -93,8 +93,8 @@ def extract(path):
                         for guard in dispatcher_guards(base):
                             tuples.add((event, matcher, guard))
                         continue
-                    # Collapse common pairs: session-logger.sh start vs
-                    # session-logger.ps1 start — strip trailing args by
+                    # Collapse common pairs: <name>.sh <args> vs
+                    # <name>.ps1 <args> — strip trailing args by
                     # basename alone.
                     tuples.add((event, matcher, base))
     return tuples
@@ -103,12 +103,14 @@ unix_set = extract(sys.argv[1])
 win_set  = extract(sys.argv[2])
 
 # Intentional asymmetries on the GLOBAL settings surface (see
-# docs/hooks-ownership.md). markdown-anchor-validator is project-owned: on
-# POSIX it lives in project/.claude/settings.json (not global/settings.json),
-# but Windows has no project settings variant, so global/settings.windows.json
-# is its sole carrier. It therefore legitimately appears only in the Windows
-# global file.
-WIN_ONLY_ALLOW = {("PreToolUse", "Bash", "markdown-anchor-validator")}
+# docs/hooks-ownership.md). bash-sensitive-read-guard and
+# shell-env-secret-guard are Windows-only since #964: on macOS and Linux the
+# Bash sandbox read-deny covers secret reads through the shell, but Windows
+# has no OS sandbox, so the Windows Bash dispatcher keeps both guards.
+WIN_ONLY_ALLOW = {
+    ("PreToolUse", "Bash", "bash-sensitive-read-guard"),
+    ("PreToolUse", "Bash", "shell-env-secret-guard"),
+}
 UNIX_ONLY_ALLOW = set()
 
 only_unix = sorted((unix_set - win_set) - UNIX_ONLY_ALLOW)

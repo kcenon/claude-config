@@ -200,11 +200,10 @@ fi
 
 # Hook 공유 라이브러리 검증 (issue #586 회귀 방지)
 # install.sh / install.ps1 가 ~/.claude/hooks/lib/ 로 복사하는 핵심 .sh 파일들이
-# 저장소에 빠진 채 머지되는 것을 CI 단계에서 잡는다. dangerous-command-guard,
-# gh-write-verb-guard, bash-write-guard, bash-sensitive-read-guard 가
-# tokenize-shell.sh 를 source 하므로 누락 시 Bash 가드가 약화된다.
+# 저장소에 빠진 채 머지되는 것을 CI 단계에서 잡는다. dangerous-command-guard 가
+# tokenize-shell.sh 를, merge-gate-guard 가 timeout-wrapper.sh 를 source 하므로
+# 누락 시 Bash 가드가 약화된다.
 check_file "$BACKUP_DIR/global/hooks/lib/tokenize-shell.sh" "global/hooks/lib/tokenize-shell.sh"
-check_file "$BACKUP_DIR/global/hooks/lib/path-utils.sh" "global/hooks/lib/path-utils.sh"
 check_file "$BACKUP_DIR/global/hooks/lib/timeout-wrapper.sh" "global/hooks/lib/timeout-wrapper.sh"
 check_file "$BACKUP_DIR/global/hooks/lib/rotate.sh" "global/hooks/lib/rotate.sh"
 
@@ -534,11 +533,33 @@ PY
 
 GLOBAL_DST="$HOME/.claude"
 
+# commit-settings.md is deployed from commit-settings.md.tmpl, rendered with the
+# content-language policy of the install, so it equals the english-canonical
+# commit-settings.md only under the english policy. Render the template the way
+# the installer does (render_policy_tmpl), for the policy the installed
+# settings.json records, and compare with that (#974).
+# shellcheck disable=SC1091
+. "$BACKUP_DIR/scripts/lib/install-prompts.sh"
+INSTALLED_CONTENT_LANGUAGE="$(read_settings_content_language "$GLOBAL_DST/settings.json" || true)"
+INSTALLED_CONTENT_LANGUAGE="${INSTALLED_CONTENT_LANGUAGE:-english}"
+
+# check_sync_policy_tmpl <src.tmpl> <dst> <label>
+check_sync_policy_tmpl() {
+    local rendered
+    rendered="$(mktemp "${TMPDIR:-/tmp}/verify-render.XXXXXX")"
+    CONTENT_LANGUAGE="$INSTALLED_CONTENT_LANGUAGE" render_policy_tmpl "$1" "$rendered"
+    check_sync "$rendered" "$2" "$3"
+    rm -f "$rendered"
+}
+
 # Global config files. settings.json is excluded from the byte-wise loop and
 # handled by check_sync_settings below.
 info "글로벌 설정 파일 동기화:"
 for f in CLAUDE.md commit-settings.md .claudeignore; do
-    if [ -f "$BACKUP_DIR/global/$f" ]; then
+    if [ -f "$BACKUP_DIR/global/$f.tmpl" ]; then
+        check_sync_policy_tmpl "$BACKUP_DIR/global/$f.tmpl" "$GLOBAL_DST/$f" \
+            "$f (rendered: $INSTALLED_CONTENT_LANGUAGE)"
+    elif [ -f "$BACKUP_DIR/global/$f" ]; then
         check_sync "$BACKUP_DIR/global/$f" "$GLOBAL_DST/$f" "$f"
     fi
 done
@@ -577,6 +598,20 @@ for lib in validate-commit-message.sh validate-language.sh validate-traceability
         check_sync "$BACKUP_DIR/hooks/lib/$lib" "$GLOBAL_DST/hooks/lib/$lib" "hooks/lib/$lib"
     fi
 done
+
+# Memory sync scripts and validators, deployed from scripts/ by install.sh and
+# bootstrap.sh (#958). Memory sync is Unix-only (#795): install.ps1 does not
+# deploy them, so a Windows tree skips the section.
+if [ "$windows_tree" -eq 0 ]; then
+    echo ""
+    info "메모리 동기화 스크립트 동기화:"
+    for f in memory-sync.sh memory-status.sh memory-notify.sh; do
+        if [ -f "$BACKUP_DIR/scripts/$f" ]; then
+            check_sync "$BACKUP_DIR/scripts/$f" "$GLOBAL_DST/scripts/$f" "scripts/$f"
+        fi
+    done
+    check_sync_tree "$BACKUP_DIR/scripts/memory" "$GLOBAL_DST/scripts/memory" "scripts/memory" top "*.sh"
+fi
 
 # Installed project, compared with project/ the way the installers deploy it.
 # A directory is detected only through its install manifest, so running verify

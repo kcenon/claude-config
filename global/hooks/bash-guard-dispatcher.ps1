@@ -7,8 +7,9 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -WarningActio
 # Hook Type: PreToolUse (Bash)
 # Exit codes: 0 (always - the decision travels in the JSON payload)
 #
-# Why this exists: the 15 Bash guards were each registered as their own hook
-# command, so one Bash tool call spawned 15 `pwsh -NoProfile` processes. Cold
+# Why this exists: the Bash guards (15 before #964, 4 since) were each
+# registered as their own hook command, so one Bash tool call spawned one
+# `pwsh -NoProfile` process per guard. Cold
 # process start dominates (~350ms each, measured) while the actual guard logic
 # costs ~13ms. This dispatcher pays the process cost once, reads stdin once,
 # imports CommonHelpers once, and invokes only the guards whose command family
@@ -51,34 +52,27 @@ try { $cmd = [string]$json.tool_input.command } catch {}
 $guards = [System.Collections.Generic.List[hashtable]]::new()
 
 # Always-on: these have no command filter of their own.
+# bash-sensitive-read-guard and shell-env-secret-guard are Windows-only (#964):
+# macOS and Linux cover those reads with the Bash sandbox read-deny, but the
+# sandbox does not run on Windows, so the guards stay here.
 $guards.Add(@{ name = 'dangerous-command-guard';   closed = $true  })
 $guards.Add(@{ name = 'bash-sensitive-read-guard'; closed = $true  })
 $guards.Add(@{ name = 'shell-env-secret-guard';    closed = $true  })
-$guards.Add(@{ name = 'bash-write-guard';          closed = $true  })
 
 # gh family.
 if ($cmd -match '(?i)(^|[\s`(;&|])gh\s') {
-    $guards.Add(@{ name = 'gh-write-verb-guard';  closed = $true  })
-    $guards.Add(@{ name = 'pr-target-guard';      closed = $true  })
-    $guards.Add(@{ name = 'github-api-preflight'; closed = $false })
-    $guards.Add(@{ name = 'traceability-guard';   closed = $false })
-    $guards.Add(@{ name = 'attribution-guard';    closed = $false })
-    $guards.Add(@{ name = 'pr-language-guard';    closed = $false })
     $guards.Add(@{ name = 'merge-gate-guard';     closed = $false })
-}
-
-# git family.
-if ($cmd -match '(?i)(^|[\s`(;&|])git\s') {
-    $guards.Add(@{ name = 'push-target-guard';         closed = $true  })
-    $guards.Add(@{ name = 'markdown-anchor-validator'; closed = $false })
-    $guards.Add(@{ name = 'commit-message-guard';      closed = $false })
-    $guards.Add(@{ name = 'conflict-guard';            closed = $false })
 }
 
 # ──────────────────────────────────────────────────────────────
 # Execution and decision merge
+#   deny > ask > allow, the precedence Claude Code itself applies across
+#   PreToolUse hooks. Any deny (including a fail-closed guard crash) wins;
+#   otherwise any ask becomes one ask whose reason joins every guard's
+#   reason, so the user sees all of them in the permission prompt.
 # ──────────────────────────────────────────────────────────────
 $denies   = [System.Collections.Generic.List[string]]::new()
+$asks     = [System.Collections.Generic.List[string]]::new()
 $contexts = [System.Collections.Generic.List[string]]::new()
 $budgetMs = 25000
 $sw       = [System.Diagnostics.Stopwatch]::StartNew()
@@ -108,7 +102,7 @@ foreach ($g in $guards) {
         $r = ($lastLine | ConvertFrom-Json).hookSpecificOutput
         switch ($r.permissionDecision) {
             'deny' { $denies.Add("[$($g.name)] $($r.permissionDecisionReason)") }
-            'ask'  { $denies.Add("[$($g.name)] $($r.permissionDecisionReason)") }
+            'ask'  { $asks.Add("[$($g.name)] $($r.permissionDecisionReason)") }
         }
         if ($r.additionalContext) { $contexts.Add([string]$r.additionalContext) }
     }
@@ -123,6 +117,8 @@ foreach ($g in $guards) {
 
 if ($denies.Count -gt 0) {
     New-HookDenyResponse -Reason ($denies -join "`n")
+} elseif ($asks.Count -gt 0) {
+    New-HookAskResponse -Reason ($asks -join "`n") -AdditionalContext ($contexts -join "`n")
 } else {
     New-HookAllowResponse -AdditionalContext ($contexts -join "`n")
 }

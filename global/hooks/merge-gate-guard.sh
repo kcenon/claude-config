@@ -6,13 +6,14 @@
 # Response format: hookSpecificOutput with hookEventName
 #
 # Enforces the "ABSOLUTE CI GATE" rule from global/CLAUDE.md at the Bash
-# tool boundary. Mirrors the commit-message-guard / pr-language-guard
-# enforcement model: a deterministic hook gate that catches drift in
+# tool boundary: a deterministic hook gate that catches drift in
 # long-running batch workflows where the model occasionally rationalizes
 # failing checks as "unrelated" or "infrastructure-only".
 #
 # Allow policy: every check must be in bucket "pass" or "skipping".
 # Anything in bucket "fail", "pending", or "cancel" blocks the merge.
+# The merge method (--squash, --merge, --rebase) is not checked here; the
+# repository's merge settings decide it (#964).
 #
 # Fail policy: FAIL-OPEN on gh CLI errors. If gh is missing, unauthenticated,
 # or the API call fails for any reason, the merge is allowed and a diagnostic
@@ -106,14 +107,6 @@ fi
 # --- Scope: only validate gh pr merge commands ---
 if ! echo "$CMD" | grep -qE 'gh[[:space:]]+pr[[:space:]]+merge'; then
     allow_response
-fi
-
-# --- Squash-only enforcement (Issue #478) ---
-# The branching strategy mandates squash merges to develop/main. Reject
-# `--merge` and `--rebase` flags so the gh CLI cannot bypass that policy
-# even when the model is convinced "this one time" is fine.
-if echo "$CMD" | grep -qE -- '(^|[[:space:]])--(merge|rebase)([[:space:]]|=|$)'; then
-    deny_response "gh pr merge --merge/--rebase blocked: branching strategy requires squash merges (use --squash). See workflow/branching-strategy.md."
 fi
 
 # --- Extract PR number ---
