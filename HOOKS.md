@@ -116,7 +116,7 @@ Issue #964 removed the other 32 registrations. A reinstall prunes their script f
 - `gh repo delete`, and `gh api -X DELETE repos/<owner>/<repo>`
 
 **Ask** (irreversible but local, or rewriting or deleting a shared ref):
-- `git reset --hard`, `git checkout -- <path>` / `.` / `-f`, and `git restore` without `--staged`, only when the work tree has changes
+- `git reset --hard`, `git checkout -- <path>` / `.` / `-f`, `git switch -f` / `--force` / `--discard-changes`, and `git restore` without `--staged`, only when the work tree has changes
 - `git clean -f`, `git stash drop` / `clear`
 - `git push --force` / `-f` / `+<ref>` (not `--force-with-lease`), `git push --delete` / `-d`, `git push <remote> :<ref>`
 - recursive `rm` of `.`, `..`, `*`, `.*`, `.git` or a path outside the repository; `find ... -delete` / `-exec rm`
@@ -125,6 +125,10 @@ Issue #964 removed the other 32 registrations. A reinstall prunes their script f
 **Allow**: everything else, for example `rm -rf build`, `git reset --soft`, `git push --force-with-lease` to a work branch and `git branch -D`.
 
 **Payload scanning**: the payload of `bash|sh|zsh|dash|ksh|fish -c '...'` and of `eval ...` is tokenized and checked with the same rules, up to three nested levels. A payload that cannot be inspected (unbalanced quotes, a bare variable expansion, deeper nesting) is denied. `source <file>` and `. <file>` are allowed; `eval "$(curl ...)"` is still remote execution.
+
+**Variable command heads**: outside a payload, a command head that is a variable (`$X`, `${X}`) is replaced by the value of an earlier `X=value` or `export X=value` in the same command, so `X=rm; $X -rf ~` is denied like `rm -rf ~`. When the value is unknown, the arguments are checked as if the command were `rm`, and the guard asks if `rm` would be denied or asked; `$EDITOR notes.md` and `"$PYTHON" x.py` stay allowed.
+
+**Over-budget input**: a command longer than `DCG_TOKENIZER_MAX_BYTES` (16384 bytes) is not tokenized. A line-based regex scan denies the deny-tier shapes (recursive `rm` of `/`, an absolute path, `~` or `$HOME`; a fetch piped to an interpreter; `chmod 777`; a push to `main`, `master` or `develop`; `gh repo delete`; `gh api -X DELETE repos/<owner>/<repo>`) and asks when the text contains a keyword of any ask arm. Anything else, such as a long `echo` chain, is allowed with a coarse-scan note.
 
 **Logging**: one JSON line per `deny` or `ask` decision in `~/.claude/logs/dangerous-command-guard.log` (`CLAUDE_LOG_DIR` overrides the directory). Allow decisions are not logged.
 

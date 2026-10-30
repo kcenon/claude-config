@@ -13,15 +13,20 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 #   deny  - recursive rm of /, an absolute path, ~ or $HOME; fetch piped to an
 #           interpreter; chmod 777 / setuid; IFS obfuscation; a direct push to
 #           main/master/develop; gh repo delete; gh api DELETE repos/<o>/<r>.
-#   ask   - git reset --hard, git checkout -- <path> / . / -f, git restore
-#           without --staged (dirty work tree only); git clean -f; git stash
-#           drop|clear; git push --force / -f / +<ref>; git push --delete /
-#           -d / <remote> :<ref>; recursive rm of ., .., *, .*, .git or a path
-#           outside the repository; find -delete / -exec rm; gh <group>
+#   ask   - git reset --hard, git checkout -- <path> / . / -f, git switch -f /
+#           --force / --discard-changes, git restore without --staged (dirty
+#           work tree only); git clean -f; git stash drop|clear; git push
+#           --force / -f / +<ref>; git push --delete / -d / <remote> :<ref>;
+#           recursive rm of ., .., *, .*, .git or a path outside the
+#           repository; find -delete / -exec rm; gh <group>
 #           delete|delete-asset; every other gh api DELETE.
 #   allow - everything else.
 # `bash|sh|... -c` and `eval` payloads are inspected recursively (depth 3);
-# an uninspectable payload is denied. Only deny and ask decisions are logged
+# an uninspectable payload is denied. Outside a payload, a `$X` / `${X}`
+# command head is resolved from an earlier `X=value` / `export X=value`, or
+# asks when its arguments would make rm deny or ask. Input over the tokenizer
+# budget gets a regex scan: deny-tier shapes deny, ask-arm keywords ask.
+# Only deny and ask decisions are logged
 # to ${env:CLAUDE_LOG_DIR}/dangerous-command-guard.log (defaults to
 # ~/.claude/logs). Plain allows emit the minimal allow JSON (#715).
 
@@ -112,6 +117,67 @@ if ([string]::IsNullOrEmpty($hookCwd)) { $hookCwd = (Get-Location).Path }
 # character after an escape, `$(` or `&&` was skipped (`\rm` read as `r`).
 # ----------------------------------------------------------------------------
 
+# Line-based match with a time budget: .NET regexes backtrack, so a crafted
+# input cannot stall the hook; the caller asks when the budget runs out.
+function Test-CoarseMatch {
+    param([string]$Text, [string]$Pattern)
+    return [regex]::IsMatch($Text, $Pattern, [System.Text.RegularExpressions.RegexOptions]::Multiline, [TimeSpan]::FromSeconds(1))
+}
+
+# The deny and ask tiers for input over the tokenizer budget (#971); see
+# coarse_scan in the bash twin. Any keyword of an ask arm asks, because the
+# arm's own conditions were not evaluated.
+function Invoke-CoarseScan {
+    param([string]$Text, [int]$Budget)
+    # A command word start, one sub-command's text, a space, a quote, and the
+    # end of a word.
+    $W = '(^|[^\w.-])'; $G = '[^;&|\r\n]*'; $S = '[ \t]'; $Q = '["'']'
+    $E = '([ \t"'';&|)]|$)'
+    $git = "${W}git${S}(${G}${S})?"
+    $rmr = "${W}rm${S}(${G}${S})?(-[A-Za-z]*[rR][A-Za-z]*|--recursive)"
+
+    # Cheap prefilter: none of the command words, nothing to scan.
+    if (-not (Test-CoarseMatch $Text '(rm|git|gh|find)')) { return }
+
+    if (Test-CoarseMatch $Text "${rmr}${S}(${G}${S})?${Q}?(~|\`$HOME|\`$\{HOME\})(/|${E})") {
+        Respond-Deny 'Dangerous recursive delete at root directory blocked for safety'
+    }
+    if (Test-CoarseMatch $Text "${git}push${S}(${G}[ \t:+])?(refs/heads/)?(main|master|develop)${E}") {
+        Respond-Deny "Direct push to a protected branch (main, master or develop) is blocked by branching policy. Open a PR into 'develop' (feature/fix branches) or use the /release skill (develop -> main)."
+    }
+    if (Test-CoarseMatch $Text "${W}gh${S}(${G}${S})?repo${S}+delete${E}") {
+        Respond-Deny 'gh repo delete deletes a repository irreversibly. Blocked.'
+    }
+    $apis = [regex]::Matches($Text, "${W}gh${S}(${G}${S})?api${S}${G}", [System.Text.RegularExpressions.RegexOptions]::Multiline, [TimeSpan]::FromSeconds(1))
+    foreach ($m in $apis) {
+        if ((Test-CoarseMatch $m.Value "(-X|--method)(${S}*|=)${Q}?[Dd][Ee][Ll][Ee][Tt][Ee]${E}") -and
+            (Test-CoarseMatch $m.Value "(^|${S})${Q}?(https?://[^/\s]+/)?(api/v3/)?/*repos/[^/\s]+/[^/\s?""']+/*(\?\S*)?${Q}?${E}")) {
+            Respond-Deny 'gh api DELETE on repos/<owner>/<repo> deletes the repository itself, irreversibly. Blocked.'
+        }
+    }
+
+    $askArms = @(
+        @('git reset --hard', "${git}reset${S}(${G}${S})?--hard${E}"),
+        @('git checkout -f / --force / -- / .', "${git}checkout${S}(${G}${S})?(-f|--force|--|\./?)${E}"),
+        @('git restore', "${git}restore${E}"),
+        @('git switch -f / --force / --discard-changes', "${git}switch${S}(${G}${S})?(-f|--force|--discard-changes)${E}"),
+        @('git clean -', "${git}clean${S}+-"),
+        @('git stash drop / clear', "${git}stash${S}+(drop|clear)${E}"),
+        @('git push --force / --delete / +<ref> / :<ref>', "${git}push${S}(${G}${S})?(--force|--delete|-[A-Za-z]*[fd][A-Za-z]*|[+:]\S+)${E}"),
+        @('rm -r', "${rmr}${E}"),
+        @('find -delete / -exec rm', "${W}find${S}${G}${S}(-delete|-(exec|execdir|ok|okdir)${S}+(\S*/)?rm)${E}"),
+        @('gh <group> delete', "${W}gh${S}(${G}${S})?[A-Za-z0-9-]+${S}+delete(-asset)?${E}"),
+        @('gh api ... DELETE', "${W}gh${S}(${G}${S})?api${S}${G}[Dd][Ee][Ll][Ee][Tt][Ee]")
+    )
+    $all = ($askArms | ForEach-Object { '(' + $_[1] + ')' }) -join '|'
+    if (-not (Test-CoarseMatch $Text $all)) { return }
+    foreach ($arm in $askArms) {
+        if (Test-CoarseMatch $Text $arm[1]) {
+            Respond-Ask "Input of $($Text.Length) bytes exceeds the tokenizer budget ($Budget bytes) and contains $($arm[0]), so it was not inspected in full. Confirm to proceed."
+        }
+    }
+}
+
 # Performance guard: bail to coarse regex for very large inputs (matches the
 # bash variant's 16 KiB threshold).
 $maxBytes = if ($env:DCG_TOKENIZER_MAX_BYTES) { [int]$env:DCG_TOKENIZER_MAX_BYTES } else { 16384 }
@@ -124,6 +190,11 @@ if ($CMD.Length -gt $maxBytes) {
     }
     if ($CMD -match '(curl|wget)\s.*\|\s*(sh|bash|zsh|dash|python[23]?|perl|ruby|node)\b') {
         Respond-Deny 'Remote script execution via pipe blocked for security'
+    }
+    try {
+        Invoke-CoarseScan -Text $CMD -Budget $maxBytes
+    } catch {
+        Respond-Ask "Input of $($CMD.Length) bytes exceeds the tokenizer budget ($maxBytes bytes) and the coarse scan did not finish ($($_.Exception.Message)), so it was not inspected. Confirm to proceed."
     }
     Respond-AllowWithContext "Coarse-scan allow (input exceeds tokenizer budget of $maxBytes bytes)"
 }
@@ -665,6 +736,15 @@ function Inspect-Git {
                 }
             }
         }
+        'switch' {
+            # -C / --force-create only moves a branch ref (kept by the reflog);
+            # -m merges the local changes instead of dropping them.
+            foreach ($t in $a) {
+                if (@('-f','--force','--discard-changes') -ccontains $t) {
+                    return (Ask-IfDirty -Dir $dir -What "git switch $t discards uncommitted changes")
+                }
+            }
+        }
         'restore' {
             $staged = $false; $worktree = $false
             foreach ($t in $a) {
@@ -798,8 +878,79 @@ function Inspect-InlineShell {
     return (New-Verdict 'allow')
 }
 
+# The word after quote removal ("rm -rf" -> rm -rf).
+function Get-DequotedWord {
+    param([string]$S)
+    $out = New-Object System.Text.StringBuilder
+    $q = ''
+    for ($i = 0; $i -lt $S.Length; $i++) {
+        $ch = [string]$S[$i]
+        if ($q -eq "'") {
+            if ($ch -eq "'") { $q = '' } else { [void]$out.Append($ch) }
+        } elseif ($ch -eq '\') {
+            $i++
+            if ($i -lt $S.Length) { [void]$out.Append($S[$i]) }
+        } elseif ($q -ne '' -and $ch -eq $q) {
+            $q = ''
+        } elseif ($q -eq '' -and ($ch -eq "'" -or $ch -eq '"')) {
+            $q = $ch
+        } else {
+            [void]$out.Append($ch)
+        }
+    }
+    return $out.ToString()
+}
+
+# Record NAME=value, or forget NAME when the value still holds an expansion
+# (`$`, `$(`, a backtick) or is an append (+=); see track_assign.
+function Add-TrackedAssignment {
+    param($Vars, [string]$Word)
+    $eq = $Word.IndexOf('=')
+    $name = $Word.Substring(0, $eq)
+    $value = $Word.Substring($eq + 1)
+    $known = $true
+    if ($name.EndsWith('+')) { $name = $name.Substring(0, $name.Length - 1); $known = $false }
+    if ($name -cnotmatch '^[A-Za-z_][A-Za-z0-9_]*$') { return }
+    if ($value -match '[$`]') { $known = $false }
+    if ($known) { $Vars[$name] = Get-DequotedWord $value } else { [void]$Vars.Remove($name) }
+}
+
+# The assignments of an assignment-only sub-command or of `export NAME=value`.
+function Update-TrackedVars {
+    param($Vars, [string[]]$Tokens)
+    $words = $Tokens
+    if ($Tokens[0] -ceq 'export') {
+        $words = Skip-First $Tokens
+    } elseif (@($Tokens | Where-Object { -not $_.Contains('=') }).Count -gt 0) {
+        return
+    }
+    foreach ($t in $words) {
+        if ($t.Contains('=')) { Add-TrackedAssignment -Vars $Vars -Word $t }
+    }
+}
+
+# argv[0] is a variable outside a payload. A tracked `$NAME` / `${NAME}` is
+# replaced by its words and inspected once; otherwise the arguments are
+# inspected as rm's, and ask if rm would be refused.
+function Inspect-VarHead {
+    param([string[]]$Tokens, [string]$Cwd, $Vars)
+    $head = $Tokens[0]
+    $rest = Skip-First $Tokens
+    $name = ''
+    if ($head -cmatch '^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$' -or $head -cmatch '^\$([A-Za-z_][A-Za-z0-9_]*)$') {
+        $name = $Matches[1]
+    }
+    if ($name -and $null -ne $Vars -and $Vars.ContainsKey($name)) {
+        $words = @($Vars[$name] -split '\s+' | Where-Object { $_ -ne '' })
+        return (Inspect-Argv -Tokens (@($words) + @($rest)) -Depth 0 -Cwd $Cwd -Vars $Vars -Resolved)
+    }
+    $r = Inspect-Rm -Tokens (@('rm') + @($rest)) -Cwd $Cwd
+    if ($r.D -eq 'allow') { return $r }
+    return (New-Verdict 'ask' "The command name comes from $head, which cannot be resolved statically; as rm this command would be refused ($($r.R)). Confirm to proceed.")
+}
+
 function Inspect-Argv {
-    param([string[]]$Tokens, [int]$Depth, [string]$Cwd)
+    param([string[]]$Tokens, [int]$Depth, [string]$Cwd, $Vars = $null, [switch]$Resolved)
     $Tokens = @($Tokens | Where-Object { $null -ne $_ })
     if ($Tokens.Count -eq 0) { return (New-Verdict 'allow') }
 
@@ -819,6 +970,11 @@ function Inspect-Argv {
     # guard cannot see; `$(...)` heads were split out and inspected already.
     if ($Depth -gt 0 -and $cmd0.StartsWith('$') -and -not $cmd0.StartsWith('$(')) {
         return (New-Verdict 'deny' "Inline shell payload runs a variable expansion ($cmd0) that cannot be statically inspected; blocked (fail-closed)")
+    }
+    # Outside a payload, resolve a variable head once (#971). A head with a
+    # path (`$X/bin/rm`) is matched on its basename below.
+    if ($Depth -eq 0 -and -not $Resolved -and $cmd0.StartsWith('$') -and -not $cmd0.StartsWith('$(') -and $cmd0 -notmatch '[\\/]') {
+        return (Inspect-VarHead -Tokens $Tokens -Cwd $Cwd -Vars $Vars)
     }
 
     # Match on the basename so `/bin/rm` and `/usr/bin/git` are inspected too.
@@ -866,6 +1022,8 @@ function Inspect-Command {
     param([string]$Cmd, [int]$Depth, [string]$Cwd)
     $prev = ''
     $asks = New-Object System.Collections.Generic.List[string]
+    # Shell variable names are case-sensitive.
+    $vars = [System.Collections.Generic.Dictionary[string,string]]::new([System.StringComparer]::Ordinal)
     foreach ($sub in @(Flatten-Subcommands -Cmd $Cmd)) {
         if ([string]::IsNullOrWhiteSpace($sub)) { continue }
         if ($prev -ne '' -and (Detect-FetchPipeShell -Prev $prev -Curr $sub)) {
@@ -878,7 +1036,10 @@ function Inspect-Command {
         if ($tokens.Count -gt 0 -and ($tokens[0] -ceq 'cd' -or $tokens[0] -ceq 'pushd')) {
             $Cwd = Get-CdTarget -Tokens $tokens -Cwd $Cwd
         }
-        $r = Inspect-Argv -Tokens $tokens -Depth $Depth -Cwd $Cwd
+        if ($tokens.Count -gt 0 -and ($tokens[0] -ceq 'export' -or $tokens[0].Contains('='))) {
+            Update-TrackedVars -Vars $vars -Tokens $tokens
+        }
+        $r = Inspect-Argv -Tokens $tokens -Depth $Depth -Cwd $Cwd -Vars $vars
         if ($r.D -eq 'deny') { return $r }
         if ($r.D -eq 'ask' -and -not $asks.Contains($r.R)) { $asks.Add($r.R) }
         $prev = $sub

@@ -13,8 +13,9 @@
 #           delete; gh api DELETE on repos/<owner>/<repo> itself.
 #   ask   - irreversible but scoped to the working tree, or rewriting or
 #           deleting a shared ref: git reset --hard, git checkout -- <path> /
-#           . / -f and git restore without --staged (only when the work tree
-#           has changes), git clean -f, git stash drop|clear, git push --force
+#           . / -f, git switch -f / --force / --discard-changes and git
+#           restore without --staged (only when the work tree has changes),
+#           git clean -f, git stash drop|clear, git push --force
 #           / -f / +<ref> (not --force-with-lease), git push --delete / -d /
 #           <remote> :<ref>, recursive rm of ., .., *, .*, .git or a path that
 #           resolves outside the repository, find -delete / -exec rm, gh
@@ -28,6 +29,11 @@
 # (unbalanced quotes, a bare variable expansion, nesting past the bound) is
 # denied (fail-closed). `source <file>` and `. <file>` are allowed; a fetch
 # fed to eval/source (`eval "$(curl ...)"`) is still remote execution.
+# Outside a payload, a command head that is a variable (`$X`, `${X}`) is
+# resolved from an earlier `X=value` or `export X=value` of the same command;
+# an unresolved one asks when its arguments would make rm deny or ask.
+# Input longer than DCG_TOKENIZER_MAX_BYTES is not tokenized: a regex scan
+# denies the deny-tier shapes and asks on any keyword of an ask arm.
 #
 # Side effects:
 #   Writes one JSON line per deny or ask decision to
@@ -146,13 +152,90 @@ fi
 HOOK_CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)
 [ -n "$HOOK_CWD" ] || HOOK_CWD="$PWD"
 
+# coarse_has <text> <ERE>: succeeds when a line of <text> matches. grep -c
+# reads all of its input, unlike grep -q, so the writer never meets a closed
+# pipe under pipefail.
+coarse_has() {
+    local n
+    n=$(printf '%s\n' "$1" | grep -cE -- "$2" 2>/dev/null) || true
+    [ "${n:-0}" -gt 0 ]
+}
+
+# coarse_scan: the deny and ask tiers for input over the tokenizer budget
+# (#971). The regexes are line based; a sub-command is the run of text up to
+# the next ; & | or newline. Any keyword of an ask arm asks, because the
+# arm's own conditions (a dirty work tree, a path outside the repository)
+# were not evaluated.
+coarse_scan() {
+    # A command word start, one sub-command's text, a space, a quote, and the
+    # end of a word.
+    local W='(^|[^[:alnum:]_.-])' G='[^;&|]*' S='[[:space:]]' Q="[\"']"
+    local E="([[:space:]\"';&|)]|\$)"
+    local git="${W}git${S}(${G}${S})?"
+    local rmr="${W}rm${S}(${G}${S})?(-[[:alpha:]]*[rR][[:alpha:]]*|--recursive)"
+
+    # Cheap prefilter: none of the command words, nothing to scan.
+    coarse_has "$CMD" '(rm|git|gh|find)' || return 0
+
+    if coarse_has "$CMD" "${rmr}${S}(${G}${S})?${Q}?(~|[\$]HOME|[\$][{]HOME[}])(/|${E})"; then
+        deny_response "Dangerous recursive delete at root directory blocked for safety"
+    fi
+    if coarse_has "$CMD" "${git}push${S}(${G}[[:space:]:+])?(refs/heads/)?(main|master|develop)${E}"; then
+        deny_response "Direct push to a protected branch (main, master or develop) is blocked by branching policy. Open a PR into 'develop' (feature/fix branches) or use the /release skill (develop -> main)."
+    fi
+    if coarse_has "$CMD" "${W}gh${S}(${G}${S})?repo${S}+delete${E}"; then
+        deny_response "gh repo delete deletes a repository irreversibly. Blocked."
+    fi
+    local api
+    api=$(printf '%s\n' "$CMD" | grep -oE -- "${W}gh${S}(${G}${S})?api${S}${G}" 2>/dev/null) || true
+    api=$(printf '%s\n' "$api" | grep -E -- "(-X|--method)(${S}*|=)${Q}?[Dd][Ee][Ll][Ee][Tt][Ee]${E}" 2>/dev/null) || true
+    if [ -n "$api" ] && coarse_has "$api" "(^|${S})${Q}?(https?://[^/[:space:]]+/)?(api/v3/)?/*repos/[^/[:space:]]+/[^/[:space:]?\"']+/*([?][^[:space:]]*)?${Q}?${E}"; then
+        deny_response "gh api DELETE on repos/<owner>/<repo> deletes the repository itself, irreversibly. Blocked."
+    fi
+
+    local -a labels=() res=()
+    labels+=("git reset --hard")
+    res+=("${git}reset${S}(${G}${S})?--hard${E}")
+    labels+=("git checkout -f / --force / -- / .")
+    res+=("${git}checkout${S}(${G}${S})?(-f|--force|--|[.]/?)${E}")
+    labels+=("git restore")
+    res+=("${git}restore${E}")
+    labels+=("git switch -f / --force / --discard-changes")
+    res+=("${git}switch${S}(${G}${S})?(-f|--force|--discard-changes)${E}")
+    labels+=("git clean -")
+    res+=("${git}clean${S}+-")
+    labels+=("git stash drop / clear")
+    res+=("${git}stash${S}+(drop|clear)${E}")
+    labels+=("git push --force / --delete / +<ref> / :<ref>")
+    res+=("${git}push${S}(${G}${S})?(--force|--delete|-[[:alpha:]]*[fd][[:alpha:]]*|[+:][^[:space:]]+)${E}")
+    labels+=("rm -r")
+    res+=("${rmr}${E}")
+    labels+=("find -delete / -exec rm")
+    res+=("${W}find${S}${G}${S}(-delete|-(exec|execdir|ok|okdir)${S}+([^[:space:]]*/)?rm)${E}")
+    labels+=("gh <group> delete")
+    res+=("${W}gh${S}(${G}${S})?[[:alnum:]-]+${S}+delete(-asset)?${E}")
+    labels+=("gh api ... DELETE")
+    res+=("${W}gh${S}(${G}${S})?api${S}${G}[Dd][Ee][Ll][Ee][Tt][Ee]")
+
+    local all="" i
+    for ((i = 0; i < ${#res[@]}; i++)); do
+        all="${all:+$all|}(${res[$i]})"
+    done
+    coarse_has "$CMD" "$all" || return 0
+    for ((i = 0; i < ${#res[@]}; i++)); do
+        if coarse_has "$CMD" "${res[$i]}"; then
+            ask_response "Input of ${#CMD} bytes exceeds the tokenizer budget (${DCG_TOKENIZER_MAX_BYTES} bytes) and contains ${labels[$i]}, so it was not inspected in full. Confirm to proceed."
+        fi
+    done
+}
+
 # Performance guard: the pure-bash tokenizer walks the input character by
 # character and bash substring operations are O(n), making the splitter
 # effectively O(n^2). For very large inputs (e.g. a 1 MB pasted blob) the
 # parser would exceed the 2-second budget, so fall back to a coarse regex
 # scan. This trades fine-grained sub-command analysis for a hard latency
-# bound; the regex still catches the three high-impact patterns this hook
-# has always blocked. Real attack payloads are far below this threshold.
+# bound: coarse_scan denies the deny-tier shapes and asks on any keyword of
+# an ask arm, so a long command cannot hide one of them at its end (#971).
 DCG_TOKENIZER_MAX_BYTES="${DCG_TOKENIZER_MAX_BYTES:-16384}"
 if [ "${#CMD}" -gt "$DCG_TOKENIZER_MAX_BYTES" ]; then
     if echo "$CMD" | grep -qE 'rm\s+(-[rRf]*[rR][rRf]*|--recursive)\s+/'; then
@@ -164,6 +247,7 @@ if [ "${#CMD}" -gt "$DCG_TOKENIZER_MAX_BYTES" ]; then
     if echo "$CMD" | grep -qE '(curl|wget)\s.*\|\s*(sh|bash|zsh|dash|python[23]?|perl|ruby|node)\b'; then
         deny_response "Remote script execution via pipe blocked for security"
     fi
+    coarse_scan
     allow_with_context "Coarse-scan allow (input exceeds tokenizer budget of ${DCG_TOKENIZER_MAX_BYTES} bytes)"
 fi
 
@@ -192,6 +276,12 @@ LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
 # sub-commands after it; an empty EFF_CWD means "cannot be known statically".
 SCAN_DEPTH=0
 EFF_CWD="$HOOK_CWD"
+
+# Variables assigned by earlier sub-commands (`X=value`, `export X=value`),
+# as parallel arrays because bash 3.2 has no associative arrays. A name whose
+# value cannot be known statically is removed (#971).
+VAR_NAMES=()
+VAR_VALUES=()
 
 # Trim a single leading `sudo`/`time`/`nice`/`env VAR=...` wrapper so the
 # real command head is reachable. Stops after one wrapper to keep behavior
@@ -571,6 +661,18 @@ inspect_git() {
                 esac
             done
             ;;
+        switch)
+            # -C / --force-create only moves a branch ref, which the reflog
+            # keeps; -m merges the local changes instead of dropping them.
+            for t in "$@"; do
+                case "$t" in
+                    -f|--force|--discard-changes)
+                        ask_if_dirty "$dir" "git switch ${t} discards uncommitted changes"
+                        return $?
+                        ;;
+                esac
+            done
+            ;;
         restore)
             local staged=0 worktree=0
             for t in "$@"; do
@@ -822,6 +924,16 @@ inspect_argv() {
                 return 1
                 ;;
         esac
+    elif [ -z "${VAR_HEAD_RESOLVED:-}" ]; then
+        # Outside a payload, resolve a variable head once (#971). A head
+        # with a path (`$X/bin/rm`) is matched on its basename below.
+        case "$cmd0" in
+            '$('*|'$'*/*) ;;
+            '$'*)
+                inspect_var_head "${tokens[@]}"
+                return $?
+                ;;
+        esac
     fi
 
     # Match on the basename so `/bin/rm` and `/usr/bin/git` are inspected too.
@@ -907,6 +1019,105 @@ track_cd() {
     fi
 }
 
+# dequote_word <word>: the word after quote removal ("rm -rf" -> rm -rf).
+dequote_word() {
+    local s="$1" out="" q="" ch i
+    for ((i = 0; i < ${#s}; i++)); do
+        ch="${s:$i:1}"
+        if [ "$q" = "'" ]; then
+            if [ "$ch" = "'" ]; then q=""; else out+="$ch"; fi
+        elif [ "$ch" = '\' ]; then
+            i=$((i + 1))
+            out+="${s:$i:1}"
+        elif [ "$ch" = "$q" ]; then
+            q=""
+        elif [ -z "$q" ] && { [ "$ch" = "'" ] || [ "$ch" = '"' ]; }; then
+            q="$ch"
+        else
+            out+="$ch"
+        fi
+    done
+    printf '%s\n' "$out"
+}
+
+# var_lookup <name>: print the tracked value of <name>; fails when untracked.
+var_lookup() {
+    local i
+    for ((i = 0; i < ${#VAR_NAMES[@]}; i++)); do
+        if [ "${VAR_NAMES[$i]}" = "$1" ]; then
+            printf '%s\n' "${VAR_VALUES[$i]}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# track_assign <NAME=value>: record the value, or forget NAME when the value
+# still holds an expansion (`$`, `$(`, a backtick) or is an append (+=).
+track_assign() {
+    local name="${1%%=*}" value="${1#*=}" known=1 i
+    case "$name" in *+) name="${name%+}"; known=0 ;; esac
+    case "$name" in ''|[0-9]*|*[!A-Za-z0-9_]*) return 0 ;; esac
+    case "$value" in *'$'*|*'`'*) known=0 ;; esac
+    [ "$known" = 0 ] || value=$(dequote_word "$value")
+    for ((i = 0; i < ${#VAR_NAMES[@]}; i++)); do
+        if [ "${VAR_NAMES[$i]}" = "$name" ]; then
+            [ "$known" = 1 ] || VAR_NAMES[i]=""
+            VAR_VALUES[i]="$value"
+            return 0
+        fi
+    done
+    if [ "$known" = 1 ]; then
+        VAR_NAMES+=("$name")
+        VAR_VALUES+=("$value")
+    fi
+    return 0
+}
+
+# track_vars <argv...>: record the assignments of an assignment-only
+# sub-command or of `export NAME=value ...`.
+track_vars() {
+    local t
+    if [ "$1" = "export" ]; then
+        shift
+    else
+        for t in "$@"; do
+            case "$t" in *=*) ;; *) return 0 ;; esac
+        done
+    fi
+    for t in "$@"; do
+        case "$t" in *=*) track_assign "$t" ;; esac
+    done
+    return 0
+}
+
+# inspect_var_head <argv...>: argv[0] is a variable outside a payload. A
+# tracked `$NAME` / `${NAME}` is replaced by its words and inspected once;
+# otherwise the arguments are inspected as rm's, and ask if rm would be
+# refused (`$EDITOR file`, `"$PYTHON" x.py` stay allowed).
+inspect_var_head() {
+    local head="$1" name="" value w reason rc=0
+    shift
+    case "$head" in
+        '${'*'}') name="${head:2:${#head}-3}" ;;
+        '$'*) name="${head:1}" ;;
+    esac
+    case "$name" in ''|[0-9]*|*[!A-Za-z0-9_]*) name="" ;; esac
+    if [ -n "$name" ] && value=$(var_lookup "$name"); then
+        local -a words=()
+        set -f
+        for w in $value; do words+=("$w"); done
+        set +f
+        local VAR_HEAD_RESOLVED=1
+        inspect_argv ${words[@]+"${words[@]}"} "$@"
+        return $?
+    fi
+    reason=$(inspect_rm rm "$@") || rc=$?
+    [ "$rc" != 0 ] || return 0
+    echo "The command name comes from ${head}, which cannot be resolved statically; as rm this command would be refused (${reason}). Confirm to proceed."
+    return 2
+}
+
 # Run inspection across every sub-command. A deny short-circuits; asks are
 # collected and reported only when nothing denies.
 inspect_command() {
@@ -939,6 +1150,7 @@ inspect_command() {
 
         case "${argv[0]:-}" in
             cd|pushd) track_cd "${argv[@]}" ;;
+            export|*=*) track_vars "${argv[@]}" ;;
         esac
 
         rc=0
