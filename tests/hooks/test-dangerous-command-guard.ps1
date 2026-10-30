@@ -157,6 +157,8 @@ function Check {
     try { $got = (($raw | Select-Object -Last 1) | ConvertFrom-Json).hookSpecificOutput.permissionDecision } catch {}
     $where = Split-Path -Leaf $Cwd
     $shown = $Command.Replace("`n", '\n')
+    # Over-budget commands are shown by their tail only.
+    if ($shown.Length -gt 300) { $shown = "($($Command.Length) bytes) ..." + $shown.Substring($shown.Length - 60) }
     if ($got -eq $Expected) {
         $script:Passed++
         Write-Host "  PASS: [$where] $shown -> $Expected" -ForegroundColor Green
@@ -275,6 +277,42 @@ Check allow - 'eval "$(ssh-agent -s)"'
 Check allow - 'eval eval eval ls'
 Check allow - "echo 'git reset --hard'"
 Check allow - ("git commit -m `"`$(cat <<'EOF'`nfeat: x`nEOF`n)`" && git push origin feat/x")
+
+Write-Host ''
+Write-Host '[guard bypasses - issue #971]'
+# git switch spellings of a forced checkout.
+Check ask $DirtyRepo 'git switch --discard-changes feat/x'
+Check ask $DirtyRepo 'git switch -f feat/x'
+Check ask $DirtyRepo 'git switch --force feat/x'
+Check allow $CleanRepo 'git switch --discard-changes feat/x'
+Check allow $CleanRepo 'git switch feat/x'
+Check allow $DirtyRepo 'git switch feat/x'
+Check allow $DirtyRepo 'git switch -C feat/x'
+# A variable in command position: resolved from an earlier assignment of the
+# same command, else inspected as rm and asked.
+Check deny - 'X=rm; $X -rf ~'
+Check ask - 'X=rm; ${X} -rf .git'
+Check deny - 'export X=rm; $X -rf ~'
+Check ask - '$X -rf ~'
+Check deny - 'X="rm -rf"; $X ~'
+Check ask - 'X=rm; X=$Y; $X -rf ~'
+Check ask - 'x=rm; $X -rf ~'
+Check allow - '$EDITOR notes.md'
+Check allow - '"$PYTHON" x.py'
+Check allow - '$CC -o a a.c'
+Check deny - "bash -c '`$X -rf /'"
+# Over the 16384-byte tokenizer budget: built here rather than as fixtures,
+# 1100 x 17 bytes of echo is about 18 KiB.
+$filler = 'echo 0123456789; ' * 1100
+Check deny - ($filler + 'rm -rf ~')
+Check deny - ($filler + 'git push origin main')
+Check deny - ($filler + 'gh repo delete o/r --yes')
+Check deny - ($filler + 'gh api -X DELETE repos/o/r')
+Check ask - ($filler + 'git clean -fdx')
+Check ask $CleanRepo ($filler + 'git switch --discard-changes feat/x')
+Check ask - ($filler + 'gh api -X DELETE repos/o/r/issues/1')
+Check allow - ($filler + 'echo done')
+Check allow - ($filler + 'git push --force-with-lease origin feat/x')
 
 Write-Host ''
 Write-Host '[decision log - deny and ask only (#964)]'

@@ -86,6 +86,20 @@ deletes them. (#964)
   under `docs/` and `.github/.issue-drafts/` keep the old names as history.
   (#964)
 
+### Fixed
+
+- `dangerous-command-guard` closes three bypasses. `git switch -f`,
+  `--force` and `--discard-changes` ask on a dirty work tree, as
+  `git checkout -f` does. Outside a `bash -c`/`eval` payload, a `$X` or
+  `${X}` command head is resolved from an earlier `X=value` or
+  `export X=value` of the same command (`X=rm; $X -rf ~` is denied); an
+  unresolved one asks when its arguments would make `rm` deny or ask. Input
+  over the 16384-byte tokenizer budget now also denies recursive `rm` of `~`
+  or `$HOME`, a push to `main`/`master`/`develop`, `gh repo delete` and
+  `gh api -X DELETE repos/<owner>/<repo>`, and asks when it contains a
+  keyword of any ask arm, instead of allowing everything but three patterns.
+  The `.ps1` twin matches. (#971)
+
 ## 1.15.0 - 2026-10-23
 
 ### Added
