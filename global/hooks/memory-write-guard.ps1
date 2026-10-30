@@ -52,8 +52,10 @@ function Resolve-Path-Safe {
         if (Test-Path -LiteralPath $Path) {
             return (Resolve-Path -LiteralPath $Path -ErrorAction Stop).Path
         } else {
-            $parent = Split-Path -LiteralPath $Path -Parent
-            $base   = Split-Path -LiteralPath $Path -Leaf
+            # Not Split-Path: -LiteralPath and -Parent/-Leaf are separate
+            # parameter sets in PowerShell 7 and throw together (#972).
+            $parent = [System.IO.Path]::GetDirectoryName($Path)
+            $base   = [System.IO.Path]::GetFileName($Path)
             if (-not [string]::IsNullOrEmpty($parent) -and (Test-Path -LiteralPath $parent)) {
                 $resolvedParent = (Resolve-Path -LiteralPath $parent -ErrorAction Stop).Path
                 return Join-Path $resolvedParent $base
@@ -80,7 +82,7 @@ if (-not ($normalized.StartsWith($normalizedRoot + '/', [System.StringComparison
 }
 
 # MEMORY.md (auto-generated index) is exempt per validate.sh.
-$leaf = Split-Path -LiteralPath $resolved -Leaf
+$leaf = [System.IO.Path]::GetFileName($resolved)
 if ($leaf -eq 'MEMORY.md') {
     Write-Output (New-HookAllowResponse)
     exit 0
