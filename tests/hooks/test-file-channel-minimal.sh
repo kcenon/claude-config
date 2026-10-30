@@ -204,12 +204,16 @@ echo "[permissions.deny covers every sensitive-file-guard pattern]"
 # Write(path) rule. Edit deny rules would also become sandbox write denies,
 # which the removed guard never imposed, so only the four existing .env rules
 # stay. See https://code.claude.com/docs/en/permissions.
+# '**/' patterns are relative to the working directory, so the home-directory
+# AWS credentials file needs its own '~/'-anchored rule (#973). ~/.ssh has none
+# on purpose: sandboxed SSH commit signing reads the key file.
+# shellcheck disable=SC2088  # '~' is rule text compared with jq, not a path
 READ_PATTERNS=(
     '.env' '.env.*' '**/.env' '**/.env.*' '**/.envrc' '**/*.env' '**/*.env.*'
     '**/*.pem' '**/*.key' '**/*.p12' '**/*.pfx'
     '**/id_rsa' '**/id_rsa.*' '**/id_ed25519' '**/id_ed25519.*'
     '**/id_ecdsa' '**/id_ecdsa.*' '**/id_dsa' '**/id_dsa.*'
-    '**/.aws/**/credentials' '**/.aws/**/config'
+    '**/.aws/**/credentials' '**/.aws/**/config' '~/.aws/credentials'
     '**/secrets/**' '**/credentials/**' '**/*password*'
     '**/*secrets/**' '**/*credentials/**' '**/*passwords/**'
 )

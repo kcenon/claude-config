@@ -73,7 +73,7 @@ SH
     mkdir -p "$fixture/scripts/memory"
     printf '%s\n' '#!/bin/sh' 'exit 0' > "$fixture/scripts/memory-sync.sh"
     printf '%s\n' '#!/bin/sh' 'exit 0' > "$fixture/scripts/memory/validate.sh"
-    printf '%s\n' 'OWNER_EMAILS=' > "$fixture/scripts/memory/secret-check.env.example"
+    printf '%s\n' 'OWNER_EMAILS=' > "$fixture/scripts/memory/secret-check-env.example"
 }
 
 run_atomic_deploy() {
@@ -122,7 +122,7 @@ assert_true "memory validator deployed executable" \
 assert_true "memory validator tracked in the install manifest" \
     "grep -q '\"scripts/memory/validate.sh\"' '$success_home/.claude/.install-manifest.json'"
 assert_true "non-script memory file not deployed" \
-    "[ ! -e '$success_home/.claude/scripts/memory/secret-check.env.example' ]"
+    "[ ! -e '$success_home/.claude/scripts/memory/secret-check-env.example' ]"
 
 failure_fixture="$WORK/failure-fixture"
 failure_home="$WORK/failure-home"

@@ -99,6 +99,15 @@ deletes them. (#964)
   `gh api -X DELETE repos/<owner>/<repo>`, and asks when it contains a
   keyword of any ask arm, instead of allowing everything but three patterns.
   The `.ps1` twin matches. (#971)
+- `scripts/memory/secret-check.env.example` is renamed to
+  `secret-check-env.example`, which no `permissions.deny` pattern matches,
+  so sandboxed `git status` in a clone no longer prints
+  `Operation not permitted` for it. `permissions.deny` adds
+  `Read(~/.aws/credentials)`, because `**/` rules and the sandbox read-deny
+  built from them are relative to the working directory. `~/.ssh` stays
+  readable on purpose: sandboxed SSH commit signing reads the key file. The
+  docs no longer claim the sandbox covers secret files outside the working
+  directory; `ENFORCEMENT.md` records the `~/.ssh` gap. (#973)
 
 ## 1.15.0 - 2026-10-23
 

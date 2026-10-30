@@ -139,6 +139,7 @@
       "Read(**/id_dsa.*)",
       "Read(**/.aws/**/credentials)",
       "Read(**/.aws/**/config)",
+      "Read(~/.aws/credentials)",
       "Read(**/*secrets/**)",
       "Read(**/*credentials/**)",
       "Read(**/*passwords/**)",
