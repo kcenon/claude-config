@@ -219,6 +219,7 @@ function Install-GlobalSettingsAndHooks {
 
         # Carry machine-local keys forward before the policy injection, so the
         # policy still wins on the keys it owns (issue #915).
+        $retiredKeys = Get-RetiredLocalSettingsKeys -StagedPath $settingsTmp -LivePath $destSettings
         $carriedKeys = Merge-LocalSettingsKeys -StagedPath $settingsTmp -LivePath $destSettings
 
         $settingsUpdated = Update-ClaudeSettingsJson -SettingsPath $settingsTmp -AgentLang $agentLanguage -ContentLang $contentLanguage
@@ -236,6 +237,9 @@ function Install-GlobalSettingsAndHooks {
     Write-Success "Hook settings (settings.json) installed! [Windows version]"
     if ($carriedKeys -and $carriedKeys.Count -gt 0) {
         Write-Info "machine-local settings keys preserved: $($carriedKeys -join ', ')"
+    }
+    if ($retiredKeys -and $retiredKeys.Count -gt 0) {
+        Write-Info "removed retired setting: $($retiredKeys -join ', ')"
     }
     if ($settingsUpdated) {
         Write-Success "settings.json updated with language=$agentLanguage and CLAUDE_CONTENT_LANGUAGE=$contentLanguage"
@@ -845,6 +849,9 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
         'commands/issue-work.md' = '048a26140b03862c5b10630853115ee656056f45cedfd0a0b6ec814bf7225684'
         'commands/pr-work.md' = '2ecf1a78271c553e2310b57b2a1deb026a07ae01b84c1f856638293ab41f1199'
         'commands/release.md' = '93fd6d2f7800deada2868b97b65ef486f42482b5e2f1224c35f732ebfeb1c013'
+        # Copied untracked by every PowerShell installer before v1.12.0;
+        # removed in #969 (#974).
+        'hooks/known-issues.json' = '2b853ec2b2f40482e44f7d88996af00d97e97ca8bf6376ab7ea22bc1307a6e07'
     }
     $null = Invoke-ManifestPruneTracked -Root $claudeDir
 

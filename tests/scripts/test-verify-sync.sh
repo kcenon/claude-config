@@ -111,7 +111,26 @@ run_verify "$TMP" --project-dir "$PROJ"
 expect "SYNC: project/CLAUDE.md"
 echo "project detection: PASS"
 
-# 3. Each kind of drift is reported; a CRLF and BOM rewrite is not.
+# 3. commit-settings.md is deployed rendered from its .tmpl for the content
+# policy, so verify compares it with the rendering for the policy the installed
+# settings.json records, not with the english-canonical .md (#974).
+# shellcheck disable=SC1091
+. "$REPO_ROOT/scripts/lib/install-prompts.sh"
+cp "$CLAUDE/settings.json" "$TMP/settings.json.orig"
+jq '.env.CLAUDE_CONTENT_LANGUAGE = "exclusive_bilingual"' "$TMP/settings.json.orig" > "$CLAUDE/settings.json"
+CONTENT_LANGUAGE=exclusive_bilingual render_policy_tmpl \
+    "$REPO_ROOT/global/commit-settings.md.tmpl" "$CLAUDE/commit-settings.md"
+run_verify "$PROJ"
+[ -z "$(findings)" ] || fail "an exclusive_bilingual install reported differences"
+expect "SYNC: commit-settings.md (rendered: exclusive_bilingual)"
+cp "$TMP/settings.json.orig" "$CLAUDE/settings.json"
+run_verify "$PROJ"
+expect "DIFF: commit-settings.md (rendered: english)"
+[ "$(findings | wc -l | tr -d ' ')" -eq 1 ] || fail "expected exactly 1 finding for a policy mismatch"
+cp "$REPO_ROOT/global/commit-settings.md" "$CLAUDE/commit-settings.md"
+echo "rendered commit-settings.md: PASS"
+
+# 4. Each kind of drift is reported; a CRLF and BOM rewrite is not.
 if [ "$win" -eq 1 ]; then
     hook_victim="edit-guard-dispatcher.ps1"
 else

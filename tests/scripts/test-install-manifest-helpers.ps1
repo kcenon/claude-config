@@ -266,14 +266,14 @@ try {
 { "description": "repo profile", "language": "korean", "effortLevel": "high",
   "permissions": { "allow": ["A"] },
   "hooks": { "PreToolUse": [{ "matcher": "Bash" }] },
-  "env": { "MAX_TEAMS": "4" } }
+  "env": { "MAX_MCP_OUTPUT_TOKENS": "4" } }
 '@
     $liveJson = @'
 { "description": "LOCALLY EDITED", "language": "english", "effortLevel": "xhigh",
   "model": "opus", "agentPushNotifEnabled": true,
   "permissions": { "allow": ["STALE"] },
   "hooks": { "PreToolUse": [{ "matcher": "STALE" }] },
-  "env": { "MAX_TEAMS": "99", "MY_LOCAL_VAR": "keep me" } }
+  "env": { "MAX_MCP_OUTPUT_TOKENS": "99", "MY_LOCAL_VAR": "keep me" } }
 '@
     $profilePath = Join-Path $mergeDir 'profile.json'
     $livePath = Join-Path $mergeDir 'live.json'
@@ -293,7 +293,7 @@ try {
     Assert-MergeEq 'repo language wins'        $merged.language "korean"
     Assert-MergeEq 'repo permissions win'      ($merged.permissions.allow -join ',') "A"
     Assert-MergeEq 'repo hooks win'            $merged.hooks.PreToolUse[0].matcher "Bash"
-    Assert-MergeEq 'repo env value wins'       $merged.env.MAX_TEAMS "4"
+    Assert-MergeEq 'repo env value wins'       $merged.env.MAX_MCP_OUTPUT_TOKENS "4"
     Assert-MergeEq 'unknown key carried'       $merged.model "opus"
     Assert-MergeEq 'unknown bool carried'      $merged.agentPushNotifEnabled "True"
     Assert-MergeEq 'runtime key carried'       $merged.effortLevel "xhigh"
@@ -319,6 +319,107 @@ try {
     Assert-MergeEq 'unparseable live file carries nothing' $bad.Count 0
     Assert-MergeEq 'unparseable live file leaves staged untouched' (Get-Content -Raw -LiteralPath $staged3) $before3
     Write-Host "Merge-LocalSettingsKeys: PASS"
+
+    # A retired env key (#974): the repo removed env.MAX_TEAMS in #969, so a
+    # live copy is dropped instead of being carried as machine-local, and
+    # Get-RetiredLocalSettingsKeys names it for the installer's info line. Any
+    # other key the profile does not define is still carried.
+    $liveRetired = Join-Path $mergeDir 'live-retired.json'
+    '{ "env": { "MAX_TEAMS": "4", "SOME_LOCAL_KEY": "keep me" } }' | Set-Content -LiteralPath $liveRetired -Encoding UTF8
+    $staged4 = Join-Path $mergeDir 'staged4.json'
+    Copy-Item -LiteralPath $profilePath -Destination $staged4 -Force
+    $retiredCarried = Merge-LocalSettingsKeys -StagedPath $staged4 -LivePath $liveRetired
+    $merged4 = Get-Content -Raw -LiteralPath $staged4 | ConvertFrom-Json
+    Assert-MergeEq 'retired env key not carried' ($retiredCarried -join ',') 'env.SOME_LOCAL_KEY'
+    Assert-MergeEq 'retired env key dropped' ($merged4.env.PSObject.Properties.Name -contains 'MAX_TEAMS') 'False'
+    Assert-MergeEq 'other live-only env key kept' $merged4.env.SOME_LOCAL_KEY 'keep me'
+    $retiredNamed = Get-RetiredLocalSettingsKeys -StagedPath $staged4 -LivePath $liveRetired
+    Assert-MergeEq 'retired env key named' ($retiredNamed -join ',') 'env.MAX_TEAMS'
+    $retiredNone = Get-RetiredLocalSettingsKeys -StagedPath $staged4 -LivePath $livePath
+    Assert-MergeEq 'no retired key, nothing named' (@($retiredNone).Count) 0
+    Write-Host "Merge-LocalSettingsKeys retired env keys: PASS"
+
+    # A file brought in line with the source by hand refreshes the stored hash,
+    # so the next upstream change upgrades it without a prompt (#974).
+    $hashRefresh = Join-Path $testDir 'hash-refresh'
+    New-Item -ItemType Directory -Path $hashRefresh -Force | Out-Null
+    $env:MANIFEST_PATH = Join-Path $hashRefresh '.install-manifest.json'
+    $refreshSrc = Join-Path $hashRefresh 'src.md'
+    $refreshDst = Join-Path $hashRefresh 'dst.md'
+    [System.IO.File]::WriteAllText($refreshSrc, "v1`n", $utf8NoBom)
+    $null = Invoke-GuardedCopy -Src $refreshSrc -Dest $refreshDst -Key 'dst.md'
+    [System.IO.File]::WriteAllText($refreshSrc, "v2`n", $utf8NoBom)
+    [System.IO.File]::WriteAllText($refreshDst, "v2`n", $utf8NoBom)
+    $null = Invoke-GuardedCopy -Src $refreshSrc -Dest $refreshDst -Key 'dst.md'
+    Assert-MergeEq 'stored hash follows the hand-aligned file' (Read-ManifestEntry -Key 'dst.md') (Get-FileSha256 -Path $refreshSrc)
+    [System.IO.File]::WriteAllText($refreshSrc, "v3`n", $utf8NoBom)
+    $script:guardPrompts = 0
+    function Read-Host { $script:guardPrompts++; return 'k' }
+    try {
+        $null = Invoke-GuardedCopy -Src $refreshSrc -Dest $refreshDst -Key 'dst.md'
+    }
+    finally {
+        Remove-Item -Path 'Function:\Read-Host'
+    }
+    Assert-MergeEq 'next upstream change asks nothing' $script:guardPrompts 0
+    Assert-MergeEq 'next upstream change upgrades the file' ([System.IO.File]::ReadAllText($refreshDst)) "v3`n"
+    Write-Host "Invoke-GuardedCopy refreshes a stale stored hash: PASS"
+
+    # hooks/known-issues.json (#974): the only upstream revision, removed in
+    # #969. Every PowerShell installer before v1.12.0 copied it untracked, so
+    # both PowerShell entry points seed its hash before the prune. LF and CRLF
+    # copies are pruned; an edited copy is kept with a notice.
+    $knownIssues = (@'
+{
+  "known_issues": [
+    {
+      "versions": "2.1.69-2.1.81",
+      "version_list": ["2.1.69","2.1.70","2.1.71","2.1.72","2.1.73","2.1.74","2.1.75","2.1.76","2.1.77","2.1.78","2.1.79","2.1.80","2.1.81"],
+      "severity": "warning",
+      "description": "Cache efficiency regression and sentinel replacement bug",
+      "references": [
+        "https://github.com/anthropics/claude-code/issues/34629",
+        "https://github.com/anthropics/claude-code/issues/40524"
+      ]
+    }
+  ],
+  "minimum_recommended": "2.2.0",
+  "last_updated": "2026-04-05"
+}
+'@ -replace "`r", '') + "`n"
+    $knownRoot = Join-Path $testDir 'known-issues'
+    $knownHooks = Join-Path $knownRoot 'hooks'
+    New-Item -ItemType Directory -Path $knownHooks -Force | Out-Null
+    $knownFile = Join-Path $knownHooks 'known-issues.json'
+    [System.IO.File]::WriteAllText($knownFile, $knownIssues, $utf8NoBom)
+    $knownSha = Get-FileSha256 -Path $knownFile
+    foreach ($installer in @((Join-Path $repoRoot 'scripts' 'install.ps1'), (Join-Path $repoRoot 'bootstrap.ps1'))) {
+        if (-not ([System.IO.File]::ReadAllText($installer)).Contains("'hooks/known-issues.json' = '$knownSha'")) {
+            throw "FAIL: $installer does not seed hooks/known-issues.json with $knownSha"
+        }
+    }
+    $knownEntries = @{ 'hooks/known-issues.json' = $knownSha }
+    $env:MANIFEST_PATH = Join-Path $knownRoot '.install-manifest.json'
+    foreach ($eol in @('LF', 'CRLF')) {
+        $bytes = if ($eol -eq 'LF') { $knownIssues } else { $knownIssues.Replace("`n", "`r`n") }
+        [System.IO.File]::WriteAllText($knownFile, $bytes, $utf8NoBom)
+        Add-RetiredManagedManifestEntries -Root $knownRoot -Entries $knownEntries 6>&1 | Out-Null
+        Invoke-ManifestPrune -Root $knownRoot -ManagedKeys @('hooks/current.ps1') 6>&1 | Out-Null
+        if (Test-Path -LiteralPath $knownFile) {
+            throw "FAIL: an unedited untracked known-issues.json ($eol) was not pruned"
+        }
+        New-Item -ItemType Directory -Path $knownHooks -Force | Out-Null
+    }
+    [System.IO.File]::WriteAllText($knownFile, $knownIssues.Replace('"warning"', '"error"'), $utf8NoBom)
+    $seedLog = Add-RetiredManagedManifestEntries -Root $knownRoot -Entries $knownEntries 6>&1 | Out-String
+    Invoke-ManifestPrune -Root $knownRoot -ManagedKeys @('hooks/current.ps1') 6>&1 | Out-Null
+    if (-not (Test-Path -LiteralPath $knownFile)) {
+        throw "FAIL: an edited known-issues.json was pruned"
+    }
+    if (-not $seedLog.Contains('preserved locally edited retired file: hooks/known-issues.json')) {
+        throw "FAIL: no notice for an edited known-issues.json`n$seedLog"
+    }
+    Write-Host "hooks/known-issues.json retired seed: PASS"
 
     Write-Host "All helper tests passed!"
 } finally {

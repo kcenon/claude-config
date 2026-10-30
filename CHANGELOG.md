@@ -115,6 +115,20 @@ deletes them. (#964)
   guard now uses `[System.IO.Path]`, which also resolves a new file through
   its existing parent again. `tests/hooks/test-memory-write-guard.ps1`
   mirrors the `.sh` suite. (#972)
+- A reinstall over an existing install no longer asks the wrong questions or
+  keeps retired state. A file that already equals the source now refreshes
+  its stored manifest hash, so a file aligned by hand upgrades silently on the
+  next upstream change instead of reporting a local edit. `install.sh` guards
+  `commit-settings.md` once, as the rendered `.tmpl`, instead of copying the
+  raw file first, so a local edit gets one prompt instead of two. All four
+  installers seed `hooks/known-issues.json`, which reached installs outside
+  the manifest, so an unedited copy is pruned and an edited one is kept with
+  a notice. The settings merge drops the retired `env.MAX_TEAMS` and prints
+  `removed retired setting: env.MAX_TEAMS`; other unknown keys are still
+  carried. `verify.sh` and `verify.ps1` compare the installed
+  `commit-settings.md` with `commit-settings.md.tmpl` rendered for the
+  `CLAUDE_CONTENT_LANGUAGE` of the installed `settings.json`, so a
+  non-english install no longer reports a permanent DIFF. (#974)
 
 ## 1.15.0 - 2026-10-23
 

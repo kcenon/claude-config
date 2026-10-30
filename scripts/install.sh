@@ -388,7 +388,8 @@ install_global_settings_and_hooks() {
 
     # Carry machine-local keys forward before the policy injection, so the
     # policy still wins on the keys it owns (issue #915).
-    local carried_keys
+    local carried_keys retired_keys
+    retired_keys="$(retired_local_settings_keys "$settings_tmp" "$settings_dst" | tr '\n' ' ' | sed -e 's/ *$//')"
     carried_keys="$(merge_local_settings_keys "$settings_tmp" "$settings_dst" | tr '\n' ' ' | sed -e 's/ *$//')"
 
     # CLAUDE_CONTENT_LANGUAGE env 주입 및 Agent Language 속성 업데이트
@@ -409,6 +410,9 @@ install_global_settings_and_hooks() {
     success "Hook 설정 (settings.json) 설치 완료!"
     if [ -n "$carried_keys" ]; then
         info "machine-local settings keys preserved: $carried_keys"
+    fi
+    if [ -n "$retired_keys" ]; then
+        info "removed retired setting: $retired_keys"
     fi
     if [ "$settings_updated" = "1" ]; then
         success "settings.json: language=$AGENT_LANGUAGE, CLAUDE_CONTENT_LANGUAGE=$CONTENT_LANGUAGE 업데이트 완료."
@@ -833,6 +837,12 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     # 파일 설치 (매니페스트 가드 사용)
     _seeded_identity=""
     for gf in CLAUDE.md commit-settings.md git-identity.md token-management.md; do
+        # commit-settings.md is rendered from its .tmpl further down. Copying
+        # the raw file here first guarded the same file twice, so a local edit
+        # got two prompts and the first one offered the unrendered text (#974).
+        if [ "$gf" = "commit-settings.md" ] && [ -f "$BACKUP_DIR/global/commit-settings.md.tmpl" ]; then
+            continue
+        fi
         if [ -f "$BACKUP_DIR/global/$gf" ]; then
             # git-identity.md is seeded on a staged copy of the SOURCE, never on
             # the deployed file. Seeding afterwards left the manifest holding the
@@ -995,6 +1005,10 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         success "Commands 디렉토리 설치 완료!"
     fi
 
+    # Retired files that can sit in ~/.claude without a manifest entry, each
+    # with the hash of its upstream copy. hooks/known-issues.json (one
+    # revision, removed in #969) reached installs untracked, so the prune
+    # never saw it (#974).
     manifest_seed_retired_managed "$HOME/.claude" \
         "commands/_policy.md" "dc099752233e505ecec34e8ea87f0b4d5af2409fef2090fb36719caa0faf58c8" \
         "commands/branch-cleanup.md" "3e7fc38c324cfc9cea639e95394d7819e7768364d12023ec0b36b91f9230b09d" \
@@ -1003,7 +1017,8 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
         "commands/issue-create.md" "c654ab412f320b9d97553f92a510cf5de13a5d0a7ed5e14212ca62534887ae71" \
         "commands/issue-work.md" "048a26140b03862c5b10630853115ee656056f45cedfd0a0b6ec814bf7225684" \
         "commands/pr-work.md" "2ecf1a78271c553e2310b57b2a1deb026a07ae01b84c1f856638293ab41f1199" \
-        "commands/release.md" "93fd6d2f7800deada2868b97b65ef486f42482b5e2f1224c35f732ebfeb1c013"
+        "commands/release.md" "93fd6d2f7800deada2868b97b65ef486f42482b5e2f1224c35f732ebfeb1c013" \
+        "hooks/known-issues.json" "2b853ec2b2f40482e44f7d88996af00d97e97ca8bf6376ab7ea22bc1307a6e07"
     manifest_prune_tracked "$HOME/.claude"
 
     # ccstatusline 설정 복사 (~/.config/ccstatusline/ — ccstatusline의 기본 설정 경로)

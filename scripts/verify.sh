@@ -534,11 +534,33 @@ PY
 
 GLOBAL_DST="$HOME/.claude"
 
+# commit-settings.md is deployed from commit-settings.md.tmpl, rendered with the
+# content-language policy of the install, so it equals the english-canonical
+# commit-settings.md only under the english policy. Render the template the way
+# the installer does (render_policy_tmpl), for the policy the installed
+# settings.json records, and compare with that (#974).
+# shellcheck disable=SC1091
+. "$BACKUP_DIR/scripts/lib/install-prompts.sh"
+INSTALLED_CONTENT_LANGUAGE="$(read_settings_content_language "$GLOBAL_DST/settings.json" || true)"
+INSTALLED_CONTENT_LANGUAGE="${INSTALLED_CONTENT_LANGUAGE:-english}"
+
+# check_sync_policy_tmpl <src.tmpl> <dst> <label>
+check_sync_policy_tmpl() {
+    local rendered
+    rendered="$(mktemp "${TMPDIR:-/tmp}/verify-render.XXXXXX")"
+    CONTENT_LANGUAGE="$INSTALLED_CONTENT_LANGUAGE" render_policy_tmpl "$1" "$rendered"
+    check_sync "$rendered" "$2" "$3"
+    rm -f "$rendered"
+}
+
 # Global config files. settings.json is excluded from the byte-wise loop and
 # handled by check_sync_settings below.
 info "글로벌 설정 파일 동기화:"
 for f in CLAUDE.md commit-settings.md .claudeignore; do
-    if [ -f "$BACKUP_DIR/global/$f" ]; then
+    if [ -f "$BACKUP_DIR/global/$f.tmpl" ]; then
+        check_sync_policy_tmpl "$BACKUP_DIR/global/$f.tmpl" "$GLOBAL_DST/$f" \
+            "$f (rendered: $INSTALLED_CONTENT_LANGUAGE)"
+    elif [ -f "$BACKUP_DIR/global/$f" ]; then
         check_sync "$BACKUP_DIR/global/$f" "$GLOBAL_DST/$f" "$f"
     fi
 done

@@ -379,9 +379,12 @@ guarded_copy() {
     dest_sha=$(_manifest_hash "$dest")
     stored_sha=$(_manifest_read "$key")
 
-    # Nothing to do.
+    # Nothing to copy. Record the source hash whenever the stored one differs:
+    # a file brought in line with the source by hand otherwise keeps an older
+    # stored hash, and the next upstream change reports a local edit that does
+    # not exist (#974).
     if [ -n "$src_sha" ] && [ "$src_sha" = "$dest_sha" ]; then
-        [ -z "$stored_sha" ] && _manifest_write "$key" "$src_sha"
+        [ "$stored_sha" != "$src_sha" ] && _manifest_write "$key" "$src_sha"
         return 0
     fi
 
@@ -455,6 +458,13 @@ SETTINGS_POLICY_KEYS='["language","permissions","hooks"]'
 # See docs/install.md, "Machine-local settings keys".
 SETTINGS_RUNTIME_KEYS='["effortLevel"]'
 
+# env keys the repo profile used to ship and has removed (parity with
+# $SettingsRetiredEnvKeys in install-manifest.ps1). Nothing reads them any
+# more, so a live copy is dropped instead of being carried forward as
+# machine-local, and the installer says so. `MAX_TEAMS` went with
+# team-limit-guard in #969 (#974).
+SETTINGS_RETIRED_ENV_KEYS='["MAX_TEAMS"]'
+
 # merge_local_settings_keys <staged_path> <live_path>
 # Carry machine-local top-level keys from the deployed settings.json into a
 # staged copy of the repo profile. Mirrors Merge-LocalSettingsKeys; see its
@@ -465,11 +475,17 @@ merge_local_settings_keys() {
     [ -f "$live" ] || return 0
     command -v jq > /dev/null 2>&1 || return 0
 
+    # Both passes read the live file with SETTINGS_RETIRED_ENV_KEYS already
+    # removed from its env, so a retired key is neither carried nor reported.
     local carried
     carried="$(jq -r -n --slurpfile s "$staged" --slurpfile l "$live" \
         --argjson policy "$SETTINGS_POLICY_KEYS" \
-        --argjson runtime "$SETTINGS_RUNTIME_KEYS" '
-        ($s[0]) as $st | ($l[0]) as $lv
+        --argjson runtime "$SETTINGS_RUNTIME_KEYS" \
+        --argjson retired "$SETTINGS_RETIRED_ENV_KEYS" '
+        ($s[0]) as $st
+        | ($l[0] | if (.env | type) == "object"
+                   then .env |= with_entries(select(.key as $k | ($retired | index($k)) | not))
+                   else . end) as $lv
         | [ ($lv | keys_unsorted)[] as $k
             | select(($policy | index($k)) | not)
             | select($k != "env")
@@ -486,8 +502,12 @@ merge_local_settings_keys() {
     tmpfile=$(mktemp) || return 0
     if jq -n --slurpfile s "$staged" --slurpfile l "$live" \
         --argjson policy "$SETTINGS_POLICY_KEYS" \
-        --argjson runtime "$SETTINGS_RUNTIME_KEYS" '
-        ($s[0]) as $st | ($l[0]) as $lv
+        --argjson runtime "$SETTINGS_RUNTIME_KEYS" \
+        --argjson retired "$SETTINGS_RETIRED_ENV_KEYS" '
+        ($s[0]) as $st
+        | ($l[0] | if (.env | type) == "object"
+                   then .env |= with_entries(select(.key as $k | ($retired | index($k)) | not))
+                   else . end) as $lv
         | reduce ($lv | keys_unsorted)[] as $k ($st;
             if ($policy | index($k)) then .
             elif $k == "env" then .
@@ -503,6 +523,27 @@ merge_local_settings_keys() {
     else
         rm -f "$tmpfile"
     fi
+}
+
+# retired_local_settings_keys <staged_path> <live_path>
+# Prints env.<key>, one per line, for each SETTINGS_RETIRED_ENV_KEYS entry the
+# deployed settings.json still holds and the staged profile does not define:
+# the keys merge_local_settings_keys drops. Mirrors
+# Get-RetiredLocalSettingsKeys.
+retired_local_settings_keys() {
+    local staged="$1" live="$2"
+    [ -f "$staged" ] || return 0
+    [ -f "$live" ] || return 0
+    command -v jq > /dev/null 2>&1 || return 0
+
+    jq -r -n --slurpfile s "$staged" --slurpfile l "$live" \
+        --argjson retired "$SETTINGS_RETIRED_ENV_KEYS" '
+        ($s[0].env // {}) as $se
+        | (($l[0].env // {}) | keys_unsorted)[] as $k
+        | select(($retired | index($k)) != null)
+        | select(($se | has($k)) | not)
+        | "env." + $k
+    ' 2> /dev/null | tr -d '\r' || return 0
 }
 
 # update_claude_settings_json <settings_json_path> <agent_language> <content_language>

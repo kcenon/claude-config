@@ -581,12 +581,32 @@ function Test-SyncSettings {
 $GlobalDst = $ClaudeDir
 $installCmd = if ($IsWindows) { './scripts/install.ps1' } else { './scripts/install.sh' }
 
+# commit-settings.md is deployed from commit-settings.md.tmpl, rendered with the
+# content-language policy of the install, so it equals the english-canonical
+# commit-settings.md only under the english policy. Render the template the way
+# the installer does (Invoke-PolicyTemplate), for the policy the installed
+# settings.json records, and compare with that (#974).
+Import-Module (Join-Path $ScriptDir 'lib' 'InstallPrompts.psm1') -Force -DisableNameChecking
+$installedContentLanguage = Read-SettingsContentLanguage -Path (Join-Path $GlobalDst 'settings.json')
+if (-not $installedContentLanguage) { $installedContentLanguage = 'english' }
+
 # Global config files. settings.json is excluded from the byte-wise loop and
 # handled by Test-SyncSettings below.
 Write-InfoMessage "글로벌 설정 파일 동기화:"
 foreach ($f in @('CLAUDE.md', 'commit-settings.md', '.claudeignore')) {
     $src = Join-Path $BackupDir 'global' $f
-    if (Test-Path -LiteralPath $src -PathType Leaf) {
+    if (Test-Path -LiteralPath "$src.tmpl" -PathType Leaf) {
+        $rendered = Join-Path ([System.IO.Path]::GetTempPath()) "verify-render_$([guid]::NewGuid()).md"
+        try {
+            Invoke-PolicyTemplate -Source "$src.tmpl" -Destination $rendered -ContentLanguage $installedContentLanguage
+            Test-SyncFile -Source $rendered -Destination (Join-Path $GlobalDst $f) `
+                -Label "$f (rendered: $installedContentLanguage)"
+        }
+        finally {
+            Remove-Item -LiteralPath $rendered -Force -ErrorAction SilentlyContinue
+        }
+    }
+    elseif (Test-Path -LiteralPath $src -PathType Leaf) {
         Test-SyncFile -Source $src -Destination (Join-Path $GlobalDst $f) -Label $f
     }
 }

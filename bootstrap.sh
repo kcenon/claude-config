@@ -417,7 +417,8 @@ install_bootstrap_settings_and_hooks() {
 
     # Carry machine-local keys forward before the policy injection, so the
     # policy still wins on the keys it owns (issue #915).
-    local carried_keys
+    local carried_keys retired_keys
+    retired_keys="$(retired_local_settings_keys "$settings_tmp" "$settings_dst" | tr '\n' ' ' | sed -e 's/ *$//')"
     carried_keys="$(merge_local_settings_keys "$settings_tmp" "$settings_dst" | tr '\n' ' ' | sed -e 's/ *$//')"
 
     if update_claude_settings_json "$settings_tmp" "$agent_language" "$content_language"; then
@@ -441,6 +442,9 @@ install_bootstrap_settings_and_hooks() {
 
     if [ -n "$carried_keys" ]; then
         info "machine-local settings keys preserved: $carried_keys"
+    fi
+    if [ -n "$retired_keys" ]; then
+        info "removed retired setting: $retired_keys"
     fi
     if [ "$settings_updated" = "1" ]; then
         success "settings.json (에이전트: $agent_language, 컨텐츠: $content_language) 설치 완료"
@@ -570,7 +574,8 @@ install_global() {
         "commands/issue-create.md" "c654ab412f320b9d97553f92a510cf5de13a5d0a7ed5e14212ca62534887ae71" \
         "commands/issue-work.md" "048a26140b03862c5b10630853115ee656056f45cedfd0a0b6ec814bf7225684" \
         "commands/pr-work.md" "2ecf1a78271c553e2310b57b2a1deb026a07ae01b84c1f856638293ab41f1199" \
-        "commands/release.md" "93fd6d2f7800deada2868b97b65ef486f42482b5e2f1224c35f732ebfeb1c013"
+        "commands/release.md" "93fd6d2f7800deada2868b97b65ef486f42482b5e2f1224c35f732ebfeb1c013" \
+        "hooks/known-issues.json" "2b853ec2b2f40482e44f7d88996af00d97e97ca8bf6376ab7ea22bc1307a6e07"
     manifest_prune_tracked "$CLAUDE_DIR"
 
     # tmux 설정 설치
