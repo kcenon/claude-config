@@ -46,6 +46,15 @@ deletes them. (#964)
   `global/hooks/known-issues.json` and `env.MAX_TEAMS` in both settings
   files. `post-task-checkpoint` no longer auto-commits after `Task`/`Agent`
   calls, and team creation is no longer capped. (#969)
+- Code left without a consumer after #964: the hook libraries
+  `LanguageValidator.psm1`, `path-utils.sh` and `rotate.ps1` (with the
+  `LanguageValidator.psm1` test), `global/scripts/team-report.sh` and
+  `team-report.ps1`, whose log sources the removed loggers wrote, the unused
+  `CommonHelpers.psm1` import in `cleanup.ps1`, and
+  `New-HookWarningResponse`. The installers, `bootstrap.*` and `verify.*` no
+  longer require or check the removed libraries, and a reinstall prunes the
+  installed copies. `HOOKS.md` lists each deployed library with its
+  consumer. (#975)
 
 ### Changed
 

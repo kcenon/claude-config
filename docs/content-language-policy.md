@@ -249,7 +249,6 @@ the installer to re-render them, or edit the `.md` files in place.
 |---------|------|
 | Validator dispatch (bash) | `hooks/lib/validate-language.sh` |
 | Rule 2 branching (bash) | `hooks/lib/validate-commit-message.sh` |
-| Validator dispatch (PowerShell) | `global/hooks/lib/LanguageValidator.psm1` |
 | Phrase table (bash installer) | `scripts/install.sh` - `get_policy_phrase` |
 | Phrase table (PowerShell installer) | `scripts/install.ps1` - `Get-PolicyPhrase` |
 | Phrase table (drift test) | `tests/scripts/test-language-policy-drift.sh` |

@@ -359,7 +359,6 @@ deploy_bootstrap_hooks() {
 
     for lib in \
         tokenize-shell.sh \
-        path-utils.sh \
         timeout-wrapper.sh \
         rotate.sh \
         validate-commit-message.sh \

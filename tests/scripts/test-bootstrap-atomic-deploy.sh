@@ -53,7 +53,7 @@ JSON
 #!/bin/sh
 exit 0
 SH
-    for lib in tokenize-shell.sh path-utils.sh timeout-wrapper.sh rotate.sh; do
+    for lib in tokenize-shell.sh timeout-wrapper.sh rotate.sh; do
         cat > "$fixture/global/hooks/lib/$lib" <<'SH'
 #!/bin/sh
 return 0 2>/dev/null || exit 0
