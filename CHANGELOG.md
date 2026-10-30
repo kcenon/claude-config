@@ -5,7 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 1.16.0 - 2026-10-30
+
+Tracks: `suite` 1.16.0 and `hooks` 2.0.0 (the hook-set reduction below);
+`plugin` 2.3.0, `plugin-lite` 1.1.0 and `settings-schema` 1.17.1 are
+unchanged.
 
 **Breaking:** the hook set shrinks from 42 registrations in
 `global/settings.json` to 10, and the removed guards no longer block
@@ -138,6 +142,24 @@ deletes them. (#964)
   `commit-settings.md` with `commit-settings.md.tmpl` rendered for the
   `CLAUDE_CONTENT_LANGUAGE` of the installed `settings.json`, so a
   non-english install no longer reports a permanent DIFF. (#974)
+- Memory sync, from a first setup on a new primary machine:
+  - `validate.sh`, `backfill-frontmatter.sh` and `semantic-review.sh` read
+    `type` from the `metadata:` map that Claude Code's auto-memory writer
+    produces, when there is no top-level `type`. A top-level value still
+    wins; the spec moves to v1.1.0. (#956)
+  - `install.sh` warns when the memory repository has no
+    `scripts/install-hooks.sh`, instead of silently leaving the data-side
+    pre-commit gate missing. (#959)
+  - `install.sh` and `bootstrap.sh` deploy
+    `scripts/memory-{sync,status,notify}.sh` and `scripts/memory/*.sh` to
+    `~/.claude/scripts/`, manifest-tracked.
+    Before, the launchd/systemd units ran a missing script, and
+    `memory-write-guard.sh` skipped validation because its validators were
+    not found. `verify.sh` compares them on non-Windows trees. (#958)
+  - `secret-check.sh` no longer ships the maintainer's account and handle as
+    defaults. `OWNER_HOME_USER` defaults to the account running the check, and
+    `OWNER_GITHUB_HANDLE` has no default: set it to keep accepting your
+    `users.noreply.github.com` address. (#957)
 
 ## 1.15.0 - 2026-10-23
 
