@@ -212,14 +212,14 @@ cat > "$MERGE_DIR/profile.json" <<'JSON'
 { "description": "repo profile", "language": "korean", "effortLevel": "high",
   "permissions": { "allow": ["A"] },
   "hooks": { "PreToolUse": [{ "matcher": "Bash" }] },
-  "env": { "MAX_TEAMS": "4" } }
+  "env": { "MAX_MCP_OUTPUT_TOKENS": "4" } }
 JSON
 cat > "$MERGE_DIR/live.json" <<'JSON'
 { "description": "LOCALLY EDITED", "language": "english", "effortLevel": "xhigh",
   "model": "opus", "agentPushNotifEnabled": true,
   "permissions": { "allow": ["STALE"] },
   "hooks": { "PreToolUse": [{ "matcher": "STALE" }] },
-  "env": { "MAX_TEAMS": "99", "MY_LOCAL_VAR": "keep me" } }
+  "env": { "MAX_MCP_OUTPUT_TOKENS": "99", "MY_LOCAL_VAR": "keep me" } }
 JSON
 cp "$MERGE_DIR/profile.json" "$MERGE_DIR/staged.json"
 merged_keys="$(merge_local_settings_keys "$MERGE_DIR/staged.json" "$MERGE_DIR/live.json" | LC_ALL=C sort | tr '\n' ' ')"
@@ -232,7 +232,7 @@ merge_eq "repo description wins"       "$(jq -r .description "$MERGE_DIR/staged.
 merge_eq "repo language wins"          "$(jq -r .language "$MERGE_DIR/staged.json")" "korean"
 merge_eq "repo permissions win"        "$(jq -c .permissions.allow "$MERGE_DIR/staged.json")" '["A"]'
 merge_eq "repo hooks win"              "$(jq -r .hooks.PreToolUse[0].matcher "$MERGE_DIR/staged.json")" "Bash"
-merge_eq "repo env value wins"         "$(jq -r .env.MAX_TEAMS "$MERGE_DIR/staged.json")" "4"
+merge_eq "repo env value wins"         "$(jq -r .env.MAX_MCP_OUTPUT_TOKENS "$MERGE_DIR/staged.json")" "4"
 merge_eq "unknown key carried"         "$(jq -r .model "$MERGE_DIR/staged.json")" "opus"
 merge_eq "unknown bool carried"        "$(jq -r .agentPushNotifEnabled "$MERGE_DIR/staged.json")" "true"
 merge_eq "runtime key carried"         "$(jq -r .effortLevel "$MERGE_DIR/staged.json")" "xhigh"
@@ -256,6 +256,24 @@ merge_eq "unparseable live file carries nothing" "$bad_keys" ""
 diff -q "$MERGE_DIR/profile.json" "$MERGE_DIR/staged3.json" > /dev/null \
     || { echo "FAIL: unparseable live file altered the staged profile"; exit 1; }
 echo "merge_local_settings_keys: PASS"
+
+# A retired env key (#974): the repo removed env.MAX_TEAMS in #969, so a live
+# copy is dropped instead of being carried as machine-local, and
+# retired_local_settings_keys names it for the installer's info line. Any other
+# key the profile does not define is still carried.
+cat > "$MERGE_DIR/live-retired.json" <<'JSON'
+{ "env": { "MAX_TEAMS": "4", "SOME_LOCAL_KEY": "keep me" } }
+JSON
+cp "$MERGE_DIR/profile.json" "$MERGE_DIR/staged4.json"
+retired_carried="$(merge_local_settings_keys "$MERGE_DIR/staged4.json" "$MERGE_DIR/live-retired.json")"
+merge_eq "retired env key not carried" "$retired_carried" "env.SOME_LOCAL_KEY"
+merge_eq "retired env key dropped"     "$(jq -r '.env | has("MAX_TEAMS")' "$MERGE_DIR/staged4.json")" "false"
+merge_eq "other live-only env key kept" "$(jq -r .env.SOME_LOCAL_KEY "$MERGE_DIR/staged4.json")" "keep me"
+retired_named="$(retired_local_settings_keys "$MERGE_DIR/staged4.json" "$MERGE_DIR/live-retired.json")"
+merge_eq "retired env key named"       "$retired_named" "env.MAX_TEAMS"
+retired_none="$(retired_local_settings_keys "$MERGE_DIR/staged4.json" "$MERGE_DIR/live.json")"
+merge_eq "no retired key, nothing named" "$retired_none" ""
+echo "merge_local_settings_keys retired env keys: PASS"
 
 echo "All helper tests passed!"
 exit 0
