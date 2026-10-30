@@ -160,7 +160,10 @@ split_subcommands() {
                 quote="${qstack[${#qstack[@]}-1]}"
                 unset 'qstack[${#qstack[@]}-1]'
                 qstack=(${qstack[@]+"${qstack[@]}"})
-                buf+=" "  # placeholder so the outer command still parses
+                # Swap the opener for the placeholder `$(...)` leaves. A lone
+                # backtick would reopen a substitution when the flattener
+                # splits this line again, cutting off the outer arguments.
+                buf="${buf%?}\$() "
                 depth=$((depth-1))
                 i=$((i+1))
                 continue

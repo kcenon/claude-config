@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- `dangerous-command-guard` inspects shells called through a variable and tightens the scan of over-budget input. `$SHELL -c 'rm -rf /'` and `"$BASH" -c 'rm -rf ~'` deny like `bash -c`. `${X:-word}` resolves to its literal default. Any other unresolved head, and a `$(...)` or backtick head at any depth, asks when the arguments would be refused for `rm` or for a shell. `declare`, `local`, `readonly` and `typeset` count as assignments; `unset` and array values forget the name. Over 16 KiB, the regexes read the text with continuations joined and quoted prose blanked, accept the `rm` target before the flags, ask on a `git push` with no refspec and skip dry-run pushes. On `.ps1`, every coarse regex uses `RegexOptions.NonBacktracking` where the runtime has it and keeps the 1 s timeout. (#981)
+
 ## 1.16.0 - 2026-10-30
 
 Tracks: `suite` 1.16.0 and `hooks` 2.0.0 (the hook-set reduction below);
