@@ -1,6 +1,6 @@
 # Claude Configuration Backup & Deployment System
 
-Status: active · Release: [v1.15.0](https://github.com/kcenon/claude-config/releases/tag/v1.15.0) · [English](README.md)
+Status: active · Release: [v1.16.0](https://github.com/kcenon/claude-config/releases/tag/v1.16.0) · [English](README.md)
 
 <p align="center">
   <a href="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml"><img src="https://github.com/kcenon/claude-config/actions/workflows/validate-skills.yml/badge.svg" alt="CI"></a>
