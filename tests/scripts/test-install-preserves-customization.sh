@@ -228,7 +228,7 @@ if command -v jq > /dev/null 2>&1; then
     printf '%s\n' '{"fixture": "974", "env": {"ENABLE_TOOL_SEARCH": "auto:10"}}' \
         > "$INSTALL_FIXTURE/global/settings.json"
     printf '%s\n' '#!/bin/sh' 'exit 0' > "$INSTALL_FIXTURE/global/hooks/example.sh"
-    for lib in tokenize-shell.sh path-utils.sh timeout-wrapper.sh rotate.sh; do
+    for lib in tokenize-shell.sh timeout-wrapper.sh rotate.sh; do
         printf '%s\n' '#!/bin/sh' 'return 0 2>/dev/null || exit 0' > "$INSTALL_FIXTURE/global/hooks/lib/$lib"
     done
     for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do

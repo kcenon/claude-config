@@ -83,7 +83,7 @@ make_fixture() {
 
     printf '%s\n' '{"fixture": "memory-scripts"}' > "$fixture/global/settings.json"
     cp "$REPO_ROOT/global/hooks/memory-write-guard.sh" "$fixture/global/hooks/"
-    for lib in tokenize-shell.sh path-utils.sh timeout-wrapper.sh rotate.sh; do
+    for lib in tokenize-shell.sh timeout-wrapper.sh rotate.sh; do
         printf '%s\n' '#!/bin/sh' 'return 0 2>/dev/null || exit 0' > "$fixture/global/hooks/lib/$lib"
     done
     for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do

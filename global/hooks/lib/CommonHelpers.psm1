@@ -86,20 +86,6 @@ function New-HookAllowResponse {
     return ($response | ConvertTo-Json -Depth 3 -Compress)
 }
 
-function New-HookWarningResponse {
-    param(
-        [Parameter(Mandatory)][string]$Warning,
-        [string]$EventName = 'UserPromptSubmit'
-    )
-    $response = @{
-        hookSpecificOutput = @{
-            hookEventName     = $EventName
-            additionalContext = $Warning
-        }
-    }
-    return ($response | ConvertTo-Json -Depth 3 -Compress)
-}
-
 # ──────────────────────────────────────────────────────────────
 # Group 3: Hook Input Reader
 # Replaces bash INPUT=$(cat) + jq parsing
@@ -482,7 +468,7 @@ Set-Alias -Name Ensure-Directory -Value New-DirectoryIfMissing
 
 # ──────────────────────────────────────────────────────────────
 # Group 14: Path Resolution
-# Ported from global/hooks/lib/path-utils.sh resolve_path()
+# Ported from resolve_path() in the former global/hooks/lib/path-utils.sh
 # ──────────────────────────────────────────────────────────────
 
 function Resolve-HookPath {
@@ -490,8 +476,9 @@ function Resolve-HookPath {
     .SYNOPSIS
         Canonicalizes a file path for hook pattern matching.
     .DESCRIPTION
-        Port of resolve_path() from path-utils.sh, so the PowerShell guards
-        match on the same normalized form as their bash counterparts.
+        Port of resolve_path() from the former path-utils.sh, so the
+        PowerShell guards match on the same normalized form the bash guards
+        used.
 
         Expands a leading '~' or '$HOME' the same way the bash case statement
         does, then canonicalizes through [System.IO.Path]::GetFullPath. That
@@ -555,7 +542,6 @@ Export-ModuleMember -Function @(
     'New-HookDenyResponse'
     'New-HookAskResponse'
     'New-HookAllowResponse'
-    'New-HookWarningResponse'
     'Read-HookInput'
     'Get-Platform'
     'Get-EnterprisePath'

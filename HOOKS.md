@@ -54,6 +54,22 @@ Issue #964 removed the other 32 registrations. A reinstall prunes their script f
 | `markdown-anchor-validator` (project layer) | Nothing |
 | `session-logger`, `subagent-logger`, `tool-failure-logger`, `task-completed-logger`, `config-change-logger`, `cwd-change-logger`, `pre-compact-snapshot`, `post-compact-restore`, `instructions-loaded-reinforcer`, `post-task-checkpoint`, `prompt-validator`, `task-created-validator`, `version-check` | Nothing; Claude Code's own transcripts and debug logs cover diagnostics |
 
+### Shared libraries and their consumers
+
+The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a consumer. Remove a library once it loses its last consumer: the install manifest then prunes the installed copy on the next reinstall (#975).
+
+| Library | Source | Consumer |
+|---------|--------|----------|
+| `tokenize-shell.sh` | `global/hooks/lib/` | Sourced by `dangerous-command-guard.sh`; `dangerous-command-guard.ps1` carries a PowerShell port of its splitter |
+| `timeout-wrapper.sh` | `global/hooks/lib/` | Sourced by `merge-gate-guard.sh` |
+| `rotate.sh` | `global/hooks/lib/` | Sourced by `permission-denial-logger.sh` |
+| `CommonHelpers.psm1` | `global/hooks/lib/` | Imported by every `.ps1` hook except `cleanup.ps1` and `memory-integrity-check.ps1`, and by `scripts/weekly-usage.ps1` |
+| `validate-commit-message.sh` | `hooks/lib/` | No hook sources the deployed copy. `~/.claude/commit-settings.md` points readers at it for the exact attribution rules; the `commit-msg` git hook sources the copy that `hooks/install-hooks.sh` installs into `.git/hooks/lib/` |
+| `validate-language.sh` | `hooks/lib/` | `~/.claude/commit-settings.md` names it as the source of the `CLAUDE_CONTENT_LANGUAGE` rules |
+| `validate-traceability.sh` | `hooks/lib/` | The `pr-work` skill: `reference/traceability-impact-template.md` resolves `../../../../hooks/lib/validate-traceability.sh`, which is this copy once installed. The `pre-push` git hook uses its own copy in `.git/hooks/lib/` |
+
+`hooks/lib/installer-fetch.sh` and `hooks/lib/InstallerFetch.psm1` are used by the installers from the repository checkout and are not deployed.
+
 ## Quick Navigation
 
 | I want to... | See |

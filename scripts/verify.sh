@@ -204,7 +204,6 @@ fi
 # tokenize-shell.sh 를, merge-gate-guard 가 timeout-wrapper.sh 를 source 하므로
 # 누락 시 Bash 가드가 약화된다.
 check_file "$BACKUP_DIR/global/hooks/lib/tokenize-shell.sh" "global/hooks/lib/tokenize-shell.sh"
-check_file "$BACKUP_DIR/global/hooks/lib/path-utils.sh" "global/hooks/lib/path-utils.sh"
 check_file "$BACKUP_DIR/global/hooks/lib/timeout-wrapper.sh" "global/hooks/lib/timeout-wrapper.sh"
 check_file "$BACKUP_DIR/global/hooks/lib/rotate.sh" "global/hooks/lib/rotate.sh"
 

@@ -224,7 +224,7 @@ if (Test-Path -LiteralPath $settingsJson -PathType Leaf) {
 # dangerous-command-guard sources tokenize-shell.sh and merge-gate-guard
 # sources timeout-wrapper.sh; missing files weaken the Bash-channel guards.
 $hookLibDir = Join-Path $BackupDir 'global' 'hooks' 'lib'
-foreach ($lib in @('tokenize-shell.sh', 'path-utils.sh', 'timeout-wrapper.sh', 'rotate.sh')) {
+foreach ($lib in @('tokenize-shell.sh', 'timeout-wrapper.sh', 'rotate.sh')) {
     Test-FileExists (Join-Path $hookLibDir $lib) "global/hooks/lib/$lib" | Out-Null
 }
 
