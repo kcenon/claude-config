@@ -242,6 +242,16 @@ jobs:
         # bootstrap.ps1 using an isolated fake INSTALL_DIR and HOME.
         run: pwsh tests/scripts/test-bootstrap-atomic-deploy.ps1
 
+      - name: Run bootstrap commit-settings render test
+        # #984: bootstrap.sh deploys commit-settings.md rendered for the resolved
+        # language policy, also on a reinstall, byte-identical to install.sh.
+        run: bash tests/scripts/test-bootstrap-policy-render.sh
+
+      - name: Run bootstrap commit-settings render test (PowerShell)
+        # Same contract for bootstrap.ps1. The Windows job below runs it natively,
+        # where verify.ps1 has to report 0 failures.
+        run: pwsh -NoProfile -File tests/scripts/test-bootstrap-policy-render.ps1
+
       - name: Run clone installer atomic deploy test
         # Proves scripts/install.sh publishes settings.json only after
         # runtime hook deployment succeeds.
@@ -313,6 +323,12 @@ jobs:
         # #944: on Windows verify.ps1 must also compare the .ps1 hooks.
         shell: pwsh
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File tests/scripts/test-verify-sync.ps1
+
+      - name: Run bootstrap commit-settings render test on native Windows
+        # #984: verify.ps1 compares the Windows settings profile only here, so
+        # this is the job that can prove it reports 0 failures after bootstrap.ps1.
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File tests/scripts/test-bootstrap-policy-render.ps1
 
   shellcheck:
     runs-on: ${{ matrix.os }}

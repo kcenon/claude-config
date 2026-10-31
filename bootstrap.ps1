@@ -390,6 +390,12 @@ function Install-GlobalSettings {
     # Copy files (manifest-guarded: local edits preserved by default)
     $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'git-identity.md', 'token-management.md')
     foreach ($gf in $globalFiles) {
+        # commit-settings.md is rendered from its .tmpl below, once the language
+        # policy is known. Copying the raw file stated the English policy under
+        # every other one (#984).
+        if ($gf -eq 'commit-settings.md' -and (Test-Path -LiteralPath (Join-Path $InstallDir 'global' 'commit-settings.md.tmpl'))) {
+            continue
+        }
         $src  = Join-Path $InstallDir 'global' $gf
         $dest = Join-Path $ClaudeDir $gf
         if (-not (Test-Path -LiteralPath $src)) { continue }
@@ -446,6 +452,21 @@ function Install-GlobalSettings {
     $script:contentLanguage = $profileChoice.ContentLanguage
     $displayLang = $script:displayLang
     $contentLanguage = $script:contentLanguage
+
+    # commit-settings.md: the same rendered file scripts/install.ps1 deploys.
+    $commitSettingsTmpl = Join-Path $InstallDir 'global' 'commit-settings.md.tmpl'
+    if (Test-Path -LiteralPath $commitSettingsTmpl) {
+        $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "policy_$([guid]::NewGuid()).md"
+        Invoke-PolicyTemplate -Source $commitSettingsTmpl -Destination $tmpFile `
+            -ContentLanguage $script:contentLanguage -AgentDisplay $script:displayLang -AgentLanguage $script:agentLanguage
+        if (Invoke-ManifestTrackedCopy -Src $tmpFile -Dest (Join-Path $ClaudeDir 'commit-settings.md') -Key 'commit-settings.md') {
+            Write-Ok "commit-settings.md 설치됨 (policy phrase: $(Get-PolicyPhrase -Policy $script:contentLanguage))"
+        }
+        else {
+            Write-Info "commit-settings.md 로컬 변경 유지"
+        }
+        Remove-Item -LiteralPath $tmpFile -Force -ErrorAction SilentlyContinue
+    }
 
     # conversation-language.md 템플릿 처리
     $tmplPath = Join-Path $InstallDir 'global' 'conversation-language.md.tmpl'
@@ -830,6 +851,13 @@ if ($env:CLAUDE_CONFIG_BOOTSTRAP_TEST_MODE -eq 'atomic-deploy') {
     }
     . $manifestHelper
     Install-BootstrapSettingsAndHooks
+    exit 0
+}
+
+# Test-only: the global install from INSTALL_DIR, with no clone and no CLI check,
+# so that a test can run it on a checked-out tree.
+if ($env:CLAUDE_CONFIG_BOOTSTRAP_TEST_MODE -eq 'global-install') {
+    Install-GlobalSettings
     exit 0
 }
 

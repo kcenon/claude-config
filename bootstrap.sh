@@ -474,6 +474,12 @@ install_global() {
     # while the file on disk held the seeded one, so the next install saw a
     # divergence it had created itself and prompted for it, every time (#916).
     for gf in CLAUDE.md commit-settings.md git-identity.md token-management.md; do
+        # commit-settings.md is rendered from its .tmpl below, once the language
+        # policy is known. Copying the raw file stated the English policy under
+        # every other one (#984).
+        if [ "$gf" = "commit-settings.md" ] && [ -f "$INSTALL_DIR/global/commit-settings.md.tmpl" ]; then
+            continue
+        fi
         src="$INSTALL_DIR/global/$gf"
         dest="$CLAUDE_DIR/$gf"
         [ -f "$src" ] || continue
@@ -503,6 +509,20 @@ install_global() {
 
     # Language policy selection (Unified Language Profile)
     prompt_language_profile
+
+    # commit-settings.md: the same rendered file scripts/install.sh deploys.
+    if [ -f "$INSTALL_DIR/global/commit-settings.md.tmpl" ]; then
+        local tmp_commit_settings
+        tmp_commit_settings="$(mktemp)"
+        render_policy_tmpl "$INSTALL_DIR/global/commit-settings.md.tmpl" "$tmp_commit_settings"
+        if manifest_copy_file "$tmp_commit_settings" "$CLAUDE_DIR/commit-settings.md" "commit-settings.md"; then
+            chmod 644 "$CLAUDE_DIR/commit-settings.md"
+            success "commit-settings.md 설치됨 (policy phrase: $(get_policy_phrase))"
+        else
+            info "commit-settings.md 로컬 변경 유지"
+        fi
+        rm -f "$tmp_commit_settings"
+    fi
 
     # conversation-language.md 템플릿 처리
     if [ -f "$INSTALL_DIR/global/conversation-language.md.tmpl" ]; then
@@ -776,6 +796,13 @@ if [ "${CLAUDE_CONFIG_BOOTSTRAP_TEST_MODE:-}" = "atomic-deploy" ]; then
     # shellcheck disable=SC1091
     source "$INSTALL_DIR/scripts/install-manifest.sh"
     install_bootstrap_settings_and_hooks
+    exit 0
+fi
+
+# Test-only: the global install from INSTALL_DIR, with no clone and no CLI check,
+# so that a test can run it on a checked-out tree.
+if [ "${CLAUDE_CONFIG_BOOTSTRAP_TEST_MODE:-}" = "global-install" ]; then
+    install_global
     exit 0
 fi
 
