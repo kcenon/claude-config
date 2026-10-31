@@ -35,7 +35,6 @@ set -euo pipefail
 
 LOG_FILE="${HOME}/.claude/logs/memory-access.log"
 MEMORY_ROOT="${HOME}/.claude/memory-shared/memories"
-SHARED_ROOT="${HOME}/.claude/memory-shared"
 
 # ----- helpers ---------------------------------------------------------------
 
@@ -185,6 +184,12 @@ SESSION_ID="$(extract_json_field "$INPUT" '.session_id')"
 
 RESOLVED="$(resolve_path "$FILE_PATH")"
 
+# Compare like with like: RESOLVED follows links, so the root has to as well, or
+# every read under a symlinked HOME misses the gate and leaves no line (#983).
+if [ -d "$MEMORY_ROOT" ]; then
+    MEMORY_ROOT="$(resolve_path "$MEMORY_ROOT")"
+fi
+
 # Strict prefix match: must be under memories/ specifically. The top-level
 # MEMORY.md is intentionally NOT logged (it is auto-generated, not user
 # memory content).
@@ -193,8 +198,9 @@ case "$RESOLVED" in
     *) silent_exit ;;
 esac
 
-# Compute the relative path from memory-shared/ for compactness.
-RELATIVE="${RESOLVED#"$SHARED_ROOT"/}"
+# Relative to memory-shared/ for compactness. Built from the resolved root, so
+# that a memories directory that is itself a link still logs the same key.
+RELATIVE="memories/${RESOLVED#"$MEMORY_ROOT"/}"
 
 # ----- write log entry -------------------------------------------------------
 

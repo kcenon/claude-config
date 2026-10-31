@@ -45,33 +45,15 @@ if ([string]::IsNullOrEmpty($filePath)) {
 
 # ----- path gate (resolve, prefix check) ------------------------------------
 
-function Resolve-Path-Safe {
-    param([string]$Path)
-    if ([string]::IsNullOrEmpty($Path)) { return $Path }
-    try {
-        if (Test-Path -LiteralPath $Path) {
-            return (Resolve-Path -LiteralPath $Path -ErrorAction Stop).Path
-        } else {
-            # Not Split-Path: -LiteralPath and -Parent/-Leaf are separate
-            # parameter sets in PowerShell 7 and throw together (#972).
-            $parent = [System.IO.Path]::GetDirectoryName($Path)
-            $base   = [System.IO.Path]::GetFileName($Path)
-            if (-not [string]::IsNullOrEmpty($parent) -and (Test-Path -LiteralPath $parent)) {
-                $resolvedParent = (Resolve-Path -LiteralPath $parent -ErrorAction Stop).Path
-                return Join-Path $resolvedParent $base
-            }
-            return $Path
-        }
-    } catch {
-        return $Path
-    }
-}
-
 $home_dir   = if ($env:HOME) { $env:HOME } elseif ($env:USERPROFILE) { $env:USERPROFILE } else { [System.Environment]::GetFolderPath('UserProfile') }
 $memoryRoot = Join-Path (Join-Path $home_dir '.claude') 'memory-shared'
 $memoryRoot = Join-Path $memoryRoot 'memories'
 
-$resolved = Resolve-Path-Safe $filePath
+# Both sides follow links, as in memory-write-guard.sh. A write that names the
+# real target of a symlinked HOME, or reaches a real HOME through a link, would
+# otherwise miss the gate and go unvalidated (#983).
+$memoryRoot = Resolve-HookPath $memoryRoot
+$resolved = Resolve-HookPath $filePath
 
 # Path must be a .md file under the memory root.
 $normalized     = $resolved -replace '\\','/'
