@@ -12,7 +12,8 @@
 # secret written into the shared memory tree.
 #
 # A second section asserts with jq that permissions.deny carries every pattern
-# sensitive-file-guard used to deny, in both settings files.
+# sensitive-file-guard used to deny, in both settings files, plus the
+# home-anchored credential rules and the two files left readable on purpose.
 #
 # Any hook registered on Edit, Write or Read later is exercised automatically,
 # so a policy guard that comes back fails here.
@@ -204,9 +205,8 @@ echo "[permissions.deny covers every sensitive-file-guard pattern]"
 # Write(path) rule. Edit deny rules would also become sandbox write denies,
 # which the removed guard never imposed, so only the four existing .env rules
 # stay. See https://code.claude.com/docs/en/permissions.
-# '**/' patterns are relative to the working directory, so the home-directory
-# AWS credentials file needs its own '~/'-anchored rule (#973). ~/.ssh has none
-# on purpose: sandboxed SSH commit signing reads the key file.
+# '**/' patterns are relative to the working directory, so credential files in
+# the home directory need their own '~/'-anchored rules (#973, #982).
 # shellcheck disable=SC2088  # '~' is rule text compared with jq, not a path
 READ_PATTERNS=(
     '.env' '.env.*' '**/.env' '**/.env.*' '**/.envrc' '**/*.env' '**/*.env.*'
@@ -214,6 +214,9 @@ READ_PATTERNS=(
     '**/id_rsa' '**/id_rsa.*' '**/id_ed25519' '**/id_ed25519.*'
     '**/id_ecdsa' '**/id_ecdsa.*' '**/id_dsa' '**/id_dsa.*'
     '**/.aws/**/credentials' '**/.aws/**/config' '~/.aws/credentials'
+    '~/.netrc' '~/.pypirc' '~/.docker/config.json' '~/.kube/config'
+    '~/.gnupg/**' '~/.config/gh/hosts.yml'
+    '~/.aws/sso/cache/**' '~/.aws/cli/cache/**'
     '**/secrets/**' '**/credentials/**' '**/*password*'
     '**/*secrets/**' '**/*credentials/**' '**/*passwords/**'
 )
@@ -248,6 +251,35 @@ for f in "$SETTINGS" "$WIN_SETTINGS"; do
         FAIL=$((FAIL + 1))
         ERRORS+=("FAIL: $name has a Write(path) deny rule, which Claude Code never matches; use Read(path)")
         echo "  FAIL: $name has a Write(path) deny rule"
+    fi
+done
+
+echo ""
+echo "[~/.npmrc and ~/.ssh stay readable on purpose]"
+# A rule also becomes a sandbox read-deny, which stops the tool itself: without
+# ~/.npmrc npm silently falls back to the public registry, and sandboxed SSH
+# commit signing reads the key file. Changing either decision starts in the
+# table in ENFORCEMENT.md, so a rule alone fails here.
+for f in "$SETTINGS" "$WIN_SETTINGS"; do
+    name="${f##*/}"
+    if jq -e '[.permissions[] | arrays | .[] | select(test("\\.npmrc|\\.ssh"))] | length == 0' "$f" >/dev/null 2>&1; then
+        PASS=$((PASS + 1))
+        echo "  PASS: $name has no rule that names .npmrc or .ssh"
+    else
+        FAIL=$((FAIL + 1))
+        ERRORS+=("FAIL: $name has a rule that names .npmrc or .ssh, which stay readable on purpose")
+        echo "  FAIL: $name has a rule that names .npmrc or .ssh"
+    fi
+done
+section=$(awk '/^## / { on = ($0 == "## Secrets outside the working directory") } on' "$REPO_ROOT/ENFORCEMENT.md")
+for exception in npmrc ssh; do
+    if grep -qE '^\| `~/\.'"$exception"'[^|]*\| Readable on purpose \|' <<<"$section"; then
+        PASS=$((PASS + 1))
+        echo "  PASS: ENFORCEMENT.md lists ~/.$exception as readable on purpose"
+    else
+        FAIL=$((FAIL + 1))
+        ERRORS+=("FAIL: ENFORCEMENT.md does not list ~/.$exception as readable on purpose")
+        echo "  FAIL: ENFORCEMENT.md does not list ~/.$exception as readable on purpose"
     fi
 done
 
