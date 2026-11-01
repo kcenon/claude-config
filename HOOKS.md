@@ -165,7 +165,7 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 
 **Purpose**: Enforces the "ABSOLUTE CI GATE" rule from `global/CLAUDE.md` at the Bash tool boundary: a deterministic hook gate that catches drift where the model occasionally rationalizes failing checks as "unrelated", "infrastructure", or "pre-existing". The merge method (`--squash`, `--merge`, `--rebase`) is not checked since #964; the repository's merge settings decide it.
 
-**Trigger**: `Bash` tool calls matching `gh pr merge`.
+**Trigger**: on POSIX, `Bash` tool calls containing `gh pr merge`, through the handler's `if` rule `Bash(*gh pr merge*)`. The leading wildcard keeps `bash -c`, `env` and `command` forms in scope (#996). On Windows, the [dispatcher](#bash-guard-dispatcher-windows) routes any command containing `gh` to it.
 
 **Files**: `global/hooks/merge-gate-guard.sh`, `global/hooks/merge-gate-guard.ps1`
 
@@ -197,6 +197,7 @@ A diagnostic is written to stderr in each fail-open case so the user can see why
 ```json
 {
   "type": "command",
+  "if": "Bash(*gh pr merge*)",
   "command": "~/.claude/hooks/merge-gate-guard.sh",
   "timeout": 30
 }
@@ -221,7 +222,7 @@ A diagnostic is written to stderr in each fail-open case so the user can see why
 |------|-------|----------|
 | `memory-write-guard` | PreToolUse `Edit\|Write` | Validates an Edit or Write under `~/.claude/memory-shared/memories/` before it reaches disk: a structure, secret or owner-configuration failure denies, an injection finding only warns. Allows every other path. Timeout 30 s. |
 | `memory-integrity-check` | SessionStart | Prints a short `[memory]` health summary from local metadata, with no network call |
-| `memory-access-logger` | PostToolUse `Read` (async) | Logs the path of each read under the shared memory tree |
+| `memory-access-logger` | PostToolUse `Read` (async) | Logs the path of each read under the shared memory tree. On POSIX, the `if` rule `Read(~/.claude/**/memor*/**)` starts it only for memory directories, including a project memory symlink (#996). |
 
 See [docs/MEMORY_SYNC.md](docs/MEMORY_SYNC.md) for operations and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) for why these stay.
 
@@ -680,7 +681,7 @@ not its median.
 | Matcher | Registered | Timeout | Why |
 |---------|-----------|---------|-----|
 | `Edit\|Write` | `memory-write-guard` on POSIX; `edit-guard-dispatcher.ps1` on Windows | 30 s | Fail-open makes a skipped guard worse than a slow one. Measured before #964 with three guards on `Edit\|Write\|Read`: median 429 ms and p99 1,020 ms over 35,276 local runs, worst case 11,141 ms (#897). |
-| `Bash` | `dangerous-command-guard` (5 s) and `merge-gate-guard` (30 s) on POSIX; `bash-guard-dispatcher.ps1` on Windows | 5 s / 30 s; 30 s | `merge-gate-guard` makes a network call. The Windows dispatcher has a 25 s internal guard budget plus process-start slack, and names any guard it had to skip instead of truncating silently. |
+| `Bash` | `dangerous-command-guard` (5 s) and, for calls containing `gh pr merge`, `merge-gate-guard` (30 s) on POSIX; `bash-guard-dispatcher.ps1` on Windows | 5 s / 30 s; 30 s | `merge-gate-guard` makes a network call. The Windows dispatcher has a 25 s internal guard budget plus process-start slack, and names any guard it had to skip instead of truncating silently. |
 
 ### Formatter not working
 

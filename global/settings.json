@@ -172,6 +172,7 @@
       },
       {
         "matcher": "Bash",
+        "_note": "dangerous-command-guard has no if: it must read every command through shell grammar and wrappers (#991). merge-gate-guard starts only when the call contains gh pr merge. The wildcards on both sides are deliberate: on Claude Code 2.1.316, Bash(gh pr merge *) did not start it for bash -c, env or command wrappers, which the guard's own scope check catches. A wrong if stops a guard without any error, so tests/hooks/test-bash-channel-minimal.sh pins the rule. See issue #996.",
         "hooks": [
           {
             "type": "command",
@@ -180,6 +181,7 @@
           },
           {
             "type": "command",
+            "if": "Bash(*gh pr merge*)",
             "command": "~/.claude/hooks/merge-gate-guard.sh",
             "timeout": 30
           }
@@ -216,9 +218,11 @@
     "PostToolUse": [
       {
         "matcher": "Read",
+        "_note": "The if keeps this hook off reads outside a memory directory. It names any memor* directory under ~/.claude, not ~/.claude/memory-shared alone: on Claude Code 2.1.316, an if on a path rule matched the requested path only, so the narrower rule missed reads through the project memory symlink that docs/MEMORY_SYNC.md offers as a fallback. The hook still checks the memory root itself, so a wider match costs one process and logs nothing extra. See issue #996.",
         "hooks": [
           {
             "type": "command",
+            "if": "Read(~/.claude/**/memor*/**)",
             "command": "~/.claude/hooks/memory-access-logger.sh",
             "timeout": 5,
             "async": true
