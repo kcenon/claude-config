@@ -36,10 +36,18 @@
 # as a shell. Any other unresolved head, and a `$(...)` or backtick head at any
 # depth, asks when its arguments would make rm deny or ask, or when the operand
 # of a flag ending in c would make a shell deny or ask.
+# The real command of a sub-command is found first (#991): shell grammar goes
+# (`if`, `then`, `do`, `!`, `{`, `(`, a case pattern, a function head), then
+# leading assignments and redirections, then known wrappers with their own flags
+# (sudo, env, command, nice, nohup, time, timeout, xargs, ...). `command -v` is a
+# lookup. rm through xargs, parallel or find -exec always asks. A fetch piped to
+# a shell through a wrapper or `$SHELL` denies; to any other unresolved head it
+# asks. `for` and `select` keep their words as data. A wrapper this list does not
+# know, `ssh host '...'` and an interpreter's own body are not inspected.
 # Input longer than DCG_TOKENIZER_MAX_BYTES is not tokenized: a regex scan of
 # the text, with continuations joined and quoted prose blanked, denies the
-# deny-tier shapes and asks on any keyword of an ask arm or on a git push with
-# no refspec.
+# deny-tier shapes and asks on any keyword of an ask arm, on a git push with no
+# refspec, or on an unresolved command name with a recursive flag.
 #
 # Side effects:
 #   Writes one JSON line per deny or ask decision to
@@ -224,8 +232,18 @@ coarse_scan() {
     # expansion may come between them, so `git stash push` is not a push.
     local pushed="${W}git(${S}+((-C|-c|--git-dir|--work-tree|--namespace|--super-prefix)${S}+[^[:space:]]+|-[^[:space:]]*|${Q}?[\$][^[:space:]]*))*${S}+push"
 
-    # Cheap prefilter: none of the command words, nothing to scan.
-    coarse_has "$COARSE_TEXT" '(rm|git|gh|find)' || return 0
+    # A command name that cannot be resolved may be rm, as on the tokenized path
+    # (#991). It holds no command word, and it must not pre-empt a deny below.
+    local unresolved=0
+    if coarse_has "$COARSE_TEXT" "(^|[;&|(])${S}*${Q}?[\$][^[:space:]]*${S}+(${G}${S})?${rec}${E}"; then
+        unresolved=1
+    fi
+
+    # Cheap prefilter: none of the command words, nothing else to scan.
+    if ! coarse_has "$COARSE_TEXT" '(rm|git|gh|find)'; then
+        [ "$unresolved" = 0 ] || coarse_ask "a command name that cannot be resolved, with a recursive flag"
+        return 0
+    fi
 
     # A recursive flag and a denied target, in either order.
     if coarse_has "$COARSE_TEXT" "${rmr}${S}(${G}${S})?${Q}?(${home}(/|${E})|/)" \
@@ -254,6 +272,8 @@ coarse_scan() {
     if [ -n "$api" ] && coarse_has "$api" "(^|${S})${Q}?(https?://[^/[:space:]]+/)?(api/v3/)?/*repos/[^/[:space:]]+/[^/[:space:]?\"']+/*([?][^[:space:]]*)?${Q}?${E}"; then
         deny_response "gh api DELETE on repos/<owner>/<repo> deletes the repository itself, irreversibly. Blocked."
     fi
+
+    [ "$unresolved" = 0 ] || coarse_ask "a command name that cannot be resolved, with a recursive flag"
 
     if coarse_has "$push" "${pushed}${S}(${G}${S})?${Q}?(--force|--delete|-[[:alpha:]]*[fd][[:alpha:]]*|[+:][^[:space:]]+)${E}"; then
         coarse_ask "git push --force / --delete / +<ref> / :<ref>"
@@ -317,7 +337,8 @@ if [ "${#CMD}" -gt "$DCG_TOKENIZER_MAX_BYTES" ]; then
     if coarse_has "$COARSE_TEXT" 'chmod\s+(0?777|a\+rwx|[246][0-9][0-9][0-9])'; then
         deny_response "Dangerous permission change (777/a+rwx) blocked for security"
     fi
-    if coarse_has "$COARSE_TEXT" '(curl|wget)\s.*\|\s*(sh|bash|zsh|dash|python[23]?|perl|ruby|node)\b'; then
+    # A wrapper may stand in front of the receiver (#991).
+    if coarse_has "$COARSE_TEXT" '(curl|wget)\s.*\|\s*((sudo|doas|env|exec|nohup|command|time)\s+(-\S+\s+|[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)?("?\$\{?(SHELL|BASH)\}?"?|(\S*/)?(sh|bash|zsh|dash|python[23]?|perl|ruby|node))([[:space:];&|)]|$)'; then
         deny_response "Remote script execution via pipe blocked for security"
     fi
     coarse_scan
@@ -357,29 +378,244 @@ EFF_CWD="$HOOK_CWD"
 VAR_NAMES=()
 VAR_VALUES=()
 
-# Trim a single leading `sudo`/`time`/`nice`/`env VAR=...` wrapper so the
-# real command head is reachable. Stops after one wrapper to keep behavior
-# bounded; chained wrappers (e.g. `sudo env X=1 rm`) still get caught
-# because their second token is itself dangerous.
-strip_wrapper_prefix() {
-    local -a tokens=("$@")
-    local head="${tokens[0]:-}"
-    case "$head" in
-        sudo|nice|nohup|time|stdbuf|exec)
-            tokens=("${tokens[@]:1}")
-            ;;
-        env)
-            # Drop `env` and any leading `VAR=value` assignments.
-            tokens=("${tokens[@]:1}")
-            while [ ${#tokens[@]} -gt 0 ]; do
-                case "${tokens[0]}" in
-                    *=*) tokens=("${tokens[@]:1}") ;;
-                    *)   break ;;
+# 1 while inspecting a command that runs once per input (xargs, find -exec).
+EACH_INPUT=0
+
+# strip_compound_syntax: drop the shell grammar around a simple command from the
+# caller's array `tokens`: reserved words, grouping, a function head, a case
+# pattern, and the `)` that closes a subshell. `for x in a; do rm -rf ~; done`
+# reaches the inspectors as `rm -rf ~`. `for` and `select` stay, because their
+# words are data. SUBSHELL_OPENS and SUBSHELL_CLOSES count the parentheses, so
+# that a `cd` inside a subshell ends with it.
+strip_compound_syntax() {
+    SUBSHELL_OPENS=0
+    SUBSHELL_CLOSES=0
+    local t opens closes
+    while [ ${#tokens[@]} -gt 0 ]; do
+        t="${tokens[0]}"
+        case "$t" in
+            '$'*) break ;;
+            if|then|elif|else|while|until|do|'!'|'{'|coproc)
+                tokens=("${tokens[@]:1}")
+                ;;
+            time)
+                # The keyword form; `time make` and `time -o f make` are for
+                # strip_wrappers, like /usr/bin/time.
+                case "${tokens[1]:-}" in
+                    -p) tokens=("${tokens[@]:2}") ;;
+                    '{'|'!'|'('*) tokens=("${tokens[@]:1}") ;;
+                    *) break ;;
                 esac
-            done
-            ;;
+                ;;
+            function)
+                tokens=("${tokens[@]:2}")
+                [ "${tokens[0]:-}" != '()' ] || tokens=("${tokens[@]:1}")
+                ;;
+            case)
+                [ "${tokens[2]:-}" = in ] || break
+                tokens=("${tokens[@]:3}")
+                ;;
+            '('*')'|*'()')
+                # `(pattern)` of a case arm, `(word)`, or `name()`.
+                tokens=("${tokens[@]:1}")
+                ;;
+            '('*)
+                SUBSHELL_OPENS=$((SUBSHELL_OPENS + 1))
+                t="${t#(}"
+                if [ -n "$t" ]; then tokens[0]="$t"; else tokens=("${tokens[@]:1}"); fi
+                ;;
+            *')')
+                # A case pattern. A lone last word is the end of a subshell,
+                # which the loop below handles.
+                [ ${#tokens[@]} -gt 1 ] || break
+                tokens=("${tokens[@]:1}")
+                ;;
+            *)
+                # `name () {`
+                [ "${tokens[1]:-}" = '()' ] || break
+                tokens=("${tokens[@]:2}")
+                ;;
+        esac
+    done
+    while [ ${#tokens[@]} -gt 0 ]; do
+        t="${tokens[${#tokens[@]}-1]}"
+        case "$t" in
+            *')') ;;
+            *) break ;;
+        esac
+        # A balanced word is no closer: `$()`, `name()`, `(a)`.
+        opens="${t//[!(]/}"
+        closes="${t//[!)]/}"
+        [ ${#closes} -gt ${#opens} ] || break
+        SUBSHELL_CLOSES=$((SUBSHELL_CLOSES + 1))
+        t="${t%)}"
+        if [ -n "$t" ]; then
+            tokens[${#tokens[@]}-1]="$t"
+        else
+            tokens=("${tokens[@]:0:${#tokens[@]}-1}")
+        fi
+    done
+    return 0
+}
+
+# is_assignment_word <word>: NAME=value, NAME+=value or NAME[i]=value. IFS does
+# not count, so that inspect_argv sees it and refuses it.
+is_assignment_word() {
+    local name="${1%%=*}"
+    [ "$name" != "$1" ] || return 1
+    name="${name%+}"
+    name="${name%%\[*}"
+    case "$name" in
+        ''|[0-9]*|*[!A-Za-z0-9_]*|IFS) return 1 ;;
     esac
-    printf '%s\n' ${tokens[@]+"${tokens[@]}"}
+    return 0
+}
+
+# skip_wrapper_flags <value flags>: drop the leading flags of the caller's array
+# `tokens`. <value flags> lists, between spaces, the flags that take the next
+# word as a value. A short cluster reads like getopt: `-nu root` takes root for
+# -u, and `-uroot` holds its own value.
+skip_wrapper_flags() {
+    local values="$1" t c i
+    while [ ${#tokens[@]} -gt 0 ]; do
+        t="${tokens[0]}"
+        case "$t" in
+            --)
+                tokens=("${tokens[@]:1}")
+                return 0
+                ;;
+            --*=*|-)
+                tokens=("${tokens[@]:1}")
+                ;;
+            --*)
+                tokens=("${tokens[@]:1}")
+                case "$values" in
+                    *" $t "*) [ ${#tokens[@]} -eq 0 ] || tokens=("${tokens[@]:1}") ;;
+                esac
+                ;;
+            -*)
+                tokens=("${tokens[@]:1}")
+                for ((i = 1; i < ${#t}; i++)); do
+                    c="${t:$i:1}"
+                    case "$values" in
+                        *" -$c "*)
+                            if [ "$i" -eq $((${#t} - 1)) ] && [ ${#tokens[@]} -gt 0 ]; then
+                                tokens=("${tokens[@]:1}")
+                            fi
+                            break
+                            ;;
+                    esac
+                done
+                ;;
+            *) return 0 ;;
+        esac
+    done
+    return 0
+}
+
+# strip_wrappers: drop what stands in front of the real command in the caller's
+# array `tokens`: assignments, redirections, and known wrappers with their own
+# flags, in any number and order. `sudo -u root env X=1 rm -rf ~` reaches the
+# inspectors as `rm -rf ~`. Only the words in front go, so it is safe to run this
+# twice. Each round drops a word, so it ends. xargs and parallel run the command
+# once per input, which EACH_INPUT records. watch and env -S run a string, so it
+# becomes a shell payload.
+strip_wrappers() {
+    local t
+    while [ ${#tokens[@]} -gt 0 ]; do
+        t="${tokens[0]}"
+        if is_assignment_word "$t"; then
+            tokens=("${tokens[@]:1}")
+            continue
+        fi
+        case "$t" in
+            '<'|'>'|'>>'|'<<<'|[0-9]'<'|[0-9]'>'|[0-9]'>>')
+                tokens=("${tokens[@]:2}")
+                continue
+                ;;
+            '<'*|'>'*|[0-9]'<'*|[0-9]'>'*)
+                tokens=("${tokens[@]:1}")
+                continue
+                ;;
+        esac
+        case "${t##*/}" in
+            sudo|doas)
+                tokens=("${tokens[@]:1}")
+                skip_wrapper_flags " -u -g -h -p -C -r -t -T -U -D -R --user --group --host --prompt --close-from --role --type --command-timeout --other-user --chdir --chroot "
+                ;;
+            env)
+                tokens=("${tokens[@]:1}")
+                skip_wrapper_flags " -u -C --unset --chdir "
+                # `env -S 'rm -rf ~'`: a command name holds no space.
+                case "${tokens[0]:-}" in
+                    *' '*) tokens=(sh -c "${tokens[*]}") ;;
+                esac
+                ;;
+            command)
+                # `command -v rm` only looks the name up.
+                for t in "${tokens[@]:1}"; do
+                    case "$t" in
+                        -*[vV]*) return 0 ;;
+                        -*) ;;
+                        *) break ;;
+                    esac
+                done
+                tokens=("${tokens[@]:1}")
+                skip_wrapper_flags " "
+                ;;
+            builtin|nohup|chronic|unbuffer|setsid)
+                tokens=("${tokens[@]:1}")
+                skip_wrapper_flags " "
+                ;;
+            nice)
+                tokens=("${tokens[@]:1}")
+                skip_wrapper_flags " -n --adjustment "
+                ;;
+            ionice)
+                tokens=("${tokens[@]:1}")
+                skip_wrapper_flags " -c -n -p --class --classdata --pid "
+                ;;
+            time)
+                tokens=("${tokens[@]:1}")
+                skip_wrapper_flags " -o -f --output --format "
+                ;;
+            stdbuf)
+                tokens=("${tokens[@]:1}")
+                skip_wrapper_flags " -i -o -e --input --output --error "
+                ;;
+            exec)
+                tokens=("${tokens[@]:1}")
+                skip_wrapper_flags " -a "
+                ;;
+            timeout|gtimeout)
+                tokens=("${tokens[@]:1}")
+                skip_wrapper_flags " -k -s --kill-after --signal "
+                # The duration.
+                [ ${#tokens[@]} -eq 0 ] || tokens=("${tokens[@]:1}")
+                ;;
+            caffeinate)
+                tokens=("${tokens[@]:1}")
+                skip_wrapper_flags " -t -w "
+                ;;
+            xargs)
+                EACH_INPUT=1
+                tokens=("${tokens[@]:1}")
+                skip_wrapper_flags " -I -L -n -P -s -E -d -a --replace --max-lines --max-args --max-procs --max-chars --eof --delimiter --arg-file "
+                ;;
+            parallel)
+                EACH_INPUT=1
+                tokens=("${tokens[@]:1}")
+                skip_wrapper_flags " -j -P -a -S --jobs --arg-file --sshlogin --delay --timeout "
+                ;;
+            watch)
+                tokens=("${tokens[@]:1}")
+                skip_wrapper_flags " -n --interval "
+                [ ${#tokens[@]} -eq 0 ] || tokens=(sh -c "${tokens[*]}")
+                ;;
+            *) return 0 ;;
+        esac
+    done
+    return 0
 }
 
 # --- Path and work tree helpers ----------------------------------------------
@@ -570,23 +806,34 @@ inspect_chmod() {
 
 inspect_find() {
     shift
-    local t prev=""
-    for t in "$@"; do
-        if [ "$t" = "-delete" ]; then
-            echo "find -delete removes every match permanently. Confirm to proceed, or run the same find with -print first."
-            return 2
-        fi
-        case "$prev" in
+    local t i=0 rc reason
+    local -a args=("$@") exec_argv
+    while [ "$i" -lt "${#args[@]}" ]; do
+        t="${args[$i]}"
+        i=$((i + 1))
+        case "$t" in
+            -delete)
+                echo "find -delete removes every match permanently. Confirm to proceed, or run the same find with -print first."
+                return 2
+                ;;
             -exec|-execdir|-ok|-okdir)
-                case "$t" in
-                    rm|*/rm)
-                        echo "find -exec rm removes every match permanently. Confirm to proceed, or run the same find with -print first."
-                        return 2
-                        ;;
-                esac
+                exec_argv=()
+                while [ "$i" -lt "${#args[@]}" ]; do
+                    t="${args[$i]}"
+                    i=$((i + 1))
+                    case "$t" in
+                        ';'|'+') break ;;
+                    esac
+                    exec_argv+=("$t")
+                done
+                rc=0
+                reason=$(EACH_INPUT=1 inspect_argv ${exec_argv[@]+"${exec_argv[@]}"}) || rc=$?
+                if [ "$rc" != 0 ]; then
+                    echo "$reason"
+                    return "$rc"
+                fi
                 ;;
         esac
-        prev="$t"
     done
     return 0
 }
@@ -956,36 +1203,22 @@ inspect_argv() {
     local -a tokens=("$@")
     [ ${#tokens[@]} -eq 0 ] && return 0
 
-    # Drop bare assignment-only lines (e.g. `IFS= ` after expansion). A leading
-    # `IFS=...` followed by a real command means the user is trying to fool the
-    # parser via field-splitting tricks — deny structurally. `${X:=rm}` holds
-    # an equals sign but is a command head.
-    if [ "${tokens[0]}" != "${tokens[0]/=/}" ] && [ "${tokens[0]:0:1}" != '$' ]; then
-        # First token is `VAR=value`. If there are following tokens, that's a
-        # command run with overridden env — flag IFS rebinds specifically.
-        case "${tokens[0]}" in
-            IFS=*) echo "Suspicious IFS reassignment in command scope"; return 1 ;;
-        esac
-        # Otherwise treat the assignment as a no-op for inspection purposes.
-        tokens=("${tokens[@]:1}")
-        [ ${#tokens[@]} -eq 0 ] && return 0
-    fi
-
-    # Strip one wrapper layer (sudo/env/...).
-    local stripped
-    stripped=$(strip_wrapper_prefix "${tokens[@]}")
-    if [ -n "$stripped" ]; then
-        # Re-read tokens from the stripped output.
-        local -a new_tokens=()
-        local line
-        while IFS= read -r line; do
-            new_tokens+=("$line")
-        done <<<"$stripped"
-        tokens=("${new_tokens[@]}")
-    fi
+    strip_wrappers
     [ ${#tokens[@]} -eq 0 ] && return 0
 
     local cmd0="${tokens[0]}"
+
+    # A command run with a rebound IFS is trying to fool the parser through
+    # field splitting. `while IFS= read -r line` only reads a line verbatim.
+    case "$cmd0" in
+        IFS=*|IFS+=*)
+            case "${tokens[1]:-}" in
+                read|readarray|mapfile) return 0 ;;
+            esac
+            echo "Suspicious IFS reassignment in command scope"
+            return 1
+            ;;
+    esac
 
     # An unquoted `$(...)/rm` arrives as `$()` and `/rm`: the path is the head.
     if [ "$cmd0" = '$()' ]; then
@@ -1020,15 +1253,15 @@ inspect_argv() {
                 echo "Inline shell payload runs a variable expansion (${cmd0}) that cannot be statically inspected; blocked (fail-closed)"
                 return 1
             fi
-            # Outside a payload, resolve a variable head once (#971).
-            if [ -z "${VAR_HEAD_RESOLVED:-}" ]; then
-                case "$base" in
-                    *'$'*|*'}'*|*'`'*)
-                        inspect_var_head "${tokens[@]}"
-                        return $?
-                        ;;
-                esac
-            fi
+            # Outside a payload, resolve a variable head (#971). A tracked value
+            # holds no expansion, so another one can only come from a word of
+            # the command itself, and this ends (`X=sudo; $X $SHELL -c ...`).
+            case "$base" in
+                *'$'*|*'}'*|*'`'*)
+                    inspect_var_head "${tokens[@]}"
+                    return $?
+                    ;;
+            esac
             ;;
     esac
 
@@ -1036,7 +1269,14 @@ inspect_argv() {
     case "$base" in
         eval) inspect_eval "${tokens[@]}" ;;
         bash|sh|zsh|dash|ksh|fish) inspect_inline_shell "${tokens[@]}" ;;
-        rm) inspect_rm "${tokens[@]}" ;;
+        rm)
+            inspect_rm "${tokens[@]}" || return $?
+            if [ "$EACH_INPUT" = 1 ]; then
+                echo "rm through xargs, parallel or find -exec removes every input permanently. Confirm to proceed, or list the inputs first."
+                return 2
+            fi
+            return 0
+            ;;
         chmod) inspect_chmod "${tokens[@]}" ;;
         git) inspect_git "${tokens[@]}" ;;
         find) inspect_find "${tokens[@]}" ;;
@@ -1050,22 +1290,40 @@ inspect_argv() {
 # and the receiving interpreter on the next; it also emits a substitution's
 # inner command before its outer command, so `eval "$(curl ...)"` and
 # `source <(curl ...)` reach this check as curl followed by eval/source.
-detect_fetch_pipe_shell() {
-    local prev="$1" curr="$2"
-    case "$prev" in
-        curl*|*' curl '*|*' curl'|wget*|*' wget '*|*' wget')
-            ;;
-        *) return 1 ;;
+# is_fetch <sub-command> <head>
+is_fetch() {
+    case "${2##*/}" in
+        curl|wget) return 0 ;;
     esac
-    # Take argv[0] of the receiving sub-command.
-    local first
-    first=$(tokenize_argv "$curr" | head -1)
-    case "${first##*/}" in
-        sh|bash|zsh|dash|ksh|python|python2|python3|perl|ruby|node|eval|source|.)
-            return 0
-            ;;
+    case "$1" in
+        curl*|*' curl '*|*' curl'|wget*|*' wget '*|*' wget') return 0 ;;
     esac
     return 1
+}
+
+# fetch_receiver <head>: the verdict on the command after a fetch, with the
+# wrappers already gone from <head>.
+fetch_receiver() {
+    local refused="Remote script execution via pipe blocked for security"
+    case "$1" in
+        '$SHELL'|'${SHELL}'|'$BASH'|'${BASH}')
+            echo "$refused"
+            return 1
+            ;;
+    esac
+    case "${1##*/}" in
+        sh|bash|zsh|dash|ksh|python|python2|python3|perl|ruby|node|eval|source|.)
+            echo "$refused"
+            return 1
+            ;;
+    esac
+    case "$1" in
+        '$'*|'`'*)
+            echo "A download reaches a command name that cannot be resolved (${1}); if it is a shell, this is remote execution. Confirm to proceed."
+            return 2
+            ;;
+    esac
+    return 0
 }
 
 # Recursively flatten sub-commands: a single splitter pass leaves the
@@ -1115,35 +1373,6 @@ track_cd() {
     fi
 }
 
-# dequote_word <word>: the word after quote removal ("rm -rf" -> rm -rf).
-# Inside double quotes a backslash only escapes $ ` " \ and a newline, as in
-# bash: X="r\m" holds r\m, which is not rm.
-dequote_word() {
-    local s="$1" out="" q="" ch i
-    for ((i = 0; i < ${#s}; i++)); do
-        ch="${s:$i:1}"
-        if [ "$q" = "'" ]; then
-            if [ "$ch" = "'" ]; then q=""; else out+="$ch"; fi
-        elif [ "$ch" = '\' ]; then
-            i=$((i + 1))
-            if [ "$q" = '"' ]; then
-                case "${s:$i:1}" in
-                    '$'|'`'|'"'|'\'|$'\n') ;;
-                    *) out+="$ch" ;;
-                esac
-            fi
-            out+="${s:$i:1}"
-        elif [ "$ch" = "$q" ]; then
-            q=""
-        elif [ -z "$q" ] && { [ "$ch" = "'" ] || [ "$ch" = '"' ]; }; then
-            q="$ch"
-        else
-            out+="$ch"
-        fi
-    done
-    printf '%s\n' "$out"
-}
-
 # var_lookup <name>: print the tracked value of <name>; fails when untracked.
 var_lookup() {
     local i
@@ -1173,7 +1402,6 @@ track_assign() {
     case "$name" in *+) name="${name%+}"; known=0 ;; esac
     case "$name" in ''|[0-9]*|*[!A-Za-z0-9_]*) return 0 ;; esac
     case "$value" in *'$'*|*'`'*|'('*) known=0 ;; esac
-    [ "$known" = 0 ] || value=$(dequote_word "$value")
     for ((i = 0; i < ${#VAR_NAMES[@]}; i++)); do
         if [ "${VAR_NAMES[$i]}" = "$name" ]; then
             [ "$known" = 1 ] || VAR_NAMES[i]=""
@@ -1268,7 +1496,7 @@ inspect_unresolved_head() {
 
 # inspect_var_head <argv...>: argv[0] is an expansion outside a payload. A
 # tracked `$NAME` / `${NAME}`, or the literal default of `${NAME:-word}`, is
-# replaced by its words and inspected once. Otherwise `$SHELL` and `$BASH` name
+# replaced by its words and inspected. Otherwise `$SHELL` and `$BASH` name
 # a shell by definition and get its decision, and any other head is unresolved.
 inspect_var_head() {
     local head="$1" name="" op="" word="" value="" known=0 w
@@ -1295,7 +1523,7 @@ inspect_var_head() {
         case "$word" in
             ''|*'$'*|*'`'*) ;;
             *)
-                value=$(dequote_word "$word")
+                value="$word"
                 known=1
                 ;;
         esac
@@ -1305,7 +1533,6 @@ inspect_var_head() {
         set -f
         for w in $value; do words+=("$w"); done
         set +f
-        local VAR_HEAD_RESOLVED=1
         inspect_argv ${words[@]+"${words[@]}"} "$@"
         return $?
     fi
@@ -1318,19 +1545,27 @@ inspect_var_head() {
     inspect_unresolved_head "$head" "$@"
 }
 
+# add_ask <reason>: collect an ask in the caller's `asks`, once.
+add_ask() {
+    case "; $asks; " in
+        *"; $1; "*) ;;
+        *) asks="${asks:+$asks; }$1" ;;
+    esac
+}
+
 # Run inspection across every sub-command. A deny short-circuits; asks are
 # collected and reported only when nothing denies.
 inspect_command() {
-    local cmd="$1"
-    local prev="" asks="" sub rc reason
+    # A backslash-newline is no separator: `rm \<newline>-rf ~` is one command.
+    local continuation=$'\\\n'
+    local cmd="${1//"$continuation"/}"
+    local asks="" sub rc reason head t k
+    local prev_fetch=0 prev2_fetch=0 this_fetch
+    # A payload of `xargs sh -c '...'` runs once per input as well.
+    local each_input="$EACH_INPUT"
+    local -a cwd_stack=()
     while IFS= read -r sub; do
         [ -z "$sub" ] && continue
-
-        # Cross-subcommand: fetch piped to interpreter.
-        if [ -n "$prev" ] && detect_fetch_pipe_shell "$prev" "$sub"; then
-            echo "Remote script execution via pipe blocked for security"
-            return 1
-        fi
 
         # Structural: any token that originally embedded ${IFS}/$IFS is
         # almost certainly an obfuscation. Flag at sub-command level.
@@ -1341,12 +1576,46 @@ inspect_command() {
                 ;;
         esac
 
-        # Tokenize this sub-command into argv.
-        local -a argv=()
-        local t
+        # Tokenize this sub-command into argv, without the shell grammar.
+        local -a tokens=()
         while IFS= read -r t; do
-            argv+=("$t")
+            tokens+=("$t")
         done < <(tokenize_argv "$sub")
+        strip_compound_syntax
+        local -a argv=(${tokens[@]+"${tokens[@]}"})
+
+        # The command behind any wrappers receives a fetch.
+        EACH_INPUT="$each_input"
+        strip_wrappers
+        head="${tokens[0]:-}"
+
+        # Cross-subcommand: fetch piped to interpreter. The inner command of a
+        # substitution stands between a fetch and a `$(...)` receiver.
+        rc=0
+        reason=""
+        if [ "$prev_fetch" = 1 ]; then
+            reason=$(fetch_receiver "$head") || rc=$?
+        elif [ "$prev2_fetch" = 1 ]; then
+            case "$head" in
+                '$('*|'`'*) reason=$(fetch_receiver "$head") || rc=$? ;;
+            esac
+        fi
+        case "$rc" in
+            0) ;;
+            2) add_ask "$reason" ;;
+            *)
+                echo "$reason"
+                return 1
+                ;;
+        esac
+        prev2_fetch="$prev_fetch"
+        this_fetch=0
+        if is_fetch "$sub" "$head"; then this_fetch=1; fi
+        prev_fetch="$this_fetch"
+
+        for ((k = 0; k < SUBSHELL_OPENS; k++)); do
+            cwd_stack+=("$EFF_CWD")
+        done
 
         case "${argv[0]:-}" in
             cd|pushd) track_cd "${argv[@]}" ;;
@@ -1357,18 +1626,19 @@ inspect_command() {
         reason=$(inspect_argv ${argv[@]+"${argv[@]}"}) || rc=$?
         case "$rc" in
             0) ;;
-            2)
-                case "; $asks; " in
-                    *"; $reason; "*) ;;
-                    *) asks="${asks:+$asks; }$reason" ;;
-                esac
-                ;;
+            2) add_ask "$reason" ;;
             *)
                 echo "${reason:-dangerous-command-guard: inspection failed (fail-closed)}"
                 return 1
                 ;;
         esac
-        prev="$sub"
+
+        # A subshell's `cd` ends with it.
+        for ((k = 0; k < SUBSHELL_CLOSES; k++)); do
+            [ ${#cwd_stack[@]} -gt 0 ] || break
+            EFF_CWD="${cwd_stack[${#cwd_stack[@]}-1]}"
+            cwd_stack=("${cwd_stack[@]:0:${#cwd_stack[@]}-1}")
+        done
     done < <(flatten_subcommands "$cmd")
     if [ -n "$asks" ]; then
         echo "$asks"
