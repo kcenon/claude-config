@@ -399,7 +399,7 @@ Decisions for this repo:
 
 ### Overview
 
-Every hook has a PowerShell (`.ps1`) equivalent for native Windows support without Git Bash. Windows also runs two guards that have no `.sh` twin, `bash-sensitive-read-guard.ps1` and `shell-env-secret-guard.ps1`, because macOS and Linux cover those reads with the Bash sandbox and Windows has no OS sandbox.
+Every hook has a PowerShell (`.ps1`) equivalent for native Windows support without Git Bash. Windows also runs two guards that have no `.sh` twin, `bash-sensitive-read-guard.ps1` and `shell-env-secret-guard.ps1`, because macOS and Linux cover those reads with the Bash sandbox read-deny, for the files [listed in ENFORCEMENT.md](ENFORCEMENT.md#secrets-outside-the-working-directory), and Windows has no OS sandbox.
 
 | Configuration | File |
 |---------------|------|
