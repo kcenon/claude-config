@@ -261,6 +261,7 @@ auto:
       - "project/.claude/reference/workflow/5w1h-examples.md"
       - "project/.claude/reference/workflow/agent-teams.md"
       - "project/.claude/reference/workflow/automation-patterns.md"
+      - "project/.claude/reference/workflow/command-construction.md"
       - "project/.claude/reference/workflow/commit-hooks.md"
       - "project/.claude/reference/workflow/issue-examples.md"
       - "project/.claude/reference/workflow/label-definitions.md"

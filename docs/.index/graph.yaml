@@ -216,6 +216,9 @@ nodes:
   "project/.claude/rules/coding/safety.md":
     - target: "project/.claude/reference/coding/safety-examples.md"
       type: see
+  "project/.claude/rules/core/environment.md":
+    - target: "project/.claude/reference/workflow/command-construction.md"
+      type: see
   "project/.claude/rules/project-management/build.md":
     - target: "project/.claude/reference/project-management/build-examples.md"
       type: see
@@ -251,6 +254,8 @@ nodes:
       type: link
   "project/.claude/rules/workflow/session-resume.md":
     - target: "project/.claude/reference/workflow/session-resume-templates.md"
+      type: see
+    - target: "project/.claude/reference/workflow/command-construction.md"
       type: see
   "project/.claude/skills/api-design/SKILL.md":
     - target: "project/.claude/skills/api-design/reference/api-design.md"

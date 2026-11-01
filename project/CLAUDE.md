@@ -3,23 +3,6 @@
 Conventions for this repository. Works with `~/.claude/CLAUDE.md` (global).
 Rules use YAML frontmatter for automatic loading. Defer to language-specific conventions (PEP 8, C++ Core Guidelines, etc.).
 
-## On-Demand Rules (path-triggered)
-
-Loaded when matching files are open:
-- `coding/` -- standards, error-handling, performance, safety, cpp-specifics, implementation-standards
-- `compliance/` -- per-standard rules (IEC 62304, ISO 13485, ISO 14971) for safety-regulated projects
-- `api/` -- api-design, architecture, observability, rest-api
-- `security.md` -- auth, input validation, secrets management
-- `project-management/` -- build, documentation, testing
-- `operations/ops.md` -- cleanup, monitoring scripts
-- `workflow/build-verification.md` -- build checklists (CMake/Makefile)
-- `workflow/ci-resilience.md` -- GitHub Actions resilience
-- `workflow/git-conflict-resolution.md` -- merge strategy by file type
-- `workflow/github-issue-5w1h.md` -- 5W1H issue framework
-- `workflow/github-pr-5w1h.md` -- 5W1H PR framework
-- `workflow/performance-analysis.md` -- analysis procedure
-- `tools/gh-cli-scripts.md` -- GitHub CLI automation
-
 ## Reference Docs
 
 Stored in `.claude/reference/` (`api/`, `coding/`, `project-management/`, `workflow/`,
@@ -30,6 +13,7 @@ and `security-examples.md` at its root), outside the auto-loaded
 - `agent-teams` -- Multi-agent patterns and configuration
 - `commit-hooks` -- Git hook scripts and CI verification
 - `session-resume-templates` -- Resume file format templates
+- `command-construction` -- Keeping Bash/PowerShell calls matchable against allow rules
 - `automation-patterns` -- GitHub Actions patterns
 - `issue-examples` -- Issue splitting and examples
 - `label-definitions` -- GitHub label taxonomy
