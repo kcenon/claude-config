@@ -11,11 +11,11 @@
 #       operators inside quoted strings are NOT treated as separators.
 #
 #   tokenize_argv <subcommand_string>
-#       Emits one argv token per line for a single sub-command, with quote
-#       characters stripped. Backslash-escaped first character (e.g. `\rm`)
-#       is collapsed to its bare form. `${IFS}`/`$IFS` substitutions are
-#       expanded to a single space so that `r${IFS}m` becomes the token `r m`
-#       (which then fails any `^rm$` argv match — i.e. denied as suspicious).
+#       Emits one argv token per line for a single sub-command, after shell
+#       quote removal, so `\rm`, `r"m"` and `'rm'` are all the token `rm`.
+#       `${IFS}`/`$IFS` substitutions are expanded to a single space so that
+#       `r${IFS}m` becomes the token `r m` (which then fails any `^rm$` argv
+#       match — i.e. denied as suspicious).
 #
 # These helpers are intentionally pure-bash (no awk/sed/python) so the hook
 # stays usable on minimal images. They are NOT a full bash parser; they
@@ -266,6 +266,19 @@ split_subcommands() {
                 fi
                 buf+="$ch"
                 ;;
+            '>')
+                if [ "$next" = '(' ]; then
+                    # >( ... ) process substitution.
+                    buf+=">("
+                    stack+=("$buf")
+                    qstack+=("")
+                    buf=""
+                    depth=$((depth+1))
+                    i=$((i+2))
+                    continue
+                fi
+                buf+="$ch"
+                ;;
             $'\n')
                 # Heredoc bodies are data, not shell: copy them into the
                 # buffer line by line (callers still see and inspect each
@@ -381,10 +394,87 @@ split_subcommands() {
     flush "$buf"
 }
 
+# unquote_word <word>
+#   Shell quote removal, into UNQUOTED (no subshell: this runs per word). Single
+#   quotes keep everything literally. Inside double quotes a backslash only
+#   escapes $ ` " \ and a newline, as in bash: "r\m" holds r\m, which is not rm.
+#   An ANSI-C $'...' with an escape in it stays as written, so that it reads as
+#   an expansion the caller cannot resolve.
+unquote_word() {
+    local s="$1" out="" q="" ch inner i len=${#1}
+    # The usual word, one quoted string with nothing else to remove, needs no walk.
+    if [ "$len" -ge 2 ]; then
+        inner="${s:1:len-2}"
+        case "${s:0:1}${s: -1}" in
+            "''")
+                case "$inner" in
+                    *"'"*) ;;
+                    *) UNQUOTED="$inner"; return 0 ;;
+                esac
+                ;;
+            '""')
+                case "$inner" in
+                    *'"'*|*'\'*) ;;
+                    *) UNQUOTED="$inner"; return 0 ;;
+                esac
+                ;;
+        esac
+    fi
+    for ((i = 0; i < len; i++)); do
+        ch="${s:$i:1}"
+        case "$q" in
+            "'")
+                if [ "$ch" = "'" ]; then q=""; else out+="$ch"; fi
+                ;;
+            '"')
+                if [ "$ch" = '"' ]; then
+                    q=""
+                elif [ "$ch" = '\' ]; then
+                    i=$((i + 1))
+                    case "${s:$i:1}" in
+                        '$'|'`'|'"'|'\'|$'\n') ;;
+                        *) out+="$ch" ;;
+                    esac
+                    out+="${s:$i:1}"
+                else
+                    out+="$ch"
+                fi
+                ;;
+            *)
+                case "$ch" in
+                    "'"|'"') q="$ch" ;;
+                    '\')
+                        if [ "$i" -lt "$((len - 1))" ]; then
+                            i=$((i + 1))
+                            out+="${s:$i:1}"
+                        else
+                            out+="$ch"
+                        fi
+                        ;;
+                    '$')
+                        if [ "${s:$((i + 1)):1}" = "'" ]; then
+                            inner="${s:$((i + 2))}"
+                            inner="${inner%%\'*}"
+                            case "$inner" in
+                                *'\'*) out+="${s:$i}"; break ;;
+                            esac
+                            out+="$inner"
+                            i=$((i + 2 + ${#inner}))
+                        else
+                            out+="$ch"
+                        fi
+                        ;;
+                    *) out+="$ch" ;;
+                esac
+                ;;
+        esac
+    done
+    UNQUOTED="$out"
+}
+
 # tokenize_argv <subcommand>
-#   Emits one token per line. Strips outer quotes. Collapses leading
-#   backslash escape (`\rm` -> `rm`). Replaces `${IFS}`/`$IFS` with a
-#   space so that obfuscated whitespace splits a single token into two.
+#   Emits one token per line, after quote removal. Replaces `${IFS}`/`$IFS` with
+#   a space so that obfuscated whitespace splits a single token into two.
 tokenize_argv() {
     local cmd="$1"
     # Pre-expand IFS-based whitespace tricks.
@@ -402,19 +492,12 @@ tokenize_argv() {
         if [ -z "$t" ]; then
             return 0
         fi
-        # Strip a leading backslash that escapes the first char ("\rm" -> "rm").
-        if [ "${t:0:1}" = '\' ] && [ ${#t} -gt 1 ]; then
-            t="${t:1}"
-        fi
-        # Strip surrounding matching quotes.
-        if [ ${#t} -ge 2 ]; then
-            local first="${t:0:1}"
-            local last="${t: -1}"
-            if { [ "$first" = "'" ] && [ "$last" = "'" ]; } \
-                || { [ "$first" = '"' ] && [ "$last" = '"' ]; }; then
-                t="${t:1:${#t}-2}"
-            fi
-        fi
+        case "$t" in
+            *"'"*|*'"'*|*'\'*)
+                unquote_word "$t"
+                t="$UNQUOTED"
+                ;;
+        esac
         printf '%s\n' "$t"
     }
 
