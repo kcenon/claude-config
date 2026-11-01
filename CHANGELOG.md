@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- On POSIX, `merge-gate-guard` starts only when a Bash call contains `gh pr merge`, and `memory-access-logger` only on reads under a memory directory, through an `if` rule on each handler. Both started on every call before, so a Bash call now starts one hook process instead of two. `dangerous-command-guard` and `memory-write-guard` still start on every call. `global/settings.windows.json` is unchanged: its Bash dispatcher already routes `merge-gate-guard` only when the command contains `gh`, and the path rule has not been tested on Windows. (#996)
+- `project/CLAUDE.md` no longer lists path-triggered rules, and the PowerShell guidance in `core/environment.md` moved to `reference/workflow/command-construction.md`, which saves about 1,085 est. tokens in every session. A Windows session may see more permission prompts until it loads the reference. (#994)
+
 ### Fixed
 
 - `dangerous-command-guard` inspects shells called through a variable and tightens the scan of over-budget input. `$SHELL -c 'rm -rf /'` and `"$BASH" -c 'rm -rf ~'` deny like `bash -c`. `${X:-word}` resolves to its literal default. Any other unresolved head, and a `$(...)` or backtick head at any depth, asks when the arguments would be refused for `rm` or for a shell. `declare`, `local`, `readonly` and `typeset` count as assignments; `unset` and array values forget the name. Over 16 KiB, the regexes read the text with continuations joined and quoted prose blanked, accept the `rm` target before the flags, ask on a `git push` with no refspec and skip dry-run pushes. On `.ps1`, every coarse regex uses `RegexOptions.NonBacktracking` where the runtime has it and keeps the 1 s timeout. (#981)

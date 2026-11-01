@@ -55,6 +55,7 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | `Read(...)` deny also blocks the Write tool on the same path (sensitive-file coverage since #964) | `permissions.deny` | 2.1.228+ |
 | LLM hook (prompt type) | `hooks[].hooks[].type: "prompt"` | 2.0.0+ |
 | Async hooks | `hooks[].hooks[].async: true` | 2.0.0+ |
+| Hook handler filter | `hooks[].hooks[].if` | Tested on 2.1.316; added earlier, exact version not confirmed |
 | Tool search | `env.ENABLE_TOOL_SEARCH` | 2.1.0+ |
 
 ### Component Dependencies
