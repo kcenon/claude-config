@@ -392,8 +392,8 @@ Decisions for this repo:
 - **No hook mitigation.** The parse limit is upstream of the hook layer; a hook
   cannot pre-empt or override the harness fallback, so this is out of scope.
 - **Prevention is the lever.** Keep single commands short and extract long logic
-  to a script — see `project/.claude/rules/core/environment.md`
-  (Command Construction).
+  to a script — see
+  `project/.claude/reference/workflow/command-construction.md`.
 
 ## Windows Support (PowerShell)
 
