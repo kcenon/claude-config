@@ -49,7 +49,7 @@ guard dropped from it still fails parity. Execution order and fail-open
 `bash-sensitive-read-guard.ps1` and `shell-env-secret-guard.ps1` are
 the only Windows-only rows (#964). macOS and Linux cover secret reads
 through the shell with the Bash sandbox read-deny (for files under the
-working directory; see
+working directory and the home credential files with their own rule; see
 [ENFORCEMENT.md](../ENFORCEMENT.md#secrets-outside-the-working-directory)),
 but Windows has no OS sandbox, so the Windows Bash dispatcher keeps both
 guards. The parity

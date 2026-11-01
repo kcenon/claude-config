@@ -103,7 +103,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 52083
+    size: 52190
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
@@ -258,7 +258,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 8035
+    size: 8085
     tags: [docs]
     sections:
       - {h: "Scope", l: 5, e: 10}
@@ -1693,7 +1693,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 5052
+    size: 5102
     tags: [docs,hook,hooks]
     sections:
       - {h: "Ownership Table", l: 13, e: 70}

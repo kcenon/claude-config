@@ -105,7 +105,8 @@ win_set  = extract(sys.argv[2])
 # Intentional asymmetries on the GLOBAL settings surface (see
 # docs/hooks-ownership.md). bash-sensitive-read-guard and
 # shell-env-secret-guard are Windows-only since #964: on macOS and Linux the
-# Bash sandbox read-deny covers secret reads through the shell, but Windows
+# Bash sandbox read-deny covers secret reads through the shell (files under the
+# working directory and the home-anchored rules; see ENFORCEMENT.md), but Windows
 # has no OS sandbox, so the Windows Bash dispatcher keeps both guards.
 WIN_ONLY_ALLOW = {
     ("PreToolUse", "Bash", "bash-sensitive-read-guard"),
