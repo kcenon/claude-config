@@ -104,6 +104,7 @@ claude_config_backup/
 │       │   ├── coding/         # anti-patterns.md
 │       │   └── workflow/       # 5W1H examples, labels, automation, agent teams
 │       ├── agents/             # Specialized agent configurations
+│       │   ├── analyst.md
 │       │   ├── code-reviewer.md
 │       │   ├── codebase-analyzer.md
 │       │   ├── dependency-auditor.md

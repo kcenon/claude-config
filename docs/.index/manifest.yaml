@@ -10,53 +10,53 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 99443
+    size: 100321
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "Unreleased", l: 8, e: 9}
-      - {h: "Added", l: 10, e: 13}
-      - {h: "Changed", l: 14, e: 20}
-      - {h: "Fixed", l: 21, e: 28}
-      - {h: "1.16.0 - 2026-10-30", l: 29, e: 49}
-      - {h: "Removed", l: 50, e: 83}
-      - {h: "Changed", l: 84, e: 122}
-      - {h: "Fixed", l: 123, e: 184}
-      - {h: "1.15.0 - 2026-10-23", l: 185, e: 186}
-      - {h: "Added", l: 187, e: 198}
-      - {h: "Changed", l: 199, e: 229}
-      - {h: "Fixed", l: 230, e: 236}
-      - {h: "1.14.0 - 2026-09-29", l: 237, e: 238}
-      - {h: "Added", l: 239, e: 247}
-      - {h: "Changed", l: 248, e: 270}
-      - {h: "Removed", l: 271, e: 302}
-      - {h: "Fixed", l: 303, e: 344}
-      - {h: "Security", l: 345, e: 381}
-      - {h: "1.13.0 - 2026-09-13", l: 382, e: 383}
-      - {h: "Added", l: 384, e: 569}
-      - {h: "Changed", l: 570, e: 622}
-      - {h: "Fixed", l: 623, e: 756}
-      - {h: "Security", l: 757, e: 775}
-      - {h: "Known limitation", l: 776, e: 783}
-      - {h: "1.12.0 - 2026-08-01", l: 784, e: 785}
-      - {h: "Added", l: 786, e: 917}
-      - {h: "Fixed", l: 918, e: 1160}
-      - {h: "1.11.0 - 2026-07-03", l: 1161, e: 1162}
-      - {h: "Fixed", l: 1163, e: 1176}
-      - {h: "Security", l: 1177, e: 1254}
-      - {h: "Added", l: 1255, e: 1283}
-      - {h: "Changed", l: 1284, e: 1330}
-      - {h: "1.10.0 - 2026-04-20", l: 1331, e: 1339}
-      - {h: "1.9.0 - 2026-04-13", l: 1340, e: 1349}
-      - {h: "1.8.0 - 2026-04-13", l: 1350, e: 1355}
-      - {h: "1.7.0 - 2026-04-06", l: 1356, e: 1370}
-      - {h: "1.6.0 - 2026-04-03", l: 1371, e: 1383}
-      - {h: "1.5.0 - 2026-03-21", l: 1384, e: 1402}
-      - {h: "1.4.0 - 2026-01-22", l: 1403, e: 1408}
-      - {h: "1.3.0 - 2026-01-15", l: 1409, e: 1417}
-      - {h: "1.2.0 - 2026-01-15", l: 1418, e: 1426}
-      - {h: "1.1.0 - 2025-01-15", l: 1427, e: 1437}
-      - {h: "1.0.0 - 2025-12-03", l: 1438, e: 1444}
+      - {h: "Added", l: 10, e: 14}
+      - {h: "Changed", l: 15, e: 21}
+      - {h: "Fixed", l: 22, e: 29}
+      - {h: "1.16.0 - 2026-10-30", l: 30, e: 50}
+      - {h: "Removed", l: 51, e: 84}
+      - {h: "Changed", l: 85, e: 123}
+      - {h: "Fixed", l: 124, e: 185}
+      - {h: "1.15.0 - 2026-10-23", l: 186, e: 187}
+      - {h: "Added", l: 188, e: 199}
+      - {h: "Changed", l: 200, e: 230}
+      - {h: "Fixed", l: 231, e: 237}
+      - {h: "1.14.0 - 2026-09-29", l: 238, e: 239}
+      - {h: "Added", l: 240, e: 248}
+      - {h: "Changed", l: 249, e: 271}
+      - {h: "Removed", l: 272, e: 303}
+      - {h: "Fixed", l: 304, e: 345}
+      - {h: "Security", l: 346, e: 382}
+      - {h: "1.13.0 - 2026-09-13", l: 383, e: 384}
+      - {h: "Added", l: 385, e: 570}
+      - {h: "Changed", l: 571, e: 623}
+      - {h: "Fixed", l: 624, e: 757}
+      - {h: "Security", l: 758, e: 776}
+      - {h: "Known limitation", l: 777, e: 784}
+      - {h: "1.12.0 - 2026-08-01", l: 785, e: 786}
+      - {h: "Added", l: 787, e: 918}
+      - {h: "Fixed", l: 919, e: 1161}
+      - {h: "1.11.0 - 2026-07-03", l: 1162, e: 1163}
+      - {h: "Fixed", l: 1164, e: 1177}
+      - {h: "Security", l: 1178, e: 1255}
+      - {h: "Added", l: 1256, e: 1284}
+      - {h: "Changed", l: 1285, e: 1331}
+      - {h: "1.10.0 - 2026-04-20", l: 1332, e: 1340}
+      - {h: "1.9.0 - 2026-04-13", l: 1341, e: 1350}
+      - {h: "1.8.0 - 2026-04-13", l: 1351, e: 1356}
+      - {h: "1.7.0 - 2026-04-06", l: 1357, e: 1371}
+      - {h: "1.6.0 - 2026-04-03", l: 1372, e: 1384}
+      - {h: "1.5.0 - 2026-03-21", l: 1385, e: 1403}
+      - {h: "1.4.0 - 2026-01-22", l: 1404, e: 1409}
+      - {h: "1.3.0 - 2026-01-15", l: 1410, e: 1418}
+      - {h: "1.2.0 - 2026-01-15", l: 1419, e: 1427}
+      - {h: "1.1.0 - 2025-01-15", l: 1428, e: 1438}
+      - {h: "1.0.0 - 2025-12-03", l: 1439, e: 1445}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -277,7 +277,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 25790
+    size: 26121
     tags: [docs,documentation]
     sections:
       - {h: "Custom Extensions vs Official Features", l: 1, e: 10}
@@ -1501,7 +1501,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 13530
+    size: 13599
     tags: [docs]
     sections:
       - {h: "기능과 설정", l: 1, e: 4}
@@ -1523,24 +1523,24 @@ documents:
       - {h: "코드 분석", l: 134, e: 142}
       - {h: "설계 및 문서화", l: 143, e: 154}
       - {h: "Agents", l: 155, e: 158}
-      - {h: "사용 가능한 Agents", l: 159, e: 171}
-      - {h: "Agent 설정", l: 172, e: 184}
-      - {h: "Agent Teams", l: 185, e: 190}
-      - {h: "빠른 시작", l: 191, e: 207}
-      - {h: "MCP 설정", l: 208, e: 211}
-      - {h: "사용 가능한 서버", l: 212, e: 221}
-      - {h: "설정 방법", l: 222, e: 227}
-      - {h: "스크립트 설명", l: 228, e: 241}
-      - {h: "Git Hooks", l: 242, e: 251}
-      - {h: "Pre-commit Hook", l: 252, e: 256}
-      - {h: "Commit-msg Hook", l: 257, e: 261}
-      - {h: "Pre-push Hook", l: 262, e: 265}
+      - {h: "사용 가능한 Agents", l: 159, e: 172}
+      - {h: "Agent 설정", l: 173, e: 185}
+      - {h: "Agent Teams", l: 186, e: 191}
+      - {h: "빠른 시작", l: 192, e: 208}
+      - {h: "MCP 설정", l: 209, e: 212}
+      - {h: "사용 가능한 서버", l: 213, e: 222}
+      - {h: "설정 방법", l: 223, e: 228}
+      - {h: "스크립트 설명", l: 229, e: 242}
+      - {h: "Git Hooks", l: 243, e: 252}
+      - {h: "Pre-commit Hook", l: 253, e: 257}
+      - {h: "Commit-msg Hook", l: 258, e: 262}
+      - {h: "Pre-push Hook", l: 263, e: 266}
   - path: "docs/guides/FEATURES.md"
     title: "Features and Configuration"
     description: ""
     category: docs
     scope: docs
-    size: 12686
+    size: 12762
     tags: [docs]
     sections:
       - {h: "Features and Configuration", l: 1, e: 4}
@@ -1562,18 +1562,18 @@ documents:
       - {h: "Code Analysis", l: 133, e: 141}
       - {h: "Design and Documentation", l: 142, e: 153}
       - {h: "Agents", l: 154, e: 157}
-      - {h: "Available Agents", l: 158, e: 170}
-      - {h: "Agent Configuration", l: 171, e: 183}
-      - {h: "Agent Teams", l: 184, e: 189}
-      - {h: "Quick Start", l: 190, e: 206}
-      - {h: "MCP Configuration", l: 207, e: 210}
-      - {h: "Available Servers", l: 211, e: 220}
-      - {h: "Setup", l: 221, e: 226}
-      - {h: "Scripts", l: 227, e: 241}
-      - {h: "Git Hooks", l: 242, e: 252}
-      - {h: "Pre-commit Hook", l: 253, e: 258}
-      - {h: "Commit-msg Hook", l: 259, e: 264}
-      - {h: "Pre-push Hook", l: 265, e: 269}
+      - {h: "Available Agents", l: 158, e: 171}
+      - {h: "Agent Configuration", l: 172, e: 184}
+      - {h: "Agent Teams", l: 185, e: 190}
+      - {h: "Quick Start", l: 191, e: 207}
+      - {h: "MCP Configuration", l: 208, e: 211}
+      - {h: "Available Servers", l: 212, e: 221}
+      - {h: "Setup", l: 222, e: 227}
+      - {h: "Scripts", l: 228, e: 242}
+      - {h: "Git Hooks", l: 243, e: 253}
+      - {h: "Pre-commit Hook", l: 254, e: 259}
+      - {h: "Commit-msg Hook", l: 260, e: 265}
+      - {h: "Pre-push Hook", l: 266, e: 270}
   - path: "docs/guides/INSTALLATION.ko.md"
     title: "설치 안내"
     description: ""
@@ -1635,21 +1635,21 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 10802
+    size: 10839
     tags: [docs]
     sections:
       - {h: "저장소 구조", l: 1, e: 4}
-      - {h: "구조", l: 5, e: 193}
+      - {h: "구조", l: 5, e: 194}
   - path: "docs/guides/STRUCTURE.md"
     title: "Repository Structure"
     description: ""
     category: docs
     scope: docs
-    size: 11234
+    size: 11271
     tags: [docs]
     sections:
       - {h: "Repository Structure", l: 1, e: 4}
-      - {h: "Structure", l: 5, e: 203}
+      - {h: "Structure", l: 5, e: 204}
   - path: "docs/guides/USE_CASES.ko.md"
     title: "사용 시나리오와 FAQ"
     description: ""
@@ -2169,7 +2169,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 22516
+    size: 22691
     tags: [global,skill]
     sections:
       - {h: "When to Use This Skill", l: 39, e: 51}
@@ -2180,31 +2180,31 @@ documents:
       - {h: "Phase 1: Input Resolution and Validation", l: 95, e: 113}
       - {h: "Phase 2: Manifest Initialization", l: 114, e: 155}
       - {h: "Phase 2.5: Top-K Agent Routing (per worker)", l: 156, e: 167}
-      - {h: "Agent Metadata Contract", l: 168, e: 182}
-      - {h: "Scoring Function", l: 183, e: 204}
-      - {h: "Selection", l: 205, e: 236}
-      - {h: "Unit Test Points", l: 237, e: 255}
-      - {h: "Fallback and Compatibility", l: 256, e: 263}
-      - {h: "Phase 3: Fan-out Worker Dispatch", l: 264, e: 300}
-      - {h: "Phase 4: Supervisor Polling Loop", l: 301, e: 323}
-      - {h: "Phase 5: Aggregation and Reporting", l: 324, e: 343}
-      - {h: "Phase 6: Cleanup", l: 344, e: 351}
-      - {h: "Status Table Rendering", l: 352, e: 357}
-      - {h: "Fleet Status — fleet-20260420-071500", l: 358, e: 372}
-      - {h: "Final Report", l: 373, e: 375}
-      - {h: "Fleet Execution Report — fleet-20260420-071500", l: 376, e: 387}
-      - {h: "Per-Repo Outcomes", l: 388, e: 398}
-      - {h: "Action Required", l: 399, e: 405}
-      - {h: "Error Handling", l: 406, e: 417}
-      - {h: "Test Scenarios", l: 418, e: 419}
-      - {h: "Normal Flow", l: 420, e: 432}
-      - {h: "Failure Isolation Flow", l: 433, e: 442}
-      - {h: "Pre-flight Exclusion Flow", l: 443, e: 450}
-      - {h: "Dependencies and Related Skills", l: 451, e: 467}
-      - {h: "References", l: 468, e: 473}
-      - {h: "Output Checklist", l: 474, e: 484}
-      - {h: "Reanchoring Loop Invariants", l: 485, e: 490}
-      - {h: "Side Effects and Loop-Safety", l: 491, e: 493}
+      - {h: "Agent Metadata Contract", l: 168, e: 186}
+      - {h: "Scoring Function", l: 187, e: 208}
+      - {h: "Selection", l: 209, e: 240}
+      - {h: "Unit Test Points", l: 241, e: 259}
+      - {h: "Fallback and Compatibility", l: 260, e: 267}
+      - {h: "Phase 3: Fan-out Worker Dispatch", l: 268, e: 304}
+      - {h: "Phase 4: Supervisor Polling Loop", l: 305, e: 327}
+      - {h: "Phase 5: Aggregation and Reporting", l: 328, e: 347}
+      - {h: "Phase 6: Cleanup", l: 348, e: 355}
+      - {h: "Status Table Rendering", l: 356, e: 361}
+      - {h: "Fleet Status — fleet-20260420-071500", l: 362, e: 376}
+      - {h: "Final Report", l: 377, e: 379}
+      - {h: "Fleet Execution Report — fleet-20260420-071500", l: 380, e: 391}
+      - {h: "Per-Repo Outcomes", l: 392, e: 402}
+      - {h: "Action Required", l: 403, e: 409}
+      - {h: "Error Handling", l: 410, e: 421}
+      - {h: "Test Scenarios", l: 422, e: 423}
+      - {h: "Normal Flow", l: 424, e: 436}
+      - {h: "Failure Isolation Flow", l: 437, e: 446}
+      - {h: "Pre-flight Exclusion Flow", l: 447, e: 454}
+      - {h: "Dependencies and Related Skills", l: 455, e: 471}
+      - {h: "References", l: 472, e: 477}
+      - {h: "Output Checklist", l: 478, e: 488}
+      - {h: "Reanchoring Loop Invariants", l: 489, e: 494}
+      - {h: "Side Effects and Loop-Safety", l: 495, e: 497}
   - path: "global/skills/_internal/fleet-orchestrator/reference/worker-template.md"
     title: "Fleet Worker Prompt Template"
     description: ""
@@ -3757,6 +3757,19 @@ documents:
       - {h: "Plugin Manifest Compatibility", l: 107, e: 119}
       - {h: "Requirements", l: 120, e: 123}
       - {h: "License", l: 124, e: 126}
+  - path: "plugin/agents/analyst.md"
+    title: "Analyst Agent"
+    description: ""
+    category: agent
+    scope: plugin
+    size: 1564
+    tags: [agent,plugin]
+    sections:
+      - {h: "Scope", l: 12, e: 17}
+      - {h: "Evidence", l: 18, e: 23}
+      - {h: "Reading Shared Documents", l: 24, e: 29}
+      - {h: "Results", l: 30, e: 34}
+      - {h: "Limits", l: 35, e: 37}
   - path: "plugin/agents/code-reviewer.md"
     title: "Code Reviewer Agent"
     description: ""
@@ -4671,6 +4684,19 @@ documents:
       - {h: "Pin Versions", l: 90, e: 94}
       - {h: "Automated Scanning in CI/CD", l: 95, e: 99}
       - {h: "Security Best Practices", l: 100, e: 108}
+  - path: "project/.claude/agents/analyst.md"
+    title: "Analyst Agent"
+    description: ""
+    category: agent
+    scope: project
+    size: 1564
+    tags: [agent,project]
+    sections:
+      - {h: "Scope", l: 12, e: 17}
+      - {h: "Evidence", l: 18, e: 23}
+      - {h: "Reading Shared Documents", l: 24, e: 29}
+      - {h: "Results", l: 30, e: 34}
+      - {h: "Limits", l: 35, e: 37}
   - path: "project/.claude/agents/code-reviewer.md"
     title: "Code Reviewer Agent"
     description: ""

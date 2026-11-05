@@ -4,7 +4,7 @@ Verifies the acceptance-criterion telemetry requirement:
 
     demonstrate top-K=2 spawn for a docs-only PR avoids irrelevant agents
 
-We read the 8 agent definitions from ``plugin/agents/`` and run the scorer
+We read the 9 agent definitions from ``plugin/agents/`` and run the scorer
 against a work item that touches only ``*.md`` files. The result MUST include
 ``documentation-writer`` and MUST NOT include ``test-strategist`` or
 ``dependency-auditor``.
@@ -33,7 +33,7 @@ class DocsOnlyRoutingTelemetry(unittest.TestCase):
     def test_docs_only_pr_excludes_irrelevant_agents(self) -> None:
         agents = load_agents(AGENTS_DIR)
         self.assertEqual(
-            len(agents), 8, f"expected 8 agents, found {len(agents)} in {AGENTS_DIR}"
+            len(agents), 9, f"expected 9 agents, found {len(agents)} in {AGENTS_DIR}"
         )
 
         work = WorkItem(
@@ -53,6 +53,8 @@ class DocsOnlyRoutingTelemetry(unittest.TestCase):
         self.assertNotIn("test-strategist", selected)
         self.assertNotIn("dependency-auditor", selected)
         self.assertNotIn("qa-reviewer", selected)
+        # analyst declares no routing fields, so Top-K never selects it.
+        self.assertNotIn("analyst", selected)
 
 
 if __name__ == "__main__":

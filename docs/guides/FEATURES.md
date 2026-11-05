@@ -167,6 +167,7 @@ Specialized agents in `.claude/agents/` provide focused assistance for specific 
 | `structure-explorer` | Project directory structure mapping | haiku |
 | `dependency-auditor` | Dependency CVE and license audit | sonnet |
 | `test-strategist` | Test coverage and strategy analysis | sonnet |
+| `analyst` | Analysis and cross-checking with a minimal tool list | opus |
 
 ### Agent Configuration
 
