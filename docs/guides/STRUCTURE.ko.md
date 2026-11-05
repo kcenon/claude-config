@@ -101,6 +101,7 @@ claude_config_backup/
 │       │   ├── coding/         # anti-patterns.md
 │       │   └── workflow/       # 5W1H 예시, 레이블, 자동화, Agent Teams
 │       ├── agents/             # 특화 에이전트 설정
+│       │   ├── analyst.md
 │       │   ├── code-reviewer.md
 │       │   ├── codebase-analyzer.md
 │       │   ├── dependency-auditor.md

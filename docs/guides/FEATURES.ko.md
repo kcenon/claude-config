@@ -168,6 +168,7 @@ paths:
 | `structure-explorer` | 프로젝트 디렉토리 구조 매핑 | haiku |
 | `dependency-auditor` | 의존성 CVE 및 라이선스 감사 | sonnet |
 | `test-strategist` | 테스트 커버리지 및 전략 분석 | sonnet |
+| `analyst` | 최소 도구로 하는 분석·교차 확인 | opus |
 
 ### Agent 설정
 
