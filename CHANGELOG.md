@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- `scripts/token-audit/token_audit.py` measures where tokens go, from the Claude Code transcripts under `~/.claude/projects/`. For main, subagent and workflow transcripts it reports tokens by kind, first-request size, context-size buckets, tool-result residency (characters times the later requests before a compaction), path-triggered rule injections and files that sibling subagents read again. Usage is counted once per request ID, so a resumed session's copied history is not counted twice. The output is aggregates only, with no prompt, tool result, file content or task description; `docs/TOKEN_OPTIMIZATION.md` describes the metrics. (#999)
+
 ### Changed
 
+- `cleanupPeriodDays` is 90 instead of 30 in `global/settings.json` and `global/settings.windows.json`, so transcripts cover enough time to compare a window before a configuration change with one after it. The installer takes this key from the profile, so a reinstall sets 90 days on every machine, and a value changed by hand is replaced. Transcripts take more disk: 30 days took about 1.3 GB on the machine where this was measured. (#999)
 - On POSIX, `merge-gate-guard` starts only when a Bash call contains `gh pr merge`, and `memory-access-logger` only on reads under a memory directory, through an `if` rule on each handler. Both started on every call before, so a Bash call now starts one hook process instead of two. `dangerous-command-guard` and `memory-write-guard` still start on every call. `global/settings.windows.json` is unchanged: its Bash dispatcher already routes `merge-gate-guard` only when the command contains `gh`, and the path rule has not been tested on Windows. (#996)
 - `project/CLAUDE.md` no longer lists path-triggered rules, and the PowerShell guidance in `core/environment.md` moved to `reference/workflow/command-construction.md`, which saves about 1,085 est. tokens in every session. A Windows session may see more permission prompts until it loads the reference. (#994)
 
