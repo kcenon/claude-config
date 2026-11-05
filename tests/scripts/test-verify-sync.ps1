@@ -146,7 +146,7 @@ try {
     Add-Content -LiteralPath (Join-Path $claude 'hooks' 'lib' $libVictim) -Value '# drift'
     Add-Content -LiteralPath (Join-Path $claude 'skills' $skillVictim) -Value 'drift'
     Remove-Item -LiteralPath (Join-Path $proj '.claude' 'reference' $refVictim)
-    Add-Content -LiteralPath (Join-Path $proj '.claude' 'rules' 'security.md') -Value 'drift'
+    Add-Content -LiteralPath (Join-Path $proj '.claude' 'rules' 'coding' 'essentials.md') -Value 'drift'
     Add-Content -LiteralPath (Join-Path $proj '.claude' 'rules' 'core' 'communication.md') -Value '{{AGENT_LANGUAGE}}'
     $crlf = [System.IO.File]::ReadAllText((Join-Path $repoRoot 'global' 'CLAUDE.md')).Replace("`r`n", "`n").Replace("`n", "`r`n")
     [System.IO.File]::WriteAllText((Join-Path $claude 'CLAUDE.md'), $crlf, [System.Text.UTF8Encoding]::new($true))
@@ -156,7 +156,7 @@ try {
     Assert-Contains $out "DIFF: hooks/lib/$libVictim"
     Assert-Contains $out "DIFF: skills/$skillVictim"
     Assert-Contains $out "MISS: project/.claude/reference/$refVictim"
-    Assert-Contains $out 'DIFF: project/.claude/rules/security.md'
+    Assert-Contains $out 'DIFF: project/.claude/rules/coding/essentials.md'
     Assert-Contains $out 'DIFF: project/.claude/rules/core/communication.md (unrendered placeholder)'
     $count = (Get-Findings $out).Count
     if ($count -ne 6) {

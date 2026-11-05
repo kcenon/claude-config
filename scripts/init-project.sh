@@ -30,8 +30,8 @@ Deploy Claude Code project configuration to a target directory.
 
 Options:
   --profile <level>   Configuration profile (default: standard)
-                        minimal  — CLAUDE.md + core rules + .claudeignore
-                        standard — minimal + coding + workflow rules
+                        minimal  — CLAUDE.md + core and coding rules + .claudeignore
+                        standard — minimal + workflow rules + reference docs
                         full     — standard + api + operations + agents + skills
   --force             Overwrite existing files
   --install-hooks     Install git hooks without prompting
@@ -134,14 +134,13 @@ copy_minimal() {
     copy_item "$PROJECT_TEMPLATE/CLAUDE.md" "$TARGET/CLAUDE.md"
     copy_item "$PROJECT_TEMPLATE/.claudeignore" "$TARGET/.claudeignore"
     copy_item "$PROJECT_TEMPLATE/.claude/rules/core" "$TARGET/.claude/rules/core"
-    copy_item "$PROJECT_TEMPLATE/.claude/rules/security.md" "$TARGET/.claude/rules/security.md"
+    copy_item "$PROJECT_TEMPLATE/.claude/rules/coding" "$TARGET/.claude/rules/coding"
     copy_item "$PROJECT_TEMPLATE/.claude/settings.json" "$TARGET/.claude/settings.json"
 }
 
 # Profile: standard (includes minimal)
 copy_standard() {
     copy_minimal
-    copy_item "$PROJECT_TEMPLATE/.claude/rules/coding" "$TARGET/.claude/rules/coding"
     copy_item "$PROJECT_TEMPLATE/.claude/rules/workflow" "$TARGET/.claude/rules/workflow"
     copy_item "$PROJECT_TEMPLATE/.claude/reference" "$TARGET/.claude/reference"
     copy_item "$PROJECT_TEMPLATE/.claude/rules/project-management" "$TARGET/.claude/rules/project-management"

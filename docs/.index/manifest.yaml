@@ -10,53 +10,53 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 101258
+    size: 102473
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "Unreleased", l: 8, e: 9}
       - {h: "Added", l: 10, e: 14}
-      - {h: "Changed", l: 15, e: 22}
-      - {h: "Fixed", l: 23, e: 30}
-      - {h: "1.16.0 - 2026-10-30", l: 31, e: 51}
-      - {h: "Removed", l: 52, e: 85}
-      - {h: "Changed", l: 86, e: 124}
-      - {h: "Fixed", l: 125, e: 186}
-      - {h: "1.15.0 - 2026-10-23", l: 187, e: 188}
-      - {h: "Added", l: 189, e: 200}
-      - {h: "Changed", l: 201, e: 231}
-      - {h: "Fixed", l: 232, e: 238}
-      - {h: "1.14.0 - 2026-09-29", l: 239, e: 240}
-      - {h: "Added", l: 241, e: 249}
-      - {h: "Changed", l: 250, e: 272}
-      - {h: "Removed", l: 273, e: 304}
-      - {h: "Fixed", l: 305, e: 346}
-      - {h: "Security", l: 347, e: 383}
-      - {h: "1.13.0 - 2026-09-13", l: 384, e: 385}
-      - {h: "Added", l: 386, e: 571}
-      - {h: "Changed", l: 572, e: 624}
-      - {h: "Fixed", l: 625, e: 758}
-      - {h: "Security", l: 759, e: 777}
-      - {h: "Known limitation", l: 778, e: 785}
-      - {h: "1.12.0 - 2026-08-01", l: 786, e: 787}
-      - {h: "Added", l: 788, e: 919}
-      - {h: "Fixed", l: 920, e: 1162}
-      - {h: "1.11.0 - 2026-07-03", l: 1163, e: 1164}
-      - {h: "Fixed", l: 1165, e: 1178}
-      - {h: "Security", l: 1179, e: 1256}
-      - {h: "Added", l: 1257, e: 1285}
-      - {h: "Changed", l: 1286, e: 1332}
-      - {h: "1.10.0 - 2026-04-20", l: 1333, e: 1341}
-      - {h: "1.9.0 - 2026-04-13", l: 1342, e: 1351}
-      - {h: "1.8.0 - 2026-04-13", l: 1352, e: 1357}
-      - {h: "1.7.0 - 2026-04-06", l: 1358, e: 1372}
-      - {h: "1.6.0 - 2026-04-03", l: 1373, e: 1385}
-      - {h: "1.5.0 - 2026-03-21", l: 1386, e: 1404}
-      - {h: "1.4.0 - 2026-01-22", l: 1405, e: 1410}
-      - {h: "1.3.0 - 2026-01-15", l: 1411, e: 1419}
-      - {h: "1.2.0 - 2026-01-15", l: 1420, e: 1428}
-      - {h: "1.1.0 - 2025-01-15", l: 1429, e: 1439}
-      - {h: "1.0.0 - 2025-12-03", l: 1440, e: 1446}
+      - {h: "Changed", l: 15, e: 23}
+      - {h: "Fixed", l: 24, e: 31}
+      - {h: "1.16.0 - 2026-10-30", l: 32, e: 52}
+      - {h: "Removed", l: 53, e: 86}
+      - {h: "Changed", l: 87, e: 125}
+      - {h: "Fixed", l: 126, e: 187}
+      - {h: "1.15.0 - 2026-10-23", l: 188, e: 189}
+      - {h: "Added", l: 190, e: 201}
+      - {h: "Changed", l: 202, e: 232}
+      - {h: "Fixed", l: 233, e: 239}
+      - {h: "1.14.0 - 2026-09-29", l: 240, e: 241}
+      - {h: "Added", l: 242, e: 250}
+      - {h: "Changed", l: 251, e: 273}
+      - {h: "Removed", l: 274, e: 305}
+      - {h: "Fixed", l: 306, e: 347}
+      - {h: "Security", l: 348, e: 384}
+      - {h: "1.13.0 - 2026-09-13", l: 385, e: 386}
+      - {h: "Added", l: 387, e: 572}
+      - {h: "Changed", l: 573, e: 625}
+      - {h: "Fixed", l: 626, e: 759}
+      - {h: "Security", l: 760, e: 778}
+      - {h: "Known limitation", l: 779, e: 786}
+      - {h: "1.12.0 - 2026-08-01", l: 787, e: 788}
+      - {h: "Added", l: 789, e: 920}
+      - {h: "Fixed", l: 921, e: 1163}
+      - {h: "1.11.0 - 2026-07-03", l: 1164, e: 1165}
+      - {h: "Fixed", l: 1166, e: 1179}
+      - {h: "Security", l: 1180, e: 1257}
+      - {h: "Added", l: 1258, e: 1286}
+      - {h: "Changed", l: 1287, e: 1333}
+      - {h: "1.10.0 - 2026-04-20", l: 1334, e: 1342}
+      - {h: "1.9.0 - 2026-04-13", l: 1343, e: 1352}
+      - {h: "1.8.0 - 2026-04-13", l: 1353, e: 1358}
+      - {h: "1.7.0 - 2026-04-06", l: 1359, e: 1373}
+      - {h: "1.6.0 - 2026-04-03", l: 1374, e: 1386}
+      - {h: "1.5.0 - 2026-03-21", l: 1387, e: 1405}
+      - {h: "1.4.0 - 2026-01-22", l: 1406, e: 1411}
+      - {h: "1.3.0 - 2026-01-15", l: 1412, e: 1420}
+      - {h: "1.2.0 - 2026-01-15", l: 1421, e: 1429}
+      - {h: "1.1.0 - 2025-01-15", l: 1430, e: 1440}
+      - {h: "1.0.0 - 2025-12-03", l: 1441, e: 1447}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -901,7 +901,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 7219
+    size: 7223
     tags: [docs]
     sections:
       - {h: "Overview", l: 5, e: 8}
@@ -1635,21 +1635,21 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 10839
+    size: 10602
     tags: [docs]
     sections:
       - {h: "저장소 구조", l: 1, e: 4}
-      - {h: "구조", l: 5, e: 194}
+      - {h: "구조", l: 5, e: 189}
   - path: "docs/guides/STRUCTURE.md"
     title: "Repository Structure"
     description: ""
     category: docs
     scope: docs
-    size: 11271
+    size: 11036
     tags: [docs]
     sections:
       - {h: "Repository Structure", l: 1, e: 4}
-      - {h: "Structure", l: 5, e: 204}
+      - {h: "Structure", l: 5, e: 199}
   - path: "docs/guides/USE_CASES.ko.md"
     title: "사용 시나리오와 FAQ"
     description: ""
@@ -1851,7 +1851,7 @@ documents:
     description: ""
     category: rule
     scope: enterprise
-    size: 1096
+    size: 1100
     tags: [enterprise,rule,security]
     sections:
       - {h: "Input Validation", l: 5, e: 12}
@@ -2631,7 +2631,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 8753
+    size: 8755
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 15, e: 29}
@@ -3961,7 +3961,7 @@ documents:
     description: ""
     category: reference
     scope: plugin
-    size: 931
+    size: 954
     tags: [api,architecture,ci,plugin,reference,skill]
     sections:
       - {h: "SOLID Principles", l: 5, e: 11}
@@ -4089,7 +4089,7 @@ documents:
     description: ""
     category: reference
     scope: plugin
-    size: 3427
+    size: 3436
     tags: [coding,plugin,reference,skill]
     sections:
       - {h: "General Principles", l: 5, e: 6}
@@ -4638,7 +4638,7 @@ documents:
     description: ""
     category: reference
     scope: plugin
-    size: 3427
+    size: 3436
     tags: [audit,plugin,reference,security,skill]
     sections:
       - {h: "General Principles", l: 5, e: 6}
@@ -4934,7 +4934,7 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 6272
+    size: 6276
     tags: [coding,project,reference]
     sections:
       - {h: "General Principles", l: 11, e: 12}
@@ -4952,12 +4952,58 @@ documents:
       - {h: "Retry with Backoff", l: 195, e: 220}
       - {h: "Fallback Mechanisms", l: 221, e: 236}
       - {h: "Circuit Breaker", l: 237, e: 268}
+  - path: "project/.claude/reference/coding/error-handling.md"
+    title: "Exception and Error Handling"
+    description: ""
+    category: reference
+    scope: project
+    size: 3609
+    tags: [coding,project,reference]
+    sections:
+      - {h: "General Principles", l: 10, e: 11}
+      - {h: "Anticipate and Handle Errors", l: 12, e: 20}
+      - {h: "Language-Specific Patterns", l: 21, e: 26}
+      - {h: "Resource Management", l: 27, e: 28}
+      - {h: "Ensure Cleanup", l: 29, e: 33}
+      - {h: "Custom Resource Management", l: 34, e: 38}
+      - {h: "Input Validation", l: 39, e: 43}
+      - {h: "Validate Early", l: 44, e: 47}
+      - {h: "Validation Checklist", l: 48, e: 55}
+      - {h: "Security Implications", l: 56, e: 64}
+      - {h: "Error Handling Patterns", l: 65, e: 66}
+      - {h: "Try-Catch Best Practices", l: 67, e: 72}
+      - {h: "Don't Swallow Exceptions", l: 73, e: 77}
+      - {h: "Error Context Propagation", l: 78, e: 85}
+      - {h: "Error Recovery Strategies", l: 86, e: 92}
+  - path: "project/.claude/reference/coding/implementation-standards.md"
+    title: "Implementation Standards"
+    description: ""
+    category: reference
+    scope: project
+    size: 5387
+    tags: [coding,project,reference]
+    sections:
+      - {h: "Core Principle", l: 11, e: 14}
+      - {h: "Enumeration-First Approach", l: 15, e: 23}
+      - {h: "Example: Tiered Feature Implementation", l: 24, e: 52}
+      - {h: "Anti-Patterns to Avoid", l: 53, e: 54}
+      - {h: "Incomplete Switch Statements", l: 55, e: 69}
+      - {h: "TODO Comments Instead of Implementation", l: 70, e: 82}
+      - {h: "Placeholder Returns", l: 83, e: 97}
+      - {h: "Correct Implementation Patterns", l: 98, e: 99}
+      - {h: "Complete Enum Coverage", l: 100, e: 115}
+      - {h: "Pattern Matching with Exhaustiveness", l: 116, e: 135}
+      - {h: "Complete Dictionary Mapping", l: 136, e: 153}
+      - {h: "Verification Checklist", l: 154, e: 163}
+      - {h: "Test Coverage Requirements", l: 164, e: 185}
+      - {h: "Language-Specific Guidelines", l: 186, e: 195}
+      - {h: "Related Guidelines", l: 196, e: 199}
   - path: "project/.claude/reference/coding/performance-examples.md"
     title: "Performance Examples"
     description: ""
     category: reference
     scope: project
-    size: 7394
+    size: 7398
     tags: [coding,project,reference]
     sections:
       - {h: "Profile Before Optimizing", l: 11, e: 12}
@@ -4979,12 +5025,32 @@ documents:
       - {h: "Performance Testing", l: 296, e: 297}
       - {h: "Benchmarking", l: 298, e: 331}
       - {h: "Performance Regression Testing", l: 332, e: 346}
+  - path: "project/.claude/reference/coding/performance.md"
+    title: "Performance Optimization"
+    description: ""
+    category: reference
+    scope: project
+    size: 3191
+    tags: [coding,performance,project,reference]
+    sections:
+      - {h: "Profile Before Optimizing", l: 8, e: 11}
+      - {h: "The Optimization Workflow", l: 12, e: 19}
+      - {h: "Profiling Tools", l: 20, e: 25}
+      - {h: "Identify Bottlenecks", l: 26, e: 27}
+      - {h: "Common Performance Issues", l: 28, e: 36}
+      - {h: "Performance Hotspots", l: 37, e: 44}
+      - {h: "Reduce Overhead", l: 45, e: 50}
+      - {h: "Efficient Data Structures", l: 51, e: 62}
+      - {h: "Cache Optimization", l: 63, e: 67}
+      - {h: "I/O Optimization", l: 68, e: 72}
+      - {h: "Compiler Optimizations", l: 73, e: 77}
+      - {h: "Performance Testing", l: 78, e: 83}
   - path: "project/.claude/reference/coding/safety-examples.md"
     title: "Memory and Concurrency Safety Examples"
     description: ""
     category: reference
     scope: project
-    size: 3589
+    size: 3593
     tags: [coding,project,reference]
     sections:
       - {h: "Memory Management", l: 11, e: 12}
@@ -4995,6 +5061,49 @@ documents:
       - {h: "Concurrency", l: 79, e: 80}
       - {h: "Avoiding Data Races", l: 81, e: 114}
       - {h: "Common Patterns", l: 115, e: 161}
+  - path: "project/.claude/reference/coding/safety.md"
+    title: "Memory & Concurrency Safety"
+    description: ""
+    category: reference
+    scope: project
+    size: 2602
+    tags: [coding,memory,project,reference]
+    sections:
+      - {h: "Memory Management", l: 10, e: 11}
+      - {h: "Smart Pointers (C++)", l: 12, e: 17}
+      - {h: "RAII Prevents Leaks", l: 18, e: 22}
+      - {h: "Ownership Semantics", l: 23, e: 27}
+      - {h: "Lifetime Guidelines", l: 28, e: 34}
+      - {h: "Memory Safety Tools", l: 35, e: 41}
+      - {h: "Concurrency", l: 42, e: 43}
+      - {h: "Avoiding Data Races", l: 44, e: 49}
+      - {h: "Choosing Concurrency Model", l: 50, e: 58}
+      - {h: "Common Patterns", l: 59, e: 63}
+      - {h: "Deadlock Prevention", l: 64, e: 70}
+      - {h: "Testing Concurrent Code", l: 71, e: 77}
+  - path: "project/.claude/reference/coding/standards.md"
+    title: "Coding Standards"
+    description: ""
+    category: reference
+    scope: project
+    size: 3901
+    tags: [coding,project,reference]
+    sections:
+      - {h: "Naming Conventions", l: 11, e: 12}
+      - {h: "Descriptive Names", l: 13, e: 19}
+      - {h: "Consistent Casing", l: 20, e: 26}
+      - {h: "File Organization", l: 27, e: 35}
+      - {h: "Single Responsibility", l: 36, e: 42}
+      - {h: "Complexity Management", l: 43, e: 44}
+      - {h: "Reduce Nesting", l: 45, e: 63}
+      - {h: "Extract Helper Functions", l: 64, e: 73}
+      - {h: "Avoid Magic Numbers", l: 74, e: 87}
+      - {h: "Error Logging", l: 88, e: 101}
+      - {h: "Prefer Immutability", l: 102, e: 109}
+      - {h: "Comments and Documentation", l: 110, e: 111}
+      - {h: "Public API Documentation", l: 112, e: 119}
+      - {h: "Comment Guidelines", l: 120, e: 125}
+      - {h: "Code Style", l: 126, e: 130}
   - path: "project/.claude/reference/project-management/build-examples.md"
     title: "Build Examples"
     description: ""
@@ -5077,7 +5186,7 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 11408
+    size: 11412
     tags: [project,reference,security]
     sections:
       - {h: "Input Validation", l: 11, e: 12}
@@ -5097,6 +5206,34 @@ documents:
       - {h: "Principle of Least Privilege", l: 414, e: 432}
       - {h: "Secure Defaults", l: 433, e: 451}
       - {h: "Rate Limiting", l: 452, e: 488}
+  - path: "project/.claude/reference/security.md"
+    title: "Security and Sensitive Information"
+    description: ""
+    category: reference
+    scope: project
+    size: 3643
+    tags: [project,reference,security]
+    sections:
+      - {h: "Input Validation", l: 16, e: 24}
+      - {h: "Validate All External Input", l: 25, e: 29}
+      - {h: "Prevent Injection Attacks", l: 30, e: 35}
+      - {h: "Path Traversal Prevention", l: 36, e: 40}
+      - {h: "Authentication", l: 41, e: 47}
+      - {h: "Authorization", l: 48, e: 54}
+      - {h: "Sensitive Data", l: 55, e: 61}
+      - {h: "Common Vulnerabilities", l: 62, e: 63}
+      - {h: "SQL Injection", l: 64, e: 67}
+      - {h: "XSS (Cross-Site Scripting)", l: 68, e: 72}
+      - {h: "CSRF", l: 73, e: 77}
+      - {h: "Secure Storage", l: 78, e: 79}
+      - {h: "Never Hard-Code Credentials", l: 80, e: 84}
+      - {h: "Mask Sensitive Data in Logs", l: 85, e: 89}
+      - {h: "Secure Password Handling", l: 90, e: 94}
+      - {h: "Dependency Scanning", l: 95, e: 96}
+      - {h: "Regular Vulnerability Checks", l: 97, e: 102}
+      - {h: "Pin Versions", l: 103, e: 107}
+      - {h: "Automated Scanning in CI/CD", l: 108, e: 112}
+      - {h: "Security Best Practices", l: 113, e: 121}
   - path: "project/.claude/reference/workflow/5w1h-examples.md"
     title: "5W1H Examples and Templates"
     description: ""
@@ -5390,7 +5527,7 @@ documents:
     description: ""
     category: rule
     scope: project
-    size: 1153
+    size: 1176
     tags: [api,architecture,ci,project,rule]
     sections:
       - {h: "SOLID Principles", l: 19, e: 25}
@@ -5445,115 +5582,20 @@ documents:
       - {h: "Conflict Prevention", l: 124, e: 132}
       - {h: "Debugging", l: 133, e: 142}
       - {h: "Checklist", l: 143, e: 148}
-  - path: "project/.claude/rules/coding/error-handling.md"
-    title: "Exception and Error Handling"
+  - path: "project/.claude/rules/coding/essentials.md"
+    title: "Coding Essentials"
     description: ""
     category: rule
     scope: project
-    size: 3600
+    size: 5106
     tags: [coding,project,rule]
     sections:
-      - {h: "General Principles", l: 10, e: 11}
-      - {h: "Anticipate and Handle Errors", l: 12, e: 20}
-      - {h: "Language-Specific Patterns", l: 21, e: 26}
-      - {h: "Resource Management", l: 27, e: 28}
-      - {h: "Ensure Cleanup", l: 29, e: 33}
-      - {h: "Custom Resource Management", l: 34, e: 38}
-      - {h: "Input Validation", l: 39, e: 43}
-      - {h: "Validate Early", l: 44, e: 47}
-      - {h: "Validation Checklist", l: 48, e: 55}
-      - {h: "Security Implications", l: 56, e: 64}
-      - {h: "Error Handling Patterns", l: 65, e: 66}
-      - {h: "Try-Catch Best Practices", l: 67, e: 72}
-      - {h: "Don't Swallow Exceptions", l: 73, e: 77}
-      - {h: "Error Context Propagation", l: 78, e: 85}
-      - {h: "Error Recovery Strategies", l: 86, e: 92}
-  - path: "project/.claude/rules/coding/implementation-standards.md"
-    title: "Implementation Standards"
-    description: ""
-    category: rule
-    scope: project
-    size: 5387
-    tags: [coding,project,rule]
-    sections:
-      - {h: "Core Principle", l: 11, e: 14}
-      - {h: "Enumeration-First Approach", l: 15, e: 23}
-      - {h: "Example: Tiered Feature Implementation", l: 24, e: 52}
-      - {h: "Anti-Patterns to Avoid", l: 53, e: 54}
-      - {h: "Incomplete Switch Statements", l: 55, e: 69}
-      - {h: "TODO Comments Instead of Implementation", l: 70, e: 82}
-      - {h: "Placeholder Returns", l: 83, e: 97}
-      - {h: "Correct Implementation Patterns", l: 98, e: 99}
-      - {h: "Complete Enum Coverage", l: 100, e: 115}
-      - {h: "Pattern Matching with Exhaustiveness", l: 116, e: 135}
-      - {h: "Complete Dictionary Mapping", l: 136, e: 153}
-      - {h: "Verification Checklist", l: 154, e: 163}
-      - {h: "Test Coverage Requirements", l: 164, e: 185}
-      - {h: "Language-Specific Guidelines", l: 186, e: 195}
-      - {h: "Related Guidelines", l: 196, e: 199}
-  - path: "project/.claude/rules/coding/performance.md"
-    title: "Performance Optimization"
-    description: ""
-    category: rule
-    scope: project
-    size: 3191
-    tags: [coding,performance,project,rule]
-    sections:
-      - {h: "Profile Before Optimizing", l: 8, e: 11}
-      - {h: "The Optimization Workflow", l: 12, e: 19}
-      - {h: "Profiling Tools", l: 20, e: 25}
-      - {h: "Identify Bottlenecks", l: 26, e: 27}
-      - {h: "Common Performance Issues", l: 28, e: 36}
-      - {h: "Performance Hotspots", l: 37, e: 44}
-      - {h: "Reduce Overhead", l: 45, e: 50}
-      - {h: "Efficient Data Structures", l: 51, e: 62}
-      - {h: "Cache Optimization", l: 63, e: 67}
-      - {h: "I/O Optimization", l: 68, e: 72}
-      - {h: "Compiler Optimizations", l: 73, e: 77}
-      - {h: "Performance Testing", l: 78, e: 83}
-  - path: "project/.claude/rules/coding/safety.md"
-    title: "Memory & Concurrency Safety"
-    description: ""
-    category: rule
-    scope: project
-    size: 2602
-    tags: [coding,memory,project,rule]
-    sections:
-      - {h: "Memory Management", l: 10, e: 11}
-      - {h: "Smart Pointers (C++)", l: 12, e: 17}
-      - {h: "RAII Prevents Leaks", l: 18, e: 22}
-      - {h: "Ownership Semantics", l: 23, e: 27}
-      - {h: "Lifetime Guidelines", l: 28, e: 34}
-      - {h: "Memory Safety Tools", l: 35, e: 41}
-      - {h: "Concurrency", l: 42, e: 43}
-      - {h: "Avoiding Data Races", l: 44, e: 49}
-      - {h: "Choosing Concurrency Model", l: 50, e: 58}
-      - {h: "Common Patterns", l: 59, e: 63}
-      - {h: "Deadlock Prevention", l: 64, e: 70}
-      - {h: "Testing Concurrent Code", l: 71, e: 77}
-  - path: "project/.claude/rules/coding/standards.md"
-    title: "Coding Standards"
-    description: ""
-    category: rule
-    scope: project
-    size: 3901
-    tags: [coding,project,rule]
-    sections:
-      - {h: "Naming Conventions", l: 11, e: 12}
-      - {h: "Descriptive Names", l: 13, e: 19}
-      - {h: "Consistent Casing", l: 20, e: 26}
-      - {h: "File Organization", l: 27, e: 35}
-      - {h: "Single Responsibility", l: 36, e: 42}
-      - {h: "Complexity Management", l: 43, e: 44}
-      - {h: "Reduce Nesting", l: 45, e: 63}
-      - {h: "Extract Helper Functions", l: 64, e: 73}
-      - {h: "Avoid Magic Numbers", l: 74, e: 87}
-      - {h: "Error Logging", l: 88, e: 101}
-      - {h: "Prefer Immutability", l: 102, e: 109}
-      - {h: "Comments and Documentation", l: 110, e: 111}
-      - {h: "Public API Documentation", l: 112, e: 119}
-      - {h: "Comment Guidelines", l: 120, e: 125}
-      - {h: "Code Style", l: 126, e: 130}
+      - {h: "Code Quality", l: 10, e: 19}
+      - {h: "Complete Implementation", l: 20, e: 26}
+      - {h: "Errors and Validation", l: 27, e: 35}
+      - {h: "Performance", l: 36, e: 42}
+      - {h: "Memory and Concurrency", l: 43, e: 50}
+      - {h: "Security", l: 51, e: 62}
   - path: "project/.claude/rules/compliance/README.md"
     title: "Compliance Rules — Per-Standard Index"
     description: ""
@@ -5718,34 +5760,6 @@ documents:
       - {h: "Naming Conventions", l: 70, e: 76}
       - {h: "Test Independence", l: 77, e: 81}
       - {h: "Continuous Integration", l: 82, e: 87}
-  - path: "project/.claude/rules/security.md"
-    title: "Security and Sensitive Information"
-    description: ""
-    category: rule
-    scope: project
-    size: 3643
-    tags: [project,rule,security]
-    sections:
-      - {h: "Input Validation", l: 16, e: 24}
-      - {h: "Validate All External Input", l: 25, e: 29}
-      - {h: "Prevent Injection Attacks", l: 30, e: 35}
-      - {h: "Path Traversal Prevention", l: 36, e: 40}
-      - {h: "Authentication", l: 41, e: 47}
-      - {h: "Authorization", l: 48, e: 54}
-      - {h: "Sensitive Data", l: 55, e: 61}
-      - {h: "Common Vulnerabilities", l: 62, e: 63}
-      - {h: "SQL Injection", l: 64, e: 67}
-      - {h: "XSS (Cross-Site Scripting)", l: 68, e: 72}
-      - {h: "CSRF", l: 73, e: 77}
-      - {h: "Secure Storage", l: 78, e: 79}
-      - {h: "Never Hard-Code Credentials", l: 80, e: 84}
-      - {h: "Mask Sensitive Data in Logs", l: 85, e: 89}
-      - {h: "Secure Password Handling", l: 90, e: 94}
-      - {h: "Dependency Scanning", l: 95, e: 96}
-      - {h: "Regular Vulnerability Checks", l: 97, e: 102}
-      - {h: "Pin Versions", l: 103, e: 107}
-      - {h: "Automated Scanning in CI/CD", l: 108, e: 112}
-      - {h: "Security Best Practices", l: 113, e: 121}
   - path: "project/.claude/rules/tools/gh-cli-scripts.md"
     title: "GitHub CLI Scripts"
     description: ""
@@ -5930,7 +5944,7 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 1153
+    size: 1176
     tags: [api,architecture,project,reference,skill]
     sections:
       - {h: "Architecture and Design Principles", l: 15, e: 18}
@@ -6083,7 +6097,7 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 3600
+    size: 3609
     tags: [coding,project,reference,skill]
     sections:
       - {h: "Exception and Error Handling", l: 6, e: 9}
@@ -6675,7 +6689,7 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 3600
+    size: 3609
     tags: [audit,project,reference,security,skill]
     sections:
       - {h: "Exception and Error Handling", l: 6, e: 9}

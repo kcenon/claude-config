@@ -263,7 +263,7 @@ If implementation is interrupted:
 
 ## Related Rules
 
-- [implementation-standards.md](../project/.claude/rules/coding/implementation-standards.md) - Static rule for implementation completeness
+- [implementation-standards.md](../project/.claude/reference/coding/implementation-standards.md) - Reference for implementation completeness
 - [quality.md](../project/.claude/rules/coding/quality.md) - Code quality standards
 
 ---

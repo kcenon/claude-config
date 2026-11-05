@@ -68,11 +68,7 @@ claude_config_backup/
 │       ├── settings.local.json.template  # Local settings template
 │       ├── rules/              # Consolidated guideline modules (auto-loaded)
 │       │   ├── coding/         # Coding standards
-│       │   │   ├── standards.md
-│       │   │   ├── implementation-standards.md
-│       │   │   ├── error-handling.md
-│       │   │   ├── safety.md
-│       │   │   ├── performance.md
+│       │   │   ├── essentials.md
 │       │   │   └── cpp-specifics.md
 │       │   ├── api/            # API & Architecture
 │       │   │   ├── api-design.md
@@ -97,11 +93,10 @@ claude_config_backup/
 │       │   │   └── documentation.md
 │       │   ├── operations/
 │       │   │   └── ops.md
-│       │   ├── tools/
-│       │   │   └── gh-cli-scripts.md
-│       │   └── security.md     # Security guidelines
+│       │   └── tools/
+│       │       └── gh-cli-scripts.md
 │       ├── reference/          # On-demand reference docs (outside rules/, never auto-loaded)
-│       │   ├── coding/         # anti-patterns.md
+│       │   ├── coding/         # anti-patterns.md, full coding rules, examples
 │       │   └── workflow/       # 5W1H examples, labels, automation, agent teams
 │       ├── agents/             # Specialized agent configurations
 │       │   ├── analyst.md

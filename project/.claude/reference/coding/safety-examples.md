@@ -4,7 +4,7 @@ alwaysApply: false
 
 # Memory and Concurrency Safety Examples
 
-Smart-pointer, RAII, ownership, locking and concurrent-queue samples. Companion to `.claude/rules/coding/safety.md`, which keeps the principles.
+Smart-pointer, RAII, ownership, locking and concurrent-queue samples. Companion to `.claude/reference/coding/safety.md`, which keeps the principles.
 
 > **Loading**: Lives in `.claude/reference/`, outside the auto-loaded `.claude/rules/` tree, so it is never injected automatically. Load with `@load: reference/safety-examples`.
 
