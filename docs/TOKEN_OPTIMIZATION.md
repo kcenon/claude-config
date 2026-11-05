@@ -111,7 +111,7 @@ For **security-related file exclusions**, use the official `permissions.deny` in
 }
 ```
 
-**Note**: `permissions.deny` is designed for **security** (blocking access to sensitive files), not for **token optimization**. Files blocked by `permissions.deny` are excluded from file discovery and search results.
+**Note**: Path rules in `permissions.deny` are designed for **security** (blocking access to sensitive files), not for **token optimization**. Files blocked by `permissions.deny` are excluded from file discovery and search results. A rule that is a bare tool name is different: it removes that tool's definition from every request (see [Unused Tool Definitions](#unused-tool-definitions)).
 
 ### Migration Strategy
 
@@ -739,6 +739,62 @@ task description; file paths of sibling reads appear only with `--show-paths`.
 A comparison needs history, so both profiles keep transcripts for 90 days
 (`cleanupPeriodDays`). On the machine where this was measured, 30 days of
 transcripts took about 1.3 GB.
+
+## Unused Tool Definitions
+
+Every request carries the definition of each tool the session can call. On
+Claude Code 2.1.318 an interactive main session sent 47 definitions, about
+184,000 characters of JSON. A bare tool name in `permissions.deny` removes
+that tool's definition from the requests that follow, while a scoped rule
+such as `Bash(rm *)` only blocks calls
+([permissions](https://code.claude.com/docs/en/permissions.md),
+[prompt caching](https://code.claude.com/docs/en/prompt-caching.md)).
+
+Both profiles deny the tools below (#1000). None of them was called in 30
+days on the measuring machine. Sizes are from an interactive main session on
+2.1.318 and add up to about 58,000 characters.
+
+| Entry | Characters | What stops working |
+|---|---|---|
+| `DesignSync` | 10,868 | `/design-sync` with claude.ai/design |
+| `SendToProject`, `SendToProjectContext` | 7,177 and 805 | `/send-to-project` |
+| `RemoteTrigger` | 4,151 | Creating, running and inspecting cloud routines from a session |
+| `ArtifactData`, `ArtifactComments` | 12,526 and 7,527 | Reading and writing an artifact's database and comment threads; publishing with `Artifact` still works |
+| `SendFeedback` | 5,618 | Feedback drafts about Claude Code |
+| `PushNotification` | 1,811 | Notifications that Claude sends on its own to the desktop or a phone |
+| `mcp__claude_ai_Claude_Docs` | 6,001 (8 tools) | The claude.ai Claude Docs connector |
+| `mcp__claude_ai_Google_Drive` | 1,552 (2 tools) | The claude.ai Google Drive connector |
+
+Measured effect, with print-mode sessions on 2.1.318 started from an empty
+folder with and without these entries (`claude -p --settings <file>`):
+
+| Request | Without | With |
+|---|---|---|
+| Main: tool definitions | 32, 93,060 characters | 24, 72,152 characters |
+| Main: first request | 50,138 tokens | 41,651 tokens |
+| General-purpose subagent: tool definitions | 31, 84,074 characters | 23, 63,166 characters |
+| General-purpose subagent: first request | 42,330 tokens | 33,843 tokens |
+
+- Print mode does not load `SendToProject`, `SendToProjectContext`,
+  `ArtifactData`, `ArtifactComments`, `SendFeedback` or the Google Drive
+  connector, so those entries were not observed there. Check them with
+  `/context` in an interactive session.
+- Denying a connector removes its tools but not its server instructions,
+  which still reach the model as an attachment (1,893 characters for Claude
+  Docs). `disableClaudeAiConnectors` turns off claude.ai connectors as a
+  whole; the profiles do not set it, because it would also turn off
+  connectors that a machine does use.
+- The tool set changes between versions (2.1.316 sent 45 definitions), so
+  repeat the comparison on the version in use. The `api-request-shape`
+  records in a transcript hold the tool array each session sent
+  (`shape.tools`), and `token_audit.py --since` compares first-request
+  context before and after a change.
+
+To use one of these tools again, remove its entry from both
+`global/settings.json` and `global/settings.windows.json` and reinstall.
+There is no machine-local override: `permissions` is an installer policy key,
+so a reinstall replaces the whole block in `~/.claude/settings.json`, and a
+deny rule cannot be lifted by an `allow` rule in another scope.
 
 ## Support
 
