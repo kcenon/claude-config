@@ -47,6 +47,8 @@ on:
       - 'tests/scripts/test-workspace-prefix.sh'
       - 'scripts/fleet_orchestrator/**'
       - 'tests/fleet_orchestrator/**'
+      - 'scripts/token-audit/**'
+      - 'tests/scripts/test_token_audit.py'
       - 'docs/design/**'
       - 'docs/tier2-benchmark-results.md'
       - 'docs/batch-drift-regression.md'
@@ -210,6 +212,11 @@ jobs:
         # depends on. Silent breakage here means consumers route work to the
         # wrong agent type.
         run: python -m pytest tests/fleet_orchestrator/ -q
+
+      - name: Run token-audit tests (#999)
+        # Pins how transcript usage is counted: once per request, without
+        # rawContent or image blocks, and with no transcript text printed.
+        run: python3 tests/scripts/test_token_audit.py
 
       - name: Verify README.md / README.ko.md heading skeleton (#623)
         # Bilingual contract: the two READMEs must share the same heading
