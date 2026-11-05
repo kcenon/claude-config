@@ -10,7 +10,7 @@ content, so a converted figure would not be a measurement.
 
 Usage:
   python3 scripts/token-audit/token_audit.py [--projects-dir DIR]
-      [--project NAME] [--since ISO] [--until ISO]
+      [--project NAME] [--since ISO] [--until ISO] [--session ID ...]
       [--exclude-session ID ...] [--json] [--show-paths]
 """
 
@@ -36,6 +36,16 @@ TOKEN_FIELDS = ("input", "cache_write", "cache_write_1h", "cache_write_5m",
                 "cache_read", "output", "thinking")
 SYNTHETIC_MODEL = "<synthetic>"
 TOP_PATHS = 10
+# The transcript does not say whether an auto compaction was idle
+# compaction, which runs after about an hour without a request, or one at
+# the context threshold. In 30 days of transcripts the gap from the last
+# message was 54 to 56 minutes for the first and under 4 minutes for the
+# second, so a gap of 30 minutes or more is taken as idle.
+IDLE_GAP_SECONDS = 30 * 60
+# A Read of a file already shown unchanged returns a one-line notice, not
+# the content; results this short are not counted as re-reads.
+REREAD_MIN_CHARS = 200
+WRITE_TOOLS = ("Edit", "Write", "NotebookEdit")
 
 
 def parse_time(value):
@@ -136,11 +146,13 @@ class Transcript:
         self.segment = 0
         self.segment_end = []   # request count at the end of each segment
         self.pending = []       # (segment, count at event, chars, target)
-        self.tool_uses = {}     # tool_use_id -> (name, read path or None)
+        self.tool_uses = {}     # tool_use_id -> (name, read path or None, read range)
         self.first = None       # first counted-or-not request of the file
         self.resumed = False    # copied requests came before the first new one
         self.contexts = []
         self.cached = 0         # cache read + cache write of counted requests
+        self.last_message = None  # timestamp text of the last user or assistant line
+        self.read_segments = {}   # (path, offset, limit) -> segment of its last read
 
 
 class Audit:
@@ -166,6 +178,9 @@ class Audit:
         self.rules = defaultdict(lambda: defaultdict(int))
         self.compactions = defaultdict(int)
         self.pre_tokens = []
+        self.causes = defaultdict(int)
+        self.cause_pre_tokens = defaultdict(list)
+        self.rereads = {k: {"reads": 0, "chars": 0} for k in KINDS}
         self.agent_reads = defaultdict(lambda: defaultdict(dict))
         self.main_reads = defaultdict(set)
 
@@ -196,6 +211,8 @@ class Audit:
 
     def _dispatch(self, state, record):
         kind = record.get("type")
+        if kind in ("assistant", "user") and record.get("timestamp"):
+            state.last_message = record["timestamp"]
         if kind == "assistant":
             self._assistant(state, record)
         elif kind == "user":
@@ -271,8 +288,14 @@ class Audit:
         name = block.get("name") or "(unknown)"
         tool_input = block.get("input") or {}
         read_path = tool_input.get("file_path") if name == "Read" else None
-        state.tool_uses[block.get("id")] = (name, read_path)
+        read_range = (tool_input.get("offset"), tool_input.get("limit"))
+        state.tool_uses[block.get("id")] = (name, read_path, read_range)
         self.tools[state.kind][name]["calls"] += 1
+        if name in WRITE_TOOLS:
+            # A write between two reads of a path makes the second one new.
+            written = normalize_path(tool_input.get("file_path") or tool_input.get("notebook_path"))
+            for key in [k for k in state.read_segments if k[0] == written]:
+                del state.read_segments[key]
 
     def _user(self, state, record):
         content = (record.get("message") or {}).get("content")
@@ -285,7 +308,7 @@ class Audit:
             issued = state.tool_uses.pop(block.get("tool_use_id"), None)
             if issued is None:
                 continue
-            name, read_path = issued
+            name, read_path, read_range = issued
             chars, other = result_size(block.get("content"))
             stats = self.tools[state.kind][name]
             stats["result_chars"] += chars
@@ -295,6 +318,16 @@ class Audit:
             state.pending.append((state.segment, state.count, chars, stats))
             if read_path and not failed:
                 self._read(state, read_path, chars)
+                if chars > REREAD_MIN_CHARS:
+                    self._reread(state, (normalize_path(read_path),) + read_range, chars)
+
+    def _reread(self, state, key, chars):
+        """Count a read of a range that was read before the last compaction."""
+        previous = state.read_segments.get(key)
+        if previous is not None and previous < state.segment:
+            self.rereads[state.kind]["reads"] += 1
+            self.rereads[state.kind]["chars"] += chars
+        state.read_segments[key] = state.segment
 
     def _read(self, state, read_path, chars):
         path = normalize_path(read_path)
@@ -332,13 +365,29 @@ class Audit:
         state.pending.append((state.segment, state.count, len(text), stats))
 
     def _compaction(self, state, record):
-        if self.in_window(parse_time(record.get("timestamp"))):
+        timestamp = parse_time(record.get("timestamp"))
+        if self.in_window(timestamp):
             meta = record.get("compactMetadata") or {}
-            self.compactions[meta.get("trigger") or "unknown"] += 1
+            trigger = meta.get("trigger") or "unknown"
+            self.compactions[trigger] += 1
             if meta.get("preTokens"):
                 self.pre_tokens.append(meta["preTokens"])
+            cause = self._cause(trigger, timestamp, parse_time(state.last_message))
+            self.causes[cause] += 1
+            if meta.get("preTokens"):
+                self.cause_pre_tokens[cause].append(meta["preTokens"])
         state.segment_end.append(state.count)
         state.segment += 1
+
+    @staticmethod
+    def _cause(trigger, timestamp, last_message):
+        """Split an auto compaction into idle and threshold by the gap before it."""
+        if trigger != "auto":
+            return trigger
+        if timestamp is not None and last_message is not None \
+                and (timestamp - last_message).total_seconds() >= IDLE_GAP_SECONDS:
+            return "idle"
+        return "threshold"
 
     def _finish(self, state):
         state.segment_end.append(state.count)
@@ -397,6 +446,15 @@ class Audit:
             "compactions": {
                 "by_trigger": dict(self.compactions),
                 "pre_tokens_median": statistics.median(self.pre_tokens) if self.pre_tokens else None,
+                "by_cause": {
+                    cause: {
+                        "count": count,
+                        "pre_tokens_median": (statistics.median(self.cause_pre_tokens[cause])
+                                              if self.cause_pre_tokens[cause] else None),
+                    }
+                    for cause, count in sorted(self.causes.items())
+                },
+                "rereads": {k: dict(v) for k, v in self.rereads.items()},
             },
         }
 
@@ -532,6 +590,11 @@ def render_text(report):
     c = report["compactions"]
     lines.append("Compactions: " + (", ".join(f"{k} {v}" for k, v in sorted(c["by_trigger"].items())) or "none")
                  + f"; median tokens before compaction {number(c['pre_tokens_median'])}")
+    lines.append("  by cause: " + (", ".join(f"{k} {v['count']} (median {number(v['pre_tokens_median'])})"
+                                             for k, v in c["by_cause"].items()) or "none"))
+    lines.append("  same range read again after a compaction: "
+                 + ", ".join(f"{k} {number(v['reads'])} ({number(v['chars'])} chars)"
+                             for k, v in c["rereads"].items()))
     return "\n".join(lines)
 
 
@@ -541,6 +604,8 @@ def parse_args(argv):
     parser.add_argument("--project", help="one folder under the projects dir (default: all)")
     parser.add_argument("--since", help="count requests at or after this UTC ISO 8601 time")
     parser.add_argument("--until", help="count requests before this UTC ISO 8601 time")
+    parser.add_argument("--session", action="append", default=[], metavar="ID",
+                        help="count only this session and its subagents; repeatable")
     parser.add_argument("--exclude-session", action="append", default=[], metavar="ID")
     parser.add_argument("--json", action="store_true", help="print the report as JSON")
     parser.add_argument("--show-paths", action="store_true", help="list file paths read by sibling subagents")
@@ -561,10 +626,10 @@ def main(argv=None):
         print("token_audit: --since/--until must be ISO 8601 times", file=sys.stderr)
         return 2
     audit = Audit(since=since, until=until, show_paths=args.show_paths)
-    excluded = set(args.exclude_session)
+    included, excluded = set(args.session), set(args.exclude_session)
     for parts, path in iter_transcripts(projects_dir, args.project):
         kind, session = classify(parts)
-        if session not in excluded:
+        if session not in excluded and (not included or session in included):
             audit.add_transcript(kind, session, path)
     report = audit.report()
     print(json.dumps(report, indent=2) if args.json else render_text(report))
