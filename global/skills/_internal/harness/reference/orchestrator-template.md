@@ -64,6 +64,11 @@ An integration skill that coordinates the {domain} agent team to produce {final 
 
    > 5-6 tasks per member is optimal. Use `depends_on` for tasks with dependencies.
 
+**Shared documents:** do not have several agents each read the same large document in full.
+
+- Split the work by document, so that each document has one owner.
+- When one document has to go to several agents, build a heading-to-line index of it once. Give each agent the path and the line range it needs, and tell it to read only that range and to use Grep for anything outside it.
+
 ### Phase 3: {Main work -- e.g., investigation/generation/analysis}
 
 **Execution method:** Members self-coordinate
@@ -191,6 +196,11 @@ Invoke N Agent tools simultaneously in a single message:
 |-------|-------|--------|-------|-------------------|
 | {agent-1} | {input source} | `_workspace/{phase}_{agent}_{artifact}.md` | opus | true |
 | {agent-2} | {input source} | `_workspace/{phase}_{agent}_{artifact}.md` | opus | true |
+
+**Shared documents:** do not have several agents each read the same large document in full.
+
+- Split the work by document, so that each document has one owner.
+- When one document has to go to several agents, build a heading-to-line index of it once. Give each agent the path and the line range it needs, and tell it to read only that range and to use Grep for anything outside it.
 
 {For sequential execution}
 Pass the previous agent's output as the next agent's input:

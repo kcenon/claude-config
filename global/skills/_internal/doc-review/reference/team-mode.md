@@ -54,6 +54,11 @@ Split files into partitions based on file count (same strategy as Solo Mode Agen
 
 ### T-2. Spawn Teammates
 
+**Shared documents:** do not have several agents each read the same large document in full.
+
+- Split the work by document, so that each document has one owner.
+- When one document has to go to several agents, build a heading-to-line index of it once. Give each agent the path and the line range it needs, and tell it to read only that range and to use Grep for anything outside it.
+
 **Analyzer Team** (issue detection — read-only):
 
 ```
