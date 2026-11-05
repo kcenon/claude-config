@@ -10,53 +10,53 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 100321
+    size: 101258
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "Unreleased", l: 8, e: 9}
       - {h: "Added", l: 10, e: 14}
-      - {h: "Changed", l: 15, e: 21}
-      - {h: "Fixed", l: 22, e: 29}
-      - {h: "1.16.0 - 2026-10-30", l: 30, e: 50}
-      - {h: "Removed", l: 51, e: 84}
-      - {h: "Changed", l: 85, e: 123}
-      - {h: "Fixed", l: 124, e: 185}
-      - {h: "1.15.0 - 2026-10-23", l: 186, e: 187}
-      - {h: "Added", l: 188, e: 199}
-      - {h: "Changed", l: 200, e: 230}
-      - {h: "Fixed", l: 231, e: 237}
-      - {h: "1.14.0 - 2026-09-29", l: 238, e: 239}
-      - {h: "Added", l: 240, e: 248}
-      - {h: "Changed", l: 249, e: 271}
-      - {h: "Removed", l: 272, e: 303}
-      - {h: "Fixed", l: 304, e: 345}
-      - {h: "Security", l: 346, e: 382}
-      - {h: "1.13.0 - 2026-09-13", l: 383, e: 384}
-      - {h: "Added", l: 385, e: 570}
-      - {h: "Changed", l: 571, e: 623}
-      - {h: "Fixed", l: 624, e: 757}
-      - {h: "Security", l: 758, e: 776}
-      - {h: "Known limitation", l: 777, e: 784}
-      - {h: "1.12.0 - 2026-08-01", l: 785, e: 786}
-      - {h: "Added", l: 787, e: 918}
-      - {h: "Fixed", l: 919, e: 1161}
-      - {h: "1.11.0 - 2026-07-03", l: 1162, e: 1163}
-      - {h: "Fixed", l: 1164, e: 1177}
-      - {h: "Security", l: 1178, e: 1255}
-      - {h: "Added", l: 1256, e: 1284}
-      - {h: "Changed", l: 1285, e: 1331}
-      - {h: "1.10.0 - 2026-04-20", l: 1332, e: 1340}
-      - {h: "1.9.0 - 2026-04-13", l: 1341, e: 1350}
-      - {h: "1.8.0 - 2026-04-13", l: 1351, e: 1356}
-      - {h: "1.7.0 - 2026-04-06", l: 1357, e: 1371}
-      - {h: "1.6.0 - 2026-04-03", l: 1372, e: 1384}
-      - {h: "1.5.0 - 2026-03-21", l: 1385, e: 1403}
-      - {h: "1.4.0 - 2026-01-22", l: 1404, e: 1409}
-      - {h: "1.3.0 - 2026-01-15", l: 1410, e: 1418}
-      - {h: "1.2.0 - 2026-01-15", l: 1419, e: 1427}
-      - {h: "1.1.0 - 2025-01-15", l: 1428, e: 1438}
-      - {h: "1.0.0 - 2025-12-03", l: 1439, e: 1445}
+      - {h: "Changed", l: 15, e: 22}
+      - {h: "Fixed", l: 23, e: 30}
+      - {h: "1.16.0 - 2026-10-30", l: 31, e: 51}
+      - {h: "Removed", l: 52, e: 85}
+      - {h: "Changed", l: 86, e: 124}
+      - {h: "Fixed", l: 125, e: 186}
+      - {h: "1.15.0 - 2026-10-23", l: 187, e: 188}
+      - {h: "Added", l: 189, e: 200}
+      - {h: "Changed", l: 201, e: 231}
+      - {h: "Fixed", l: 232, e: 238}
+      - {h: "1.14.0 - 2026-09-29", l: 239, e: 240}
+      - {h: "Added", l: 241, e: 249}
+      - {h: "Changed", l: 250, e: 272}
+      - {h: "Removed", l: 273, e: 304}
+      - {h: "Fixed", l: 305, e: 346}
+      - {h: "Security", l: 347, e: 383}
+      - {h: "1.13.0 - 2026-09-13", l: 384, e: 385}
+      - {h: "Added", l: 386, e: 571}
+      - {h: "Changed", l: 572, e: 624}
+      - {h: "Fixed", l: 625, e: 758}
+      - {h: "Security", l: 759, e: 777}
+      - {h: "Known limitation", l: 778, e: 785}
+      - {h: "1.12.0 - 2026-08-01", l: 786, e: 787}
+      - {h: "Added", l: 788, e: 919}
+      - {h: "Fixed", l: 920, e: 1162}
+      - {h: "1.11.0 - 2026-07-03", l: 1163, e: 1164}
+      - {h: "Fixed", l: 1165, e: 1178}
+      - {h: "Security", l: 1179, e: 1256}
+      - {h: "Added", l: 1257, e: 1285}
+      - {h: "Changed", l: 1286, e: 1332}
+      - {h: "1.10.0 - 2026-04-20", l: 1333, e: 1341}
+      - {h: "1.9.0 - 2026-04-13", l: 1342, e: 1351}
+      - {h: "1.8.0 - 2026-04-13", l: 1352, e: 1357}
+      - {h: "1.7.0 - 2026-04-06", l: 1358, e: 1372}
+      - {h: "1.6.0 - 2026-04-03", l: 1373, e: 1385}
+      - {h: "1.5.0 - 2026-03-21", l: 1386, e: 1404}
+      - {h: "1.4.0 - 2026-01-22", l: 1405, e: 1410}
+      - {h: "1.3.0 - 2026-01-15", l: 1411, e: 1419}
+      - {h: "1.2.0 - 2026-01-15", l: 1420, e: 1428}
+      - {h: "1.1.0 - 2025-01-15", l: 1429, e: 1439}
+      - {h: "1.0.0 - 2025-12-03", l: 1440, e: 1446}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -2084,15 +2084,15 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 7918
+    size: 8301
     tags: [global,reference,skill]
     sections:
       - {h: "Team Architecture", l: 11, e: 33}
       - {h: "T-1. Create Team and Tasks", l: 34, e: 54}
-      - {h: "T-2. Spawn Teammates", l: 55, e: 148}
-      - {h: "T-3. Workflow Phases (Lead coordinates)", l: 149, e: 196}
-      - {h: "T-4. Cleanup", l: 197, e: 205}
-      - {h: "T-Error. Team Mode Fallback", l: 206, e: 212}
+      - {h: "T-2. Spawn Teammates", l: 55, e: 153}
+      - {h: "T-3. Workflow Phases (Lead coordinates)", l: 154, e: 201}
+      - {h: "T-4. Cleanup", l: 202, e: 210}
+      - {h: "T-Error. Team Mode Fallback", l: 211, e: 217}
   - path: "global/skills/_internal/evidence-pack/SKILL.md"
     title: "ref_docs keys:"
     description: ""
@@ -2210,7 +2210,7 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 12999
+    size: 13382
     tags: [global,reference,skill]
     sections:
       - {h: "Template Substitutions", l: 9, e: 32}
@@ -2222,19 +2222,19 @@ documents:
       - {h: "Phase: issue-creation (conditional)", l: 108, e: 119}
       - {h: "Phase: branching", l: 120, e: 125}
       - {h: "Phase: agent-routing (Top-K)", l: 126, e: 155}
-      - {h: "Phase: implementing", l: 156, e: 162}
-      - {h: "Phase: building", l: 163, e: 168}
-      - {h: "Phase: pr-creation", l: 169, e: 174}
-      - {h: "Phase: ci-monitoring", l: 175, e: 182}
-      - {h: "Phase: ci-retry", l: 183, e: 190}
-      - {h: "Phase: merging", l: 191, e: 196}
-      - {h: "Phase: cleanup", l: 197, e: 201}
-      - {h: "Phase: completed", l: 202, e: 206}
-      - {h: "Phase: failed (any point)", l: 207, e: 225}
-      - {h: "Error Class Guide", l: 226, e: 243}
-      - {h: "Logging", l: 244, e: 258}
-      - {h: "Interaction with issue-work / pr-work", l: 259, e: 271}
-      - {h: "Exit Criteria", l: 272, e: 282}
+      - {h: "Phase: implementing", l: 161, e: 167}
+      - {h: "Phase: building", l: 168, e: 173}
+      - {h: "Phase: pr-creation", l: 174, e: 179}
+      - {h: "Phase: ci-monitoring", l: 180, e: 187}
+      - {h: "Phase: ci-retry", l: 188, e: 195}
+      - {h: "Phase: merging", l: 196, e: 201}
+      - {h: "Phase: cleanup", l: 202, e: 206}
+      - {h: "Phase: completed", l: 207, e: 211}
+      - {h: "Phase: failed (any point)", l: 212, e: 230}
+      - {h: "Error Class Guide", l: 231, e: 248}
+      - {h: "Logging", l: 249, e: 263}
+      - {h: "Interaction with issue-work / pr-work", l: 264, e: 276}
+      - {h: "Exit Criteria", l: 277, e: 287}
   - path: "global/skills/_internal/harness/SKILL.md"
     title: "ref_docs keys:"
     description: ""
@@ -2277,7 +2277,7 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 16679
+    size: 17062
     tags: [global,reference,skill]
     sections:
       - {h: "Table of Contents", l: 3, e: 15}
@@ -2287,29 +2287,29 @@ documents:
       - {h: "Mode Selection Decision Tree", l: 75, e: 93}
       - {h: "Agent Team Architecture Types", l: 94, e: 95}
       - {h: "1. Pipeline", l: 96, e: 108}
-      - {h: "2. Fan-out/Fan-in", l: 109, e: 123}
-      - {h: "3. Expert Pool", l: 124, e: 136}
-      - {h: "4. Producer-Reviewer", l: 137, e: 149}
-      - {h: "5. Supervisor", l: 150, e: 165}
-      - {h: "6. Hierarchical Delegation", l: 166, e: 180}
-      - {h: "7. Generator-Evaluator", l: 181, e: 198}
-      - {h: "8. Long-Running Session (Initializer-Worker)", l: 199, e: 216}
-      - {h: "Composite Patterns", l: 217, e: 228}
-      - {h: "Execution Mode for Composite Patterns", l: 229, e: 243}
-      - {h: "Agent Type Selection", l: 244, e: 247}
-      - {h: "Built-in Types", l: 248, e: 255}
-      - {h: "Custom Types", l: 256, e: 259}
-      - {h: "Selection Criteria", l: 260, e: 275}
-      - {h: "Agent Definition Structure", l: 276, e: 299}
-      - {h: "Core Role", l: 300, e: 303}
-      - {h: "Working Principles", l: 304, e: 307}
-      - {h: "Input/Output Protocol", l: 308, e: 312}
-      - {h: "Team Communication Protocol (agent team mode)", l: 313, e: 317}
-      - {h: "Error Handling", l: 318, e: 321}
-      - {h: "Collaboration", l: 322, e: 327}
-      - {h: "Agent Separation Criteria", l: 328, e: 338}
-      - {h: "Skills vs Agents", l: 339, e: 353}
-      - {h: "Skill-Agent Connection Methods", l: 354, e: 364}
+      - {h: "2. Fan-out/Fan-in", l: 109, e: 128}
+      - {h: "3. Expert Pool", l: 129, e: 141}
+      - {h: "4. Producer-Reviewer", l: 142, e: 154}
+      - {h: "5. Supervisor", l: 155, e: 170}
+      - {h: "6. Hierarchical Delegation", l: 171, e: 185}
+      - {h: "7. Generator-Evaluator", l: 186, e: 203}
+      - {h: "8. Long-Running Session (Initializer-Worker)", l: 204, e: 221}
+      - {h: "Composite Patterns", l: 222, e: 233}
+      - {h: "Execution Mode for Composite Patterns", l: 234, e: 248}
+      - {h: "Agent Type Selection", l: 249, e: 252}
+      - {h: "Built-in Types", l: 253, e: 260}
+      - {h: "Custom Types", l: 261, e: 264}
+      - {h: "Selection Criteria", l: 265, e: 280}
+      - {h: "Agent Definition Structure", l: 281, e: 304}
+      - {h: "Core Role", l: 305, e: 308}
+      - {h: "Working Principles", l: 309, e: 312}
+      - {h: "Input/Output Protocol", l: 313, e: 317}
+      - {h: "Team Communication Protocol (agent team mode)", l: 318, e: 322}
+      - {h: "Error Handling", l: 323, e: 326}
+      - {h: "Collaboration", l: 327, e: 332}
+      - {h: "Agent Separation Criteria", l: 333, e: 343}
+      - {h: "Skills vs Agents", l: 344, e: 358}
+      - {h: "Skill-Agent Connection Methods", l: 359, e: 369}
   - path: "global/skills/_internal/harness/reference/agent-frontmatter-spec.md"
     title: "Agent Definition Frontmatter Specification"
     description: ""
@@ -2398,7 +2398,7 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 13456
+    size: 14222
     tags: [global,reference,skill]
     sections:
       - {h: "Table of Contents", l: 5, e: 13}
@@ -2407,44 +2407,44 @@ documents:
       - {h: "Agent Configuration", l: 30, e: 37}
       - {h: "Workflow", l: 38, e: 39}
       - {h: "Phase 1: Preparation", l: 40, e: 44}
-      - {h: "Phase 2: Team Assembly", l: 45, e: 66}
-      - {h: "Phase 3: {Main work -- e.g., investigation/generation/analysis}", l: 67, e: 90}
-      - {h: "Phase 4: {Follow-up work -- e.g., verification/integration}", l: 91, e: 96}
-      - {h: "Phase 5: Cleanup", l: 97, e: 104}
-      - {h: "Data Flow", l: 105, e: 119}
-      - {h: "Error Handling", l: 120, e: 129}
-      - {h: "Test Scenarios", l: 130, e: 131}
-      - {h: "Normal flow", l: 132, e: 140}
-      - {h: "Error flow", l: 141, e: 151}
-      - {h: "Template B: Sub-agent Mode (Lightweight)", l: 152, e: 165}
-      - {h: "Execution Mode: Sub-agent", l: 166, e: 167}
-      - {h: "Agent Configuration", l: 168, e: 175}
-      - {h: "Workflow", l: 176, e: 177}
-      - {h: "Phase 1: Preparation", l: 178, e: 182}
-      - {h: "Phase 2: {Main work -- e.g., investigation/generation/analysis}", l: 183, e: 200}
-      - {h: "Phase 3: {Follow-up work -- e.g., verification/integration}", l: 201, e: 205}
-      - {h: "Phase 4: Cleanup", l: 206, e: 209}
-      - {h: "Data Flow", l: 210, e: 217}
-      - {h: "Error Handling", l: 218, e: 226}
-      - {h: "Test Scenarios", l: 227, e: 228}
-      - {h: "Normal flow", l: 229, e: 235}
-      - {h: "Error flow", l: 236, e: 245}
-      - {h: "Template C: Long-Running Session Mode", l: 246, e: 259}
-      - {h: "Execution Mode: Long-Running Session", l: 260, e: 261}
-      - {h: "Feature Configuration", l: 262, e: 265}
-      - {h: "Workflow", l: 266, e: 267}
-      - {h: "Phase 1: Initialization (first session only)", l: 268, e: 274}
-      - {h: "Phase 2: Feature Selection (each session)", l: 275, e: 281}
-      - {h: "Phase 3: Implementation", l: 282, e: 287}
-      - {h: "Phase 4: Session Handoff", l: 288, e: 297}
-      - {h: "Context Reset Protocol (when approaching context limits)", l: 298, e: 303}
-      - {h: "Data Flow", l: 304, e: 314}
-      - {h: "Error Handling", l: 315, e: 323}
-      - {h: "Test Scenarios", l: 324, e: 325}
-      - {h: "Normal flow", l: 326, e: 331}
-      - {h: "Resume flow", l: 332, e: 340}
-      - {h: "Writing Principles", l: 341, e: 352}
-      - {h: "Reference", l: 353, e: 360}
+      - {h: "Phase 2: Team Assembly", l: 45, e: 71}
+      - {h: "Phase 3: {Main work -- e.g., investigation/generation/analysis}", l: 72, e: 95}
+      - {h: "Phase 4: {Follow-up work -- e.g., verification/integration}", l: 96, e: 101}
+      - {h: "Phase 5: Cleanup", l: 102, e: 109}
+      - {h: "Data Flow", l: 110, e: 124}
+      - {h: "Error Handling", l: 125, e: 134}
+      - {h: "Test Scenarios", l: 135, e: 136}
+      - {h: "Normal flow", l: 137, e: 145}
+      - {h: "Error flow", l: 146, e: 156}
+      - {h: "Template B: Sub-agent Mode (Lightweight)", l: 157, e: 170}
+      - {h: "Execution Mode: Sub-agent", l: 171, e: 172}
+      - {h: "Agent Configuration", l: 173, e: 180}
+      - {h: "Workflow", l: 181, e: 182}
+      - {h: "Phase 1: Preparation", l: 183, e: 187}
+      - {h: "Phase 2: {Main work -- e.g., investigation/generation/analysis}", l: 188, e: 210}
+      - {h: "Phase 3: {Follow-up work -- e.g., verification/integration}", l: 211, e: 215}
+      - {h: "Phase 4: Cleanup", l: 216, e: 219}
+      - {h: "Data Flow", l: 220, e: 227}
+      - {h: "Error Handling", l: 228, e: 236}
+      - {h: "Test Scenarios", l: 237, e: 238}
+      - {h: "Normal flow", l: 239, e: 245}
+      - {h: "Error flow", l: 246, e: 255}
+      - {h: "Template C: Long-Running Session Mode", l: 256, e: 269}
+      - {h: "Execution Mode: Long-Running Session", l: 270, e: 271}
+      - {h: "Feature Configuration", l: 272, e: 275}
+      - {h: "Workflow", l: 276, e: 277}
+      - {h: "Phase 1: Initialization (first session only)", l: 278, e: 284}
+      - {h: "Phase 2: Feature Selection (each session)", l: 285, e: 291}
+      - {h: "Phase 3: Implementation", l: 292, e: 297}
+      - {h: "Phase 4: Session Handoff", l: 298, e: 307}
+      - {h: "Context Reset Protocol (when approaching context limits)", l: 308, e: 313}
+      - {h: "Data Flow", l: 314, e: 324}
+      - {h: "Error Handling", l: 325, e: 333}
+      - {h: "Test Scenarios", l: 334, e: 335}
+      - {h: "Normal flow", l: 336, e: 341}
+      - {h: "Resume flow", l: 342, e: 350}
+      - {h: "Writing Principles", l: 351, e: 362}
+      - {h: "Reference", l: 363, e: 370}
   - path: "global/skills/_internal/harness/reference/qa-agent-guide.md"
     title: "QA Agent Design Guide"
     description: ""
@@ -2671,17 +2671,17 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 7684
+    size: 8067
     tags: [global,reference,skill]
     sections:
       - {h: "Team Architecture", l: 7, e: 27}
       - {h: "T-1. Setup (Lead executes)", l: 28, e: 32}
       - {h: "T-2. Create Team and Tasks", l: 33, e: 63}
-      - {h: "T-3. Spawn Teammates", l: 64, e: 147}
-      - {h: "T-4. Workflow (Lead coordinates)", l: 148, e: 175}
-      - {h: "T-5. Final Report (Lead)", l: 176, e: 186}
-      - {h: "T-6. Cleanup", l: 187, e: 195}
-      - {h: "T-Error. Team Mode Fallback", l: 196, e: 203}
+      - {h: "T-3. Spawn Teammates", l: 64, e: 152}
+      - {h: "T-4. Workflow (Lead coordinates)", l: 153, e: 180}
+      - {h: "T-5. Final Report (Lead)", l: 181, e: 191}
+      - {h: "T-6. Cleanup", l: 192, e: 200}
+      - {h: "T-Error. Team Mode Fallback", l: 201, e: 208}
   - path: "global/skills/_internal/issue-create/SKILL.md"
     title: "Issue Create Command"
     description: ""
@@ -2869,17 +2869,17 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 14240
+    size: 14623
     tags: [global,reference,skill]
     sections:
       - {h: "Team Architecture", l: 14, e: 37}
       - {h: "T-1. Setup (Lead executes)", l: 38, e: 62}
       - {h: "T-2. Create Team and Tasks", l: 63, e: 92}
-      - {h: "T-3. Spawn Teammates", l: 93, e: 225}
-      - {h: "T-4. Workflow Phases (Lead coordinates)", l: 226, e: 279}
-      - {h: "T-5. CI Failure Handling", l: 280, e: 289}
-      - {h: "T-6. Cleanup", l: 290, e: 308}
-      - {h: "T-Error. Team Mode Fallback", l: 309, e: 318}
+      - {h: "T-3. Spawn Teammates", l: 93, e: 230}
+      - {h: "T-4. Workflow Phases (Lead coordinates)", l: 231, e: 284}
+      - {h: "T-5. CI Failure Handling", l: 285, e: 294}
+      - {h: "T-6. Cleanup", l: 295, e: 313}
+      - {h: "T-Error. Team Mode Fallback", l: 314, e: 323}
   - path: "global/skills/_internal/issue-work/reference/triage-state-machine.md"
     title: "Triage State Machine"
     description: ""
@@ -3082,16 +3082,16 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 7963
+    size: 8346
     tags: [global,reference,skill]
     sections:
       - {h: "Team Architecture", l: 7, e: 28}
       - {h: "T-1. Setup (Lead executes)", l: 29, e: 37}
       - {h: "T-2. Create Team and Tasks", l: 38, e: 57}
-      - {h: "T-3. Spawn Teammates", l: 58, e: 154}
-      - {h: "T-4. Workflow Phases (Lead coordinates)", l: 155, e: 207}
-      - {h: "T-5. Cleanup", l: 208, e: 216}
-      - {h: "T-Error. Team Mode Fallback", l: 217, e: 223}
+      - {h: "T-3. Spawn Teammates", l: 58, e: 159}
+      - {h: "T-4. Workflow Phases (Lead coordinates)", l: 160, e: 212}
+      - {h: "T-5. Cleanup", l: 213, e: 221}
+      - {h: "T-Error. Team Mode Fallback", l: 222, e: 228}
   - path: "global/skills/_internal/pr-work/reference/traceability-impact-template.md"
     title: "Traceability Impact Template"
     description: ""
@@ -3224,16 +3224,16 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 6550
+    size: 6933
     tags: [global,reference,release,skill]
     sections:
       - {h: "Team Architecture", l: 11, e: 32}
       - {h: "T-1. Setup (Lead executes)", l: 33, e: 37}
       - {h: "T-2. Create Team and Tasks", l: 38, e: 54}
-      - {h: "T-3. Spawn Teammates", l: 55, e: 138}
-      - {h: "T-4. Workflow Phases (Lead coordinates)", l: 139, e: 162}
-      - {h: "T-5. Cleanup", l: 163, e: 171}
-      - {h: "T-Error. Team Mode Fallback", l: 172, e: 178}
+      - {h: "T-3. Spawn Teammates", l: 55, e: 143}
+      - {h: "T-4. Workflow Phases (Lead coordinates)", l: 144, e: 167}
+      - {h: "T-5. Cleanup", l: 168, e: 176}
+      - {h: "T-Error. Team Mode Fallback", l: 177, e: 183}
   - path: "global/skills/_internal/research/SKILL.md"
     title: "Research Command"
     description: ""

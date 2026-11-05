@@ -153,6 +153,11 @@ not spawn `test-strategist`.
 
 Update manifest: `{top_k: N, agents_selected: ["code-reviewer", "qa-reviewer"]}`.
 
+**Shared documents:** do not have several agents each read the same large document in full.
+
+- Split the work by document, so that each document has one owner.
+- When one document has to go to several agents, build a heading-to-line index of it once. Give each agent the path and the line range it needs, and tell it to read only that range and to use Grep for anything outside it.
+
 ### Phase: implementing
 
 - Apply the directive. Minimize upfront planning; analyze code as you implement.

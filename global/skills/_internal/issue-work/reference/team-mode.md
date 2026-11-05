@@ -105,6 +105,11 @@ prompt is never hand-written per role. (The reviewer role remains the Lead's
 designated exception for push + PR creation in Task 11 below — an existing
 Team Mode responsibility that predates this prompt-generation change.)
 
+**Shared documents:** do not have several agents each read the same large document in full.
+
+- Split the work by document, so that each document has one owner.
+- When one document has to go to several agents, build a heading-to-line index of it once. Give each agent the path and the line range it needs, and tell it to read only that range and to use Grep for anything outside it.
+
 **Dev Team** (implementation + fixes):
 
 ```
