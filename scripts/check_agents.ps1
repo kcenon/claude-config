@@ -1,6 +1,6 @@
 #Requires -Version 7.0
 # check_agents.ps1 — PowerShell twin of check_agents.sh.
-# Drift guard for the 8 agent definitions duplicated across plugin/agents/
+# Drift guard for the 9 agent definitions duplicated across plugin/agents/
 # and project/.claude/agents/. See check_agents.sh for the full rationale:
 # frontmatter differs per layer and one repo-path sentence is genericized in
 # the plugin copy; the bodies must otherwise stay identical. In addition the
@@ -14,6 +14,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RootDir   = Split-Path -Parent $ScriptDir
 
 $Agents = @(
+    'analyst'
     'code-reviewer'
     'codebase-analyzer'
     'dependency-auditor'

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check_agents.sh — Drift guard for the 8 agent definitions that are
+# check_agents.sh — Drift guard for the 9 agent definitions that are
 # duplicated across plugin/agents/ and project/.claude/agents/.
 #
 # plugin/ is a standalone distribution, so the two copies of each agent are
@@ -37,6 +37,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 AGENTS=(
+    analyst
     code-reviewer
     codebase-analyzer
     dependency-auditor
