@@ -29,7 +29,8 @@ RULE = "/home/me/.claude/rules/coding/standards.md"
 
 
 def stamp(minute, second=0):
-    return f"2026-01-01T10:{minute:02d}:{second:02d}.000Z"
+    # Minutes past 59 roll into the next hour.
+    return f"2026-01-01T{10 + minute // 60:02d}:{minute % 60:02d}:{second:02d}.000Z"
 
 
 def assistant(rid, minute, cw=0, cr=0, inp=0, out=0, think=0, ttl="1h",
@@ -75,6 +76,12 @@ def rule(uuid, minute, text, raw):
 def compact(minute, trigger, pre_tokens):
     return {"type": "system", "subtype": "compact_boundary", "timestamp": stamp(minute),
             "compactMetadata": {"trigger": trigger, "preTokens": pre_tokens}}
+
+
+def read(rid, minute, path, chars, **read_range):
+    """A Read request and its text result of the given length."""
+    return [assistant(rid, minute, blocks=[tool_use("t-" + rid, "Read", file_path=path, **read_range)]),
+            tool_result("t-" + rid, minute, "x" * chars)]
 
 
 def write(path, records, raw_lines=()):
@@ -240,6 +247,79 @@ class TokenAuditTests(unittest.TestCase):
                 self.assertNotIn(marker, out)
         code, out = self.run_audit("--show-paths")
         self.assertIn("shared-doc", out)
+
+    def test_session_filter(self):
+        report = self.report("--session", "s1")
+        self.assertEqual(report["files"], {"main": 1, "subagent": 2, "workflow": 1})
+        self.assertEqual(report["requests"], {"main": 4, "subagent": 5, "workflow": 1})
+        # Without s1, the records s2 copied from it are no longer copies.
+        report = self.report("--session", "s2")
+        self.assertEqual(report["files"], {"main": 1, "subagent": 0, "workflow": 0})
+        self.assertEqual(report["requests"]["main"], 2)
+        self.assertEqual(report["duplicate_requests_skipped"], 0)
+        report = self.report("--session", "s1", "--session", "s2")
+        self.assertEqual(report["requests"]["main"], 5)
+        report = self.report("--session", "s1", "--exclude-session", "s1")
+        self.assertEqual(report["files"], {"main": 0, "subagent": 0, "workflow": 0})
+
+    def test_compaction_causes(self):
+        write(self.root / "causes" / "c.jsonl", [
+            assistant("c1", 0, cw=10),
+            compact(55, "auto", 300_000),   # 55 minutes after c1: idle
+            assistant("c2", 56, cw=10),
+            compact(57, "auto", 900_000),   # 1 minute after c2: threshold
+            assistant("c3", 58, cw=10),
+            compact(59, "manual", 500_000),
+            assistant("c4", 60, cw=10),
+            compact(61, "auto", 960_000),   # 1 minute after c4, in the next hour
+        ])
+        c = self.report("--project", "causes")["compactions"]
+        self.assertEqual(c["by_trigger"], {"auto": 3, "manual": 1})
+        self.assertEqual(c["by_cause"], {
+            "idle": {"count": 1, "pre_tokens_median": 300_000},
+            "manual": {"count": 1, "pre_tokens_median": 500_000},
+            "threshold": {"count": 2, "pre_tokens_median": 930_000},
+        })
+        # The default fixture's one auto compaction follows r3 by a minute.
+        c = self.report("--project", "proj")["compactions"]
+        self.assertEqual(c["by_cause"], {"threshold": {"count": 1, "pre_tokens_median": 2300}})
+
+    def test_rereads_after_compaction(self):
+        marker = "/w/REREAD-MARKER-4d2c.md"
+        write(self.root / "rr" / "m.jsonl", [
+            *read("m1", 1, marker, 300),
+            *read("m2", 1, "/w/b.md", 300),
+            *read("m3", 1, "/w/c.md", 300, offset=1),
+            *read("m4", 1, "/w/d.md", 300),
+            compact(2, "manual", 1000),
+            # Counted: same range, other spelling of the path.
+            *read("m5", 3, marker.upper().replace("/", "\\"), 400),
+            # Not counted: an edit of the path comes in between.
+            assistant("m6", 3, blocks=[tool_use("e1", "Edit", file_path="/w/b.md")]),
+            tool_result("e1", 3, "edited"),
+            *read("m7", 4, "/w/b.md", 300),
+            # Not counted: another range, and a short unchanged-file notice.
+            *read("m8", 4, "/w/c.md", 300, offset=2),
+            *read("m9", 4, "/w/d.md", 50),
+            # Not counted: read twice with no compaction in between.
+            *read("m10", 5, "/w/e.md", 300),
+            *read("m11", 5, "/w/e.md", 300),
+        ])
+        write(self.root / "rr" / "m" / "subagents" / "agent-s.jsonl", [
+            *read("s1", 10, "/w/s.md", 300),
+            compact(11, "auto", 2000),
+            *read("s2", 12, "/w/s.md", 300),
+        ])
+        report = self.report("--project", "rr")
+        self.assertEqual(report["compactions"]["rereads"], {
+            "main": {"reads": 1, "chars": 400},
+            "subagent": {"reads": 1, "chars": 300},
+            "workflow": {"reads": 0, "chars": 0},
+        })
+        for extra in ((), ("--json",)):
+            code, out = self.run_audit("--project", "rr", *extra)
+            self.assertEqual(code, 0)
+            self.assertNotIn("REREAD-MARKER", out.upper())
 
     def test_missing_directory(self):
         code, _ = self.run_audit("--project", "proj")

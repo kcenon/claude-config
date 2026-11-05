@@ -714,7 +714,11 @@ after the change.
 ```bash
 python3 scripts/token-audit/token_audit.py --project <folder>
 python3 scripts/token-audit/token_audit.py --since 2026-11-01T00:00:00Z --json
+python3 scripts/token-audit/token_audit.py --session <id> --session <id> --json
 ```
+
+`--session` (repeatable) counts only the named sessions with their subagents
+and workflows; `--exclude-session` leaves one out and wins over `--session`.
 
 What it reports, separately for main, subagent and workflow transcripts:
 
@@ -731,6 +735,19 @@ What it reports, separately for main, subagent and workflow transcripts:
 - Path-triggered rules: injections, characters and residency per rule file.
 - Reads by subagents: characters, the share that the parent session also read,
   and the extra characters when sibling subagents read the same file.
+- Compactions by trigger, and by cause with the median context before each:
+  `manual`, `idle` and `threshold`. The transcript does not say which kind
+  an automatic compaction was. Idle compaction runs after about an hour
+  without a request, so an automatic compaction 30 minutes or more after the
+  last message counts as `idle` and any other as `threshold`. The `auto`
+  trigger count holds both.
+- Re-reads after a compaction: Reads of the same file and range (`offset`,
+  `limit`) as an earlier Read in the same transcript, with a compaction
+  between them and no `Edit`, `Write` or `NotebookEdit` of the file. Both
+  results must be longer than 200 characters, which leaves out the one-line
+  notice a Read returns for a file it already showed unchanged. Reads in
+  requests outside the window or copied from a resumed session count on
+  neither side.
 
 Characters are not converted to tokens, because the ratio depends on language
 and content. The output holds no prompt, tool result, file content or subagent
