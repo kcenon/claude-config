@@ -340,7 +340,17 @@
       "Edit(.env)",
       "Edit(.env.*)",
       "Edit(**/.env)",
-      "Edit(**/.env.*)"
+      "Edit(**/.env.*)",
+      "DesignSync",
+      "SendToProject",
+      "SendToProjectContext",
+      "RemoteTrigger",
+      "ArtifactData",
+      "ArtifactComments",
+      "SendFeedback",
+      "PushNotification",
+      "mcp__claude_ai_Claude_Docs",
+      "mcp__claude_ai_Google_Drive"
     ],
     "ask": [
       "PowerShell(gh api *-X POST*)",

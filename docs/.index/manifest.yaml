@@ -10,53 +10,53 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 98594
+    size: 99443
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "Unreleased", l: 8, e: 9}
       - {h: "Added", l: 10, e: 13}
-      - {h: "Changed", l: 14, e: 19}
-      - {h: "Fixed", l: 20, e: 27}
-      - {h: "1.16.0 - 2026-10-30", l: 28, e: 48}
-      - {h: "Removed", l: 49, e: 82}
-      - {h: "Changed", l: 83, e: 121}
-      - {h: "Fixed", l: 122, e: 183}
-      - {h: "1.15.0 - 2026-10-23", l: 184, e: 185}
-      - {h: "Added", l: 186, e: 197}
-      - {h: "Changed", l: 198, e: 228}
-      - {h: "Fixed", l: 229, e: 235}
-      - {h: "1.14.0 - 2026-09-29", l: 236, e: 237}
-      - {h: "Added", l: 238, e: 246}
-      - {h: "Changed", l: 247, e: 269}
-      - {h: "Removed", l: 270, e: 301}
-      - {h: "Fixed", l: 302, e: 343}
-      - {h: "Security", l: 344, e: 380}
-      - {h: "1.13.0 - 2026-09-13", l: 381, e: 382}
-      - {h: "Added", l: 383, e: 568}
-      - {h: "Changed", l: 569, e: 621}
-      - {h: "Fixed", l: 622, e: 755}
-      - {h: "Security", l: 756, e: 774}
-      - {h: "Known limitation", l: 775, e: 782}
-      - {h: "1.12.0 - 2026-08-01", l: 783, e: 784}
-      - {h: "Added", l: 785, e: 916}
-      - {h: "Fixed", l: 917, e: 1159}
-      - {h: "1.11.0 - 2026-07-03", l: 1160, e: 1161}
-      - {h: "Fixed", l: 1162, e: 1175}
-      - {h: "Security", l: 1176, e: 1253}
-      - {h: "Added", l: 1254, e: 1282}
-      - {h: "Changed", l: 1283, e: 1329}
-      - {h: "1.10.0 - 2026-04-20", l: 1330, e: 1338}
-      - {h: "1.9.0 - 2026-04-13", l: 1339, e: 1348}
-      - {h: "1.8.0 - 2026-04-13", l: 1349, e: 1354}
-      - {h: "1.7.0 - 2026-04-06", l: 1355, e: 1369}
-      - {h: "1.6.0 - 2026-04-03", l: 1370, e: 1382}
-      - {h: "1.5.0 - 2026-03-21", l: 1383, e: 1401}
-      - {h: "1.4.0 - 2026-01-22", l: 1402, e: 1407}
-      - {h: "1.3.0 - 2026-01-15", l: 1408, e: 1416}
-      - {h: "1.2.0 - 2026-01-15", l: 1417, e: 1425}
-      - {h: "1.1.0 - 2025-01-15", l: 1426, e: 1436}
-      - {h: "1.0.0 - 2025-12-03", l: 1437, e: 1443}
+      - {h: "Changed", l: 14, e: 20}
+      - {h: "Fixed", l: 21, e: 28}
+      - {h: "1.16.0 - 2026-10-30", l: 29, e: 49}
+      - {h: "Removed", l: 50, e: 83}
+      - {h: "Changed", l: 84, e: 122}
+      - {h: "Fixed", l: 123, e: 184}
+      - {h: "1.15.0 - 2026-10-23", l: 185, e: 186}
+      - {h: "Added", l: 187, e: 198}
+      - {h: "Changed", l: 199, e: 229}
+      - {h: "Fixed", l: 230, e: 236}
+      - {h: "1.14.0 - 2026-09-29", l: 237, e: 238}
+      - {h: "Added", l: 239, e: 247}
+      - {h: "Changed", l: 248, e: 270}
+      - {h: "Removed", l: 271, e: 302}
+      - {h: "Fixed", l: 303, e: 344}
+      - {h: "Security", l: 345, e: 381}
+      - {h: "1.13.0 - 2026-09-13", l: 382, e: 383}
+      - {h: "Added", l: 384, e: 569}
+      - {h: "Changed", l: 570, e: 622}
+      - {h: "Fixed", l: 623, e: 756}
+      - {h: "Security", l: 757, e: 775}
+      - {h: "Known limitation", l: 776, e: 783}
+      - {h: "1.12.0 - 2026-08-01", l: 784, e: 785}
+      - {h: "Added", l: 786, e: 917}
+      - {h: "Fixed", l: 918, e: 1160}
+      - {h: "1.11.0 - 2026-07-03", l: 1161, e: 1162}
+      - {h: "Fixed", l: 1163, e: 1176}
+      - {h: "Security", l: 1177, e: 1254}
+      - {h: "Added", l: 1255, e: 1283}
+      - {h: "Changed", l: 1284, e: 1330}
+      - {h: "1.10.0 - 2026-04-20", l: 1331, e: 1339}
+      - {h: "1.9.0 - 2026-04-13", l: 1340, e: 1349}
+      - {h: "1.8.0 - 2026-04-13", l: 1350, e: 1355}
+      - {h: "1.7.0 - 2026-04-06", l: 1356, e: 1370}
+      - {h: "1.6.0 - 2026-04-03", l: 1371, e: 1383}
+      - {h: "1.5.0 - 2026-03-21", l: 1384, e: 1402}
+      - {h: "1.4.0 - 2026-01-22", l: 1403, e: 1408}
+      - {h: "1.3.0 - 2026-01-15", l: 1409, e: 1417}
+      - {h: "1.2.0 - 2026-01-15", l: 1418, e: 1426}
+      - {h: "1.1.0 - 2025-01-15", l: 1427, e: 1437}
+      - {h: "1.0.0 - 2025-12-03", l: 1438, e: 1444}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -817,7 +817,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 21985
+    size: 25407
     tags: [docs]
     sections:
       - {h: "Official Token Optimization Methods", l: 7, e: 10}
@@ -894,7 +894,8 @@ documents:
       - {h: "Q: What if I need everything loaded?", l: 699, e: 702}
       - {h: "Q: Does this affect code generation quality?", l: 703, e: 706}
       - {h: "Measuring Token Load from Transcripts", l: 707, e: 742}
-      - {h: "Support", l: 743, e: 753}
+      - {h: "Unused Tool Definitions", l: 743, e: 798}
+      - {h: "Support", l: 799, e: 809}
   - path: "docs/ad-sdlc-integration.md"
     title: "AD-SDLC Integration Guide"
     description: ""
