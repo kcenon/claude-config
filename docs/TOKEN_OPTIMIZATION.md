@@ -704,6 +704,42 @@ When installing `claude-config`:
 
 **A**: No. Core rules and guidelines remain loaded. Reference materials load when needed.
 
+## Measuring Token Load from Transcripts
+
+`scripts/token-audit/token_audit.py` reads the transcripts that Claude Code
+keeps under `~/.claude/projects/` and prints aggregates only (#999). Run it
+before a configuration change to record a baseline, then again over a window
+after the change.
+
+```bash
+python3 scripts/token-audit/token_audit.py --project <folder>
+python3 scripts/token-audit/token_audit.py --since 2026-11-01T00:00:00Z --json
+```
+
+What it reports, separately for main, subagent and workflow transcripts:
+
+- Tokens by kind: cache read, cache write (1h and 5m), output (with thinking)
+  and uncached input, counted once per API request.
+- A cache read is the context a request reads again, so the total grows with
+  both the number of requests and the context size of each request.
+- First-request context, and the prefix share: the smallest context of each
+  transcript times its request count, over all cached input.
+- Requests and cached input by context-size bucket.
+- Per tool: calls, result characters, errors and residency. Residency is the
+  result characters times the number of later requests in the same transcript
+  before the next compaction.
+- Path-triggered rules: injections, characters and residency per rule file.
+- Reads by subagents: characters, the share that the parent session also read,
+  and the extra characters when sibling subagents read the same file.
+
+Characters are not converted to tokens, because the ratio depends on language
+and content. The output holds no prompt, tool result, file content or subagent
+task description; file paths of sibling reads appear only with `--show-paths`.
+
+A comparison needs history, so both profiles keep transcripts for 90 days
+(`cleanupPeriodDays`). On the machine where this was measured, 30 days of
+transcripts took about 1.3 GB.
+
 ## Support
 
 For issues or questions:
