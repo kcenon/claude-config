@@ -56,7 +56,7 @@ Add references to AD-SDLC agent definition files (`.claude/agents/*.md`):
 
 Follow these guidelines when generating code:
 - [Coding Standards](https://github.com/kcenon/claude-config/blob/main/project/.claude/rules/coding/general.md)
-- [Error Handling](https://github.com/kcenon/claude-config/blob/main/project/.claude/rules/coding/error-handling.md)
+- [Error Handling](https://github.com/kcenon/claude-config/blob/main/project/.claude/reference/coding/error-handling.md)
 ```
 
 ### Method 2 (legacy): Local Clone Reference

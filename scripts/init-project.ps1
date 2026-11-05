@@ -31,8 +31,8 @@ Deploy Claude Code project configuration to a target directory.
 
 Parameters:
   -Profile <level>    Configuration profile (default: standard)
-                        minimal  - CLAUDE.md + core rules + .claudeignore
-                        standard - minimal + coding + workflow rules
+                        minimal  - CLAUDE.md + core and coding rules + .claudeignore
+                        standard - minimal + workflow rules + reference docs
                         full     - standard + api + operations + agents + skills
   -Force              Overwrite existing files
   -DryRun             Show what would be copied without copying
@@ -103,13 +103,12 @@ function Copy-Minimal {
     Copy-Item-Safe "$ProjectTemplate\CLAUDE.md" "$Target\CLAUDE.md"
     Copy-Item-Safe "$ProjectTemplate\.claudeignore" "$Target\.claudeignore"
     Copy-Item-Safe "$ProjectTemplate\.claude\rules\core" "$Target\.claude\rules\core"
-    Copy-Item-Safe "$ProjectTemplate\.claude\rules\security.md" "$Target\.claude\rules\security.md"
+    Copy-Item-Safe "$ProjectTemplate\.claude\rules\coding" "$Target\.claude\rules\coding"
     Copy-Item-Safe "$ProjectTemplate\.claude\settings.json" "$Target\.claude\settings.json"
 }
 
 function Copy-Standard {
     Copy-Minimal
-    Copy-Item-Safe "$ProjectTemplate\.claude\rules\coding" "$Target\.claude\rules\coding"
     Copy-Item-Safe "$ProjectTemplate\.claude\rules\workflow" "$Target\.claude\rules\workflow"
     Copy-Item-Safe "$ProjectTemplate\.claude\reference" "$Target\.claude\reference"
     Copy-Item-Safe "$ProjectTemplate\.claude\rules\project-management" "$Target\.claude\rules\project-management"

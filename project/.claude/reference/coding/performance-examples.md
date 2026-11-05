@@ -4,7 +4,7 @@ alwaysApply: false
 
 # Performance Examples
 
-Profiler invocations, before/after optimization pairs and benchmark samples. Companion to `.claude/rules/coding/performance.md`, which keeps the principles.
+Profiler invocations, before/after optimization pairs and benchmark samples. Companion to `.claude/reference/coding/performance.md`, which keeps the principles.
 
 > **Loading**: Lives in `.claude/reference/`, outside the auto-loaded `.claude/rules/` tree, so it is never injected automatically. Load with `@load: reference/performance-examples`.
 
