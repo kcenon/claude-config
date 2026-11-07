@@ -10,53 +10,53 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 103057
+    size: 104205
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "Unreleased", l: 8, e: 9}
       - {h: "Added", l: 10, e: 15}
       - {h: "Changed", l: 16, e: 24}
-      - {h: "Fixed", l: 25, e: 32}
-      - {h: "1.16.0 - 2026-10-30", l: 33, e: 53}
-      - {h: "Removed", l: 54, e: 87}
-      - {h: "Changed", l: 88, e: 126}
-      - {h: "Fixed", l: 127, e: 188}
-      - {h: "1.15.0 - 2026-10-23", l: 189, e: 190}
-      - {h: "Added", l: 191, e: 202}
-      - {h: "Changed", l: 203, e: 233}
-      - {h: "Fixed", l: 234, e: 240}
-      - {h: "1.14.0 - 2026-09-29", l: 241, e: 242}
-      - {h: "Added", l: 243, e: 251}
-      - {h: "Changed", l: 252, e: 274}
-      - {h: "Removed", l: 275, e: 306}
-      - {h: "Fixed", l: 307, e: 348}
-      - {h: "Security", l: 349, e: 385}
-      - {h: "1.13.0 - 2026-09-13", l: 386, e: 387}
-      - {h: "Added", l: 388, e: 573}
-      - {h: "Changed", l: 574, e: 626}
-      - {h: "Fixed", l: 627, e: 760}
-      - {h: "Security", l: 761, e: 779}
-      - {h: "Known limitation", l: 780, e: 787}
-      - {h: "1.12.0 - 2026-08-01", l: 788, e: 789}
-      - {h: "Added", l: 790, e: 921}
-      - {h: "Fixed", l: 922, e: 1164}
-      - {h: "1.11.0 - 2026-07-03", l: 1165, e: 1166}
-      - {h: "Fixed", l: 1167, e: 1180}
-      - {h: "Security", l: 1181, e: 1258}
-      - {h: "Added", l: 1259, e: 1287}
-      - {h: "Changed", l: 1288, e: 1334}
-      - {h: "1.10.0 - 2026-04-20", l: 1335, e: 1343}
-      - {h: "1.9.0 - 2026-04-13", l: 1344, e: 1353}
-      - {h: "1.8.0 - 2026-04-13", l: 1354, e: 1359}
-      - {h: "1.7.0 - 2026-04-06", l: 1360, e: 1374}
-      - {h: "1.6.0 - 2026-04-03", l: 1375, e: 1387}
-      - {h: "1.5.0 - 2026-03-21", l: 1388, e: 1406}
-      - {h: "1.4.0 - 2026-01-22", l: 1407, e: 1412}
-      - {h: "1.3.0 - 2026-01-15", l: 1413, e: 1421}
-      - {h: "1.2.0 - 2026-01-15", l: 1422, e: 1430}
-      - {h: "1.1.0 - 2025-01-15", l: 1431, e: 1441}
-      - {h: "1.0.0 - 2025-12-03", l: 1442, e: 1448}
+      - {h: "Fixed", l: 25, e: 33}
+      - {h: "1.16.0 - 2026-10-30", l: 34, e: 54}
+      - {h: "Removed", l: 55, e: 88}
+      - {h: "Changed", l: 89, e: 127}
+      - {h: "Fixed", l: 128, e: 189}
+      - {h: "1.15.0 - 2026-10-23", l: 190, e: 191}
+      - {h: "Added", l: 192, e: 203}
+      - {h: "Changed", l: 204, e: 234}
+      - {h: "Fixed", l: 235, e: 241}
+      - {h: "1.14.0 - 2026-09-29", l: 242, e: 243}
+      - {h: "Added", l: 244, e: 252}
+      - {h: "Changed", l: 253, e: 275}
+      - {h: "Removed", l: 276, e: 307}
+      - {h: "Fixed", l: 308, e: 349}
+      - {h: "Security", l: 350, e: 386}
+      - {h: "1.13.0 - 2026-09-13", l: 387, e: 388}
+      - {h: "Added", l: 389, e: 574}
+      - {h: "Changed", l: 575, e: 627}
+      - {h: "Fixed", l: 628, e: 761}
+      - {h: "Security", l: 762, e: 780}
+      - {h: "Known limitation", l: 781, e: 788}
+      - {h: "1.12.0 - 2026-08-01", l: 789, e: 790}
+      - {h: "Added", l: 791, e: 922}
+      - {h: "Fixed", l: 923, e: 1165}
+      - {h: "1.11.0 - 2026-07-03", l: 1166, e: 1167}
+      - {h: "Fixed", l: 1168, e: 1181}
+      - {h: "Security", l: 1182, e: 1259}
+      - {h: "Added", l: 1260, e: 1288}
+      - {h: "Changed", l: 1289, e: 1335}
+      - {h: "1.10.0 - 2026-04-20", l: 1336, e: 1344}
+      - {h: "1.9.0 - 2026-04-13", l: 1345, e: 1354}
+      - {h: "1.8.0 - 2026-04-13", l: 1355, e: 1360}
+      - {h: "1.7.0 - 2026-04-06", l: 1361, e: 1375}
+      - {h: "1.6.0 - 2026-04-03", l: 1376, e: 1388}
+      - {h: "1.5.0 - 2026-03-21", l: 1389, e: 1407}
+      - {h: "1.4.0 - 2026-01-22", l: 1408, e: 1413}
+      - {h: "1.3.0 - 2026-01-15", l: 1414, e: 1422}
+      - {h: "1.2.0 - 2026-01-15", l: 1423, e: 1431}
+      - {h: "1.1.0 - 2025-01-15", l: 1432, e: 1442}
+      - {h: "1.0.0 - 2025-12-03", l: 1443, e: 1449}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -2782,7 +2782,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 36385
+    size: 36675
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 36, e: 51}
@@ -2810,23 +2810,23 @@ documents:
       - {h: "8. Push and Create PR", l: 506, e: 514}
       - {h: "Summary", l: 515, e: 517}
       - {h: "Test Plan", l: 518, e: 528}
-      - {h: "9. Monitor CI", l: 529, e: 576}
-      - {h: "10. Squash Merge", l: 577, e: 606}
-      - {h: "11. Close Related Issues and Epics", l: 607, e: 622}
-      - {h: "12. Update Original Issue", l: 623, e: 656}
-      - {h: "Team Mode Instructions", l: 657, e: 660}
-      - {h: "Policies", l: 661, e: 664}
-      - {h: "Command-Specific Rules", l: 665, e: 672}
-      - {h: "Output", l: 673, e: 699}
-      - {h: "Work Summary", l: 700, e: 712}
-      - {h: "Changes Made", l: 713, e: 715}
-      - {h: "Files Modified", l: 716, e: 719}
-      - {h: "Next Steps", l: 720, e: 728}
-      - {h: "Work Summary (INCOMPLETE)", l: 729, e: 740}
-      - {h: "Action Required", l: 741, e: 748}
-      - {h: "Batch Mode Output", l: 749, e: 752}
-      - {h: "Error Handling", l: 753, e: 756}
-      - {h: "Side Effects and Loop-Safety", l: 757, e: 759}
+      - {h: "9. Monitor CI", l: 529, e: 580}
+      - {h: "10. Squash Merge", l: 581, e: 610}
+      - {h: "11. Close Related Issues and Epics", l: 611, e: 626}
+      - {h: "12. Update Original Issue", l: 627, e: 660}
+      - {h: "Team Mode Instructions", l: 661, e: 664}
+      - {h: "Policies", l: 665, e: 668}
+      - {h: "Command-Specific Rules", l: 669, e: 676}
+      - {h: "Output", l: 677, e: 703}
+      - {h: "Work Summary", l: 704, e: 716}
+      - {h: "Changes Made", l: 717, e: 719}
+      - {h: "Files Modified", l: 720, e: 723}
+      - {h: "Next Steps", l: 724, e: 732}
+      - {h: "Work Summary (INCOMPLETE)", l: 733, e: 744}
+      - {h: "Action Required", l: 745, e: 752}
+      - {h: "Batch Mode Output", l: 753, e: 756}
+      - {h: "Error Handling", l: 757, e: 760}
+      - {h: "Side Effects and Loop-Safety", l: 761, e: 763}
   - path: "global/skills/_internal/issue-work/reference/batch-mode.md"
     title: "Batch Mode Instructions"
     description: ""
@@ -2869,7 +2869,7 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 14623
+    size: 14637
     tags: [global,reference,skill]
     sections:
       - {h: "Team Architecture", l: 14, e: 37}
@@ -2934,7 +2934,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 36875
+    size: 37109
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 40, e: 65}
@@ -3009,18 +3009,18 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 5535
+    size: 6123
     tags: [build,global,reference,skill]
     sections:
       - {h: "Strategy Selection", l: 10, e: 17}
       - {h: "Inline Strategy (short builds)", l: 18, e: 26}
       - {h: "Background + Log Polling Strategy (long builds)", l: 27, e: 55}
       - {h: "On Build/Test Failure", l: 56, e: 66}
-      - {h: "CI Monitoring After Push", l: 67, e: 99}
-      - {h: "Final Pre-Merge Verification (MANDATORY)", l: 100, e: 109}
-      - {h: "CI Polling Limits", l: 110, e: 124}
-      - {h: "Iteration Limits (Step 9)", l: 125, e: 133}
-      - {h: "CI Status Polling Loop", l: 134, e: 153}
+      - {h: "CI Monitoring After Push", l: 67, e: 109}
+      - {h: "Final Pre-Merge Verification (MANDATORY)", l: 110, e: 119}
+      - {h: "CI Wait Limits", l: 120, e: 134}
+      - {h: "Iteration Limits (Step 9)", l: 135, e: 143}
+      - {h: "Waiting for CI Between Attempts", l: 144, e: 153}
       - {h: "Iteration Rules", l: 154, e: 160}
   - path: "global/skills/_internal/pr-work/reference/comment-templates.md"
     title: "PR Comment Templates and Guidelines"
@@ -3082,7 +3082,7 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 8346
+    size: 8360
     tags: [global,reference,skill]
     sections:
       - {h: "Team Architecture", l: 7, e: 28}
@@ -3131,7 +3131,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 19312
+    size: 19533
     tags: [global,release,skill]
     sections:
       - {h: "ref_docs keys:", l: 29, e: 29}
@@ -3174,11 +3174,9 @@ documents:
       - {h: "5. Create Release PR (develop -> main)", l: 350, e: 354}
       - {h: "Ensure we are on the develop branch with latest changes", l: 355, e: 358}
       - {h: "Create release PR targeting main", l: 359, e: 368}
-      - {h: "6. Monitor CI and Merge", l: 369, e: 373}
-      - {h: "Wait briefly for workflows to register", l: 374, e: 376}
-      - {h: "Poll CI checks (30s intervals, 10min max)", l: 377, e: 377}
-      - {h: "See issue-work reference for full CI monitoring protocol", l: 378, e: 380}
-      - {h: "ALL checks must pass before proceeding", l: 381, e: 386}
+      - {h: "6. Monitor CI and Merge", l: 369, e: 374}
+      - {h: "Wait for every check (in the background, or in the foreground with a 10-minute timeout)", l: 375, e: 377}
+      - {h: "Read the result: ALL checks must pass before proceeding", l: 378, e: 386}
       - {h: "Sonar Gate on Release PR", l: 387, e: 398}
       - {h: "7. Create Git Tag on main", l: 399, e: 401}
       - {h: "Switch to main and pull the merged commit", l: 402, e: 405}
@@ -5791,7 +5789,7 @@ documents:
     description: ""
     category: rule
     scope: project
-    size: 4900
+    size: 5188
     tags: [build,project,rule,workflow]
     sections:
       - {h: "Strategy Selection", l: 21, e: 30}
@@ -5802,30 +5800,30 @@ documents:
       - {h: "Step 2: Poll for Results", l: 67, e: 77}
       - {h: "Step 3: Detect Outcome", l: 78, e: 91}
       - {h: "Step 4: On Failure — Diagnose", l: 92, e: 102}
-      - {h: "CI Pipeline Verification", l: 103, e: 106}
-      - {h: "Trigger and Check", l: 107, e: 119}
-      - {h: "Interpret Result", l: 120, e: 128}
-      - {h: "Rate Limiting", l: 129, e: 134}
-      - {h: "Integration with ci-debugging Skill", l: 135, e: 143}
-      - {h: "Batch Error Fixing", l: 144, e: 148}
-      - {h: "Failure Escape Hatch", l: 149, e: 153}
-      - {h: "Rules", l: 154, e: 159}
+      - {h: "CI Pipeline Verification", l: 103, e: 107}
+      - {h: "Wait and Check", l: 108, e: 121}
+      - {h: "Interpret Result", l: 122, e: 129}
+      - {h: "Wait Limits", l: 130, e: 135}
+      - {h: "Integration with ci-debugging Skill", l: 136, e: 144}
+      - {h: "Batch Error Fixing", l: 145, e: 149}
+      - {h: "Failure Escape Hatch", l: 150, e: 154}
+      - {h: "Rules", l: 155, e: 160}
   - path: "project/.claude/rules/workflow/ci-resilience.md"
     title: "CI Resilience Patterns"
     description: ""
     category: rule
     scope: project
-    size: 4844
+    size: 5329
     tags: [ci,project,rule,workflow]
     sections:
-      - {h: "TLS / Sandbox Errors", l: 18, e: 26}
-      - {h: "Congested Runner Handling", l: 27, e: 46}
-      - {h: "Missing Toolchain Fallback", l: 47, e: 66}
-      - {h: "Reducing First-CI-Run Failures", l: 67, e: 88}
-      - {h: "CI Polling Best Practices", l: 89, e: 101}
-      - {h: "Post-Task CI Verification", l: 102, e: 107}
-      - {h: "CI Failure Policy", l: 108, e: 113}
-      - {h: "Multi-Repo Parallel Strategy", l: 114, e: 117}
+      - {h: "TLS / Sandbox Errors", l: 18, e: 25}
+      - {h: "Congested Runner Handling", l: 26, e: 45}
+      - {h: "Missing Toolchain Fallback", l: 46, e: 65}
+      - {h: "Reducing First-CI-Run Failures", l: 66, e: 87}
+      - {h: "Waiting for CI", l: 88, e: 104}
+      - {h: "Post-Task CI Verification", l: 105, e: 110}
+      - {h: "CI Failure Policy", l: 111, e: 116}
+      - {h: "Multi-Repo Parallel Strategy", l: 117, e: 120}
   - path: "project/.claude/rules/workflow/git-commit-format.md"
     title: "Git Commit Message Format"
     description: ""

@@ -66,40 +66,50 @@ Do NOT retry the same build without changes -- diagnose first.
 
 ## CI Monitoring After Push
 
-After push, monitor CI with non-blocking polling:
+After push, wait for CI with one watch call. Follow the `gh` invariant in
+`~/.claude/CLAUDE.md`: one `gh` command per Bash call, never in a loop, never
+inside `$(...)` or a pipe, and no `sleep`.
 
-**Step A**: Get the triggered run ID
+**Step A**: Watch the PR's checks
 ```bash
-# Wait briefly for workflow to register
-sleep 5
-RUN_ID=$(gh run list --repo $ORG/$PROJECT --branch "$HEAD_BRANCH" --limit 1 --json databaseId -q '.[0].databaseId')
+gh pr checks $PR_NUMBER --repo $ORG/$PROJECT --watch --interval 30 --fail-fast
 ```
 
-**Step B**: Poll CI status (non-blocking, every 30 seconds)
+Run it as the only command of the call: in the background
+(`run_in_background: true`) when there is other work to do, otherwise in the
+foreground with the Bash tool's `timeout` set to 600000 ms, which enforces the
+10-minute limit below. `--fail-fast` ends the watch at the first failed check.
+To follow a single run, `gh run watch <RUN_ID> --repo $ORG/$PROJECT --exit-status`
+is the equivalent.
+
+**Step B**: Read the result with one plain call
 ```bash
-gh run view $RUN_ID --repo $ORG/$PROJECT --json status,conclusion -q '{status: .status, conclusion: .conclusion}'
+gh pr checks $PR_NUMBER --repo $ORG/$PROJECT
 ```
+
+Exit 0: every check passed. Exit 8: checks are still pending. Exit 1: a check
+failed. Right after a push the checks may not be registered yet, and the watch
+can return at once: while Step B shows pending checks, run Step A again.
 
 **Step C**: Interpret result
 
-| status | conclusion | Action |
-|--------|-----------|--------|
-| completed | success | Proceed to summary |
-| completed | failure | Fetch failed logs, go to Step 9 |
-| completed | cancelled | Report cancellation, investigate or re-trigger |
-| completed | timed_out | Report timeout, check workflow config |
-| in_progress | — | Poll again after 30s interval |
-| queued | — | Poll again after 30s interval |
-| waiting | — | Poll again after 30s interval (approval gate) |
+| Check state | Action |
+|-------------|--------|
+| all `pass` (or `skipping` by design) | Proceed to summary |
+| any `fail` | Fetch failed logs, go to Step 9 |
+| any `cancel` | Report cancellation, investigate or re-trigger |
+| any `pending` | Still running or queued: watch again (Step A) |
 
-**Step D**: On failure, fetch specific error logs
+**Step D**: On failure, fetch the failed logs. Get the run ID with its own
+call, then pass the printed ID to the next one:
 ```bash
-gh run view $RUN_ID --repo $ORG/$PROJECT --log-failed 2>&1 | head -100
+gh run list --repo $ORG/$PROJECT --branch "$HEAD_BRANCH" --limit 1 --json databaseId --jq '.[0].databaseId'
+gh run view <RUN_ID> --repo $ORG/$PROJECT --log-failed
 ```
 
 ## Final Pre-Merge Verification (MANDATORY)
 
-After polling shows all runs completed + success, you MUST run `gh pr checks` as a final gate:
+After the watch shows every check passed, you MUST run `gh pr checks` as a final gate right before the merge:
 
 ```bash
 gh pr checks $PR_NUMBER --repo $ORG/$PROJECT
@@ -107,16 +117,16 @@ gh pr checks $PR_NUMBER --repo $ORG/$PROJECT
 
 This catches individual sub-checks (e.g., platform-specific jobs) that `gh run list`/`gh run view` may miss. **Do NOT skip this step.** If any check shows `fail`, `pending`, or any non-pass status, do NOT merge.
 
-## CI Polling Limits
+## CI Wait Limits
 
-**Do NOT** use `gh run watch` — it blocks the entire session.
-**Do NOT** poll more frequently than every 30 seconds — respect API rate limits.
-**Do NOT** block indefinitely — max 10 minutes of polling per run.
+**Do NOT** wait in a loop or with `sleep`, or put `gh` inside `$(...)` or a pipe — use the watch in Step A.
+**Do NOT** query CI more often than every 30 seconds — `--interval 30` respects API rate limits.
+**Do NOT** block indefinitely — stop waiting about 10 minutes after the push.
 **Do NOT** merge while any check is `queued`, `in_progress`, or has `failure` conclusion.
 **Do NOT** rationalize any failure as "unrelated" or "pre-existing" — all failures block merge.
 
-If the 10-minute polling limit is reached with CI still running:
-1. Stop polling immediately
+If CI is still running about 10 minutes after the push:
+1. Stop waiting
 2. Report current status of all checks to the user
 3. **Do NOT merge** — the user decides next steps
 
@@ -127,34 +137,24 @@ If the 10-minute polling limit is reached with CI still running:
 | Setting | Value | Rationale |
 |---------|-------|-----------|
 | Max retry attempts | 3 | Balance between automation and human review |
-| CI poll interval | 30 seconds | Respect GitHub API rate limits |
-| CI max poll duration | 10 minutes | Typical CI completion time |
-| Pause between retries | Wait for CI result via polling | No blocking watch |
+| CI watch interval | 30 seconds (`--interval 30`) | Respect GitHub API rate limits |
+| CI max wait | about 10 minutes per push | Typical CI completion time |
+| Pause between retries | Wait for CI with the watch in Step A | No loop, no `sleep` |
 
-### CI Status Polling Loop
+### Waiting for CI Between Attempts
 
-Instead of blocking with `gh run watch`, use non-blocking status polling:
+After each fix push, wait as in "CI Monitoring After Push": one
+`gh pr checks ... --watch --interval 30 --fail-fast` call, then one plain
+`gh pr checks` call to read the result.
 
-```
-For each poll (max 20 iterations x 30s = 10 minutes):
-  1. Check: gh run view $RUN_ID --repo $ORG/$PROJECT --json status,conclusion
-  2. If completed + failure -> fetch logs, diagnose, fix, go to next attempt
-  3. If completed + success -> done
-  4. If in_progress -> wait 30s, poll again
-  5. If max polls reached -> report timeout, escalate
-```
-
-This approach:
-- Detects failures as soon as CI completes (not after 10min timeout)
-- Provides status updates to the user between polls
-- Allows early intervention when failure is detected
-
-**Do NOT** use `gh run watch` -- it blocks the entire session.
+- `--fail-fast` ends the watch at the first failed check, so a failure is diagnosed as soon as it appears, not after the 10-minute limit
+- A watch in the background leaves the session free to report status to the user meanwhile
+- On a failure, fetch logs, diagnose, fix, and go to the next attempt; if CI is still running after about 10 minutes, report and escalate
 
 ### Iteration Rules
 
 1. Each fix should be a separate commit
 2. Track attempt count (max 3 attempts)
 3. **Post failure analysis comment** (see `comment-templates.md`) at the start of each iteration
-4. After each fix, monitor CI via polling
+4. After each fix, wait for CI with the watch in "CI Monitoring After Push"
 5. Continue until all workflows pass OR max attempts reached
