@@ -19,17 +19,16 @@ Global settings applied every session. Routing index only — procedural detail 
 
 ## Routing
 
-- **Sandbox, TLS, `gh` caveat**: `docs/SANDBOX_TLS.md`
-- **Branching strategy**: `docs/branching-strategy.md`
-- **SSH commit signing (claude-memory)**: `docs/SSH_COMMIT_SIGNING.md`
-- **Memory sync — operations guide**: `docs/MEMORY_SYNC.md`
-- **Memory sync — threat model**: `docs/THREAT_MODEL.md`
-- **Memory sync — single-machine migration runbook**: `docs/MEMORY_MIGRATION.md`
-- **Lifecycle skills**: `global/skills/_internal/issue-work`, `pr-work`, `release`, `branch-cleanup`
-- **Build verification**: `global/skills/_internal/pr-work/reference/build-verification.md`
-- **Skill authoring**: `global/skills/_policy.md`, `global/skills/_internal/_shared/invariants.md`
-- **Sonar fix (SonarQube Cloud)**: `global/skills/_internal/sonar-fix`
+- **Lifecycle skills**: `~/.claude/skills/_internal/issue-work`, `pr-work`, `release`, `branch-cleanup`
+- **Build verification**: `~/.claude/skills/_internal/pr-work/reference/build-verification.md`
+- **Skill authoring**: `~/.claude/skills/_policy.md`, `~/.claude/skills/_internal/_shared/invariants.md`
+- **Sonar fix (SonarQube Cloud)**: `~/.claude/skills/_internal/sonar-fix`
 - **Skill aliases**: see "Skill Aliases" section below
+- **Repository documents** (in the claude-config repository, not installed):
+  - Sandbox, TLS, `gh` caveat: `docs/SANDBOX_TLS.md`
+  - Branching strategy: `docs/branching-strategy.md`
+  - SSH commit signing (claude-memory): `docs/SSH_COMMIT_SIGNING.md`
+  - Memory sync: `docs/MEMORY_SYNC.md` (operations), `docs/THREAT_MODEL.md`, `docs/MEMORY_MIGRATION.md` (migration)
 
 ## Skill Aliases (post-D2 relocation, see #491, #492)
 
