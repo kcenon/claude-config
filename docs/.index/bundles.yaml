@@ -99,9 +99,12 @@ auto:
       - "project/.claude/rules/project-management/build.md"
       - "project/.claude/rules/project-management/documentation.md"
       - "project/.claude/rules/project-management/testing.md"
+      - "project/.claude/reference/operations/ops.md"
       - "project/.claude/reference/project-management/build-examples.md"
       - "project/.claude/reference/project-management/documentation-templates.md"
+      - "project/.claude/reference/project-management/documentation.md"
       - "project/.claude/reference/project-management/testing-examples.md"
+      - "project/.claude/reference/project-management/testing.md"
   root:
     description: "Project overview: README, HOOKS, QUICKSTART"
     estimated_tokens: 146796
@@ -262,6 +265,7 @@ auto:
       - "project/.claude/reference/workflow/5w1h-examples.md"
       - "project/.claude/reference/workflow/agent-teams.md"
       - "project/.claude/reference/workflow/automation-patterns.md"
+      - "project/.claude/reference/workflow/ci-resilience.md"
       - "project/.claude/reference/workflow/command-construction.md"
       - "project/.claude/reference/workflow/commit-hooks.md"
       - "project/.claude/reference/workflow/issue-examples.md"

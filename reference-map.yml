@@ -42,13 +42,13 @@ references:
   - source: project/.claude/reference/coding/standards.md
     target: project/.claude/skills/coding-guidelines/reference/quality.md
     mode: exact
-  - source: project/.claude/rules/operations/ops.md
+  - source: project/.claude/reference/operations/ops.md
     target: project/.claude/skills/documentation/reference/cleanup.md
     mode: exact
   - source: project/.claude/rules/core/communication.md
     target: project/.claude/skills/documentation/reference/communication.md
     mode: exact
-  - source: project/.claude/rules/project-management/documentation.md
+  - source: project/.claude/reference/project-management/documentation.md
     target: project/.claude/skills/documentation/reference/documentation.md
     mode: exact
   - source: project/.claude/reference/coding/safety.md
@@ -57,7 +57,7 @@ references:
   - source: project/.claude/reference/coding/safety.md
     target: project/.claude/skills/performance-review/reference/memory.md
     mode: exact
-  - source: project/.claude/rules/operations/ops.md
+  - source: project/.claude/reference/operations/ops.md
     target: project/.claude/skills/performance-review/reference/monitoring.md
     mode: exact
   - source: project/.claude/reference/coding/performance.md
@@ -69,7 +69,7 @@ references:
   - source: project/.claude/rules/core/principles.md
     target: project/.claude/skills/project-workflow/reference/problem-solving.md
     mode: exact
-  - source: project/.claude/rules/project-management/testing.md
+  - source: project/.claude/reference/project-management/testing.md
     target: project/.claude/skills/project-workflow/reference/testing.md
     mode: exact
   - source: project/.claude/rules/core/principles.md
@@ -120,13 +120,13 @@ references:
   - source: project/.claude/reference/coding/performance.md
     target: plugin/skills/performance-review/reference/performance.md
     mode: strip-source-frontmatter
-  - source: project/.claude/rules/project-management/documentation.md
+  - source: project/.claude/reference/project-management/documentation.md
     target: plugin/skills/documentation/reference/documentation.md
     mode: strip-source-frontmatter
   - source: project/.claude/rules/project-management/build.md
     target: plugin/skills/project-workflow/reference/build.md
     mode: strip-source-frontmatter
-  - source: project/.claude/rules/project-management/testing.md
+  - source: project/.claude/reference/project-management/testing.md
     target: plugin/skills/project-workflow/reference/testing.md
     mode: strip-source-frontmatter
   - source: project/.claude/reference/security.md

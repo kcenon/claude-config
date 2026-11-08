@@ -97,7 +97,9 @@ claude_config_backup/
 │       │       └── gh-cli-scripts.md
 │       ├── reference/          # On-demand reference docs (outside rules/, never auto-loaded)
 │       │   ├── coding/         # anti-patterns.md, full coding rules, examples
-│       │   └── workflow/       # 5W1H examples, labels, automation, agent teams
+│       │   ├── operations/     # full ops.md
+│       │   ├── project-management/ # full testing.md and documentation.md, examples, templates
+│       │   └── workflow/       # full ci-resilience.md, 5W1H examples, labels, automation, agent teams
 │       ├── agents/             # Specialized agent configurations
 │       │   ├── analyst.md
 │       │   ├── code-reviewer.md

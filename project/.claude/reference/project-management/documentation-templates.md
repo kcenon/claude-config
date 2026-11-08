@@ -4,7 +4,7 @@ alwaysApply: false
 
 # Documentation Templates
 
-API-comment, README, CHANGELOG and architecture-document templates. Companion to `.claude/rules/project-management/documentation.md`, which keeps the principles.
+API-comment, README, CHANGELOG and architecture-document templates. Companion to `.claude/reference/project-management/documentation.md`, which keeps the principles.
 
 > **Loading**: Lives in `.claude/reference/`, outside the auto-loaded `.claude/rules/` tree, so it is never injected automatically. Load with `@load: reference/documentation-templates`.
 
