@@ -94,7 +94,9 @@ claude_config_backup/
 │       │       └── gh-cli-scripts.md
 │       ├── reference/          # 온디맨드 레퍼런스 문서 (rules/ 밖, 자동 로드 안 됨)
 │       │   ├── coding/         # anti-patterns.md, 전체 코딩 규칙, 예시
-│       │   └── workflow/       # 5W1H 예시, 레이블, 자동화, Agent Teams
+│       │   ├── operations/     # 전체 ops.md
+│       │   ├── project-management/ # 전체 testing.md, documentation.md, 예시, 템플릿
+│       │   └── workflow/       # 전체 ci-resilience.md, 5W1H 예시, 레이블, 자동화, Agent Teams
 │       ├── agents/             # 특화 에이전트 설정
 │       │   ├── analyst.md
 │       │   ├── code-reviewer.md

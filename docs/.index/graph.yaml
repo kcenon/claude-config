@@ -193,7 +193,7 @@ nodes:
     - target: "project/.claude/reference/api/architecture-examples.md"
       type: see
   "project/.claude/rules/api/observability.md":
-    - target: "project/.claude/rules/operations/ops.md"
+    - target: "project/.claude/reference/operations/ops.md"
       type: link
     - target: "project/.claude/reference/api/observability-examples.md"
       type: see
@@ -232,17 +232,33 @@ nodes:
   "project/.claude/rules/core/environment.md":
     - target: "project/.claude/reference/workflow/command-construction.md"
       type: see
+  "project/.claude/rules/operations/ops.md":
+    - target: "project/.claude/reference/operations/ops.md"
+      type: see
   "project/.claude/rules/project-management/build.md":
     - target: "project/.claude/reference/project-management/build-examples.md"
       type: see
   "project/.claude/rules/project-management/documentation.md":
+    - target: "project/.claude/reference/project-management/documentation.md"
+      type: see
+    - target: "project/.claude/reference/project-management/documentation-templates.md"
+      type: see
+  "project/.claude/reference/project-management/documentation.md":
     - target: "project/.claude/reference/project-management/documentation-templates.md"
       type: see
   "project/.claude/rules/project-management/testing.md":
+    - target: "project/.claude/reference/project-management/testing.md"
+      type: see
+    - target: "project/.claude/reference/project-management/testing-examples.md"
+      type: see
+  "project/.claude/reference/project-management/testing.md":
     - target: "project/.claude/reference/project-management/testing-examples.md"
       type: see
   "project/.claude/reference/security.md":
     - target: "project/.claude/reference/security-examples.md"
+      type: see
+  "project/.claude/rules/workflow/ci-resilience.md":
+    - target: "project/.claude/reference/workflow/ci-resilience.md"
       type: see
   "project/.claude/rules/workflow/git-commit-format.md":
     - target: "project/.claude/reference/workflow/commit-hooks.md"

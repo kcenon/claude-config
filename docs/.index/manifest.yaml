@@ -10,53 +10,53 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 105724
+    size: 107009
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "Unreleased", l: 8, e: 9}
       - {h: "Added", l: 10, e: 15}
-      - {h: "Changed", l: 16, e: 25}
-      - {h: "Fixed", l: 26, e: 35}
-      - {h: "1.16.0 - 2026-10-30", l: 36, e: 56}
-      - {h: "Removed", l: 57, e: 90}
-      - {h: "Changed", l: 91, e: 129}
-      - {h: "Fixed", l: 130, e: 191}
-      - {h: "1.15.0 - 2026-10-23", l: 192, e: 193}
-      - {h: "Added", l: 194, e: 205}
-      - {h: "Changed", l: 206, e: 236}
-      - {h: "Fixed", l: 237, e: 243}
-      - {h: "1.14.0 - 2026-09-29", l: 244, e: 245}
-      - {h: "Added", l: 246, e: 254}
-      - {h: "Changed", l: 255, e: 277}
-      - {h: "Removed", l: 278, e: 309}
-      - {h: "Fixed", l: 310, e: 351}
-      - {h: "Security", l: 352, e: 388}
-      - {h: "1.13.0 - 2026-09-13", l: 389, e: 390}
-      - {h: "Added", l: 391, e: 576}
-      - {h: "Changed", l: 577, e: 629}
-      - {h: "Fixed", l: 630, e: 763}
-      - {h: "Security", l: 764, e: 782}
-      - {h: "Known limitation", l: 783, e: 790}
-      - {h: "1.12.0 - 2026-08-01", l: 791, e: 792}
-      - {h: "Added", l: 793, e: 924}
-      - {h: "Fixed", l: 925, e: 1167}
-      - {h: "1.11.0 - 2026-07-03", l: 1168, e: 1169}
-      - {h: "Fixed", l: 1170, e: 1183}
-      - {h: "Security", l: 1184, e: 1261}
-      - {h: "Added", l: 1262, e: 1290}
-      - {h: "Changed", l: 1291, e: 1337}
-      - {h: "1.10.0 - 2026-04-20", l: 1338, e: 1346}
-      - {h: "1.9.0 - 2026-04-13", l: 1347, e: 1356}
-      - {h: "1.8.0 - 2026-04-13", l: 1357, e: 1362}
-      - {h: "1.7.0 - 2026-04-06", l: 1363, e: 1377}
-      - {h: "1.6.0 - 2026-04-03", l: 1378, e: 1390}
-      - {h: "1.5.0 - 2026-03-21", l: 1391, e: 1409}
-      - {h: "1.4.0 - 2026-01-22", l: 1410, e: 1415}
-      - {h: "1.3.0 - 2026-01-15", l: 1416, e: 1424}
-      - {h: "1.2.0 - 2026-01-15", l: 1425, e: 1433}
-      - {h: "1.1.0 - 2025-01-15", l: 1434, e: 1444}
-      - {h: "1.0.0 - 2025-12-03", l: 1445, e: 1451}
+      - {h: "Changed", l: 16, e: 26}
+      - {h: "Fixed", l: 27, e: 36}
+      - {h: "1.16.0 - 2026-10-30", l: 37, e: 57}
+      - {h: "Removed", l: 58, e: 91}
+      - {h: "Changed", l: 92, e: 130}
+      - {h: "Fixed", l: 131, e: 192}
+      - {h: "1.15.0 - 2026-10-23", l: 193, e: 194}
+      - {h: "Added", l: 195, e: 206}
+      - {h: "Changed", l: 207, e: 237}
+      - {h: "Fixed", l: 238, e: 244}
+      - {h: "1.14.0 - 2026-09-29", l: 245, e: 246}
+      - {h: "Added", l: 247, e: 255}
+      - {h: "Changed", l: 256, e: 278}
+      - {h: "Removed", l: 279, e: 310}
+      - {h: "Fixed", l: 311, e: 352}
+      - {h: "Security", l: 353, e: 389}
+      - {h: "1.13.0 - 2026-09-13", l: 390, e: 391}
+      - {h: "Added", l: 392, e: 577}
+      - {h: "Changed", l: 578, e: 630}
+      - {h: "Fixed", l: 631, e: 764}
+      - {h: "Security", l: 765, e: 783}
+      - {h: "Known limitation", l: 784, e: 791}
+      - {h: "1.12.0 - 2026-08-01", l: 792, e: 793}
+      - {h: "Added", l: 794, e: 925}
+      - {h: "Fixed", l: 926, e: 1168}
+      - {h: "1.11.0 - 2026-07-03", l: 1169, e: 1170}
+      - {h: "Fixed", l: 1171, e: 1184}
+      - {h: "Security", l: 1185, e: 1262}
+      - {h: "Added", l: 1263, e: 1291}
+      - {h: "Changed", l: 1292, e: 1338}
+      - {h: "1.10.0 - 2026-04-20", l: 1339, e: 1347}
+      - {h: "1.9.0 - 2026-04-13", l: 1348, e: 1357}
+      - {h: "1.8.0 - 2026-04-13", l: 1358, e: 1363}
+      - {h: "1.7.0 - 2026-04-06", l: 1364, e: 1378}
+      - {h: "1.6.0 - 2026-04-03", l: 1379, e: 1391}
+      - {h: "1.5.0 - 2026-03-21", l: 1392, e: 1410}
+      - {h: "1.4.0 - 2026-01-22", l: 1411, e: 1416}
+      - {h: "1.3.0 - 2026-01-15", l: 1417, e: 1425}
+      - {h: "1.2.0 - 2026-01-15", l: 1426, e: 1434}
+      - {h: "1.1.0 - 2025-01-15", l: 1435, e: 1445}
+      - {h: "1.0.0 - 2025-12-03", l: 1446, e: 1452}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -1635,21 +1635,21 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 10602
+    size: 10788
     tags: [docs]
     sections:
       - {h: "저장소 구조", l: 1, e: 4}
-      - {h: "구조", l: 5, e: 189}
+      - {h: "구조", l: 5, e: 191}
   - path: "docs/guides/STRUCTURE.md"
     title: "Repository Structure"
     description: ""
     category: docs
     scope: docs
-    size: 11036
+    size: 11221
     tags: [docs]
     sections:
       - {h: "Repository Structure", l: 1, e: 4}
-      - {h: "Structure", l: 5, e: 199}
+      - {h: "Structure", l: 5, e: 201}
   - path: "docs/guides/USE_CASES.ko.md"
     title: "사용 시나리오와 FAQ"
     description: ""
@@ -3988,7 +3988,7 @@ documents:
     description: ""
     category: reference
     scope: plugin
-    size: 1132
+    size: 1155
     tags: [api,plugin,reference,skill]
     sections:
       - {h: "Structured Logging", l: 9, e: 15}
@@ -5102,6 +5102,26 @@ documents:
       - {h: "Public API Documentation", l: 112, e: 119}
       - {h: "Comment Guidelines", l: 120, e: 125}
       - {h: "Code Style", l: 126, e: 130}
+  - path: "project/.claude/reference/operations/ops.md"
+    title: "Operations: Cleanup & Monitoring"
+    description: ""
+    category: reference
+    scope: project
+    size: 3714
+    tags: [project,reference]
+    sections:
+      - {h: "Cleanup and Finalization", l: 18, e: 19}
+      - {h: "Temporary File Removal", l: 20, e: 27}
+      - {h: ".gitignore Essentials", l: 28, e: 48}
+      - {h: "Code Formatting & Linting", l: 49, e: 57}
+      - {h: "Pre-Commit Hooks", l: 58, e: 71}
+      - {h: "Documentation Deviations", l: 72, e: 82}
+      - {h: "Performance Monitoring", l: 83, e: 84}
+      - {h: "Common Metrics and Targets", l: 85, e: 95}
+      - {h: "Response Time Tracking (C++)", l: 96, e: 116}
+      - {h: "Memory Monitoring", l: 117, e: 131}
+      - {h: "Integration with Monitoring Tools", l: 132, e: 149}
+      - {h: "Alerting on Regressions", l: 150, e: 157}
   - path: "project/.claude/reference/project-management/build-examples.md"
     title: "Build Examples"
     description: ""
@@ -5135,7 +5155,7 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 13879
+    size: 13883
     tags: [project,project-management,reference]
     sections:
       - {h: "API Documentation", l: 11, e: 14}
@@ -5151,12 +5171,27 @@ documents:
       - {h: "High-Level Architecture", l: 469, e: 516}
       - {h: "Inline Documentation", l: 517, e: 518}
       - {h: "Example", l: 519, e: 544}
+  - path: "project/.claude/reference/project-management/documentation.md"
+    title: "Documentation Standards"
+    description: ""
+    category: reference
+    scope: project
+    size: 1971
+    tags: [documentation,project,reference]
+    sections:
+      - {h: "API Documentation", l: 11, e: 17}
+      - {h: "README Files", l: 18, e: 24}
+      - {h: "CHANGELOG", l: 25, e: 31}
+      - {h: "Version Number Guidelines", l: 32, e: 39}
+      - {h: "Architecture Documentation", l: 40, e: 44}
+      - {h: "Inline Documentation", l: 45, e: 46}
+      - {h: "When to Write Comments", l: 47, e: 63}
   - path: "project/.claude/reference/project-management/testing-examples.md"
     title: "Testing Examples"
     description: ""
     category: reference
     scope: project
-    size: 10925
+    size: 10929
     tags: [project,project-management,reference]
     sections:
       - {h: "Layered Testing", l: 11, e: 24}
@@ -5179,6 +5214,25 @@ documents:
       - {h: "Continuous Integration", l: 447, e: 448}
       - {h: "Run Tests Automatically", l: 449, e: 475}
       - {h: "Quality Gates", l: 476, e: 488}
+  - path: "project/.claude/reference/project-management/testing.md"
+    title: "Testing Strategy"
+    description: ""
+    category: reference
+    scope: project
+    size: 2765
+    tags: [project,reference,testing]
+    sections:
+      - {h: "Layered Testing", l: 19, e: 27}
+      - {h: "Test Fixtures", l: 28, e: 32}
+      - {h: "Coverage Goals", l: 33, e: 34}
+      - {h: "Target: 80% Code Coverage", l: 35, e: 39}
+      - {h: "What to Cover", l: 40, e: 56}
+      - {h: "Edge Cases and Failure Scenarios", l: 57, e: 62}
+      - {h: "Test Organization", l: 63, e: 64}
+      - {h: "File Structure", l: 65, e: 69}
+      - {h: "Naming Conventions", l: 70, e: 76}
+      - {h: "Test Independence", l: 77, e: 81}
+      - {h: "Continuous Integration", l: 82, e: 87}
   - path: "project/.claude/reference/security-examples.md"
     title: "Security Examples"
     description: ""
@@ -5396,6 +5450,22 @@ documents:
       - {h: "Labeler Workflow", l: 168, e: 191}
       - {h: "Issue Auto-Labeling Workflow", l: 192, e: 266}
       - {h: "Label Validation Workflow", l: 267, e: 324}
+  - path: "project/.claude/reference/workflow/ci-resilience.md"
+    title: "CI Resilience Patterns"
+    description: ""
+    category: reference
+    scope: project
+    size: 5329
+    tags: [ci,project,reference,workflow]
+    sections:
+      - {h: "TLS / Sandbox Errors", l: 18, e: 25}
+      - {h: "Congested Runner Handling", l: 26, e: 45}
+      - {h: "Missing Toolchain Fallback", l: 46, e: 65}
+      - {h: "Reducing First-CI-Run Failures", l: 66, e: 87}
+      - {h: "Waiting for CI", l: 88, e: 104}
+      - {h: "Post-Task CI Verification", l: 105, e: 110}
+      - {h: "CI Failure Policy", l: 111, e: 116}
+      - {h: "Multi-Repo Parallel Strategy", l: 117, e: 120}
   - path: "project/.claude/reference/workflow/command-construction.md"
     title: "Command Construction (Bash / PowerShell)"
     description: ""
@@ -5537,7 +5607,7 @@ documents:
     description: ""
     category: rule
     scope: project
-    size: 1354
+    size: 1377
     tags: [api,project,rule]
     sections:
       - {h: "Structured Logging", l: 23, e: 29}
@@ -5690,21 +5760,10 @@ documents:
     description: ""
     category: rule
     scope: project
-    size: 3714
+    size: 755
     tags: [project,rule]
     sections:
-      - {h: "Cleanup and Finalization", l: 18, e: 19}
-      - {h: "Temporary File Removal", l: 20, e: 27}
-      - {h: ".gitignore Essentials", l: 28, e: 48}
-      - {h: "Code Formatting & Linting", l: 49, e: 57}
-      - {h: "Pre-Commit Hooks", l: 58, e: 71}
-      - {h: "Documentation Deviations", l: 72, e: 82}
-      - {h: "Performance Monitoring", l: 83, e: 84}
-      - {h: "Common Metrics and Targets", l: 85, e: 95}
-      - {h: "Response Time Tracking (C++)", l: 96, e: 116}
-      - {h: "Memory Monitoring", l: 117, e: 131}
-      - {h: "Integration with Monitoring Tools", l: 132, e: 149}
-      - {h: "Alerting on Regressions", l: 150, e: 157}
+      - {h: "Operations: Cleanup & Monitoring", l: 14, e: 23}
   - path: "project/.claude/rules/project-management/build.md"
     title: "Build and Dependency Management"
     description: ""
@@ -5729,35 +5788,19 @@ documents:
     description: ""
     category: rule
     scope: project
-    size: 1971
+    size: 517
     tags: [documentation,project,rule]
     sections:
-      - {h: "API Documentation", l: 11, e: 17}
-      - {h: "README Files", l: 18, e: 24}
-      - {h: "CHANGELOG", l: 25, e: 31}
-      - {h: "Version Number Guidelines", l: 32, e: 39}
-      - {h: "Architecture Documentation", l: 40, e: 44}
-      - {h: "Inline Documentation", l: 45, e: 46}
-      - {h: "When to Write Comments", l: 47, e: 63}
+      - {h: "Documentation Standards", l: 9, e: 13}
   - path: "project/.claude/rules/project-management/testing.md"
     title: "Testing Strategy"
     description: ""
     category: rule
     scope: project
-    size: 2765
+    size: 714
     tags: [project,rule,testing]
     sections:
-      - {h: "Layered Testing", l: 19, e: 27}
-      - {h: "Test Fixtures", l: 28, e: 32}
-      - {h: "Coverage Goals", l: 33, e: 34}
-      - {h: "Target: 80% Code Coverage", l: 35, e: 39}
-      - {h: "What to Cover", l: 40, e: 56}
-      - {h: "Edge Cases and Failure Scenarios", l: 57, e: 62}
-      - {h: "Test Organization", l: 63, e: 64}
-      - {h: "File Structure", l: 65, e: 69}
-      - {h: "Naming Conventions", l: 70, e: 76}
-      - {h: "Test Independence", l: 77, e: 81}
-      - {h: "Continuous Integration", l: 82, e: 87}
+      - {h: "Testing Strategy", l: 17, e: 21}
   - path: "project/.claude/rules/tools/gh-cli-scripts.md"
     title: "GitHub CLI Scripts"
     description: ""
@@ -5813,17 +5856,10 @@ documents:
     description: ""
     category: rule
     scope: project
-    size: 5329
+    size: 1161
     tags: [ci,project,rule,workflow]
     sections:
-      - {h: "TLS / Sandbox Errors", l: 18, e: 25}
-      - {h: "Congested Runner Handling", l: 26, e: 45}
-      - {h: "Missing Toolchain Fallback", l: 46, e: 65}
-      - {h: "Reducing First-CI-Run Failures", l: 66, e: 87}
-      - {h: "Waiting for CI", l: 88, e: 104}
-      - {h: "Post-Task CI Verification", l: 105, e: 110}
-      - {h: "CI Failure Policy", l: 111, e: 116}
-      - {h: "Multi-Repo Parallel Strategy", l: 117, e: 120}
+      - {h: "CI Resilience Patterns", l: 13, e: 19}
   - path: "project/.claude/rules/workflow/git-commit-format.md"
     title: "Git Commit Message Format"
     description: ""
@@ -5955,7 +5991,7 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 1354
+    size: 1377
     tags: [api,project,reference,skill]
     sections:
       - {h: "Observability", l: 15, e: 22}
@@ -5969,7 +6005,7 @@ documents:
     description: ""
     category: reference
     scope: project
-    size: 1354
+    size: 1377
     tags: [api,project,reference,skill]
     sections:
       - {h: "Observability", l: 15, e: 22}
