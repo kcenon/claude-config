@@ -33,4 +33,4 @@ and `security-examples.md` at its root), outside the auto-loaded
 ## MCP
 
 Use `.mcp.json` at project root for team-shared MCP server definitions (committed to Git).
-See `.mcp.json.example` for transport examples. Never hardcode secrets -- use `${VAR}` in `.env`.
+Transport examples: `project/.mcp.json.example` in the claude-config repository (not installed; `scripts/init-project.sh --profile full` copies it to the project root). Never hardcode secrets -- use `${VAR}` in `.env`.

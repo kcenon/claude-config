@@ -10,53 +10,53 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 104205
+    size: 104951
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "Unreleased", l: 8, e: 9}
       - {h: "Added", l: 10, e: 15}
       - {h: "Changed", l: 16, e: 24}
-      - {h: "Fixed", l: 25, e: 33}
-      - {h: "1.16.0 - 2026-10-30", l: 34, e: 54}
-      - {h: "Removed", l: 55, e: 88}
-      - {h: "Changed", l: 89, e: 127}
-      - {h: "Fixed", l: 128, e: 189}
-      - {h: "1.15.0 - 2026-10-23", l: 190, e: 191}
-      - {h: "Added", l: 192, e: 203}
-      - {h: "Changed", l: 204, e: 234}
-      - {h: "Fixed", l: 235, e: 241}
-      - {h: "1.14.0 - 2026-09-29", l: 242, e: 243}
-      - {h: "Added", l: 244, e: 252}
-      - {h: "Changed", l: 253, e: 275}
-      - {h: "Removed", l: 276, e: 307}
-      - {h: "Fixed", l: 308, e: 349}
-      - {h: "Security", l: 350, e: 386}
-      - {h: "1.13.0 - 2026-09-13", l: 387, e: 388}
-      - {h: "Added", l: 389, e: 574}
-      - {h: "Changed", l: 575, e: 627}
-      - {h: "Fixed", l: 628, e: 761}
-      - {h: "Security", l: 762, e: 780}
-      - {h: "Known limitation", l: 781, e: 788}
-      - {h: "1.12.0 - 2026-08-01", l: 789, e: 790}
-      - {h: "Added", l: 791, e: 922}
-      - {h: "Fixed", l: 923, e: 1165}
-      - {h: "1.11.0 - 2026-07-03", l: 1166, e: 1167}
-      - {h: "Fixed", l: 1168, e: 1181}
-      - {h: "Security", l: 1182, e: 1259}
-      - {h: "Added", l: 1260, e: 1288}
-      - {h: "Changed", l: 1289, e: 1335}
-      - {h: "1.10.0 - 2026-04-20", l: 1336, e: 1344}
-      - {h: "1.9.0 - 2026-04-13", l: 1345, e: 1354}
-      - {h: "1.8.0 - 2026-04-13", l: 1355, e: 1360}
-      - {h: "1.7.0 - 2026-04-06", l: 1361, e: 1375}
-      - {h: "1.6.0 - 2026-04-03", l: 1376, e: 1388}
-      - {h: "1.5.0 - 2026-03-21", l: 1389, e: 1407}
-      - {h: "1.4.0 - 2026-01-22", l: 1408, e: 1413}
-      - {h: "1.3.0 - 2026-01-15", l: 1414, e: 1422}
-      - {h: "1.2.0 - 2026-01-15", l: 1423, e: 1431}
-      - {h: "1.1.0 - 2025-01-15", l: 1432, e: 1442}
-      - {h: "1.0.0 - 2025-12-03", l: 1443, e: 1449}
+      - {h: "Fixed", l: 25, e: 34}
+      - {h: "1.16.0 - 2026-10-30", l: 35, e: 55}
+      - {h: "Removed", l: 56, e: 89}
+      - {h: "Changed", l: 90, e: 128}
+      - {h: "Fixed", l: 129, e: 190}
+      - {h: "1.15.0 - 2026-10-23", l: 191, e: 192}
+      - {h: "Added", l: 193, e: 204}
+      - {h: "Changed", l: 205, e: 235}
+      - {h: "Fixed", l: 236, e: 242}
+      - {h: "1.14.0 - 2026-09-29", l: 243, e: 244}
+      - {h: "Added", l: 245, e: 253}
+      - {h: "Changed", l: 254, e: 276}
+      - {h: "Removed", l: 277, e: 308}
+      - {h: "Fixed", l: 309, e: 350}
+      - {h: "Security", l: 351, e: 387}
+      - {h: "1.13.0 - 2026-09-13", l: 388, e: 389}
+      - {h: "Added", l: 390, e: 575}
+      - {h: "Changed", l: 576, e: 628}
+      - {h: "Fixed", l: 629, e: 762}
+      - {h: "Security", l: 763, e: 781}
+      - {h: "Known limitation", l: 782, e: 789}
+      - {h: "1.12.0 - 2026-08-01", l: 790, e: 791}
+      - {h: "Added", l: 792, e: 923}
+      - {h: "Fixed", l: 924, e: 1166}
+      - {h: "1.11.0 - 2026-07-03", l: 1167, e: 1168}
+      - {h: "Fixed", l: 1169, e: 1182}
+      - {h: "Security", l: 1183, e: 1260}
+      - {h: "Added", l: 1261, e: 1289}
+      - {h: "Changed", l: 1290, e: 1336}
+      - {h: "1.10.0 - 2026-04-20", l: 1337, e: 1345}
+      - {h: "1.9.0 - 2026-04-13", l: 1346, e: 1355}
+      - {h: "1.8.0 - 2026-04-13", l: 1356, e: 1361}
+      - {h: "1.7.0 - 2026-04-06", l: 1362, e: 1376}
+      - {h: "1.6.0 - 2026-04-03", l: 1377, e: 1389}
+      - {h: "1.5.0 - 2026-03-21", l: 1390, e: 1408}
+      - {h: "1.4.0 - 2026-01-22", l: 1409, e: 1414}
+      - {h: "1.3.0 - 2026-01-15", l: 1415, e: 1423}
+      - {h: "1.2.0 - 2026-01-15", l: 1424, e: 1432}
+      - {h: "1.1.0 - 2025-01-15", l: 1433, e: 1443}
+      - {h: "1.0.0 - 2025-12-03", l: 1444, e: 1450}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -1864,14 +1864,14 @@ documents:
     description: ""
     category: config
     scope: global
-    size: 4910
+    size: 4908
     tags: [config,global]
     sections:
       - {h: "Core Settings", l: 5, e: 9}
       - {h: "Always-on Invariants", l: 10, e: 19}
-      - {h: "Routing", l: 20, e: 33}
-      - {h: "Skill Aliases (post-D2 relocation, see #491, #492)", l: 34, e: 61}
-      - {h: "Updating", l: 62, e: 68}
+      - {h: "Routing", l: 20, e: 32}
+      - {h: "Skill Aliases (post-D2 relocation, see #491, #492)", l: 33, e: 60}
+      - {h: "Updating", l: 61, e: 67}
   - path: "global/VERSION_HISTORY.md"
     title: "Global Configuration Version History"
     description: ""
@@ -6740,7 +6740,7 @@ documents:
     description: ""
     category: config
     scope: project
-    size: 2046
+    size: 2167
     tags: [config,project]
     sections:
       - {h: "Reference Docs", l: 6, e: 24}
