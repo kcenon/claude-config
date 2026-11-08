@@ -528,34 +528,40 @@ After PR creation, capture the PR URL from `gh pr create` output for the summary
 
 ### 9. Monitor CI
 
-After PR creation, monitor CI with non-blocking polling:
+After PR creation, wait for **all** PR checks with one watch call. Follow the
+`gh` invariant in `~/.claude/CLAUDE.md`: one `gh` command per Bash call, no
+loop, no `sleep`.
 
 ```bash
-# Wait briefly for workflows to register
-sleep 8
+gh pr checks $PR_NUMBER --repo $ORG/$PROJECT --watch --interval 30 --fail-fast
 ```
 
-Poll **all** PR checks every 30 seconds, max 10 minutes:
+Run it in the background (`run_in_background: true`), or in the foreground
+with the Bash tool's `timeout` set to 600000 ms (10 minutes). When it ends,
+read the result with one plain call:
 
 ```bash
-gh run list --repo $ORG/$PROJECT --branch "$BRANCH_NAME" \
-  --json databaseId,name,status,conclusion
+gh pr checks $PR_NUMBER --repo $ORG/$PROJECT
 ```
 
-**Decision table — apply per run, evaluate ALL runs each poll cycle:**
+Exit 8 means checks are still pending. Right after the push they may not be
+registered yet, so the watch can return at once: watch again. The full
+protocol is in `~/.claude/skills/_internal/pr-work/reference/build-verification.md`.
 
-| All runs status | Any conclusion=failure | Action |
-|-----------------|----------------------|--------|
-| All `completed` | No | All pass → proceed to merge |
-| All `completed` | Yes | Diagnose, fix, push, re-poll |
-| Any `in_progress` or `queued` | — | Poll again after 30s |
+**Decision table — evaluate ALL checks:**
 
-**Merge gate**: Do NOT merge until every run shows `status: completed`.
-A run that is `in_progress` or `queued` is NOT a passing run — wait for it.
+| Checks | Any `fail` | Action |
+|--------|-----------|--------|
+| All finished, `pass` or `skipping` | No | All pass → proceed to merge |
+| All finished | Yes | Diagnose, fix, push, watch again |
+| Any `pending` | — | Watch again |
 
-**Timeout**: If 10-minute polling limit is reached and any run is still
-`in_progress` or `queued`, stop polling, report the current status table
-to the user, and **do NOT merge**.
+**Merge gate**: Do NOT merge until every check has finished. A check that is
+queued or in progress is NOT a passing check — wait for it.
+
+**Timeout**: If checks are still queued or in progress about 10 minutes after
+the push, stop waiting, report the current status table to the user, and
+**do NOT merge**.
 
 **Default** (no `--wait-on-timeout`): leave the PR open and print a resume
 command so CI can finish unattended:
@@ -568,8 +574,6 @@ Do not block on a prompt. Only when `--wait-on-timeout` was passed, ask the
 user whether to wait longer or leave the PR open for manual merge. This
 mirrors the ci-fix timeout behavior of defaulting to a resumable hand-off
 rather than an interactive stall.
-
-**Do NOT** use `gh run watch` — it blocks the entire session.
 
 On CI failure, fix the issue and push. Repeat up to 3 attempts. After 3 failures,
 convert the PR to draft, report the status, and **do NOT proceed to merge or produce a completion summary**. The task is NOT complete until all CI checks pass and the PR is merged.

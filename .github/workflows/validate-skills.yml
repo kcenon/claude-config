@@ -31,6 +31,7 @@ on:
       - 'tests/scripts/test-check-references.ps1'
       - 'tests/scripts/test-check-skill-drift.sh'
       - 'tests/scripts/test-check-skill-drift.ps1'
+      - 'tests/scripts/test-ci-wait-guidance.sh'
       - 'plugin/agents/**'
       - 'project/.claude/agents/**'
       - 'scripts/spec_lint.sh'
@@ -109,6 +110,11 @@ jobs:
 
       - name: Run reference drift guard test suite
         run: bash tests/scripts/test-check-references.sh
+
+      - name: Check CI wait guidance against the gh invariant (#1011)
+        # Installed skills and rules must not forbid gh pr checks --watch or
+        # gh run watch, which global/CLAUDE.md names as the way to wait.
+        run: bash tests/scripts/test-ci-wait-guidance.sh
 
       - name: Run reference drift guard test suite (PowerShell)
         run: pwsh -NoProfile -File tests/scripts/test-check-references.ps1

@@ -102,34 +102,35 @@ Do NOT retry the same build without making changes — diagnose first.
 
 ## CI Pipeline Verification
 
-For remote CI (GitHub Actions):
+For remote CI (GitHub Actions), wait with one watch call per push. Run each
+command below as its own call (see the `gh` invariant in `~/.claude/CLAUDE.md`):
 
-### Trigger and Check
+### Wait and Check
 
 ```bash
-# After push, wait briefly for workflow to register
-sleep 5
+# Wait for every check (in the background, or in the foreground with a 10-minute timeout)
+gh pr checks <PR> --repo <owner/repo> --watch --interval 30 --fail-fast
 
-# Get latest run ID
-gh run list --branch <branch> --limit 1 --json databaseId -q '.[0].databaseId'
-
-# Poll CI status (non-blocking)
-gh run view <RUN_ID> --json status,conclusion -q '{status: .status, conclusion: .conclusion}'
+# Read the result (exit 8: still pending, exit 1: a check failed)
+gh pr checks <PR> --repo <owner/repo>
 ```
+
+Without a PR, watch the run instead: get its ID with
+`gh run list --repo <owner/repo> --branch <branch> --limit 1 --json databaseId -q '.[0].databaseId'`,
+then run `gh run watch <RUN_ID> --repo <owner/repo> --exit-status`.
 
 ### Interpret Result
 
-| status | conclusion | Action |
-|--------|-----------|--------|
-| completed | success | Proceed |
-| completed | failure | Fetch logs: `gh run view <RUN_ID> --log-failed` |
-| in_progress | — | Poll again after 30s |
-| queued | — | Poll again after 30s |
+| Result | Action |
+|--------|--------|
+| All checks pass | Proceed |
+| A check failed | Fetch logs: `gh run view <RUN_ID> --repo <owner/repo> --log-failed` |
+| Checks still pending | Watch again |
 
-### Rate Limiting
+### Wait Limits
 
-- Poll CI status no more than once per 30 seconds
-- Maximum poll duration: 10 minutes
+- `--interval 30`: query CI status no more than once per 30 seconds
+- Maximum wait: 10 minutes after the push
 - After timeout: report last known status, do not block indefinitely
 
 ## Integration with ci-debugging Skill

@@ -198,7 +198,7 @@ Reviewer has Critical/Major findings?
 **Phase E -- Push and CI (Lead):**
 1. Wait for reviewer approval and doc-writer completion
 2. Push changes: `git push origin "$HEAD_BRANCH"`
-3. Monitor CI: non-blocking polling, 30s intervals, 10min max
+3. Wait for CI with one `gh pr checks --watch` call, as in Solo Mode Step 8
 4. On all checks pass: `gh pr merge $PR_NUMBER --repo $ORG/$PROJECT --squash --delete-branch`
 
 **If CI fails again (max 3 total attempts):**

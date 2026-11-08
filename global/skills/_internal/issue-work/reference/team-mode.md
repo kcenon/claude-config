@@ -276,7 +276,7 @@ Reviewer has findings?
 
 **Phase E — PR and Merge:**
 1. Reviewer creates PR (Task 11) with full review summary
-2. Lead monitors CI (Task 12): non-blocking polling, 30s intervals, 10min max
+2. Lead waits for CI (Task 12) with one `gh pr checks --watch` call, as in Solo Mode Step 9
 3. On all checks pass: `gh pr merge $PR_NUMBER --repo $ORG/$PROJECT --squash --delete-branch`
 4. Close related issues and epics (Steps 11-12 from Solo Mode)
 5. Post implementation comment to issue (Step 12)

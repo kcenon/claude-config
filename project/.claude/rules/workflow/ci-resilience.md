@@ -17,10 +17,9 @@ missing toolchains, and first-run build failures.
 
 ## TLS / Sandbox Errors
 
-See **Environment Workarounds** in `global/CLAUDE.md` for the canonical rule — `SSL_CERT_FILE` and `SSL_CERT_DIR` are wired in `global/settings.json` so `git`, `curl`, `npm`, `pip`, and similar tools succeed inside the sandbox without `dangerouslyDisableSandbox`. The `gh` binary on macOS is a separate case (links `Security.framework`, ignores `SSL_CERT_FILE`) — remediate via a Bash allowlist rather than sandbox bypass.
+The global profile sets `SSL_CERT_FILE` and `SSL_CERT_DIR` in `env`, so `git`, `curl`, `npm`, `pip`, and similar tools succeed inside the sandbox without `dangerouslyDisableSandbox`. The `gh` binary on macOS is a separate case (links `Security.framework`, ignores `SSL_CERT_FILE`): it runs outside the sandbox through `sandbox.excludedCommands`, which matches only a call that is `gh` alone — follow the `gh` invariant in `~/.claude/CLAUDE.md` rather than bypassing the sandbox.
 
-Full coverage matrix and platform fallback ladder: `docs/SANDBOX_TLS.md`.
-Verify the local CA-bundle setup with `scripts/verify-tls.sh`.
+Full coverage matrix and platform fallback ladder: `docs/SANDBOX_TLS.md` in the claude-config repository (not installed). The same repository's `scripts/verify-tls.sh` checks the local CA-bundle setup.
 
 **Diagnostic note**: TLS errors (`x509: certificate signed by unknown authority`, `tls: failed to verify certificate`) are not authentication errors. Never flag one as the other without running the canonical verifier.
 
@@ -31,18 +30,18 @@ periods. Do NOT block indefinitely waiting for CI.
 
 | Queue Duration | Action |
 |---------------|--------|
-| < 2 minutes | Normal — continue polling |
-| 2-5 minutes | Report wait to user, continue polling |
-| > 5 minutes | Report wait to user, continue polling up to 10-minute limit |
+| < 2 minutes | Normal — keep waiting |
+| 2-5 minutes | Report wait to user, keep waiting |
+| > 5 minutes | Report wait to user, keep waiting up to the 10-minute limit |
 
 ```bash
-# Check individual job statuses when run is slow
+# Check individual job statuses when a run is slow (one gh command per call)
 gh run view $RUN_ID --repo $ORG/$PROJECT --json jobs -q '.jobs[] | {name: .name, status: .status, conclusion: .conclusion}'
 ```
 
 **Do NOT** merge while any check is `queued` or `in_progress`, even if all completed
-checks have passed. If the 10-minute polling limit is reached, stop polling, report
-current status to the user, and let the user decide next steps.
+checks have passed. If CI is still running 10 minutes after the push, stop waiting,
+report current status to the user, and let the user decide next steps.
 
 ## Missing Toolchain Fallback
 
@@ -86,17 +85,21 @@ implement change B → build → test → commit
 push all commits → CI should pass on first run
 ```
 
-## CI Polling Best Practices
+## Waiting for CI
+
+Wait with one watch call per push: `gh pr checks <n> --repo <owner/repo> --watch --interval 30 --fail-fast`,
+in the background or in the foreground with a 10-minute timeout, then read the result with one
+plain `gh pr checks` call. Right after a push the checks may not be registered yet; while the
+plain call shows pending checks, watch again. The full protocol is in
+`~/.claude/skills/_internal/pr-work/reference/build-verification.md`.
 
 | Setting | Value | Rationale |
 |---------|-------|-----------|
-| Poll interval | 30 seconds | Respect GitHub API rate limits |
-| Max poll duration | 10 minutes | Typical CI completion time |
+| Watch interval | 30 seconds (`--interval 30`) | Respect GitHub API rate limits |
+| Max wait | 10 minutes after the push | Typical CI completion time |
 | Max retry attempts | 3 | Balance between automation and human review |
-| Wait before first poll | 5 seconds | Allow workflow to register |
 
-**Never** use `gh run watch` — it blocks the entire session.
-**Never** poll in a tight loop — minimum 30-second intervals for CI.
+**Never** wait in a loop or with `sleep`, and never put `gh` inside `$(...)` or a pipe.
 **Always** diagnose before retrying — blind retries waste time.
 
 ## Post-Task CI Verification
