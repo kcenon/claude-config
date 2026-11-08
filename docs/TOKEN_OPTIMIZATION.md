@@ -798,9 +798,15 @@ folder with and without these entries (`claude -p --settings <file>`):
   `/context` in an interactive session.
 - Denying a connector removes its tools but not its server instructions,
   which still reach the model as an attachment (1,893 characters for Claude
-  Docs). `disableClaudeAiConnectors` turns off claude.ai connectors as a
-  whole; the profiles do not set it, because it would also turn off
-  connectors that a machine does use.
+  Docs, in an `mcp_instructions_delta` record of the transcript).
+  `disableClaudeAiConnectors` turns off claude.ai connectors as a whole; the
+  profiles do not set it, because it would also turn off connectors that a
+  machine does use. Set it per machine instead, as `docs/install.md`
+  "Machine-local settings keys" describes (#1014). In two print-mode sessions
+  on 2.1.319 started from empty folders, the session with the deny entries
+  alone carried the Claude Docs instructions, and the session with
+  `--settings '{"disableClaudeAiConnectors": true}'` carried no
+  `mcp_instructions_delta` record.
 - The tool set changes between versions (2.1.316 sent 45 definitions), so
   repeat the comparison on the version in use. The `api-request-shape`
   records in a transcript hold the tool array each session sent
