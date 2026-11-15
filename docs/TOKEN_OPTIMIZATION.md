@@ -739,8 +739,11 @@ What it reports, separately for main, subagent and workflow transcripts:
   `manual`, `idle` and `threshold`. The transcript does not say which kind
   an automatic compaction was. Idle compaction runs after about an hour
   without a request, so an automatic compaction 30 minutes or more after the
-  last message counts as `idle` and any other as `threshold`. The `auto`
-  trigger count holds both.
+  last response counts as `idle` and any other as `threshold`. The gap starts
+  at the last assistant line because, since Claude Code 2.1.319, an idle
+  summary can be made in advance and applied when the next prompt arrives,
+  and that prompt is logged just before the compaction. The `auto` trigger
+  count holds both.
 - Re-reads after a compaction: Reads of the same file and range (`offset`,
   `limit`) as an earlier Read in the same transcript, with a compaction
   between them and no `Edit`, `Write` or `NotebookEdit` of the file. Both

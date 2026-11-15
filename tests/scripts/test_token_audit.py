@@ -73,9 +73,9 @@ def rule(uuid, minute, text, raw):
             "attachment": {"type": "nested_memory", "path": RULE, "content": body}}
 
 
-def compact(minute, trigger, pre_tokens):
+def compact(minute, trigger, pre_tokens, **meta):
     return {"type": "system", "subtype": "compact_boundary", "timestamp": stamp(minute),
-            "compactMetadata": {"trigger": trigger, "preTokens": pre_tokens}}
+            "compactMetadata": {"trigger": trigger, "preTokens": pre_tokens, **meta}}
 
 
 def read(rid, minute, path, chars, **read_range):
@@ -283,6 +283,25 @@ class TokenAuditTests(unittest.TestCase):
         # The default fixture's one auto compaction follows r3 by a minute.
         c = self.report("--project", "proj")["compactions"]
         self.assertEqual(c["by_cause"], {"threshold": {"count": 1, "pre_tokens_median": 2300}})
+
+    def test_idle_gap_starts_at_last_response(self):
+        write(self.root / "gap" / "g.jsonl", [
+            assistant("g1", 0, cw=10),
+            # A summary made while idle is applied when the next prompt
+            # arrives, 90 minutes after the last response: idle.
+            prompt(90, "back"),
+            compact(90, "auto", 400_000, precomputed=True),
+            # A tool result 30 seconds after the response, then the
+            # compaction a minute later: threshold.
+            assistant("g2", 91, cw=10, blocks=[tool_use("t-g2", "Bash", command="make")]),
+            tool_result("t-g2", 91, "built"),
+            compact(92, "auto", 960_000),
+        ])
+        c = self.report("--project", "gap")["compactions"]
+        self.assertEqual(c["by_cause"], {
+            "idle": {"count": 1, "pre_tokens_median": 400_000},
+            "threshold": {"count": 1, "pre_tokens_median": 960_000},
+        })
 
     def test_rereads_after_compaction(self):
         marker = "/w/REREAD-MARKER-4d2c.md"
