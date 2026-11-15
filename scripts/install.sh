@@ -988,7 +988,7 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     # skills 디렉토리 설치 (global skills: harness, pr-work, issue-work, etc.)
     # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
     # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의
-    # "Skill Aliases" 표에 따라 leading keyword 호출로만 실행된다.
+    # "Skill Aliases" 키워드 목록에 따라 leading keyword 호출로만 실행된다.
     # `cp -r src/. dst/` 점 트릭으로 _policy.md 같은 루트 레벨 파일까지 복사한다.
     if [ -d "$BACKUP_DIR/global/skills" ]; then
         mkdir -p "$HOME/.claude/skills"

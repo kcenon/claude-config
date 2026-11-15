@@ -10,53 +10,53 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 107009
+    size: 107923
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "Unreleased", l: 8, e: 9}
       - {h: "Added", l: 10, e: 15}
-      - {h: "Changed", l: 16, e: 26}
-      - {h: "Fixed", l: 27, e: 36}
-      - {h: "1.16.0 - 2026-10-30", l: 37, e: 57}
-      - {h: "Removed", l: 58, e: 91}
-      - {h: "Changed", l: 92, e: 130}
-      - {h: "Fixed", l: 131, e: 192}
-      - {h: "1.15.0 - 2026-10-23", l: 193, e: 194}
-      - {h: "Added", l: 195, e: 206}
-      - {h: "Changed", l: 207, e: 237}
-      - {h: "Fixed", l: 238, e: 244}
-      - {h: "1.14.0 - 2026-09-29", l: 245, e: 246}
-      - {h: "Added", l: 247, e: 255}
-      - {h: "Changed", l: 256, e: 278}
-      - {h: "Removed", l: 279, e: 310}
-      - {h: "Fixed", l: 311, e: 352}
-      - {h: "Security", l: 353, e: 389}
-      - {h: "1.13.0 - 2026-09-13", l: 390, e: 391}
-      - {h: "Added", l: 392, e: 577}
-      - {h: "Changed", l: 578, e: 630}
-      - {h: "Fixed", l: 631, e: 764}
-      - {h: "Security", l: 765, e: 783}
-      - {h: "Known limitation", l: 784, e: 791}
-      - {h: "1.12.0 - 2026-08-01", l: 792, e: 793}
-      - {h: "Added", l: 794, e: 925}
-      - {h: "Fixed", l: 926, e: 1168}
-      - {h: "1.11.0 - 2026-07-03", l: 1169, e: 1170}
-      - {h: "Fixed", l: 1171, e: 1184}
-      - {h: "Security", l: 1185, e: 1262}
-      - {h: "Added", l: 1263, e: 1291}
-      - {h: "Changed", l: 1292, e: 1338}
-      - {h: "1.10.0 - 2026-04-20", l: 1339, e: 1347}
-      - {h: "1.9.0 - 2026-04-13", l: 1348, e: 1357}
-      - {h: "1.8.0 - 2026-04-13", l: 1358, e: 1363}
-      - {h: "1.7.0 - 2026-04-06", l: 1364, e: 1378}
-      - {h: "1.6.0 - 2026-04-03", l: 1379, e: 1391}
-      - {h: "1.5.0 - 2026-03-21", l: 1392, e: 1410}
-      - {h: "1.4.0 - 2026-01-22", l: 1411, e: 1416}
-      - {h: "1.3.0 - 2026-01-15", l: 1417, e: 1425}
-      - {h: "1.2.0 - 2026-01-15", l: 1426, e: 1434}
-      - {h: "1.1.0 - 2025-01-15", l: 1435, e: 1445}
-      - {h: "1.0.0 - 2025-12-03", l: 1446, e: 1452}
+      - {h: "Changed", l: 16, e: 27}
+      - {h: "Fixed", l: 28, e: 37}
+      - {h: "1.16.0 - 2026-10-30", l: 38, e: 58}
+      - {h: "Removed", l: 59, e: 92}
+      - {h: "Changed", l: 93, e: 131}
+      - {h: "Fixed", l: 132, e: 193}
+      - {h: "1.15.0 - 2026-10-23", l: 194, e: 195}
+      - {h: "Added", l: 196, e: 207}
+      - {h: "Changed", l: 208, e: 238}
+      - {h: "Fixed", l: 239, e: 245}
+      - {h: "1.14.0 - 2026-09-29", l: 246, e: 247}
+      - {h: "Added", l: 248, e: 256}
+      - {h: "Changed", l: 257, e: 279}
+      - {h: "Removed", l: 280, e: 311}
+      - {h: "Fixed", l: 312, e: 353}
+      - {h: "Security", l: 354, e: 390}
+      - {h: "1.13.0 - 2026-09-13", l: 391, e: 392}
+      - {h: "Added", l: 393, e: 578}
+      - {h: "Changed", l: 579, e: 631}
+      - {h: "Fixed", l: 632, e: 765}
+      - {h: "Security", l: 766, e: 784}
+      - {h: "Known limitation", l: 785, e: 792}
+      - {h: "1.12.0 - 2026-08-01", l: 793, e: 794}
+      - {h: "Added", l: 795, e: 926}
+      - {h: "Fixed", l: 927, e: 1169}
+      - {h: "1.11.0 - 2026-07-03", l: 1170, e: 1171}
+      - {h: "Fixed", l: 1172, e: 1185}
+      - {h: "Security", l: 1186, e: 1263}
+      - {h: "Added", l: 1264, e: 1292}
+      - {h: "Changed", l: 1293, e: 1339}
+      - {h: "1.10.0 - 2026-04-20", l: 1340, e: 1348}
+      - {h: "1.9.0 - 2026-04-13", l: 1349, e: 1358}
+      - {h: "1.8.0 - 2026-04-13", l: 1359, e: 1364}
+      - {h: "1.7.0 - 2026-04-06", l: 1365, e: 1379}
+      - {h: "1.6.0 - 2026-04-03", l: 1380, e: 1392}
+      - {h: "1.5.0 - 2026-03-21", l: 1393, e: 1411}
+      - {h: "1.4.0 - 2026-01-22", l: 1412, e: 1417}
+      - {h: "1.3.0 - 2026-01-15", l: 1418, e: 1426}
+      - {h: "1.2.0 - 2026-01-15", l: 1427, e: 1435}
+      - {h: "1.1.0 - 2025-01-15", l: 1436, e: 1446}
+      - {h: "1.0.0 - 2025-12-03", l: 1447, e: 1453}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -1864,14 +1864,13 @@ documents:
     description: ""
     category: config
     scope: global
-    size: 4908
+    size: 2876
     tags: [config,global]
     sections:
       - {h: "Core Settings", l: 5, e: 9}
-      - {h: "Always-on Invariants", l: 10, e: 19}
-      - {h: "Routing", l: 20, e: 32}
-      - {h: "Skill Aliases (post-D2 relocation, see #491, #492)", l: 33, e: 60}
-      - {h: "Updating", l: 61, e: 67}
+      - {h: "Always-on Invariants", l: 10, e: 18}
+      - {h: "Routing", l: 19, e: 28}
+      - {h: "Skill Aliases", l: 29, e: 39}
   - path: "global/VERSION_HISTORY.md"
     title: "Global Configuration Version History"
     description: ""
@@ -3435,7 +3434,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 6365
+    size: 6273
     tags: [global,skill]
     sections:
       - {h: "Arguments", l: 21, e: 37}
@@ -3447,9 +3446,9 @@ documents:
       - {h: "Apply", l: 93, e: 112}
       - {h: "Dry-run mode", l: 113, e: 129}
       - {h: "Commit Convention", l: 130, e: 143}
-      - {h: "Out of Scope", l: 144, e: 154}
-      - {h: "References", l: 155, e: 160}
-      - {h: "Side Effects and Loop-Safety", l: 161, e: 163}
+      - {h: "Out of Scope", l: 144, e: 152}
+      - {h: "References", l: 153, e: 158}
+      - {h: "Side Effects and Loop-Safety", l: 159, e: 161}
   - path: "global/skills/_internal/sonar-fix/reference/auto-fixable-rules.md"
     title: "Auto-Fixable SonarQube Rules (whitelist)"
     description: ""
