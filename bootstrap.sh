@@ -572,7 +572,7 @@ install_global() {
     # 글로벌 skills 및 commands 설치
     # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
     # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의
-    # "Skill Aliases" 표에 따라 leading keyword 호출로만 실행된다.
+    # "Skill Aliases" 키워드 목록에 따라 leading keyword 호출로만 실행된다.
     if [ -d "$INSTALL_DIR/global/skills" ]; then
         mkdir -p "$CLAUDE_DIR/skills"
         manifest_copy_tree "$INSTALL_DIR/global/skills" "$CLAUDE_DIR/skills" "skills"

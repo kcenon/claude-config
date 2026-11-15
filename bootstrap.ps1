@@ -515,7 +515,7 @@ function Install-GlobalSettings {
     # Install global skills and commands.
     # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
     # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의
-    # "Skill Aliases" 표에 따라 leading keyword 호출로만 실행된다.
+    # "Skill Aliases" 키워드 목록에 따라 leading keyword 호출로만 실행된다.
     $globalSkillsSrc = Join-Path $InstallDir 'global' 'skills'
     if (Test-Path -LiteralPath $globalSkillsSrc -PathType Container) {
         $globalSkillsDst = Join-Path $ClaudeDir 'skills'

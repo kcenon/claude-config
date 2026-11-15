@@ -810,7 +810,7 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
     # Install global skills (mirrors install.sh:473-484).
     # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
     # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의
-    # "Skill Aliases" 표에 따라 leading keyword 호출로만 실행된다.
+    # "Skill Aliases" 키워드 목록에 따라 leading keyword 호출로만 실행된다.
     # `Copy-Item -Path "$src\*"` 패턴으로 _policy.md 같은 루트 레벨 파일까지 복사한다.
     $skillsSource = Join-Path $BackupDir "global/skills"
     if (Test-Path $skillsSource) {
@@ -1088,7 +1088,7 @@ if ($installType -eq '1' -or $installType -eq '3' -or $installType -eq '5') {
     Write-Host "    - ~/.claude/hooks/ (PowerShell + bash hook scripts, lib/, data)"
     Write-Host "    - ~/.claude/scripts/ (PowerShell + bash utility scripts)"
     if (Test-Path (Join-Path $HOME ".claude/skills")) {
-        Write-Host "    - ~/.claude/skills/ (Global skills — keyword-invoked via CLAUDE.md alias table)"
+        Write-Host "    - ~/.claude/skills/ (Global skills — keyword-invoked via the CLAUDE.md Skill Aliases list)"
     }
     if (Test-Path (Join-Path $HOME ".claude/commands")) {
         Write-Host "    - ~/.claude/commands/ (Global commands)"

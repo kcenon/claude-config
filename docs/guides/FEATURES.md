@@ -114,13 +114,13 @@ When you work on files matching these patterns, the rule is automatically loaded
 Skills come in two invocation modes:
 
 1. **Slash-catalog skills** (`/code-quality`, `/security-audit`, `/performance-review`, `/pr-review`, `/git-status` and the `plugin/` skills below) live as one-level folders in `~/.claude/skills/` and appear in Claude Code's `/`-autocomplete. Type the command and the harness dispatches it.
-2. **Keyword-aliased skills** (`/issue-work`, `/pr-work`, `/release`, `/issue-create`, `/branch-cleanup`, `/harness`, `/doc-index`, `/doc-review`, `/implement-all-levels`) are intentionally hidden under `~/.claude/skills/_internal/` with `disable-model-invocation: true`. They are **not** in Claude Code's `/`-autocomplete. The model resolves them via the **Skill Aliases** table in `global/CLAUDE.md` when you start your message with the keyword (the leading `/` is optional). Both `issue-work` and `/issue-work` work; tab-completion will not suggest them.
+2. **Keyword-aliased skills** (`/issue-work`, `/pr-work`, `/release`, `/issue-create`, `/branch-cleanup`, `/harness`, `/doc-index`, `/doc-review`, `/implement-all-levels`) are intentionally hidden under `~/.claude/skills/_internal/` with `disable-model-invocation: true`. They are **not** in Claude Code's `/`-autocomplete. The model resolves them via the **Skill Aliases** keyword list in `global/CLAUDE.md` when you start your message with the keyword (the leading `/` is optional). Both `issue-work` and `/issue-work` work; tab-completion will not suggest them.
 
 The tables below mark each command's mode.
 
 ### Workflow Automation
 
-All commands in this group are **keyword-aliased** (no slash-autocomplete; resolved by the alias table).
+All commands in this group are **keyword-aliased** (no slash-autocomplete; resolved by the Skill Aliases list).
 
 | Command | What it does |
 |---------|-------------|
