@@ -39,8 +39,11 @@ TOP_PATHS = 10
 # The transcript does not say whether an auto compaction was idle
 # compaction, which runs after about an hour without a request, or one at
 # the context threshold. In 30 days of transcripts the gap from the last
-# message was 54 to 56 minutes for the first and under 4 minutes for the
-# second, so a gap of 30 minutes or more is taken as idle.
+# response was 54 to 56 minutes for the first and under 4 minutes for the
+# second, so a gap of 30 minutes or more is taken as idle. The gap starts
+# at the last assistant line, not the last user line: since Claude Code
+# 2.1.319 an idle summary can be made in advance and applied when the next
+# prompt arrives, and that prompt is logged just before the compaction.
 IDLE_GAP_SECONDS = 30 * 60
 # A Read of a file already shown unchanged returns a one-line notice, not
 # the content; results this short are not counted as re-reads.
@@ -151,7 +154,7 @@ class Transcript:
         self.resumed = False    # copied requests came before the first new one
         self.contexts = []
         self.cached = 0         # cache read + cache write of counted requests
-        self.last_message = None  # timestamp text of the last user or assistant line
+        self.last_response = None  # timestamp text of the last assistant line
         self.read_segments = {}   # (path, offset, limit) -> segment of its last read
 
 
@@ -211,8 +214,8 @@ class Audit:
 
     def _dispatch(self, state, record):
         kind = record.get("type")
-        if kind in ("assistant", "user") and record.get("timestamp"):
-            state.last_message = record["timestamp"]
+        if kind == "assistant" and record.get("timestamp"):
+            state.last_response = record["timestamp"]
         if kind == "assistant":
             self._assistant(state, record)
         elif kind == "user":
@@ -372,7 +375,7 @@ class Audit:
             self.compactions[trigger] += 1
             if meta.get("preTokens"):
                 self.pre_tokens.append(meta["preTokens"])
-            cause = self._cause(trigger, timestamp, parse_time(state.last_message))
+            cause = self._cause(trigger, timestamp, parse_time(state.last_response))
             self.causes[cause] += 1
             if meta.get("preTokens"):
                 self.cause_pre_tokens[cause].append(meta["preTokens"])
@@ -380,12 +383,12 @@ class Audit:
         state.segment += 1
 
     @staticmethod
-    def _cause(trigger, timestamp, last_message):
-        """Split an auto compaction into idle and threshold by the gap before it."""
+    def _cause(trigger, timestamp, last_response):
+        """Split an auto compaction into idle and threshold by the gap since the last response."""
         if trigger != "auto":
             return trigger
-        if timestamp is not None and last_message is not None \
-                and (timestamp - last_message).total_seconds() >= IDLE_GAP_SECONDS:
+        if timestamp is not None and last_response is not None \
+                and (timestamp - last_response).total_seconds() >= IDLE_GAP_SECONDS:
             return "idle"
         return "threshold"
 
