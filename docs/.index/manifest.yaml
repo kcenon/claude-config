@@ -10,7 +10,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 107923
+    size: 107976
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
@@ -187,7 +187,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 5809
+    size: 5827
     tags: []
     sections:
       - {h: "Contents", l: 7, e: 23}
@@ -1501,7 +1501,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 13599
+    size: 13617
     tags: [docs]
     sections:
       - {h: "기능과 설정", l: 1, e: 4}
@@ -1540,7 +1540,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 12762
+    size: 12776
     tags: [docs]
     sections:
       - {h: "Features and Configuration", l: 1, e: 4}
