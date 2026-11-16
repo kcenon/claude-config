@@ -230,7 +230,7 @@ The README v1.7.0 changelog originally claimed "All 42 bash scripts now have Pow
 
 | Surface | Bash count | PowerShell count | Coverage |
 |---|---:|---:|---:|
-| `global/hooks/*.sh` | 10 | 10 | 10/10 (100%) |
+| `global/hooks/*.sh` | 6 | 6 | 6/6 (100%) |
 
 The counts cover paired guards only: `bash-sensitive-read-guard.ps1` and `shell-env-secret-guard.ps1` are Windows-only (#964), because macOS and Linux cover secret reads through the shell with the Bash sandbox read-deny (for files under the working directory, plus the home-anchored rules; see [ENFORCEMENT.md](ENFORCEMENT.md#secrets-outside-the-working-directory) for the list and the files left readable on purpose) while Windows has no OS sandbox, so both are excluded from the counts and from the parity audit.
 

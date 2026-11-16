@@ -63,7 +63,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 18548
+    size: 18544
     tags: [compatibility,config]
     sections:
       - {h: "Compatibility Guide", l: 1, e: 6}
