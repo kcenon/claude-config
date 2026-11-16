@@ -421,6 +421,107 @@ try {
     }
     Write-Host "hooks/known-issues.json retired seed: PASS"
 
+    # Memory hooks only where memory sync is set up (#1024), against both real
+    # profiles. Parity with the drop_memory_hooks_unless_synced block of
+    # test-install-manifest-helpers.sh.
+    $memDir = Join-Path $testDir 'memory-hooks'
+    New-Item -ItemType Directory -Path $memDir | Out-Null
+    $savedMemoryUrl = $env:CLAUDE_MEMORY_REPO_URL
+    Remove-Item Env:CLAUDE_MEMORY_REPO_URL -ErrorAction SilentlyContinue
+    $posixProfile = Join-Path (Join-Path $repoRoot 'global') 'settings.json'
+    $windowsProfile = Join-Path (Join-Path $repoRoot 'global') 'settings.windows.json'
+
+    # event:file for every handler, in ordinal order.
+    function Get-HookNames([string]$Path) {
+        $s = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json
+        $names = [System.Collections.Generic.List[string]]::new()
+        foreach ($evt in $s.hooks.PSObject.Properties) {
+            foreach ($entry in @($evt.Value)) {
+                foreach ($h in @($entry.hooks)) {
+                    $names.Add("$($evt.Name):$((($h.command -split ' ')[-1] -split '[/\\]')[-1])")
+                }
+            }
+        }
+        $arr = $names.ToArray()
+        [Array]::Sort($arr, [StringComparer]::Ordinal)
+        return ($arr -join ' ')
+    }
+    function Get-JsonWithoutHooks([string]$Path) {
+        $s = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json
+        $s.PSObject.Properties.Remove('hooks')
+        return ($s | ConvertTo-Json -Depth 32 -Compress)
+    }
+
+    try {
+        $posix = Join-Path $memDir 'posix.json'
+        Copy-Item -LiteralPath $posixProfile -Destination $posix
+        $dropped = @(Remove-MemoryHooksUnlessSynced -SettingsPath $posix) -join ' '
+        if ($dropped -ne 'memory-write-guard.sh memory-integrity-check.sh memory-access-logger.sh') {
+            throw "FAIL: posix: memory hooks named '$dropped'"
+        }
+        $kept = Get-HookNames $posix
+        if ($kept -ne 'PreToolUse:dangerous-command-guard.sh PreToolUse:merge-gate-guard.sh SessionEnd:prune-permission-rules.sh') {
+            throw "FAIL: posix: hooks kept '$kept'"
+        }
+        $mergeGate = @((Get-Content -Raw -LiteralPath $posix | ConvertFrom-Json).hooks.PreToolUse | ForEach-Object { $_.hooks } |
+            Where-Object { $_.command -like '*merge-gate-guard*' })
+        if ($mergeGate.Count -ne 1 -or $mergeGate[0].if -ne 'Bash(*gh pr merge*)') {
+            throw "FAIL: posix: merge-gate-guard lost its if"
+        }
+        if ((Get-JsonWithoutHooks $posix) -ne (Get-JsonWithoutHooks $posixProfile)) {
+            throw "FAIL: posix: a key outside hooks changed"
+        }
+
+        $win = Join-Path $memDir 'windows.json'
+        Copy-Item -LiteralPath $windowsProfile -Destination $win
+        $dropped = @(Remove-MemoryHooksUnlessSynced -SettingsPath $win) -join ' '
+        if ($dropped -ne 'edit-guard-dispatcher.ps1 memory-integrity-check.ps1 memory-access-logger.ps1') {
+            throw "FAIL: windows: memory hooks named '$dropped'"
+        }
+        $kept = Get-HookNames $win
+        if ($kept -ne 'PreToolUse:bash-guard-dispatcher.ps1 SessionEnd:prune-permission-rules.ps1') {
+            throw "FAIL: windows: hooks kept '$kept'"
+        }
+        # One handler left on an entry, and one entry on an event, stay arrays.
+        $winRaw = Get-Content -Raw -LiteralPath $win
+        foreach ($evtName in @('PreToolUse', 'SessionEnd')) {
+            if ($winRaw -notmatch ('"' + $evtName + '":\s*\[\s*\{[^\]]*"hooks":\s*\[')) {
+                throw "FAIL: windows: $evtName is no longer an array of entries with a hooks array"
+            }
+        }
+        if ((Get-JsonWithoutHooks $win) -ne (Get-JsonWithoutHooks $windowsProfile)) {
+            throw "FAIL: windows: a key outside hooks changed"
+        }
+
+        # Either signal of memory sync keeps the profile byte for byte.
+        $sharedDir = Join-Path $claudeDir 'memory-shared'
+        New-Item -ItemType Directory -Path $sharedDir | Out-Null
+        $synced = Join-Path $memDir 'synced.json'
+        Copy-Item -LiteralPath $posixProfile -Destination $synced
+        if (@(Remove-MemoryHooksUnlessSynced -SettingsPath $synced).Count -ne 0) {
+            throw "FAIL: memory-shared present, but hooks were dropped"
+        }
+        if ((Get-FileSha256 $synced) -ne (Get-FileSha256 $posixProfile)) {
+            throw "FAIL: memory-shared present, but the profile changed"
+        }
+        Remove-Item -LiteralPath $sharedDir -Force
+
+        $env:CLAUDE_MEMORY_REPO_URL = 'https://example.invalid/memory.git'
+        $withUrl = Join-Path $memDir 'url.json'
+        Copy-Item -LiteralPath $windowsProfile -Destination $withUrl
+        if (@(Remove-MemoryHooksUnlessSynced -SettingsPath $withUrl).Count -ne 0) {
+            throw "FAIL: CLAUDE_MEMORY_REPO_URL set, but hooks were dropped"
+        }
+        if ((Get-FileSha256 $withUrl) -ne (Get-FileSha256 $windowsProfile)) {
+            throw "FAIL: CLAUDE_MEMORY_REPO_URL set, but the profile changed"
+        }
+    }
+    finally {
+        if ($null -ne $savedMemoryUrl) { $env:CLAUDE_MEMORY_REPO_URL = $savedMemoryUrl }
+        else { Remove-Item Env:CLAUDE_MEMORY_REPO_URL -ErrorAction SilentlyContinue }
+    }
+    Write-Host "Remove-MemoryHooksUnlessSynced: PASS"
+
     Write-Host "All helper tests passed!"
 } finally {
     Remove-Item -LiteralPath $testDir -Recurse -Force -ErrorAction SilentlyContinue

@@ -10,54 +10,54 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 111050
+    size: 112612
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "Unreleased", l: 8, e: 9}
       - {h: "Added", l: 10, e: 16}
-      - {h: "Changed", l: 17, e: 28}
-      - {h: "Removed", l: 29, e: 32}
-      - {h: "Fixed", l: 33, e: 45}
-      - {h: "1.16.0 - 2026-10-30", l: 46, e: 66}
-      - {h: "Removed", l: 67, e: 100}
-      - {h: "Changed", l: 101, e: 139}
-      - {h: "Fixed", l: 140, e: 201}
-      - {h: "1.15.0 - 2026-10-23", l: 202, e: 203}
-      - {h: "Added", l: 204, e: 215}
-      - {h: "Changed", l: 216, e: 246}
-      - {h: "Fixed", l: 247, e: 253}
-      - {h: "1.14.0 - 2026-09-29", l: 254, e: 255}
-      - {h: "Added", l: 256, e: 264}
-      - {h: "Changed", l: 265, e: 287}
-      - {h: "Removed", l: 288, e: 319}
-      - {h: "Fixed", l: 320, e: 361}
-      - {h: "Security", l: 362, e: 398}
-      - {h: "1.13.0 - 2026-09-13", l: 399, e: 400}
-      - {h: "Added", l: 401, e: 586}
-      - {h: "Changed", l: 587, e: 639}
-      - {h: "Fixed", l: 640, e: 773}
-      - {h: "Security", l: 774, e: 792}
-      - {h: "Known limitation", l: 793, e: 800}
-      - {h: "1.12.0 - 2026-08-01", l: 801, e: 802}
-      - {h: "Added", l: 803, e: 934}
-      - {h: "Fixed", l: 935, e: 1177}
-      - {h: "1.11.0 - 2026-07-03", l: 1178, e: 1179}
-      - {h: "Fixed", l: 1180, e: 1193}
-      - {h: "Security", l: 1194, e: 1271}
-      - {h: "Added", l: 1272, e: 1300}
-      - {h: "Changed", l: 1301, e: 1347}
-      - {h: "1.10.0 - 2026-04-20", l: 1348, e: 1356}
-      - {h: "1.9.0 - 2026-04-13", l: 1357, e: 1366}
-      - {h: "1.8.0 - 2026-04-13", l: 1367, e: 1372}
-      - {h: "1.7.0 - 2026-04-06", l: 1373, e: 1387}
-      - {h: "1.6.0 - 2026-04-03", l: 1388, e: 1400}
-      - {h: "1.5.0 - 2026-03-21", l: 1401, e: 1419}
-      - {h: "1.4.0 - 2026-01-22", l: 1420, e: 1425}
-      - {h: "1.3.0 - 2026-01-15", l: 1426, e: 1434}
-      - {h: "1.2.0 - 2026-01-15", l: 1435, e: 1443}
-      - {h: "1.1.0 - 2025-01-15", l: 1444, e: 1454}
-      - {h: "1.0.0 - 2025-12-03", l: 1455, e: 1461}
+      - {h: "Changed", l: 17, e: 29}
+      - {h: "Removed", l: 30, e: 33}
+      - {h: "Fixed", l: 34, e: 46}
+      - {h: "1.16.0 - 2026-10-30", l: 47, e: 67}
+      - {h: "Removed", l: 68, e: 101}
+      - {h: "Changed", l: 102, e: 140}
+      - {h: "Fixed", l: 141, e: 202}
+      - {h: "1.15.0 - 2026-10-23", l: 203, e: 204}
+      - {h: "Added", l: 205, e: 216}
+      - {h: "Changed", l: 217, e: 247}
+      - {h: "Fixed", l: 248, e: 254}
+      - {h: "1.14.0 - 2026-09-29", l: 255, e: 256}
+      - {h: "Added", l: 257, e: 265}
+      - {h: "Changed", l: 266, e: 288}
+      - {h: "Removed", l: 289, e: 320}
+      - {h: "Fixed", l: 321, e: 362}
+      - {h: "Security", l: 363, e: 399}
+      - {h: "1.13.0 - 2026-09-13", l: 400, e: 401}
+      - {h: "Added", l: 402, e: 587}
+      - {h: "Changed", l: 588, e: 640}
+      - {h: "Fixed", l: 641, e: 774}
+      - {h: "Security", l: 775, e: 793}
+      - {h: "Known limitation", l: 794, e: 801}
+      - {h: "1.12.0 - 2026-08-01", l: 802, e: 803}
+      - {h: "Added", l: 804, e: 935}
+      - {h: "Fixed", l: 936, e: 1178}
+      - {h: "1.11.0 - 2026-07-03", l: 1179, e: 1180}
+      - {h: "Fixed", l: 1181, e: 1194}
+      - {h: "Security", l: 1195, e: 1272}
+      - {h: "Added", l: 1273, e: 1301}
+      - {h: "Changed", l: 1302, e: 1348}
+      - {h: "1.10.0 - 2026-04-20", l: 1349, e: 1357}
+      - {h: "1.9.0 - 2026-04-13", l: 1358, e: 1367}
+      - {h: "1.8.0 - 2026-04-13", l: 1368, e: 1373}
+      - {h: "1.7.0 - 2026-04-06", l: 1374, e: 1388}
+      - {h: "1.6.0 - 2026-04-03", l: 1389, e: 1401}
+      - {h: "1.5.0 - 2026-03-21", l: 1402, e: 1420}
+      - {h: "1.4.0 - 2026-01-22", l: 1421, e: 1426}
+      - {h: "1.3.0 - 2026-01-15", l: 1427, e: 1435}
+      - {h: "1.2.0 - 2026-01-15", l: 1436, e: 1444}
+      - {h: "1.1.0 - 2025-01-15", l: 1445, e: 1455}
+      - {h: "1.0.0 - 2025-12-03", l: 1456, e: 1462}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -106,7 +106,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 49479
+    size: 50201
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
@@ -120,44 +120,44 @@ documents:
       - {h: "1. Sensitive File Protection (permissions.deny)", l: 109, e: 121}
       - {h: "2. Destructive Command Guard (PreToolUse)", l: 122, e: 161}
       - {h: "3. Merge Gate Guard (PreToolUse)", l: 162, e: 216}
-      - {h: "4. Memory Hooks", l: 217, e: 228}
-      - {h: "5. Session-End Housekeeping (SessionEnd)", l: 229, e: 234}
-      - {h: "Hook Response Format", l: 235, e: 279}
-      - {h: "Project Hooks (project/.claude/settings.json)", l: 280, e: 285}
-      - {h: "1. Auto Formatting (PostToolUse)", l: 286, e: 306}
-      - {h: "Permission Settings", l: 307, e: 361}
-      - {h: "Over-length commands and the parse limit", l: 362, e: 384}
-      - {h: "Windows Support (PowerShell)", l: 385, e: 386}
-      - {h: "Overview", l: 387, e: 395}
-      - {h: "How It Works", l: 396, e: 410}
-      - {h: "Bash Guard Dispatcher (Windows)", l: 411, e: 458}
-      - {h: "Edit Guard Dispatcher (Windows)", l: 459, e: 546}
-      - {h: "PowerShell Hook Scripts", l: 547, e: 561}
-      - {h: "Key Differences from Bash Hooks", l: 562, e: 570}
-      - {h: "Prerequisites", l: 571, e: 581}
-      - {h: "Troubleshooting (Windows)", l: 582, e: 583}
-      - {h: "\"File cannot be loaded because running scripts is disabled\"", l: 584, e: 588}
-      - {h: "Hooks not executing", l: 589, e: 594}
-      - {h: "\"pwsh is not recognized\"", l: 595, e: 599}
-      - {h: "Customization", l: 600, e: 601}
-      - {h: "Disabling Hooks", l: 602, e: 605}
-      - {h: "Adding New Hooks", l: 606, e: 622}
-      - {h: "Matcher Patterns", l: 623, e: 631}
-      - {h: "Troubleshooting", l: 632, e: 633}
-      - {h: "Hook is not executing", l: 634, e: 639}
-      - {h: "Timeout occurring", l: 640, e: 666}
-      - {h: "Formatter not working", l: 667, e: 675}
-      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 676, e: 715}
-      - {h: "References", l: 716, e: 728}
-      - {h: "Auto-Generated Hook Catalog", l: 729, e: 736}
-      - {h: "Index", l: 737, e: 749}
-      - {h: "Hook Details", l: 750, e: 751}
-      - {h: "dangerous-command-guard", l: 752, e: 768}
-      - {h: "memory-access-logger", l: 769, e: 785}
-      - {h: "memory-integrity-check", l: 786, e: 802}
-      - {h: "memory-write-guard", l: 803, e: 819}
-      - {h: "merge-gate-guard", l: 820, e: 837}
-      - {h: "prune-permission-rules", l: 838, e: 856}
+      - {h: "4. Memory Hooks", l: 217, e: 230}
+      - {h: "5. Session-End Housekeeping (SessionEnd)", l: 231, e: 236}
+      - {h: "Hook Response Format", l: 237, e: 281}
+      - {h: "Project Hooks (project/.claude/settings.json)", l: 282, e: 287}
+      - {h: "1. Auto Formatting (PostToolUse)", l: 288, e: 308}
+      - {h: "Permission Settings", l: 309, e: 363}
+      - {h: "Over-length commands and the parse limit", l: 364, e: 386}
+      - {h: "Windows Support (PowerShell)", l: 387, e: 388}
+      - {h: "Overview", l: 389, e: 397}
+      - {h: "How It Works", l: 398, e: 412}
+      - {h: "Bash Guard Dispatcher (Windows)", l: 413, e: 460}
+      - {h: "Edit Guard Dispatcher (Windows)", l: 461, e: 548}
+      - {h: "PowerShell Hook Scripts", l: 549, e: 563}
+      - {h: "Key Differences from Bash Hooks", l: 564, e: 572}
+      - {h: "Prerequisites", l: 573, e: 583}
+      - {h: "Troubleshooting (Windows)", l: 584, e: 585}
+      - {h: "\"File cannot be loaded because running scripts is disabled\"", l: 586, e: 590}
+      - {h: "Hooks not executing", l: 591, e: 596}
+      - {h: "\"pwsh is not recognized\"", l: 597, e: 601}
+      - {h: "Customization", l: 602, e: 603}
+      - {h: "Disabling Hooks", l: 604, e: 607}
+      - {h: "Adding New Hooks", l: 608, e: 624}
+      - {h: "Matcher Patterns", l: 625, e: 633}
+      - {h: "Troubleshooting", l: 634, e: 635}
+      - {h: "Hook is not executing", l: 636, e: 641}
+      - {h: "Timeout occurring", l: 642, e: 668}
+      - {h: "Formatter not working", l: 669, e: 677}
+      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 678, e: 717}
+      - {h: "References", l: 718, e: 730}
+      - {h: "Auto-Generated Hook Catalog", l: 731, e: 738}
+      - {h: "Index", l: 739, e: 751}
+      - {h: "Hook Details", l: 752, e: 753}
+      - {h: "dangerous-command-guard", l: 754, e: 770}
+      - {h: "memory-access-logger", l: 771, e: 787}
+      - {h: "memory-integrity-check", l: 788, e: 804}
+      - {h: "memory-write-guard", l: 805, e: 821}
+      - {h: "merge-gate-guard", l: 822, e: 839}
+      - {h: "prune-permission-rules", l: 840, e: 858}
   - path: "PREREQUISITES.md"
     title: "Prerequisites"
     description: ""
@@ -420,78 +420,78 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 57681
+    size: 58440
     tags: [docs,memory]
     sections:
       - {h: "Table of Contents", l: 11, e: 34}
       - {h: "1. What This Is", l: 35, e: 59}
       - {h: "2. Architecture", l: 60, e: 96}
       - {h: "Component map", l: 97, e: 115}
-      - {h: "3. Installation", l: 116, e: 144}
-      - {h: "Manual install (after global config is already in place)", l: 145, e: 158}
-      - {h: "Verification", l: 159, e: 160}
-      - {h: "macOS", l: 161, e: 171}
-      - {h: "Linux", l: 172, e: 184}
-      - {h: "Behavior notes", l: 185, e: 204}
-      - {h: "4. Single-Machine Migration", l: 205, e: 225}
-      - {h: "5. Adding a New Machine", l: 226, e: 243}
-      - {h: "5.1 Pre-flight checklist", l: 244, e: 264}
-      - {h: "5.2 Phase 1 — Set up SSH signing on the new machine", l: 265, e: 291}
-      - {h: "5.3 Phase 2 — Install the global tracker config and the memory sync", l: 292, e: 341}
-      - {h: "5.4 Phase 3 — First incoming sync (pull-only, observed)", l: 342, e: 371}
-      - {h: "5.5 Phase 4 — Verify the SessionStart integrity hook", l: 372, e: 386}
-      - {h: "5.6 Phase 5 — Test the write path", l: 387, e: 412}
-      - {h: "5.7 Phase 6 — Redirect the project memory directory", l: 413, e: 471}
-      - {h: "5.8 Phase 7 — Verify primary picked up the change", l: 472, e: 491}
-      - {h: "5.9 Phase 8 — Schedule and stabilize", l: 492, e: 513}
-      - {h: "5.10 Common pitfalls", l: 514, e: 557}
-      - {h: "5.11 End-to-end verification", l: 558, e: 576}
-      - {h: "5.12 Edge cases", l: 577, e: 591}
-      - {h: "5.13 Rollback", l: 592, e: 619}
-      - {h: "6. Daily Operations", l: 620, e: 621}
-      - {h: "Manual sync", l: 622, e: 650}
-      - {h: "Reading `memory-status.sh` output", l: 651, e: 674}
-      - {h: "Acting on `memory-integrity-check` warnings at SessionStart", l: 675, e: 708}
-      - {h: "7. Validators", l: 709, e: 732}
-      - {h: "Continuous integration", l: 733, e: 749}
-      - {h: "8. Trust Tiers", l: 750, e: 779}
-      - {h: "9. Audit", l: 780, e: 781}
-      - {h: "Weekly audit ([#528](https://github.com/kcenon/claude-config/issues/528))", l: 782, e: 801}
-      - {h: "Exit codes", l: 802, e: 808}
-      - {h: "Idempotency", l: 809, e: 814}
-      - {h: "Network and dependency tolerance", l: 815, e: 822}
-      - {h: "Schedule", l: 823, e: 830}
-      - {h: "Monthly semantic review ([#530](https://github.com/kcenon/claude-config/issues/530))", l: 831, e: 850}
-      - {h: "Schedule", l: 851, e: 880}
-      - {h: "Cost and opt-in note", l: 881, e: 892}
-      - {h: "`/memory-review` interactive review", l: 893, e: 928}
-      - {h: "10. Privacy: Memory-Access Logging", l: 929, e: 955}
-      - {h: "Privacy summary", l: 956, e: 966}
-      - {h: "11. Conflict Resolution", l: 967, e: 1001}
-      - {h: "Resolution rules", l: 1002, e: 1012}
-      - {h: "When to abort instead of resolving", l: 1013, e: 1031}
-      - {h: "12. Rollback Procedures", l: 1032, e: 1033}
-      - {h: "Single-machine rollback", l: 1034, e: 1057}
-      - {h: "Whole-system rollback", l: 1058, e: 1069}
-      - {h: "Disaster recovery (repository loss)", l: 1070, e: 1078}
-      - {h: "13. SSH Commit Signing", l: 1079, e: 1087}
-      - {h: "Initial setup", l: 1088, e: 1100}
-      - {h: "Rotation procedure", l: 1101, e: 1113}
-      - {h: "Compromise procedure", l: 1114, e: 1135}
-      - {h: "14. Uninstall", l: 1136, e: 1161}
-      - {h: "15. Test Mode", l: 1162, e: 1186}
-      - {h: "16. Troubleshooting", l: 1187, e: 1188}
-      - {h: "\"memory-sync.sh exits 5 (lock contention)\"", l: 1189, e: 1210}
-      - {h: "\"Last sync 28h ago — sync may be stuck\"", l: 1211, e: 1234}
-      - {h: "\"Auto-quarantine on post-pull validation\"", l: 1235, e: 1261}
-      - {h: "\"Merge conflict — manual resolution required\" (exit 3)", l: 1262, e: 1265}
-      - {h: "\"memory-write-guard hook blocked write\"", l: 1266, e: 1284}
-      - {h: "\"claude-memory push refused: signed commits required\"", l: 1285, e: 1301}
-      - {h: "Common pitfalls cross-reference", l: 1302, e: 1311}
-      - {h: "17. Glossary", l: 1312, e: 1329}
-      - {h: "18. Versioning", l: 1330, e: 1348}
-      - {h: "19. Related", l: 1349, e: 1359}
-      - {h: "Issues by phase", l: 1360, e: 1368}
+      - {h: "3. Installation", l: 116, e: 149}
+      - {h: "Manual install (after global config is already in place)", l: 150, e: 168}
+      - {h: "Verification", l: 169, e: 170}
+      - {h: "macOS", l: 171, e: 181}
+      - {h: "Linux", l: 182, e: 194}
+      - {h: "Behavior notes", l: 195, e: 214}
+      - {h: "4. Single-Machine Migration", l: 215, e: 235}
+      - {h: "5. Adding a New Machine", l: 236, e: 253}
+      - {h: "5.1 Pre-flight checklist", l: 254, e: 274}
+      - {h: "5.2 Phase 1 — Set up SSH signing on the new machine", l: 275, e: 301}
+      - {h: "5.3 Phase 2 — Install the global tracker config and the memory sync", l: 302, e: 352}
+      - {h: "5.4 Phase 3 — First incoming sync (pull-only, observed)", l: 353, e: 382}
+      - {h: "5.5 Phase 4 — Verify the SessionStart integrity hook", l: 383, e: 397}
+      - {h: "5.6 Phase 5 — Test the write path", l: 398, e: 423}
+      - {h: "5.7 Phase 6 — Redirect the project memory directory", l: 424, e: 482}
+      - {h: "5.8 Phase 7 — Verify primary picked up the change", l: 483, e: 502}
+      - {h: "5.9 Phase 8 — Schedule and stabilize", l: 503, e: 524}
+      - {h: "5.10 Common pitfalls", l: 525, e: 568}
+      - {h: "5.11 End-to-end verification", l: 569, e: 587}
+      - {h: "5.12 Edge cases", l: 588, e: 602}
+      - {h: "5.13 Rollback", l: 603, e: 630}
+      - {h: "6. Daily Operations", l: 631, e: 632}
+      - {h: "Manual sync", l: 633, e: 661}
+      - {h: "Reading `memory-status.sh` output", l: 662, e: 685}
+      - {h: "Acting on `memory-integrity-check` warnings at SessionStart", l: 686, e: 719}
+      - {h: "7. Validators", l: 720, e: 743}
+      - {h: "Continuous integration", l: 744, e: 760}
+      - {h: "8. Trust Tiers", l: 761, e: 790}
+      - {h: "9. Audit", l: 791, e: 792}
+      - {h: "Weekly audit ([#528](https://github.com/kcenon/claude-config/issues/528))", l: 793, e: 812}
+      - {h: "Exit codes", l: 813, e: 819}
+      - {h: "Idempotency", l: 820, e: 825}
+      - {h: "Network and dependency tolerance", l: 826, e: 833}
+      - {h: "Schedule", l: 834, e: 841}
+      - {h: "Monthly semantic review ([#530](https://github.com/kcenon/claude-config/issues/530))", l: 842, e: 861}
+      - {h: "Schedule", l: 862, e: 891}
+      - {h: "Cost and opt-in note", l: 892, e: 903}
+      - {h: "`/memory-review` interactive review", l: 904, e: 939}
+      - {h: "10. Privacy: Memory-Access Logging", l: 940, e: 966}
+      - {h: "Privacy summary", l: 967, e: 977}
+      - {h: "11. Conflict Resolution", l: 978, e: 1012}
+      - {h: "Resolution rules", l: 1013, e: 1023}
+      - {h: "When to abort instead of resolving", l: 1024, e: 1042}
+      - {h: "12. Rollback Procedures", l: 1043, e: 1044}
+      - {h: "Single-machine rollback", l: 1045, e: 1068}
+      - {h: "Whole-system rollback", l: 1069, e: 1080}
+      - {h: "Disaster recovery (repository loss)", l: 1081, e: 1089}
+      - {h: "13. SSH Commit Signing", l: 1090, e: 1098}
+      - {h: "Initial setup", l: 1099, e: 1111}
+      - {h: "Rotation procedure", l: 1112, e: 1124}
+      - {h: "Compromise procedure", l: 1125, e: 1146}
+      - {h: "14. Uninstall", l: 1147, e: 1172}
+      - {h: "15. Test Mode", l: 1173, e: 1197}
+      - {h: "16. Troubleshooting", l: 1198, e: 1199}
+      - {h: "\"memory-sync.sh exits 5 (lock contention)\"", l: 1200, e: 1221}
+      - {h: "\"Last sync 28h ago — sync may be stuck\"", l: 1222, e: 1245}
+      - {h: "\"Auto-quarantine on post-pull validation\"", l: 1246, e: 1272}
+      - {h: "\"Merge conflict — manual resolution required\" (exit 3)", l: 1273, e: 1276}
+      - {h: "\"memory-write-guard hook blocked write\"", l: 1277, e: 1295}
+      - {h: "\"claude-memory push refused: signed commits required\"", l: 1296, e: 1312}
+      - {h: "Common pitfalls cross-reference", l: 1313, e: 1322}
+      - {h: "17. Glossary", l: 1323, e: 1340}
+      - {h: "18. Versioning", l: 1341, e: 1359}
+      - {h: "19. Related", l: 1360, e: 1370}
+      - {h: "Issues by phase", l: 1371, e: 1379}
   - path: "docs/MEMORY_TRUST_BASELINE.md"
     title: "Memory Trust Baseline Classification"
     description: ""

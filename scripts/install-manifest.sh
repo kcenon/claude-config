@@ -570,3 +570,56 @@ update_claude_settings_json() {
         return 1
     fi
 }
+
+# Hook handlers that only do work where memory sync is set up (#1024),
+# matched as substrings of the handler command so one list covers both
+# profiles. On Windows the Edit|Write entry runs edit-guard-dispatcher.ps1,
+# whose routing table holds memory-write-guard alone since #964;
+# tests/scripts/test-install-memory-hooks.sh fails if it gains another guard.
+# Parity with $script:MemoryHookCommands in install-manifest.ps1.
+MEMORY_HOOK_COMMANDS='["memory-write-guard","memory-integrity-check","memory-access-logger","edit-guard-dispatcher"]'
+
+# memory_sync_configured
+# True when ~/.claude/memory-shared exists, or when CLAUDE_MEMORY_REPO_URL is
+# set for this run: install_memory_sync clones the repository only after
+# settings.json is staged. Mirrors Test-MemorySyncConfigured.
+memory_sync_configured() {
+    [ -d "$HOME/.claude/memory-shared" ] || [ -n "${CLAUDE_MEMORY_REPO_URL:-}" ]
+}
+
+# drop_memory_hooks_unless_synced <settings_json_path>
+# Without memory sync, removes the MEMORY_HOOK_COMMANDS handlers from a staged
+# settings.json, with any matcher entry or event they leave empty. Each of
+# those hooks exits early when ~/.claude/memory-shared is missing, but its
+# process still starts, and memory-write-guard starts on every Edit and Write.
+# Prints the file names of the removed commands, one per line. Without jq the
+# file is left as it is, which keeps the hooks. Mirrors
+# Remove-MemoryHooksUnlessSynced.
+drop_memory_hooks_unless_synced() {
+    local settings_path="$1"
+    [ -f "$settings_path" ] || return 0
+    memory_sync_configured && return 0
+    command -v jq > /dev/null 2>&1 || return 0
+
+    local def='def memory_hook: (.command // "") as $c | any($names[]; . as $n | $c | contains($n));'
+    local removed
+    removed="$(jq -r --argjson names "$MEMORY_HOOK_COMMANDS" "$def"'
+        (.hooks // {} | if type == "object" then . else {} end)[][]?.hooks[]?
+        | select(memory_hook) | .command | split(" ") | last | split("/") | last
+    ' "$settings_path" 2> /dev/null | tr -d '\r')" || return 0
+    [ -n "$removed" ] || return 0
+
+    local tmpfile
+    tmpfile=$(mktemp) || return 0
+    if jq --argjson names "$MEMORY_HOOK_COMMANDS" "$def"'
+        .hooks |= (with_entries(
+                .value |= (map(.hooks |= map(select(memory_hook | not)))
+                           | map(select((.hooks | length) > 0))))
+            | with_entries(select((.value | length) > 0)))
+    ' "$settings_path" > "$tmpfile" 2> /dev/null; then
+        mv "$tmpfile" "$settings_path"
+        printf '%s\n' "$removed"
+    else
+        rm -f "$tmpfile"
+    fi
+}

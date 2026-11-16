@@ -338,6 +338,9 @@ function Install-BootstrapSettingsAndHooks {
 
         $settingsUpdated = Update-ClaudeSettingsJson -SettingsPath $settingsTmp -AgentLang $agentLanguage -ContentLang $contentLanguage
 
+        # The memory hooks are registered only where memory sync is set up (#1024).
+        $droppedMemoryHooks = Remove-MemoryHooksUnlessSynced -SettingsPath $settingsTmp -ClaudeDir $ClaudeDir
+
         Deploy-BootstrapHooks
         Deploy-BootstrapUtilityScripts
 
@@ -353,6 +356,9 @@ function Install-BootstrapSettingsAndHooks {
     }
     if ($retiredKeys -and $retiredKeys.Count -gt 0) {
         Write-Info "removed retired setting: $($retiredKeys -join ', ')"
+    }
+    if ($droppedMemoryHooks -and $droppedMemoryHooks.Count -gt 0) {
+        Write-Info "memory sync not set up, so these hooks are not registered: $($droppedMemoryHooks -join ', ') (rerun the installer after setting it up; see docs/MEMORY_SYNC.md)"
     }
     if ($settingsUpdated) {
         Write-Ok "settings.json (에이전트: $agentLanguage, 컨텐츠: $contentLanguage) 설치 완료"
