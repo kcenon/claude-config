@@ -608,7 +608,8 @@ Check deny - 'r''m'' -rf ~'
 Check deny - 'r\m -rf ~'
 Check deny - 'b''ash'' -c ''rm -rf /'''
 Check deny - '$''rm'' -rf ~'
-Check deny - 'rm -rf ~"/x"'
+Check deny - 'rm -rf ~"/"'
+Check ask - 'rm -rf ~"/x"'
 Check deny - 'rm -rf "/"x'
 Check deny - 'rm -rf $''/'''
 Check deny - 'git push origin HEAD:''main'''
@@ -713,6 +714,110 @@ Check deny - 'rm -rf C:/Windows'
 Check deny - 'rm -rf \\server\share'
 Check ask $CleanRepo 'rm -rf ..\sibling'
 Check allow $CleanRepo 'rm -rf .\build'
+
+Write-Host ''
+Write-Host '[recursive rm of an absolute path - issue #1027]'
+# TmpRoot stands in for the session temp root: the hook reads it from TMPDIR.
+# The links lead out of it, to a top-level directory and to the home directory.
+$TmpRoot = Join-Path $script:Root 'tmproot'
+New-Item -ItemType Directory -Path (Join-Path $TmpRoot 'sub'), (Join-Path $TmpRoot 'real') -Force | Out-Null
+$topDir = if ($IsWindows) { $env:SystemRoot } else { '/usr' }
+$topSub = if ($IsWindows) { 'System32' } else { 'lib' }
+$links = $true
+try {
+    New-Item -ItemType SymbolicLink -Path (Join-Path $TmpRoot 'totop') -Target $topDir | Out-Null
+    New-Item -ItemType SymbolicLink -Path (Join-Path $TmpRoot 'tohome') -Target $HOME | Out-Null
+    New-Item -ItemType SymbolicLink -Path (Join-Path $TmpRoot 'inner') -Target (Join-Path $TmpRoot 'real') | Out-Null
+} catch {
+    $links = $false
+    Write-Host "  (no symbolic links here, the link cases are skipped: $($_.Exception.Message))"
+}
+$up = (@('..') * 12) -join '/'
+$uid = if ($IsWindows) { '' } else { [string](& id -u) }
+
+# Check-Reason <command> <text>: the decision reason holds <text>.
+function Check-Reason {
+    param([string]$Command, [string]$Text)
+    $payload = @{ tool_input = @{ command = $Command }; cwd = $NoRepo } | ConvertTo-Json -Compress -Depth 4
+    $raw = $payload | & pwsh -NoProfile -File $script:HookPath 2>$null
+    $reason = ''
+    try { $reason = [string](($raw | Select-Object -Last 1) | ConvertFrom-Json).hookSpecificOutput.permissionDecisionReason } catch {}
+    if ($reason.Contains($Text)) {
+        $script:Passed++
+        Write-Host "  PASS: reason of $Command names `"$Text`"" -ForegroundColor Green
+    } else {
+        $script:Failed++
+        $script:Errors.Add("FAIL: reason of $Command lacks `"$Text`": $reason")
+        Write-Host "  FAIL: reason of $Command" -ForegroundColor Red
+    }
+}
+
+$savedTmp = $env:TMPDIR
+$env:TMPDIR = $TmpRoot
+# Deny: a root, a top-level directory, a home directory, and a path that
+# reaches one of them through .. or a link.
+Check deny - 'rm -rf /usr'
+Check deny - 'rm -rf //usr/./'
+Check deny - 'rm -rf /tmp/'
+Check deny - 'rm -rf /private/var'
+Check deny - 'rm -rf /Users/someone'
+Check deny - "rm -rf $HOME"
+Check deny - 'rm -rf ~/'
+Check deny - 'rm -rf "$HOME"/'
+Check deny - "rm -rf $TmpRoot/$up/etc"
+Check deny - "rm -rf /tmp/claude-$uid/$up/etc"
+Check deny - "rm -rf $TmpRoot/sub /usr"
+Check deny - 'rm -rf /usr/local/x /usr'
+Check deny - 'sudo rm -rf /etc'
+Check deny - "bash -c 'rm -rf /etc/'"
+Check deny - 'rm -rf C:\'
+Check deny - 'rm -rf C:\Users\bob'
+Check deny - 'rm -rf \\server\share\x'
+# Allow: below the session temp root, when the resolved path stays there.
+Check allow - "rm -rf $TmpRoot/sub"
+Check allow - "rm -rf $TmpRoot/sub/"
+Check allow - "rm -rf $TmpRoot/missing/x"
+Check allow - "sudo rm -rf $TmpRoot/sub"
+Check allow - "bash -c 'rm -rf $TmpRoot/sub'"
+Check allow - "`$X -rf $TmpRoot/sub"
+# Ask: any other absolute path, and a path that leaves the root through a link.
+Check ask - 'rm -rf /usr/local/lib/x'
+Check ask - 'rm -rf /var/log'
+Check ask - 'rm -rf ~/x'
+Check ask - 'rm -rf "$HOME/x"'
+Check ask - "rm -rf /usr/local/x $TmpRoot/sub"
+Check ask - 'timeout 5 rm -rf /usr/local/x'
+Check ask - '$X -rf /usr/local/x'
+Check ask - 'rm -rf C:\Users\bob\x'
+if ($links) {
+    Check deny - "rm -rf $TmpRoot/totop/"
+    Check deny - "rm -rf $TmpRoot/tohome/"
+    Check allow - "rm -rf $TmpRoot/totop"
+    Check allow - "rm -rf $TmpRoot/inner/"
+    Check ask - "rm -rf $TmpRoot/totop/$topSub"
+    Check-Reason "rm -rf $TmpRoot/tohome/" "is '"
+}
+if (-not $IsWindows) {
+    # The uid roots: one of them itself asks, a path below it is allowed.
+    Check allow - "rm -rf /tmp/claude-$uid/x/y"
+    Check ask - "rm -rf /tmp/claude-$uid"
+}
+# Over the tokenizer budget only the deny tier is told apart.
+Check deny - ($filler + 'rm -rf /usr/')
+Check deny - ($filler + 'rm -rf /private/tmp')
+Check deny - ($filler + 'rm -rf /Users/someone')
+Check deny - ($filler + 'rm /usr -rf')
+Check deny - ($filler + 'rm -rf C:\Users\bob')
+Check ask - ($filler + 'rm -rf C:\Users\bob\x')
+Check ask - ($filler + 'rm -rf /usr/local/x')
+Check ask - ($filler + "rm -rf $TmpRoot/sub")
+Check ask - ($filler + 'rm -rf ~/x')
+# The reason names what matched.
+Check-Reason 'rm -rf /' 'the root directory'
+Check-Reason 'rm -rf /usr' 'a top-level directory'
+Check-Reason 'rm -rf ~' 'the home directory'
+Check-Reason 'rm -rf /usr/local/x' 'not inside a session temp directory'
+if ($null -eq $savedTmp) { Remove-Item Env:TMPDIR -ErrorAction SilentlyContinue } else { $env:TMPDIR = $savedTmp }
 
 Write-Host ''
 Write-Host '[decision log - deny and ask only (#964)]'
