@@ -20,7 +20,7 @@ A guard decides by this rule:
 
 ### Registered hooks
 
-`global/settings.json` registers 10 hook entries:
+`global/settings.json` registers 6 hook entries:
 
 | Event / matcher | Hook | Role |
 |-----------------|------|------|
@@ -29,15 +29,13 @@ A guard decides by this rule:
 | PreToolUse `Edit\|Write` | `memory-write-guard` | Validate writes to the shared memory repository; allow everything else |
 | SessionStart | `memory-integrity-check` | Memory-sync health summary; silent without memory sync |
 | PostToolUse `Read` | `memory-access-logger` | Log reads of shared-memory files (path only) |
-| SessionEnd | `cleanup`, `prune-permission-rules` | Temp file cleanup; prune `permissions.allow` entries that can never match again |
-| WorktreeCreate / WorktreeRemove | `worktree-create`, `worktree-remove` | Worktree contract |
-| PermissionDenied | `permission-denial-logger` | Redacted audit record of denied tool calls |
+| SessionEnd | `prune-permission-rules` | Prune `permissions.allow` entries that can never match again |
 
 A Bash call starts two hook processes and an Edit or Write call one; a Read starts only the async memory-access logger. `global/settings.windows.json` registers the same events. On Windows the `Bash` matcher goes through [`bash-guard-dispatcher.ps1`](#bash-guard-dispatcher-windows), which also runs the Windows-only `bash-sensitive-read-guard` and `shell-env-secret-guard`, because Windows has no OS sandbox.
 
 ### Where the removed rules live now
 
-Issue #964 removed the other 32 registrations. A reinstall prunes their script files from `~/.claude/hooks/` and keeps any you edited locally.
+Issue #964 removed 32 registrations and #1023 four more. A reinstall prunes their script files from `~/.claude/hooks/` and keeps any you edited locally.
 
 | Removed hook(s) | Replaced by |
 |-----------------|-------------|
@@ -53,6 +51,9 @@ Issue #964 removed the other 32 registrations. A reinstall prunes their script f
 | `team-limit-guard` | Nothing; creating a team is not destructive |
 | `markdown-anchor-validator` (project layer) | Nothing |
 | `session-logger`, `subagent-logger`, `tool-failure-logger`, `task-completed-logger`, `config-change-logger`, `cwd-change-logger`, `pre-compact-snapshot`, `post-compact-restore`, `instructions-loaded-reinforcer`, `post-task-checkpoint`, `prompt-validator`, `task-created-validator`, `version-check` | Nothing; Claude Code's own transcripts and debug logs cover diagnostics |
+| `worktree-create`, `worktree-remove` (#1023) | Claude Code's own `git worktree` logic. A `WorktreeCreate` hook replaces it even inside a git repository, and this one handed back an empty directory. Outside git, `--worktree` now fails instead |
+| `permission-denial-logger` (#1023) | Nothing; `PermissionDenied` fires only in auto mode, which both profiles disable |
+| `cleanup` (#1023) | Nothing; no hook creates the `claude_*` files it deleted, and the OS cleans `TMPDIR` |
 
 ### Shared libraries and their consumers
 
@@ -62,8 +63,7 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 |---------|--------|----------|
 | `tokenize-shell.sh` | `global/hooks/lib/` | Sourced by `dangerous-command-guard.sh`; `dangerous-command-guard.ps1` carries a PowerShell port of its splitter |
 | `timeout-wrapper.sh` | `global/hooks/lib/` | Sourced by `merge-gate-guard.sh` |
-| `rotate.sh` | `global/hooks/lib/` | Sourced by `permission-denial-logger.sh` |
-| `CommonHelpers.psm1` | `global/hooks/lib/` | Imported by every `.ps1` hook except `cleanup.ps1` and `memory-integrity-check.ps1`, and by `scripts/weekly-usage.ps1` |
+| `CommonHelpers.psm1` | `global/hooks/lib/` | Imported by every `.ps1` hook except `memory-integrity-check.ps1`, and by `scripts/weekly-usage.ps1` |
 | `validate-commit-message.sh` | `hooks/lib/` | No hook sources the deployed copy. `~/.claude/commit-settings.md` points readers at it for the exact attribution rules; the `commit-msg` git hook sources the copy that `hooks/install-hooks.sh` installs into `.git/hooks/lib/` |
 | `validate-language.sh` | `hooks/lib/` | `~/.claude/commit-settings.md` names it as the source of the `CLAUDE_CONTENT_LANGUAGE` rules |
 | `validate-traceability.sh` | `hooks/lib/` | The `pr-work` skill: `reference/traceability-impact-template.md` resolves `../../../../hooks/lib/validate-traceability.sh`, which is this copy once installed. The `pre-push` git hook uses its own copy in `.git/hooks/lib/` |
@@ -79,7 +79,7 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 | Deny or confirm destructive commands | [Destructive Command Guard](#2-destructive-command-guard-pretooluse) |
 | Block gh pr merge when any check is non-passing | [Merge Gate Guard](#3-merge-gate-guard-pretooluse) |
 | Guard and observe the shared memory repository | [Memory Hooks](#4-memory-hooks) |
-| Clean up temp files and dead permission rules | [Session-End Housekeeping](#5-session-end-housekeeping-sessionend) |
+| Prune dead permission rules | [Session-End Housekeeping](#5-session-end-housekeeping-sessionend) |
 | Auto-format code after edits | [Auto Formatting](#1-auto-formatting-posttooluse) |
 | Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
 | Understand how Bash guards are dispatched on Windows | [Bash Guard Dispatcher](#bash-guard-dispatcher-windows) |
@@ -157,7 +157,7 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 - Returns JSON with `permissionDecision` `deny` or `ask` and a reason; a plain allow emits the minimal allow JSON
 - Fail-closed: unparseable hook input is denied
 - The work tree checks run `git status` / `git rev-parse` only after a command has matched an arm
-- Timeout: 5 seconds on POSIX; on Windows, shared with the other Bash guards inside the [dispatcher](#bash-guard-dispatcher-windows)
+- Timeout: 30 seconds on POSIX, raised from 5 s after a local run was cancelled at 5,018 ms and its Bash call ran unguarded (#1023); on Windows, shared with the other Bash guards inside the [dispatcher](#bash-guard-dispatcher-windows)
 
 ### 3. Merge Gate Guard (PreToolUse)
 
@@ -190,7 +190,7 @@ A diagnostic is written to stderr in each fail-open case so the user can see why
 **Behavior**:
 - Returns JSON with `permissionDecision: "deny"` listing every non-passing check
 - Fail-open on any gh CLI error; diagnostics written to stderr
-- Timeout: 30 seconds on POSIX, longer than `dangerous-command-guard` because it makes an external API call. On Windows it has no budget of its own: it runs inside the [dispatcher](#bash-guard-dispatcher-windows) and gets whatever remains of the shared 25 s after the guards ahead of it
+- Timeout: 30 seconds on POSIX, which also covers its external API call (`gh pr checks` has a 10 s budget of its own). On Windows it has no budget of its own: it runs inside the [dispatcher](#bash-guard-dispatcher-windows) and gets whatever remains of the shared 25 s after the guards ahead of it
 - Cross-platform: `merge-gate-guard.sh` and `merge-gate-guard.ps1`
 
 **Configuration**:
@@ -228,23 +228,9 @@ See [docs/MEMORY_SYNC.md](docs/MEMORY_SYNC.md) for operations and [docs/THREAT_M
 
 ### 5. Session-End Housekeeping (SessionEnd)
 
-*Keeps your temp directory and your project permission rules clean without manual intervention.*
-
-**`cleanup`** deletes old temporary files on session end:
-- `$TMPDIR/claude_*` (older than 60 minutes)
-- `$TMPDIR/tmp.*` (owned by the current user, older than 60 minutes)
-
-It does not rotate or delete the logs that the loggers removed in #964 left behind in `~/.claude/logs/`.
+*Keeps your project permission rules clean without manual intervention.*
 
 **`prune-permission-rules`** removes `permissions.allow` entries that can never match again from the project's `settings.local.json` (#923). It fails open: any parse, classification or IO error leaves the file byte-identical.
-
-### 6. Worktree and Permission-Denial Hooks
-
-| Hook | Event | Behavior |
-|------|-------|----------|
-| `worktree-create` | WorktreeCreate (synchronous) | Creates an isolated worktree directory when isolation is requested outside a git repository and prints its absolute path; a non-zero exit fails the creation |
-| `worktree-remove` | WorktreeRemove (async) | Logs the removal; cannot block it |
-| `permission-denial-logger` | PermissionDenied (async) | Appends a redacted JSONL record of each denied tool call to `~/.claude/logs/permission-denials.jsonl`; `CLAUDE_PERMISSION_LOGGER=0` disables it |
 
 ### Hook Response Format
 
@@ -571,18 +557,13 @@ after the change actually lands.
 | Memory Write Guard | `memory-write-guard.ps1` | Validates writes to the shared memory repository |
 | Memory Integrity Check | `memory-integrity-check.ps1` | Memory-sync health summary at session start |
 | Memory Access Logger | `memory-access-logger.ps1` | Logs reads of shared-memory files |
-| Cleanup | `cleanup.ps1` | Removes old temp files from `$env:TEMP` |
 | Prune Permission Rules | `prune-permission-rules.ps1` | Prunes dead `permissions.allow` entries on session end |
-| Worktree Create | `worktree-create.ps1` | Creates isolated worktree directory |
-| Worktree Remove | `worktree-remove.ps1` | Logs worktree removal events |
-| Permission Denial Logger | `permission-denial-logger.ps1` | Logs denied tool calls (redacted) |
 
 ### Key Differences from Bash Hooks
 
 | Feature | Bash (`.sh`) | PowerShell (`.ps1`) |
 |---------|-------------|---------------------|
 | JSON parsing | `jq` (external dependency) | `ConvertFrom-Json` (built-in) |
-| Temp file cleanup | `find /tmp -mmin +60` | `Get-ChildItem $env:TEMP` |
 | Pattern matching | `grep -qE` | `-match` operator |
 | HTTP requests | `curl` | `Invoke-WebRequest` |
 | Timestamps | `date +"%Y-%m-%d"` | `Get-Date -Format` |
@@ -681,7 +662,7 @@ not its median.
 | Matcher | Registered | Timeout | Why |
 |---------|-----------|---------|-----|
 | `Edit\|Write` | `memory-write-guard` on POSIX; `edit-guard-dispatcher.ps1` on Windows | 30 s | Fail-open makes a skipped guard worse than a slow one. Measured before #964 with three guards on `Edit\|Write\|Read`: median 429 ms and p99 1,020 ms over 35,276 local runs, worst case 11,141 ms (#897). |
-| `Bash` | `dangerous-command-guard` (5 s) and, for calls containing `gh pr merge`, `merge-gate-guard` (30 s) on POSIX; `bash-guard-dispatcher.ps1` on Windows | 5 s / 30 s; 30 s | `merge-gate-guard` makes a network call. The Windows dispatcher has a 25 s internal guard budget plus process-start slack, and names any guard it had to skip instead of truncating silently. |
+| `Bash` | `dangerous-command-guard` and, for calls containing `gh pr merge`, `merge-gate-guard` on POSIX; `bash-guard-dispatcher.ps1` on Windows | 30 s | On the old 5 s budget a local `dangerous-command-guard` run was cancelled at 5,018 ms and its Bash call ran unguarded (#1023). `merge-gate-guard` makes a network call. The Windows dispatcher has a 25 s internal guard budget plus process-start slack, and names any guard it had to skip instead of truncating silently. |
 
 ### Formatter not working
 
@@ -757,37 +738,16 @@ this catalog for the canonical hook inventory.
 
 | Hook | Hook Type | PowerShell |
 |---|---|---|
-| [`cleanup.sh`](#cleanup) | SessionEnd | yes |
 | [`dangerous-command-guard.sh`](#dangerous-command-guard) | PreToolUse (Bash) | yes |
 | [`memory-access-logger.sh`](#memory-access-logger) | PostToolUse (Read) | yes |
 | [`memory-integrity-check.sh`](#memory-integrity-check) | SessionStart (sync) | yes |
 | [`memory-write-guard.sh`](#memory-write-guard) | PreToolUse (Edit|Write) | yes |
 | [`merge-gate-guard.sh`](#merge-gate-guard) | PreToolUse (Bash) | yes |
-| [`permission-denial-logger.sh`](#permission-denial-logger) | PermissionDenied | yes |
 | [`prune-permission-rules.sh`](#prune-permission-rules) | SessionEnd | yes |
-| [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
-| [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 10 bash hooks, 10 with PowerShell counterparts._
+_Total: 6 bash hooks, 6 with PowerShell counterparts._
 
 ### Hook Details
-
-### cleanup
-
-_File:_ `cleanup.sh`
-
-_Anchor:_ `#cleanup`
-
-Cleans up temporary files created during session
-
-| Field | Value |
-|---|---|
-| Hook Type | SessionEnd |
-| Trigger / Matcher | — |
-| Exit codes | 0=success |
-| Response format | none (lifecycle event, no JSON output needed) |
-| PowerShell counterpart | present (`cleanup.ps1`) |
-| Source | `global/hooks/cleanup.sh` |
 
 ### dangerous-command-guard
 
@@ -875,24 +835,6 @@ Blocks gh pr merge commands when any PR check is not passing.
 | PowerShell counterpart | present (`merge-gate-guard.ps1`) |
 | Source | `global/hooks/merge-gate-guard.sh` |
 
-### permission-denial-logger
-
-_File:_ `permission-denial-logger.sh`
-
-_Anchor:_ `#permission-denial-logger`
-
-Appends a redacted JSONL audit record for every denied tool call.
-
-| Field | Value |
-|---|---|
-| Hook Type | PermissionDenied |
-| Trigger / Matcher | — |
-| Exit codes | 0 (always — passive logger, never alters the permission decision) |
-| Response format | none (observation-only event; no JSON emitted, never blocks) |
-| Fail policy | best-effort; logging failures are swallowed and never surface |
-| PowerShell counterpart | present (`permission-denial-logger.ps1`) |
-| Source | `global/hooks/permission-denial-logger.sh` |
-
 ### prune-permission-rules
 
 _File:_ `prune-permission-rules.sh`
@@ -910,39 +852,5 @@ Prunes permissions.allow entries that can never match again from the project-sco
 | Fail policy | fail-open - any parse, classification, or IO error leaves the file byte-identical |
 | PowerShell counterpart | present (`prune-permission-rules.ps1`) |
 | Source | `global/hooks/prune-permission-rules.sh` |
-
-### worktree-create
-
-_File:_ `worktree-create.sh`
-
-_Anchor:_ `#worktree-create`
-
-Creates an isolated worktree directory for non-git environments
-
-| Field | Value |
-|---|---|
-| Hook Type | WorktreeCreate (synchronous, type: command only) |
-| Trigger / Matcher | synchronous, type: command only |
-| Exit codes | — |
-| Response format | — |
-| PowerShell counterpart | present (`worktree-create.ps1`) |
-| Source | `global/hooks/worktree-create.sh` |
-
-### worktree-remove
-
-_File:_ `worktree-remove.sh`
-
-_Anchor:_ `#worktree-remove`
-
-Cleans up and logs worktree removal events
-
-| Field | Value |
-|---|---|
-| Hook Type | WorktreeRemove (async, type: command only) |
-| Trigger / Matcher | async, type: command only |
-| Exit codes | — |
-| Response format | — |
-| PowerShell counterpart | present (`worktree-remove.ps1`) |
-| Source | `global/hooks/worktree-remove.sh` |
 
 <!-- END AUTO-GENERATED HOOKS -->

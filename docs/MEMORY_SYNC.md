@@ -193,8 +193,10 @@ tail -n 20 /tmp/claude-memory-sync.out
   wait up to 30s for the first to release its `flock`; if the first run
   exceeds 30s, the second exits with a non-zero "lock not acquired" code
   and the next interval retries.
-- **Output rotation**: `/tmp/claude-memory-sync.{out,err}` are rotated by
-  the existing `cleanup.sh` weekly job (claude-config convention).
+- **Output files**: launchd (`StandardOutPath`) and systemd (`append:`)
+  append to `/tmp/claude-memory-sync.{out,err}`. Nothing in claude-config
+  rotates them; truncate them by hand if they grow. (`cleanup.sh`, which
+  this line used to credit, never touched them and was removed in #1023.)
 - **No network at scheduled time**: `memory-sync.sh` exits 6; the next
   interval retries naturally.
 

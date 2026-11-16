@@ -182,12 +182,12 @@
       },
       {
         "matcher": "Bash",
-        "_note": "dangerous-command-guard has no if: it must read every command through shell grammar and wrappers (#991). merge-gate-guard starts only when the call contains gh pr merge. The wildcards on both sides are deliberate: on Claude Code 2.1.316, Bash(gh pr merge *) did not start it for bash -c, env or command wrappers, which the guard's own scope check catches. A wrong if stops a guard without any error, so tests/hooks/test-bash-channel-minimal.sh pins the rule. See issue #996.",
+        "_note": "dangerous-command-guard has no if: it must read every command through shell grammar and wrappers (#991). Its timeout is 30s, like the file channel and merge-gate-guard: a PreToolUse timeout is fail-OPEN, and on the old 5s budget a local run was cancelled at 5,018ms, so that Bash call ran unguarded (#1023). merge-gate-guard starts only when the call contains gh pr merge. The wildcards on both sides are deliberate: on Claude Code 2.1.316, Bash(gh pr merge *) did not start it for bash -c, env or command wrappers, which the guard's own scope check catches. A wrong if stops a guard without any error, so tests/hooks/test-bash-channel-minimal.sh pins the rule. See issue #996.",
         "hooks": [
           {
             "type": "command",
             "command": "~/.claude/hooks/dangerous-command-guard.sh",
-            "timeout": 5
+            "timeout": 30
           },
           {
             "type": "command",
@@ -214,11 +214,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/cleanup.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "~/.claude/hooks/prune-permission-rules.sh",
             "timeout": 15
           }
@@ -234,41 +229,6 @@
             "type": "command",
             "if": "Read(~/.claude/**/memor*/**)",
             "command": "~/.claude/hooks/memory-access-logger.sh",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "WorktreeCreate": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/worktree-create.sh",
-            "timeout": 30
-          }
-        ]
-      }
-    ],
-    "WorktreeRemove": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/worktree-remove.sh",
-            "timeout": 10,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "PermissionDenied": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/permission-denial-logger.sh",
             "timeout": 5,
             "async": true
           }

@@ -137,7 +137,6 @@ function Deploy-InstallHooks {
     $requiredLibs = @(
         'tokenize-shell.sh',
         'timeout-wrapper.sh',
-        'rotate.sh',
         'CommonHelpers.psm1',
         'validate-commit-message.sh',
         'validate-language.sh',

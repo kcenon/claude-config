@@ -98,11 +98,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/cleanup.ps1",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/prune-permission-rules.ps1",
             "timeout": 15
           }
@@ -116,41 +111,6 @@
           {
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/memory-access-logger.ps1",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "WorktreeCreate": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/worktree-create.ps1",
-            "timeout": 30
-          }
-        ]
-      }
-    ],
-    "WorktreeRemove": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/worktree-remove.ps1",
-            "timeout": 10,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "PermissionDenied": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/permission-denial-logger.ps1",
             "timeout": 5,
             "async": true
           }
