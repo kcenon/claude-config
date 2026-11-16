@@ -1,0 +1,1 @@
+An absolute path below a top-level directory and outside every session temp root asks (#1027). Until #1027 every absolute path was denied as a delete "at root directory"; /usr itself still is.

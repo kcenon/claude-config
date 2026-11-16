@@ -126,7 +126,7 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 **Files**: `global/hooks/dangerous-command-guard.sh`, `global/hooks/dangerous-command-guard.ps1`. The file name predates #964 and is kept: installed plugins read it as a probe key, and the decision log and the Windows dispatcher entry use it.
 
 **Deny** (irreversible and reaching beyond the working tree or shared state):
-- recursive `rm` of `/`, an absolute path, `~` or `$HOME`
+- recursive `rm` of `/`, a top-level directory, a home directory, `~` or `$HOME`, or of a path that reaches one of them through `..` or a symbolic link; see [Absolute paths](#absolute-paths)
 - a download piped to an interpreter (`curl ... | sh`, `curl ... | sudo bash`, `curl ... | $SHELL`)
 - `chmod 777` and setuid changes; IFS obfuscation
 - a direct `git push` to `main`, `master` or `develop`, including a refspec-less push whose upstream is one of them
@@ -136,10 +136,10 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 - `git reset --hard`, `git checkout -- <path>` / `.` / `-f`, `git switch -f` / `--force` / `--discard-changes`, and `git restore` without `--staged`, only when the work tree has changes
 - `git clean -f`, `git stash drop` / `clear`
 - `git push --force` / `-f` / `+<ref>` (not `--force-with-lease`), `git push --delete` / `-d`, `git push <remote> :<ref>`
-- recursive `rm` of `.`, `..`, `*`, `.*`, `.git` or a path outside the repository; `find ... -delete`; any `rm` through `find -exec`, `xargs` or `parallel`
+- recursive `rm` of `.`, `..`, `*`, `.*`, `.git`, a path outside the repository, or an absolute path outside the session temp roots; `find ... -delete`; any `rm` through `find -exec`, `xargs` or `parallel`
 - `gh <group> delete` / `delete-asset` and every other `gh api -X DELETE`
 
-**Allow**: everything else, for example `rm -rf build`, `git reset --soft`, `git push --force-with-lease` to a work branch and `git branch -D`.
+**Allow**: everything else, for example `rm -rf build`, a recursive `rm` below a session temp root, `git reset --soft`, `git push --force-with-lease` to a work branch and `git branch -D`.
 
 **The real command**: the checks read the command itself, not the first word of a sub-command. Every word goes through shell quote removal, so `r"m"`, `r\m` and `'rm'` are all `rm`, and `~"/x"` is `~/x`. A backslash-newline joins its lines. Shell grammar is dropped first: `if`, `then`, `elif`, `else`, `while`, `until`, `do`, `!`, `{`, `(`, `coproc`, a case pattern, a function head and the `)` that closes a subshell, so `for x in a; do rm -rf ~; done` and `(cd repo && git push origin main)` are denied. `for` and `select` keep their words as data, so `for x in rm -rf ~; do :; done` is allowed. A `cd` inside a subshell ends with it. Then go leading `NAME=value` words and redirections, and these wrappers with their own flags, in any number and order: `sudo`, `doas`, `env`, `command`, `builtin`, `nice`, `ionice`, `nohup`, `time`, `stdbuf`, `exec`, `timeout`, `gtimeout`, `caffeinate`, `chronic`, `unbuffer`, `setsid`, `xargs`, `parallel` and `watch`. `command -v` only looks a name up. `watch` and `env -S` run a string, which is inspected as a payload. `find -exec` inspects its whole command. A receiver after a fetch is read the same way; a receiver that cannot be resolved asks, as in `curl ... | $X`. This list cannot be complete: another wrapper, `ssh host '...'`, `su -c`, `flock`, an interpreter's own body such as `python -c`, and a fetch that reaches the shell through a second pipe (`curl x | tee f | sh`) are not inspected. Text in a heredoc body is inspected line by line, so a prose line that starts with `(rm -rf ~` or `if rm -rf ~` is refused, as one that starts with `rm -rf ~` already was.
 
@@ -149,7 +149,7 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 
 **Unresolved command heads**: any other variable, any other `${...}`, and a `$(...)` or backtick head at any depth may still be `rm` or a shell. The guard asks if `rm` would be denied or asked on the arguments, or if a shell would deny or ask on the operand of a flag ending in `c`, as in `$X -c 'rm -rf /'` and `$(which bash) -c 'rm -rf /'`. `$EDITOR notes.md`, `"$PYTHON" x.py`, `$TAR -cf "$archive" dir` and `$(date)` stay allowed. Commands such as `$CC -c "$src"` and `$GREP -c 'rm -rf /' log` also ask: an unresolved head cannot be told from a shell, and an ask costs one approval. An expansion followed by a path (`$X/bin/rm`, `$(dirname "$0")/rm`) is matched on its basename instead.
 
-**Over-budget input**: a command longer than `DCG_TOKENIZER_MAX_BYTES` (16384 bytes) is not tokenized. A line-based regex scan denies the deny-tier shapes (recursive `rm` of `/`, an absolute path, `~` or `$HOME`, in either order of flag and target; a fetch piped to an interpreter; `chmod 777`; a push to `main`, `master` or `develop`; `gh repo delete`; `gh api -X DELETE repos/<owner>/<repo>`) and asks when the text contains a keyword of any ask arm, a `git push` with no refspec, because its target is not known, or a command name that cannot be resolved with a recursive flag (`$X -rf ~`). A `--dry-run` or `-n` push is skipped. The scan reads the text with `\` continuations joined and quoted spans that hold whitespace blanked, so `echo "git push origin main"` is allowed; a side effect is that `rm -rf "/var/my data"` asks rather than denies. A line keeps its spans when it holds a substitution, a shell wrapper word or a `-...c` flag before a quote, and a line that leaves a quote open ends the blanking for the rest of the input, so text in a multi-line string still matches. Anything else, such as a long `echo` chain, is allowed with a coarse-scan note. On `.ps1` every regex of this scan uses `RegexOptions.NonBacktracking` where the runtime has it (.NET 7 and later) and a 1 s timeout; a timeout asks.
+**Over-budget input**: a command longer than `DCG_TOKENIZER_MAX_BYTES` (16384 bytes) is not tokenized. A line-based regex scan denies the deny-tier shapes (recursive `rm` of `/`, a top-level directory, `/private/<dir>`, `/Users/<name>`, `/home/<name>`, `~` or `$HOME`, in either order of flag and target, and on `.ps1` the drive and share shapes; a fetch piped to an interpreter; `chmod 777`; a push to `main`, `master` or `develop`; `gh repo delete`; `gh api -X DELETE repos/<owner>/<repo>`) and asks when the text contains a keyword of any ask arm, a `git push` with no refspec, because its target is not known, or a command name that cannot be resolved with a recursive flag (`$X -rf ~`). The scan resolves no path, so any other recursive `rm` asks through the `rm -r` keyword, below a temp root too. A `--dry-run` or `-n` push is skipped. The scan reads the text with `\` continuations joined and quoted spans that hold whitespace blanked, so `echo "git push origin main"` is allowed; a side effect is that `rm -rf "/my data"` asks rather than denies. A line keeps its spans when it holds a substitution, a shell wrapper word or a `-...c` flag before a quote, and a line that leaves a quote open ends the blanking for the rest of the input, so text in a multi-line string still matches. Anything else, such as a long `echo` chain, is allowed with a coarse-scan note. On `.ps1` every regex of this scan uses `RegexOptions.NonBacktracking` where the runtime has it (.NET 7 and later) and a 1 s timeout; a timeout asks.
 
 **Logging**: one JSON line per `deny` or `ask` decision in `~/.claude/logs/dangerous-command-guard.log` (`CLAUDE_LOG_DIR` overrides the directory). Allow decisions are not logged.
 
@@ -158,6 +158,20 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 - Fail-closed: unparseable hook input is denied
 - The work tree checks run `git status` / `git rev-parse` only after a command has matched an arm
 - Timeout: 30 seconds on POSIX, raised from 5 s after a local run was cancelled at 5,018 ms and its Bash call ran unguarded (#1023); on Windows, shared with the other Bash guards inside the [dispatcher](#bash-guard-dispatcher-windows)
+
+#### Absolute paths
+
+A recursive `rm` of an absolute path, or of one spelled through `~/`, `$HOME/` or `${HOME}/`, gets one of three decisions (#1027). Each target is judged on its own, and a deny of any target wins over an ask.
+
+| Target | Decision |
+|---|---|
+| `/`; a top-level directory (`/usr`, `/tmp`, `/Users`); on macOS also `/private/<dir>`, which `/tmp`, `/var` and `/etc` point to | deny |
+| a home directory (`/Users/<name>`, `/home/<name>`, the hook's `$HOME`), a parent of `$HOME`, `~`, `$HOME` | deny |
+| `.ps1` only: a drive root (`C:\`), `C:\<dir>`, `C:\Users\<name>`, a network share (`\\server\share`) or its top-level directory | deny |
+| a path strictly below a session temp root: `/tmp/claude-<uid>`, `/private/tmp/claude-<uid>`, the hook's `$TMPDIR`, the macOS per-user temp directory (`getconf DARWIN_USER_TEMP_DIR`); on `.ps1` also the .NET temp path | allow |
+| any other absolute path, a temp root itself, `~/x` | ask |
+
+The path is normalized first, so `//usr/./` is `/usr` and `/tmp/claude-501/../../etc` is `/etc`. When the path exists, the path it resolves to is judged as well: `<root>/link/` where `link` points to `/usr` is denied, and an allow needs the resolved path to stay below a root too. `rm` removes a link itself, so a last component is resolved only when a `/`, `.` or `..` ends the path; `rm -rf <root>/link` is allowed. A temp root that is itself in the deny tier, such as `TMPDIR=/tmp`, is not a root. A target in a variable other than `$HOME`, such as `"$TMPDIR/venv"`, is not resolved and is skipped, as before. Until #1027 every absolute path was denied, with the reason "at root directory"; the reason now names what matched.
 
 ### 3. Merge Gate Guard (PreToolUse)
 

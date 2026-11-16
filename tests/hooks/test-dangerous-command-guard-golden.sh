@@ -30,6 +30,9 @@ TEST_LOG_DIR=$(mktemp -d "$SCRATCH_ROOT/dcg-golden.XXXXXX" 2>/dev/null) \
 mkdir -p "$TEST_LOG_DIR"
 export CLAUDE_LOG_DIR="$TEST_LOG_DIR"
 trap 'rm -rf "$TEST_LOG_DIR"' EXIT
+# The session temp root the corpus assumes, the same on every runner: a
+# recursive delete below it is allowed (#1027). The path need not exist.
+export TMPDIR=/tmp/dcg-golden-root
 
 # expect_for_edge <fixture_path>
 # Reads the matching .expect.json sidecar and prints the expected decision

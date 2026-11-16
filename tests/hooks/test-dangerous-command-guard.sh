@@ -604,7 +604,8 @@ run_compound_cases() {
     check deny - 'r\m -rf ~'
     check deny - "b'ash' -c 'rm -rf /'"
     check deny - "\$'rm' -rf ~"
-    check deny - 'rm -rf ~"/x"'
+    check deny - 'rm -rf ~"/"'
+    check ask - 'rm -rf ~"/x"'
     check deny - 'rm -rf "/"x'
     check deny - "rm -rf \$'/'"
     check deny - "git push origin HEAD:'main'"
@@ -736,6 +737,86 @@ run_tokenizer_cases() {
 run_tokenizer_cases
 
 echo ""
+echo "[recursive rm of an absolute path — issue #1027]"
+# TMPROOT stands in for the session temp root: the hook reads it from TMPDIR.
+# The links lead out of it, to a top-level directory and to the home directory.
+TMPROOT="$TEST_LOG_DIR/tmproot"
+mkdir -p "$TMPROOT/sub" "$TMPROOT/real"
+ln -s /usr "$TMPROOT/tousr"
+ln -s "$HOME" "$TMPROOT/tohome"
+ln -s "$TMPROOT/real" "$TMPROOT/inner"
+UP="../../../../../../../../../../../.."
+# check_reason <command> <text>: the decision reason holds <text>.
+check_reason() {
+    local reason
+    reason=$(jq -nc --arg c "$1" --arg d "$NOREPO" '{tool_input:{command:$c},cwd:$d}' \
+        | "${HOOK_BASH:-bash}" "$HOOK" 2>/dev/null | jq -r '.hookSpecificOutput.permissionDecisionReason // empty')
+    case "$reason" in
+        *"$2"*) ((PASS++)); echo "  PASS: reason of $1 names \"$2\"" ;;
+        *) ((FAIL++)); ERRORS+=("FAIL: reason of $1 lacks \"$2\": $reason"); echo "  FAIL: reason of $1" ;;
+    esac
+}
+run_abs_cases() {
+    local saved="${TMPDIR-}"
+    export TMPDIR="$TMPROOT"
+    # Deny: the root, a top-level directory, a home directory, and a path that
+    # reaches one of them through .. or a link.
+    check deny - 'rm -rf /usr'
+    check deny - 'rm -rf //usr/./'
+    check deny - 'rm -rf /tmp/'
+    check deny - 'rm -rf /private/var'
+    check deny - 'rm -rf /Users/someone'
+    check deny - "rm -rf $HOME"
+    check deny - 'rm -rf ~/'
+    check deny - 'rm -rf "$HOME"/'
+    check deny - "rm -rf $TMPROOT/$UP/etc"
+    check deny - "rm -rf /tmp/claude-$UID/$UP/etc"
+    check deny - "rm -rf $TMPROOT/tousr/"
+    check deny - "rm -rf $TMPROOT/tohome/"
+    check deny - "rm -rf $TMPROOT/sub /usr"
+    check deny - 'rm -rf /usr/local/x /usr'
+    check deny - 'sudo rm -rf /etc'
+    check deny - "bash -c 'rm -rf /etc/'"
+    # Allow: below the session temp root, when the resolved path stays there.
+    check allow - "rm -rf $TMPROOT/sub"
+    check allow - "rm -rf $TMPROOT/sub/"
+    check allow - "rm -rf $TMPROOT/missing/x"
+    check allow - "rm -rf $TMPROOT/tousr"
+    check allow - "rm -rf $TMPROOT/inner/"
+    check allow - "rm -rf /tmp/claude-$UID/x/y"
+    check allow - "sudo rm -rf $TMPROOT/sub"
+    check allow - "bash -c 'rm -rf $TMPROOT/sub'"
+    check allow - "\$X -rf $TMPROOT/sub"
+    # Ask: any other absolute path, a temp root itself, and a path that leaves
+    # the root through a link.
+    check ask - 'rm -rf /usr/local/lib/x'
+    check ask - 'rm -rf /var/log'
+    check ask - 'rm -rf ~/x'
+    check ask - 'rm -rf "$HOME/x"'
+    check ask - "rm -rf /tmp/claude-$UID"
+    check ask - "rm -rf $TMPROOT/tousr/lib"
+    check ask - "rm -rf /usr/local/x $TMPROOT/sub"
+    check ask - 'timeout 5 rm -rf /usr/local/x'
+    check ask - '$X -rf /usr/local/x'
+    # Over the tokenizer budget only the deny tier is told apart.
+    check deny - "${FILLER}rm -rf /usr/"
+    check deny - "${FILLER}rm -rf /private/tmp"
+    check deny - "${FILLER}rm -rf /Users/someone"
+    check deny - "${FILLER}rm /usr -rf"
+    check ask - "${FILLER}rm -rf /usr/local/x"
+    check ask - "${FILLER}rm -rf $TMPROOT/sub"
+    check ask - "${FILLER}rm -rf ~/x"
+    # The reason names what matched.
+    check_reason 'rm -rf /' 'the root directory'
+    check_reason 'rm -rf /usr' 'a top-level directory'
+    check_reason 'rm -rf ~' 'the home directory'
+    check_reason "rm -rf $TMPROOT/tohome/" "is '"
+    check_reason 'rm -rf /usr/local/x' 'not inside a session temp directory'
+    if [ -n "$saved" ]; then export TMPDIR="$saved"; else unset TMPDIR; fi
+}
+run_abs_cases
+
+echo ""
 echo "[shebang runtime: /bin/bash]"
 # Production runs the hook through its #!/bin/bash shebang, which is bash 3.2
 # on macOS, while the cases above use the first `bash` on PATH. Under bash
@@ -753,6 +834,7 @@ if [ -x /bin/bash ]; then
     run_var_head_cases
     run_coarse_cases
     run_compound_cases
+    run_abs_cases
     unset HOOK_BASH
 fi
 
