@@ -822,6 +822,42 @@ There is no machine-local override: `permissions` is an installer policy key,
 so a reinstall replaces the whole block in `~/.claude/settings.json`, and a
 deny rule cannot be lifted by an `allow` rule in another scope.
 
+## Auto-Compact Window
+
+Automatic compaction runs at the auto-compact window. On models with a
+native 1M-token window that is about 967K tokens by default
+([model configuration](https://code.claude.com/docs/en/model-config.md)).
+The profiles keep that default. #1004 set up a trial of a 500k window for
+code implementation in git worktrees, but no trial session ran, so there is
+no measurement of what an earlier compaction loses in task detail. A lower
+window stays an option to set per launch:
+
+```bash
+claude --autocompact 500k
+claude --resume <id> --autocompact 500k
+```
+
+- The flag sets the window for that launch without changing saved settings
+  ([CLI reference](https://code.claude.com/docs/en/cli-reference.md)). It
+  takes `auto` or 100k to 1M tokens. A session resumed without the flag
+  runs at the saved or default window.
+- `CLAUDE_CODE_AUTO_COMPACT_WINDOW` takes precedence over the flag, and the
+  flag over the `autoCompactWindow` setting. `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`
+  moves the trigger to a percentage of the window and can only lower it, and
+  `DISABLE_AUTO_COMPACT=1` turns off automatic and idle compaction
+  ([environment variables](https://code.claude.com/docs/en/env-vars.md)).
+  Check that none of them is set when a launch relies on the flag.
+- The in-session `/autocompact <size>` command saves the window under the
+  current model in `modelSettings`, so later sessions on that model use it
+  too. To try a window in one session only, use the flag.
+- Idle compaction runs after about an hour without a request once the
+  context is at 200,000 tokens or more. It has its own threshold, so the
+  window does not set it. In the 30 days before #1004, 37 of the 54
+  automatic compactions on the measuring machine were idle compactions,
+  and the other 17 ran at a median of 969,124 tokens. `token_audit.py`
+  reports the two apart, as "Measuring Token Load from Transcripts" above
+  describes.
+
 ## Support
 
 For issues or questions:
