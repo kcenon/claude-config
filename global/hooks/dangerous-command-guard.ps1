@@ -10,17 +10,21 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 #
 # PowerShell twin of dangerous-command-guard.sh; the decision tiers, payload
 # scanning and logging rules are documented there and mirrored here:
-#   deny  - recursive rm of /, an absolute path, ~ or $HOME; fetch piped to an
-#           interpreter; chmod 777 / setuid; IFS obfuscation; a direct push to
-#           main/master/develop; gh repo delete; gh api DELETE repos/<o>/<r>.
+#   deny  - recursive rm of a root (/, C:\, \\server\share), a top-level
+#           directory, a home directory, ~ or $HOME, by its spelling or by the
+#           path it resolves to (#1027); fetch piped to an interpreter; chmod
+#           777 / setuid; IFS obfuscation; a direct push to main/master/develop;
+#           gh repo delete; gh api DELETE repos/<o>/<r>.
 #   ask   - git reset --hard, git checkout -- <path> / . / -f, git switch -f /
 #           --force / --discard-changes, git restore without --staged (dirty
 #           work tree only); git clean -f; git stash drop|clear; git push
 #           --force / -f / +<ref>; git push --delete / -d / <remote> :<ref>;
-#           recursive rm of ., .., *, .*, .git or a path outside the
-#           repository; find -delete / -exec rm; gh <group>
+#           recursive rm of ., .., *, .*, .git, a path outside the repository
+#           or any other absolute path; find -delete / -exec rm; gh <group>
 #           delete|delete-asset; every other gh api DELETE.
-#   allow - everything else.
+#   allow - everything else, including a recursive rm below a session temp
+#           root (/tmp/claude-<uid>, the temp path, the macOS per-user temp
+#           directory) whose resolved path stays below it too.
 # `bash|sh|... -c` and `eval` payloads are inspected recursively (depth 3);
 # an uninspectable payload is denied. Outside a payload, a `$X` / `${X}` /
 # `${X:-word}` command head is resolved from an earlier assignment (`X=value`,
@@ -178,6 +182,13 @@ function Invoke-CoarseScan {
     $rm = "${W}rm${S}(${G}${S})?"
     $rmr = "${rm}${rec}"
     $hm = '(~|\$HOME|\$\{HOME\})'
+    # The absolute paths of the deny tier (#1027): a root, a top-level
+    # directory, /private/<dir>, and a home directory, also on a drive or a
+    # share. A deeper path asks through the rm -r arm below; the coarse scan
+    # resolves no path.
+    $seg = '[^/\\\s"'';&|)]+'
+    $sep = '[\\/]'
+    $denied = "(${hm}/*|/+((private|Users|home)/+${seg}/*|${seg}/*)?|[A-Za-z]:${sep}+(([Uu][Ss][Ee][Rr][Ss]${sep}+)?${seg}${sep}*)?|\\\\${seg}(\\${seg}(\\${seg})?)?\\*)${Q}?"
     # `git`, its global options as in Inspect-Git, and `push`: only those or an
     # expansion may come between them, so `git stash push` is not a push.
     $pushed = "${W}git(${S}+((-C|-c|--git-dir|--work-tree|--namespace|--super-prefix)${S}+\S+|-\S*|${Q}?\`$\S*))*${S}+push"
@@ -194,9 +205,9 @@ function Invoke-CoarseScan {
     }
 
     # A recursive flag and a denied target, in either order.
-    if ((Test-CoarseMatch $Text "${rmr}${S}(${G}${S})?${Q}?(${hm}(/|${E})|/)") -or
-        (Test-CoarseMatch $Text "${rm}${Q}?(${hm}(/${G})?${Q}?|/${G})${S}(${G}${S})?${rec}${E}")) {
-        Respond-Deny 'Dangerous recursive delete at root directory blocked for safety'
+    if ((Test-CoarseMatch $Text "${rmr}${S}(${G}${S})?${Q}?${denied}${E}") -or
+        (Test-CoarseMatch $Text "${rm}${Q}?${denied}${S}(${G}${S})?${rec}${E}")) {
+        Respond-Deny 'Dangerous recursive delete of the root, a top-level directory or a home directory blocked for safety'
     }
 
     # One git push per line, cut at a redirection or a comment, without the
@@ -271,9 +282,8 @@ if ($CMD.Length -gt $maxBytes) {
         # A failed preparation leaves the raw text to scan. The legacy regexes
         # keep the case-insensitivity they had as -match.
         try { $coarseText = Get-CoarseText -Text $CMD } catch { $coarseText = $CMD }
-        if (Test-CoarseMatch $coarseText '(?i)rm\s+(-[rRf]*[rR][rRf]*|--recursive)\s+/') {
-            Respond-Deny 'Dangerous recursive delete at root directory blocked for safety'
-        }
+        # A recursive rm is left to Invoke-CoarseScan, which knows the deny
+        # tier (#1027).
         if (Test-CoarseMatch $coarseText '(?i)chmod\s+(0?777|a\+rwx|[246][0-9][0-9][0-9])') {
             Respond-Deny 'Dangerous permission change (777/a+rwx) blocked for security'
         }
@@ -758,6 +768,180 @@ function Test-DirOrAncestor {
     return ($N -eq '' -or $N -match '^\.\.(/\.\.)*$')
 }
 
+# The root of an absolute path and the rest after it, with '/' separators:
+# '/', a drive ('C:/') or a network share ('\\server\share\', written with
+# backslashes so that it reads as a share on every platform). A path that
+# starts with '\\', or with '//' on Windows, names a share.
+function Split-AbsRoot {
+    param([string]$P)
+    $q = $P.Replace('\', '/')
+    if ($q -match '^([A-Za-z]):/') {
+        return @(($Matches[1].ToUpperInvariant() + ':/'), $q.Substring(3))
+    }
+    if ($P.StartsWith('\\') -or ($IsWindows -and $q.StartsWith('//'))) {
+        $segs = @($q.Split('/') | Where-Object { $_ -ne '' })
+        $root = '\\' + (@($segs | Select-Object -First 2) -join '\') + '\'
+        return @($root, (@($segs | Select-Object -Skip 2) -join '/'))
+    }
+    return @('/', $q)
+}
+
+# Lexically normalize an absolute path; '..' stops at the root (#1027).
+function Normalize-Abs {
+    param([string]$P)
+    $root, $rest = Split-AbsRoot $P
+    $segs = @((Normalize-Rel $rest) -split '/' | Where-Object { $_ -ne '' -and $_ -ne '..' })
+    return ($root + ($segs -join '/'))
+}
+
+# The directory <Dir> reaches with every symbolic link and junction resolved,
+# '..' taken after the link it follows; $null when it does not exist.
+function Resolve-PhysicalDir {
+    param([string]$Dir)
+    $root, $rest = Split-AbsRoot $Dir
+    $stack = New-Object System.Collections.Generic.List[string]
+    $queue = New-Object System.Collections.Generic.List[string]
+    foreach ($s in $rest.Split('/')) { $queue.Add($s) }
+    $hops = 0
+    while ($queue.Count -gt 0) {
+        $seg = $queue[0]
+        $queue.RemoveAt(0)
+        if ($seg -eq '' -or $seg -eq '.') { continue }
+        if ($seg -eq '..') {
+            if ($stack.Count -gt 0) { $stack.RemoveAt($stack.Count - 1) }
+            continue
+        }
+        $next = $root + ((@($stack) + $seg) -join '/')
+        $item = Get-Item -LiteralPath $next -Force -ErrorAction Ignore
+        if ($null -eq $item) { return $null }
+        $target = if ($item.LinkType) { [string](@($item.Target)[0]) } else { '' }
+        if ($target) {
+            $hops++
+            if ($hops -gt 40) { return $null }
+            $parts = $target.Replace('\', '/').Split('/')
+            if (Test-AbsolutePath $target) {
+                $root, $trest = Split-AbsRoot $target
+                $parts = $trest.Split('/')
+                $stack.Clear()
+            }
+            $queue.InsertRange(0, [string[]]$parts)
+            continue
+        }
+        if (-not $item.PSIsContainer) { return $null }
+        $stack.Add($seg)
+    }
+    return ($root + ($stack -join '/'))
+}
+
+# The path rm reaches; $null when it does not exist. rm removes a link
+# itself, so the last component is resolved only when a separator, '.' or '..'
+# ends the path.
+function Resolve-PhysicalPath {
+    param([string]$P)
+    $q = $P.Replace('\', '/')
+    if ($q.EndsWith('/') -or $q.EndsWith('/.') -or $q.EndsWith('/..')) { return (Resolve-PhysicalDir $P) }
+    $root, $rest = Split-AbsRoot $P
+    $i = $rest.LastIndexOf('/')
+    $parent = if ($i -lt 0) { $root } else { $root + $rest.Substring(0, $i) }
+    $base = $rest.Substring($i + 1)
+    $dir = Resolve-PhysicalDir $parent
+    if ($null -eq $dir) { return $null }
+    $full = if ($dir.EndsWith('/') -or $dir.EndsWith('\')) { $dir + $base } else { $dir + '/' + $base }
+    if ($null -eq (Get-Item -LiteralPath $full -Force -ErrorAction Ignore)) { return $null }
+    return $full
+}
+
+# What a normalized absolute path is when a recursive delete of it is denied:
+# a root, a top-level directory (on macOS also /private/<dir>, which /tmp,
+# /var and /etc point to), a home directory, or a parent of $HOME; $null
+# otherwise. Drive and share paths compare without case.
+function Get-AbsDenyKind {
+    param([string]$N)
+    $root, $rest = Split-AbsRoot $N
+    $segs = @($rest.Split('/') | Where-Object { $_ -ne '' })
+    $unix = ($root -eq '/')
+    if ($segs.Count -eq 0) {
+        if ($root.StartsWith('\\')) { return 'the root of a network share' }
+        return 'the root directory'
+    }
+    if ($segs.Count -eq 1) { return 'a top-level directory' }
+    if ($segs.Count -eq 2) {
+        if ($unix -and $segs[0] -ceq 'private') { return 'a top-level directory' }
+        if ($unix -and ($segs[0] -ceq 'Users' -or $segs[0] -ceq 'home')) { return 'a home directory' }
+        if ($root -match '^[A-Za-z]:/$' -and $segs[0] -ieq 'Users') { return 'a home directory' }
+    }
+    if ($HOME -and (Test-AbsolutePath $HOME)) {
+        $h = Normalize-Abs $HOME
+        $cmp = if ($unix) { [StringComparison]::Ordinal } else { [StringComparison]::OrdinalIgnoreCase }
+        if ([string]::Equals($N, $h, $cmp)) { return 'a home directory' }
+        if ($h.StartsWith($N + '/', $cmp)) { return 'a parent of the home directory' }
+    }
+    return $null
+}
+
+# The session temp roots, a path below which may be removed recursively
+# (#1027). Each root is listed lexically and resolved. A root that is itself in
+# the deny tier, such as TMPDIR=/tmp, is left out.
+$script:TempRoots = $null
+function Add-TempRoot {
+    param([string]$R)
+    if ([string]::IsNullOrEmpty($R) -or -not (Test-AbsolutePath $R)) { return }
+    $n = Normalize-Abs $R
+    if ($null -ne (Get-AbsDenyKind $n)) { return }
+    $script:TempRoots.Add($n)
+    $p = Resolve-PhysicalDir $n
+    if ($p) { $script:TempRoots.Add($p) }
+}
+function Get-TempRoots {
+    if ($null -ne $script:TempRoots) { return }
+    $script:TempRoots = New-Object System.Collections.Generic.List[string]
+    if (-not $IsWindows) {
+        $uid = try { [string](& id -u 2>$null) } catch { '' }
+        if ($uid -match '^[0-9]+$') {
+            Add-TempRoot "/tmp/claude-$uid"
+            Add-TempRoot "/private/tmp/claude-$uid"
+        }
+    }
+    Add-TempRoot $env:TMPDIR
+    Add-TempRoot ([System.IO.Path]::GetTempPath())
+    if ($IsMacOS) {
+        $darwin = try { [string](& getconf DARWIN_USER_TEMP_DIR 2>$null) } catch { '' }
+        Add-TempRoot $darwin
+    }
+}
+
+# A path strictly below a session temp root.
+function Test-UnderTempRoot {
+    param([string]$P)
+    Get-TempRoots
+    foreach ($r in $script:TempRoots) {
+        $cmp = if ($r.StartsWith('/')) { [StringComparison]::Ordinal } else { [StringComparison]::OrdinalIgnoreCase }
+        if ($P.Length -gt $r.Length + 1 -and $P.StartsWith($r + '/', $cmp)) { return $true }
+    }
+    return $false
+}
+
+# The decision on a recursive delete of an absolute path (#1027): deny for the
+# deny tier, by its spelling or by the path it resolves to; allow below a
+# session temp root when the resolved path stays there too; ask otherwise.
+function Inspect-AbsTarget {
+    param([string]$T, [string]$Abs)
+    $lex = Normalize-Abs $Abs
+    $real = Resolve-PhysicalPath $Abs
+    foreach ($shown in @($lex, $real)) {
+        if (-not $shown) { continue }
+        $kind = Get-AbsDenyKind $shown
+        if ($kind) {
+            $what = if ($T.Replace('\', '/') -ceq $shown.Replace('\', '/')) { "'$T'" } else { "'$T' is '$shown'" }
+            return (New-Verdict 'deny' "Dangerous recursive delete of $kind blocked for safety: $what")
+        }
+    }
+    if ((Test-UnderTempRoot $lex) -and (-not $real -or (Test-UnderTempRoot $real))) {
+        return (New-Verdict 'allow')
+    }
+    return (New-Verdict 'ask' "Recursive delete of '$T' cannot be undone, and the path is not inside a session temp directory. Confirm to proceed.")
+}
+
 function Get-WorktreeState {
     param([string]$Dir)
     if ([string]::IsNullOrEmpty($Dir) -or -not (Test-Path -LiteralPath $Dir -PathType Container)) { return 'unknown' }
@@ -803,20 +987,36 @@ function Inspect-Rm {
     }
     if (-not $hasRecursive) { return (New-Verdict 'allow') }
 
-    # Deny: the root, any absolute path, or the home directory.
+    # An absolute path, or one through ~ or $HOME (#1027): deny the root, a
+    # top-level directory and a home directory; allow a path below a session
+    # temp root; ask for any other. A deny of any target wins over an ask.
+    $asked = $null
     foreach ($t in $targets) {
-        if ((Test-AbsolutePath $t) -or $t -ceq '$HOME' -or $t.StartsWith('$HOME/') -or
-            $t -ceq '${HOME}' -or $t.StartsWith('${HOME}/') -or $t -eq '~' -or $t.StartsWith('~/')) {
-            return (New-Verdict 'deny' 'Dangerous recursive delete at root directory blocked for safety')
+        if ($t -eq '~' -or $t -ceq '$HOME' -or $t -ceq '${HOME}') {
+            return (New-Verdict 'deny' "Dangerous recursive delete of the home directory blocked for safety: '$t'")
         }
+        if ($t.StartsWith('~/') -or $t.StartsWith('$HOME/') -or $t.StartsWith('${HOME}/')) {
+            if ([string]::IsNullOrEmpty($HOME)) {
+                return (New-Verdict 'deny' "Dangerous recursive delete of the home directory blocked for safety: '$t'")
+            }
+            $abs = $HOME + '/' + $t.Substring($t.IndexOf('/') + 1)
+        } elseif (Test-AbsolutePath $t) {
+            $abs = $t
+        } else {
+            continue
+        }
+        $r = Inspect-AbsTarget -T $t -Abs $abs
+        if ($r.D -eq 'deny') { return $r }
+        if ($r.D -eq 'ask' -and $null -eq $asked) { $asked = $r }
     }
+    if ($null -ne $asked) { return $asked }
 
     # Ask: the current directory, a parent, a glob over either, .git, or a
     # path that resolves outside the repository work tree.
     $repo = 'unchecked'
     $prefix = ''
     foreach ($t in $targets) {
-        if ($t -match '[$`]' -or $t.StartsWith('~')) { continue }
+        if ($t -match '[$`]' -or $t.StartsWith('~') -or (Test-AbsolutePath $t)) { continue }
         $n = Normalize-Rel $t
         $base = ($n -split '/')[-1]
         $parent = if ($n.Contains('/')) { $n.Substring(0, $n.LastIndexOf('/')) } else { '' }
