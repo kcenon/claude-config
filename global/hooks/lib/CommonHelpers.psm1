@@ -226,99 +226,7 @@ function Test-VersionGte {
 }
 
 # ──────────────────────────────────────────────────────────────
-# Group 6: File Utilities
-# Replaces bash stat -f%z / stat -c%s
-# ──────────────────────────────────────────────────────────────
-
-function Get-FileSizeBytes {
-    param([Parameter(Mandatory)][string]$Path)
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
-        return 0
-    }
-    return (Get-Item -LiteralPath $Path).Length
-}
-
-# ──────────────────────────────────────────────────────────────
-# Group 7: Log Rotation
-# Ported from global/hooks/lib/rotate.sh
-# ──────────────────────────────────────────────────────────────
-
-function Invoke-LogRotation {
-    <#
-    .SYNOPSIS
-        Rotates a log file when it exceeds the size limit.
-    .DESCRIPTION
-        Port of rotate_log() from rotate.sh.
-        Uses .NET GZipStream instead of external gzip command.
-    .PARAMETER FilePath
-        Path to the log file to rotate.
-    .PARAMETER MaxMB
-        Rotate when file exceeds this size in megabytes. Default: 10.
-    .PARAMETER MaxArchives
-        Keep at most this many .N.gz archives. Default: 5.
-    #>
-    param(
-        [Parameter(Mandatory)][string]$FilePath,
-        [int]$MaxMB = 10,
-        [int]$MaxArchives = 5
-    )
-
-    if (-not (Test-Path -LiteralPath $FilePath -PathType Leaf)) {
-        return
-    }
-
-    $sizeBytes = (Get-Item -LiteralPath $FilePath).Length
-    $maxBytes = $MaxMB * 1024 * 1024
-
-    if ($sizeBytes -le $maxBytes) {
-        return
-    }
-
-    # Shift existing archives: .4.gz -> .5.gz, .3.gz -> .4.gz, ...
-    for ($i = $MaxArchives; $i -gt 1; $i--) {
-        $prev = $i - 1
-        $prevArchive = "${FilePath}.${prev}.gz"
-        if (Test-Path -LiteralPath $prevArchive) {
-            if ($i -gt $MaxArchives) {
-                Remove-Item -LiteralPath $prevArchive -Force
-            }
-            else {
-                $targetArchive = "${FilePath}.${i}.gz"
-                Move-Item -LiteralPath $prevArchive -Destination $targetArchive -Force
-            }
-        }
-    }
-
-    # Compress current file to .1.gz using .NET GZipStream
-    try {
-        $sourceBytes = [System.IO.File]::ReadAllBytes($FilePath)
-        $gzPath = "${FilePath}.1.gz"
-        $fileStream = [System.IO.File]::Create($gzPath)
-        $gzStream = [System.IO.Compression.GZipStream]::new(
-            $fileStream,
-            [System.IO.Compression.CompressionLevel]::Optimal
-        )
-        $gzStream.Write($sourceBytes, 0, $sourceBytes.Length)
-        $gzStream.Dispose()
-        $fileStream.Dispose()
-    }
-    catch {
-        return
-    }
-
-    # Truncate the original file
-    Clear-Content -LiteralPath $FilePath
-
-    # Remove archives beyond max count
-    $j = $MaxArchives + 1
-    while (Test-Path -LiteralPath "${FilePath}.${j}.gz") {
-        Remove-Item -LiteralPath "${FilePath}.${j}.gz" -Force
-        $j++
-    }
-}
-
-# ──────────────────────────────────────────────────────────────
-# Group 8: Banner / Header Printer
+# Group 6: Banner / Header Printer
 # Replaces bash box-drawing character banners
 # ──────────────────────────────────────────────────────────────
 
@@ -342,7 +250,7 @@ function Write-Banner {
 }
 
 # ──────────────────────────────────────────────────────────────
-# Group 9: TTY Detection
+# Group 7: TTY Detection
 # Replaces bash [[ -t 1 ]]
 # ──────────────────────────────────────────────────────────────
 
@@ -355,7 +263,7 @@ function Test-InteractiveTerminal {
 }
 
 # ──────────────────────────────────────────────────────────────
-# Group 10: Prerequisite Checker
+# Group 8: Prerequisite Checker
 # Replaces bash command -v checks
 # ──────────────────────────────────────────────────────────────
 
@@ -402,7 +310,7 @@ function Test-Prerequisites {
 }
 
 # ──────────────────────────────────────────────────────────────
-# Group 11: GitHub Repo Detection
+# Group 9: GitHub Repo Detection
 # Replaces bash gh repo view detection
 # ──────────────────────────────────────────────────────────────
 
@@ -424,7 +332,7 @@ function Get-GitHubRepo {
 }
 
 # ──────────────────────────────────────────────────────────────
-# Group 12: Administrator Check
+# Group 10: Administrator Check
 # Replaces bash sudo permission checks
 # ──────────────────────────────────────────────────────────────
 
@@ -445,7 +353,7 @@ function Test-Administrator {
 }
 
 # ──────────────────────────────────────────────────────────────
-# Group 13: Ensure Directory
+# Group 11: Ensure Directory
 # Replaces bash mkdir -p
 # ──────────────────────────────────────────────────────────────
 
@@ -467,7 +375,7 @@ function New-DirectoryIfMissing {
 Set-Alias -Name Ensure-Directory -Value New-DirectoryIfMissing
 
 # ──────────────────────────────────────────────────────────────
-# Group 14: Path Resolution
+# Group 12: Path Resolution
 # Ported from resolve_path() in the former global/hooks/lib/path-utils.sh
 # ──────────────────────────────────────────────────────────────
 
@@ -573,8 +481,6 @@ Export-ModuleMember -Function @(
     'Get-EnterprisePath'
     'Compare-SemanticVersion'
     'Test-VersionGte'
-    'Get-FileSizeBytes'
-    'Invoke-LogRotation'
     'Write-Banner'
     'Test-InteractiveTerminal'
     'Test-Prerequisites'

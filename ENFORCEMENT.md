@@ -82,7 +82,7 @@ These run on GitHub Actions and gate the PR independently of the local hooks abo
 
 - **Fail-closed**: `dangerous-command-guard` (unparseable input, or a `bash -c` / `eval` payload it cannot inspect), `pre-push`, and on Windows `bash-sensitive-read-guard` and `shell-env-secret-guard`.
 - **Fail-open** (gate is best-effort; transient tooling failures should not block legit work): `merge-gate-guard` (on `gh` errors), `memory-write-guard` (on its own internal failure, #521).
-- **Non-blocking** (informational / lifecycle): `cleanup`, `prune-permission-rules`, `memory-integrity-check`, `memory-access-logger`, `permission-denial-logger`, `worktree-remove`.
+- **Non-blocking** (informational / lifecycle): `prune-permission-rules`, `memory-integrity-check`, `memory-access-logger`.
 
 ## Bypass
 

@@ -205,7 +205,6 @@ fi
 # 누락 시 Bash 가드가 약화된다.
 check_file "$BACKUP_DIR/global/hooks/lib/tokenize-shell.sh" "global/hooks/lib/tokenize-shell.sh"
 check_file "$BACKUP_DIR/global/hooks/lib/timeout-wrapper.sh" "global/hooks/lib/timeout-wrapper.sh"
-check_file "$BACKUP_DIR/global/hooks/lib/rotate.sh" "global/hooks/lib/rotate.sh"
 
 # 프로젝트 설정 파일 검증
 echo ""

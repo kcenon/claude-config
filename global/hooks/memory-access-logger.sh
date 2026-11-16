@@ -21,7 +21,7 @@
 #     own month so the archive carries the period it covers. The original
 #     log path is then truncated and the new entry is appended to a fresh
 #     file.
-#   - Older archives are reaped by the project's existing cleanup convention.
+#   - Older archives are kept: no hook deletes them.
 #
 # Failure isolation:
 #   Any internal failure (jq missing, log unwritable, mktemp failure, etc.) is

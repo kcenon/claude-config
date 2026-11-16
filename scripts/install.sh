@@ -305,7 +305,6 @@ deploy_install_hooks() {
     for lib in \
         tokenize-shell.sh \
         timeout-wrapper.sh \
-        rotate.sh \
         validate-commit-message.sh \
         validate-language.sh \
         validate-traceability.sh; do

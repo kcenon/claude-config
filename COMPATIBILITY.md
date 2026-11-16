@@ -31,12 +31,9 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | `PreToolUse` | dangerous-command-guard, merge-gate-guard (`Bash`); memory-write-guard (`Edit\|Write`) | Deny or ask before destructive operations; gate merges on CI; validate shared-memory writes |
 | `PostToolUse` | memory-access-logger (`Read`) | Log reads of shared-memory files (path only) |
 | `SessionStart` | memory-integrity-check | Print a short memory-sync health summary |
-| `SessionEnd` | cleanup, prune-permission-rules | Temp file cleanup; prune `permissions.allow` entries that can never match again |
-| `WorktreeCreate` | worktree-create | Custom worktree initialization |
-| `WorktreeRemove` | worktree-remove | Custom worktree cleanup |
-| `PermissionDenied` | permission-denial-logger | Append a redacted JSONL audit record of denied tool calls (observation only) |
+| `SessionEnd` | prune-permission-rules | Prune `permissions.allow` entries that can never match again |
 
-> This table lists only the events **this config wires**. #964 cut the set to these 10 registrations; the `PostToolUseFailure`, `Stop`, `UserPromptSubmit`, `SubagentStart`, `SubagentStop`, `PreCompact`, `TaskCreated`, `TaskCompleted`, `ConfigChange`, `CwdChanged`, `InstructionsLoaded` and `TeammateIdle` events are no longer wired. The full official catalog is larger (~30 events as of 2026-05; see `code.claude.com/docs/en/hooks`). Unwired official events are not defects -- see `docs/official-spec-rereview-2026-05-29.md`.
+> This table lists only the events **this config wires**. #964 cut the set to 10 registrations and #1023 to these 6. The `PostToolUseFailure`, `Stop`, `UserPromptSubmit`, `SubagentStart`, `SubagentStop`, `PreCompact`, `TaskCreated`, `TaskCompleted`, `ConfigChange`, `CwdChanged`, `InstructionsLoaded` and `TeammateIdle` events (#964) and the `WorktreeCreate`, `WorktreeRemove` and `PermissionDenied` events (#1023) are no longer wired. The full official catalog is larger (~30 events as of 2026-05; see `code.claude.com/docs/en/hooks`). Unwired official events are not defects -- see `docs/official-spec-rereview-2026-05-29.md`.
 
 ### Settings Features
 
@@ -66,7 +63,6 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | `/harness` skill | Skills system, Agent Teams, TeamCreate tool |
 | `/release` skill | Skills system, `gh` CLI, Bash tool |
 | Agent definitions (`.claude/agents/`) | Agent/subagent system |
-| Worktree hooks | WorktreeCreate/WorktreeRemove hook events |
 | Team limit guard | TeamCreate PreToolUse matcher |
 | Version check hook | SessionStart hook event, `claude --version` |
 | Auto-formatting hooks | PostToolUse hook event (project settings) |
@@ -106,7 +102,7 @@ PowerShell read-only discovery allowlist.
 | `respectGitignore` | Stable | 2.0.0+ | Controls `@` file picker. Default `true`. |
 | `cleanupPeriodDays` | Stable | 2.0.0+ | Session file retention. Minimum 1, rejected at 0. |
 | `minimumVersion` | Stable | 2.1.199+ | **Deliberately not set** (#902). An *update floor*, not a startup guard: the CLI still launches, but `claude update` refuses every release below the value and stays put. Observed pinning 2.1.199 while 2.1.201 was current. Any value here must be a version that has already shipped. |
-| `worktree.baseRef` | Stable | 2.1.0+ | Worktree fan-out base policy. This repo uses `head` for same-branch task work. |
+| `worktree.baseRef` | Stable | 2.1.0+ | Worktree fan-out base policy. This repo uses `head` for same-branch task work. A `WorktreeCreate` hook replaces the git logic and this key with it; none is registered since #1023. |
 | `language` | Stable | 2.0.0+ | Preferred response language. |
 | `outputStyle` | Stable | 2.0.0+ | Adjusts the system prompt (e.g. `"Explanatory"`). |
 | `attribution.commit` | Stable | 2.0.0+ | Empty string hides commit attribution. |

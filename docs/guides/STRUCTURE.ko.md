@@ -25,7 +25,6 @@ claude_config_backup/
 │   ├── hooks/                  # 훅 스크립트(.sh + .ps1) — 전체 정본 목록은 HOOKS.md 참조
 │   │   └── lib/               # 공유 라이브러리
 │   │       ├── CommonHelpers.psm1  # PowerShell 공유 모듈
-│   │       ├── rotate.sh
 │   │       ├── timeout-wrapper.sh
 │   │       └── tokenize-shell.sh
 │   ├── scripts/                # 유틸리티 스크립트

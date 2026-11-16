@@ -27,7 +27,6 @@ claude_config_backup/
 │   ├── hooks/                  # Hook scripts, each in .sh + .ps1 — authoritative catalog: HOOKS.md
 │   │   └── lib/               # Shared libraries
 │   │       ├── CommonHelpers.psm1  # PowerShell shared module
-│   │       ├── rotate.sh
 │   │       ├── timeout-wrapper.sh
 │   │       └── tokenize-shell.sh
 │   ├── scripts/                # Utility scripts
