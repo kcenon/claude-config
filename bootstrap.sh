@@ -423,6 +423,10 @@ install_bootstrap_settings_and_hooks() {
         settings_updated=1
     fi
 
+    # The memory hooks are registered only where memory sync is set up (#1024).
+    local dropped_memory_hooks
+    dropped_memory_hooks="$(drop_memory_hooks_unless_synced "$settings_tmp" | tr '\n' ' ' | sed -e 's/ *$//')"
+
     if ! deploy_bootstrap_hooks; then
         rm -f "$settings_tmp"
         error "Hook 스크립트 배포 실패. settings.json을 변경하지 않았습니다."
@@ -443,6 +447,9 @@ install_bootstrap_settings_and_hooks() {
     fi
     if [ -n "$retired_keys" ]; then
         info "removed retired setting: $retired_keys"
+    fi
+    if [ -n "$dropped_memory_hooks" ]; then
+        info "memory sync not set up, so these hooks are not registered: $dropped_memory_hooks (rerun the installer after setting it up; see docs/MEMORY_SYNC.md)"
     fi
     if [ "$settings_updated" = "1" ]; then
         success "settings.json (에이전트: $agent_language, 컨텐츠: $content_language) 설치 완료"

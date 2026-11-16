@@ -221,6 +221,9 @@ function Install-GlobalSettingsAndHooks {
 
         $settingsUpdated = Update-ClaudeSettingsJson -SettingsPath $settingsTmp -AgentLang $agentLanguage -ContentLang $contentLanguage
 
+        # The memory hooks are registered only where memory sync is set up (#1024).
+        $droppedMemoryHooks = Remove-MemoryHooksUnlessSynced -SettingsPath $settingsTmp -ClaudeDir $ClaudeDir
+
         Deploy-InstallHooks -ClaudeDir $ClaudeDir
 
         Move-Item -LiteralPath $settingsTmp -Destination $destSettings -Force -ErrorAction Stop
@@ -237,6 +240,9 @@ function Install-GlobalSettingsAndHooks {
     }
     if ($retiredKeys -and $retiredKeys.Count -gt 0) {
         Write-Info "removed retired setting: $($retiredKeys -join ', ')"
+    }
+    if ($droppedMemoryHooks -and $droppedMemoryHooks.Count -gt 0) {
+        Write-Info "memory sync not set up, so these hooks are not registered: $($droppedMemoryHooks -join ', ') (rerun the installer after setting it up; see docs/MEMORY_SYNC.md)"
     }
     if ($settingsUpdated) {
         Write-Success "settings.json updated with language=$agentLanguage and CLAUDE_CONTENT_LANGUAGE=$contentLanguage"

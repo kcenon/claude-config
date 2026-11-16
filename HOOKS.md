@@ -31,7 +31,7 @@ A guard decides by this rule:
 | PostToolUse `Read` | `memory-access-logger` | Log reads of shared-memory files (path only) |
 | SessionEnd | `prune-permission-rules` | Prune `permissions.allow` entries that can never match again |
 
-A Bash call starts two hook processes and an Edit or Write call one; a Read starts only the async memory-access logger. `global/settings.windows.json` registers the same events. On Windows the `Bash` matcher goes through [`bash-guard-dispatcher.ps1`](#bash-guard-dispatcher-windows), which also runs the Windows-only `bash-sensitive-read-guard` and `shell-env-secret-guard`, because Windows has no OS sandbox.
+The installers register the three memory hooks only where memory sync is set up: `~/.claude/memory-shared` exists, or `CLAUDE_MEMORY_REPO_URL` is set for the install run (#1024). Without memory sync, `~/.claude/settings.json` holds the other three, so a Bash call starts one hook process, two when it contains `gh pr merge`, and an Edit, Write or Read starts none. `global/settings.windows.json` registers the same events, and its `Edit|Write` dispatcher goes with the memory hooks, because `memory-write-guard` is the only guard it routes. On Windows the `Bash` matcher goes through [`bash-guard-dispatcher.ps1`](#bash-guard-dispatcher-windows), which also runs the Windows-only `bash-sensitive-read-guard` and `shell-env-secret-guard`, because Windows has no OS sandbox.
 
 ### Where the removed rules live now
 
@@ -216,7 +216,9 @@ A diagnostic is written to stderr in each fail-open case so the user can see why
 
 ### 4. Memory Hooks
 
-*Gate and observe the shared memory repository; every hook here is silent when memory sync is not set up.*
+*Gate and observe the shared memory repository. The installers register these hooks only where memory sync is set up (#1024); a machine without it does not start them at all.*
+
+To turn them on after setting up `~/.claude/memory-shared` by hand, re-run the installer. `scripts/install.sh`, `bootstrap.sh`, `scripts/install.ps1` and `bootstrap.ps1` decide on every run, from the repository profile, so a reinstall also turns them off again once the directory is gone.
 
 | Hook | Event | Behavior |
 |------|-------|----------|

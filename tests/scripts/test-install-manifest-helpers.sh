@@ -275,5 +275,58 @@ retired_none="$(retired_local_settings_keys "$MERGE_DIR/staged4.json" "$MERGE_DI
 merge_eq "no retired key, nothing named" "$retired_none" ""
 echo "merge_local_settings_keys retired env keys: PASS"
 
+# Memory hooks only where memory sync is set up (#1024). Run against both real
+# profiles, so a renamed hook or a new handler on the same entry shows up here.
+MEM_DIR="$TEST_DIR/memory-hooks"
+mkdir -p "$MEM_DIR"
+unset CLAUDE_MEMORY_REPO_URL
+# hook_names <settings.json>: event:file for every handler, sorted.
+hook_names() {
+    jq -r '(.hooks // {}) | to_entries[] | .key as $e | .value[] | .hooks[]
+           | "\($e):\(.command | split(" ") | last | split("/") | last)"' "$1" \
+        | sort | tr '\n' ' ' | sed -e 's/ *$//'
+}
+one_line() { tr '\n' ' ' | sed -e 's/ *$//'; }
+
+cp "$REPO_ROOT/global/settings.json" "$MEM_DIR/posix.json"
+merge_eq "posix: memory hooks named" \
+    "$(drop_memory_hooks_unless_synced "$MEM_DIR/posix.json" | one_line)" \
+    "memory-write-guard.sh memory-integrity-check.sh memory-access-logger.sh"
+merge_eq "posix: other hooks kept" "$(hook_names "$MEM_DIR/posix.json")" \
+    "PreToolUse:dangerous-command-guard.sh PreToolUse:merge-gate-guard.sh SessionEnd:prune-permission-rules.sh"
+merge_eq "posix: merge-gate-guard keeps its if" \
+    "$(jq -r '.hooks.PreToolUse[] | .hooks[] | select(.command | contains("merge-gate-guard")) | .if' "$MEM_DIR/posix.json")" \
+    "Bash(*gh pr merge*)"
+merge_eq "posix: nothing outside hooks changes" \
+    "$(jq -S 'del(.hooks)' "$MEM_DIR/posix.json")" "$(jq -S 'del(.hooks)' "$REPO_ROOT/global/settings.json")"
+
+cp "$REPO_ROOT/global/settings.windows.json" "$MEM_DIR/windows.json"
+merge_eq "windows: memory hooks named" \
+    "$(drop_memory_hooks_unless_synced "$MEM_DIR/windows.json" | one_line)" \
+    "edit-guard-dispatcher.ps1 memory-integrity-check.ps1 memory-access-logger.ps1"
+merge_eq "windows: other hooks kept" "$(hook_names "$MEM_DIR/windows.json")" \
+    "PreToolUse:bash-guard-dispatcher.ps1 SessionEnd:prune-permission-rules.ps1"
+
+# The Windows Edit|Write dispatcher is dropped whole, which is right only while
+# memory-write-guard is the one guard it routes (#964). A new guard there must
+# come with a change to MEMORY_HOOK_COMMANDS.
+routed="$(grep -oE "guards\.Add\(@\{ name = '[A-Za-z-]+'" "$REPO_ROOT/global/hooks/edit-guard-dispatcher.ps1" \
+    | sed -E "s/.*'([A-Za-z-]+)'/\1/" | sort -u | one_line)"
+merge_eq "edit-guard-dispatcher routes only memory-write-guard" "$routed" "memory-write-guard"
+
+# Either signal of memory sync keeps the profile byte for byte.
+mkdir -p "$HOME/.claude/memory-shared"
+cp "$REPO_ROOT/global/settings.json" "$MEM_DIR/synced.json"
+merge_eq "memory-shared present: nothing dropped" "$(drop_memory_hooks_unless_synced "$MEM_DIR/synced.json")" ""
+cmp -s "$MEM_DIR/synced.json" "$REPO_ROOT/global/settings.json" \
+    || { echo "FAIL: memory-shared present, but the profile changed"; exit 1; }
+rmdir "$HOME/.claude/memory-shared"
+cp "$REPO_ROOT/global/settings.json" "$MEM_DIR/url.json"
+merge_eq "CLAUDE_MEMORY_REPO_URL set: nothing dropped" \
+    "$(CLAUDE_MEMORY_REPO_URL=https://example.invalid/memory.git drop_memory_hooks_unless_synced "$MEM_DIR/url.json")" ""
+cmp -s "$MEM_DIR/url.json" "$REPO_ROOT/global/settings.json" \
+    || { echo "FAIL: CLAUDE_MEMORY_REPO_URL set, but the profile changed"; exit 1; }
+echo "drop_memory_hooks_unless_synced: PASS"
+
 echo "All helper tests passed!"
 exit 0

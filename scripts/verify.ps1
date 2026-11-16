@@ -556,6 +556,23 @@ function Test-SyncSettings {
         return
     }
 
+    # The installers leave the memory hooks out where memory sync is not set
+    # up (#1024), so compare with the profile as this machine receives it. The
+    # installer's own helper builds it, in a child scope so that the functions
+    # and variables of install-manifest.ps1 stay out of this function.
+    $expected = Join-Path ([System.IO.Path]::GetTempPath()) "verify-settings_$([guid]::NewGuid()).json"
+    try {
+        Copy-Item -LiteralPath $Source -Destination $expected -Force -ErrorAction Stop
+        & {
+            . (Join-Path $ScriptDir 'install-manifest.ps1')
+            Remove-MemoryHooksUnlessSynced -SettingsPath $expected -ClaudeDir (Split-Path -Parent $Destination) | Out-Null
+        }
+        $Source = $expected
+    }
+    catch {
+        # Compare with the profile as it is.
+    }
+
     try {
         $src = Get-Content -Raw -LiteralPath $Source | ConvertFrom-Json
         $dst = Get-Content -Raw -LiteralPath $Destination | ConvertFrom-Json
@@ -564,6 +581,9 @@ function Test-SyncSettings {
         Write-ErrorMessage "DIFF: $label (unparseable JSON)"
         $script:SYNC_DIFF++
         return
+    }
+    finally {
+        Remove-Item -LiteralPath $expected -Force -ErrorAction SilentlyContinue
     }
 
     foreach ($key in @('permissions', 'hooks')) {

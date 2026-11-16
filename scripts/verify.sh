@@ -496,6 +496,20 @@ check_sync_settings() {
         return
     fi
 
+    # The installers leave the memory hooks out where memory sync is not set
+    # up (#1024), so compare with the profile as this machine receives it. The
+    # installer's own helper builds it, in a subshell so that the set -e and
+    # globals of install-manifest.sh stay out of this script.
+    local expected
+    expected="$(mktemp "${TMPDIR:-/tmp}/verify-settings.XXXXXX" 2> /dev/null)" || expected=""
+    if [ -n "$expected" ]; then
+        if cp "$src" "$expected" 2> /dev/null \
+            && ( . "$BACKUP_DIR/scripts/install-manifest.sh" \
+                && drop_memory_hooks_unless_synced "$expected" > /dev/null ) 2> /dev/null; then
+            src="$expected"
+        fi
+    fi
+
     local mismatch
     mismatch="$(python3 - "$src" "$dst" <<'PY'
 import json, sys
@@ -520,6 +534,7 @@ for key in ("permissions", "hooks"):
         sys.exit(0)
 PY
 )"
+    [ -z "$expected" ] || rm -f "$expected"
 
     if [ -z "$mismatch" ]; then
         success "SYNC: $label"
