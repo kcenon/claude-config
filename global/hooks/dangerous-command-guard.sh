@@ -7,21 +7,26 @@
 #
 # Decision tiers (issue #964):
 #   deny  - irreversible AND reaching beyond the working tree or shared state:
-#           recursive rm of /, an absolute path, ~ or $HOME; a fetch piped to
-#           an interpreter; chmod 777 / setuid; IFS obfuscation; a direct push
-#           to main/master/develop (ported from push-target-guard); gh repo
-#           delete; gh api DELETE on repos/<owner>/<repo> itself.
+#           recursive rm of /, a top-level directory, a home directory, ~ or
+#           $HOME, by its spelling or by the path it resolves to (#1027); a
+#           fetch piped to an interpreter; chmod 777 / setuid; IFS
+#           obfuscation; a direct push to main/master/develop (ported from
+#           push-target-guard); gh repo delete; gh api DELETE on
+#           repos/<owner>/<repo> itself.
 #   ask   - irreversible but scoped to the working tree, or rewriting or
 #           deleting a shared ref: git reset --hard, git checkout -- <path> /
 #           . / -f, git switch -f / --force / --discard-changes and git
 #           restore without --staged (only when the work tree has changes),
 #           git clean -f, git stash drop|clear, git push --force
 #           / -f / +<ref> (not --force-with-lease), git push --delete / -d /
-#           <remote> :<ref>, recursive rm of ., .., *, .*, .git or a path that
-#           resolves outside the repository, find -delete / -exec rm, gh
-#           <group> delete|delete-asset, and every other gh api DELETE.
+#           <remote> :<ref>, recursive rm of ., .., *, .*, .git, a path that
+#           resolves outside the repository or any other absolute path, find
+#           -delete / -exec rm, gh <group> delete|delete-asset, and every
+#           other gh api DELETE.
 #   allow - everything else; recoverable through the reflog, the remote or
-#           VCS history.
+#           VCS history. A recursive rm below a session temp root
+#           (/tmp/claude-<uid>, $TMPDIR, the macOS per-user temp directory)
+#           is allowed when the path it resolves to stays below it too.
 #
 # Inspectability: the payload of `bash|sh|zsh|dash|ksh|fish -c '...'` and of
 # `eval ...` is tokenized and inspected with the same rules, up to
@@ -228,6 +233,11 @@ coarse_scan() {
     local rm="${W}rm${S}(${G}${S})?"
     local rmr="${rm}${rec}"
     local home="(~|[\$]HOME|[\$][{]HOME[}])"
+    # The absolute paths of the deny tier (#1027): the root, a top-level
+    # directory, /private/<dir>, and a home directory. A deeper path asks
+    # through the rm -r arm below; the coarse scan resolves no path.
+    local seg="[^/[:space:]\"';&|)]+"
+    local denied="(${home}/*|/+((private|Users|home)/+${seg}/*|${seg}/*)?)${Q}?"
     # `git`, its global options as in inspect_git, and `push`: only those or an
     # expansion may come between them, so `git stash push` is not a push.
     local pushed="${W}git(${S}+((-C|-c|--git-dir|--work-tree|--namespace|--super-prefix)${S}+[^[:space:]]+|-[^[:space:]]*|${Q}?[\$][^[:space:]]*))*${S}+push"
@@ -246,9 +256,9 @@ coarse_scan() {
     fi
 
     # A recursive flag and a denied target, in either order.
-    if coarse_has "$COARSE_TEXT" "${rmr}${S}(${G}${S})?${Q}?(${home}(/|${E})|/)" \
-        || coarse_has "$COARSE_TEXT" "${rm}${Q}?(${home}(/${G})?${Q}?|/${G})${S}(${G}${S})?${rec}${E}"; then
-        deny_response "Dangerous recursive delete at root directory blocked for safety"
+    if coarse_has "$COARSE_TEXT" "${rmr}${S}(${G}${S})?${Q}?${denied}${E}" \
+        || coarse_has "$COARSE_TEXT" "${rm}${Q}?${denied}${S}(${G}${S})?${rec}${E}"; then
+        deny_response "Dangerous recursive delete of the root, a top-level directory or a home directory blocked for safety"
     fi
 
     # One git push per line, cut at a redirection or a comment, without the
@@ -331,9 +341,7 @@ DCG_TOKENIZER_MAX_BYTES="${DCG_TOKENIZER_MAX_BYTES:-16384}"
 if [ "${#CMD}" -gt "$DCG_TOKENIZER_MAX_BYTES" ]; then
     COARSE_TEXT=$(coarse_prepare "$CMD") || COARSE_TEXT="$CMD"
     [ -n "$COARSE_TEXT" ] || COARSE_TEXT="$CMD"
-    if coarse_has "$COARSE_TEXT" 'rm\s+(-[rRf]*[rR][rRf]*|--recursive)\s+/'; then
-        deny_response "Dangerous recursive delete at root directory blocked for safety"
-    fi
+    # A recursive rm is left to coarse_scan, which knows the deny tier (#1027).
     if coarse_has "$COARSE_TEXT" 'chmod\s+(0?777|a\+rwx|[246][0-9][0-9][0-9])'; then
         deny_response "Dangerous permission change (777/a+rwx) blocked for security"
     fi
@@ -669,6 +677,123 @@ is_dir_or_ancestor() {
     [ -z "$1" ] || [[ "$1" =~ ^\.\.(/\.\.)*$ ]]
 }
 
+# normalize_abs <absolute-path>: lexically normalize an absolute path; ".."
+# stops at the root. Prints "/" for the root itself.
+normalize_abs() {
+    local n
+    n=$(normalize_rel "$1")
+    while :; do
+        case "$n" in
+            ..) n="" ;;
+            ../*) n="${n#../}" ;;
+            *) break ;;
+        esac
+    done
+    printf '/%s\n' "$n"
+}
+
+# physical_path <absolute-path>: the path rm reaches, with every symbolic link
+# resolved; fails when the path does not exist. rm removes a link itself, so
+# the last component is resolved only when a slash, "." or ".." ends the path.
+physical_path() {
+    local p="$1" base dir
+    case "$p" in
+        */|*/.|*/..)
+            (CDPATH='' cd -P "$p" 2>/dev/null && pwd -P)
+            return
+            ;;
+    esac
+    base="${p##*/}"
+    dir="${p%/*}"
+    dir=$(CDPATH='' cd -P "${dir:-/}" 2>/dev/null && pwd -P) || return 1
+    [ -e "$dir/$base" ] || [ -L "$dir/$base" ] || return 1
+    printf '%s/%s\n' "${dir%/}" "$base"
+}
+
+# abs_deny_kind <normalized-absolute-path>: prints what the path is when a
+# recursive delete of it is denied: the root, a top-level directory (on macOS
+# also /private/<dir>, which /tmp, /var and /etc point to), a home directory,
+# or a parent of $HOME.
+abs_deny_kind() {
+    local p="$1" home=""
+    [ -z "${HOME:-}" ] || home=$(normalize_abs "$HOME")
+    case "$p" in
+        /) echo "the root directory"; return 0 ;;
+        /private/*/*|/Users/*/*|/home/*/*) ;;
+        /private/*) echo "a top-level directory"; return 0 ;;
+        /Users/*|/home/*) echo "a home directory"; return 0 ;;
+        /*/*) ;;
+        *) echo "a top-level directory"; return 0 ;;
+    esac
+    if [ -n "$home" ]; then
+        if [ "$p" = "$home" ]; then echo "a home directory"; return 0; fi
+        case "$home/" in "$p/"*) echo "a parent of the home directory"; return 0 ;; esac
+    fi
+    return 1
+}
+
+# TEMP_ROOTS: the session temp roots, a path below which may be removed
+# recursively (#1027). Each root is listed lexically and resolved. A root that
+# is itself in the deny tier, such as TMPDIR=/tmp, is left out.
+TEMP_ROOTS=()
+TEMP_ROOTS_SET=0
+add_temp_root() {
+    local r
+    case "$1" in /*) ;; *) return 0 ;; esac
+    r=$(normalize_abs "$1")
+    ! abs_deny_kind "$r" >/dev/null || return 0
+    TEMP_ROOTS+=("$r")
+    r=$(physical_path "$r/") || return 0
+    TEMP_ROOTS+=("$r")
+}
+temp_roots() {
+    [ "$TEMP_ROOTS_SET" = 0 ] || return 0
+    TEMP_ROOTS_SET=1
+    add_temp_root "/tmp/claude-${UID:-}"
+    add_temp_root "/private/tmp/claude-${UID:-}"
+    add_temp_root "${TMPDIR:-}"
+    case "${OSTYPE:-}" in
+        darwin*) add_temp_root "$(getconf DARWIN_USER_TEMP_DIR 2>/dev/null || true)" ;;
+    esac
+}
+
+# under_temp_root <absolute-path>: succeeds when the path lies strictly below
+# a session temp root.
+under_temp_root() {
+    local r
+    temp_roots
+    for r in ${TEMP_ROOTS[@]+"${TEMP_ROOTS[@]}"}; do
+        case "$1" in "$r"/?*) return 0 ;; esac
+    done
+    return 1
+}
+
+# inspect_abs_target <target> <absolute-path>: the decision on a recursive
+# delete of an absolute path (#1027). Deny for the deny tier, by its spelling
+# or by the path it resolves to; allow below a session temp root, when the
+# resolved path stays there too; ask for anything else.
+inspect_abs_target() {
+    local t="$1" lex real="" kind shown
+    lex=$(normalize_abs "$2")
+    real=$(physical_path "$2") || real=""
+    for shown in "$lex" "$real"; do
+        [ -n "$shown" ] || continue
+        if kind=$(abs_deny_kind "$shown"); then
+            if [ "$t" = "$shown" ]; then
+                echo "Dangerous recursive delete of ${kind} blocked for safety: '${t}'"
+            else
+                echo "Dangerous recursive delete of ${kind} blocked for safety: '${t}' is '${shown}'"
+            fi
+            return 1
+        fi
+    done
+    if under_temp_root "$lex" && { [ -z "$real" ] || under_temp_root "$real"; }; then
+        return 0
+    fi
+    echo "Recursive delete of '${t}' cannot be undone, and the path is not inside a session temp directory. Confirm to proceed."
+    return 2
+}
+
 # worktree_state <dir>: prints dirty, clean or norepo; unknown when <dir>
 # is empty or missing, so that the caller asks rather than guesses.
 worktree_state() {
@@ -724,15 +849,42 @@ inspect_rm() {
     done
     [ "$has_recursive" = 1 ] || return 0
 
-    # Deny: the root, any absolute path, or the home directory.
+    # An absolute path, or one through ~ or $HOME (#1027): deny the root, a
+    # top-level directory and a home directory; allow a path below a session
+    # temp root; ask for any other. A deny of any target wins over an ask.
+    local abs rc reason asked=""
     for t in ${targets[@]+"${targets[@]}"}; do
         case "$t" in
-            /*|\$HOME|\$HOME/*|\$\{HOME\}|\$\{HOME\}/*|\~|\~/*)
-                echo "Dangerous recursive delete at root directory blocked for safety"
+            \~|\$HOME|\$\{HOME\})
+                echo "Dangerous recursive delete of the home directory blocked for safety: '${t}'"
+                return 1
+                ;;
+            \~/*|\$HOME/*|\$\{HOME\}/*)
+                if [ -z "${HOME:-}" ]; then
+                    echo "Dangerous recursive delete of the home directory blocked for safety: '${t}'"
+                    return 1
+                fi
+                abs="$HOME/${t#*/}"
+                ;;
+            /*) abs="$t" ;;
+            *) continue ;;
+        esac
+        [ "$TEMP_ROOTS_SET" = 1 ] || temp_roots
+        rc=0
+        reason=$(inspect_abs_target "$t" "$abs") || rc=$?
+        case "$rc" in
+            0) ;;
+            2) [ -n "$asked" ] || asked="$reason" ;;
+            *)
+                echo "$reason"
                 return 1
                 ;;
         esac
     done
+    if [ -n "$asked" ]; then
+        echo "$asked"
+        return 2
+    fi
 
     # Ask: the current directory, a parent, a glob over either, .git, or a
     # path that resolves outside the repository work tree. Outside a work
@@ -740,7 +892,7 @@ inspect_rm() {
     local n base parent glob info prefix="" repo="unchecked"
     for t in ${targets[@]+"${targets[@]}"}; do
         case "$t" in
-            *'$'*|*'`'*|'~'*) continue ;;   # not statically resolvable
+            *'$'*|*'`'*|'~'*|/*) continue ;;   # not resolvable, or absolute
         esac
         n=$(normalize_rel "$t")
         base="${n##*/}"
