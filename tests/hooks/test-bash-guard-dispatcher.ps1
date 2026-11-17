@@ -23,6 +23,12 @@ $script:Passed = 0
 $script:Failed = 0
 $script:Errors = [System.Collections.Generic.List[string]]::new()
 
+# The real guards behind the dispatcher log their decisions. They write to a
+# scratch directory, so the suite never touches ~/.claude/logs (#1030).
+$script:SavedLogDir = $env:CLAUDE_LOG_DIR
+$script:LogRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("bgd-logs-" + [guid]::NewGuid().ToString('N'))
+$env:CLAUDE_LOG_DIR = $script:LogRoot
+
 function Invoke-Dispatcher {
     param([string]$InputJson)
     $raw = $InputJson | & pwsh -NoProfile -File $script:HookPath 2>$null
@@ -129,6 +135,28 @@ Assert-ReasonMatches -InputJson $askDeny -Pattern '\[bash-sensitive-read-guard\]
     -Label 'ask + deny reason names the denying guard'
 Assert-Decision      -InputJson $benign  -Expected 'allow' -Label 'allow only -> allow'
 
+Write-Host ''
+Write-Host '[Decision logs go to CLAUDE_LOG_DIR (#1030)]'
+# The guards above wrote their lines here and nowhere else: each one logs to
+# a single directory, CLAUDE_LOG_DIR when it is set.
+$dcgLog = Join-Path $script:LogRoot 'dangerous-command-guard.log'
+$secretLog = Join-Path $script:LogRoot 'shell-env-secret-guard.log'
+$dcgText = if (Test-Path -LiteralPath $dcgLog) { Get-Content -LiteralPath $dcgLog -Raw } else { '' }
+$logChecks = @(
+    @('dangerous-command-guard logged the rm -rf / deny in the scratch directory', ($dcgText -match '"decision":"deny"[^\n]*"command":"rm -rf /"')),
+    @('shell-env-secret-guard logged in the scratch directory', (Test-Path -LiteralPath $secretLog))
+)
+foreach ($c in $logChecks) {
+    if ($c[1]) {
+        $script:Passed++
+        Write-Host "  PASS: $($c[0])" -ForegroundColor Green
+    } else {
+        $script:Failed++
+        $script:Errors.Add("FAIL: $($c[0]) - nothing found under $($script:LogRoot)")
+        Write-Host "  FAIL: $($c[0])" -ForegroundColor Red
+    }
+}
+
 # Stub guards pin the merge itself, independent of any real guard's rules:
 # a copy of the dispatcher runs next to stubs that answer from markers in
 # the command (ASK:<guard> / DENY:<guard>).
@@ -165,6 +193,8 @@ Assert-ReasonMatches -InputJson $stubTwoAsks -Pattern '(?s)\[dangerous-command-g
 Assert-Decision      -InputJson $stubAllow   -Expected 'allow' -Label 'stub: allow only -> allow'
 $script:HookPath = $realHook
 Remove-Item -LiteralPath $stubRoot -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $script:LogRoot -Recurse -Force -ErrorAction SilentlyContinue
+if ($null -eq $script:SavedLogDir) { Remove-Item Env:CLAUDE_LOG_DIR -ErrorAction SilentlyContinue } else { $env:CLAUDE_LOG_DIR = $script:SavedLogDir }
 
 Write-Host ''
 # Emit the summary in the repo-standard shape. test-runner.ps1 aggregates with
