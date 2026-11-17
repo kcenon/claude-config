@@ -53,7 +53,8 @@ $guards = [System.Collections.Generic.List[hashtable]]::new()
 
 # Always-on: these have no command filter of their own.
 # bash-sensitive-read-guard and shell-env-secret-guard are Windows-only (#964):
-# macOS and Linux cover those reads with the Bash sandbox read-deny, but the
+# macOS and Linux cover those reads with the Bash sandbox read-deny (files under
+# the working directory and the home-anchored rules; see ENFORCEMENT.md), but the
 # sandbox does not run on Windows, so the guards stay here.
 $guards.Add(@{ name = 'dangerous-command-guard';   closed = $true  })
 $guards.Add(@{ name = 'bash-sensitive-read-guard'; closed = $true  })

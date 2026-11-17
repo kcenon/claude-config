@@ -4,7 +4,7 @@ alwaysApply: false
 
 # Testing Examples
 
-Unit-test, fixture, coverage, edge-case and CI samples in three languages. Companion to `.claude/rules/project-management/testing.md`, which keeps the principles.
+Unit-test, fixture, coverage, edge-case and CI samples in three languages. Companion to `.claude/reference/project-management/testing.md`, which keeps the principles.
 
 > **Loading**: Lives in `.claude/reference/`, outside the auto-loaded `.claude/rules/` tree, so it is never injected automatically. Load with `@load: reference/testing-examples`.
 

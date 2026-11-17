@@ -27,7 +27,7 @@ if ($env:GITHUB_BRANCH) {
 }
 $GitHubRef = if ($env:GITHUB_REF) { $env:GITHUB_REF }
              elseif ($env:GITHUB_BRANCH) { $env:GITHUB_BRANCH }
-             else { 'v1.16.0' }
+             else { 'v1.17.0' }
 
 # Anthropic Claude Code installer pin (#620 — supply-chain parity with bash).
 # The Anthropic-hosted PowerShell installer is pinned by sha256 to prevent
@@ -283,7 +283,6 @@ function Deploy-BootstrapHooks {
     $requiredLibs = @(
         'tokenize-shell.sh',
         'timeout-wrapper.sh',
-        'rotate.sh',
         'validate-commit-message.sh',
         'validate-language.sh',
         'validate-traceability.sh'
@@ -339,6 +338,9 @@ function Install-BootstrapSettingsAndHooks {
 
         $settingsUpdated = Update-ClaudeSettingsJson -SettingsPath $settingsTmp -AgentLang $agentLanguage -ContentLang $contentLanguage
 
+        # The memory hooks are registered only where memory sync is set up (#1024).
+        $droppedMemoryHooks = Remove-MemoryHooksUnlessSynced -SettingsPath $settingsTmp -ClaudeDir $ClaudeDir
+
         Deploy-BootstrapHooks
         Deploy-BootstrapUtilityScripts
 
@@ -354,6 +356,9 @@ function Install-BootstrapSettingsAndHooks {
     }
     if ($retiredKeys -and $retiredKeys.Count -gt 0) {
         Write-Info "removed retired setting: $($retiredKeys -join ', ')"
+    }
+    if ($droppedMemoryHooks -and $droppedMemoryHooks.Count -gt 0) {
+        Write-Info "memory sync not set up, so these hooks are not registered: $($droppedMemoryHooks -join ', ') (rerun the installer after setting it up; see docs/MEMORY_SYNC.md)"
     }
     if ($settingsUpdated) {
         Write-Ok "settings.json (에이전트: $agentLanguage, 컨텐츠: $contentLanguage) 설치 완료"
@@ -390,6 +395,12 @@ function Install-GlobalSettings {
     # Copy files (manifest-guarded: local edits preserved by default)
     $globalFiles = @('CLAUDE.md', 'commit-settings.md', 'git-identity.md', 'token-management.md')
     foreach ($gf in $globalFiles) {
+        # commit-settings.md is rendered from its .tmpl below, once the language
+        # policy is known. Copying the raw file stated the English policy under
+        # every other one (#984).
+        if ($gf -eq 'commit-settings.md' -and (Test-Path -LiteralPath (Join-Path $InstallDir 'global' 'commit-settings.md.tmpl'))) {
+            continue
+        }
         $src  = Join-Path $InstallDir 'global' $gf
         $dest = Join-Path $ClaudeDir $gf
         if (-not (Test-Path -LiteralPath $src)) { continue }
@@ -447,6 +458,21 @@ function Install-GlobalSettings {
     $displayLang = $script:displayLang
     $contentLanguage = $script:contentLanguage
 
+    # commit-settings.md: the same rendered file scripts/install.ps1 deploys.
+    $commitSettingsTmpl = Join-Path $InstallDir 'global' 'commit-settings.md.tmpl'
+    if (Test-Path -LiteralPath $commitSettingsTmpl) {
+        $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "policy_$([guid]::NewGuid()).md"
+        Invoke-PolicyTemplate -Source $commitSettingsTmpl -Destination $tmpFile `
+            -ContentLanguage $script:contentLanguage -AgentDisplay $script:displayLang -AgentLanguage $script:agentLanguage
+        if (Invoke-ManifestTrackedCopy -Src $tmpFile -Dest (Join-Path $ClaudeDir 'commit-settings.md') -Key 'commit-settings.md') {
+            Write-Ok "commit-settings.md 설치됨 (policy phrase: $(Get-PolicyPhrase -Policy $script:contentLanguage))"
+        }
+        else {
+            Write-Info "commit-settings.md 로컬 변경 유지"
+        }
+        Remove-Item -LiteralPath $tmpFile -Force -ErrorAction SilentlyContinue
+    }
+
     # conversation-language.md 템플릿 처리
     $tmplPath = Join-Path $InstallDir 'global' 'conversation-language.md.tmpl'
     if (Test-Path -LiteralPath $tmplPath) {
@@ -494,7 +520,7 @@ function Install-GlobalSettings {
     # Install global skills and commands.
     # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
     # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의
-    # "Skill Aliases" 표에 따라 leading keyword 호출로만 실행된다.
+    # "Skill Aliases" 키워드 목록에 따라 leading keyword 호출로만 실행된다.
     $globalSkillsSrc = Join-Path $InstallDir 'global' 'skills'
     if (Test-Path -LiteralPath $globalSkillsSrc -PathType Container) {
         $globalSkillsDst = Join-Path $ClaudeDir 'skills'
@@ -830,6 +856,13 @@ if ($env:CLAUDE_CONFIG_BOOTSTRAP_TEST_MODE -eq 'atomic-deploy') {
     }
     . $manifestHelper
     Install-BootstrapSettingsAndHooks
+    exit 0
+}
+
+# Test-only: the global install from INSTALL_DIR, with no clone and no CLI check,
+# so that a test can run it on a checked-out tree.
+if ($env:CLAUDE_CONFIG_BOOTSTRAP_TEST_MODE -eq 'global-install') {
+    Install-GlobalSettings
     exit 0
 }
 

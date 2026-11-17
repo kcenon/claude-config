@@ -20,7 +20,7 @@ A guard decides by this rule:
 
 ### Registered hooks
 
-`global/settings.json` registers 10 hook entries:
+`global/settings.json` registers 6 hook entries:
 
 | Event / matcher | Hook | Role |
 |-----------------|------|------|
@@ -29,22 +29,20 @@ A guard decides by this rule:
 | PreToolUse `Edit\|Write` | `memory-write-guard` | Validate writes to the shared memory repository; allow everything else |
 | SessionStart | `memory-integrity-check` | Memory-sync health summary; silent without memory sync |
 | PostToolUse `Read` | `memory-access-logger` | Log reads of shared-memory files (path only) |
-| SessionEnd | `cleanup`, `prune-permission-rules` | Temp file cleanup; prune `permissions.allow` entries that can never match again |
-| WorktreeCreate / WorktreeRemove | `worktree-create`, `worktree-remove` | Worktree contract |
-| PermissionDenied | `permission-denial-logger` | Redacted audit record of denied tool calls |
+| SessionEnd | `prune-permission-rules` | Prune `permissions.allow` entries that can never match again |
 
-A Bash call starts two hook processes and an Edit or Write call one; a Read starts only the async memory-access logger. `global/settings.windows.json` registers the same events. On Windows the `Bash` matcher goes through [`bash-guard-dispatcher.ps1`](#bash-guard-dispatcher-windows), which also runs the Windows-only `bash-sensitive-read-guard` and `shell-env-secret-guard`, because Windows has no OS sandbox.
+The installers register the three memory hooks only where memory sync is set up: `~/.claude/memory-shared` exists, or `CLAUDE_MEMORY_REPO_URL` is set for the install run (#1024). Without memory sync, `~/.claude/settings.json` holds the other three, so a Bash call starts one hook process, two when it contains `gh pr merge`, and an Edit, Write or Read starts none. `global/settings.windows.json` registers the same events, and its `Edit|Write` dispatcher goes with the memory hooks, because `memory-write-guard` is the only guard it routes. On Windows the `Bash` matcher goes through [`bash-guard-dispatcher.ps1`](#bash-guard-dispatcher-windows), which also runs the Windows-only `bash-sensitive-read-guard` and `shell-env-secret-guard`, because Windows has no OS sandbox.
 
 ### Where the removed rules live now
 
-Issue #964 removed the other 32 registrations. A reinstall prunes their script files from `~/.claude/hooks/` and keeps any you edited locally.
+Issue #964 removed 32 registrations and #1023 four more. A reinstall prunes their script files from `~/.claude/hooks/` and keeps any you edited locally.
 
 | Removed hook(s) | Replaced by |
 |-----------------|-------------|
 | `pre-edit-read-guard` (PreToolUse and PostToolUse) | The native Edit/Write contract; the `global/CLAUDE.md` invariant stays |
 | `sensitive-file-guard` | `permissions.deny` `Read(...)` rules, which also block Edit and Write on the path (Claude Code 2.1.228+) |
 | `bash-write-guard` | The Bash sandbox write allowlist (macOS, Linux); `global/CLAUDE.md` |
-| `bash-sensitive-read-guard`, `shell-env-secret-guard` (`.sh`) | The Bash sandbox read-deny covers secret files under the working directory on macOS and Linux, plus `~/.aws/credentials`; SSH keys in `~/.ssh` are a [known gap](ENFORCEMENT.md#secrets-outside-the-working-directory). Nothing there replaces the check on printing a secret-bearing environment variable. The `.ps1` guards stay on Windows |
+| `bash-sensitive-read-guard`, `shell-env-secret-guard` (`.sh`) | The Bash sandbox read-deny covers secret files under the working directory on macOS and Linux, plus the home credential files [listed in ENFORCEMENT.md](ENFORCEMENT.md#secrets-outside-the-working-directory), which also names the ones left readable on purpose. Nothing there replaces the check on printing a secret-bearing environment variable. The `.ps1` guards stay on Windows |
 | `gh-write-verb-guard`, `github-api-preflight` | The destructive `gh` arms of `dangerous-command-guard`; no `additionalContext` injection |
 | `commit-message-guard`, `attribution-guard` | The `commit-msg` git hook; `settings.json` `attribution: ""` |
 | `pr-language-guard`, `traceability-guard` | The `commit-settings.md` instruction; the `pre-push` git hook and the skills check traceability |
@@ -53,6 +51,9 @@ Issue #964 removed the other 32 registrations. A reinstall prunes their script f
 | `team-limit-guard` | Nothing; creating a team is not destructive |
 | `markdown-anchor-validator` (project layer) | Nothing |
 | `session-logger`, `subagent-logger`, `tool-failure-logger`, `task-completed-logger`, `config-change-logger`, `cwd-change-logger`, `pre-compact-snapshot`, `post-compact-restore`, `instructions-loaded-reinforcer`, `post-task-checkpoint`, `prompt-validator`, `task-created-validator`, `version-check` | Nothing; Claude Code's own transcripts and debug logs cover diagnostics |
+| `worktree-create`, `worktree-remove` (#1023) | Claude Code's own `git worktree` logic. A `WorktreeCreate` hook replaces it even inside a git repository, and this one handed back an empty directory. Outside git, `--worktree` now fails instead |
+| `permission-denial-logger` (#1023) | Nothing; `PermissionDenied` fires only in auto mode, which both profiles disable |
+| `cleanup` (#1023) | Nothing; no hook creates the `claude_*` files it deleted, and the OS cleans `TMPDIR` |
 
 ### Shared libraries and their consumers
 
@@ -62,8 +63,7 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 |---------|--------|----------|
 | `tokenize-shell.sh` | `global/hooks/lib/` | Sourced by `dangerous-command-guard.sh`; `dangerous-command-guard.ps1` carries a PowerShell port of its splitter |
 | `timeout-wrapper.sh` | `global/hooks/lib/` | Sourced by `merge-gate-guard.sh` |
-| `rotate.sh` | `global/hooks/lib/` | Sourced by `permission-denial-logger.sh` |
-| `CommonHelpers.psm1` | `global/hooks/lib/` | Imported by every `.ps1` hook except `cleanup.ps1` and `memory-integrity-check.ps1`, and by `scripts/weekly-usage.ps1` |
+| `CommonHelpers.psm1` | `global/hooks/lib/` | Imported by every `.ps1` hook except `memory-integrity-check.ps1`, and by `scripts/weekly-usage.ps1` |
 | `validate-commit-message.sh` | `hooks/lib/` | No hook sources the deployed copy. `~/.claude/commit-settings.md` points readers at it for the exact attribution rules; the `commit-msg` git hook sources the copy that `hooks/install-hooks.sh` installs into `.git/hooks/lib/` |
 | `validate-language.sh` | `hooks/lib/` | `~/.claude/commit-settings.md` names it as the source of the `CLAUDE_CONTENT_LANGUAGE` rules |
 | `validate-traceability.sh` | `hooks/lib/` | The `pr-work` skill: `reference/traceability-impact-template.md` resolves `../../../../hooks/lib/validate-traceability.sh`, which is this copy once installed. The `pre-push` git hook uses its own copy in `.git/hooks/lib/` |
@@ -79,7 +79,7 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 | Deny or confirm destructive commands | [Destructive Command Guard](#2-destructive-command-guard-pretooluse) |
 | Block gh pr merge when any check is non-passing | [Merge Gate Guard](#3-merge-gate-guard-pretooluse) |
 | Guard and observe the shared memory repository | [Memory Hooks](#4-memory-hooks) |
-| Clean up temp files and dead permission rules | [Session-End Housekeeping](#5-session-end-housekeeping-sessionend) |
+| Prune dead permission rules | [Session-End Housekeeping](#5-session-end-housekeeping-sessionend) |
 | Auto-format code after edits | [Auto Formatting](#1-auto-formatting-posttooluse) |
 | Block direct pushes to protected branches | [Pre-push Protected Branch Guard](#git-hooks-pre-push-protected-branch-guard) |
 | Understand how Bash guards are dispatched on Windows | [Bash Guard Dispatcher](#bash-guard-dispatcher-windows) |
@@ -115,9 +115,9 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 **Denied targets**:
 - Filename patterns: `.env` (incl. `.envrc`, `.env.*`, and the `*.env` suffix form such as `production.env`), `.pem`, `.key`, `.p12`, `.pfx`, `*password*`, and SSH key basenames `id_rsa`, `id_ed25519`, `id_ecdsa`, `id_dsa` (incl. suffixed variants)
 - Path patterns: `secrets/`, `credentials/`, `passwords/`, plus `credentials` and `config` under `.aws/`. The plugin-only fallback shares the filename set but additionally blocks `private/`; it stands down when the full suite is active (see [Plugin vs Global](docs/plugin-vs-global.md#retained-divergences)).
-- Home-anchored: `~/.aws/credentials` (#973). The patterns above start with `**/` and are relative to the working directory, so they match only under it.
+- Home-anchored: the credential files listed in [Secrets outside the working directory](ENFORCEMENT.md#secrets-outside-the-working-directory) (#973, #982). The patterns above start with `**/` and are relative to the working directory, so they match only under it.
 
-**Shell channel**: on macOS and Linux the Bash sandbox read-deny covers `cat .env` and similar reads of files under the working directory, plus `~/.aws/credentials`. SSH private keys in `~/.ssh` are deliberately not denied, because sandboxed SSH commit signing reads the key file; see [Secrets outside the working directory](ENFORCEMENT.md#secrets-outside-the-working-directory). Windows has no OS sandbox, so `bash-sensitive-read-guard.ps1` runs in the [Bash dispatcher](#bash-guard-dispatcher-windows) there.
+**Shell channel**: on macOS and Linux the Bash sandbox read-deny covers `cat .env` and similar reads of files under the working directory, plus the home-anchored files. Such a rule also stops a sandboxed tool that reads the file for its own config, so some files stay readable on purpose; see [Secrets outside the working directory](ENFORCEMENT.md#secrets-outside-the-working-directory). Windows has no OS sandbox, so `bash-sensitive-read-guard.ps1` runs in the [Bash dispatcher](#bash-guard-dispatcher-windows) there.
 
 ### 2. Destructive Command Guard (PreToolUse)
 
@@ -126,8 +126,8 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 **Files**: `global/hooks/dangerous-command-guard.sh`, `global/hooks/dangerous-command-guard.ps1`. The file name predates #964 and is kept: installed plugins read it as a probe key, and the decision log and the Windows dispatcher entry use it.
 
 **Deny** (irreversible and reaching beyond the working tree or shared state):
-- recursive `rm` of `/`, an absolute path, `~` or `$HOME`
-- a download piped to an interpreter (`curl ... | sh`)
+- recursive `rm` of `/`, a top-level directory, a home directory, `~` or `$HOME`, or of a path that reaches one of them through `..` or a symbolic link; see [Absolute paths](#absolute-paths)
+- a download piped to an interpreter (`curl ... | sh`, `curl ... | sudo bash`, `curl ... | $SHELL`)
 - `chmod 777` and setuid changes; IFS obfuscation
 - a direct `git push` to `main`, `master` or `develop`, including a refspec-less push whose upstream is one of them
 - `gh repo delete`, and `gh api -X DELETE repos/<owner>/<repo>`
@@ -136,16 +136,22 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 - `git reset --hard`, `git checkout -- <path>` / `.` / `-f`, `git switch -f` / `--force` / `--discard-changes`, and `git restore` without `--staged`, only when the work tree has changes
 - `git clean -f`, `git stash drop` / `clear`
 - `git push --force` / `-f` / `+<ref>` (not `--force-with-lease`), `git push --delete` / `-d`, `git push <remote> :<ref>`
-- recursive `rm` of `.`, `..`, `*`, `.*`, `.git` or a path outside the repository; `find ... -delete` / `-exec rm`
+- recursive `rm` of `.`, `..`, `*`, `.*`, `.git`, a path outside the repository, or an absolute path outside the session temp roots; `find ... -delete`; any `rm` through `find -exec`, `xargs` or `parallel`
 - `gh <group> delete` / `delete-asset` and every other `gh api -X DELETE`
 
-**Allow**: everything else, for example `rm -rf build`, `git reset --soft`, `git push --force-with-lease` to a work branch and `git branch -D`.
+**Allow**: everything else, for example `rm -rf build`, a recursive `rm` below a session temp root, `git reset --soft`, `git push --force-with-lease` to a work branch and `git branch -D`.
+
+**The real command**: the checks read the command itself, not the first word of a sub-command. Every word goes through shell quote removal, so `r"m"`, `r\m` and `'rm'` are all `rm`, and `~"/x"` is `~/x`. A backslash-newline joins its lines. The `&` and `|` of a redirection are not separators (#1033): `2>&1`, `>&2`, `<&0`, `&>file`, `&>>file` and `>|file` stay words of their command, so `curl ... 2>&1 | bash` is a fetch piped to a shell. A lone `&`, `&&`, `|&` and the `&` of an escaped `\>&` still end a command. A backslash makes the next character plain, so `echo \;` is one command and the `\'` of `echo \' ; rm -rf ~` opens no quote: that command is denied. Shell grammar is dropped first: `if`, `then`, `elif`, `else`, `while`, `until`, `do`, `!`, `{`, `(`, `coproc`, a case pattern, a function head and the `)` that closes a subshell, so `for x in a; do rm -rf ~; done` and `(cd repo && git push origin main)` are denied. A one-word subshell keeps its word as the command (#1034): only a closing `)` and redirections may follow a subshell, while a case pattern is followed by its command, so `curl ... | (bash)` and `(bash) 2>&1` are read as bash, and the `(a)` of `case $x in (a) ls;; esac` is dropped. A pattern on a line of its own reads as a command without arguments, as a pattern without its opening parenthesis already did. `for` and `select` keep their words as data, so `for x in rm -rf ~; do :; done` is allowed. A `cd` inside a subshell ends with it. Then go leading `NAME=value` words and redirections, also one whose target is the next word (`>& f rm -rf ~`, `<< EOF rm -rf ~`), and these wrappers with their own flags, in any number and order: `sudo`, `doas`, `env`, `command`, `builtin`, `nice`, `ionice`, `nohup`, `time`, `stdbuf`, `exec`, `timeout`, `gtimeout`, `caffeinate`, `chronic`, `unbuffer`, `setsid`, `xargs`, `parallel` and `watch`. `command -v` only looks a name up. `watch` and `env -S` run a string, which is inspected as a payload. `find -exec` inspects its whole command. A receiver after a fetch is read the same way; a receiver that cannot be resolved asks, as in `curl ... | $X`. This list cannot be complete: another wrapper, `ssh host '...'`, `su -c`, `flock`, an interpreter's own body such as `python -c`, text from any producer but `echo` and `printf` (`cat x | bash`), and a fetch or a literal that reaches the shell through a second pipe (`curl x | tee f | sh`) are not inspected. Text in a heredoc body is inspected line by line, so a prose line that starts with `(rm -rf ~` or `if rm -rf ~` is refused, as one that starts with `rm -rf ~` already was.
 
 **Payload scanning**: the payload of `bash|sh|zsh|dash|ksh|fish -c '...'` and of `eval ...` is tokenized and checked with the same rules, up to three nested levels. A payload that cannot be inspected (unbalanced quotes, a bare variable expansion, deeper nesting) is denied. `source <file>` and `. <file>` are allowed; `eval "$(curl ...)"` is still remote execution.
 
-**Variable command heads**: outside a payload, a command head that is a variable (`$X`, `${X}`) is replaced by the value of an earlier `X=value` or `export X=value` in the same command, so `X=rm; $X -rf ~` is denied like `rm -rf ~`. When the value is unknown, the arguments are checked as if the command were `rm`, and the guard asks if `rm` would be denied or asked; `$EDITOR notes.md` and `"$PYTHON" x.py` stay allowed.
+**Text on standard input**: a shell that reads its commands from standard input runs the text it gets there, so that text is a payload too (#1029): a here-string (`bash <<< '...'`, `<<< '...' bash`) and what an `echo` or `printf` writes into the pipe (`echo '...' | bash`, also behind a wrapper or as `$SHELL`). `echo 'rm -rf /' | bash` is denied like `bash -c 'rm -rf /'`, and `echo 'git stash clear' | bash` asks. The shell must read its commands there: it has no `-c`, and no script operand unless `-s` makes the operands its arguments, so `echo x | bash script.sh` is not inspected. The text is the producer's words after quote removal. Single quotes keep an expansion for the shell to run, so `echo '$X' | bash` is denied like `bash -c '$X'`. An `echo` with a backslash is read with and without its escapes, because bash's `echo` leaves them alone and the `echo` of zsh and dash applies them. `printf` formats only `%s` and `%%`, and the escapes `\n`, `\t`, `\\`, `\"` and `\'`. Text that cannot be known statically asks: an expansion (`echo "$CMD" | bash`), another conversion or another escape. A substitution that fetches (`echo "$(curl ...)" | bash`) is remote execution. A redirection does not keep the text from the shell (#1033): Claude Code runs a command in bash or zsh, and with a pipe zsh (MULTIOS, on by default) writes standard output to the pipe as well as to the file, and reads the pipe before a file or a here-string. So `echo 'rm -rf /' > f | bash`, `echo 'rm -rf /' >&2 | bash` and `echo 'rm -rf /' | bash < f` are denied, and every here-string of the shell is inspected. A receiver that cannot be resolved (`echo ... | $X`) asks when the text would be refused or would ask. As for a fetch, the splitter does not tell a pipe from `;` or `&&`, so `echo 'rm -rf /'; bash` is denied too.
 
-**Over-budget input**: a command longer than `DCG_TOKENIZER_MAX_BYTES` (16384 bytes) is not tokenized. A line-based regex scan denies the deny-tier shapes (recursive `rm` of `/`, an absolute path, `~` or `$HOME`; a fetch piped to an interpreter; `chmod 777`; a push to `main`, `master` or `develop`; `gh repo delete`; `gh api -X DELETE repos/<owner>/<repo>`) and asks when the text contains a keyword of any ask arm. Anything else, such as a long `echo` chain, is allowed with a coarse-scan note.
+**Variable command heads**: outside a payload, a command head that is a variable (`$X`, `${X}`) is replaced by the value of an earlier assignment in the same command, so `X=rm; $X -rf ~` is denied like `rm -rf ~`. `X=value`, `export`, `declare`, `local`, `readonly` and `typeset` count as assignments; `unset X`, an array and `declare -a|-A|-n|-l|-u` forget the value. `${X:-word}` and its `-`, `:=` and `=` forms fall back to a literal word, so `${SHELL:-/bin/sh} -c 'rm -rf /'` is denied like `/bin/sh -c 'rm -rf /'`. An untracked `$SHELL` or `$BASH` names a shell by definition and gets the shell's own decision.
+
+**Unresolved command heads**: any other variable, any other `${...}`, and a `$(...)` or backtick head at any depth may still be `rm` or a shell. The guard asks if `rm` would be denied or asked on the arguments, or if a shell would deny or ask on the operand of a flag ending in `c`, as in `$X -c 'rm -rf /'` and `$(which bash) -c 'rm -rf /'`. `$EDITOR notes.md`, `"$PYTHON" x.py`, `$TAR -cf "$archive" dir` and `$(date)` stay allowed. Commands such as `$CC -c "$src"` and `$GREP -c 'rm -rf /' log` also ask: an unresolved head cannot be told from a shell, and an ask costs one approval. An expansion followed by a path (`$X/bin/rm`, `$(dirname "$0")/rm`) is matched on its basename instead.
+
+**Over-budget input**: a command longer than `DCG_TOKENIZER_MAX_BYTES` (16384 bytes) is not tokenized. A line-based regex scan denies the deny-tier shapes (recursive `rm` of `/`, a top-level directory, `/private/<dir>`, `/Users/<name>`, `/home/<name>`, `~` or `$HOME`, in either order of flag and target, and on `.ps1` the drive and share shapes; a fetch piped to an interpreter; `chmod 777`; a push to `main`, `master` or `develop`; `gh repo delete`; `gh api -X DELETE repos/<owner>/<repo>`) and asks when the text contains a keyword of any ask arm, a `git push` with no refspec, because its target is not known, or a command name that cannot be resolved with a recursive flag (`$X -rf ~`). The scan resolves no path, so any other recursive `rm` asks through the `rm -r` keyword, below a temp root too. A `--dry-run` or `-n` push is skipped. The scan reads the text with `\` continuations joined and quoted spans that hold whitespace blanked, so `echo "git push origin main"` is allowed; a side effect is that `rm -rf "/my data"` asks rather than denies. A line keeps its spans when it holds a substitution, a shell wrapper word, a `-...c` flag before a quote, a pipe into a shell (`echo '...' | bash`, also behind a wrapper, as `$SHELL`, or in a subshell or a group: `| (bash)`, `| { bash; }`, as for a fetch piped to a shell) or a shell word right before `<<<`, and a line that leaves a quote open ends the blanking for the rest of the input, so text in a multi-line string still matches. Anything else, such as a long `echo` chain, is allowed with a coarse-scan note. On `.ps1` every regex of this scan uses `RegexOptions.NonBacktracking` where the runtime has it (.NET 7 and later) and a 1 s timeout; a timeout asks.
 
 **Logging**: one JSON line per `deny` or `ask` decision in `~/.claude/logs/dangerous-command-guard.log` (`CLAUDE_LOG_DIR` overrides the directory). Allow decisions are not logged.
 
@@ -153,7 +159,21 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 - Returns JSON with `permissionDecision` `deny` or `ask` and a reason; a plain allow emits the minimal allow JSON
 - Fail-closed: unparseable hook input is denied
 - The work tree checks run `git status` / `git rev-parse` only after a command has matched an arm
-- Timeout: 5 seconds on POSIX; on Windows, shared with the other Bash guards inside the [dispatcher](#bash-guard-dispatcher-windows)
+- Timeout: 30 seconds on POSIX, raised from 5 s after a local run was cancelled at 5,018 ms and its Bash call ran unguarded (#1023); on Windows, shared with the other Bash guards inside the [dispatcher](#bash-guard-dispatcher-windows)
+
+#### Absolute paths
+
+A recursive `rm` of an absolute path, or of one spelled through `~/`, `$HOME/` or `${HOME}/`, gets one of three decisions (#1027). Each target is judged on its own, and a deny of any target wins over an ask.
+
+| Target | Decision |
+|---|---|
+| `/`; a top-level directory (`/usr`, `/tmp`, `/Users`); on macOS also `/private/<dir>`, which `/tmp`, `/var` and `/etc` point to | deny |
+| a home directory (`/Users/<name>`, `/home/<name>`, the hook's `$HOME`), a parent of `$HOME`, `~`, `$HOME` | deny |
+| `.ps1` only: a drive root (`C:\`), `C:\<dir>`, `C:\Users\<name>`, a network share (`\\server\share`) or its top-level directory | deny |
+| a path strictly below a session temp root: `/tmp/claude-<uid>`, `/private/tmp/claude-<uid>`, the hook's `$TMPDIR`, the macOS per-user temp directory (`getconf DARWIN_USER_TEMP_DIR`); on `.ps1` also the .NET temp path | allow |
+| any other absolute path, a temp root itself, `~/x` | ask |
+
+The path is normalized first, so `//usr/./` is `/usr` and `/tmp/claude-501/../../etc` is `/etc`. When the path exists, the path it resolves to is judged as well: `<root>/link/` where `link` points to `/usr` is denied, and an allow needs the resolved path to stay below a root too. `rm` removes a link itself, so a last component is resolved only when a `/`, `.` or `..` ends the path; `rm -rf <root>/link` is allowed. A temp root that is itself in the deny tier, such as `TMPDIR=/tmp`, is not a root. A target in a variable other than `$HOME`, such as `"$TMPDIR/venv"`, is not resolved and is skipped, as before. Until #1027 every absolute path was denied, with the reason "at root directory"; the reason now names what matched.
 
 ### 3. Merge Gate Guard (PreToolUse)
 
@@ -161,7 +181,7 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 
 **Purpose**: Enforces the "ABSOLUTE CI GATE" rule from `global/CLAUDE.md` at the Bash tool boundary: a deterministic hook gate that catches drift where the model occasionally rationalizes failing checks as "unrelated", "infrastructure", or "pre-existing". The merge method (`--squash`, `--merge`, `--rebase`) is not checked since #964; the repository's merge settings decide it.
 
-**Trigger**: `Bash` tool calls matching `gh pr merge`.
+**Trigger**: on POSIX, `Bash` tool calls containing `gh pr merge`, through the handler's `if` rule `Bash(*gh pr merge*)`. The leading wildcard keeps `bash -c`, `env` and `command` forms in scope (#996). On Windows, the [dispatcher](#bash-guard-dispatcher-windows) routes any command containing `gh` to it.
 
 **Files**: `global/hooks/merge-gate-guard.sh`, `global/hooks/merge-gate-guard.ps1`
 
@@ -186,13 +206,14 @@ A diagnostic is written to stderr in each fail-open case so the user can see why
 **Behavior**:
 - Returns JSON with `permissionDecision: "deny"` listing every non-passing check
 - Fail-open on any gh CLI error; diagnostics written to stderr
-- Timeout: 30 seconds on POSIX, longer than `dangerous-command-guard` because it makes an external API call. On Windows it has no budget of its own: it runs inside the [dispatcher](#bash-guard-dispatcher-windows) and gets whatever remains of the shared 25 s after the guards ahead of it
+- Timeout: 30 seconds on POSIX, which also covers its external API call (`gh pr checks` has a 10 s budget of its own). On Windows it has no budget of its own: it runs inside the [dispatcher](#bash-guard-dispatcher-windows) and gets whatever remains of the shared 25 s after the guards ahead of it
 - Cross-platform: `merge-gate-guard.sh` and `merge-gate-guard.ps1`
 
 **Configuration**:
 ```json
 {
   "type": "command",
+  "if": "Bash(*gh pr merge*)",
   "command": "~/.claude/hooks/merge-gate-guard.sh",
   "timeout": 30
 }
@@ -211,35 +232,23 @@ A diagnostic is written to stderr in each fail-open case so the user can see why
 
 ### 4. Memory Hooks
 
-*Gate and observe the shared memory repository; every hook here is silent when memory sync is not set up.*
+*Gate and observe the shared memory repository. The installers register these hooks only where memory sync is set up (#1024); a machine without it does not start them at all.*
+
+To turn them on after setting up `~/.claude/memory-shared` by hand, re-run the installer. `scripts/install.sh`, `bootstrap.sh`, `scripts/install.ps1` and `bootstrap.ps1` decide on every run, from the repository profile, so a reinstall also turns them off again once the directory is gone.
 
 | Hook | Event | Behavior |
 |------|-------|----------|
 | `memory-write-guard` | PreToolUse `Edit\|Write` | Validates an Edit or Write under `~/.claude/memory-shared/memories/` before it reaches disk: a structure, secret or owner-configuration failure denies, an injection finding only warns. Allows every other path. Timeout 30 s. |
 | `memory-integrity-check` | SessionStart | Prints a short `[memory]` health summary from local metadata, with no network call |
-| `memory-access-logger` | PostToolUse `Read` (async) | Logs the path of each read under the shared memory tree |
+| `memory-access-logger` | PostToolUse `Read` (async) | Logs the path of each read under the shared memory tree. On POSIX, the `if` rule `Read(~/.claude/**/memor*/**)` starts it only for memory directories, including a project memory symlink (#996). |
 
 See [docs/MEMORY_SYNC.md](docs/MEMORY_SYNC.md) for operations and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) for why these stay.
 
 ### 5. Session-End Housekeeping (SessionEnd)
 
-*Keeps your temp directory and your project permission rules clean without manual intervention.*
-
-**`cleanup`** deletes old temporary files on session end:
-- `$TMPDIR/claude_*` (older than 60 minutes)
-- `$TMPDIR/tmp.*` (owned by the current user, older than 60 minutes)
-
-It does not rotate or delete the logs that the loggers removed in #964 left behind in `~/.claude/logs/`.
+*Keeps your project permission rules clean without manual intervention.*
 
 **`prune-permission-rules`** removes `permissions.allow` entries that can never match again from the project's `settings.local.json` (#923). It fails open: any parse, classification or IO error leaves the file byte-identical.
-
-### 6. Worktree and Permission-Denial Hooks
-
-| Hook | Event | Behavior |
-|------|-------|----------|
-| `worktree-create` | WorktreeCreate (synchronous) | Creates an isolated worktree directory when isolation is requested outside a git repository and prints its absolute path; a non-zero exit fails the creation |
-| `worktree-remove` | WorktreeRemove (async) | Logs the removal; cannot block it |
-| `permission-denial-logger` | PermissionDenied (async) | Appends a redacted JSONL record of each denied tool call to `~/.claude/logs/permission-denials.jsonl`; `CLAUDE_PERMISSION_LOGGER=0` disables it |
 
 ### Hook Response Format
 
@@ -338,7 +347,8 @@ block direct tool access to sensitive files:
 Since #964 these `Read(...)` rules are the whole file-channel sensitive-file
 control: a `Read` deny also blocks Edit and Write on the same path (Claude Code
 2.1.228+), and the rules feed the Bash sandbox read-deny on macOS and Linux.
-Both are relative to the working directory for `**/` patterns; see
+Both are relative to the working directory for `**/` patterns, so home
+credential files have their own `~/` rules; see
 [Secrets outside the working directory](ENFORCEMENT.md#secrets-outside-the-working-directory).
 
 The Windows profile also carries a narrow `permissions.allow` list for native
@@ -387,14 +397,14 @@ Decisions for this repo:
 - **No hook mitigation.** The parse limit is upstream of the hook layer; a hook
   cannot pre-empt or override the harness fallback, so this is out of scope.
 - **Prevention is the lever.** Keep single commands short and extract long logic
-  to a script — see `project/.claude/rules/core/environment.md`
-  (Command Construction).
+  to a script — see
+  `project/.claude/reference/workflow/command-construction.md`.
 
 ## Windows Support (PowerShell)
 
 ### Overview
 
-Every hook has a PowerShell (`.ps1`) equivalent for native Windows support without Git Bash. Windows also runs two guards that have no `.sh` twin, `bash-sensitive-read-guard.ps1` and `shell-env-secret-guard.ps1`, because macOS and Linux cover those reads with the Bash sandbox and Windows has no OS sandbox.
+Every hook has a PowerShell (`.ps1`) equivalent for native Windows support without Git Bash. Windows also runs two guards that have no `.sh` twin, `bash-sensitive-read-guard.ps1` and `shell-env-secret-guard.ps1`, because macOS and Linux cover those reads with the Bash sandbox read-deny, for the files [listed in ENFORCEMENT.md](ENFORCEMENT.md#secrets-outside-the-working-directory), and Windows has no OS sandbox.
 
 | Configuration | File |
 |---------------|------|
@@ -565,18 +575,13 @@ after the change actually lands.
 | Memory Write Guard | `memory-write-guard.ps1` | Validates writes to the shared memory repository |
 | Memory Integrity Check | `memory-integrity-check.ps1` | Memory-sync health summary at session start |
 | Memory Access Logger | `memory-access-logger.ps1` | Logs reads of shared-memory files |
-| Cleanup | `cleanup.ps1` | Removes old temp files from `$env:TEMP` |
 | Prune Permission Rules | `prune-permission-rules.ps1` | Prunes dead `permissions.allow` entries on session end |
-| Worktree Create | `worktree-create.ps1` | Creates isolated worktree directory |
-| Worktree Remove | `worktree-remove.ps1` | Logs worktree removal events |
-| Permission Denial Logger | `permission-denial-logger.ps1` | Logs denied tool calls (redacted) |
 
 ### Key Differences from Bash Hooks
 
 | Feature | Bash (`.sh`) | PowerShell (`.ps1`) |
 |---------|-------------|---------------------|
 | JSON parsing | `jq` (external dependency) | `ConvertFrom-Json` (built-in) |
-| Temp file cleanup | `find /tmp -mmin +60` | `Get-ChildItem $env:TEMP` |
 | Pattern matching | `grep -qE` | `-match` operator |
 | HTTP requests | `curl` | `Invoke-WebRequest` |
 | Timestamps | `date +"%Y-%m-%d"` | `Get-Date -Format` |
@@ -675,7 +680,7 @@ not its median.
 | Matcher | Registered | Timeout | Why |
 |---------|-----------|---------|-----|
 | `Edit\|Write` | `memory-write-guard` on POSIX; `edit-guard-dispatcher.ps1` on Windows | 30 s | Fail-open makes a skipped guard worse than a slow one. Measured before #964 with three guards on `Edit\|Write\|Read`: median 429 ms and p99 1,020 ms over 35,276 local runs, worst case 11,141 ms (#897). |
-| `Bash` | `dangerous-command-guard` (5 s) and `merge-gate-guard` (30 s) on POSIX; `bash-guard-dispatcher.ps1` on Windows | 5 s / 30 s; 30 s | `merge-gate-guard` makes a network call. The Windows dispatcher has a 25 s internal guard budget plus process-start slack, and names any guard it had to skip instead of truncating silently. |
+| `Bash` | `dangerous-command-guard` and, for calls containing `gh pr merge`, `merge-gate-guard` on POSIX; `bash-guard-dispatcher.ps1` on Windows | 30 s | On the old 5 s budget a local `dangerous-command-guard` run was cancelled at 5,018 ms and its Bash call ran unguarded (#1023). `merge-gate-guard` makes a network call. The Windows dispatcher has a 25 s internal guard budget plus process-start slack, and names any guard it had to skip instead of truncating silently. |
 
 ### Formatter not working
 
@@ -751,37 +756,16 @@ this catalog for the canonical hook inventory.
 
 | Hook | Hook Type | PowerShell |
 |---|---|---|
-| [`cleanup.sh`](#cleanup) | SessionEnd | yes |
 | [`dangerous-command-guard.sh`](#dangerous-command-guard) | PreToolUse (Bash) | yes |
 | [`memory-access-logger.sh`](#memory-access-logger) | PostToolUse (Read) | yes |
 | [`memory-integrity-check.sh`](#memory-integrity-check) | SessionStart (sync) | yes |
 | [`memory-write-guard.sh`](#memory-write-guard) | PreToolUse (Edit|Write) | yes |
 | [`merge-gate-guard.sh`](#merge-gate-guard) | PreToolUse (Bash) | yes |
-| [`permission-denial-logger.sh`](#permission-denial-logger) | PermissionDenied | yes |
 | [`prune-permission-rules.sh`](#prune-permission-rules) | SessionEnd | yes |
-| [`worktree-create.sh`](#worktree-create) | WorktreeCreate (synchronous, type: command only) | yes |
-| [`worktree-remove.sh`](#worktree-remove) | WorktreeRemove (async, type: command only) | yes |
 
-_Total: 10 bash hooks, 10 with PowerShell counterparts._
+_Total: 6 bash hooks, 6 with PowerShell counterparts._
 
 ### Hook Details
-
-### cleanup
-
-_File:_ `cleanup.sh`
-
-_Anchor:_ `#cleanup`
-
-Cleans up temporary files created during session
-
-| Field | Value |
-|---|---|
-| Hook Type | SessionEnd |
-| Trigger / Matcher | — |
-| Exit codes | 0=success |
-| Response format | none (lifecycle event, no JSON output needed) |
-| PowerShell counterpart | present (`cleanup.ps1`) |
-| Source | `global/hooks/cleanup.sh` |
 
 ### dangerous-command-guard
 
@@ -869,24 +853,6 @@ Blocks gh pr merge commands when any PR check is not passing.
 | PowerShell counterpart | present (`merge-gate-guard.ps1`) |
 | Source | `global/hooks/merge-gate-guard.sh` |
 
-### permission-denial-logger
-
-_File:_ `permission-denial-logger.sh`
-
-_Anchor:_ `#permission-denial-logger`
-
-Appends a redacted JSONL audit record for every denied tool call.
-
-| Field | Value |
-|---|---|
-| Hook Type | PermissionDenied |
-| Trigger / Matcher | — |
-| Exit codes | 0 (always — passive logger, never alters the permission decision) |
-| Response format | none (observation-only event; no JSON emitted, never blocks) |
-| Fail policy | best-effort; logging failures are swallowed and never surface |
-| PowerShell counterpart | present (`permission-denial-logger.ps1`) |
-| Source | `global/hooks/permission-denial-logger.sh` |
-
 ### prune-permission-rules
 
 _File:_ `prune-permission-rules.sh`
@@ -904,39 +870,5 @@ Prunes permissions.allow entries that can never match again from the project-sco
 | Fail policy | fail-open - any parse, classification, or IO error leaves the file byte-identical |
 | PowerShell counterpart | present (`prune-permission-rules.ps1`) |
 | Source | `global/hooks/prune-permission-rules.sh` |
-
-### worktree-create
-
-_File:_ `worktree-create.sh`
-
-_Anchor:_ `#worktree-create`
-
-Creates an isolated worktree directory for non-git environments
-
-| Field | Value |
-|---|---|
-| Hook Type | WorktreeCreate (synchronous, type: command only) |
-| Trigger / Matcher | synchronous, type: command only |
-| Exit codes | — |
-| Response format | — |
-| PowerShell counterpart | present (`worktree-create.ps1`) |
-| Source | `global/hooks/worktree-create.sh` |
-
-### worktree-remove
-
-_File:_ `worktree-remove.sh`
-
-_Anchor:_ `#worktree-remove`
-
-Cleans up and logs worktree removal events
-
-| Field | Value |
-|---|---|
-| Hook Type | WorktreeRemove (async, type: command only) |
-| Trigger / Matcher | async, type: command only |
-| Exit codes | — |
-| Response format | — |
-| PowerShell counterpart | present (`worktree-remove.ps1`) |
-| Source | `global/hooks/worktree-remove.sh` |
 
 <!-- END AUTO-GENERATED HOOKS -->

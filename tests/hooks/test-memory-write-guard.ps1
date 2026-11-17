@@ -200,6 +200,32 @@ try {
         # resolution threw inside a try and returned the raw path.
         $dotted = Join-Path $testHome '.claude' 'other' '..' 'memory-shared' 'memories' 'feedback_dotted.md'
         Assert-Decision (New-WritePayload 'Write' $dotted $SecretBody) 'deny' 'New file through a dot segment -> resolved and denied'
+
+        Write-Host ''
+        Write-Host '[Symlinked HOME]'
+        # Another spelling of the same memory file must not miss the prefix gate
+        # and go unvalidated, as memory-write-guard.sh already ensures (#983).
+        if ($testHome -ne $homeLink) {
+            Write-Host '  SKIP: symlinked HOME (this platform could not create the link)'
+        } else {
+            Write-Host "  link target: $((Get-Item -LiteralPath $homeLink).ResolveLinkTarget($true).FullName)"
+            $viaReal = Join-Path $homeReal '.claude' 'memory-shared' 'memories' 'feedback_viareal.md'
+            $viaLink = Join-Path $homeLink '.claude' 'memory-shared' 'memories' 'feedback_vialink.md'
+            Assert-Decision (New-WritePayload 'Write' $viaReal $SecretBody) 'deny' 'HOME on a link, write through the real path -> denied'
+            Assert-Decision (New-WritePayload 'Write' $viaLink $SecretBody) 'deny' 'HOME on a link, write through the link -> denied'
+            Assert-Decision (New-WritePayload 'Write' $viaReal $CleanBody) 'allow' 'HOME on a link, clean write through the real path -> allowed'
+
+            $env:HOME = $homeReal
+            $env:USERPROFILE = $homeReal
+            try {
+                Assert-Decision (New-WritePayload 'Write' $viaLink $SecretBody) 'deny' 'real HOME, write through a link -> denied'
+                Assert-Decision (New-WritePayload 'Write' $viaReal $SecretBody) 'deny' 'real HOME, write through the real path -> denied'
+            }
+            finally {
+                $env:HOME = $testHome
+                $env:USERPROFILE = $testHome
+            }
+        }
     }
 }
 finally {

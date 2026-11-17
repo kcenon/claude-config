@@ -30,10 +30,19 @@ for f in CLAUDE.md commit-settings.md .claudeignore; do
     cp "$REPO_ROOT/global/$f" "$CLAUDE/$f"
 done
 if [ "$win" -eq 1 ]; then
-    cp "$REPO_ROOT/global/settings.windows.json" "$CLAUDE/settings.json"
+    settings_profile="$REPO_ROOT/global/settings.windows.json"
 else
-    cp "$REPO_ROOT/global/settings.json" "$CLAUDE/settings.json"
+    settings_profile="$REPO_ROOT/global/settings.json"
 fi
+# This HOME has no memory sync, so the installers publish the profile without
+# the memory hooks (#1024). Their own helper drops them here too.
+cp "$settings_profile" "$CLAUDE/settings.json"
+(
+    export HOME="$HOME_DIR"
+    unset CLAUDE_MEMORY_REPO_URL
+    . "$REPO_ROOT/scripts/install-manifest.sh"
+    drop_memory_hooks_unless_synced "$CLAUDE/settings.json" > /dev/null
+)
 cp -R "$REPO_ROOT/global/skills" "$CLAUDE/skills"
 for f in "$REPO_ROOT"/global/hooks/*; do
     if [ -f "$f" ]; then cp "$f" "$CLAUDE/hooks/"; fi
@@ -130,7 +139,23 @@ expect "DIFF: commit-settings.md (rendered: english)"
 cp "$REPO_ROOT/global/commit-settings.md" "$CLAUDE/commit-settings.md"
 echo "rendered commit-settings.md: PASS"
 
-# 4. Each kind of drift is reported; a CRLF and BOM rewrite is not.
+# 4. settings.json is compared with the profile as this machine receives it
+# (#1024). Without memory sync, a deployed file that still registers the memory
+# hooks is stale; with ~/.claude/memory-shared it is what the installer writes.
+cp "$CLAUDE/settings.json" "$TMP/settings.json.dropped"
+grep -q 'memory-' "$TMP/settings.json.dropped" && fail "the staged settings.json still has a memory hook"
+cp "$settings_profile" "$CLAUDE/settings.json"
+run_verify "$PROJ"
+expect "DIFF: settings.json (hooks + permissions) -- hooks"
+mkdir -p "$CLAUDE/memory-shared"
+run_verify "$PROJ"
+[ -z "$(findings)" ] || fail "with memory-shared, the full profile reported differences"
+expect "SYNC: settings.json (hooks + permissions)"
+rmdir "$CLAUDE/memory-shared"
+cp "$TMP/settings.json.dropped" "$CLAUDE/settings.json"
+echo "memory hooks in settings.json: PASS"
+
+# 5. Each kind of drift is reported; a CRLF and BOM rewrite is not.
 if [ "$win" -eq 1 ]; then
     hook_victim="edit-guard-dispatcher.ps1"
 else
@@ -149,7 +174,7 @@ rm -f "$CLAUDE/hooks/$hook_victim"
 echo "# drift" >> "$CLAUDE/hooks/lib/$lib_victim"
 echo "drift" >> "$CLAUDE/skills/$skill_victim"
 rm -f "$PROJ/.claude/reference/$ref_victim"
-echo "drift" >> "$PROJ/.claude/rules/security.md"
+echo "drift" >> "$PROJ/.claude/rules/coding/essentials.md"
 echo "{{AGENT_LANGUAGE}}" >> "$PROJ/.claude/rules/core/communication.md"
 { printf '\357\273\277'; awk '{ printf "%s\r\n", $0 }' "$REPO_ROOT/global/CLAUDE.md"; } > "$crlf_victim.new"
 mv "$crlf_victim.new" "$crlf_victim"
@@ -164,7 +189,7 @@ expect "MISS: hooks/$hook_victim"
 expect "DIFF: hooks/lib/$lib_victim"
 expect "DIFF: skills/$skill_victim"
 expect "MISS: project/.claude/reference/$ref_victim"
-expect "DIFF: project/.claude/rules/security.md"
+expect "DIFF: project/.claude/rules/coding/essentials.md"
 expect "DIFF: project/.claude/rules/core/communication.md (unrendered placeholder)"
 if [ "$win" -eq 0 ]; then
     expect "DIFF: scripts/memory/secret-check.sh"

@@ -111,7 +111,7 @@ For **security-related file exclusions**, use the official `permissions.deny` in
 }
 ```
 
-**Note**: `permissions.deny` is designed for **security** (blocking access to sensitive files), not for **token optimization**. Files blocked by `permissions.deny` are excluded from file discovery and search results.
+**Note**: Path rules in `permissions.deny` are designed for **security** (blocking access to sensitive files), not for **token optimization**. Files blocked by `permissions.deny` are excluded from file discovery and search results. A rule that is a bare tool name is different: it removes that tool's definition from every request (see [Unused Tool Definitions](#unused-tool-definitions)).
 
 ### Migration Strategy
 
@@ -703,6 +703,160 @@ When installing `claude-config`:
 ### Q: Does this affect code generation quality?
 
 **A**: No. Core rules and guidelines remain loaded. Reference materials load when needed.
+
+## Measuring Token Load from Transcripts
+
+`scripts/token-audit/token_audit.py` reads the transcripts that Claude Code
+keeps under `~/.claude/projects/` and prints aggregates only (#999). Run it
+before a configuration change to record a baseline, then again over a window
+after the change.
+
+```bash
+python3 scripts/token-audit/token_audit.py --project <folder>
+python3 scripts/token-audit/token_audit.py --since 2026-11-01T00:00:00Z --json
+python3 scripts/token-audit/token_audit.py --session <id> --session <id> --json
+```
+
+`--session` (repeatable) counts only the named sessions with their subagents
+and workflows; `--exclude-session` leaves one out and wins over `--session`.
+
+What it reports, separately for main, subagent and workflow transcripts:
+
+- Tokens by kind: cache read, cache write (1h and 5m), output (with thinking)
+  and uncached input, counted once per API request.
+- A cache read is the context a request reads again, so the total grows with
+  both the number of requests and the context size of each request.
+- First-request context, and the prefix share: the smallest context of each
+  transcript times its request count, over all cached input.
+- Requests and cached input by context-size bucket.
+- Per tool: calls, result characters, errors and residency. Residency is the
+  result characters times the number of later requests in the same transcript
+  before the next compaction.
+- Path-triggered rules: injections, characters and residency per rule file.
+- Reads by subagents: characters, the share that the parent session also read,
+  and the extra characters when sibling subagents read the same file.
+- Compactions by trigger, and by cause with the median context before each:
+  `manual`, `idle` and `threshold`. The transcript does not say which kind
+  an automatic compaction was. Idle compaction runs after about an hour
+  without a request, so an automatic compaction 30 minutes or more after the
+  last response counts as `idle` and any other as `threshold`. The gap starts
+  at the last assistant line because, since Claude Code 2.1.319, an idle
+  summary can be made in advance and applied when the next prompt arrives,
+  and that prompt is logged just before the compaction. The `auto` trigger
+  count holds both.
+- Re-reads after a compaction: Reads of the same file and range (`offset`,
+  `limit`) as an earlier Read in the same transcript, with a compaction
+  between them and no `Edit`, `Write` or `NotebookEdit` of the file. Both
+  results must be longer than 200 characters, which leaves out the one-line
+  notice a Read returns for a file it already showed unchanged. Reads in
+  requests outside the window or copied from a resumed session count on
+  neither side.
+
+Characters are not converted to tokens, because the ratio depends on language
+and content. The output holds no prompt, tool result, file content or subagent
+task description; file paths of sibling reads appear only with `--show-paths`.
+
+A comparison needs history, so both profiles keep transcripts for 90 days
+(`cleanupPeriodDays`). On the machine where this was measured, 30 days of
+transcripts took about 1.3 GB.
+
+## Unused Tool Definitions
+
+Every request carries the definition of each tool the session can call. On
+Claude Code 2.1.318 an interactive main session sent 47 definitions, about
+184,000 characters of JSON. A bare tool name in `permissions.deny` removes
+that tool's definition from the requests that follow, while a scoped rule
+such as `Bash(rm *)` only blocks calls
+([permissions](https://code.claude.com/docs/en/permissions.md),
+[prompt caching](https://code.claude.com/docs/en/prompt-caching.md)).
+
+Both profiles deny the tools below (#1000). None of them was called in 30
+days on the measuring machine. Sizes are from an interactive main session on
+2.1.318 and add up to about 58,000 characters.
+
+| Entry | Characters | What stops working |
+|---|---|---|
+| `DesignSync` | 10,868 | `/design-sync` with claude.ai/design |
+| `SendToProject`, `SendToProjectContext` | 7,177 and 805 | `/send-to-project` |
+| `RemoteTrigger` | 4,151 | Creating, running and inspecting cloud routines from a session |
+| `ArtifactData`, `ArtifactComments` | 12,526 and 7,527 | Reading and writing an artifact's database and comment threads; publishing with `Artifact` still works |
+| `SendFeedback` | 5,618 | Feedback drafts about Claude Code |
+| `PushNotification` | 1,811 | Notifications that Claude sends on its own to the desktop or a phone |
+| `mcp__claude_ai_Claude_Docs` | 6,001 (8 tools) | The claude.ai Claude Docs connector |
+| `mcp__claude_ai_Google_Drive` | 1,552 (2 tools) | The claude.ai Google Drive connector |
+
+Measured effect, with print-mode sessions on 2.1.318 started from an empty
+folder with and without these entries (`claude -p --settings <file>`):
+
+| Request | Without | With |
+|---|---|---|
+| Main: tool definitions | 32, 93,060 characters | 24, 72,152 characters |
+| Main: first request | 50,138 tokens | 41,651 tokens |
+| General-purpose subagent: tool definitions | 31, 84,074 characters | 23, 63,166 characters |
+| General-purpose subagent: first request | 42,330 tokens | 33,843 tokens |
+
+- Print mode does not load `SendToProject`, `SendToProjectContext`,
+  `ArtifactData`, `ArtifactComments`, `SendFeedback` or the Google Drive
+  connector, so those entries were not observed there. Check them with
+  `/context` in an interactive session.
+- Denying a connector removes its tools but not its server instructions,
+  which still reach the model as an attachment (1,893 characters for Claude
+  Docs, in an `mcp_instructions_delta` record of the transcript).
+  `disableClaudeAiConnectors` turns off claude.ai connectors as a whole; the
+  profiles do not set it, because it would also turn off connectors that a
+  machine does use. Set it per machine instead, as `docs/install.md`
+  "Machine-local settings keys" describes (#1014). In two print-mode sessions
+  on 2.1.319 started from empty folders, the session with the deny entries
+  alone carried the Claude Docs instructions, and the session with
+  `--settings '{"disableClaudeAiConnectors": true}'` carried no
+  `mcp_instructions_delta` record.
+- The tool set changes between versions (2.1.316 sent 45 definitions), so
+  repeat the comparison on the version in use. The `api-request-shape`
+  records in a transcript hold the tool array each session sent
+  (`shape.tools`), and `token_audit.py --since` compares first-request
+  context before and after a change.
+
+To use one of these tools again, remove its entry from both
+`global/settings.json` and `global/settings.windows.json` and reinstall.
+There is no machine-local override: `permissions` is an installer policy key,
+so a reinstall replaces the whole block in `~/.claude/settings.json`, and a
+deny rule cannot be lifted by an `allow` rule in another scope.
+
+## Auto-Compact Window
+
+Automatic compaction runs at the auto-compact window. On models with a
+native 1M-token window that is about 967K tokens by default
+([model configuration](https://code.claude.com/docs/en/model-config.md)).
+The profiles keep that default. #1004 set up a trial of a 500k window for
+code implementation in git worktrees, but no trial session ran, so there is
+no measurement of what an earlier compaction loses in task detail. A lower
+window stays an option to set per launch:
+
+```bash
+claude --autocompact 500k
+claude --resume <id> --autocompact 500k
+```
+
+- The flag sets the window for that launch without changing saved settings
+  ([CLI reference](https://code.claude.com/docs/en/cli-reference.md)). It
+  takes `auto` or 100k to 1M tokens. A session resumed without the flag
+  runs at the saved or default window.
+- `CLAUDE_CODE_AUTO_COMPACT_WINDOW` takes precedence over the flag, and the
+  flag over the `autoCompactWindow` setting. `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`
+  moves the trigger to a percentage of the window and can only lower it, and
+  `DISABLE_AUTO_COMPACT=1` turns off automatic and idle compaction
+  ([environment variables](https://code.claude.com/docs/en/env-vars.md)).
+  Check that none of them is set when a launch relies on the flag.
+- The in-session `/autocompact <size>` command saves the window under the
+  current model in `modelSettings`, so later sessions on that model use it
+  too. To try a window in one session only, use the flag.
+- Idle compaction runs after about an hour without a request once the
+  context is at 200,000 tokens or more. It has its own threshold, so the
+  window does not set it. In the 30 days before #1004, 37 of the 54
+  automatic compactions on the measuring machine were idle compactions,
+  and the other 17 ran at a median of 969,124 tokens. `token_audit.py`
+  reports the two apart, as "Measuring Token Load from Transcripts" above
+  describes.
 
 ## Support
 

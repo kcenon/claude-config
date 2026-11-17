@@ -226,99 +226,7 @@ function Test-VersionGte {
 }
 
 # ──────────────────────────────────────────────────────────────
-# Group 6: File Utilities
-# Replaces bash stat -f%z / stat -c%s
-# ──────────────────────────────────────────────────────────────
-
-function Get-FileSizeBytes {
-    param([Parameter(Mandatory)][string]$Path)
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
-        return 0
-    }
-    return (Get-Item -LiteralPath $Path).Length
-}
-
-# ──────────────────────────────────────────────────────────────
-# Group 7: Log Rotation
-# Ported from global/hooks/lib/rotate.sh
-# ──────────────────────────────────────────────────────────────
-
-function Invoke-LogRotation {
-    <#
-    .SYNOPSIS
-        Rotates a log file when it exceeds the size limit.
-    .DESCRIPTION
-        Port of rotate_log() from rotate.sh.
-        Uses .NET GZipStream instead of external gzip command.
-    .PARAMETER FilePath
-        Path to the log file to rotate.
-    .PARAMETER MaxMB
-        Rotate when file exceeds this size in megabytes. Default: 10.
-    .PARAMETER MaxArchives
-        Keep at most this many .N.gz archives. Default: 5.
-    #>
-    param(
-        [Parameter(Mandatory)][string]$FilePath,
-        [int]$MaxMB = 10,
-        [int]$MaxArchives = 5
-    )
-
-    if (-not (Test-Path -LiteralPath $FilePath -PathType Leaf)) {
-        return
-    }
-
-    $sizeBytes = (Get-Item -LiteralPath $FilePath).Length
-    $maxBytes = $MaxMB * 1024 * 1024
-
-    if ($sizeBytes -le $maxBytes) {
-        return
-    }
-
-    # Shift existing archives: .4.gz -> .5.gz, .3.gz -> .4.gz, ...
-    for ($i = $MaxArchives; $i -gt 1; $i--) {
-        $prev = $i - 1
-        $prevArchive = "${FilePath}.${prev}.gz"
-        if (Test-Path -LiteralPath $prevArchive) {
-            if ($i -gt $MaxArchives) {
-                Remove-Item -LiteralPath $prevArchive -Force
-            }
-            else {
-                $targetArchive = "${FilePath}.${i}.gz"
-                Move-Item -LiteralPath $prevArchive -Destination $targetArchive -Force
-            }
-        }
-    }
-
-    # Compress current file to .1.gz using .NET GZipStream
-    try {
-        $sourceBytes = [System.IO.File]::ReadAllBytes($FilePath)
-        $gzPath = "${FilePath}.1.gz"
-        $fileStream = [System.IO.File]::Create($gzPath)
-        $gzStream = [System.IO.Compression.GZipStream]::new(
-            $fileStream,
-            [System.IO.Compression.CompressionLevel]::Optimal
-        )
-        $gzStream.Write($sourceBytes, 0, $sourceBytes.Length)
-        $gzStream.Dispose()
-        $fileStream.Dispose()
-    }
-    catch {
-        return
-    }
-
-    # Truncate the original file
-    Clear-Content -LiteralPath $FilePath
-
-    # Remove archives beyond max count
-    $j = $MaxArchives + 1
-    while (Test-Path -LiteralPath "${FilePath}.${j}.gz") {
-        Remove-Item -LiteralPath "${FilePath}.${j}.gz" -Force
-        $j++
-    }
-}
-
-# ──────────────────────────────────────────────────────────────
-# Group 8: Banner / Header Printer
+# Group 6: Banner / Header Printer
 # Replaces bash box-drawing character banners
 # ──────────────────────────────────────────────────────────────
 
@@ -342,7 +250,7 @@ function Write-Banner {
 }
 
 # ──────────────────────────────────────────────────────────────
-# Group 9: TTY Detection
+# Group 7: TTY Detection
 # Replaces bash [[ -t 1 ]]
 # ──────────────────────────────────────────────────────────────
 
@@ -355,7 +263,7 @@ function Test-InteractiveTerminal {
 }
 
 # ──────────────────────────────────────────────────────────────
-# Group 10: Prerequisite Checker
+# Group 8: Prerequisite Checker
 # Replaces bash command -v checks
 # ──────────────────────────────────────────────────────────────
 
@@ -402,7 +310,7 @@ function Test-Prerequisites {
 }
 
 # ──────────────────────────────────────────────────────────────
-# Group 11: GitHub Repo Detection
+# Group 9: GitHub Repo Detection
 # Replaces bash gh repo view detection
 # ──────────────────────────────────────────────────────────────
 
@@ -424,7 +332,7 @@ function Get-GitHubRepo {
 }
 
 # ──────────────────────────────────────────────────────────────
-# Group 12: Administrator Check
+# Group 10: Administrator Check
 # Replaces bash sudo permission checks
 # ──────────────────────────────────────────────────────────────
 
@@ -445,7 +353,7 @@ function Test-Administrator {
 }
 
 # ──────────────────────────────────────────────────────────────
-# Group 13: Ensure Directory
+# Group 11: Ensure Directory
 # Replaces bash mkdir -p
 # ──────────────────────────────────────────────────────────────
 
@@ -467,30 +375,38 @@ function New-DirectoryIfMissing {
 Set-Alias -Name Ensure-Directory -Value New-DirectoryIfMissing
 
 # ──────────────────────────────────────────────────────────────
-# Group 14: Path Resolution
+# Group 12: Path Resolution
 # Ported from resolve_path() in the former global/hooks/lib/path-utils.sh
 # ──────────────────────────────────────────────────────────────
+
+# Pushes the segments of a rooted path onto a stack, first segment on top.
+function Push-PathSegment {
+    param($Stack, [string]$RootedPath, [string]$Root)
+    $separators = [char[]]@([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+    $segments = $RootedPath.Substring($Root.Length).Split($separators, [System.StringSplitOptions]::RemoveEmptyEntries)
+    for ($i = $segments.Count - 1; $i -ge 0; $i--) { $Stack.Push($segments[$i]) }
+}
 
 function Resolve-HookPath {
     <#
     .SYNOPSIS
         Canonicalizes a file path for hook pattern matching.
     .DESCRIPTION
-        Port of resolve_path() from the former path-utils.sh, so the
-        PowerShell guards match on the same normalized form the bash guards
-        used.
+        The PowerShell counterpart of realpath(3), so that the PowerShell hooks
+        compare paths in the form the bash hooks do.
 
-        Expands a leading '~' or '$HOME' the same way the bash case statement
-        does, then canonicalizes through [System.IO.Path]::GetFullPath. That
-        static is a pure string transform, so paths that do not exist yet
-        still resolve — Resolve-Path is unusable here because it throws on
-        missing targets and the Write tool legitimately names new files.
+        Expands a leading '~' or '$HOME' the same way the former path-utils.sh
+        did, then walks the path one component at a time. A symlink or reparse
+        point in any component is followed, and a tail that does not exist yet
+        is kept, because the Write tool legitimately names new files.
 
-        When the target does exist, symlinks and reparse points are followed
-        so a link aimed at a denied file canonicalizes to that file.
+        Each shorter route stops early: Resolve-Path does not follow links,
+        ResolveLinkTarget looks only at the last component, and GetFullPath
+        collapses '..' before the link in front of it has been followed (#983).
 
-        Never throws. On any failure the input is returned unchanged, leaving
-        the caller with a string to match against.
+        Never throws. If the walk fails (a link loop, or a runtime older than
+        PowerShell 7.2, which has no ResolveLinkTarget), the result is the
+        lexically normalized path, or the input when even that fails.
     .PARAMETER Path
         The raw path to canonicalize. Empty input is returned as-is.
     #>
@@ -511,23 +427,41 @@ function Resolve-HookPath {
     }
 
     try {
-        $full = [System.IO.Path]::GetFullPath($p)
+        $rooted = [System.IO.Path]::Combine((Get-Location).Path, $p)
+        $current = [System.IO.Path]::GetPathRoot($rooted)
+        $pending = [System.Collections.Generic.Stack[string]]::new()
+        Push-PathSegment -Stack $pending -RootedPath $rooted -Root $current
+        $linksFollowed = 0
+
+        while ($pending.Count -gt 0) {
+            $segment = $pending.Pop()
+            if ($segment -eq '.') { continue }
+            if ($segment -eq '..') {
+                $parent = [System.IO.Path]::GetDirectoryName($current)
+                if ($parent) { $current = $parent }
+                continue
+            }
+
+            $next = [System.IO.Path]::Combine($current, $segment)
+            $item = Get-Item -LiteralPath $next -Force -ErrorAction SilentlyContinue
+            # A hard link reports a LinkType but has no target.
+            $target = if ($item -and $item.LinkType) { $item.ResolveLinkTarget($true) } else { $null }
+            if (-not $target) {
+                $current = $next
+                continue
+            }
+
+            # Bounded like realpath(3): a loop through a parent never ends otherwise.
+            if (++$linksFollowed -gt 40) { throw "too many links in $Path" }
+            # The target's own parents may be links too: walk it from its root.
+            $current = [System.IO.Path]::GetPathRoot($target.FullName)
+            Push-PathSegment -Stack $pending -RootedPath $target.FullName -Root $current
+        }
+        return $current
     }
     catch {
-        return $p
+        try { return [System.IO.Path]::GetFullPath($p) } catch { return $p }
     }
-
-    # Collapse symlinks when the target exists. ResolveLinkTarget is absent
-    # before PowerShell 7.2, and Get-Item fails on unreadable paths; both
-    # land in the catch and leave the string form above standing.
-    try {
-        $item = Get-Item -LiteralPath $full -Force -ErrorAction Stop
-        $linkTarget = $item.ResolveLinkTarget($true)
-        if ($linkTarget) { $full = $linkTarget.FullName }
-    }
-    catch {}
-
-    return $full
 }
 
 # ──────────────────────────────────────────────────────────────
@@ -547,8 +481,6 @@ Export-ModuleMember -Function @(
     'Get-EnterprisePath'
     'Compare-SemanticVersion'
     'Test-VersionGte'
-    'Get-FileSizeBytes'
-    'Invoke-LogRotation'
     'Write-Banner'
     'Test-InteractiveTerminal'
     'Test-Prerequisites'

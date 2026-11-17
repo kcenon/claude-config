@@ -161,6 +161,28 @@ expect deny "gh pr merge --merge with a failing check" "gh pr merge 5 --merge" "
 unset STUB_CHECKS
 
 echo ""
+echo "[settings - the if rule on each handler (#996)]"
+# A wrong rule stops a hook without any error, and the calls above never reach
+# the harness that evaluates it, so the exact rules are pinned here.
+expect_if() {
+    local event="$1" script="$2" expected="$3" got
+    got=$(jq -r --arg e "$event" --arg s "$script" \
+        '.hooks[$e][].hooks[] | select(.command | endswith($s)) | .if // "none"' "$SETTINGS")
+    if [ "$got" = "$expected" ]; then
+        PASS=$((PASS + 1))
+        echo "  PASS: $script -> $got"
+    else
+        FAIL=$((FAIL + 1))
+        ERRORS+=("FAIL: $script - expected if $expected, got $got")
+        echo "  FAIL: $script (expected if $expected, got $got)"
+    fi
+}
+expect_if PreToolUse dangerous-command-guard.sh "none"
+expect_if PreToolUse merge-gate-guard.sh "Bash(*gh pr merge*)"
+expect_if PreToolUse memory-write-guard.sh "none"
+expect_if PostToolUse memory-access-logger.sh "Read(~/.claude/**/memor*/**)"
+
+echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
 if [ ${#ERRORS[@]} -gt 0 ]; then
     echo ""

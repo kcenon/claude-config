@@ -1,0 +1,1 @@
+A shell with no -c reads its commands from standard input, so the text an echo writes into the pipe is the command it runs: the same as `bash -c 'rm -rf /'` (#1029).

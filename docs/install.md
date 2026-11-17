@@ -305,6 +305,18 @@ holds only keys the repo profiles used to ship.
 An unparseable deployed file is not fatal: nothing is carried and the publish
 replaces it wholesale, which is the pre-#915 behaviour.
 
+`disableClaudeAiConnectors` is a key the profiles leave out on purpose (#1014).
+It turns off every claude.ai connector, not only the two that the profiles deny
+by name (#1000), and a machine may use others. The deny entries remove the
+connectors' tools but not their server instructions, which still reach every
+session (about 1,900 characters for Claude Docs). On a machine that uses no
+claude.ai connector, set `"disableClaudeAiConnectors": true` in
+`~/.claude/settings.json`. The profile does not define the key, so every
+reinstall carries it forward and names it in `machine-local settings keys
+preserved: ...`. To use connectors again, remove the key from that file; a
+connector that the profiles deny also needs its deny entry removed from both
+profiles (`docs/TOKEN_OPTIMIZATION.md`, "Unused Tool Definitions").
+
 ## Regression Test
 
 `tests/scripts/test-install-preserves-customization.sh` covers keep,

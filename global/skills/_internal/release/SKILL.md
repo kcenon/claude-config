@@ -368,21 +368,21 @@ echo "Created release PR #$PR_NUMBER: $PR_URL"
 
 ### 6. Monitor CI and Merge
 
-Wait for CI to pass on the release PR, then squash merge:
+Wait for CI to pass on the release PR, then squash merge. Run each command as
+its own call (see the `gh` invariant in `~/.claude/CLAUDE.md`):
 
 ```bash
-# Wait briefly for workflows to register
-sleep 8
+# Wait for every check (in the background, or in the foreground with a 10-minute timeout)
+gh pr checks $PR_NUMBER --repo $ORG/$PROJECT --watch --interval 30 --fail-fast
 
-# Poll CI checks (30s intervals, 10min max)
-# See issue-work reference for full CI monitoring protocol
+# Read the result: ALL checks must pass before proceeding
 gh pr checks $PR_NUMBER --repo $ORG/$PROJECT
 
-# ALL checks must pass before proceeding
 gh pr merge $PR_NUMBER --repo $ORG/$PROJECT --squash
 ```
 
-If CI fails, diagnose and fix on `develop`, push, and re-poll. Max 3 attempts.
+The full wait protocol is in `~/.claude/skills/_internal/pr-work/reference/build-verification.md`.
+If CI fails, diagnose and fix on `develop`, push, and watch again. Max 3 attempts.
 
 #### Sonar Gate on Release PR
 

@@ -105,6 +105,11 @@ prompt is never hand-written per role. (The reviewer role remains the Lead's
 designated exception for push + PR creation in Task 11 below — an existing
 Team Mode responsibility that predates this prompt-generation change.)
 
+**Shared documents:** do not have several agents each read the same large document in full.
+
+- Split the work by document, so that each document has one owner.
+- When one document has to go to several agents, build a heading-to-line index of it once. Give each agent the path and the line range it needs, and tell it to read only that range and to use Grep for anything outside it.
+
 **Dev Team** (implementation + fixes):
 
 ```
@@ -271,7 +276,7 @@ Reviewer has findings?
 
 **Phase E — PR and Merge:**
 1. Reviewer creates PR (Task 11) with full review summary
-2. Lead monitors CI (Task 12): non-blocking polling, 30s intervals, 10min max
+2. Lead waits for CI (Task 12) with one `gh pr checks --watch` call, as in Solo Mode Step 9
 3. On all checks pass: `gh pr merge $PR_NUMBER --repo $ORG/$PROJECT --squash --delete-branch`
 4. Close related issues and epics (Steps 11-12 from Solo Mode)
 5. Post implementation comment to issue (Step 12)

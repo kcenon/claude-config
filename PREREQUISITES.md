@@ -19,7 +19,7 @@ done
 | Tool | Min version | Why claude-config needs it |
 |------|------------:|----------------------------|
 | `git` | 2.30+ | Repository operations, hook installation, worktrees |
-| `jq` | 1.6+ | JSON parsing in `dangerous-command-guard`, `merge-gate-guard`, `memory-write-guard`, `prune-permission-rules`, and `permission-denial-logger` |
+| `jq` | 1.6+ | JSON parsing in `dangerous-command-guard`, `merge-gate-guard`, `memory-write-guard`, and `prune-permission-rules` |
 | `gh` | 2.40+ | `merge-gate-guard` calls `gh pr checks`; the `/issue-work`, `/pr-work`, and `/release` skills shell out to `gh` for PR/issue lifecycle |
 | `perl` | 5.20+ | `validate-hooks.yml` uses Perl regex; `lib/timeout-wrapper.sh` falls back to `perl alarm` when `timeout`/`gtimeout` are unavailable |
 | `bash` | 4.0+ | Repository scripts such as `scripts/validate-rule-frontmatter.sh` use `mapfile`; macOS ships bash 3.2, so install GNU bash via Homebrew or use the Linux runner |
@@ -29,7 +29,7 @@ done
 | Tool | Min version | Used by |
 |------|------------:|---------|
 | `pwsh` (PowerShell) | 7.0+ | Windows hook scripts (`global/hooks/*.ps1`); not needed on macOS/Linux unless you maintain the `.ps1` counterparts |
-| `python3` | 3.8+ | Path-resolution fallback in `memory-write-guard.sh` and `memory-access-logger.sh`; JSON parsing in `worktree-remove.sh`; `tests/scripts/*.py`; `scripts/spec_lint.py` |
+| `python3` | 3.8+ | Path-resolution fallback in `memory-write-guard.sh` and `memory-access-logger.sh`; `tests/scripts/*.py`; `scripts/spec_lint.py` |
 | `shellcheck` | 0.7+ | Optional lint for `global/hooks/*.sh`; required only if running `validate-hooks.yml` locally |
 | `coreutils` (`gtimeout`) | — | Faster `merge-gate-guard` timeout; the perl-alarm fallback in `lib/timeout-wrapper.sh` works without it |
 
@@ -120,8 +120,6 @@ The table below shows which hook needs which tool, so an operator can decide whe
 | `merge-gate-guard.sh` | `gh`, `jq` | Hook fails open; server-side branch protection still gates |
 | `memory-write-guard.sh` | `jq` | Hook fails open with a diagnostic; memory validation is skipped |
 | `prune-permission-rules.sh` | `jq` | Silent no-op; `settings.local.json` is left untouched |
-| `permission-denial-logger.sh` | `jq` | Logs a placeholder line without the payload |
-| `worktree-remove.sh` | `python3` | Logs the removal with the path from `CLAUDE_WORKTREE_PATH`, or `unknown` |
 
 ## Verifying After Install
 

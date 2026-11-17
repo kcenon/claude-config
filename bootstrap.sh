@@ -31,7 +31,7 @@ if [ -n "${GITHUB_BRANCH:-}" ]; then
     echo "warning: GITHUB_BRANCH is deprecated, use GITHUB_REF" >&2
     GITHUB_REF="${GITHUB_REF:-$GITHUB_BRANCH}"
 fi
-GITHUB_REF="${GITHUB_REF:-v1.16.0}"
+GITHUB_REF="${GITHUB_REF:-v1.17.0}"
 
 # Anthropic Claude Code installer pin (M1.2b — supply-chain hardening, see #565).
 # The Anthropic-hosted install script is pinned by sha256 to prevent MITM
@@ -360,7 +360,6 @@ deploy_bootstrap_hooks() {
     for lib in \
         tokenize-shell.sh \
         timeout-wrapper.sh \
-        rotate.sh \
         validate-commit-message.sh \
         validate-language.sh \
         validate-traceability.sh; do
@@ -424,6 +423,10 @@ install_bootstrap_settings_and_hooks() {
         settings_updated=1
     fi
 
+    # The memory hooks are registered only where memory sync is set up (#1024).
+    local dropped_memory_hooks
+    dropped_memory_hooks="$(drop_memory_hooks_unless_synced "$settings_tmp" | tr '\n' ' ' | sed -e 's/ *$//')"
+
     if ! deploy_bootstrap_hooks; then
         rm -f "$settings_tmp"
         error "Hook 스크립트 배포 실패. settings.json을 변경하지 않았습니다."
@@ -444,6 +447,9 @@ install_bootstrap_settings_and_hooks() {
     fi
     if [ -n "$retired_keys" ]; then
         info "removed retired setting: $retired_keys"
+    fi
+    if [ -n "$dropped_memory_hooks" ]; then
+        info "memory sync not set up, so these hooks are not registered: $dropped_memory_hooks (rerun the installer after setting it up; see docs/MEMORY_SYNC.md)"
     fi
     if [ "$settings_updated" = "1" ]; then
         success "settings.json (에이전트: $agent_language, 컨텐츠: $content_language) 설치 완료"
@@ -474,6 +480,12 @@ install_global() {
     # while the file on disk held the seeded one, so the next install saw a
     # divergence it had created itself and prompted for it, every time (#916).
     for gf in CLAUDE.md commit-settings.md git-identity.md token-management.md; do
+        # commit-settings.md is rendered from its .tmpl below, once the language
+        # policy is known. Copying the raw file stated the English policy under
+        # every other one (#984).
+        if [ "$gf" = "commit-settings.md" ] && [ -f "$INSTALL_DIR/global/commit-settings.md.tmpl" ]; then
+            continue
+        fi
         src="$INSTALL_DIR/global/$gf"
         dest="$CLAUDE_DIR/$gf"
         [ -f "$src" ] || continue
@@ -503,6 +515,20 @@ install_global() {
 
     # Language policy selection (Unified Language Profile)
     prompt_language_profile
+
+    # commit-settings.md: the same rendered file scripts/install.sh deploys.
+    if [ -f "$INSTALL_DIR/global/commit-settings.md.tmpl" ]; then
+        local tmp_commit_settings
+        tmp_commit_settings="$(mktemp)"
+        render_policy_tmpl "$INSTALL_DIR/global/commit-settings.md.tmpl" "$tmp_commit_settings"
+        if manifest_copy_file "$tmp_commit_settings" "$CLAUDE_DIR/commit-settings.md" "commit-settings.md"; then
+            chmod 644 "$CLAUDE_DIR/commit-settings.md"
+            success "commit-settings.md 설치됨 (policy phrase: $(get_policy_phrase))"
+        else
+            info "commit-settings.md 로컬 변경 유지"
+        fi
+        rm -f "$tmp_commit_settings"
+    fi
 
     # conversation-language.md 템플릿 처리
     if [ -f "$INSTALL_DIR/global/conversation-language.md.tmpl" ]; then
@@ -552,7 +578,7 @@ install_global() {
     # 글로벌 skills 및 commands 설치
     # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
     # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의
-    # "Skill Aliases" 표에 따라 leading keyword 호출로만 실행된다.
+    # "Skill Aliases" 키워드 목록에 따라 leading keyword 호출로만 실행된다.
     if [ -d "$INSTALL_DIR/global/skills" ]; then
         mkdir -p "$CLAUDE_DIR/skills"
         manifest_copy_tree "$INSTALL_DIR/global/skills" "$CLAUDE_DIR/skills" "skills"
@@ -776,6 +802,13 @@ if [ "${CLAUDE_CONFIG_BOOTSTRAP_TEST_MODE:-}" = "atomic-deploy" ]; then
     # shellcheck disable=SC1091
     source "$INSTALL_DIR/scripts/install-manifest.sh"
     install_bootstrap_settings_and_hooks
+    exit 0
+fi
+
+# Test-only: the global install from INSTALL_DIR, with no clone and no CLI check,
+# so that a test can run it on a checked-out tree.
+if [ "${CLAUDE_CONFIG_BOOTSTRAP_TEST_MODE:-}" = "global-install" ]; then
+    install_global
     exit 0
 fi
 

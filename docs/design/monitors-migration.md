@@ -80,7 +80,7 @@ Optional fields: `when` (trigger condition) and `${VAR}` substitution in `comman
 |---|-----------|-----|-------|
 | 1 | None today | — | No plugin-scoped polling exists; grep finds zero `tail -F`/`while true`. |
 | 2 | (Future) `pr-ci-status` monitor in `plugin/` | Medium | Would replace per-skill polling, but `plugin/` has no CI-watching surface today. |
-| 3 | (Future) `permission-denials` monitor tailing `~/.claude/logs/permission-denials.jsonl` | Low | Depends on sister proposal `permission-event-hooks.md`; only useful once volume exists. |
+| 3 | ~~(Future) `permission-denials` monitor tailing `~/.claude/logs/permission-denials.jsonl`~~ | — | Dropped: the logger that wrote the file was removed in #1023, because `PermissionDenied` fires only in auto mode. |
 
 ### Do Not Migrate
 

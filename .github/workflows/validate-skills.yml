@@ -31,6 +31,7 @@ on:
       - 'tests/scripts/test-check-references.ps1'
       - 'tests/scripts/test-check-skill-drift.sh'
       - 'tests/scripts/test-check-skill-drift.ps1'
+      - 'tests/scripts/test-ci-wait-guidance.sh'
       - 'plugin/agents/**'
       - 'project/.claude/agents/**'
       - 'scripts/spec_lint.sh'
@@ -47,6 +48,8 @@ on:
       - 'tests/scripts/test-workspace-prefix.sh'
       - 'scripts/fleet_orchestrator/**'
       - 'tests/fleet_orchestrator/**'
+      - 'scripts/token-audit/**'
+      - 'tests/scripts/test_token_audit.py'
       - 'docs/design/**'
       - 'docs/tier2-benchmark-results.md'
       - 'docs/batch-drift-regression.md'
@@ -107,6 +110,11 @@ jobs:
 
       - name: Run reference drift guard test suite
         run: bash tests/scripts/test-check-references.sh
+
+      - name: Check CI wait guidance against the gh invariant (#1011)
+        # Installed skills and rules must not forbid gh pr checks --watch or
+        # gh run watch, which global/CLAUDE.md names as the way to wait.
+        run: bash tests/scripts/test-ci-wait-guidance.sh
 
       - name: Run reference drift guard test suite (PowerShell)
         run: pwsh -NoProfile -File tests/scripts/test-check-references.ps1
@@ -210,6 +218,11 @@ jobs:
         # depends on. Silent breakage here means consumers route work to the
         # wrong agent type.
         run: python -m pytest tests/fleet_orchestrator/ -q
+
+      - name: Run token-audit tests (#999)
+        # Pins how transcript usage is counted: once per request, without
+        # rawContent or image blocks, and with no transcript text printed.
+        run: python3 tests/scripts/test_token_audit.py
 
       - name: Verify README.md / README.ko.md heading skeleton (#623)
         # Bilingual contract: the two READMEs must share the same heading

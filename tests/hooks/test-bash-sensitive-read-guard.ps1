@@ -3,7 +3,7 @@
 # Test suite for bash-sensitive-read-guard.ps1
 # Run: pwsh tests/hooks/test-bash-sensitive-read-guard.ps1
 #
-# Port of the Bash suite plus PowerShell parity regressions (65 assertions). The
+# Port of the Bash suite plus PowerShell parity regressions (72 assertions). The
 # .ps1 guard is a whole-command regex approximation of the tokenizer-based .sh
 # guard, so a handful of bash cases legitimately diverge. Every ported case was
 # probed against the actual .ps1 guard first; matches are asserted plainly,
@@ -69,6 +69,12 @@ Assert-Deny -InputJson (New-BashPayload 'grep AWS_SECRET .env') -Label 'grep .en
 Assert-Deny -InputJson (New-BashPayload 'cat ~/.ssh/id_rsa') -Label 'cat ~/.ssh/id_rsa'
 Assert-Deny -InputJson (New-BashPayload 'cat ~/.ssh/my_key_ed25519') -Label 'ssh ed25519 key'
 Assert-Deny -InputJson (New-BashPayload 'cat ~/.aws/credentials') -Label 'AWS credentials file'
+# gh keeps hosts.yml in ~/.config/gh/ on POSIX and in %AppData%\GitHub CLI\ on
+# Windows; the AWS caches hold SSO and STS session credentials (#982).
+Assert-Deny -InputJson (New-BashPayload 'cat ~/.config/gh/hosts.yml') -Label 'gh hosts.yml, POSIX path'
+Assert-Deny -InputJson (New-BashPayload 'cat "$APPDATA/GitHub CLI/hosts.yml"') -Label 'gh hosts.yml, Windows path'
+Assert-Deny -InputJson (New-BashPayload 'cat ~/.aws/sso/cache/a.json') -Label 'AWS SSO cache'
+Assert-Deny -InputJson (New-BashPayload 'cat ~/.aws/cli/cache/a.json') -Label 'AWS CLI cache'
 Assert-Deny -InputJson (New-BashPayload 'cat /etc/shadow') -Label '/etc/shadow'
 # `config/credentials/` supplies the leading slash the .ps1 arm requires, so this
 # absolute-form directory case denies on both channels.
@@ -109,6 +115,9 @@ Assert-Allow -InputJson (New-BashPayload 'head -n 10 docs/guide.md') -Label 'doc
 Assert-Allow -InputJson (New-BashPayload 'grep TODO src/') -Label 'grep TODO in src/'
 Assert-Allow -InputJson (New-BashPayload 'find . -name "*.md"') -Label 'find non-sensitive'
 Assert-Allow -InputJson (New-BashPayload 'cat credentials.md') -Label 'credentials.md (bare-name boundary precision)'
+Assert-Allow -InputJson (New-BashPayload 'cat hosts.yml') -Label 'bare hosts.yml (only the gh directory is sensitive, #982)'
+Assert-Allow -InputJson (New-BashPayload 'cat inventory/hosts.yml') -Label 'hosts.yml in another directory (#982)'
+Assert-Allow -InputJson (New-BashPayload 'cat /etc/hosts') -Label '/etc/hosts (#982)'
 
 Write-Host ''
 Write-Host '[allow - sensitive token inside non-read context]'

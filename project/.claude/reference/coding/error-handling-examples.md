@@ -4,7 +4,7 @@ alwaysApply: false
 
 # Error Handling Examples
 
-Language snippets for error propagation, RAII cleanup, retry and circuit breaking. Companion to `.claude/rules/coding/error-handling.md`, which keeps the principles.
+Language snippets for error propagation, RAII cleanup, retry and circuit breaking. Companion to `.claude/reference/coding/error-handling.md`, which keeps the principles.
 
 > **Loading**: Lives in `.claude/reference/`, outside the auto-loaded `.claude/rules/` tree, so it is never injected automatically. Load with `@load: reference/error-handling-examples`.
 

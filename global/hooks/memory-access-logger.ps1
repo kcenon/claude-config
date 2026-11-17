@@ -33,38 +33,17 @@ if ($toolName -ne 'Read') { Exit-Silent }
 if ([string]::IsNullOrEmpty($filePath)) { Exit-Silent }
 if ([string]::IsNullOrEmpty($sessionId)) { $sessionId = 'unknown' }
 
-# ----- helpers ---------------------------------------------------------------
-
-function Resolve-Path-Safe {
-    param([string]$Path)
-    if ([string]::IsNullOrEmpty($Path)) { return $Path }
-    try {
-        if (Test-Path -LiteralPath $Path) {
-            return (Resolve-Path -LiteralPath $Path -ErrorAction Stop).Path
-        }
-        $parent = Split-Path -LiteralPath $Path -Parent
-        $base   = Split-Path -LiteralPath $Path -Leaf
-        if (-not [string]::IsNullOrEmpty($parent) -and (Test-Path -LiteralPath $parent)) {
-            $resolvedParent = (Resolve-Path -LiteralPath $parent -ErrorAction Stop).Path
-            return Join-Path $resolvedParent $base
-        }
-        return $Path
-    } catch {
-        return $Path
-    }
-}
-
 # ----- path gate -------------------------------------------------------------
 
 $home_dir   = if ($env:HOME) { $env:HOME } elseif ($env:USERPROFILE) { $env:USERPROFILE } else { [System.Environment]::GetFolderPath('UserProfile') }
-$sharedRoot = Join-Path (Join-Path $home_dir '.claude') 'memory-shared'
-$memoryRoot = Join-Path $sharedRoot 'memories'
+$memoryRoot = Join-Path (Join-Path (Join-Path $home_dir '.claude') 'memory-shared') 'memories'
 
-$resolved = Resolve-Path-Safe $filePath
+# Both sides follow links, or a read through another spelling of the same file
+# leaves no audit line (#983).
+$resolved = Resolve-HookPath $filePath
 
-$normalized      = ($resolved -replace '\\','/')
-$normalizedRoot  = ($memoryRoot -replace '\\','/')
-$normalizedShare = ($sharedRoot -replace '\\','/')
+$normalized     = ($resolved -replace '\\','/')
+$normalizedRoot = ((Resolve-HookPath $memoryRoot) -replace '\\','/')
 
 # Strict prefix match: must be under memories/ specifically (excludes the
 # top-level memory-shared/MEMORY.md auto-generated index).
@@ -72,7 +51,9 @@ if (-not $normalized.StartsWith($normalizedRoot + '/', [System.StringComparison]
     Exit-Silent
 }
 
-$relative = $normalized.Substring($normalizedShare.Length + 1)
+# Relative to memory-shared/. Built from the resolved root, so that a memories
+# directory that is itself a link still logs the same key.
+$relative = 'memories/' + $normalized.Substring($normalizedRoot.Length + 1)
 
 # ----- log file path + rotation ---------------------------------------------
 

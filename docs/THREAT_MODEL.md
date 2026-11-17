@@ -174,8 +174,8 @@ Not adversarial — environmental. The triggers are:
   reboot.
 - `--lock-timeout 30` in the scheduler invocation prevents pile-up; second
   invocation exits if first run exceeds 30s, and the next interval retries.
-- Output rotation via `cleanup.sh` keeps `/tmp/claude-memory-sync.{out,err}`
-  inspectable.
+- `/tmp/claude-memory-sync.{out,err}` keep the scheduler output inspectable.
+  Nothing rotates them; they grow by append.
 
 ### Residual risk
 

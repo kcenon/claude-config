@@ -1,0 +1,1 @@
+A recursive delete below a session temp root is routine cleanup (#1027). The runner exports TMPDIR=/tmp/dcg-golden-root, so that root is the same on every runner; the path does not exist, so only its spelling is judged.

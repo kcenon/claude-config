@@ -31,12 +31,9 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | `PreToolUse` | dangerous-command-guard, merge-gate-guard (`Bash`); memory-write-guard (`Edit\|Write`) | Deny or ask before destructive operations; gate merges on CI; validate shared-memory writes |
 | `PostToolUse` | memory-access-logger (`Read`) | Log reads of shared-memory files (path only) |
 | `SessionStart` | memory-integrity-check | Print a short memory-sync health summary |
-| `SessionEnd` | cleanup, prune-permission-rules | Temp file cleanup; prune `permissions.allow` entries that can never match again |
-| `WorktreeCreate` | worktree-create | Custom worktree initialization |
-| `WorktreeRemove` | worktree-remove | Custom worktree cleanup |
-| `PermissionDenied` | permission-denial-logger | Append a redacted JSONL audit record of denied tool calls (observation only) |
+| `SessionEnd` | prune-permission-rules | Prune `permissions.allow` entries that can never match again |
 
-> This table lists only the events **this config wires**. #964 cut the set to these 10 registrations; the `PostToolUseFailure`, `Stop`, `UserPromptSubmit`, `SubagentStart`, `SubagentStop`, `PreCompact`, `TaskCreated`, `TaskCompleted`, `ConfigChange`, `CwdChanged`, `InstructionsLoaded` and `TeammateIdle` events are no longer wired. The full official catalog is larger (~30 events as of 2026-05; see `code.claude.com/docs/en/hooks`). Unwired official events are not defects -- see `docs/official-spec-rereview-2026-05-29.md`.
+> This table lists only the events **this config wires**. #964 cut the set to 10 registrations and #1023 to these 6. The `PostToolUseFailure`, `Stop`, `UserPromptSubmit`, `SubagentStart`, `SubagentStop`, `PreCompact`, `TaskCreated`, `TaskCompleted`, `ConfigChange`, `CwdChanged`, `InstructionsLoaded` and `TeammateIdle` events (#964) and the `WorktreeCreate`, `WorktreeRemove` and `PermissionDenied` events (#1023) are no longer wired. The full official catalog is larger (~30 events as of 2026-05; see `code.claude.com/docs/en/hooks`). Unwired official events are not defects -- see `docs/official-spec-rereview-2026-05-29.md`.
 
 ### Settings Features
 
@@ -55,6 +52,7 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | `Read(...)` deny also blocks the Write tool on the same path (sensitive-file coverage since #964) | `permissions.deny` | 2.1.228+ |
 | LLM hook (prompt type) | `hooks[].hooks[].type: "prompt"` | 2.0.0+ |
 | Async hooks | `hooks[].hooks[].async: true` | 2.0.0+ |
+| Hook handler filter | `hooks[].hooks[].if` | Tested on 2.1.316; added earlier, exact version not confirmed |
 | Tool search | `env.ENABLE_TOOL_SEARCH` | 2.1.0+ |
 
 ### Component Dependencies
@@ -65,7 +63,6 @@ Each hook event type requires a Claude Code version that supports it. If your Cl
 | `/harness` skill | Skills system, Agent Teams, TeamCreate tool |
 | `/release` skill | Skills system, `gh` CLI, Bash tool |
 | Agent definitions (`.claude/agents/`) | Agent/subagent system |
-| Worktree hooks | WorktreeCreate/WorktreeRemove hook events |
 | Team limit guard | TeamCreate PreToolUse matcher |
 | Version check hook | SessionStart hook event, `claude --version` |
 | Auto-formatting hooks | PostToolUse hook event (project settings) |
@@ -105,7 +102,7 @@ PowerShell read-only discovery allowlist.
 | `respectGitignore` | Stable | 2.0.0+ | Controls `@` file picker. Default `true`. |
 | `cleanupPeriodDays` | Stable | 2.0.0+ | Session file retention. Minimum 1, rejected at 0. |
 | `minimumVersion` | Stable | 2.1.199+ | **Deliberately not set** (#902). An *update floor*, not a startup guard: the CLI still launches, but `claude update` refuses every release below the value and stays put. Observed pinning 2.1.199 while 2.1.201 was current. Any value here must be a version that has already shipped. |
-| `worktree.baseRef` | Stable | 2.1.0+ | Worktree fan-out base policy. This repo uses `head` for same-branch task work. |
+| `worktree.baseRef` | Stable | 2.1.0+ | Worktree fan-out base policy. This repo uses `head` for same-branch task work. A `WorktreeCreate` hook replaces the git logic and this key with it; none is registered since #1023. |
 | `language` | Stable | 2.0.0+ | Preferred response language. |
 | `outputStyle` | Stable | 2.0.0+ | Adjusts the system prompt (e.g. `"Explanatory"`). |
 | `attribution.commit` | Stable | 2.0.0+ | Empty string hides commit attribution. |
@@ -113,7 +110,7 @@ PowerShell read-only discovery allowlist.
 | `enableAllProjectMcpServers` | Stable | 2.0.0+ | Keeps project `.mcp.json` servers opt-in by default. |
 | `enabledMcpjsonServers` | Stable | 2.0.0+ | Explicit allowlist of project `.mcp.json` servers. Empty by default. |
 | `permissions.defaultMode` | Stable | 2.0.0+ | Valid: `default`, `acceptEdits`, `plan`, `auto`, `dontAsk`, `bypassPermissions`. |
-| `permissions.deny` / `allow` / `ask` | Stable | 1.0.0+ | Permission rule arrays. Since #964 the `Read(...)` deny rules are the only file-channel sensitive-file control; they block the Write tool on the same path from 2.1.228. `**/` rules, and the sandbox read-deny built from them, are relative to the working directory. `~/.aws/credentials` is denied by the home-anchored rule `Read(~/.aws/credentials)` (#973); the permissions reference states no minimum version for `~/` patterns. `~/.ssh` private keys are deliberately not denied: the sandbox blocks the `ssh-agent` socket, so sandboxed SSH commit signing reads the key file. See [ENFORCEMENT.md](ENFORCEMENT.md#secrets-outside-the-working-directory). |
+| `permissions.deny` / `allow` / `ask` | Stable | 1.0.0+ | Permission rule arrays. Since #964 the `Read(...)` deny rules are the only file-channel sensitive-file control; they block the Write tool on the same path from 2.1.228. `**/` rules, and the sandbox read-deny built from them, are relative to the working directory. Home credential files either have a home-anchored `Read(~/...)` rule or stay readable on purpose (#973, #982); [ENFORCEMENT.md](ENFORCEMENT.md#secrets-outside-the-working-directory) gives the decision and the cost per file. The permissions reference states no minimum version for `~/` patterns. |
 | `hooks` | Stable | 1.0.0+ | Lifecycle hook events. See [HOOKS.md](HOOKS.md). |
 | `statusLine` | Stable | 2.1.0+ | Custom status line script. |
 | `sandbox.enabled` / `autoAllowBashIfSandboxed` / `allowUnsandboxedCommands` / `excludedCommands` | Stable | 2.0.0+ | Bash sandboxing (macOS, Linux, WSL2). |
@@ -233,9 +230,9 @@ The README v1.7.0 changelog originally claimed "All 42 bash scripts now have Pow
 
 | Surface | Bash count | PowerShell count | Coverage |
 |---|---:|---:|---:|
-| `global/hooks/*.sh` | 10 | 10 | 10/10 (100%) |
+| `global/hooks/*.sh` | 6 | 6 | 6/6 (100%) |
 
-The counts cover paired guards only: `bash-sensitive-read-guard.ps1` and `shell-env-secret-guard.ps1` are Windows-only (#964), because macOS and Linux cover secret reads through the shell with the Bash sandbox read-deny (for files under the working directory, plus `~/.aws/credentials`; see [ENFORCEMENT.md](ENFORCEMENT.md#secrets-outside-the-working-directory) for the `~/.ssh` gap) while Windows has no OS sandbox, so both are excluded from the counts and from the parity audit.
+The counts cover paired guards only: `bash-sensitive-read-guard.ps1` and `shell-env-secret-guard.ps1` are Windows-only (#964), because macOS and Linux cover secret reads through the shell with the Bash sandbox read-deny (for files under the working directory, plus the home-anchored rules; see [ENFORCEMENT.md](ENFORCEMENT.md#secrets-outside-the-working-directory) for the list and the files left readable on purpose) while Windows has no OS sandbox, so both are excluded from the counts and from the parity audit.
 
 The `*.sh` ↔ `*.ps1` mapping is 1:1 for guards; the parity audit job in `.github/workflows/validate-hooks-doc.yml` fails the PR if the counts diverge. The same job also compares this hardcoded table against the live hook count so the documented coverage cannot drift silently.
 

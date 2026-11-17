@@ -4,7 +4,7 @@ Organization-wide security rules that apply to all projects.
 
 ## Input Validation
 
-> For detailed implementation patterns (SQL injection, XSS, path traversal), see `project/.claude/rules/security.md`.
+> For detailed implementation patterns (SQL injection, XSS, path traversal), see `project/.claude/reference/security.md`.
 
 - **MUST** validate all external input
 - **MUST** sanitize data before database queries

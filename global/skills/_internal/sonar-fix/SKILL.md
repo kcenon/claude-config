@@ -143,8 +143,6 @@ Refer to parent epic #635 for the full rationale.
 
 ## Out of Scope
 
-- Registration in the global `Skill Aliases` table in
-  `global/CLAUDE.md`: deferred to P5.
 - SonarQube REST API access, token management, or non-PR sources of
   findings: out of scope by design (the bot comment channel is
   authoritative).

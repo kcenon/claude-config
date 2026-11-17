@@ -73,7 +73,7 @@ fall back, or re-throw.
 ### Error Context Propagation
 
 > **Scope**: Error wrapping and re-throw patterns.
-> For structured logging standards (JSON, correlation IDs), see [`api/observability.md`](../api/observability.md).
+> For structured logging standards (JSON, correlation IDs), see [`api/observability.md`](../../rules/api/observability.md).
 
 **IMPORTANT**: Include sufficient context when propagating errors (what was being
 processed, with which input) by wrapping the original error before re-throwing.

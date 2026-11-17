@@ -134,8 +134,13 @@ The scripts themselves are deployed by every global install
 `CLAUDE_MEMORY_REPO_URL` is set: `memory-sync.sh`, `memory-status.sh` and
 `memory-notify.sh` go to `~/.claude/scripts/`, and `scripts/memory/*.sh`
 (the validators, quarantine and backfill helpers) to
-`~/.claude/scripts/memory/`. `memory-write-guard.sh` is registered by every
-global install and needs those validators. The files are tracked in
+`~/.claude/scripts/memory/`. `memory-write-guard.sh` needs those validators.
+The three memory hooks, `memory-write-guard.sh`, `memory-integrity-check.sh`
+and `memory-access-logger.sh`, are registered in `settings.json` only when
+`~/.claude/memory-shared` exists or `CLAUDE_MEMORY_REPO_URL` is set for the
+install run ([#1024](https://github.com/kcenon/claude-config/issues/1024)).
+Elsewhere they would start on every Edit, Write, session start and memory
+read only to exit, so the installer leaves them out and says so. The files are tracked in
 `~/.claude/.install-manifest.json`, so a reinstall upgrades unedited copies
 and asks before replacing a locally edited one (the default keeps it), and
 `scripts/verify.sh` compares them with their sources.
@@ -155,6 +160,11 @@ CLAUDE_MEMORY_REPO_URL=git@github.com:<owner>/claude-memory.git \
 
 The install is idempotent: re-running re-stages the plist / unit files and
 re-activates the scheduler cleanly.
+
+If you set up `~/.claude/memory-shared` by hand instead, without
+`CLAUDE_MEMORY_REPO_URL`, re-run the installer once the directory exists:
+until then the memory hooks are not registered. Removing the directory and
+re-running unregisters them again.
 
 ### Verification
 
@@ -193,8 +203,10 @@ tail -n 20 /tmp/claude-memory-sync.out
   wait up to 30s for the first to release its `flock`; if the first run
   exceeds 30s, the second exits with a non-zero "lock not acquired" code
   and the next interval retries.
-- **Output rotation**: `/tmp/claude-memory-sync.{out,err}` are rotated by
-  the existing `cleanup.sh` weekly job (claude-config convention).
+- **Output files**: launchd (`StandardOutPath`) and systemd (`append:`)
+  append to `/tmp/claude-memory-sync.{out,err}`. Nothing in claude-config
+  rotates them; truncate them by hand if they grow. (`cleanup.sh`, which
+  this line used to credit, never touched them and was removed in #1023.)
 - **No network at scheduled time**: `memory-sync.sh` exits 6; the next
   interval retries naturally.
 
@@ -305,8 +317,9 @@ CLAUDE_MEMORY_REPO_URL=git@github.com:kcenon/claude-memory.git \
 `CLAUDE_MEMORY_REPO_URL` activates the memory-sync section of the
 installer (see [Section 3](#3-installation)). The installer clones the
 shared store into `~/.claude/memory-shared/`, registers
-`memory-write-guard.sh` and `memory-integrity-check.sh` in
-`settings.json`, and stages the platform scheduler
+`memory-write-guard.sh`, `memory-integrity-check.sh` and
+`memory-access-logger.sh` in `settings.json` (an install without memory
+sync leaves them out), and stages the platform scheduler
 (`com.kcenon.claude-memory-sync.plist` on macOS or
 `memory-sync.{service,timer}` on Linux).
 
@@ -519,9 +532,9 @@ The high-frequency failure modes during second-machine onboarding:
   short-lived token.
 - **Phase 5 write-guard fails to fire**: hook not registered. Verify
   `~/.claude/settings.json` includes the `memory-write-guard.sh` matcher
-  under `PreToolUse` for `Edit | Write`. The installer writes this; if it
-  is missing, re-run `scripts/install.sh` with `CLAUDE_MEMORY_REPO_URL`
-  set.
+  under `PreToolUse` for `Edit | Write`. The installer writes this only
+  when memory sync is set up; if it is missing, re-run `scripts/install.sh`
+  with `CLAUDE_MEMORY_REPO_URL` set.
 - **Phase 7 does not see the new commit on primary**: the primary's
   scheduler may not have triggered yet. Run `memory-sync.sh` manually on
   the primary to fast-forward.

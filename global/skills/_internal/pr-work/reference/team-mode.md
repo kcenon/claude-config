@@ -57,6 +57,11 @@ Create tasks with dependencies:
 
 ## T-3. Spawn Teammates
 
+**Shared documents:** do not have several agents each read the same large document in full.
+
+- Split the work by document, so that each document has one owner.
+- When one document has to go to several agents, build a heading-to-line index of it once. Give each agent the path and the line range it needs, and tell it to read only that range and to use Grep for anything outside it.
+
 **Dev Team** (code fixing):
 
 ```
@@ -193,7 +198,7 @@ Reviewer has Critical/Major findings?
 **Phase E -- Push and CI (Lead):**
 1. Wait for reviewer approval and doc-writer completion
 2. Push changes: `git push origin "$HEAD_BRANCH"`
-3. Monitor CI: non-blocking polling, 30s intervals, 10min max
+3. Wait for CI with one `gh pr checks --watch` call, as in Solo Mode Step 8
 4. On all checks pass: `gh pr merge $PR_NUMBER --repo $ORG/$PROJECT --squash --delete-branch`
 
 **If CI fails again (max 3 total attempts):**

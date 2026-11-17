@@ -305,7 +305,6 @@ deploy_install_hooks() {
     for lib in \
         tokenize-shell.sh \
         timeout-wrapper.sh \
-        rotate.sh \
         validate-commit-message.sh \
         validate-language.sh \
         validate-traceability.sh; do
@@ -396,6 +395,10 @@ install_global_settings_and_hooks() {
         settings_updated=1
     fi
 
+    # The memory hooks are registered only where memory sync is set up (#1024).
+    local dropped_memory_hooks
+    dropped_memory_hooks="$(drop_memory_hooks_unless_synced "$settings_tmp" | tr '\n' ' ' | sed -e 's/ *$//')"
+
     if ! deploy_install_hooks; then
         rm -f "$settings_tmp"
         error "Hook 스크립트 배포 실패. settings.json을 변경하지 않았습니다."
@@ -412,6 +415,9 @@ install_global_settings_and_hooks() {
     fi
     if [ -n "$retired_keys" ]; then
         info "removed retired setting: $retired_keys"
+    fi
+    if [ -n "$dropped_memory_hooks" ]; then
+        info "memory sync not set up, so these hooks are not registered: $dropped_memory_hooks (rerun the installer after setting it up; see docs/MEMORY_SYNC.md)"
     fi
     if [ "$settings_updated" = "1" ]; then
         success "settings.json: language=$AGENT_LANGUAGE, CLAUDE_CONTENT_LANGUAGE=$CONTENT_LANGUAGE 업데이트 완료."
@@ -988,7 +994,7 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     # skills 디렉토리 설치 (global skills: harness, pr-work, issue-work, etc.)
     # `_internal/` 하위 격리 + `disable-model-invocation: true`가 적용된 스킬군은
     # Claude Code 슬래시 카탈로그에 노출되지 않으며, 글로벌 CLAUDE.md의
-    # "Skill Aliases" 표에 따라 leading keyword 호출로만 실행된다.
+    # "Skill Aliases" 키워드 목록에 따라 leading keyword 호출로만 실행된다.
     # `cp -r src/. dst/` 점 트릭으로 _policy.md 같은 루트 레벨 파일까지 복사한다.
     if [ -d "$BACKUP_DIR/global/skills" ]; then
         mkdir -p "$HOME/.claude/skills"

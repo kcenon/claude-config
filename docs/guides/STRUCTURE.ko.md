@@ -25,7 +25,6 @@ claude_config_backup/
 │   ├── hooks/                  # 훅 스크립트(.sh + .ps1) — 전체 정본 목록은 HOOKS.md 참조
 │   │   └── lib/               # 공유 라이브러리
 │   │       ├── CommonHelpers.psm1  # PowerShell 공유 모듈
-│   │       ├── rotate.sh
 │   │       ├── timeout-wrapper.sh
 │   │       └── tokenize-shell.sh
 │   ├── scripts/                # 유틸리티 스크립트
@@ -65,11 +64,7 @@ claude_config_backup/
 │       ├── settings.local.json.template  # 로컬 설정 템플릿
 │       ├── rules/              # 통합 가이드라인 모듈 (자동 로드)
 │       │   ├── coding/         # 코딩 표준
-│       │   │   ├── standards.md
-│       │   │   ├── implementation-standards.md
-│       │   │   ├── error-handling.md
-│       │   │   ├── safety.md
-│       │   │   ├── performance.md
+│       │   │   ├── essentials.md
 │       │   │   └── cpp-specifics.md
 │       │   ├── api/            # API 및 아키텍처
 │       │   │   ├── api-design.md
@@ -94,13 +89,15 @@ claude_config_backup/
 │       │   │   └── documentation.md
 │       │   ├── operations/
 │       │   │   └── ops.md
-│       │   ├── tools/
-│       │   │   └── gh-cli-scripts.md
-│       │   └── security.md     # 보안 가이드라인
+│       │   └── tools/
+│       │       └── gh-cli-scripts.md
 │       ├── reference/          # 온디맨드 레퍼런스 문서 (rules/ 밖, 자동 로드 안 됨)
-│       │   ├── coding/         # anti-patterns.md
-│       │   └── workflow/       # 5W1H 예시, 레이블, 자동화, Agent Teams
+│       │   ├── coding/         # anti-patterns.md, 전체 코딩 규칙, 예시
+│       │   ├── operations/     # 전체 ops.md
+│       │   ├── project-management/ # 전체 testing.md, documentation.md, 예시, 템플릿
+│       │   └── workflow/       # 전체 ci-resilience.md, 5W1H 예시, 레이블, 자동화, Agent Teams
 │       ├── agents/             # 특화 에이전트 설정
+│       │   ├── analyst.md
 │       │   ├── code-reviewer.md
 │       │   ├── codebase-analyzer.md
 │       │   ├── dependency-auditor.md

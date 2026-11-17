@@ -115,13 +115,13 @@ paths:
 스킬 호출 방식은 두 가지입니다.
 
 1. **슬래시 카탈로그 스킬** (`/code-quality`, `/security-audit`, `/performance-review`, `/pr-review`, `/git-status` 및 아래의 `plugin/` 스킬들) — `~/.claude/skills/`의 1단계 폴더로 위치하며 Claude Code의 `/` 자동완성 카탈로그에 노출됩니다. 명령어를 입력하면 하네스가 디스패치합니다.
-2. **키워드 별칭(alias) 스킬** (`/issue-work`, `/pr-work`, `/release`, `/issue-create`, `/branch-cleanup`, `/harness`, `/doc-index`, `/doc-review`, `/implement-all-levels`) — 의도적으로 `~/.claude/skills/_internal/` 하위에 격리되고 frontmatter에 `disable-model-invocation: true`가 적용되어 **`/` 자동완성 카탈로그에 노출되지 않습니다**. 메시지를 키워드로 시작하면 `global/CLAUDE.md`의 **Skill Aliases** 표가 매핑하여 실행합니다 (앞의 `/`는 선택사항). `issue-work`, `/issue-work` 둘 다 동작하지만 탭 자동완성은 제안되지 않습니다.
+2. **키워드 별칭(alias) 스킬** (`/issue-work`, `/pr-work`, `/release`, `/issue-create`, `/branch-cleanup`, `/harness`, `/doc-index`, `/doc-review`, `/implement-all-levels`) — 의도적으로 `~/.claude/skills/_internal/` 하위에 격리되고 frontmatter에 `disable-model-invocation: true`가 적용되어 **`/` 자동완성 카탈로그에 노출되지 않습니다**. 메시지를 키워드로 시작하면 `global/CLAUDE.md`의 **Skill Aliases** 키워드 목록에 따라 실행합니다 (앞의 `/`는 선택사항). `issue-work`, `/issue-work` 둘 다 동작하지만 탭 자동완성은 제안되지 않습니다.
 
 아래 표에 각 명령의 호출 모드를 표시합니다.
 
 ### 워크플로우 자동화
 
-이 그룹의 모든 명령은 **키워드 별칭** 호출입니다 (슬래시 자동완성 없음, alias 표가 처리).
+이 그룹의 모든 명령은 **키워드 별칭** 호출입니다 (슬래시 자동완성 없음, Skill Aliases 목록이 처리).
 
 | 명령어 | 기능 |
 |--------|------|
@@ -168,6 +168,7 @@ paths:
 | `structure-explorer` | 프로젝트 디렉토리 구조 매핑 | haiku |
 | `dependency-auditor` | 의존성 CVE 및 라이선스 감사 | sonnet |
 | `test-strategist` | 테스트 커버리지 및 전략 분석 | sonnet |
+| `analyst` | 최소 도구로 하는 분석·교차 확인 | opus |
 
 ### Agent 설정
 

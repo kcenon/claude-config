@@ -121,6 +121,11 @@ Parallel processing followed by result integration. Independent tasks execute si
 **Caution:** The integration stage's quality determines overall quality.
 **Team mode fit:** The most natural pattern for agent teams. **Always use agent teams for this pattern.** Members share discoveries and challenge each other -- one agent's finding can adjust another's investigation direction in real time, significantly improving quality over solo investigation.
 
+**Shared documents:** do not have several agents each read the same large document in full.
+
+- Split the work by document, so that each document has one owner.
+- When one document has to go to several agents, build a heading-to-line index of it once. Give each agent the path and the line range it needs, and tell it to read only that range and to use Grep for anything outside it.
+
 ### 3. Expert Pool
 
 Selectively invoke the appropriate specialist based on the situation.

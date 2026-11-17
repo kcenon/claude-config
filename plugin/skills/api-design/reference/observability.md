@@ -1,7 +1,7 @@
 # Observability
 
 > **Scope**: API and microservice observability (Node.js, Python, web services).
-> For infrastructure/system-level metrics (C/C++), see [`operations/ops.md`](../operations/ops.md).
+> For infrastructure/system-level metrics (C/C++), see [`reference/operations/ops.md`](../../reference/operations/ops.md).
 > Incorporates logging standards (formerly `logging.md`).
 
 Observability practices using the three pillars: **metrics, logs, and traces**.

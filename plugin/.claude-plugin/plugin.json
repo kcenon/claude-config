@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "claude-config",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Comprehensive Claude Code configuration with coding guidelines, security, and performance skills for software development best practices",
   "author": {
     "name": "kcenon",

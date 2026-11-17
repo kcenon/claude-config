@@ -19,7 +19,17 @@ $script:Errors = [System.Collections.Generic.List[string]]::new()
 $TestRoot = Join-Path ([System.IO.Path]::GetTempPath()) "test-prune-permission-rules-$PID"
 New-Item -ItemType Directory -Path $TestRoot -Force | Out-Null
 
+# The hook logs under the home it finds in HOME or USERPROFILE. Every hook run
+# below inherits a scratch home, so the suite never writes to ~/.claude/logs,
+# as the bash twin does with HOME="$TEST_ROOT/home" (#1030).
+$ScratchHome = Join-Path $TestRoot 'home'
+$savedHome = $env:HOME
+$savedProfile = $env:USERPROFILE
+
 try {
+    $env:HOME = $ScratchHome
+    $env:USERPROFILE = $ScratchHome
+
     function Assert-Equal {
         param([string]$Label, [string]$Expected, [string]$Actual)
         if ($Expected -eq $Actual) {
@@ -260,6 +270,16 @@ try {
     $header = Get-Content -LiteralPath $script:HookPath -Raw
     Assert-Equal 'Declares Hook Type: SessionEnd' 'True' "$($header -match 'Hook Type: SessionEnd')"
 
+    # --- Log location -----------------------------------------------------
+    Write-Host ''
+    Write-Host '[Log location (#1030)]'
+    # The runs above that pruned wrote their lines under the scratch home, and
+    # only there: the hook logs to one place.
+    $pruneLog = Join-Path $ScratchHome '.claude' 'logs' 'permission-prune.log'
+    $logLines = if (Test-Path -LiteralPath $pruneLog) { @(Get-Content -LiteralPath $pruneLog) } else { @() }
+    $ours = @($logLines | Where-Object { $_.Contains("test-prune-permission-rules-$PID") }).Count
+    Assert-Equal 'Pruning runs log under the scratch home' 'True' "$($ours -gt 0)"
+
     Write-Host ''
     Write-Host "=== Results: $($script:Passed) passed, $($script:Failed) failed ==="
     if ($script:Errors.Count -gt 0) {
@@ -270,5 +290,7 @@ try {
     exit 0
 }
 finally {
+    $env:HOME = $savedHome
+    $env:USERPROFILE = $savedProfile
     if (Test-Path $TestRoot) { Remove-Item -Recurse -Force $TestRoot -ErrorAction SilentlyContinue }
 }

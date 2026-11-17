@@ -12,6 +12,8 @@ superseded_by: null
 > **Audience**: claude-config maintainers
 > **Spec source**: <https://code.claude.com/docs/en/hooks>
 
+> **Correction (#1023)**: the `PermissionDenied` row below is wrong. The event fires only in auto mode: "it doesn't run when you manually deny a permission dialog, when a `PreToolUse` hook blocks a call, or when a `deny` rule matches". Both settings profiles disable auto mode, so the `permission-denial-logger` this proposal led to never ran and was removed in #1023. The rest of this document is kept as written.
+
 ## Background
 
 Claude Code's hook spec defines two events that fire around the permission system:

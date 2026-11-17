@@ -60,7 +60,15 @@ try {
         Copy-Item -LiteralPath (Join-Path $repoRoot 'global' $f) -Destination (Join-Path $claude $f)
     }
     $profileName = if ($IsWindows) { 'settings.windows.json' } else { 'settings.json' }
-    Copy-Item -LiteralPath (Join-Path $repoRoot 'global' $profileName) -Destination (Join-Path $claude 'settings.json')
+    $settingsProfile = Join-Path $repoRoot 'global' $profileName
+    # This .claude has no memory sync, so the installers publish the profile
+    # without the memory hooks (#1024). Their own helper drops them here too.
+    Remove-Item Env:CLAUDE_MEMORY_REPO_URL -ErrorAction SilentlyContinue
+    Copy-Item -LiteralPath $settingsProfile -Destination (Join-Path $claude 'settings.json')
+    & {
+        . (Join-Path $repoRoot 'scripts' 'install-manifest.ps1')
+        Remove-MemoryHooksUnlessSynced -SettingsPath (Join-Path $claude 'settings.json') -ClaudeDir $claude | Out-Null
+    }
     Copy-Tree -From (Join-Path $repoRoot 'global' 'skills') -To (Join-Path $claude 'skills')
     Get-ChildItem -LiteralPath (Join-Path $repoRoot 'global' 'hooks') -File |
         Copy-Item -Destination (Join-Path $claude 'hooks')
@@ -128,7 +136,30 @@ try {
     Copy-Item -LiteralPath (Join-Path $repoRoot 'global' 'commit-settings.md') -Destination (Join-Path $claude 'commit-settings.md') -Force
     Write-Host 'rendered commit-settings.md: PASS'
 
-    # 4. Each kind of drift is reported; a CRLF and BOM rewrite is not.
+    # 4. settings.json is compared with the profile as this machine receives
+    # it (#1024). Without memory sync, a deployed file that still registers the
+    # memory hooks is stale; with <ClaudeDir>/memory-shared it is what the
+    # installer writes.
+    $settingsPath = Join-Path $claude 'settings.json'
+    $settingsDropped = [System.IO.File]::ReadAllText($settingsPath)
+    if ($settingsDropped.Contains('memory-')) {
+        throw 'FAIL: the staged settings.json still has a memory hook'
+    }
+    Copy-Item -LiteralPath $settingsProfile -Destination $settingsPath -Force
+    $out = Invoke-Verify -Dir $proj -Arguments @()
+    Assert-Contains $out 'DIFF: settings.json (hooks + permissions) -- hooks'
+    $sharedDir = Join-Path $claude 'memory-shared'
+    New-Item -ItemType Directory -Path $sharedDir | Out-Null
+    $out = Invoke-Verify -Dir $proj -Arguments @()
+    if ((Get-Findings $out).Count -ne 0) {
+        throw "FAIL: with memory-shared, the full profile reported differences`n$((Get-Findings $out) -join "`n")"
+    }
+    Assert-Contains $out 'SYNC: settings.json (hooks + permissions)'
+    Remove-Item -LiteralPath $sharedDir -Force
+    [System.IO.File]::WriteAllText($settingsPath, $settingsDropped, $utf8NoBom)
+    Write-Host 'memory hooks in settings.json: PASS'
+
+    # 5. Each kind of drift is reported; a CRLF and BOM rewrite is not.
     $hookVictim = if ($IsWindows) {
         'edit-guard-dispatcher.ps1'
     } else {
@@ -146,7 +177,7 @@ try {
     Add-Content -LiteralPath (Join-Path $claude 'hooks' 'lib' $libVictim) -Value '# drift'
     Add-Content -LiteralPath (Join-Path $claude 'skills' $skillVictim) -Value 'drift'
     Remove-Item -LiteralPath (Join-Path $proj '.claude' 'reference' $refVictim)
-    Add-Content -LiteralPath (Join-Path $proj '.claude' 'rules' 'security.md') -Value 'drift'
+    Add-Content -LiteralPath (Join-Path $proj '.claude' 'rules' 'coding' 'essentials.md') -Value 'drift'
     Add-Content -LiteralPath (Join-Path $proj '.claude' 'rules' 'core' 'communication.md') -Value '{{AGENT_LANGUAGE}}'
     $crlf = [System.IO.File]::ReadAllText((Join-Path $repoRoot 'global' 'CLAUDE.md')).Replace("`r`n", "`n").Replace("`n", "`r`n")
     [System.IO.File]::WriteAllText((Join-Path $claude 'CLAUDE.md'), $crlf, [System.Text.UTF8Encoding]::new($true))
@@ -156,7 +187,7 @@ try {
     Assert-Contains $out "DIFF: hooks/lib/$libVictim"
     Assert-Contains $out "DIFF: skills/$skillVictim"
     Assert-Contains $out "MISS: project/.claude/reference/$refVictim"
-    Assert-Contains $out 'DIFF: project/.claude/rules/security.md'
+    Assert-Contains $out 'DIFF: project/.claude/rules/coding/essentials.md'
     Assert-Contains $out 'DIFF: project/.claude/rules/core/communication.md (unrendered placeholder)'
     $count = (Get-Findings $out).Count
     if ($count -ne 6) {

@@ -81,9 +81,11 @@ make_fixture() {
         "$REPO_ROOT"/scripts/memory-notify.sh "$fixture/scripts/"
     cp -R "$REPO_ROOT/scripts/memory" "$fixture/scripts/memory"
 
-    printf '%s\n' '{"fixture": "memory-scripts"}' > "$fixture/global/settings.json"
+    # The real profile, so the memory-hook registration (#1024) is checked
+    # against the handlers it actually ships.
+    cp "$REPO_ROOT/global/settings.json" "$fixture/global/settings.json"
     cp "$REPO_ROOT/global/hooks/memory-write-guard.sh" "$fixture/global/hooks/"
-    for lib in tokenize-shell.sh timeout-wrapper.sh rotate.sh; do
+    for lib in tokenize-shell.sh timeout-wrapper.sh; do
         printf '%s\n' '#!/bin/sh' 'return 0 2>/dev/null || exit 0' > "$fixture/global/hooks/lib/$lib"
     done
     for lib in validate-commit-message.sh validate-language.sh validate-traceability.sh; do
@@ -245,6 +247,46 @@ assert_true "edited validator kept byte-for-byte" \
     "[ \"\$(sha256_of '$edited')\" = '$edited_sha' ]"
 assert_true "edited validator still tracked (not pruned)" \
     "[ \"\$(manifest_entry '$home_g' scripts/memory/validate.sh)\" = \"\$(sha256_of '$FIXTURE/scripts/memory/validate.sh')\" ]"
+
+echo ""
+echo "[Memory hooks are registered only where memory sync is set up (#1024)]"
+# registered <settings.json>: the file names of every hook handler, sorted.
+registered() {
+    jq -r '[(.hooks // {})[][].hooks[].command | split(" ") | last | split("/") | last] | sort | join(" ")' "$1"
+}
+profile_hooks="$(registered "$FIXTURE/global/settings.json")"
+assert_true "the profile registers all three memory hooks" \
+    "[ \"\$(printf '%s' '$profile_hooks' | tr ' ' '\n' | grep -c '^memory-')\" = 3 ]"
+assert_true "without memory sync, no memory hook is registered" \
+    "! registered '$home_g/.claude/settings.json' | grep -q 'memory-'"
+assert_true "the other hooks are still registered" \
+    "[ \"\$(registered '$home_g/.claude/settings.json')\" = \"\$(printf '%s' '$profile_hooks' | tr ' ' '\n' | grep -v '^memory-' | tr '\n' ' ' | sed -e 's/ *\$//')\" ]"
+assert_true "the installer says why" \
+    "grep -qF 'memory sync not set up, so these hooks are not registered' '$out1'"
+
+mkdir -p "$home_g/.claude/memory-shared"
+out5="$WORK/install-synced.out"
+if run_install "$home_g" 1 "$out5"; then
+    pass "install with memory-shared exits 0"
+else
+    fail "install with memory-shared exits 0"
+    sed 's/^/    /' "$out5"
+fi
+assert_true "with memory-shared, the profile's hooks are all registered" \
+    "[ \"\$(registered '$home_g/.claude/settings.json')\" = '$profile_hooks' ]"
+assert_true "with memory-shared, no drop is reported" \
+    "! grep -qF 'memory sync not set up' '$out5'"
+
+rmdir "$home_g/.claude/memory-shared"
+out6="$WORK/install-unsynced.out"
+if run_install "$home_g" 1 "$out6"; then
+    pass "reinstall without memory-shared exits 0"
+else
+    fail "reinstall without memory-shared exits 0"
+    sed 's/^/    /' "$out6"
+fi
+assert_true "after memory-shared goes, the memory hooks are dropped again" \
+    "! registered '$home_g/.claude/settings.json' | grep -q 'memory-'"
 
 echo ""
 echo "[Project-only install (type 2) leaves HOME/.claude/scripts alone]"

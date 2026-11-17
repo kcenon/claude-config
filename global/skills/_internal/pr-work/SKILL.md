@@ -425,13 +425,13 @@ git push origin "$HEAD_BRANCH"
 
 #### TLS/Sandbox Error Handling
 
-See **Environment Workarounds** in `global/CLAUDE.md` for the canonical rule. `SSL_CERT_FILE` / `SSL_CERT_DIR` are wired in `global/settings.json` so `git` / `curl` succeed inside the sandbox; `gh` on macOS remains the exception and is handled via Bash allowlist. Never flag a TLS error as an authentication failure without verifying.
+The profile `env` sets `SSL_CERT_FILE` / `SSL_CERT_DIR`, so `git` / `curl` succeed inside the sandbox. `gh` on macOS ignores them; it runs outside the sandbox through `sandbox.excludedCommands`, which matches only a call that is `gh` alone, so follow the `gh` invariant in `~/.claude/CLAUDE.md`. Never flag a TLS error as an authentication failure without verifying.
 
 #### CI Monitoring
 
-After push, monitor CI with non-blocking polling (30s intervals, 10min max). Do NOT use `gh run watch`. Do NOT merge while any check is `queued` or `in_progress`.
+After push, wait for CI with one `gh pr checks $PR_NUMBER --repo $ORG/$PROJECT --watch --interval 30 --fail-fast` call (in the background, or in the foreground with a 10-minute timeout), then read the result with one plain `gh pr checks` call. Never wait in a loop or with `sleep`. Do NOT merge while any check is `queued` or `in_progress`.
 
-> See `reference/build-verification.md` for the full CI monitoring protocol, status interpretation table, and polling limits.
+> See `reference/build-verification.md` for the full CI wait protocol, status interpretation table, and wait limits.
 
 ### 5b. Traceability impact injection (regulated track only)
 
@@ -516,9 +516,9 @@ the PR. The next push retries.
 
 ### 9. Iterate if Needed
 
-If workflows still fail, repeat steps 2-8. Max 3 retry attempts with 30s CI polling intervals. Each fix is a separate commit. Post a follow-up failure analysis comment at the start of each iteration.
+If workflows still fail, repeat steps 2-8. Max 3 retry attempts; after each push, wait for CI with the watch from step 8. Each fix is a separate commit. Post a follow-up failure analysis comment at the start of each iteration.
 
-> See `reference/build-verification.md` for iteration limits, CI polling loop, and iteration rules.
+> See `reference/build-verification.md` for iteration limits, waiting between attempts, and iteration rules.
 > See `reference/comment-templates.md` for the per-attempt follow-up comment template.
 
 ### 9b. Evidence-attachment gate (regulated track only)
@@ -724,8 +724,8 @@ See [_policy.md](../_policy.md) for common rules, including the **Atomic Multi-P
 |------|------|
 | **Language** | All PR comments and commit messages follow the active `CLAUDE_CONTENT_LANGUAGE` policy (see `commit-settings.md`) |
 | Max retry attempts | 3 before escalation |
-| CI poll interval | >= 30 seconds (respect API rate limits) |
-| CI max poll duration | 10 minutes per run (20 polls x 30s) |
+| CI watch interval | `--interval 30` (respect API rate limits) |
+| CI max wait | about 10 minutes per push, then report |
 
 ## Output
 

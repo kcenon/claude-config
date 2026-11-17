@@ -4,7 +4,7 @@ alwaysApply: false
 
 # Security Examples
 
-Validation, injection-prevention, secret-handling and scanning samples. Companion to `.claude/rules/security.md`, which keeps the principles.
+Validation, injection-prevention, secret-handling and scanning samples. Companion to `.claude/reference/security.md`, which keeps the principles.
 
 > **Loading**: Lives in `.claude/reference/`, outside the auto-loaded `.claude/rules/` tree, so it is never injected automatically. Load with `@load: reference/security-examples`.
 

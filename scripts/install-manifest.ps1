@@ -662,3 +662,102 @@ function Update-ClaudeSettingsJson {
         return $false
     }
 }
+
+# Hook handlers that only do work where memory sync is set up (#1024),
+# matched as substrings of the handler command so one list covers both
+# profiles. On Windows the Edit|Write entry runs edit-guard-dispatcher.ps1,
+# whose routing table holds memory-write-guard alone since #964;
+# tests/scripts/test-install-memory-hooks.sh fails if it gains another guard.
+# Parity with MEMORY_HOOK_COMMANDS in install-manifest.sh.
+$script:MemoryHookCommands = @('memory-write-guard', 'memory-integrity-check', 'memory-access-logger', 'edit-guard-dispatcher')
+
+function Test-MemorySyncConfigured {
+    <#
+    .SYNOPSIS
+    True when <ClaudeDir>/memory-shared exists, or when CLAUDE_MEMORY_REPO_URL
+    is set for this run. Mirrors memory_sync_configured.
+
+    .PARAMETER ClaudeDir
+    The .claude directory being installed or verified. Defaults to the one
+    memory-write-guard.ps1 reads: $env:HOME, then $env:USERPROFILE.
+    #>
+    [OutputType([bool])]
+    param([string]$ClaudeDir)
+
+    if (-not $ClaudeDir) {
+        $homeDir = if ($env:HOME) { $env:HOME } elseif ($env:USERPROFILE) { $env:USERPROFILE } else { [System.Environment]::GetFolderPath('UserProfile') }
+        $ClaudeDir = Join-Path $homeDir '.claude'
+    }
+    $memoryShared = Join-Path $ClaudeDir 'memory-shared'
+    if (Test-Path -LiteralPath $memoryShared -PathType Container) { return $true }
+    return (-not [string]::IsNullOrEmpty($env:CLAUDE_MEMORY_REPO_URL))
+}
+
+function Remove-MemoryHooksUnlessSynced {
+    <#
+    .SYNOPSIS
+    Without memory sync, removes the $MemoryHookCommands handlers from a staged
+    settings.json, with any matcher entry or event they leave empty.
+
+    .DESCRIPTION
+    Each of those hooks exits early when ~/.claude/memory-shared is missing,
+    but its process still starts, and the Edit|Write dispatcher starts pwsh on
+    every Edit and Write. Returns the file names of the removed commands.
+    Mirrors drop_memory_hooks_unless_synced. -ClaudeDir is passed on to
+    Test-MemorySyncConfigured.
+    #>
+    [OutputType([string[]])]
+    param(
+        [Parameter(Mandatory)][string]$SettingsPath,
+        [string]$ClaudeDir
+    )
+
+    if (-not (Test-Path -LiteralPath $SettingsPath -PathType Leaf)) { return @() }
+    if (Test-MemorySyncConfigured -ClaudeDir $ClaudeDir) { return @() }
+
+    try {
+        $settings = Get-Content -Raw -LiteralPath $SettingsPath | ConvertFrom-Json
+    }
+    catch {
+        return @()
+    }
+
+    $hooksProp = $settings.PSObject.Properties['hooks']
+    if (-not ($hooksProp -and $hooksProp.Value)) { return @() }
+
+    $removed = [System.Collections.Generic.List[string]]::new()
+    foreach ($evt in @($hooksProp.Value.PSObject.Properties)) {
+        $keptEntries = [System.Collections.Generic.List[object]]::new()
+        foreach ($entry in @($evt.Value)) {
+            $keptHandlers = [System.Collections.Generic.List[object]]::new()
+            foreach ($handler in @($entry.hooks)) {
+                $command = [string]$handler.command
+                $isMemoryHook = $false
+                foreach ($name in $script:MemoryHookCommands) {
+                    if ($command.Contains($name)) { $isMemoryHook = $true; break }
+                }
+                if ($isMemoryHook) {
+                    $removed.Add((($command -split ' ')[-1] -split '[/\\]')[-1])
+                }
+                else {
+                    $keptHandlers.Add($handler)
+                }
+            }
+            if ($keptHandlers.Count -gt 0) {
+                $entry.hooks = $keptHandlers.ToArray()
+                $keptEntries.Add($entry)
+            }
+        }
+        if ($keptEntries.Count -gt 0) {
+            $hooksProp.Value.$($evt.Name) = $keptEntries.ToArray()
+        }
+        else {
+            $hooksProp.Value.PSObject.Properties.Remove($evt.Name)
+        }
+    }
+
+    if ($removed.Count -gt 0) {
+        ($settings | ConvertTo-Json -Depth 32) | Set-Content -LiteralPath $SettingsPath -Encoding UTF8
+    }
+    return $removed.ToArray()
+}

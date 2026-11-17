@@ -13,7 +13,7 @@ ERRORS=()
 cd "$(dirname "$0")/../.." || exit 1
 ROOT="$(pwd)"
 
-# Build an isolated sandbox repo containing all 8 agent pairs plus a copy of
+# Build an isolated sandbox repo containing all 9 agent pairs plus a copy of
 # the guard, so mutations never touch the real tree. The guard derives its
 # root from its own location, so it inspects the sandbox.
 mk_sandbox() {

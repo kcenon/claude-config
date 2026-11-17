@@ -3,7 +3,7 @@
   "description": "Claude Code Global Settings (Windows) - Applied to all projects (permissions.deny for security). NOTE: the sandbox block below (sandbox.network.allowedDomains, sandbox.excludedCommands) is inert on Windows - the sandbox does not run on this platform (see core/environment.md), so permissions.allow/deny matching is the only active command gate; the env-secret leak channel is covered by hooks/shell-env-secret-guard.ps1.",
   "version": "1.17.1",
   "respectGitignore": true,
-  "cleanupPeriodDays": 30,
+  "cleanupPeriodDays": 90,
   "worktree": {
     "baseRef": "head"
   },
@@ -98,11 +98,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/cleanup.ps1",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/prune-permission-rules.ps1",
             "timeout": 15
           }
@@ -116,41 +111,6 @@
           {
             "type": "command",
             "command": "pwsh -NoProfile -File ~/.claude/hooks/memory-access-logger.ps1",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "WorktreeCreate": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/worktree-create.ps1",
-            "timeout": 30
-          }
-        ]
-      }
-    ],
-    "WorktreeRemove": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/worktree-remove.ps1",
-            "timeout": 10,
-            "async": true
-          }
-        ]
-      }
-    ],
-    "PermissionDenied": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/permission-denial-logger.ps1",
             "timeout": 5,
             "async": true
           }
@@ -326,13 +286,31 @@
       "Read(**/.aws/**/credentials)",
       "Read(**/.aws/**/config)",
       "Read(~/.aws/credentials)",
+      "Read(~/.netrc)",
+      "Read(~/.pypirc)",
+      "Read(~/.docker/config.json)",
+      "Read(~/.kube/config)",
+      "Read(~/.gnupg/**)",
+      "Read(~/.config/gh/hosts.yml)",
+      "Read(~/.aws/sso/cache/**)",
+      "Read(~/.aws/cli/cache/**)",
       "Read(**/*secrets/**)",
       "Read(**/*credentials/**)",
       "Read(**/*passwords/**)",
       "Edit(.env)",
       "Edit(.env.*)",
       "Edit(**/.env)",
-      "Edit(**/.env.*)"
+      "Edit(**/.env.*)",
+      "DesignSync",
+      "SendToProject",
+      "SendToProjectContext",
+      "RemoteTrigger",
+      "ArtifactData",
+      "ArtifactComments",
+      "SendFeedback",
+      "PushNotification",
+      "mcp__claude_ai_Claude_Docs",
+      "mcp__claude_ai_Google_Drive"
     ],
     "ask": [
       "PowerShell(gh api *-X POST*)",

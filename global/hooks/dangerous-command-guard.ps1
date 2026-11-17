@@ -10,22 +10,39 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 #
 # PowerShell twin of dangerous-command-guard.sh; the decision tiers, payload
 # scanning and logging rules are documented there and mirrored here:
-#   deny  - recursive rm of /, an absolute path, ~ or $HOME; fetch piped to an
-#           interpreter; chmod 777 / setuid; IFS obfuscation; a direct push to
-#           main/master/develop; gh repo delete; gh api DELETE repos/<o>/<r>.
+#   deny  - recursive rm of a root (/, C:\, \\server\share), a top-level
+#           directory, a home directory, ~ or $HOME, by its spelling or by the
+#           path it resolves to (#1027); fetch piped to an interpreter; chmod
+#           777 / setuid; IFS obfuscation; a direct push to main/master/develop;
+#           gh repo delete; gh api DELETE repos/<o>/<r>.
 #   ask   - git reset --hard, git checkout -- <path> / . / -f, git switch -f /
 #           --force / --discard-changes, git restore without --staged (dirty
 #           work tree only); git clean -f; git stash drop|clear; git push
 #           --force / -f / +<ref>; git push --delete / -d / <remote> :<ref>;
-#           recursive rm of ., .., *, .*, .git or a path outside the
-#           repository; find -delete / -exec rm; gh <group>
+#           recursive rm of ., .., *, .*, .git, a path outside the repository
+#           or any other absolute path; find -delete / -exec rm; gh <group>
 #           delete|delete-asset; every other gh api DELETE.
-#   allow - everything else.
+#   allow - everything else, including a recursive rm below a session temp
+#           root (/tmp/claude-<uid>, the temp path, the macOS per-user temp
+#           directory) whose resolved path stays below it too.
 # `bash|sh|... -c` and `eval` payloads are inspected recursively (depth 3);
-# an uninspectable payload is denied. Outside a payload, a `$X` / `${X}`
-# command head is resolved from an earlier `X=value` / `export X=value`, or
-# asks when its arguments would make rm deny or ask. Input over the tokenizer
-# budget gets a regex scan: deny-tier shapes deny, ask-arm keywords ask.
+# an uninspectable payload is denied. So is the text a shell reads as commands
+# on standard input: a here-string, or what an echo or printf before it writes
+# (#1029); text that cannot be known statically asks. Outside a payload, a
+# `$X` / `${X}` / `${X:-word}` command head is resolved from an earlier
+# assignment (`X=value`, or through export, declare, local, readonly or
+# typeset; unset forgets it), else from its default word. `$SHELL` and `$BASH`
+# are inspected as a shell. Any other unresolved head, and a `$(...)` or
+# backtick head at any depth, asks when its arguments would make rm deny or
+# ask, or when the operand of a flag ending in c would make a shell deny or
+# ask. The real command of a sub-command
+# is found first (#991): shell grammar goes, then leading assignments and
+# redirections, then known wrappers with their own flags. rm through xargs,
+# parallel or find -exec always asks. A fetch piped to a shell through a wrapper
+# or `$SHELL` denies; to any other unresolved head it asks. Input over the
+# tokenizer budget gets a regex scan of the text with continuations joined and
+# quoted prose blanked: deny-tier shapes deny; ask-arm keywords, a git push with
+# no refspec and an unresolved command name with a recursive flag ask.
 # Only deny and ask decisions are logged
 # to ${env:CLAUDE_LOG_DIR}/dangerous-command-guard.log (defaults to
 # ~/.claude/logs). Plain allows emit the minimal allow JSON (#715).
@@ -33,6 +50,8 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 $logDir = if ($env:CLAUDE_LOG_DIR) { $env:CLAUDE_LOG_DIR } else { Join-Path $HOME '.claude/logs' }
 $logFile = Join-Path $logDir 'dangerous-command-guard.log'
 $script:MaxPayloadDepth = 3
+# $true while inspecting a command that runs once per input (xargs, find -exec).
+$script:EachInput = $false
 
 function Write-Decision {
     param(
@@ -117,11 +136,43 @@ if ([string]::IsNullOrEmpty($hookCwd)) { $hookCwd = (Get-Location).Path }
 # character after an escape, `$(` or `&&` was skipped (`\rm` read as `r`).
 # ----------------------------------------------------------------------------
 
-# Line-based match with a time budget: .NET regexes backtrack, so a crafted
-# input cannot stall the hook; the caller asks when the budget runs out.
+# Line-based match with a time budget. $script:CoarseOptions drops backtracking
+# where the runtime can (.NET 7+); on an older one, which #Requires still admits,
+# the budget keeps a crafted input from stalling the hook. Either way the caller
+# asks when the budget runs out.
 function Test-CoarseMatch {
     param([string]$Text, [string]$Pattern)
-    return [regex]::IsMatch($Text, $Pattern, [System.Text.RegularExpressions.RegexOptions]::Multiline, [TimeSpan]::FromSeconds(1))
+    return [regex]::IsMatch($Text, $Pattern, $script:CoarseOptions, $script:CoarseBudget)
+}
+
+function Respond-CoarseAsk {
+    param([string]$What, [int]$Budget)
+    Respond-Ask "Input of $($CMD.Length) bytes exceeds the tokenizer budget ($Budget bytes) and contains $What, so it was not inspected in full. Confirm to proceed."
+}
+
+# The text the coarse regexes read (#981); see coarse_prepare in the bash twin.
+# This is a per-line loop because NonBacktracking rejects lookaround.
+function Get-CoarseText {
+    param([string]$Text)
+    $keep = '\\.|''[^''\s]*''|"([^"\\\s]|\\.)*"'
+    $blank = '''[^'']*\s[^'']*''|"([^"\\]|\\.)*\s([^"\\]|\\.)*"'
+    $spansRx = [regex]::new('\\.|''[^'']*''|"([^"\\]|\\.)*"', $script:CoarseOptions, $script:CoarseBudget)
+    # A pipe into a shell (also behind a wrapper, as $SHELL, or in a subshell or
+    # a group, #1034) and a shell word right before a here-string keep their
+    # spans too (#1029).
+    $shells = '(bash|sh|zsh|dash|ksh|fish)'
+    $piped = '\|\s*([({]\s*)*((sudo|doas|env|exec|nohup|command|time)\s+(-\S+\s+|[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)?("?\$\{?(SHELL|BASH)\}?"?|(\S*/)?' + $shells + ')(\s|[;&|)]|$)'
+    $runRx = [regex]::new('\$\(|`|(^|[^\w.-])(bash|sh|zsh|dash|ksh|fish|eval)\s|\s-[A-Za-z]*c\s+["'']|' + $piped + '|(^|[^\w.-])' + $shells + '<<<', $script:CoarseOptions, $script:CoarseBudget)
+    $blankRx = [regex]::new("($keep)|$blank", $script:CoarseOptions, $script:CoarseBudget)
+    $quotes = [char[]]@('"', "'")
+    $lines = $Text.Replace("`r`n", "`n").Replace("\`n", ' ').Split("`n")
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        $line = $lines[$i]
+        if ($line.IndexOfAny($quotes) -lt 0) { continue }
+        if ($spansRx.Replace($line, '').IndexOfAny($quotes) -ge 0) { break }
+        if (-not $runRx.IsMatch($line)) { $lines[$i] = $blankRx.Replace($line, '$1') }
+    }
+    return ($lines -join "`n")
 }
 
 # The deny and ask tiers for input over the tokenizer budget (#971); see
@@ -129,31 +180,79 @@ function Test-CoarseMatch {
 # arm's own conditions were not evaluated.
 function Invoke-CoarseScan {
     param([string]$Text, [int]$Budget)
+    $opts = $script:CoarseOptions; $limit = $script:CoarseBudget
     # A command word start, one sub-command's text, a space, a quote, and the
     # end of a word.
     $W = '(^|[^\w.-])'; $G = '[^;&|\r\n]*'; $S = '[ \t]'; $Q = '["'']'
     $E = '([ \t"'';&|)]|$)'
     $git = "${W}git${S}(${G}${S})?"
-    $rmr = "${W}rm${S}(${G}${S})?(-[A-Za-z]*[rR][A-Za-z]*|--recursive)"
+    $rec = '(-[A-Za-z]*[rR][A-Za-z]*|--recursive)'
+    $rm = "${W}rm${S}(${G}${S})?"
+    $rmr = "${rm}${rec}"
+    $hm = '(~|\$HOME|\$\{HOME\})'
+    # The absolute paths of the deny tier (#1027): a root, a top-level
+    # directory, /private/<dir>, and a home directory, also on a drive or a
+    # share. A deeper path asks through the rm -r arm below; the coarse scan
+    # resolves no path.
+    $seg = '[^/\\\s"'';&|)]+'
+    $sep = '[\\/]'
+    $denied = "(${hm}/*|/+((private|Users|home)/+${seg}/*|${seg}/*)?|[A-Za-z]:${sep}+(([Uu][Ss][Ee][Rr][Ss]${sep}+)?${seg}${sep}*)?|\\\\${seg}(\\${seg}(\\${seg})?)?\\*)${Q}?"
+    # `git`, its global options as in Inspect-Git, and `push`: only those or an
+    # expansion may come between them, so `git stash push` is not a push.
+    $pushed = "${W}git(${S}+((-C|-c|--git-dir|--work-tree|--namespace|--super-prefix)${S}+\S+|-\S*|${Q}?\`$\S*))*${S}+push"
 
-    # Cheap prefilter: none of the command words, nothing to scan.
-    if (-not (Test-CoarseMatch $Text '(rm|git|gh|find)')) { return }
+    # A command name that cannot be resolved may be rm, as on the tokenized path
+    # (#991). It holds no command word, and it must not pre-empt a deny below.
+    $unresolved = Test-CoarseMatch $Text "(^|[;&|(])${S}*${Q}?\`$\S*${S}+(${G}${S})?${rec}${E}"
+    $unresolvedWhat = 'a command name that cannot be resolved, with a recursive flag'
 
-    if (Test-CoarseMatch $Text "${rmr}${S}(${G}${S})?${Q}?(~|\`$HOME|\`$\{HOME\})(/|${E})") {
-        Respond-Deny 'Dangerous recursive delete at root directory blocked for safety'
+    # Cheap prefilter: none of the command words, nothing else to scan.
+    if (-not (Test-CoarseMatch $Text '(rm|git|gh|find)')) {
+        if ($unresolved) { Respond-CoarseAsk $unresolvedWhat $Budget }
+        return
     }
-    if (Test-CoarseMatch $Text "${git}push${S}(${G}[ \t:+])?(refs/heads/)?(main|master|develop)${E}") {
+
+    # A recursive flag and a denied target, in either order.
+    if ((Test-CoarseMatch $Text "${rmr}${S}(${G}${S})?${Q}?${denied}${E}") -or
+        (Test-CoarseMatch $Text "${rm}${Q}?${denied}${S}(${G}${S})?${rec}${E}")) {
+        Respond-Deny 'Dangerous recursive delete of the root, a top-level directory or a home directory blocked for safety'
+    }
+
+    # One git push per line, cut at a redirection or a comment, without the
+    # dry runs: those update nothing (push-target-guard, #782). Whole-text
+    # replaces, so a line full of pushes costs no per-match loop. Count runs
+    # the search, so that a timeout surfaces here and reaches the caller.
+    $found = [regex]::Matches($Text, "${pushed}(${S}${G}|[)""']|" + '$)', $opts, $limit)
+    $push = if ($found.Count -gt 0) { $found.Value -join "`n" } else { '' }
+    $push = [regex]::Replace($push, "${S}+([0-9]*[<>]|#).*", '', $opts, $limit)
+    $push = [regex]::Replace($push, "^.*${S}${Q}?(--dry-run|-[A-Za-z]*n[A-Za-z]*)${E}.*", '', $opts, $limit)
+    $push = [regex]::Replace($push, '[)"'']+[ \t]*$', '', $opts, $limit)
+
+    if (Test-CoarseMatch $push "${pushed}${S}(${G}[ \t:+""'])?(refs/heads/)?(main|master|develop)${E}") {
         Respond-Deny "Direct push to a protected branch (main, master or develop) is blocked by branching policy. Open a PR into 'develop' (feature/fix branches) or use the /release skill (develop -> main)."
     }
     if (Test-CoarseMatch $Text "${W}gh${S}(${G}${S})?repo${S}+delete${E}") {
         Respond-Deny 'gh repo delete deletes a repository irreversibly. Blocked.'
     }
-    $apis = [regex]::Matches($Text, "${W}gh${S}(${G}${S})?api${S}${G}", [System.Text.RegularExpressions.RegexOptions]::Multiline, [TimeSpan]::FromSeconds(1))
+    $apis = [regex]::Matches($Text, "${W}gh${S}(${G}${S})?api${S}${G}", $opts, $limit)
     foreach ($m in $apis) {
         if ((Test-CoarseMatch $m.Value "(-X|--method)(${S}*|=)${Q}?[Dd][Ee][Ll][Ee][Tt][Ee]${E}") -and
             (Test-CoarseMatch $m.Value "(^|${S})${Q}?(https?://[^/\s]+/)?(api/v3/)?/*repos/[^/\s]+/[^/\s?""']+/*(\?\S*)?${Q}?${E}")) {
             Respond-Deny 'gh api DELETE on repos/<owner>/<repo> deletes the repository itself, irreversibly. Blocked.'
         }
+    }
+
+    if ($unresolved) { Respond-CoarseAsk $unresolvedWhat $Budget }
+
+    if (Test-CoarseMatch $push "${pushed}${S}(${G}${S})?${Q}?(--force|--delete|-[A-Za-z]*[fd][A-Za-z]*|[+:]\S+)${E}") {
+        Respond-CoarseAsk 'git push --force / --delete / +<ref> / :<ref>' $Budget
+    }
+    # No refspec: at most one word after the flags, or a last word that names
+    # the current branch. The tokenized path resolves those; this one cannot.
+    $flag = "((-o|--push-option|--repo|--receive-pack|--exec)${S}+\S+|-\S*)"
+    if ((Test-CoarseMatch $push ("${pushed}(${S}+${flag})*(${S}+[^-\s]\S*)?(${S}+${flag})*${S}*" + '$')) -or
+        (Test-CoarseMatch $push ("${S}${Q}?(HEAD|@)${S}*" + '$'))) {
+        Respond-CoarseAsk 'git push without a refspec (the target is not known)' $Budget
     }
 
     $askArms = @(
@@ -163,7 +262,6 @@ function Invoke-CoarseScan {
         @('git switch -f / --force / --discard-changes', "${git}switch${S}(${G}${S})?(-f|--force|--discard-changes)${E}"),
         @('git clean -', "${git}clean${S}+-"),
         @('git stash drop / clear', "${git}stash${S}+(drop|clear)${E}"),
-        @('git push --force / --delete / +<ref> / :<ref>', "${git}push${S}(${G}${S})?(--force|--delete|-[A-Za-z]*[fd][A-Za-z]*|[+:]\S+)${E}"),
         @('rm -r', "${rmr}${E}"),
         @('find -delete / -exec rm', "${W}find${S}${G}${S}(-delete|-(exec|execdir|ok|okdir)${S}+(\S*/)?rm)${E}"),
         @('gh <group> delete', "${W}gh${S}(${G}${S})?[A-Za-z0-9-]+${S}+delete(-asset)?${E}"),
@@ -173,7 +271,7 @@ function Invoke-CoarseScan {
     if (-not (Test-CoarseMatch $Text $all)) { return }
     foreach ($arm in $askArms) {
         if (Test-CoarseMatch $Text $arm[1]) {
-            Respond-Ask "Input of $($Text.Length) bytes exceeds the tokenizer budget ($Budget bytes) and contains $($arm[0]), so it was not inspected in full. Confirm to proceed."
+            Respond-CoarseAsk $arm[0] $Budget
         }
     }
 }
@@ -182,17 +280,27 @@ function Invoke-CoarseScan {
 # bash variant's 16 KiB threshold).
 $maxBytes = if ($env:DCG_TOKENIZER_MAX_BYTES) { [int]$env:DCG_TOKENIZER_MAX_BYTES } else { 16384 }
 if ($CMD.Length -gt $maxBytes) {
-    if ($CMD -match 'rm\s+(-[rRf]*[rR][rRf]*|--recursive)\s+/') {
-        Respond-Deny 'Dangerous recursive delete at root directory blocked for safety'
+    $rxOptions = [System.Text.RegularExpressions.RegexOptions]
+    $script:CoarseOptions = $rxOptions::Multiline
+    if ([enum]::GetNames($rxOptions) -contains 'NonBacktracking') {
+        $script:CoarseOptions = $script:CoarseOptions -bor $rxOptions::NonBacktracking
     }
-    if ($CMD -match 'chmod\s+(0?777|a\+rwx|[246][0-9][0-9][0-9])') {
-        Respond-Deny 'Dangerous permission change (777/a+rwx) blocked for security'
-    }
-    if ($CMD -match '(curl|wget)\s.*\|\s*(sh|bash|zsh|dash|python[23]?|perl|ruby|node)\b') {
-        Respond-Deny 'Remote script execution via pipe blocked for security'
-    }
+    $script:CoarseBudget = [TimeSpan]::FromSeconds(1)
     try {
-        Invoke-CoarseScan -Text $CMD -Budget $maxBytes
+        # A failed preparation leaves the raw text to scan. The legacy regexes
+        # keep the case-insensitivity they had as -match.
+        try { $coarseText = Get-CoarseText -Text $CMD } catch { $coarseText = $CMD }
+        # A recursive rm is left to Invoke-CoarseScan, which knows the deny
+        # tier (#1027).
+        if (Test-CoarseMatch $coarseText '(?i)chmod\s+(0?777|a\+rwx|[246][0-9][0-9][0-9])') {
+            Respond-Deny 'Dangerous permission change (777/a+rwx) blocked for security'
+        }
+        # A wrapper may stand in front of the receiver (#991), and a subshell or
+        # a group around it (#1034).
+        if (Test-CoarseMatch $coarseText '(?i)(curl|wget)\s.*\|\s*([({]\s*)*((sudo|doas|env|exec|nohup|command|time)\s+(-\S+\s+|[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)?("?\$\{?(SHELL|BASH)\}?"?|(\S*/)?(sh|bash|zsh|dash|python[23]?|perl|ruby|node))(\s|[;&|)]|$)') {
+            Respond-Deny 'Remote script execution via pipe blocked for security'
+        }
+        Invoke-CoarseScan -Text $coarseText -Budget $maxBytes
     } catch {
         Respond-Ask "Input of $($CMD.Length) bytes exceeds the tokenizer budget ($maxBytes bytes) and the coarse scan did not finish ($($_.Exception.Message)), so it was not inspected. Confirm to proceed."
     }
@@ -214,6 +322,10 @@ function Split-Subcommands {
     $depth = 0
     $i = 0
     $len = $Cmd.Length
+    # The index right after the last unquoted `<` or `>` of a redirection. An
+    # `&` or a `|` there belongs to the redirection (`2>&1`, `<&0`, `>|f`), and
+    # an `&` right before `>` starts `&>` / `&>>` (#1033).
+    $redirAt = -1
 
     function Flush([System.Collections.Generic.List[string]]$list, [string]$s) {
         $t = $s.Trim()
@@ -254,7 +366,9 @@ function Split-Subcommands {
         if ($quote -eq '`') {
             if ($ch -eq '`') {
                 Flush $results $buf
-                $buf = $stack.Pop(); $buf += ' '; $depth--
+                # Swap the opener for the placeholder `$(...)` leaves; see
+                # split_subcommands in lib/tokenize-shell.sh.
+                $buf = $stack.Pop(); $buf = $buf.Substring(0, $buf.Length - 1) + '$() '; $depth--
                 $quote = $qstack.Pop(); $i++; continue
             }
             $buf += $ch; $i++; continue
@@ -280,7 +394,12 @@ function Split-Subcommands {
                 }
                 if ($next -eq '<') {
                     # `<<<` here-string: the next token is an ordinary word.
-                    if (($i + 2 -lt $len) -and $Cmd[$i + 2] -eq '<') { $buf += '<<<'; $i += 3; continue scan }
+                    # The operator becomes a word of its own (#1029); a file
+                    # descriptor in front stays with it.
+                    if (($i + 2 -lt $len) -and $Cmd[$i + 2] -eq '<') {
+                        $buf += if ($i -gt 0 -and $Cmd[$i - 1] -match '[0-9]') { '<<< ' } else { ' <<< ' }
+                        $i += 3; continue scan
+                    }
                     # `<<` / `<<-` heredoc: record the delimiter; the body is
                     # consumed at the next unquoted newline.
                     $buf += '<<'; $i += 2
@@ -295,6 +414,14 @@ function Split-Subcommands {
                     continue scan
                 }
                 $buf += $ch
+                $redirAt = $i + 1
+            }
+            '>' {
+                if ($next -eq '(') {
+                    $buf += '>('; $stack.Push($buf); $qstack.Push(''); $buf = ''; $depth++; $i += 2; continue scan
+                }
+                $buf += $ch
+                $redirAt = $i + 1
             }
             "`n" {
                 # Heredoc bodies are data: copy them line by line without
@@ -330,11 +457,13 @@ function Split-Subcommands {
                 $buf += $ch
             }
             '&' {
+                if ($i -eq $redirAt -or $next -eq '>') { $buf += $ch; $i++; continue scan }
                 if ($next -eq '&' -and $depth -eq 0) { Flush $results $buf; $buf = ''; $i += 2; continue scan }
                 if ($depth -eq 0) { Flush $results $buf; $buf = ''; $i++; continue scan }
                 $buf += $ch
             }
             '|' {
+                if ($i -eq $redirAt) { $buf += $ch; $i++; continue scan }
                 if ($next -eq '|' -and $depth -eq 0) { Flush $results $buf; $buf = ''; $i += 2; continue scan }
                 if ($depth -eq 0) { Flush $results $buf; $buf = ''; $i++; continue scan }
                 $buf += $ch
@@ -381,8 +510,10 @@ function Flatten-Subcommands {
     return $current
 }
 
+# -Raw emits the words as written, quotes and all, so that a caller can tell
+# '$X' from "$X" (#1029).
 function Tokenize-Argv {
-    param([string]$Sub)
+    param([string]$Sub, [switch]$Raw)
 
     # Pre-expand IFS substitutions to a space.
     $s = $Sub.Replace('${IFS}', ' ').Replace('$IFS', ' ')
@@ -394,13 +525,7 @@ function Tokenize-Argv {
 
     function Emit([System.Collections.Generic.List[string]]$list, [string]$t) {
         if ([string]::IsNullOrEmpty($t)) { return }
-        if ($t.StartsWith('\') -and $t.Length -gt 1) { $t = $t.Substring(1) }
-        if ($t.Length -ge 2) {
-            $first = $t[0]; $last = $t[$t.Length - 1]
-            if (($first -eq "'" -and $last -eq "'") -or ($first -eq '"' -and $last -eq '"')) {
-                $t = $t.Substring(1, $t.Length - 2)
-            }
-        }
+        if (-not $Raw -and $t.IndexOfAny([char[]]@("'", '"', '\')) -ge 0) { $t = Get-DequotedWord $t }
         [void]$list.Add($t)
     }
 
@@ -445,19 +570,215 @@ function Skip-First {
     return ,@($Items | Select-Object -Skip $Count)
 }
 
-function Strip-WrapperPrefix {
+# The word Get-RealWords puts after the last one, which Strip-CompoundSyntax
+# reads as the end of the command.
+$script:RwEnd = [string][char]1 + 'dcg-end'
+
+# Whether `(word)` at the head of the list is a subshell rather than the
+# pattern of a case arm (#1034): only closers and redirections may follow a
+# subshell; a case pattern is followed by its command. See one_word_subshell.
+function Test-OneWordSubshell {
+    param($List)
+    $k = 1
+    while ($k -lt $List.Count) {
+        $w = $List[$k]
+        if ($w -ceq $script:RwEnd) { return $true }
+        if ($w -cmatch '^\)+$') { $k++; continue }
+        $r = Get-Redirection -W $w
+        if (-not $r.Kind) { return $false }
+        $k += 1 + [int]$r.TakesNext
+    }
+    return $true
+}
+
+# Drops the shell grammar around a simple command: reserved words, grouping, a
+# function head, a case pattern, and the `)` that closes a subshell; a one-word
+# subshell `(bash)` keeps its word. `for` and `select` stay, because their
+# words are data. See strip_compound_syntax.
+function Strip-CompoundSyntax {
     param([string[]]$Tokens)
-    if ($Tokens.Count -eq 0) { return $Tokens }
-    $head = $Tokens[0]
-    if (@('sudo','nice','nohup','time','stdbuf','exec') -ccontains $head) {
-        return (Skip-First $Tokens)
+    $list = [System.Collections.Generic.List[string]]::new()
+    foreach ($x in $Tokens) { $list.Add($x) }
+    $opens = 0
+    $closes = 0
+    while ($list.Count -gt 0) {
+        $t = $list[0]
+        if ($t.StartsWith('$')) { break }
+        if (@('if','then','elif','else','while','until','do','!','{','coproc') -ccontains $t) {
+            $list.RemoveAt(0)
+            continue
+        }
+        if ($t -ceq 'time') {
+            # The keyword form; `time make` is for Strip-Wrappers.
+            $n = if ($list.Count -gt 1) { $list[1] } else { '' }
+            if ($n -ceq '-p') { $list.RemoveRange(0, 2); continue }
+            if ($n -ceq '{' -or $n -ceq '!' -or $n.StartsWith('(')) { $list.RemoveAt(0); continue }
+            break
+        }
+        if ($t -ceq 'function') {
+            $list.RemoveRange(0, [Math]::Min(2, $list.Count))
+            if ($list.Count -gt 0 -and $list[0] -ceq '()') { $list.RemoveAt(0) }
+            continue
+        }
+        if ($t -ceq 'case') {
+            if ($list.Count -lt 3 -or $list[2] -cne 'in') { break }
+            $list.RemoveRange(0, 3)
+            continue
+        }
+        # `name()`, or the placeholder of a substitution.
+        if ($t.EndsWith('()')) {
+            $list.RemoveAt(0)
+            continue
+        }
+        if ($t.StartsWith('(') -and $t.EndsWith(')')) {
+            if (Test-OneWordSubshell -List $list) {
+                $opens++
+                $closes++
+                $list[0] = $t.Substring(1, $t.Length - 2)
+            } else {
+                # `(pattern)` of a case arm.
+                $list.RemoveAt(0)
+            }
+            continue
+        }
+        if ($t.StartsWith('(')) {
+            $opens++
+            $t = $t.Substring(1)
+            if ($t) { $list[0] = $t } else { $list.RemoveAt(0) }
+            continue
+        }
+        if ($t.EndsWith(')')) {
+            # A case pattern. A lone last word is the end of a subshell, which
+            # the loop below handles.
+            if ($list.Count -le 1) { break }
+            $list.RemoveAt(0)
+            continue
+        }
+        # `name () {`
+        if ($list.Count -gt 1 -and $list[1] -ceq '()') {
+            $list.RemoveRange(0, 2)
+            continue
+        }
+        break
     }
-    if ($head -ceq 'env') {
-        $rest = Skip-First $Tokens
-        while ($rest.Count -gt 0 -and $rest[0] -match '=') { $rest = Skip-First $rest }
-        return $rest
+    while ($list.Count -gt 0) {
+        $last = $list.Count - 1
+        $t = $list[$last]
+        if (-not $t.EndsWith(')')) { break }
+        # A balanced word is no closer: `$()`, `name()`, `(a)`.
+        if (([regex]::Matches($t, '\)')).Count -le ([regex]::Matches($t, '\(')).Count) { break }
+        $closes++
+        $t = $t.Substring(0, $t.Length - 1)
+        if ($t) { $list[$last] = $t } else { $list.RemoveAt($last) }
     }
-    return $Tokens
+    return [pscustomobject]@{ Tokens = $list.ToArray(); Opens = $opens; Closes = $closes }
+}
+
+# NAME=value, NAME+=value or NAME[i]=value. IFS does not count, so that
+# Inspect-Argv sees it and refuses it.
+function Test-AssignmentWord {
+    param([string]$Word)
+    return ($Word -cmatch '^[A-Za-z_][A-Za-z0-9_]*(\[[^\]]*\])?\+?=' -and $Word -cnotmatch '^IFS\+?=')
+}
+
+# Drops the leading flags from the list. $Values lists, between spaces, the flags
+# that take the next word as a value. A short cluster reads like getopt: `-nu
+# root` takes root for -u, and `-uroot` holds its own value.
+function Skip-WrapperFlags {
+    param($List, [string]$Values)
+    while ($List.Count -gt 0) {
+        $t = $List[0]
+        if ($t -ceq '--') { $List.RemoveAt(0); return }
+        if ($t -ceq '-' -or ($t.StartsWith('--') -and $t.Contains('='))) { $List.RemoveAt(0); continue }
+        if ($t.StartsWith('--')) {
+            $List.RemoveAt(0)
+            if ($Values.Contains(" $t ") -and $List.Count -gt 0) { $List.RemoveAt(0) }
+            continue
+        }
+        if ($t.StartsWith('-')) {
+            $List.RemoveAt(0)
+            for ($i = 1; $i -lt $t.Length; $i++) {
+                if ($Values.Contains(" -$($t[$i]) ")) {
+                    if ($i -eq $t.Length - 1 -and $List.Count -gt 0) { $List.RemoveAt(0) }
+                    break
+                }
+            }
+            continue
+        }
+        return
+    }
+}
+
+# Known wrappers and the flags of each that take the next word as a value.
+$script:WrapperValueFlags = [System.Collections.Generic.Dictionary[string,string]]::new([System.StringComparer]::Ordinal)
+foreach ($entry in @(
+    @('sudo', ' -u -g -h -p -C -r -t -T -U -D -R --user --group --host --prompt --close-from --role --type --command-timeout --other-user --chdir --chroot '),
+    @('doas', ' -u -g -h -p -C -r -t -T -U -D -R --user --group --host --prompt --close-from --role --type --command-timeout --other-user --chdir --chroot '),
+    @('env', ' -u -C --unset --chdir '),
+    @('command', ' '),
+    @('builtin', ' '),
+    @('nohup', ' '),
+    @('chronic', ' '),
+    @('unbuffer', ' '),
+    @('setsid', ' '),
+    @('nice', ' -n --adjustment '),
+    @('ionice', ' -c -n -p --class --classdata --pid '),
+    @('time', ' -o -f --output --format '),
+    @('stdbuf', ' -i -o -e --input --output --error '),
+    @('exec', ' -a '),
+    @('timeout', ' -k -s --kill-after --signal '),
+    @('gtimeout', ' -k -s --kill-after --signal '),
+    @('caffeinate', ' -t -w '),
+    @('xargs', ' -I -L -n -P -s -E -d -a --replace --max-lines --max-args --max-procs --max-chars --eof --delimiter --arg-file '),
+    @('parallel', ' -j -P -a -S --jobs --arg-file --sshlogin --delay --timeout '),
+    @('watch', ' -n --interval ')
+)) { $script:WrapperValueFlags[$entry[0]] = $entry[1] }
+
+# Drops what stands in front of the real command: assignments, redirections, and
+# known wrappers with their own flags, in any number and order. Only the words in
+# front go, so it is safe to run this twice. xargs and parallel run the command
+# once per input, which $script:EachInput records. watch and env -S run a string,
+# so it becomes a shell payload. See strip_wrappers.
+function Strip-Wrappers {
+    param([string[]]$Tokens)
+    $list = [System.Collections.Generic.List[string]]::new()
+    foreach ($x in $Tokens) { $list.Add($x) }
+    while ($list.Count -gt 0) {
+        $t = $list[0]
+        if (Test-AssignmentWord $t) { $list.RemoveAt(0); continue }
+        # A redirection whose target is the next word takes two words, so that
+        # `>& f rm -rf ~` and `<< EOF rm -rf ~` reach the inspectors as rm
+        # (#1033). `>&-` holds its target.
+        if ($t -cmatch '^([0-9]?(<|>|>>|<<<|<&|>&|>\||<>|<<|<<-)|&>|&>>)$') { $list.RemoveRange(0, [Math]::Min(2, $list.Count)); continue }
+        if ($t -cmatch '^([0-9]?[<>]|&>)') { $list.RemoveAt(0); continue }
+        $name = $t -replace '^.*[\\/]', ''
+        if (-not $script:WrapperValueFlags.ContainsKey($name)) { break }
+        if ($name -ceq 'command') {
+            # `command -v rm` only looks the name up.
+            $lookup = $false
+            for ($k = 1; $k -lt $list.Count; $k++) {
+                if ($list[$k] -cmatch '^-.*[vV]') { $lookup = $true; break }
+                if (-not $list[$k].StartsWith('-')) { break }
+            }
+            if ($lookup) { break }
+        }
+        $list.RemoveAt(0)
+        Skip-WrapperFlags -List $list -Values $script:WrapperValueFlags[$name]
+        $asPayload = ($name -ceq 'watch' -and $list.Count -gt 0) -or
+            # `env -S 'rm -rf ~'`: a command name holds no space.
+            ($name -ceq 'env' -and $list.Count -gt 0 -and $list[0].Contains(' '))
+        if ($asPayload) {
+            $joined = $list -join ' '
+            $list.Clear()
+            $list.Add('sh'); $list.Add('-c'); $list.Add($joined)
+        } elseif (($name -ceq 'timeout' -or $name -ceq 'gtimeout') -and $list.Count -gt 0) {
+            # The duration.
+            $list.RemoveAt(0)
+        } elseif ($name -ceq 'xargs' -or $name -ceq 'parallel') {
+            $script:EachInput = $true
+        }
+    }
+    return [pscustomobject]@{ Tokens = $list.ToArray() }
 }
 
 function New-Verdict {
@@ -507,6 +828,180 @@ function Test-DirOrAncestor {
     return ($N -eq '' -or $N -match '^\.\.(/\.\.)*$')
 }
 
+# The root of an absolute path and the rest after it, with '/' separators:
+# '/', a drive ('C:/') or a network share ('\\server\share\', written with
+# backslashes so that it reads as a share on every platform). A path that
+# starts with '\\', or with '//' on Windows, names a share.
+function Split-AbsRoot {
+    param([string]$P)
+    $q = $P.Replace('\', '/')
+    if ($q -match '^([A-Za-z]):/') {
+        return @(($Matches[1].ToUpperInvariant() + ':/'), $q.Substring(3))
+    }
+    if ($P.StartsWith('\\') -or ($IsWindows -and $q.StartsWith('//'))) {
+        $segs = @($q.Split('/') | Where-Object { $_ -ne '' })
+        $root = '\\' + (@($segs | Select-Object -First 2) -join '\') + '\'
+        return @($root, (@($segs | Select-Object -Skip 2) -join '/'))
+    }
+    return @('/', $q)
+}
+
+# Lexically normalize an absolute path; '..' stops at the root (#1027).
+function Normalize-Abs {
+    param([string]$P)
+    $root, $rest = Split-AbsRoot $P
+    $segs = @((Normalize-Rel $rest) -split '/' | Where-Object { $_ -ne '' -and $_ -ne '..' })
+    return ($root + ($segs -join '/'))
+}
+
+# The directory <Dir> reaches with every symbolic link and junction resolved,
+# '..' taken after the link it follows; $null when it does not exist.
+function Resolve-PhysicalDir {
+    param([string]$Dir)
+    $root, $rest = Split-AbsRoot $Dir
+    $stack = New-Object System.Collections.Generic.List[string]
+    $queue = New-Object System.Collections.Generic.List[string]
+    foreach ($s in $rest.Split('/')) { $queue.Add($s) }
+    $hops = 0
+    while ($queue.Count -gt 0) {
+        $seg = $queue[0]
+        $queue.RemoveAt(0)
+        if ($seg -eq '' -or $seg -eq '.') { continue }
+        if ($seg -eq '..') {
+            if ($stack.Count -gt 0) { $stack.RemoveAt($stack.Count - 1) }
+            continue
+        }
+        $next = $root + ((@($stack) + $seg) -join '/')
+        $item = Get-Item -LiteralPath $next -Force -ErrorAction Ignore
+        if ($null -eq $item) { return $null }
+        $target = if ($item.LinkType) { [string](@($item.Target)[0]) } else { '' }
+        if ($target) {
+            $hops++
+            if ($hops -gt 40) { return $null }
+            $parts = $target.Replace('\', '/').Split('/')
+            if (Test-AbsolutePath $target) {
+                $root, $trest = Split-AbsRoot $target
+                $parts = $trest.Split('/')
+                $stack.Clear()
+            }
+            $queue.InsertRange(0, [string[]]$parts)
+            continue
+        }
+        if (-not $item.PSIsContainer) { return $null }
+        $stack.Add($seg)
+    }
+    return ($root + ($stack -join '/'))
+}
+
+# The path rm reaches; $null when it does not exist. rm removes a link
+# itself, so the last component is resolved only when a separator, '.' or '..'
+# ends the path.
+function Resolve-PhysicalPath {
+    param([string]$P)
+    $q = $P.Replace('\', '/')
+    if ($q.EndsWith('/') -or $q.EndsWith('/.') -or $q.EndsWith('/..')) { return (Resolve-PhysicalDir $P) }
+    $root, $rest = Split-AbsRoot $P
+    $i = $rest.LastIndexOf('/')
+    $parent = if ($i -lt 0) { $root } else { $root + $rest.Substring(0, $i) }
+    $base = $rest.Substring($i + 1)
+    $dir = Resolve-PhysicalDir $parent
+    if ($null -eq $dir) { return $null }
+    $full = if ($dir.EndsWith('/') -or $dir.EndsWith('\')) { $dir + $base } else { $dir + '/' + $base }
+    if ($null -eq (Get-Item -LiteralPath $full -Force -ErrorAction Ignore)) { return $null }
+    return $full
+}
+
+# What a normalized absolute path is when a recursive delete of it is denied:
+# a root, a top-level directory (on macOS also /private/<dir>, which /tmp,
+# /var and /etc point to), a home directory, or a parent of $HOME; $null
+# otherwise. Drive and share paths compare without case.
+function Get-AbsDenyKind {
+    param([string]$N)
+    $root, $rest = Split-AbsRoot $N
+    $segs = @($rest.Split('/') | Where-Object { $_ -ne '' })
+    $unix = ($root -eq '/')
+    if ($segs.Count -eq 0) {
+        if ($root.StartsWith('\\')) { return 'the root of a network share' }
+        return 'the root directory'
+    }
+    if ($segs.Count -eq 1) { return 'a top-level directory' }
+    if ($segs.Count -eq 2) {
+        if ($unix -and $segs[0] -ceq 'private') { return 'a top-level directory' }
+        if ($unix -and ($segs[0] -ceq 'Users' -or $segs[0] -ceq 'home')) { return 'a home directory' }
+        if ($root -match '^[A-Za-z]:/$' -and $segs[0] -ieq 'Users') { return 'a home directory' }
+    }
+    if ($HOME -and (Test-AbsolutePath $HOME)) {
+        $h = Normalize-Abs $HOME
+        $cmp = if ($unix) { [StringComparison]::Ordinal } else { [StringComparison]::OrdinalIgnoreCase }
+        if ([string]::Equals($N, $h, $cmp)) { return 'a home directory' }
+        if ($h.StartsWith($N + '/', $cmp)) { return 'a parent of the home directory' }
+    }
+    return $null
+}
+
+# The session temp roots, a path below which may be removed recursively
+# (#1027). Each root is listed lexically and resolved. A root that is itself in
+# the deny tier, such as TMPDIR=/tmp, is left out.
+$script:TempRoots = $null
+function Add-TempRoot {
+    param([string]$R)
+    if ([string]::IsNullOrEmpty($R) -or -not (Test-AbsolutePath $R)) { return }
+    $n = Normalize-Abs $R
+    if ($null -ne (Get-AbsDenyKind $n)) { return }
+    $script:TempRoots.Add($n)
+    $p = Resolve-PhysicalDir $n
+    if ($p) { $script:TempRoots.Add($p) }
+}
+function Get-TempRoots {
+    if ($null -ne $script:TempRoots) { return }
+    $script:TempRoots = New-Object System.Collections.Generic.List[string]
+    if (-not $IsWindows) {
+        $uid = try { [string](& id -u 2>$null) } catch { '' }
+        if ($uid -match '^[0-9]+$') {
+            Add-TempRoot "/tmp/claude-$uid"
+            Add-TempRoot "/private/tmp/claude-$uid"
+        }
+    }
+    Add-TempRoot $env:TMPDIR
+    Add-TempRoot ([System.IO.Path]::GetTempPath())
+    if ($IsMacOS) {
+        $darwin = try { [string](& getconf DARWIN_USER_TEMP_DIR 2>$null) } catch { '' }
+        Add-TempRoot $darwin
+    }
+}
+
+# A path strictly below a session temp root.
+function Test-UnderTempRoot {
+    param([string]$P)
+    Get-TempRoots
+    foreach ($r in $script:TempRoots) {
+        $cmp = if ($r.StartsWith('/')) { [StringComparison]::Ordinal } else { [StringComparison]::OrdinalIgnoreCase }
+        if ($P.Length -gt $r.Length + 1 -and $P.StartsWith($r + '/', $cmp)) { return $true }
+    }
+    return $false
+}
+
+# The decision on a recursive delete of an absolute path (#1027): deny for the
+# deny tier, by its spelling or by the path it resolves to; allow below a
+# session temp root when the resolved path stays there too; ask otherwise.
+function Inspect-AbsTarget {
+    param([string]$T, [string]$Abs)
+    $lex = Normalize-Abs $Abs
+    $real = Resolve-PhysicalPath $Abs
+    foreach ($shown in @($lex, $real)) {
+        if (-not $shown) { continue }
+        $kind = Get-AbsDenyKind $shown
+        if ($kind) {
+            $what = if ($T.Replace('\', '/') -ceq $shown.Replace('\', '/')) { "'$T'" } else { "'$T' is '$shown'" }
+            return (New-Verdict 'deny' "Dangerous recursive delete of $kind blocked for safety: $what")
+        }
+    }
+    if ((Test-UnderTempRoot $lex) -and (-not $real -or (Test-UnderTempRoot $real))) {
+        return (New-Verdict 'allow')
+    }
+    return (New-Verdict 'ask' "Recursive delete of '$T' cannot be undone, and the path is not inside a session temp directory. Confirm to proceed.")
+}
+
 function Get-WorktreeState {
     param([string]$Dir)
     if ([string]::IsNullOrEmpty($Dir) -or -not (Test-Path -LiteralPath $Dir -PathType Container)) { return 'unknown' }
@@ -552,20 +1047,36 @@ function Inspect-Rm {
     }
     if (-not $hasRecursive) { return (New-Verdict 'allow') }
 
-    # Deny: the root, any absolute path, or the home directory.
+    # An absolute path, or one through ~ or $HOME (#1027): deny the root, a
+    # top-level directory and a home directory; allow a path below a session
+    # temp root; ask for any other. A deny of any target wins over an ask.
+    $asked = $null
     foreach ($t in $targets) {
-        if ((Test-AbsolutePath $t) -or $t -ceq '$HOME' -or $t.StartsWith('$HOME/') -or
-            $t -ceq '${HOME}' -or $t.StartsWith('${HOME}/') -or $t -eq '~' -or $t.StartsWith('~/')) {
-            return (New-Verdict 'deny' 'Dangerous recursive delete at root directory blocked for safety')
+        if ($t -eq '~' -or $t -ceq '$HOME' -or $t -ceq '${HOME}') {
+            return (New-Verdict 'deny' "Dangerous recursive delete of the home directory blocked for safety: '$t'")
         }
+        if ($t.StartsWith('~/') -or $t.StartsWith('$HOME/') -or $t.StartsWith('${HOME}/')) {
+            if ([string]::IsNullOrEmpty($HOME)) {
+                return (New-Verdict 'deny' "Dangerous recursive delete of the home directory blocked for safety: '$t'")
+            }
+            $abs = $HOME + '/' + $t.Substring($t.IndexOf('/') + 1)
+        } elseif (Test-AbsolutePath $t) {
+            $abs = $t
+        } else {
+            continue
+        }
+        $r = Inspect-AbsTarget -T $t -Abs $abs
+        if ($r.D -eq 'deny') { return $r }
+        if ($r.D -eq 'ask' -and $null -eq $asked) { $asked = $r }
     }
+    if ($null -ne $asked) { return $asked }
 
     # Ask: the current directory, a parent, a glob over either, .git, or a
     # path that resolves outside the repository work tree.
     $repo = 'unchecked'
     $prefix = ''
     foreach ($t in $targets) {
-        if ($t -match '[$`]' -or $t.StartsWith('~')) { continue }
+        if ($t -match '[$`]' -or $t.StartsWith('~') -or (Test-AbsolutePath $t)) { continue }
         $n = Normalize-Rel $t
         $base = ($n -split '/')[-1]
         $parent = if ($n.Contains('/')) { $n.Substring(0, $n.LastIndexOf('/')) } else { '' }
@@ -614,22 +1125,33 @@ function Inspect-Chmod {
 }
 
 function Inspect-Find {
-    param([string[]]$Tokens)
-    $prev = ''
-    foreach ($t in (Skip-First $Tokens)) {
+    param([string[]]$Tokens, [int]$Depth, [string]$Cwd, $Vars = $null)
+    $rest = Skip-First $Tokens
+    $i = 0
+    while ($i -lt $rest.Count) {
+        $t = $rest[$i]
+        $i++
         if ($t -ceq '-delete') {
             return (New-Verdict 'ask' 'find -delete removes every match permanently. Confirm to proceed, or run the same find with -print first.')
         }
-        if (@('-exec','-execdir','-ok','-okdir') -ccontains $prev -and ($t -ceq 'rm' -or $t -clike '*/rm')) {
-            return (New-Verdict 'ask' 'find -exec rm removes every match permanently. Confirm to proceed, or run the same find with -print first.')
+        if (@('-exec','-execdir','-ok','-okdir') -ccontains $t) {
+            $execArgv = [System.Collections.Generic.List[string]]::new()
+            while ($i -lt $rest.Count) {
+                $t = $rest[$i]
+                $i++
+                if ($t -ceq ';' -or $t -ceq '+') { break }
+                $execArgv.Add($t)
+            }
+            $saved = $script:EachInput
+            $script:EachInput = $true
+            $r = Inspect-Argv -Tokens $execArgv.ToArray() -Depth $Depth -Cwd $Cwd -Vars $Vars
+            $script:EachInput = $saved
+            if ($r.D -ne 'allow') { return $r }
         }
-        $prev = $t
     }
     return (New-Verdict 'allow')
 }
 
-# The branch a refspec-less `git push` updates: the current branch's
-# upstream, else the current branch (push-target-guard).
 function Get-PushDefaultTarget {
     param([string]$Dir)
     if ([string]::IsNullOrEmpty($Dir) -or -not (Test-Path -LiteralPath $Dir -PathType Container)) { return '' }
@@ -878,22 +1400,51 @@ function Inspect-InlineShell {
     return (New-Verdict 'allow')
 }
 
-# The word after quote removal ("rm -rf" -> rm -rf).
+# Shell quote removal on one word; see unquote_word in lib/tokenize-shell.sh.
 function Get-DequotedWord {
     param([string]$S)
+    # A Windows path typed without quotes keeps its backslashes, so that
+    # `rm -rf C:\Windows` is still seen as an absolute path.
+    if ($S -match '^([A-Za-z]:[\\/]|\\\\|\.{1,2}\\)' -and $S.IndexOfAny([char[]]@("'", '"')) -lt 0) { return $S }
     $out = New-Object System.Text.StringBuilder
     $q = ''
-    for ($i = 0; $i -lt $S.Length; $i++) {
+    $len = $S.Length
+    for ($i = 0; $i -lt $len; $i++) {
         $ch = [string]$S[$i]
         if ($q -eq "'") {
             if ($ch -eq "'") { $q = '' } else { [void]$out.Append($ch) }
-        } elseif ($ch -eq '\') {
-            $i++
-            if ($i -lt $S.Length) { [void]$out.Append($S[$i]) }
-        } elseif ($q -ne '' -and $ch -eq $q) {
-            $q = ''
-        } elseif ($q -eq '' -and ($ch -eq "'" -or $ch -eq '"')) {
+        } elseif ($q -eq '"') {
+            if ($ch -eq '"') {
+                $q = ''
+            } elseif ($ch -eq '\') {
+                $i++
+                if ($i -lt $len) {
+                    if (-not ('$`"\' + "`n").Contains($S[$i])) { [void]$out.Append($ch) }
+                    [void]$out.Append($S[$i])
+                }
+            } else {
+                [void]$out.Append($ch)
+            }
+        } elseif ($ch -eq "'" -or $ch -eq '"') {
             $q = $ch
+        } elseif ($ch -eq '\') {
+            if ($i -lt $len - 1) {
+                $i++
+                [void]$out.Append($S[$i])
+            } else {
+                [void]$out.Append($ch)
+            }
+        } elseif ($ch -eq '$' -and $i + 1 -lt $len -and $S[$i + 1] -eq "'") {
+            # An ANSI-C $'...' with an escape in it stays as written, so that it
+            # reads as an expansion that cannot be resolved.
+            $close = $S.IndexOf("'", $i + 2)
+            $inner = if ($close -lt 0) { $S.Substring($i + 2) } else { $S.Substring($i + 2, $close - $i - 2) }
+            if ($inner.Contains('\')) {
+                [void]$out.Append($S.Substring($i))
+                break
+            }
+            [void]$out.Append($inner)
+            $i = $i + 2 + $inner.Length
         } else {
             [void]$out.Append($ch)
         }
@@ -902,7 +1453,8 @@ function Get-DequotedWord {
 }
 
 # Record NAME=value, or forget NAME when the value still holds an expansion
-# (`$`, `$(`, a backtick) or is an append (+=); see track_assign.
+# (`$`, `$(`, a backtick), is an array (a value that starts with an opening
+# parenthesis) or is an append (+=); see track_assign.
 function Add-TrackedAssignment {
     param($Vars, [string]$Word)
     $eq = $Word.IndexOf('=')
@@ -911,74 +1463,153 @@ function Add-TrackedAssignment {
     $known = $true
     if ($name.EndsWith('+')) { $name = $name.Substring(0, $name.Length - 1); $known = $false }
     if ($name -cnotmatch '^[A-Za-z_][A-Za-z0-9_]*$') { return }
-    if ($value -match '[$`]') { $known = $false }
-    if ($known) { $Vars[$name] = Get-DequotedWord $value } else { [void]$Vars.Remove($name) }
+    if ($value -match '[$`]' -or $value.StartsWith('(')) { $known = $false }
+    if ($known) { $Vars[$name] = $value } else { [void]$Vars.Remove($name) }
 }
 
-# The assignments of an assignment-only sub-command or of `export NAME=value`.
+# The assignments of an assignment-only sub-command or of
+# `export|declare|local|readonly|typeset NAME=value`, and what `unset NAME`
+# removes (`unset -f NAME` removes a function); see track_vars.
 function Update-TrackedVars {
     param($Vars, [string[]]$Tokens)
-    $words = $Tokens
-    if ($Tokens[0] -ceq 'export') {
-        $words = Skip-First $Tokens
-    } elseif (@($Tokens | Where-Object { -not $_.Contains('=') }).Count -gt 0) {
+    $head = $Tokens[0]
+    $words = Skip-First $Tokens
+    $forget = $false
+    if ($head -ceq 'unset') {
+        if (@($words | Where-Object { $_ -cmatch '^-.*f' }).Count -gt 0) { return }
+        foreach ($t in $words) {
+            if (-not $t.StartsWith('-')) { [void]$Vars.Remove($t) }
+        }
         return
     }
+    if (@('declare','local','readonly','typeset') -ccontains $head) {
+        # An array, a nameref or a case-converting variable does not hold its
+        # literal value.
+        $forget = @($words | Where-Object { $_ -cmatch '^-.*[aAnlu]' }).Count -gt 0
+    } elseif ($head -cne 'export') {
+        # An array value may be split over words (`X=(rm -rf)`), so forget it
+        # even though the other words are no assignments.
+        $words = $Tokens
+        $only = $true
+        foreach ($t in $words) {
+            $eq = $t.IndexOf('=')
+            if ($eq -lt 0) { $only = $false }
+            elseif ($t.Substring($eq + 1).StartsWith('(')) { Add-TrackedAssignment -Vars $Vars -Word $t }
+        }
+        if (-not $only) { return }
+    }
     foreach ($t in $words) {
-        if ($t.Contains('=')) { Add-TrackedAssignment -Vars $Vars -Word $t }
+        if ($t.StartsWith('-') -or $t.StartsWith('+')) { continue }
+        $eq = $t.IndexOf('=')
+        if ($forget) {
+            [void]$Vars.Remove($(if ($eq -lt 0) { $t } else { $t.Substring(0, $eq) }))
+        } elseif ($eq -ge 0) {
+            Add-TrackedAssignment -Vars $Vars -Word $t
+        }
     }
 }
 
-# argv[0] is a variable outside a payload. A tracked `$NAME` / `${NAME}` is
-# replaced by its words and inspected once; otherwise the arguments are
-# inspected as rm's, and ask if rm would be refused.
+# Nothing says what the head runs, but it may be rm or a shell. Ask when the
+# arguments would make rm refuse, or when the operand of a flag ending in c
+# would make a shell refuse. See inspect_unresolved_head.
+function Inspect-UnresolvedHead {
+    param([string]$Head, [string[]]$Rest, [int]$Depth, [string]$Cwd)
+    $r = Inspect-Rm -Tokens (@('rm') + @($Rest)) -Cwd $Cwd
+    if ($r.D -ne 'allow') {
+        return (New-Verdict 'ask' "The command name comes from $Head, which cannot be resolved statically; as rm this command would be refused ($($r.R)). Confirm to proceed.")
+    }
+    for ($k = 0; $k -lt $Rest.Count; $k++) {
+        if ($Rest[$k] -cmatch '^-[A-Za-z]*c$') {
+            $r = Inspect-InlineShell -Tokens (@($Head, '-c') + @($Rest | Select-Object -Skip ($k + 1))) -Depth $Depth -Cwd $Cwd
+            if ($r.D -eq 'allow') { return $r }
+            return (New-Verdict 'ask' "The command name comes from $Head, which cannot be resolved statically; if it is a shell, this payload would be refused ($($r.R)). Confirm to proceed.")
+        }
+    }
+    return (New-Verdict 'allow')
+}
+
+# argv[0] is an expansion outside a payload. A tracked `$NAME` / `${NAME}`, or
+# the literal default of `${NAME:-word}`, is replaced by its words and inspected.
+# Otherwise `$SHELL` and `$BASH` name a shell by definition and get its decision,
+# and any other head is unresolved.
 function Inspect-VarHead {
     param([string[]]$Tokens, [string]$Cwd, $Vars)
     $head = $Tokens[0]
     $rest = Skip-First $Tokens
-    $name = ''
-    if ($head -cmatch '^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$' -or $head -cmatch '^\$([A-Za-z_][A-Za-z0-9_]*)$') {
+    $name = ''; $op = ''; $word = ''
+    if ($head -cmatch '^\$\{([A-Za-z_][A-Za-z0-9_]*)(:?[-=])(.*)\}$') {
+        $name = $Matches[1]; $op = $Matches[2]; $word = $Matches[3]
+    } elseif ($head -cmatch '^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$' -or $head -cmatch '^\$([A-Za-z_][A-Za-z0-9_]*)$') {
         $name = $Matches[1]
     }
+    $value = ''
+    $known = $false
     if ($name -and $null -ne $Vars -and $Vars.ContainsKey($name)) {
-        $words = @($Vars[$name] -split '\s+' | Where-Object { $_ -ne '' })
-        return (Inspect-Argv -Tokens (@($words) + @($rest)) -Depth 0 -Cwd $Cwd -Vars $Vars -Resolved)
+        $value = $Vars[$name]
+        $known = $true
     }
-    $r = Inspect-Rm -Tokens (@('rm') + @($rest)) -Cwd $Cwd
-    if ($r.D -eq 'allow') { return $r }
-    return (New-Verdict 'ask' "The command name comes from $head, which cannot be resolved statically; as rm this command would be refused ($($r.R)). Confirm to proceed.")
+    # `:-` and `:=` also take the word when the variable is empty. An empty
+    # word says nothing about what runs when the variable is set.
+    if ($op.StartsWith(':') -and -not $value) { $known = $false }
+    if ($op -and -not $known -and $word -and $word -notmatch '[$`]') {
+        $value = $word
+        $known = $true
+    }
+    if ($known) {
+        $words = @($value -split '\s+' | Where-Object { $_ -ne '' })
+        return (Inspect-Argv -Tokens (@($words) + @($rest)) -Depth 0 -Cwd $Cwd -Vars $Vars)
+    }
+    if (@('$SHELL','${SHELL}','$BASH','${BASH}') -ccontains $head) {
+        return (Inspect-InlineShell -Tokens $Tokens -Depth 0 -Cwd $Cwd)
+    }
+    return (Inspect-UnresolvedHead -Head $head -Rest $rest -Depth 0 -Cwd $Cwd)
 }
 
 function Inspect-Argv {
-    param([string[]]$Tokens, [int]$Depth, [string]$Cwd, $Vars = $null, [switch]$Resolved)
-    $Tokens = @($Tokens | Where-Object { $null -ne $_ })
-    if ($Tokens.Count -eq 0) { return (New-Verdict 'allow') }
-
-    if ($Tokens[0] -match '=') {
-        if ($Tokens[0] -clike 'IFS=*') {
-            return (New-Verdict 'deny' 'Suspicious IFS reassignment in command scope')
-        }
-        $Tokens = Skip-First $Tokens
-        if ($Tokens.Count -eq 0) { return (New-Verdict 'allow') }
-    }
-
-    $Tokens = @(Strip-WrapperPrefix -Tokens $Tokens)
+    param([string[]]$Tokens, [int]$Depth, [string]$Cwd, $Vars = $null)
+    $Tokens = (Strip-Wrappers -Tokens @($Tokens | Where-Object { $null -ne $_ })).Tokens
     if ($Tokens.Count -eq 0) { return (New-Verdict 'allow') }
 
     $cmd0 = $Tokens[0]
-    # Inside a payload, a head that is a parameter expansion runs text this
-    # guard cannot see; `$(...)` heads were split out and inspected already.
-    if ($Depth -gt 0 -and $cmd0.StartsWith('$') -and -not $cmd0.StartsWith('$(')) {
-        return (New-Verdict 'deny' "Inline shell payload runs a variable expansion ($cmd0) that cannot be statically inspected; blocked (fail-closed)")
+    # A command run with a rebound IFS is trying to fool the parser through field
+    # splitting. `while IFS= read -r line` only reads a line verbatim.
+    if ($cmd0 -cmatch '^IFS\+?=') {
+        if ($Tokens.Count -gt 1 -and @('read','readarray','mapfile') -ccontains $Tokens[1]) { return (New-Verdict 'allow') }
+        return (New-Verdict 'deny' 'Suspicious IFS reassignment in command scope')
     }
-    # Outside a payload, resolve a variable head once (#971). A head with a
-    # path (`$X/bin/rm`) is matched on its basename below.
-    if ($Depth -eq 0 -and -not $Resolved -and $cmd0.StartsWith('$') -and -not $cmd0.StartsWith('$(') -and $cmd0 -notmatch '[\\/]') {
-        return (Inspect-VarHead -Tokens $Tokens -Cwd $Cwd -Vars $Vars)
+
+    # An unquoted `$(...)/rm` arrives as `$()` and `/rm`: the path is the head.
+    if ($cmd0 -ceq '$()' -and $Tokens.Count -gt 1 -and $Tokens[1].StartsWith('/')) {
+        $Tokens = Skip-First $Tokens
+        $cmd0 = $Tokens[0]
+    }
+
+    # A path after an expansion (`$X/bin/rm`, `"$(...)/rm"`) leaves a plain
+    # basename, which is matched below. Anything else is no command name:
+    # `${X:-/bin/rm}` would read as `rm}`.
+    $name = $cmd0 -replace '^.*[\\/]', ''
+    if ($cmd0.StartsWith('$(') -or $cmd0.StartsWith('`')) {
+        # The substituted command was split out and inspected on its own, but
+        # the outer arguments were not.
+        if ($name -match '[$`]') {
+            return (Inspect-UnresolvedHead -Head '$(...)' -Rest (Skip-First $Tokens) -Depth $Depth -Cwd $Cwd)
+        }
+    } elseif ($cmd0.StartsWith('$')) {
+        # Inside a payload, a head that is a parameter expansion runs text this
+        # guard cannot see.
+        if ($Depth -gt 0) {
+            return (New-Verdict 'deny' "Inline shell payload runs a variable expansion ($cmd0) that cannot be statically inspected; blocked (fail-closed)")
+        }
+        # Outside a payload, resolve a variable head (#971). A tracked value holds
+        # no expansion, so another one can only come from a word of the command
+        # itself, and this ends (`X=sudo; $X $SHELL -c ...`). The backslash of an
+        # ANSI-C `$'r\x6d'` is not a Windows path separator.
+        if ($name -match '[$}`]' -or $cmd0.StartsWith("`$'")) {
+            return (Inspect-VarHead -Tokens $Tokens -Cwd $Cwd -Vars $Vars)
+        }
     }
 
     # Match on the basename so `/bin/rm` and `/usr/bin/git` are inspected too.
-    $name = $cmd0 -replace '^.*[\\/]', ''
     switch -CaseSensitive ($name) {
         'eval' {
             $rest = Skip-First $Tokens
@@ -986,10 +1617,16 @@ function Inspect-Argv {
             return (Inspect-Payload -Label 'eval' -Payload ($rest -join ' ') -Depth $Depth -Cwd $Cwd)
         }
         { @('bash','sh','zsh','dash','ksh','fish') -ccontains $_ } { return (Inspect-InlineShell -Tokens $Tokens -Depth $Depth -Cwd $Cwd) }
-        'rm'    { return (Inspect-Rm -Tokens $Tokens -Cwd $Cwd) }
+        'rm' {
+            $r = Inspect-Rm -Tokens $Tokens -Cwd $Cwd
+            if ($r.D -eq 'allow' -and $script:EachInput) {
+                return (New-Verdict 'ask' 'rm through xargs, parallel or find -exec removes every input permanently. Confirm to proceed, or list the inputs first.')
+            }
+            return $r
+        }
         'chmod' { return (Inspect-Chmod -Tokens $Tokens) }
         'git'   { return (Inspect-Git -Tokens $Tokens -Cwd $Cwd) }
-        'find'  { return (Inspect-Find -Tokens $Tokens) }
+        'find'  { return (Inspect-Find -Tokens $Tokens -Depth $Depth -Cwd $Cwd -Vars $Vars) }
         'gh'    { return (Inspect-Gh -Tokens $Tokens) }
     }
     return (New-Verdict 'allow')
@@ -998,12 +1635,306 @@ function Inspect-Argv {
 # Fetch piped (or substituted) into an interpreter: the splitter emits a
 # substitution's inner command before its outer command, so
 # `eval "$(curl ...)"` and `source <(curl ...)` arrive as curl, then eval.
-function Detect-FetchPipeShell {
-    param([string]$Prev, [string]$Curr)
-    if (-not ($Prev -match '\bcurl\b' -or $Prev -match '\bwget\b')) { return $false }
-    $first = @(Tokenize-Argv -Sub $Curr) | Select-Object -First 1
-    $first = ([string]$first) -replace '^.*[\\/]', ''
-    return @('sh','bash','zsh','dash','ksh','python','python2','python3','perl','ruby','node','eval','source','.') -ccontains $first
+function Test-IsFetch {
+    param([string]$Sub, [string]$Head)
+    $name = $Head -replace '^.*[\\/]', ''
+    if ($name -ceq 'curl' -or $name -ceq 'wget') { return $true }
+    return ($Sub -match '\bcurl\b' -or $Sub -match '\bwget\b')
+}
+
+# The verdict on the command after a fetch, with the wrappers already gone from
+# $Head; $null when there is nothing to say.
+function Get-FetchReceiverVerdict {
+    param([string]$Head)
+    $refused = 'Remote script execution via pipe blocked for security'
+    if (@('$SHELL','${SHELL}','$BASH','${BASH}') -ccontains $Head) { return (New-Verdict 'deny' $refused) }
+    $name = $Head -replace '^.*[\\/]', ''
+    if (@('sh','bash','zsh','dash','ksh','python','python2','python3','perl','ruby','node','eval','source','.') -ccontains $name) {
+        return (New-Verdict 'deny' $refused)
+    }
+    if ($Head.StartsWith('$') -or $Head.StartsWith('`')) {
+        return (New-Verdict 'ask' "A download reaches a command name that cannot be resolved ($Head); if it is a shell, this is remote execution. Confirm to proceed.")
+    }
+    return $null
+}
+
+# --- Text a shell reads as commands on standard input (#1029) ----------------
+# `echo 'rm -rf /' | bash` and `bash <<< 'rm -rf /'` run the same command as
+# `bash -c 'rm -rf /'`. See the bash twin.
+
+# 0 when a word as written holds no expansion outside single quotes, 1 for a
+# parameter expansion or a $'...' / $"..." string, 2 for a command or process
+# substitution. See raw_expansion.
+function Get-RawExpansion {
+    param([string]$S)
+    $q = ''
+    $kind = 0
+    for ($i = 0; $i -lt $S.Length; $i++) {
+        $ch = $S[$i]
+        if ($q -eq "'") {
+            if ($ch -eq "'") { $q = '' }
+            continue
+        }
+        $next = if ($i + 1 -lt $S.Length) { [string]$S[$i + 1] } else { '' }
+        if ($ch -eq '\') { $i++ }
+        elseif ($ch -eq "'") { if ($q -ne '"') { $q = "'" } }
+        elseif ($ch -eq '"') { $q = if ($q -eq '"') { '' } else { '"' } }
+        elseif ($ch -eq '`') { return 2 }
+        elseif ($ch -eq '<' -or $ch -eq '>') { if ($q -ne '"' -and $next -eq '(') { return 2 } }
+        elseif ($ch -eq '$') {
+            if ($next -eq '(') { return 2 }
+            if ($next -cmatch '^[A-Za-z_0-9{@*#?$!-]$') { $kind = 1 }
+            elseif (($next -eq "'" -or $next -eq '"') -and $q -ne '"') { $kind = 1 }
+        }
+    }
+    return $kind
+}
+
+# The redirection a word as written is: Kind '' (none), 'here' (a
+# here-string) or 'other'; TakesNext when the target is the next word. Where a
+# redirection points does not matter to the standard input rule (#1033): with
+# a pipe, zsh (MULTIOS) writes standard output to the pipe as well as to the
+# file, and reads the pipe before the file or the here-string. See redir_word.
+function Get-Redirection {
+    param([string]$W)
+    $r = [pscustomobject]@{ Kind = ''; TakesNext = $false }
+    if ($W -cmatch '^[0-9]?[<>]\(') { return $r }
+    if ($W -cmatch '^[0-9]?<<<$') { $r.Kind = 'here'; $r.TakesNext = $true; return $r }
+    if ($W -cmatch '^[0-9]?<<<') { $r.Kind = 'here'; return $r }
+    if ($W -cmatch '^([0-9]?(<|>|>>|<&|>&|>\||<>|<<|<<-)|&>|&>>)$') { $r.Kind = 'other'; $r.TakesNext = $true; return $r }
+    if ($W -cmatch '^([0-9]?[<>]|&>)') { $r.Kind = 'other' }
+    return $r
+}
+
+# The text with the backslash escapes of `echo -e` or of a printf format
+# applied. `\"` and `\'` are escapes of printf only. $null when an escape asks
+# for a character not computed here (\0, \x, \u, \c, \e, \a, ...). See
+# shell_escapes.
+function Get-ShellEscaped {
+    param([string]$Mode, [string]$S)
+    $out = [System.Text.StringBuilder]::new()
+    for ($i = 0; $i -lt $S.Length; $i++) {
+        $ch = $S[$i]
+        if ($ch -ne '\' -or $i + 1 -ge $S.Length) { [void]$out.Append($ch); continue }
+        $i++
+        $c = $S[$i]
+        if ($c -eq '\') { [void]$out.Append('\') }
+        elseif ($c -ceq 'n') { [void]$out.Append("`n") }
+        elseif ($c -ceq 't') { [void]$out.Append("`t") }
+        elseif ($c -eq '"' -or $c -eq "'") {
+            if ($Mode -ne 'printf') { [void]$out.Append('\') }
+            [void]$out.Append($c)
+        }
+        elseif ('abcefrvEuUx01234567'.IndexOf($c) -ge 0) { return $null }
+        else { [void]$out.Append('\').Append($c) }
+    }
+    return $out.ToString()
+}
+
+# What printf writes: only %s and %% are formatted, and the format is reused
+# while arguments remain, as printf does. $null on any other conversion or on
+# an escape Get-ShellEscaped does not compute. See printf_text.
+function Get-PrintfText {
+    param([string[]]$Words)
+    $fmt = $Words[0]
+    $rest = Skip-First $Words
+    $out = [System.Text.StringBuilder]::new()
+    $ai = 0
+    while ($true) {
+        $used = $false
+        for ($i = 0; $i -lt $fmt.Length; $i++) {
+            $ch = $fmt[$i]
+            if ($ch -eq '\') {
+                $e = Get-ShellEscaped -Mode 'printf' -S $fmt.Substring($i, [Math]::Min(2, $fmt.Length - $i))
+                if ($null -eq $e) { return $null }
+                [void]$out.Append($e)
+                $i++
+            } elseif ($ch -eq '%') {
+                $i++
+                $c = if ($i -lt $fmt.Length) { [string]$fmt[$i] } else { '' }
+                if ($c -eq '%') { [void]$out.Append('%') }
+                elseif ($c -ceq 's') {
+                    $used = $true
+                    if ($ai -lt $rest.Count) { [void]$out.Append($rest[$ai]) }
+                    $ai++
+                } else { return $null }
+            } else {
+                [void]$out.Append($ch)
+            }
+        }
+        if (-not ($used -and $ai -lt $rest.Count)) { break }
+    }
+    return $out.ToString()
+}
+
+# The words of a sub-command as written (Raw) and after quote removal (Val),
+# and in Head the index of its real command, the grammar and the wrappers in
+# front of it gone (Val holds that command name without them). Head is -1 when
+# there is none, or when a wrapper turned the words into a payload (`env -S`,
+# watch). See real_words.
+function Get-RealWords {
+    param([string]$Sub)
+    $raw = @(Tokenize-Argv -Sub $Sub -Raw)
+    $val = [string[]]@($raw | ForEach-Object {
+        if ($_.IndexOfAny([char[]]@("'", '"', '\')) -ge 0) { Get-DequotedWord $_ } else { $_ }
+    })
+    $result = [pscustomobject]@{ Raw = [string[]]$raw; Val = $val; Head = -1 }
+    $end = $script:RwEnd
+    $saved = $script:EachInput
+    try {
+        $tokens = (Strip-CompoundSyntax -Tokens (@($val) + $end)).Tokens
+        $tokens = @((Strip-Wrappers -Tokens $tokens).Tokens)
+    } finally {
+        $script:EachInput = $saved
+    }
+    if ($tokens.Count -lt 2 -or $tokens[$tokens.Count - 1] -cne $end) { return $result }
+    $result.Head = $val.Count + 1 - $tokens.Count
+    $result.Val[$result.Head] = $tokens[0]
+    return $result
+}
+
+# What an echo or printf sub-command writes to the pipe. Kind is 'none' when it
+# is neither or writes nothing there, 'text' when Texts holds the text (two
+# readings for an echo with a backslash: bash's echo leaves escapes alone,
+# zsh's and dash's apply them), 'unknown' when it holds an expansion or an
+# escape or format not computed here, and 'subst' when that expansion is a
+# command substitution. See producer_text.
+function Get-ProducerText {
+    param([string]$Sub)
+    $none = [pscustomobject]@{ Kind = 'none'; Texts = @() }
+    $rw = Get-RealWords -Sub $Sub
+    if ($rw.Head -lt 0) { return $none }
+    $name = $rw.Val[$rw.Head] -replace '^.*[\\/]', ''
+    if ($name -cne 'echo' -and $name -cne 'printf') { return $none }
+    $words = [System.Collections.Generic.List[string]]::new()
+    $exp = 0
+    $n = $rw.Raw.Count
+    # A redirection, also one in front of the command (`>f echo x`), is no
+    # text, and it does not keep the text from the pipe (Get-Redirection).
+    for ($i = 0; $i -lt $n; $i++) {
+        if ($i -eq $rw.Head) { continue }
+        $r = Get-Redirection -W $rw.Raw[$i]
+        if ($r.Kind) {
+            if ($r.TakesNext) { $i++ }
+            continue
+        }
+        if ($i -lt $rw.Head) { continue }
+        $e = Get-RawExpansion $rw.Raw[$i]
+        if ($e -gt $exp) { $exp = $e }
+        $words.Add($rw.Val[$i])
+    }
+    if ($name -ceq 'printf') {
+        if ($words.Count -gt 0 -and $words[0].StartsWith('-v')) { return $none }
+        if ($words.Count -gt 0 -and $words[0] -ceq '--') { $words.RemoveAt(0) }
+        # printf with no format writes nothing.
+        if ($words.Count -eq 0) { return $none }
+    } else {
+        while ($words.Count -gt 0 -and $words[0] -cmatch '^-[neE]+$') { $words.RemoveAt(0) }
+    }
+    if ($exp -eq 1) { return [pscustomobject]@{ Kind = 'unknown'; Texts = @() } }
+    if ($exp -eq 2) { return [pscustomobject]@{ Kind = 'subst'; Texts = @() } }
+    if ($name -ceq 'printf') {
+        $t = Get-PrintfText -Words $words.ToArray()
+        if ($null -eq $t) { return [pscustomobject]@{ Kind = 'unknown'; Texts = @() } }
+        return [pscustomobject]@{ Kind = 'text'; Texts = @($t) }
+    }
+    $text = $words -join ' '
+    if (-not $text.Contains('\')) { return [pscustomobject]@{ Kind = 'text'; Texts = @($text) } }
+    $escaped = Get-ShellEscaped -Mode 'echo' -S $text
+    if ($null -eq $escaped) { return [pscustomobject]@{ Kind = 'unknown'; Texts = @($text) } }
+    return [pscustomobject]@{ Kind = 'text'; Texts = @($text, $escaped) }
+}
+
+# The verdict on a shell that reads its commands from standard input, when that
+# input is a here-string or what an echo or printf writes; $null when there is
+# nothing to say. A receiver that cannot be resolved asks when the text would be
+# refused or asks. See inspect_stdin_shell.
+function Inspect-StdinShell {
+    param([string]$Sub, [string]$ProducerSub, [bool]$Fetched, [int]$Depth, [string]$Cwd)
+    $rw = Get-RealWords -Sub $Sub
+    if ($rw.Head -lt 0) { return $null }
+    $head = $rw.Val[$rw.Head]
+    $name = $head -replace '^.*[\\/]', ''
+    if (@('$SHELL', '${SHELL}', '$BASH', '${BASH}') -ccontains $head) { $kind = 'shell' }
+    elseif ($head.StartsWith('$') -or $head.StartsWith('`')) { $kind = 'unresolved' }
+    elseif (@('bash', 'sh', 'zsh', 'dash', 'ksh', 'fish') -ccontains $name) { $kind = 'shell' }
+    else { return $null }
+
+    $hasS = $false
+    $opts = $true
+    $unknown = $false
+    $texts = [System.Collections.Generic.List[string]]::new()
+    $n = $rw.Raw.Count
+    # A redirection may also stand in front of the command (`<<< x bash`).
+    # Every here-string and the pipe are read, as zsh reads them one after the
+    # other (Get-Redirection).
+    for ($i = 0; $i -lt $n; $i++) {
+        if ($i -eq $rw.Head) { continue }
+        $w = $rw.Raw[$i]
+        $r = Get-Redirection -W $w
+        if ($r.Kind -eq 'here') {
+            if ($r.TakesNext) {
+                if ($i + 1 -lt $n) { $hereRaw = $rw.Raw[$i + 1]; $hereVal = $rw.Val[$i + 1] } else { $hereRaw = ''; $hereVal = '' }
+                $i++
+            } else {
+                $hereRaw = $w.Substring($w.IndexOf('<<<') + 3)
+                $hereVal = Get-DequotedWord $hereRaw
+            }
+            if ((Get-RawExpansion $hereRaw) -eq 0) { $texts.Add($hereVal) } else { $unknown = $true }
+            continue
+        }
+        if ($r.Kind) {
+            if ($r.TakesNext) { $i++ }
+            continue
+        }
+        if ($i -lt $rw.Head) { continue }
+        $v = $rw.Val[$i]
+        if ($opts) {
+            if (@('-o', '+o', '-O', '+O', '--rcfile', '--init-file') -ccontains $v) { $i++; continue }
+            if ($v -ceq '--') { $opts = $false; continue }
+            if ($v.StartsWith('--') -or $v.StartsWith('+')) { continue }
+            if ($v.StartsWith('-')) {
+                # A -c payload is inspected as an inline shell.
+                if ($v.Contains('c')) { return $null }
+                if ($v.Contains('s')) { $hasS = $true }
+                continue
+            }
+        }
+        # An operand is a script file, unless -s makes it an argument.
+        if (-not $hasS) { return $null }
+        $opts = $false
+    }
+
+    $label = "$name stdin"
+    if ($ProducerSub) {
+        $p = Get-ProducerText -Sub $ProducerSub
+        # An echo whose escapes are not computed still has its literal reading.
+        foreach ($t in $p.Texts) { $texts.Add($t) }
+        # `echo "$(curl ...)" | bash` is `curl ... | bash`.
+        if ($p.Kind -eq 'subst' -and $Fetched) { return (Get-FetchReceiverVerdict -Head $head) }
+        if ($p.Kind -eq 'unknown' -or $p.Kind -eq 'subst') { $unknown = $true }
+    }
+    if ($texts.Count -eq 0 -and -not $unknown) { return $null }
+
+    $reason = ''
+    if ($unknown) {
+        $reason ="The text that $head reads as commands on standard input holds an expansion, an escape or a printf format that cannot be inspected statically. Confirm to proceed."
+    }
+    foreach ($t in $texts) {
+        $r = Inspect-Payload -Label $label -Payload $t -Depth $Depth -Cwd $Cwd
+        if ($r.D -eq 'ask') {
+            if (-not $reason) { $reason = $r.R }
+        } elseif ($r.D -eq 'deny') {
+            if ($kind -eq 'shell') { return $r }
+            $reason = $r.R
+            break
+        }
+    }
+    if (-not $reason) { return $null }
+    if ($kind -eq 'unresolved') {
+        return (New-Verdict 'ask' "The command name comes from $head, which cannot be resolved statically; if it is a shell, the text on its standard input would be refused ($reason). Confirm to proceed.")
+    }
+    return (New-Verdict 'ask' $reason)
 }
 
 # Where a `cd`/`pushd` sub-command moves the directory later checks use.
@@ -1020,29 +1951,97 @@ function Get-CdTarget {
 # reported only when nothing denies.
 function Inspect-Command {
     param([string]$Cmd, [int]$Depth, [string]$Cwd)
-    $prev = ''
+    # A backslash-newline is no separator: `rm \<newline>-rf ~` is one command.
+    $Cmd = $Cmd.Replace("\`r`n", '').Replace("\`n", '')
     $asks = New-Object System.Collections.Generic.List[string]
     # Shell variable names are case-sensitive.
     $vars = [System.Collections.Generic.Dictionary[string,string]]::new([System.StringComparer]::Ordinal)
-    foreach ($sub in @(Flatten-Subcommands -Cmd $Cmd)) {
-        if ([string]::IsNullOrWhiteSpace($sub)) { continue }
-        if ($prev -ne '' -and (Detect-FetchPipeShell -Prev $prev -Curr $sub)) {
-            return (New-Verdict 'deny' 'Remote script execution via pipe blocked for security')
+    $cwdStack = New-Object System.Collections.Generic.Stack[string]
+    $prevFetch = $false
+    $prev2Fetch = $false
+    $prevSub = ''
+    $prevHead = ''
+    $prev2Sub = ''
+    $prev2Head = ''
+    # A payload of `xargs sh -c '...'` runs once per input as well.
+    $eachInput = $script:EachInput
+    try {
+        foreach ($sub in @(Flatten-Subcommands -Cmd $Cmd)) {
+            if ([string]::IsNullOrWhiteSpace($sub)) { continue }
+            if ($sub -match '\$\{IFS\}' -or $sub -match '\$IFS\b') {
+                return (New-Verdict 'deny' 'Suspicious IFS-based whitespace obfuscation in command')
+            }
+
+            # Tokenize, without the shell grammar.
+            $compound = Strip-CompoundSyntax -Tokens @(Tokenize-Argv -Sub $sub)
+            $tokens = $compound.Tokens
+
+            # The command behind any wrappers receives a fetch.
+            $script:EachInput = $eachInput
+            $stripped = (Strip-Wrappers -Tokens $tokens).Tokens
+            $head = if ($stripped.Count -gt 0) { $stripped[0] } else { '' }
+
+            # Fetch piped to an interpreter. The inner command of a substitution
+            # stands between a fetch and a `$(...)` receiver.
+            $v = $null
+            if ($prevFetch) {
+                $v = Get-FetchReceiverVerdict -Head $head
+            } elseif ($prev2Fetch -and ($head.StartsWith('$(') -or $head.StartsWith('`'))) {
+                $v = Get-FetchReceiverVerdict -Head $head
+            }
+            if ($v) {
+                if ($v.D -eq 'deny') { return $v }
+                if (-not $asks.Contains($v.R)) { $asks.Add($v.R) }
+            }
+
+            # A shell that reads its commands from standard input: a here-string,
+            # or what the echo or printf before it writes (#1029). The inner
+            # command of a substitution stands between the producer and a
+            # `$(...)` receiver. The cheap tests come first.
+            $psub = ''
+            $fetched = $prev2Fetch
+            if ($head.StartsWith('$(') -or $head.StartsWith('`')) {
+                if (@('echo', 'printf') -ccontains ($prev2Head -replace '^.*[\\/]', '')) { $psub = $prev2Sub; $fetched = $false }
+            } elseif (@('echo', 'printf') -ccontains ($prevHead -replace '^.*[\\/]', '')) {
+                $psub = $prevSub
+            }
+            $stdinCheck = [bool]$psub -or $sub.Contains('<<<')
+            if ($stdinCheck -and -not ($head.StartsWith('$') -or $head.StartsWith('`'))) {
+                $stdinCheck = @('bash', 'sh', 'zsh', 'dash', 'ksh', 'fish') -ccontains ($head -replace '^.*[\\/]', '')
+            }
+            if ($stdinCheck) {
+                $v = Inspect-StdinShell -Sub $sub -ProducerSub $psub -Fetched $fetched -Depth $Depth -Cwd $Cwd
+                if ($v) {
+                    if ($v.D -eq 'deny') { return $v }
+                    if (-not $asks.Contains($v.R)) { $asks.Add($v.R) }
+                }
+            }
+
+            $prev2Fetch = $prevFetch
+            $prevFetch = Test-IsFetch -Sub $sub -Head $head
+            $prev2Sub = $prevSub
+            $prev2Head = $prevHead
+            $prevSub = $sub
+            $prevHead = $head
+
+            for ($k = 0; $k -lt $compound.Opens; $k++) { $cwdStack.Push($Cwd) }
+
+            if ($tokens.Count -gt 0 -and ($tokens[0] -ceq 'cd' -or $tokens[0] -ceq 'pushd')) {
+                $Cwd = Get-CdTarget -Tokens $tokens -Cwd $Cwd
+            }
+            if ($tokens.Count -gt 0 -and ($tokens[0].Contains('=') -or @('export','declare','local','readonly','typeset','unset') -ccontains $tokens[0])) {
+                Update-TrackedVars -Vars $vars -Tokens $tokens
+            }
+            $r = Inspect-Argv -Tokens $tokens -Depth $Depth -Cwd $Cwd -Vars $vars
+            if ($r.D -eq 'deny') { return $r }
+            if ($r.D -eq 'ask' -and -not $asks.Contains($r.R)) { $asks.Add($r.R) }
+
+            # A subshell's `cd` ends with it.
+            for ($k = 0; $k -lt $compound.Closes -and $cwdStack.Count -gt 0; $k++) { $Cwd = $cwdStack.Pop() }
         }
-        if ($sub -match '\$\{IFS\}' -or $sub -match '\$IFS\b') {
-            return (New-Verdict 'deny' 'Suspicious IFS-based whitespace obfuscation in command')
-        }
-        $tokens = @(Tokenize-Argv -Sub $sub)
-        if ($tokens.Count -gt 0 -and ($tokens[0] -ceq 'cd' -or $tokens[0] -ceq 'pushd')) {
-            $Cwd = Get-CdTarget -Tokens $tokens -Cwd $Cwd
-        }
-        if ($tokens.Count -gt 0 -and ($tokens[0] -ceq 'export' -or $tokens[0].Contains('='))) {
-            Update-TrackedVars -Vars $vars -Tokens $tokens
-        }
-        $r = Inspect-Argv -Tokens $tokens -Depth $Depth -Cwd $Cwd -Vars $vars
-        if ($r.D -eq 'deny') { return $r }
-        if ($r.D -eq 'ask' -and -not $asks.Contains($r.R)) { $asks.Add($r.R) }
-        $prev = $sub
+    }
+    finally {
+        $script:EachInput = $eachInput
     }
     if ($asks.Count -gt 0) { return (New-Verdict 'ask' ($asks -join '; ')) }
     return (New-Verdict 'allow')

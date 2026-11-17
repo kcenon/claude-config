@@ -22,7 +22,7 @@ At session start, use the **Read tool** on `.claude/resume.md` to check for and
 load saved state. A not-found error means there is no resume file — proceed
 normally. Do **not** wrap the check in an `if`/`Test-Path` compound shell command:
 it erodes the matchable command prefix and triggers a permission prompt (see
-`core/environment.md`, "Compound commands erode the matchable prefix").
+`reference/workflow/command-construction.md`, "Compound commands erode the matchable prefix").
 
 When the file is present:
 1. Present the saved state to the user

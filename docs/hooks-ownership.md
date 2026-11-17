@@ -21,13 +21,9 @@ that could be registered from multiple surfaces.
 | `PreToolUse` | `Bash` | `merge-gate-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `SessionStart` | — | `memory-integrity-check.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `SessionStart` | — | `export TZ=Asia/Seoul` | `project/.claude/settings.json` |
-| `SessionEnd` | — | `cleanup.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `SessionEnd` | — | `prune-permission-rules.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `PostToolUse` | `Edit\|Write` | inline formatter (black/isort/prettier/clang-format/ktlint/gofmt/rustfmt) | **`plugin/hooks/hooks.json`** (canonical; do not duplicate in settings files) |
 | `PostToolUse` | `Read` | `memory-access-logger.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `WorktreeCreate` | — | `worktree-create.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `WorktreeRemove` | — | `worktree-remove.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `PermissionDenied` | — | `permission-denial-logger.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 
 "`global/settings.json` + `global/settings.windows.json`" means the
 same hook is installed from either file depending on OS; only one of
@@ -49,7 +45,7 @@ guard dropped from it still fails parity. Execution order and fail-open
 `bash-sensitive-read-guard.ps1` and `shell-env-secret-guard.ps1` are
 the only Windows-only rows (#964). macOS and Linux cover secret reads
 through the shell with the Bash sandbox read-deny (for files under the
-working directory; see
+working directory and the home credential files with their own rule; see
 [ENFORCEMENT.md](../ENFORCEMENT.md#secrets-outside-the-working-directory)),
 but Windows has no OS sandbox, so the Windows Bash dispatcher keeps both
 guards. The parity

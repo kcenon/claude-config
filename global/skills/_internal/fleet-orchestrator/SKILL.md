@@ -155,7 +155,7 @@ jq -n \
 
 ### Phase 2.5: Top-K Agent Routing (per worker)
 
-Motivation: the `agents/` directory contains 8 specialized agents. Spawning every
+Motivation: the `agents/` directory contains 9 agents. Spawning every
 applicable agent per work item costs roughly 64 K tokens of parallel context and
 frequently invokes agents that are irrelevant to the change (for example
 `test-strategist` on a documentation-only PR). This phase selects only the K
@@ -174,6 +174,10 @@ frontmatter fields used for scoring:
 |-------|------|---------|
 | `applies_to` | list of glob patterns | File patterns this agent is relevant for (for example `**/*.ts`, `**/test_*.py`, `**/*.md`) |
 | `keywords` | list of strings | Task-type triggers (for example `security`, `performance`, `refactor`) |
+
+An agent that declares neither field scores zero and is never selected.
+`analyst` declares neither on purpose: it runs on opus and is meant for direct
+delegation, not for Top-K fan-out.
 
 Canonical source of agent definitions: `plugin/agents/*.md` (the distributable
 copy) with a mirror at `project/.claude/agents/*.md`. The orchestrator reads
