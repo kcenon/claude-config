@@ -33,7 +33,10 @@
 # MAX_PAYLOAD_DEPTH nested levels. A payload that cannot be inspected
 # (unbalanced quotes, a bare variable expansion, nesting past the bound) is
 # denied (fail-closed). `source <file>` and `. <file>` are allowed; a fetch
-# fed to eval/source (`eval "$(curl ...)"`) is still remote execution.
+# fed to eval/source (`eval "$(curl ...)"`) is still remote execution. The text
+# a shell reads as commands on standard input is a payload too (#1029): a
+# here-string, or what an echo or printf before it writes (`echo '...' | bash`).
+# Text that cannot be known statically (`echo "$CMD" | bash`) asks.
 # Outside a payload, a command head that is a variable (`$X`, `${X}`,
 # `${X:-word}`) is resolved from an earlier assignment of the same command
 # (`X=value`, or through export, declare, local, readonly or typeset; unset
@@ -191,7 +194,9 @@ coarse_ask() {
 # no whitespace is an argument and stays (`git push "origin" "main"`).
 #
 # A line keeps its spans when one of them may run: it holds a substitution, a
-# shell wrapper word, or a flag ending in c before a quote. Spans never cross a
+# shell wrapper word, a flag ending in c before a quote, a pipe into a shell
+# (`echo '...' | bash`, also behind a wrapper or as $SHELL) or a shell word
+# right before a here-string (`bash<<<'...'`, #1029). Spans never cross a
 # line. A line that leaves a quote open ends the blanking for good: the state of
 # the lines after it is unknown, and what looks like a span between two
 # multi-line strings is code. The alternatives of each regex are mutually
@@ -201,7 +206,12 @@ coarse_prepare() {
     local keep="${b}.|${q}[^${q}[:space:]]*${q}|${d}([^${d}${b}[:space:]]|${b}.)*${d}"
     local blank="${q}[^${q}]*[[:space:]][^${q}]*${q}|${d}([^${d}${b}]|${b}.)*[[:space:]]([^${d}${b}]|${b}.)*${d}"
     local spans="${b}.|${q}[^${q}]*${q}|${d}([^${d}${b}]|${b}.)*${d}"
-    local run="[\$][(]|\`|(^|[^[:alnum:]_.-])(bash|sh|zsh|dash|ksh|fish|eval)[[:space:]]|[[:space:]]-[[:alpha:]]*c[[:space:]]+[${d}${q}]"
+    local shells="(bash|sh|zsh|dash|ksh|fish)"
+    local wrap="((sudo|doas|env|exec|nohup|command|time)[[:space:]]+(-[^[:space:]]+[[:space:]]+|[A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*)?"
+    local piped="[|][[:space:]]*${wrap}(${d}?[\$][{]?(SHELL|BASH)[}]?${d}?|([^[:space:]]*\\/)?${shells})([[:space:];&|)]|\$)"
+    local run="[\$][(]|\`|(^|[^[:alnum:]_.-])(bash|sh|zsh|dash|ksh|fish|eval)([[:space:]]|<<<)|[[:space:]]-[[:alpha:]]*c[[:space:]]+[${d}${q}]"
+    # The pipe test runs only on a line with a pipe: on a line without one it
+    # would still cost a tenth of the scan of 1 MB.
     printf '%s\n' "$1" \
         | LC_ALL=C awk '{ if (sub(/\\$/, "")) printf "%s ", $0; else print }' \
         | LC_ALL=C sed -E "
@@ -214,7 +224,11 @@ n
 braw
 }
 g
-/${run}/!s/(${keep})|${blank}/\\1/g
+/${run}/b
+/[|]/{
+/${piped}/b
+}
+s/(${keep})|${blank}/\\1/g
 "
 }
 
@@ -537,7 +551,7 @@ strip_wrappers() {
             continue
         fi
         case "$t" in
-            '<'|'>'|'>>'|'<<<'|[0-9]'<'|[0-9]'>'|[0-9]'>>')
+            '<'|'>'|'>>'|'<<<'|[0-9]'<'|[0-9]'>'|[0-9]'>>'|[0-9]'<<<')
                 tokens=("${tokens[@]:2}")
                 continue
                 ;;
@@ -1478,6 +1492,372 @@ fetch_receiver() {
     return 0
 }
 
+# --- Text a shell reads as commands on standard input (#1029) ----------------
+# `echo 'rm -rf /' | bash` and `bash <<< 'rm -rf /'` run the same command as
+# `bash -c 'rm -rf /'`. The text an echo or printf writes, or a here-string
+# word, is inspected as the payload of a shell that reads its commands from
+# standard input. Any other producer (`cat x | bash`) is not.
+
+# raw_expansion <word as written>: RAW_EXP is 0 when the word holds no
+# expansion outside single quotes, 1 for a parameter expansion or a $'...' /
+# $"..." string, 2 for a command or process substitution (the splitter leaves
+# `$()` for one).
+raw_expansion() {
+    local s="$1" q="" ch next i len=${#1}
+    RAW_EXP=0
+    for ((i = 0; i < len; i++)); do
+        ch="${s:$i:1}"
+        if [ "$q" = "'" ]; then
+            [ "$ch" != "'" ] || q=""
+            continue
+        fi
+        next="${s:$((i + 1)):1}"
+        case "$ch" in
+            '\') i=$((i + 1)) ;;
+            "'") [ "$q" = '"' ] || q="'" ;;
+            '"') if [ "$q" = '"' ]; then q=""; else q='"'; fi ;;
+            '`') RAW_EXP=2; return 0 ;;
+            '<'|'>') [ "$q" = '"' ] || [ "$next" != '(' ] || { RAW_EXP=2; return 0; } ;;
+            '$')
+                case "$next" in
+                    '(') RAW_EXP=2; return 0 ;;
+                    [A-Za-z_0-9'{@*#?$!'-]) RAW_EXP=1 ;;
+                    "'"|'"') [ "$q" = '"' ] || RAW_EXP=1 ;;
+                esac
+                ;;
+        esac
+    done
+    return 0
+}
+
+# redir_word <word as written> [<next word as written>]: REDIR is empty when
+# the word is no redirection, `out` when it sends standard output away from the
+# pipe, `in` when standard input comes from a file or a heredoc, `here` for a
+# here-string and `other` for any other redirection. REDIR_NEXT is 1 when the
+# target is the next word. A target that is the pipe again (`>&1`,
+# `> /dev/stdout`) is `other`.
+redir_word() {
+    local w="$1" target
+    REDIR=""
+    REDIR_NEXT=0
+    case "$w" in
+        '<('*|'>('*) return 0 ;;
+        [0-9]'<<<'|'<<<') REDIR=here; REDIR_NEXT=1; return 0 ;;
+        [0-9]'<<<'*|'<<<'*) REDIR=here; return 0 ;;
+        '<<'|'<<-'|[0-9]'<<'|[0-9]'<<-') REDIR=in; REDIR_NEXT=1; return 0 ;;
+        '<<'*|[0-9]'<<'*) REDIR=in; return 0 ;;
+        '>'*|'1>'*) REDIR=out ;;
+        '<'*|'0<'*) REDIR=in ;;
+        [0-9]'>'*|[0-9]'<'*) REDIR=other ;;
+        *) return 0 ;;
+    esac
+    target="${w#[0-9]}"
+    target="${target#[<>]}"
+    target="${target#[>|&]}"
+    if [ -z "$target" ]; then
+        REDIR_NEXT=1
+        target="${2:-}"
+    fi
+    case "$target" in
+        '&1'|'1'|/dev/stdout|/dev/fd/1|/proc/self/fd/1) [ "$REDIR" != out ] || REDIR=other ;;
+    esac
+    return 0
+}
+
+# shell_escapes <echo|printf> <text>: the text with the backslash escapes of
+# `echo -e` or of a printf format applied, in ESCAPED. `\"` and `\'` are
+# escapes of printf only. Fails when an escape asks for a character that is not
+# computed here (\0, \x, \u, \c, \e, \a, ...).
+shell_escapes() {
+    local mode="$1" s="$2" out="" ch i len=${#2}
+    for ((i = 0; i < len; i++)); do
+        ch="${s:$i:1}"
+        if [ "$ch" != '\' ] || [ $((i + 1)) -ge "$len" ]; then
+            out+="$ch"
+            continue
+        fi
+        i=$((i + 1))
+        ch="${s:$i:1}"
+        case "$ch" in
+            '\') out+='\' ;;
+            n) out+=$'\n' ;;
+            t) out+=$'\t' ;;
+            '"'|"'") if [ "$mode" = printf ]; then out+="$ch"; else out+="\\$ch"; fi ;;
+            [abcefrvEuUx0-7]) return 1 ;;
+            *) out+="\\$ch" ;;
+        esac
+    done
+    ESCAPED="$out"
+}
+
+# printf_text <format> <argument>...: what printf writes, in PRINTED. Only %s
+# and %% are formatted, and the format is reused while arguments remain, as
+# printf does. Fails on any other conversion or on an escape shell_escapes
+# does not compute.
+printf_text() {
+    local fmt="$1" out="" ch i len=${#1} ai=0 used
+    shift
+    while :; do
+        used=0
+        for ((i = 0; i < len; i++)); do
+            ch="${fmt:$i:1}"
+            case "$ch" in
+                '\')
+                    shell_escapes printf "${fmt:$i:2}" || return 1
+                    out+="$ESCAPED"
+                    i=$((i + 1))
+                    ;;
+                '%')
+                    i=$((i + 1))
+                    case "${fmt:$i:1}" in
+                        '%') out+='%' ;;
+                        s)
+                            used=1
+                            ai=$((ai + 1))
+                            if [ "$ai" -le $# ]; then out+="${!ai}"; fi
+                            ;;
+                        *) return 1 ;;
+                    esac
+                    ;;
+                *) out+="$ch" ;;
+            esac
+        done
+        [ "$used" = 1 ] && [ "$ai" -lt $# ] || break
+    done
+    PRINTED="$out"
+}
+
+# real_words <sub-command>: the words of a sub-command as written in RW_RAW and
+# after quote removal in RW_VAL, and in RW_HEAD the index of its real command,
+# the grammar and the wrappers in front of it gone (RW_VAL holds that command
+# name without them). RW_HEAD is -1 when there is none, or when a wrapper
+# turned the words into a payload (`env -S`, watch). Changes the globals of
+# strip_compound_syntax and strip_wrappers, so run it in a subshell.
+real_words() {
+    local w n end=$'\001dcg-end'
+    local -a tokens=()
+    RW_RAW=()
+    RW_VAL=()
+    RW_HEAD=-1
+    while IFS= read -r w; do
+        RW_RAW+=("$w")
+    done < <(TOKENIZE_RAW=1 tokenize_argv "$1")
+    for w in ${RW_RAW[@]+"${RW_RAW[@]}"}; do
+        case "$w" in
+            *"'"*|*'"'*|*'\'*) unquote_word "$w"; RW_VAL+=("$UNQUOTED") ;;
+            *) RW_VAL+=("$w") ;;
+        esac
+    done
+    n=${#RW_VAL[@]}
+    tokens=(${RW_VAL[@]+"${RW_VAL[@]}"} "$end")
+    strip_compound_syntax
+    strip_wrappers
+    [ ${#tokens[@]} -gt 1 ] && [ "${tokens[${#tokens[@]}-1]}" = "$end" ] || return 0
+    RW_HEAD=$((n + 1 - ${#tokens[@]}))
+    RW_VAL[$RW_HEAD]="${tokens[0]}"
+}
+
+# producer_text <sub-command>: what an echo or printf sub-command writes to the
+# pipe. STDIN_KIND is `none` when it is neither or writes nothing there, `text`
+# when STDIN_TEXTS holds the text (two readings for an echo with a backslash:
+# bash's echo leaves escapes alone, zsh's and dash's apply them), `unknown`
+# when it holds an expansion or an escape or format not computed here, and
+# `subst` when that expansion is a command substitution.
+producer_text() {
+    local i n w v exp=0 rest text name
+    local -a words=()
+    STDIN_KIND=none
+    STDIN_TEXTS=()
+    real_words "$1"
+    [ "$RW_HEAD" -ge 0 ] || return 0
+    name="${RW_VAL[$RW_HEAD]##*/}"
+    case "$name" in
+        echo|printf) ;;
+        *) return 0 ;;
+    esac
+    # A redirection may also stand in front of the command (`>f echo x`).
+    n=${#RW_RAW[@]}
+    for ((i = 0; i < n; i++)); do
+        [ "$i" -ne "$RW_HEAD" ] || continue
+        w="${RW_RAW[$i]}"
+        redir_word "$w" "${RW_RAW[$((i + 1))]:-}"
+        case "$REDIR" in
+            out) return 0 ;;
+            '') [ "$i" -gt "$RW_HEAD" ] || continue ;;
+            *) i=$((i + REDIR_NEXT)); continue ;;
+        esac
+        raw_expansion "$w"
+        [ "$RAW_EXP" -le "$exp" ] || exp="$RAW_EXP"
+        words+=("${RW_VAL[$i]}")
+    done
+    if [ "$name" = printf ]; then
+        case "${words[0]:-}" in
+            -v*) return 0 ;;
+            --) words=("${words[@]:1}") ;;
+        esac
+        # printf with no format writes nothing.
+        [ ${#words[@]} -gt 0 ] || return 0
+    else
+        while [ ${#words[@]} -gt 0 ]; do
+            v="${words[0]}"
+            rest="${v#-}"
+            case "$v" in
+                -?*) [ -z "${rest//[neE]/}" ] || break ;;
+                *) break ;;
+            esac
+            words=("${words[@]:1}")
+        done
+    fi
+    case "$exp" in
+        1) STDIN_KIND=unknown; return 0 ;;
+        2) STDIN_KIND=subst; return 0 ;;
+    esac
+    if [ "$name" = printf ]; then
+        if printf_text ${words[@]+"${words[@]}"}; then
+            STDIN_KIND=text
+            STDIN_TEXTS=("$PRINTED")
+        else
+            STDIN_KIND=unknown
+        fi
+        return 0
+    fi
+    text=""
+    for v in ${words[@]+"${words[@]}"}; do
+        text="${text:+$text }$v"
+    done
+    STDIN_KIND=text
+    STDIN_TEXTS=("$text")
+    case "$text" in
+        *'\'*)
+            if shell_escapes echo "$text"; then
+                STDIN_TEXTS+=("$ESCAPED")
+            else
+                STDIN_KIND=unknown
+            fi
+            ;;
+    esac
+    return 0
+}
+
+# inspect_stdin_shell <sub-command> <producer sub-command> <fetch before it>:
+# the verdict on a shell that reads its commands from standard input, when
+# that input is a here-string or what an echo or printf writes. A receiver
+# that cannot be resolved asks when the text would be refused or asks.
+inspect_stdin_shell() {
+    local sub="$1" psub="$2" fetched="$3"
+    local head kind w i n has_s=0 opts=1 here=0 here_raw="" here_val="" from_file=0
+    real_words "$sub"
+    [ "$RW_HEAD" -ge 0 ] || return 0
+    head="${RW_VAL[$RW_HEAD]}"
+    case "$head" in
+        '$SHELL'|'${SHELL}'|'$BASH'|'${BASH}') kind=shell ;;
+        '$'*|'`'*) kind=unresolved ;;
+        *)
+            case "${head##*/}" in
+                bash|sh|zsh|dash|ksh|fish) kind=shell ;;
+                *) return 0 ;;
+            esac
+            ;;
+    esac
+    # A redirection may also stand in front of the command (`<<< x bash`).
+    n=${#RW_RAW[@]}
+    for ((i = 0; i < n; i++)); do
+        [ "$i" -ne "$RW_HEAD" ] || continue
+        w="${RW_RAW[$i]}"
+        redir_word "$w"
+        case "$REDIR" in
+            here)
+                here=1
+                if [ "$REDIR_NEXT" = 1 ]; then
+                    here_raw="${RW_RAW[$((i + 1))]:-}"
+                    here_val="${RW_VAL[$((i + 1))]:-}"
+                else
+                    here_raw="${w#*<<<}"
+                    unquote_word "$here_raw"
+                    here_val="$UNQUOTED"
+                fi
+                from_file=0
+                i=$((i + REDIR_NEXT))
+                continue
+                ;;
+            in) here=0; from_file=1; i=$((i + REDIR_NEXT)); continue ;;
+            '') [ "$i" -gt "$RW_HEAD" ] || continue ;;
+            *) i=$((i + REDIR_NEXT)); continue ;;
+        esac
+        if [ "$opts" = 1 ]; then
+            case "${RW_VAL[$i]}" in
+                -o|+o|-O|+O|--rcfile|--init-file) i=$((i + 1)); continue ;;
+                --) opts=0; continue ;;
+                --*|+*) continue ;;
+                -*)
+                    # A -c payload is inspected as an inline shell.
+                    case "${RW_VAL[$i]}" in
+                        *c*) return 0 ;;
+                        *s*) has_s=1 ;;
+                    esac
+                    continue
+                    ;;
+            esac
+        fi
+        # An operand is a script file, unless -s makes it an argument.
+        [ "$has_s" = 1 ] || return 0
+        opts=0
+    done
+
+    local label="${head##*/} stdin"
+    STDIN_KIND=none
+    STDIN_TEXTS=()
+    if [ "$here" = 1 ]; then
+        raw_expansion "$here_raw"
+        case "$RAW_EXP" in
+            0) STDIN_KIND=text; STDIN_TEXTS=("$here_val") ;;
+            *) STDIN_KIND=unknown ;;
+        esac
+    elif [ -n "$psub" ] && [ "$from_file" = 0 ]; then
+        producer_text "$psub"
+    fi
+    case "$STDIN_KIND" in
+        none) return 0 ;;
+        subst)
+            # `echo "$(curl ...)" | bash` is `curl ... | bash`.
+            if [ "$fetched" = 1 ]; then
+                fetch_receiver "$head"
+                return $?
+            fi
+            ;;
+    esac
+
+    local t out rc reason=""
+    case "$STDIN_KIND" in
+        unknown|subst)
+            reason="The text that ${head} reads as commands on standard input holds an expansion, an escape or a printf format that cannot be inspected statically. Confirm to proceed."
+            ;;
+    esac
+    for t in ${STDIN_TEXTS[@]+"${STDIN_TEXTS[@]}"}; do
+        rc=0
+        out=$(inspect_payload "$label" "$t") || rc=$?
+        case "$rc" in
+            0) ;;
+            2) [ -n "$reason" ] || reason="$out" ;;
+            *)
+                if [ "$kind" = shell ]; then
+                    echo "$out"
+                    return 1
+                fi
+                reason="$out"
+                break
+                ;;
+        esac
+    done
+    [ -n "$reason" ] || return 0
+    if [ "$kind" = unresolved ]; then
+        echo "The command name comes from ${head}, which cannot be resolved statically; if it is a shell, the text on its standard input would be refused (${reason}). Confirm to proceed."
+    else
+        echo "$reason"
+    fi
+    return 2
+}
+
 # Recursively flatten sub-commands: a single splitter pass leaves the
 # *inner* contents of `$(...)`, `<(...)`, and backticks intact (e.g. the
 # splitter emits `curl X | bash` as one line when it appears inside a
@@ -1713,6 +2093,7 @@ inspect_command() {
     local cmd="${1//"$continuation"/}"
     local asks="" sub rc reason head t k
     local prev_fetch=0 prev2_fetch=0 this_fetch
+    local prev_sub="" prev_head="" prev2_sub="" prev2_head="" psub fetched stdin_check
     # A payload of `xargs sh -c '...'` runs once per input as well.
     local each_input="$EACH_INPUT"
     local -a cwd_stack=()
@@ -1760,10 +2141,66 @@ inspect_command() {
                 return 1
                 ;;
         esac
+
+        # A shell that reads its commands from standard input: a here-string,
+        # or what the echo or printf before it writes (#1029). The cheap tests
+        # come first, so that other commands pay nothing for this.
+        # The inner command of a substitution stands between the producer and
+        # a `$(...)` receiver, as between a fetch and one.
+        psub=""
+        fetched="$prev2_fetch"
+        case "$head" in
+            '$('*|'`'*)
+                case "${prev2_head##*/}" in
+                    echo|printf) psub="$prev2_sub"; fetched=0 ;;
+                esac
+                ;;
+            *)
+                case "${prev_head##*/}" in
+                    echo|printf) psub="$prev_sub" ;;
+                esac
+                ;;
+        esac
+        stdin_check=0
+        if [ -n "$psub" ]; then
+            stdin_check=1
+        else
+            case "$sub" in
+                *'<<<'*) stdin_check=1 ;;
+            esac
+        fi
+        if [ "$stdin_check" = 1 ]; then
+            case "$head" in
+                '$'*|'`'*) ;;
+                *)
+                    case "${head##*/}" in
+                        bash|sh|zsh|dash|ksh|fish) ;;
+                        *) stdin_check=0 ;;
+                    esac
+                    ;;
+            esac
+        fi
+        if [ "$stdin_check" = 1 ]; then
+            rc=0
+            reason=$(inspect_stdin_shell "$sub" "$psub" "$fetched") || rc=$?
+            case "$rc" in
+                0) ;;
+                2) add_ask "$reason" ;;
+                *)
+                    echo "$reason"
+                    return 1
+                    ;;
+            esac
+        fi
+
         prev2_fetch="$prev_fetch"
         this_fetch=0
         if is_fetch "$sub" "$head"; then this_fetch=1; fi
         prev_fetch="$this_fetch"
+        prev2_sub="$prev_sub"
+        prev2_head="$prev_head"
+        prev_sub="$sub"
+        prev_head="$head"
 
         for ((k = 0; k < SUBSHELL_OPENS; k++)); do
             cwd_stack+=("$EFF_CWD")
