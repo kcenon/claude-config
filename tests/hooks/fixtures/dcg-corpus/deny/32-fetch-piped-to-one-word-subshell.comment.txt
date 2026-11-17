@@ -1,0 +1,1 @@
+`(bash)` runs bash in a subshell with the same standard input, so this is `curl ... | bash` in another spelling. Only closers and redirections may follow a subshell, which tells `(bash)` from the pattern of a case arm (#1034).
