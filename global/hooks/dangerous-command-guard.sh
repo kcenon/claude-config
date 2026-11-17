@@ -550,12 +550,21 @@ strip_wrappers() {
             tokens=("${tokens[@]:1}")
             continue
         fi
-        case "$t" in
-            '<'|'>'|'>>'|'<<<'|[0-9]'<'|[0-9]'>'|[0-9]'>>'|[0-9]'<<<')
+        # A redirection whose target is the next word takes two words, so that
+        # `>& f rm -rf ~` and `<< EOF rm -rf ~` reach the inspectors as rm
+        # (#1033). `>&-` holds its target.
+        case "${t#[0-9]}" in
+            '<'|'>'|'>>'|'<<<'|'<&'|'>&'|'>|'|'<>'|'<<'|'<<-')
                 tokens=("${tokens[@]:2}")
                 continue
                 ;;
-            '<'*|'>'*|[0-9]'<'*|[0-9]'>'*)
+        esac
+        case "$t" in
+            '&>'|'&>>')
+                tokens=("${tokens[@]:2}")
+                continue
+                ;;
+            '<'*|'>'*|[0-9]'<'*|[0-9]'>'*|'&>'*)
                 tokens=("${tokens[@]:1}")
                 continue
                 ;;
@@ -1530,36 +1539,28 @@ raw_expansion() {
     return 0
 }
 
-# redir_word <word as written> [<next word as written>]: REDIR is empty when
-# the word is no redirection, `out` when it sends standard output away from the
-# pipe, `in` when standard input comes from a file or a heredoc, `here` for a
-# here-string and `other` for any other redirection. REDIR_NEXT is 1 when the
-# target is the next word. A target that is the pipe again (`>&1`,
-# `> /dev/stdout`) is `other`.
+# redir_word <word as written>: REDIR is empty when the word is no redirection,
+# `here` for a here-string and `other` for any other redirection. REDIR_NEXT is
+# 1 when the target is the next word. Where a redirection points does not
+# matter to the standard input rule (#1033): with a pipe, zsh (MULTIOS, on by
+# default) writes standard output to the pipe as well as to the file, so
+# `echo x > f | bash` and `echo x >&2 | bash` still feed bash, and it reads
+# the pipe before the file or the here-string of `bash < f` and
+# `bash <<< y`. Claude Code runs a command in bash or zsh; the rule takes what
+# either would run.
 redir_word() {
-    local w="$1" target
     REDIR=""
     REDIR_NEXT=0
-    case "$w" in
+    case "${1#[0-9]}" in
         '<('*|'>('*) return 0 ;;
-        [0-9]'<<<'|'<<<') REDIR=here; REDIR_NEXT=1; return 0 ;;
-        [0-9]'<<<'*|'<<<'*) REDIR=here; return 0 ;;
-        '<<'|'<<-'|[0-9]'<<'|[0-9]'<<-') REDIR=in; REDIR_NEXT=1; return 0 ;;
-        '<<'*|[0-9]'<<'*) REDIR=in; return 0 ;;
-        '>'*|'1>'*) REDIR=out ;;
-        '<'*|'0<'*) REDIR=in ;;
-        [0-9]'>'*|[0-9]'<'*) REDIR=other ;;
-        *) return 0 ;;
+        '<<<') REDIR=here; REDIR_NEXT=1; return 0 ;;
+        '<<<'*) REDIR=here; return 0 ;;
+        '<'|'>'|'>>'|'<&'|'>&'|'>|'|'<>'|'<<'|'<<-') REDIR=other; REDIR_NEXT=1; return 0 ;;
+        '<'*|'>'*) REDIR=other; return 0 ;;
     esac
-    target="${w#[0-9]}"
-    target="${target#[<>]}"
-    target="${target#[>|&]}"
-    if [ -z "$target" ]; then
-        REDIR_NEXT=1
-        target="${2:-}"
-    fi
-    case "$target" in
-        '&1'|'1'|/dev/stdout|/dev/fd/1|/proc/self/fd/1) [ "$REDIR" != out ] || REDIR=other ;;
+    case "$1" in
+        '&>'|'&>>') REDIR=other; REDIR_NEXT=1 ;;
+        '&>'*) REDIR=other ;;
     esac
     return 0
 }
@@ -1658,7 +1659,7 @@ real_words() {
 }
 
 # producer_text <sub-command>: what an echo or printf sub-command writes to the
-# pipe. STDIN_KIND is `none` when it is neither or writes nothing there, `text`
+# pipe. STDIN_KIND is `none` when it is neither or writes nothing, `text`
 # when STDIN_TEXTS holds the text (two readings for an echo with a backslash:
 # bash's echo leaves escapes alone, zsh's and dash's apply them), `unknown`
 # when it holds an expansion or an escape or format not computed here, and
@@ -1675,14 +1676,14 @@ producer_text() {
         echo|printf) ;;
         *) return 0 ;;
     esac
-    # A redirection may also stand in front of the command (`>f echo x`).
+    # A redirection, also one in front of the command (`>f echo x`), is no
+    # text, and it does not keep the text from the pipe (redir_word).
     n=${#RW_RAW[@]}
     for ((i = 0; i < n; i++)); do
         [ "$i" -ne "$RW_HEAD" ] || continue
         w="${RW_RAW[$i]}"
-        redir_word "$w" "${RW_RAW[$((i + 1))]:-}"
+        redir_word "$w"
         case "$REDIR" in
-            out) return 0 ;;
             '') [ "$i" -gt "$RW_HEAD" ] || continue ;;
             *) i=$((i + REDIR_NEXT)); continue ;;
         esac
@@ -1741,11 +1742,14 @@ producer_text() {
 
 # inspect_stdin_shell <sub-command> <producer sub-command> <fetch before it>:
 # the verdict on a shell that reads its commands from standard input, when
-# that input is a here-string or what an echo or printf writes. A receiver
-# that cannot be resolved asks when the text would be refused or asks.
+# that input is a here-string or what an echo or printf writes. Every
+# here-string and the pipe are read, as zsh reads them one after the other
+# (redir_word). A receiver that cannot be resolved asks when the text would be
+# refused or asks.
 inspect_stdin_shell() {
     local sub="$1" psub="$2" fetched="$3"
-    local head kind w i n has_s=0 opts=1 here=0 here_raw="" here_val="" from_file=0
+    local head kind w v i n has_s=0 opts=1 unknown=0
+    local -a texts=()
     real_words "$sub"
     [ "$RW_HEAD" -ge 0 ] || return 0
     head="${RW_VAL[$RW_HEAD]}"
@@ -1767,20 +1771,23 @@ inspect_stdin_shell() {
         redir_word "$w"
         case "$REDIR" in
             here)
-                here=1
                 if [ "$REDIR_NEXT" = 1 ]; then
-                    here_raw="${RW_RAW[$((i + 1))]:-}"
-                    here_val="${RW_VAL[$((i + 1))]:-}"
+                    w="${RW_RAW[$((i + 1))]:-}"
+                    v="${RW_VAL[$((i + 1))]:-}"
                 else
-                    here_raw="${w#*<<<}"
-                    unquote_word "$here_raw"
-                    here_val="$UNQUOTED"
+                    w="${w#*<<<}"
+                    unquote_word "$w"
+                    v="$UNQUOTED"
                 fi
-                from_file=0
+                raw_expansion "$w"
+                if [ "$RAW_EXP" = 0 ]; then
+                    texts+=("$v")
+                else
+                    unknown=1
+                fi
                 i=$((i + REDIR_NEXT))
                 continue
                 ;;
-            in) here=0; from_file=1; i=$((i + REDIR_NEXT)); continue ;;
             '') [ "$i" -gt "$RW_HEAD" ] || continue ;;
             *) i=$((i + REDIR_NEXT)); continue ;;
         esac
@@ -1807,33 +1814,27 @@ inspect_stdin_shell() {
     local label="${head##*/} stdin"
     STDIN_KIND=none
     STDIN_TEXTS=()
-    if [ "$here" = 1 ]; then
-        raw_expansion "$here_raw"
-        case "$RAW_EXP" in
-            0) STDIN_KIND=text; STDIN_TEXTS=("$here_val") ;;
-            *) STDIN_KIND=unknown ;;
-        esac
-    elif [ -n "$psub" ] && [ "$from_file" = 0 ]; then
-        producer_text "$psub"
-    fi
+    [ -z "$psub" ] || producer_text "$psub"
+    # An echo whose escapes are not computed still has its literal reading.
+    texts+=(${STDIN_TEXTS[@]+"${STDIN_TEXTS[@]}"})
     case "$STDIN_KIND" in
-        none) return 0 ;;
+        unknown) unknown=1 ;;
         subst)
             # `echo "$(curl ...)" | bash` is `curl ... | bash`.
             if [ "$fetched" = 1 ]; then
                 fetch_receiver "$head"
                 return $?
             fi
+            unknown=1
             ;;
     esac
+    [ ${#texts[@]} -gt 0 ] || [ "$unknown" = 1 ] || return 0
 
     local t out rc reason=""
-    case "$STDIN_KIND" in
-        unknown|subst)
-            reason="The text that ${head} reads as commands on standard input holds an expansion, an escape or a printf format that cannot be inspected statically. Confirm to proceed."
-            ;;
-    esac
-    for t in ${STDIN_TEXTS[@]+"${STDIN_TEXTS[@]}"}; do
+    if [ "$unknown" = 1 ]; then
+        reason="The text that ${head} reads as commands on standard input holds an expansion, an escape or a printf format that cannot be inspected statically. Confirm to proceed."
+    fi
+    for t in ${texts[@]+"${texts[@]}"}; do
         rc=0
         out=$(inspect_payload "$label" "$t") || rc=$?
         case "$rc" in
