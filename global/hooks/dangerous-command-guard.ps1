@@ -320,6 +320,10 @@ function Split-Subcommands {
     $depth = 0
     $i = 0
     $len = $Cmd.Length
+    # The index right after the last unquoted `<` or `>` of a redirection. An
+    # `&` or a `|` there belongs to the redirection (`2>&1`, `<&0`, `>|f`), and
+    # an `&` right before `>` starts `&>` / `&>>` (#1033).
+    $redirAt = -1
 
     function Flush([System.Collections.Generic.List[string]]$list, [string]$s) {
         $t = $s.Trim()
@@ -408,12 +412,14 @@ function Split-Subcommands {
                     continue scan
                 }
                 $buf += $ch
+                $redirAt = $i + 1
             }
             '>' {
                 if ($next -eq '(') {
                     $buf += '>('; $stack.Push($buf); $qstack.Push(''); $buf = ''; $depth++; $i += 2; continue scan
                 }
                 $buf += $ch
+                $redirAt = $i + 1
             }
             "`n" {
                 # Heredoc bodies are data: copy them line by line without
@@ -449,11 +455,13 @@ function Split-Subcommands {
                 $buf += $ch
             }
             '&' {
+                if ($i -eq $redirAt -or $next -eq '>') { $buf += $ch; $i++; continue scan }
                 if ($next -eq '&' -and $depth -eq 0) { Flush $results $buf; $buf = ''; $i += 2; continue scan }
                 if ($depth -eq 0) { Flush $results $buf; $buf = ''; $i++; continue scan }
                 $buf += $ch
             }
             '|' {
+                if ($i -eq $redirAt) { $buf += $ch; $i++; continue scan }
                 if ($next -eq '|' -and $depth -eq 0) { Flush $results $buf; $buf = ''; $i += 2; continue scan }
                 if ($depth -eq 0) { Flush $results $buf; $buf = ''; $i++; continue scan }
                 $buf += $ch
@@ -703,8 +711,11 @@ function Strip-Wrappers {
     while ($list.Count -gt 0) {
         $t = $list[0]
         if (Test-AssignmentWord $t) { $list.RemoveAt(0); continue }
-        if ($t -cmatch '^[0-9]?(<|>|>>|<<<)$') { $list.RemoveRange(0, [Math]::Min(2, $list.Count)); continue }
-        if ($t -cmatch '^[0-9]?[<>]') { $list.RemoveAt(0); continue }
+        # A redirection whose target is the next word takes two words, so that
+        # `>& f rm -rf ~` and `<< EOF rm -rf ~` reach the inspectors as rm
+        # (#1033). `>&-` holds its target.
+        if ($t -cmatch '^([0-9]?(<|>|>>|<<<|<&|>&|>\||<>|<<|<<-)|&>|&>>)$') { $list.RemoveRange(0, [Math]::Min(2, $list.Count)); continue }
+        if ($t -cmatch '^([0-9]?[<>]|&>)') { $list.RemoveAt(0); continue }
         $name = $t -replace '^.*[\\/]', ''
         if (-not $script:WrapperValueFlags.ContainsKey($name)) { break }
         if ($name -ceq 'command') {
@@ -1644,29 +1655,19 @@ function Get-RawExpansion {
     return $kind
 }
 
-# The redirection a word as written is: Kind '' (none), 'out' (standard output
-# leaves the pipe), 'in' (standard input comes from a file or a heredoc),
-# 'here' (a here-string) or 'other'; TakesNext when the target is the next
-# word. A target that is the pipe again (`>&1`, `> /dev/stdout`) is 'other'.
-# See redir_word.
+# The redirection a word as written is: Kind '' (none), 'here' (a
+# here-string) or 'other'; TakesNext when the target is the next word. Where a
+# redirection points does not matter to the standard input rule (#1033): with
+# a pipe, zsh (MULTIOS) writes standard output to the pipe as well as to the
+# file, and reads the pipe before the file or the here-string. See redir_word.
 function Get-Redirection {
-    param([string]$W, [string]$Next = '')
+    param([string]$W)
     $r = [pscustomobject]@{ Kind = ''; TakesNext = $false }
-    if ($W.StartsWith('<(') -or $W.StartsWith('>(')) { return $r }
+    if ($W -cmatch '^[0-9]?[<>]\(') { return $r }
     if ($W -cmatch '^[0-9]?<<<$') { $r.Kind = 'here'; $r.TakesNext = $true; return $r }
     if ($W -cmatch '^[0-9]?<<<') { $r.Kind = 'here'; return $r }
-    if ($W -cmatch '^[0-9]?<<-?$') { $r.Kind = 'in'; $r.TakesNext = $true; return $r }
-    if ($W -cmatch '^[0-9]?<<') { $r.Kind = 'in'; return $r }
-    if ($W -cmatch '^1?>') { $r.Kind = 'out' }
-    elseif ($W -cmatch '^0?<') { $r.Kind = 'in' }
-    elseif ($W -cmatch '^[0-9][<>]') { $r.Kind = 'other' }
-    else { return $r }
-    $target = $W -creplace '^[0-9]?[<>][>|&]?', ''
-    if ($target -eq '') {
-        $r.TakesNext = $true
-        $target = $Next
-    }
-    if ($r.Kind -eq 'out' -and @('&1', '1', '/dev/stdout', '/dev/fd/1', '/proc/self/fd/1') -ccontains $target) { $r.Kind = 'other' }
+    if ($W -cmatch '^([0-9]?(<|>|>>|<&|>&|>\||<>|<<|<<-)|&>|&>>)$') { $r.Kind = 'other'; $r.TakesNext = $true; return $r }
+    if ($W -cmatch '^([0-9]?[<>]|&>)') { $r.Kind = 'other' }
     return $r
 }
 
@@ -1773,12 +1774,11 @@ function Get-ProducerText {
     $words = [System.Collections.Generic.List[string]]::new()
     $exp = 0
     $n = $rw.Raw.Count
-    # A redirection may also stand in front of the command (`>f echo x`).
+    # A redirection, also one in front of the command (`>f echo x`), is no
+    # text, and it does not keep the text from the pipe (Get-Redirection).
     for ($i = 0; $i -lt $n; $i++) {
         if ($i -eq $rw.Head) { continue }
-        $next = if ($i + 1 -lt $n) { $rw.Raw[$i + 1] } else { '' }
-        $r = Get-Redirection -W $rw.Raw[$i] -Next $next
-        if ($r.Kind -eq 'out') { return $none }
+        $r = Get-Redirection -W $rw.Raw[$i]
         if ($r.Kind) {
             if ($r.TakesNext) { $i++ }
             continue
@@ -1827,19 +1827,17 @@ function Inspect-StdinShell {
 
     $hasS = $false
     $opts = $true
-    $here = $false
-    $hereRaw = ''
-    $hereVal = ''
-    $fromFile = $false
+    $unknown = $false
+    $texts = [System.Collections.Generic.List[string]]::new()
     $n = $rw.Raw.Count
     # A redirection may also stand in front of the command (`<<< x bash`).
+    # Every here-string and the pipe are read, as zsh reads them one after the
+    # other (Get-Redirection).
     for ($i = 0; $i -lt $n; $i++) {
         if ($i -eq $rw.Head) { continue }
         $w = $rw.Raw[$i]
         $r = Get-Redirection -W $w
         if ($r.Kind -eq 'here') {
-            $here = $true
-            $fromFile = $false
             if ($r.TakesNext) {
                 if ($i + 1 -lt $n) { $hereRaw = $rw.Raw[$i + 1]; $hereVal = $rw.Val[$i + 1] } else { $hereRaw = ''; $hereVal = '' }
                 $i++
@@ -1847,12 +1845,7 @@ function Inspect-StdinShell {
                 $hereRaw = $w.Substring($w.IndexOf('<<<') + 3)
                 $hereVal = Get-DequotedWord $hereRaw
             }
-            continue
-        }
-        if ($r.Kind -eq 'in') {
-            $here = $false
-            $fromFile = $true
-            if ($r.TakesNext) { $i++ }
+            if ((Get-RawExpansion $hereRaw) -eq 0) { $texts.Add($hereVal) } else { $unknown = $true }
             continue
         }
         if ($r.Kind) {
@@ -1878,22 +1871,19 @@ function Inspect-StdinShell {
     }
 
     $label = "$name stdin"
-    $textKind = 'none'
-    $texts = @()
-    if ($here) {
-        if ((Get-RawExpansion $hereRaw) -eq 0) { $textKind = 'text'; $texts = @($hereVal) } else { $textKind = 'unknown' }
-    } elseif ($ProducerSub -and -not $fromFile) {
+    if ($ProducerSub) {
         $p = Get-ProducerText -Sub $ProducerSub
-        $textKind = $p.Kind
-        $texts = @($p.Texts)
+        # An echo whose escapes are not computed still has its literal reading.
+        foreach ($t in $p.Texts) { $texts.Add($t) }
+        # `echo "$(curl ...)" | bash` is `curl ... | bash`.
+        if ($p.Kind -eq 'subst' -and $Fetched) { return (Get-FetchReceiverVerdict -Head $head) }
+        if ($p.Kind -eq 'unknown' -or $p.Kind -eq 'subst') { $unknown = $true }
     }
-    if ($textKind -eq 'none') { return $null }
-    # `echo "$(curl ...)" | bash` is `curl ... | bash`.
-    if ($textKind -eq 'subst' -and $Fetched) { return (Get-FetchReceiverVerdict -Head $head) }
+    if ($texts.Count -eq 0 -and -not $unknown) { return $null }
 
     $reason = ''
-    if ($textKind -eq 'unknown' -or $textKind -eq 'subst') {
-        $reason = "The text that $head reads as commands on standard input holds an expansion, an escape or a printf format that cannot be inspected statically. Confirm to proceed."
+    if ($unknown) {
+        $reason ="The text that $head reads as commands on standard input holds an expansion, an escape or a printf format that cannot be inspected statically. Confirm to proceed."
     }
     foreach ($t in $texts) {
         $r = Inspect-Payload -Label $label -Payload $t -Depth $Depth -Cwd $Cwd
