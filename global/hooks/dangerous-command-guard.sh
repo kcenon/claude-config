@@ -195,7 +195,8 @@ coarse_ask() {
 #
 # A line keeps its spans when one of them may run: it holds a substitution, a
 # shell wrapper word, a flag ending in c before a quote, a pipe into a shell
-# (`echo '...' | bash`, also behind a wrapper or as $SHELL) or a shell word
+# (`echo '...' | bash`, also behind a wrapper, as $SHELL, or in a subshell or a
+# group: `| (bash)`, `| { bash; }`, #1034) or a shell word
 # right before a here-string (`bash<<<'...'`, #1029). Spans never cross a
 # line. A line that leaves a quote open ends the blanking for good: the state of
 # the lines after it is unknown, and what looks like a span between two
@@ -208,7 +209,7 @@ coarse_prepare() {
     local spans="${b}.|${q}[^${q}]*${q}|${d}([^${d}${b}]|${b}.)*${d}"
     local shells="(bash|sh|zsh|dash|ksh|fish)"
     local wrap="((sudo|doas|env|exec|nohup|command|time)[[:space:]]+(-[^[:space:]]+[[:space:]]+|[A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*)?"
-    local piped="[|][[:space:]]*${wrap}(${d}?[\$][{]?(SHELL|BASH)[}]?${d}?|([^[:space:]]*\\/)?${shells})([[:space:];&|)]|\$)"
+    local piped="[|][[:space:]]*([({][[:space:]]*)*${wrap}(${d}?[\$][{]?(SHELL|BASH)[}]?${d}?|([^[:space:]]*\\/)?${shells})([[:space:];&|)]|\$)"
     local run="[\$][(]|\`|(^|[^[:alnum:]_.-])(bash|sh|zsh|dash|ksh|fish|eval)([[:space:]]|<<<)|[[:space:]]-[[:alpha:]]*c[[:space:]]+[${d}${q}]"
     # The pipe test runs only on a line with a pipe: on a line without one it
     # would still cost a tenth of the scan of 1 MB.
@@ -359,8 +360,9 @@ if [ "${#CMD}" -gt "$DCG_TOKENIZER_MAX_BYTES" ]; then
     if coarse_has "$COARSE_TEXT" 'chmod\s+(0?777|a\+rwx|[246][0-9][0-9][0-9])'; then
         deny_response "Dangerous permission change (777/a+rwx) blocked for security"
     fi
-    # A wrapper may stand in front of the receiver (#991).
-    if coarse_has "$COARSE_TEXT" '(curl|wget)\s.*\|\s*((sudo|doas|env|exec|nohup|command|time)\s+(-\S+\s+|[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)?("?\$\{?(SHELL|BASH)\}?"?|(\S*/)?(sh|bash|zsh|dash|python[23]?|perl|ruby|node))([[:space:];&|)]|$)'; then
+    # A wrapper may stand in front of the receiver (#991), and a subshell or a
+    # group around it (#1034).
+    if coarse_has "$COARSE_TEXT" '(curl|wget)\s.*\|\s*([({]\s*)*((sudo|doas|env|exec|nohup|command|time)\s+(-\S+\s+|[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)?("?\$\{?(SHELL|BASH)\}?"?|(\S*/)?(sh|bash|zsh|dash|python[23]?|perl|ruby|node))([[:space:];&|)]|$)'; then
         deny_response "Remote script execution via pipe blocked for security"
     fi
     coarse_scan
@@ -403,12 +405,37 @@ VAR_VALUES=()
 # 1 while inspecting a command that runs once per input (xargs, find -exec).
 EACH_INPUT=0
 
+# The word real_words puts after the last one, which strip_compound_syntax reads
+# as the end of the command.
+RW_END=$'\001dcg-end'
+
+# one_word_subshell: whether `(word)` at tokens[0] is a subshell rather than the
+# pattern of a case arm (#1034). Only closers and redirections may follow a
+# subshell (`(bash) 2>&1 )`); a case pattern is followed by its command
+# (`(a) ls`), and `(bash) arg` is a syntax error in bash and zsh.
+one_word_subshell() {
+    local k=1 n=${#tokens[@]} w
+    while [ "$k" -lt "$n" ]; do
+        w="${tokens[$k]}"
+        [ "$w" != "$RW_END" ] || return 0
+        case "$w" in
+            *[!\)]*) ;;
+            *) k=$((k + 1)); continue ;;
+        esac
+        redir_word "$w"
+        [ -n "$REDIR" ] || return 1
+        k=$((k + 1 + REDIR_NEXT))
+    done
+    return 0
+}
+
 # strip_compound_syntax: drop the shell grammar around a simple command from the
 # caller's array `tokens`: reserved words, grouping, a function head, a case
 # pattern, and the `)` that closes a subshell. `for x in a; do rm -rf ~; done`
-# reaches the inspectors as `rm -rf ~`. `for` and `select` stay, because their
-# words are data. SUBSHELL_OPENS and SUBSHELL_CLOSES count the parentheses, so
-# that a `cd` inside a subshell ends with it.
+# reaches the inspectors as `rm -rf ~`, and a one-word subshell `(bash)` as
+# `bash`. `for` and `select` stay, because their words are data.
+# SUBSHELL_OPENS and SUBSHELL_CLOSES count the parentheses, so that a `cd`
+# inside a subshell ends with it.
 strip_compound_syntax() {
     SUBSHELL_OPENS=0
     SUBSHELL_CLOSES=0
@@ -437,9 +464,20 @@ strip_compound_syntax() {
                 [ "${tokens[2]:-}" = in ] || break
                 tokens=("${tokens[@]:3}")
                 ;;
-            '('*')'|*'()')
-                # `(pattern)` of a case arm, `(word)`, or `name()`.
+            *'()')
+                # `name()`, or the placeholder of a substitution.
                 tokens=("${tokens[@]:1}")
+                ;;
+            '('*')')
+                if one_word_subshell; then
+                    SUBSHELL_OPENS=$((SUBSHELL_OPENS + 1))
+                    SUBSHELL_CLOSES=$((SUBSHELL_CLOSES + 1))
+                    t="${t#(}"
+                    tokens[0]="${t%)}"
+                else
+                    # `(pattern)` of a case arm.
+                    tokens=("${tokens[@]:1}")
+                fi
                 ;;
             '('*)
                 SUBSHELL_OPENS=$((SUBSHELL_OPENS + 1))
@@ -1635,7 +1673,7 @@ printf_text() {
 # turned the words into a payload (`env -S`, watch). Changes the globals of
 # strip_compound_syntax and strip_wrappers, so run it in a subshell.
 real_words() {
-    local w n end=$'\001dcg-end'
+    local w n end="$RW_END"
     local -a tokens=()
     RW_RAW=()
     RW_VAL=()

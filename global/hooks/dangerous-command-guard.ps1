@@ -157,10 +157,11 @@ function Get-CoarseText {
     $keep = '\\.|''[^''\s]*''|"([^"\\\s]|\\.)*"'
     $blank = '''[^'']*\s[^'']*''|"([^"\\]|\\.)*\s([^"\\]|\\.)*"'
     $spansRx = [regex]::new('\\.|''[^'']*''|"([^"\\]|\\.)*"', $script:CoarseOptions, $script:CoarseBudget)
-    # A pipe into a shell (also behind a wrapper or as $SHELL) and a shell word
-    # right before a here-string keep their spans too (#1029).
+    # A pipe into a shell (also behind a wrapper, as $SHELL, or in a subshell or
+    # a group, #1034) and a shell word right before a here-string keep their
+    # spans too (#1029).
     $shells = '(bash|sh|zsh|dash|ksh|fish)'
-    $piped = '\|\s*((sudo|doas|env|exec|nohup|command|time)\s+(-\S+\s+|[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)?("?\$\{?(SHELL|BASH)\}?"?|(\S*/)?' + $shells + ')(\s|[;&|)]|$)'
+    $piped = '\|\s*([({]\s*)*((sudo|doas|env|exec|nohup|command|time)\s+(-\S+\s+|[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)?("?\$\{?(SHELL|BASH)\}?"?|(\S*/)?' + $shells + ')(\s|[;&|)]|$)'
     $runRx = [regex]::new('\$\(|`|(^|[^\w.-])(bash|sh|zsh|dash|ksh|fish|eval)\s|\s-[A-Za-z]*c\s+["'']|' + $piped + '|(^|[^\w.-])' + $shells + '<<<', $script:CoarseOptions, $script:CoarseBudget)
     $blankRx = [regex]::new("($keep)|$blank", $script:CoarseOptions, $script:CoarseBudget)
     $quotes = [char[]]@('"', "'")
@@ -294,8 +295,9 @@ if ($CMD.Length -gt $maxBytes) {
         if (Test-CoarseMatch $coarseText '(?i)chmod\s+(0?777|a\+rwx|[246][0-9][0-9][0-9])') {
             Respond-Deny 'Dangerous permission change (777/a+rwx) blocked for security'
         }
-        # A wrapper may stand in front of the receiver (#991).
-        if (Test-CoarseMatch $coarseText '(?i)(curl|wget)\s.*\|\s*((sudo|doas|env|exec|nohup|command|time)\s+(-\S+\s+|[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)?("?\$\{?(SHELL|BASH)\}?"?|(\S*/)?(sh|bash|zsh|dash|python[23]?|perl|ruby|node))(\s|[;&|)]|$)') {
+        # A wrapper may stand in front of the receiver (#991), and a subshell or
+        # a group around it (#1034).
+        if (Test-CoarseMatch $coarseText '(?i)(curl|wget)\s.*\|\s*([({]\s*)*((sudo|doas|env|exec|nohup|command|time)\s+(-\S+\s+|[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)?("?\$\{?(SHELL|BASH)\}?"?|(\S*/)?(sh|bash|zsh|dash|python[23]?|perl|ruby|node))(\s|[;&|)]|$)') {
             Respond-Deny 'Remote script execution via pipe blocked for security'
         }
         Invoke-CoarseScan -Text $coarseText -Budget $maxBytes
@@ -568,9 +570,31 @@ function Skip-First {
     return ,@($Items | Select-Object -Skip $Count)
 }
 
+# The word Get-RealWords puts after the last one, which Strip-CompoundSyntax
+# reads as the end of the command.
+$script:RwEnd = [string][char]1 + 'dcg-end'
+
+# Whether `(word)` at the head of the list is a subshell rather than the
+# pattern of a case arm (#1034): only closers and redirections may follow a
+# subshell; a case pattern is followed by its command. See one_word_subshell.
+function Test-OneWordSubshell {
+    param($List)
+    $k = 1
+    while ($k -lt $List.Count) {
+        $w = $List[$k]
+        if ($w -ceq $script:RwEnd) { return $true }
+        if ($w -cmatch '^\)+$') { $k++; continue }
+        $r = Get-Redirection -W $w
+        if (-not $r.Kind) { return $false }
+        $k += 1 + [int]$r.TakesNext
+    }
+    return $true
+}
+
 # Drops the shell grammar around a simple command: reserved words, grouping, a
-# function head, a case pattern, and the `)` that closes a subshell. `for` and
-# `select` stay, because their words are data. See strip_compound_syntax.
+# function head, a case pattern, and the `)` that closes a subshell; a one-word
+# subshell `(bash)` keeps its word. `for` and `select` stay, because their
+# words are data. See strip_compound_syntax.
 function Strip-CompoundSyntax {
     param([string[]]$Tokens)
     $list = [System.Collections.Generic.List[string]]::new()
@@ -601,9 +625,20 @@ function Strip-CompoundSyntax {
             $list.RemoveRange(0, 3)
             continue
         }
-        # `(pattern)` of a case arm, `(word)`, or `name()`.
-        if (($t.StartsWith('(') -and $t.EndsWith(')')) -or $t.EndsWith('()')) {
+        # `name()`, or the placeholder of a substitution.
+        if ($t.EndsWith('()')) {
             $list.RemoveAt(0)
+            continue
+        }
+        if ($t.StartsWith('(') -and $t.EndsWith(')')) {
+            if (Test-OneWordSubshell -List $list) {
+                $opens++
+                $closes++
+                $list[0] = $t.Substring(1, $t.Length - 2)
+            } else {
+                # `(pattern)` of a case arm.
+                $list.RemoveAt(0)
+            }
             continue
         }
         if ($t.StartsWith('(')) {
@@ -1744,7 +1779,7 @@ function Get-RealWords {
         if ($_.IndexOfAny([char[]]@("'", '"', '\')) -ge 0) { Get-DequotedWord $_ } else { $_ }
     })
     $result = [pscustomobject]@{ Raw = [string[]]$raw; Val = $val; Head = -1 }
-    $end = [string][char]1 + 'dcg-end'
+    $end = $script:RwEnd
     $saved = $script:EachInput
     try {
         $tokens = (Strip-CompoundSyntax -Tokens (@($val) + $end)).Tokens
