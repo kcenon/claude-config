@@ -26,13 +26,16 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 #           root (/tmp/claude-<uid>, the temp path, the macOS per-user temp
 #           directory) whose resolved path stays below it too.
 # `bash|sh|... -c` and `eval` payloads are inspected recursively (depth 3);
-# an uninspectable payload is denied. Outside a payload, a `$X` / `${X}` /
-# `${X:-word}` command head is resolved from an earlier assignment (`X=value`,
-# or through export, declare, local, readonly or typeset; unset forgets it),
-# else from its default word. `$SHELL` and `$BASH` are inspected as a shell.
-# Any other unresolved head, and a `$(...)` or backtick head at any depth, asks
-# when its arguments would make rm deny or ask, or when the operand of a flag
-# ending in c would make a shell deny or ask. The real command of a sub-command
+# an uninspectable payload is denied. So is the text a shell reads as commands
+# on standard input: a here-string, or what an echo or printf before it writes
+# (#1029); text that cannot be known statically asks. Outside a payload, a
+# `$X` / `${X}` / `${X:-word}` command head is resolved from an earlier
+# assignment (`X=value`, or through export, declare, local, readonly or
+# typeset; unset forgets it), else from its default word. `$SHELL` and `$BASH`
+# are inspected as a shell. Any other unresolved head, and a `$(...)` or
+# backtick head at any depth, asks when its arguments would make rm deny or
+# ask, or when the operand of a flag ending in c would make a shell deny or
+# ask. The real command of a sub-command
 # is found first (#991): shell grammar goes, then leading assignments and
 # redirections, then known wrappers with their own flags. rm through xargs,
 # parallel or find -exec always asks. A fetch piped to a shell through a wrapper
@@ -154,7 +157,11 @@ function Get-CoarseText {
     $keep = '\\.|''[^''\s]*''|"([^"\\\s]|\\.)*"'
     $blank = '''[^'']*\s[^'']*''|"([^"\\]|\\.)*\s([^"\\]|\\.)*"'
     $spansRx = [regex]::new('\\.|''[^'']*''|"([^"\\]|\\.)*"', $script:CoarseOptions, $script:CoarseBudget)
-    $runRx = [regex]::new('\$\(|`|(^|[^\w.-])(bash|sh|zsh|dash|ksh|fish|eval)\s|\s-[A-Za-z]*c\s+["'']', $script:CoarseOptions, $script:CoarseBudget)
+    # A pipe into a shell (also behind a wrapper or as $SHELL) and a shell word
+    # right before a here-string keep their spans too (#1029).
+    $shells = '(bash|sh|zsh|dash|ksh|fish)'
+    $piped = '\|\s*((sudo|doas|env|exec|nohup|command|time)\s+(-\S+\s+|[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)?("?\$\{?(SHELL|BASH)\}?"?|(\S*/)?' + $shells + ')(\s|[;&|)]|$)'
+    $runRx = [regex]::new('\$\(|`|(^|[^\w.-])(bash|sh|zsh|dash|ksh|fish|eval)\s|\s-[A-Za-z]*c\s+["'']|' + $piped + '|(^|[^\w.-])' + $shells + '<<<', $script:CoarseOptions, $script:CoarseBudget)
     $blankRx = [regex]::new("($keep)|$blank", $script:CoarseOptions, $script:CoarseBudget)
     $quotes = [char[]]@('"', "'")
     $lines = $Text.Replace("`r`n", "`n").Replace("\`n", ' ').Split("`n")
@@ -381,7 +388,12 @@ function Split-Subcommands {
                 }
                 if ($next -eq '<') {
                     # `<<<` here-string: the next token is an ordinary word.
-                    if (($i + 2 -lt $len) -and $Cmd[$i + 2] -eq '<') { $buf += '<<<'; $i += 3; continue scan }
+                    # The operator becomes a word of its own (#1029); a file
+                    # descriptor in front stays with it.
+                    if (($i + 2 -lt $len) -and $Cmd[$i + 2] -eq '<') {
+                        $buf += if ($i -gt 0 -and $Cmd[$i - 1] -match '[0-9]') { '<<< ' } else { ' <<< ' }
+                        $i += 3; continue scan
+                    }
                     # `<<` / `<<-` heredoc: record the delimiter; the body is
                     # consumed at the next unquoted newline.
                     $buf += '<<'; $i += 2
@@ -488,8 +500,10 @@ function Flatten-Subcommands {
     return $current
 }
 
+# -Raw emits the words as written, quotes and all, so that a caller can tell
+# '$X' from "$X" (#1029).
 function Tokenize-Argv {
-    param([string]$Sub)
+    param([string]$Sub, [switch]$Raw)
 
     # Pre-expand IFS substitutions to a space.
     $s = $Sub.Replace('${IFS}', ' ').Replace('$IFS', ' ')
@@ -501,7 +515,7 @@ function Tokenize-Argv {
 
     function Emit([System.Collections.Generic.List[string]]$list, [string]$t) {
         if ([string]::IsNullOrEmpty($t)) { return }
-        if ($t.IndexOfAny([char[]]@("'", '"', '\')) -ge 0) { $t = Get-DequotedWord $t }
+        if (-not $Raw -and $t.IndexOfAny([char[]]@("'", '"', '\')) -ge 0) { $t = Get-DequotedWord $t }
         [void]$list.Add($t)
     }
 
@@ -1598,6 +1612,306 @@ function Get-FetchReceiverVerdict {
     return $null
 }
 
+# --- Text a shell reads as commands on standard input (#1029) ----------------
+# `echo 'rm -rf /' | bash` and `bash <<< 'rm -rf /'` run the same command as
+# `bash -c 'rm -rf /'`. See the bash twin.
+
+# 0 when a word as written holds no expansion outside single quotes, 1 for a
+# parameter expansion or a $'...' / $"..." string, 2 for a command or process
+# substitution. See raw_expansion.
+function Get-RawExpansion {
+    param([string]$S)
+    $q = ''
+    $kind = 0
+    for ($i = 0; $i -lt $S.Length; $i++) {
+        $ch = $S[$i]
+        if ($q -eq "'") {
+            if ($ch -eq "'") { $q = '' }
+            continue
+        }
+        $next = if ($i + 1 -lt $S.Length) { [string]$S[$i + 1] } else { '' }
+        if ($ch -eq '\') { $i++ }
+        elseif ($ch -eq "'") { if ($q -ne '"') { $q = "'" } }
+        elseif ($ch -eq '"') { $q = if ($q -eq '"') { '' } else { '"' } }
+        elseif ($ch -eq '`') { return 2 }
+        elseif ($ch -eq '<' -or $ch -eq '>') { if ($q -ne '"' -and $next -eq '(') { return 2 } }
+        elseif ($ch -eq '$') {
+            if ($next -eq '(') { return 2 }
+            if ($next -cmatch '^[A-Za-z_0-9{@*#?$!-]$') { $kind = 1 }
+            elseif (($next -eq "'" -or $next -eq '"') -and $q -ne '"') { $kind = 1 }
+        }
+    }
+    return $kind
+}
+
+# The redirection a word as written is: Kind '' (none), 'out' (standard output
+# leaves the pipe), 'in' (standard input comes from a file or a heredoc),
+# 'here' (a here-string) or 'other'; TakesNext when the target is the next
+# word. A target that is the pipe again (`>&1`, `> /dev/stdout`) is 'other'.
+# See redir_word.
+function Get-Redirection {
+    param([string]$W, [string]$Next = '')
+    $r = [pscustomobject]@{ Kind = ''; TakesNext = $false }
+    if ($W.StartsWith('<(') -or $W.StartsWith('>(')) { return $r }
+    if ($W -cmatch '^[0-9]?<<<$') { $r.Kind = 'here'; $r.TakesNext = $true; return $r }
+    if ($W -cmatch '^[0-9]?<<<') { $r.Kind = 'here'; return $r }
+    if ($W -cmatch '^[0-9]?<<-?$') { $r.Kind = 'in'; $r.TakesNext = $true; return $r }
+    if ($W -cmatch '^[0-9]?<<') { $r.Kind = 'in'; return $r }
+    if ($W -cmatch '^1?>') { $r.Kind = 'out' }
+    elseif ($W -cmatch '^0?<') { $r.Kind = 'in' }
+    elseif ($W -cmatch '^[0-9][<>]') { $r.Kind = 'other' }
+    else { return $r }
+    $target = $W -creplace '^[0-9]?[<>][>|&]?', ''
+    if ($target -eq '') {
+        $r.TakesNext = $true
+        $target = $Next
+    }
+    if ($r.Kind -eq 'out' -and @('&1', '1', '/dev/stdout', '/dev/fd/1', '/proc/self/fd/1') -ccontains $target) { $r.Kind = 'other' }
+    return $r
+}
+
+# The text with the backslash escapes of `echo -e` or of a printf format
+# applied. `\"` and `\'` are escapes of printf only. $null when an escape asks
+# for a character not computed here (\0, \x, \u, \c, \e, \a, ...). See
+# shell_escapes.
+function Get-ShellEscaped {
+    param([string]$Mode, [string]$S)
+    $out = [System.Text.StringBuilder]::new()
+    for ($i = 0; $i -lt $S.Length; $i++) {
+        $ch = $S[$i]
+        if ($ch -ne '\' -or $i + 1 -ge $S.Length) { [void]$out.Append($ch); continue }
+        $i++
+        $c = $S[$i]
+        if ($c -eq '\') { [void]$out.Append('\') }
+        elseif ($c -ceq 'n') { [void]$out.Append("`n") }
+        elseif ($c -ceq 't') { [void]$out.Append("`t") }
+        elseif ($c -eq '"' -or $c -eq "'") {
+            if ($Mode -ne 'printf') { [void]$out.Append('\') }
+            [void]$out.Append($c)
+        }
+        elseif ('abcefrvEuUx01234567'.IndexOf($c) -ge 0) { return $null }
+        else { [void]$out.Append('\').Append($c) }
+    }
+    return $out.ToString()
+}
+
+# What printf writes: only %s and %% are formatted, and the format is reused
+# while arguments remain, as printf does. $null on any other conversion or on
+# an escape Get-ShellEscaped does not compute. See printf_text.
+function Get-PrintfText {
+    param([string[]]$Words)
+    $fmt = $Words[0]
+    $rest = Skip-First $Words
+    $out = [System.Text.StringBuilder]::new()
+    $ai = 0
+    while ($true) {
+        $used = $false
+        for ($i = 0; $i -lt $fmt.Length; $i++) {
+            $ch = $fmt[$i]
+            if ($ch -eq '\') {
+                $e = Get-ShellEscaped -Mode 'printf' -S $fmt.Substring($i, [Math]::Min(2, $fmt.Length - $i))
+                if ($null -eq $e) { return $null }
+                [void]$out.Append($e)
+                $i++
+            } elseif ($ch -eq '%') {
+                $i++
+                $c = if ($i -lt $fmt.Length) { [string]$fmt[$i] } else { '' }
+                if ($c -eq '%') { [void]$out.Append('%') }
+                elseif ($c -ceq 's') {
+                    $used = $true
+                    if ($ai -lt $rest.Count) { [void]$out.Append($rest[$ai]) }
+                    $ai++
+                } else { return $null }
+            } else {
+                [void]$out.Append($ch)
+            }
+        }
+        if (-not ($used -and $ai -lt $rest.Count)) { break }
+    }
+    return $out.ToString()
+}
+
+# The words of a sub-command as written (Raw) and after quote removal (Val),
+# and in Head the index of its real command, the grammar and the wrappers in
+# front of it gone (Val holds that command name without them). Head is -1 when
+# there is none, or when a wrapper turned the words into a payload (`env -S`,
+# watch). See real_words.
+function Get-RealWords {
+    param([string]$Sub)
+    $raw = @(Tokenize-Argv -Sub $Sub -Raw)
+    $val = [string[]]@($raw | ForEach-Object {
+        if ($_.IndexOfAny([char[]]@("'", '"', '\')) -ge 0) { Get-DequotedWord $_ } else { $_ }
+    })
+    $result = [pscustomobject]@{ Raw = [string[]]$raw; Val = $val; Head = -1 }
+    $end = [string][char]1 + 'dcg-end'
+    $saved = $script:EachInput
+    try {
+        $tokens = (Strip-CompoundSyntax -Tokens (@($val) + $end)).Tokens
+        $tokens = @((Strip-Wrappers -Tokens $tokens).Tokens)
+    } finally {
+        $script:EachInput = $saved
+    }
+    if ($tokens.Count -lt 2 -or $tokens[$tokens.Count - 1] -cne $end) { return $result }
+    $result.Head = $val.Count + 1 - $tokens.Count
+    $result.Val[$result.Head] = $tokens[0]
+    return $result
+}
+
+# What an echo or printf sub-command writes to the pipe. Kind is 'none' when it
+# is neither or writes nothing there, 'text' when Texts holds the text (two
+# readings for an echo with a backslash: bash's echo leaves escapes alone,
+# zsh's and dash's apply them), 'unknown' when it holds an expansion or an
+# escape or format not computed here, and 'subst' when that expansion is a
+# command substitution. See producer_text.
+function Get-ProducerText {
+    param([string]$Sub)
+    $none = [pscustomobject]@{ Kind = 'none'; Texts = @() }
+    $rw = Get-RealWords -Sub $Sub
+    if ($rw.Head -lt 0) { return $none }
+    $name = $rw.Val[$rw.Head] -replace '^.*[\\/]', ''
+    if ($name -cne 'echo' -and $name -cne 'printf') { return $none }
+    $words = [System.Collections.Generic.List[string]]::new()
+    $exp = 0
+    $n = $rw.Raw.Count
+    # A redirection may also stand in front of the command (`>f echo x`).
+    for ($i = 0; $i -lt $n; $i++) {
+        if ($i -eq $rw.Head) { continue }
+        $next = if ($i + 1 -lt $n) { $rw.Raw[$i + 1] } else { '' }
+        $r = Get-Redirection -W $rw.Raw[$i] -Next $next
+        if ($r.Kind -eq 'out') { return $none }
+        if ($r.Kind) {
+            if ($r.TakesNext) { $i++ }
+            continue
+        }
+        if ($i -lt $rw.Head) { continue }
+        $e = Get-RawExpansion $rw.Raw[$i]
+        if ($e -gt $exp) { $exp = $e }
+        $words.Add($rw.Val[$i])
+    }
+    if ($name -ceq 'printf') {
+        if ($words.Count -gt 0 -and $words[0].StartsWith('-v')) { return $none }
+        if ($words.Count -gt 0 -and $words[0] -ceq '--') { $words.RemoveAt(0) }
+        # printf with no format writes nothing.
+        if ($words.Count -eq 0) { return $none }
+    } else {
+        while ($words.Count -gt 0 -and $words[0] -cmatch '^-[neE]+$') { $words.RemoveAt(0) }
+    }
+    if ($exp -eq 1) { return [pscustomobject]@{ Kind = 'unknown'; Texts = @() } }
+    if ($exp -eq 2) { return [pscustomobject]@{ Kind = 'subst'; Texts = @() } }
+    if ($name -ceq 'printf') {
+        $t = Get-PrintfText -Words $words.ToArray()
+        if ($null -eq $t) { return [pscustomobject]@{ Kind = 'unknown'; Texts = @() } }
+        return [pscustomobject]@{ Kind = 'text'; Texts = @($t) }
+    }
+    $text = $words -join ' '
+    if (-not $text.Contains('\')) { return [pscustomobject]@{ Kind = 'text'; Texts = @($text) } }
+    $escaped = Get-ShellEscaped -Mode 'echo' -S $text
+    if ($null -eq $escaped) { return [pscustomobject]@{ Kind = 'unknown'; Texts = @($text) } }
+    return [pscustomobject]@{ Kind = 'text'; Texts = @($text, $escaped) }
+}
+
+# The verdict on a shell that reads its commands from standard input, when that
+# input is a here-string or what an echo or printf writes; $null when there is
+# nothing to say. A receiver that cannot be resolved asks when the text would be
+# refused or asks. See inspect_stdin_shell.
+function Inspect-StdinShell {
+    param([string]$Sub, [string]$ProducerSub, [bool]$Fetched, [int]$Depth, [string]$Cwd)
+    $rw = Get-RealWords -Sub $Sub
+    if ($rw.Head -lt 0) { return $null }
+    $head = $rw.Val[$rw.Head]
+    $name = $head -replace '^.*[\\/]', ''
+    if (@('$SHELL', '${SHELL}', '$BASH', '${BASH}') -ccontains $head) { $kind = 'shell' }
+    elseif ($head.StartsWith('$') -or $head.StartsWith('`')) { $kind = 'unresolved' }
+    elseif (@('bash', 'sh', 'zsh', 'dash', 'ksh', 'fish') -ccontains $name) { $kind = 'shell' }
+    else { return $null }
+
+    $hasS = $false
+    $opts = $true
+    $here = $false
+    $hereRaw = ''
+    $hereVal = ''
+    $fromFile = $false
+    $n = $rw.Raw.Count
+    # A redirection may also stand in front of the command (`<<< x bash`).
+    for ($i = 0; $i -lt $n; $i++) {
+        if ($i -eq $rw.Head) { continue }
+        $w = $rw.Raw[$i]
+        $r = Get-Redirection -W $w
+        if ($r.Kind -eq 'here') {
+            $here = $true
+            $fromFile = $false
+            if ($r.TakesNext) {
+                if ($i + 1 -lt $n) { $hereRaw = $rw.Raw[$i + 1]; $hereVal = $rw.Val[$i + 1] } else { $hereRaw = ''; $hereVal = '' }
+                $i++
+            } else {
+                $hereRaw = $w.Substring($w.IndexOf('<<<') + 3)
+                $hereVal = Get-DequotedWord $hereRaw
+            }
+            continue
+        }
+        if ($r.Kind -eq 'in') {
+            $here = $false
+            $fromFile = $true
+            if ($r.TakesNext) { $i++ }
+            continue
+        }
+        if ($r.Kind) {
+            if ($r.TakesNext) { $i++ }
+            continue
+        }
+        if ($i -lt $rw.Head) { continue }
+        $v = $rw.Val[$i]
+        if ($opts) {
+            if (@('-o', '+o', '-O', '+O', '--rcfile', '--init-file') -ccontains $v) { $i++; continue }
+            if ($v -ceq '--') { $opts = $false; continue }
+            if ($v.StartsWith('--') -or $v.StartsWith('+')) { continue }
+            if ($v.StartsWith('-')) {
+                # A -c payload is inspected as an inline shell.
+                if ($v.Contains('c')) { return $null }
+                if ($v.Contains('s')) { $hasS = $true }
+                continue
+            }
+        }
+        # An operand is a script file, unless -s makes it an argument.
+        if (-not $hasS) { return $null }
+        $opts = $false
+    }
+
+    $label = "$name stdin"
+    $textKind = 'none'
+    $texts = @()
+    if ($here) {
+        if ((Get-RawExpansion $hereRaw) -eq 0) { $textKind = 'text'; $texts = @($hereVal) } else { $textKind = 'unknown' }
+    } elseif ($ProducerSub -and -not $fromFile) {
+        $p = Get-ProducerText -Sub $ProducerSub
+        $textKind = $p.Kind
+        $texts = @($p.Texts)
+    }
+    if ($textKind -eq 'none') { return $null }
+    # `echo "$(curl ...)" | bash` is `curl ... | bash`.
+    if ($textKind -eq 'subst' -and $Fetched) { return (Get-FetchReceiverVerdict -Head $head) }
+
+    $reason = ''
+    if ($textKind -eq 'unknown' -or $textKind -eq 'subst') {
+        $reason = "The text that $head reads as commands on standard input holds an expansion, an escape or a printf format that cannot be inspected statically. Confirm to proceed."
+    }
+    foreach ($t in $texts) {
+        $r = Inspect-Payload -Label $label -Payload $t -Depth $Depth -Cwd $Cwd
+        if ($r.D -eq 'ask') {
+            if (-not $reason) { $reason = $r.R }
+        } elseif ($r.D -eq 'deny') {
+            if ($kind -eq 'shell') { return $r }
+            $reason = $r.R
+            break
+        }
+    }
+    if (-not $reason) { return $null }
+    if ($kind -eq 'unresolved') {
+        return (New-Verdict 'ask' "The command name comes from $head, which cannot be resolved statically; if it is a shell, the text on its standard input would be refused ($reason). Confirm to proceed.")
+    }
+    return (New-Verdict 'ask' $reason)
+}
+
 # Where a `cd`/`pushd` sub-command moves the directory later checks use.
 function Get-CdTarget {
     param([string[]]$Tokens, [string]$Cwd)
@@ -1620,6 +1934,10 @@ function Inspect-Command {
     $cwdStack = New-Object System.Collections.Generic.Stack[string]
     $prevFetch = $false
     $prev2Fetch = $false
+    $prevSub = ''
+    $prevHead = ''
+    $prev2Sub = ''
+    $prev2Head = ''
     # A payload of `xargs sh -c '...'` runs once per input as well.
     $eachInput = $script:EachInput
     try {
@@ -1650,8 +1968,36 @@ function Inspect-Command {
                 if ($v.D -eq 'deny') { return $v }
                 if (-not $asks.Contains($v.R)) { $asks.Add($v.R) }
             }
+
+            # A shell that reads its commands from standard input: a here-string,
+            # or what the echo or printf before it writes (#1029). The inner
+            # command of a substitution stands between the producer and a
+            # `$(...)` receiver. The cheap tests come first.
+            $psub = ''
+            $fetched = $prev2Fetch
+            if ($head.StartsWith('$(') -or $head.StartsWith('`')) {
+                if (@('echo', 'printf') -ccontains ($prev2Head -replace '^.*[\\/]', '')) { $psub = $prev2Sub; $fetched = $false }
+            } elseif (@('echo', 'printf') -ccontains ($prevHead -replace '^.*[\\/]', '')) {
+                $psub = $prevSub
+            }
+            $stdinCheck = [bool]$psub -or $sub.Contains('<<<')
+            if ($stdinCheck -and -not ($head.StartsWith('$') -or $head.StartsWith('`'))) {
+                $stdinCheck = @('bash', 'sh', 'zsh', 'dash', 'ksh', 'fish') -ccontains ($head -replace '^.*[\\/]', '')
+            }
+            if ($stdinCheck) {
+                $v = Inspect-StdinShell -Sub $sub -ProducerSub $psub -Fetched $fetched -Depth $Depth -Cwd $Cwd
+                if ($v) {
+                    if ($v.D -eq 'deny') { return $v }
+                    if (-not $asks.Contains($v.R)) { $asks.Add($v.R) }
+                }
+            }
+
             $prev2Fetch = $prevFetch
             $prevFetch = Test-IsFetch -Sub $sub -Head $head
+            $prev2Sub = $prevSub
+            $prev2Head = $prevHead
+            $prevSub = $sub
+            $prevHead = $head
 
             for ($k = 0; $k -lt $compound.Opens; $k++) { $cwdStack.Push($Cwd) }
 

@@ -224,9 +224,14 @@ split_subcommands() {
                 fi
                 if [ "$next" = '<' ]; then
                     # `<<<` here-string: the next token is the payload and
-                    # parses as an ordinary word.
+                    # parses as an ordinary word. The operator becomes a word
+                    # of its own, so `bash<<<'...'` reads as `bash <<< '...'`
+                    # (#1029); a file descriptor in front stays with it.
                     if [ "${cmd:$((i+2)):1}" = '<' ]; then
-                        buf+="<<<"
+                        case "$prev" in
+                            [0-9]) buf+="<<< " ;;
+                            *) buf+=" <<< " ;;
+                        esac
                         i=$((i+3))
                         continue
                     fi
@@ -474,7 +479,9 @@ unquote_word() {
 
 # tokenize_argv <subcommand>
 #   Emits one token per line, after quote removal. Replaces `${IFS}`/`$IFS` with
-#   a space so that obfuscated whitespace splits a single token into two.
+#   a space so that obfuscated whitespace splits a single token into two. With
+#   TOKENIZE_RAW=1 the words are emitted as written, quotes and all, so that a
+#   caller can tell `'$X'` from `"$X"` (#1029).
 tokenize_argv() {
     local cmd="$1"
     # Pre-expand IFS-based whitespace tricks.
@@ -492,7 +499,7 @@ tokenize_argv() {
         if [ -z "$t" ]; then
             return 0
         fi
-        case "$t" in
+        [ "${TOKENIZE_RAW:-0}" = 1 ] || case "$t" in
             *"'"*|*'"'*|*'\'*)
                 unquote_word "$t"
                 t="$UNQUOTED"

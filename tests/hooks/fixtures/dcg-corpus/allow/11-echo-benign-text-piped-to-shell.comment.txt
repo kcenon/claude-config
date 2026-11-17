@@ -1,0 +1,1 @@
+Harmless text piped into a shell is inspected as its payload and allowed, as `bash -c hello` would be (#1029).
