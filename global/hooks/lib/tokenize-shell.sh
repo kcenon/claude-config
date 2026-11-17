@@ -8,7 +8,8 @@
 #       (`;`, `&&`, `||`, `|`, `&`) and on substitution boundaries
 #       (`$(...)`, `<(...)`, `>(...)`, backtick `...`, `<<<`, here-doc body).
 #       Quote contexts (single, double, ANSI-C `$'...'`) are respected so that
-#       operators inside quoted strings are NOT treated as separators.
+#       operators inside quoted strings are NOT treated as separators. The `&`
+#       and `|` of a redirection (`2>&1`, `&>f`, `>|f`) are not separators.
 #
 #   tokenize_argv <subcommand_string>
 #       Emits one argv token per line for a single sub-command, after shell
@@ -55,6 +56,11 @@ split_subcommands() {
     local hd_tabs=()      # 1 when the matching heredoc is `<<-`
     local hd_tab hd_raw hd_line hd_k
     local ch next prev
+    # The index right after the last unquoted `<` or `>` of a redirection. An
+    # `&` or a `|` there belongs to the redirection (`2>&1`, `<&0`, `>|f`), and
+    # an `&` right before `>` starts `&>` / `&>>` (#1033). The index, not the
+    # previous character, so an escaped `\>&` still ends at the `&`.
+    local redir_at=-1
     # A substitution opened inside double quotes ("...$(cmd)...") is parsed
     # unquoted and restores the double-quote state when it closes. Without
     # that, the closing `)` was never seen and every command after the
@@ -183,8 +189,11 @@ split_subcommands() {
                 buf+="$ch"
                 quote='"'
                 ;;
-            '\\')
-                # Escape next char into the buffer verbatim.
+            \\)
+                # Escape next char into the buffer verbatim, so that `\'`
+                # opens no quote and `\;` and `\>&` split nothing. The
+                # pattern was '\\', two backslashes, which never matched one
+                # character: `echo \' ; rm -rf ~` read the rest as quoted.
                 if [ "$i" -lt "$((len-1))" ]; then
                     buf+="$ch$next"
                     i=$((i+2))
@@ -270,6 +279,7 @@ split_subcommands() {
                     continue
                 fi
                 buf+="$ch"
+                redir_at=$((i+1))
                 ;;
             '>')
                 if [ "$next" = '(' ]; then
@@ -283,6 +293,7 @@ split_subcommands() {
                     continue
                 fi
                 buf+="$ch"
+                redir_at=$((i+1))
                 ;;
             $'\n')
                 # Heredoc bodies are data, not shell: copy them into the
@@ -349,6 +360,11 @@ split_subcommands() {
                 buf+="$ch"
                 ;;
             '&')
+                if [ "$i" -eq "$redir_at" ] || [ "$next" = '>' ]; then
+                    buf+="$ch"
+                    i=$((i+1))
+                    continue
+                fi
                 if [ "$next" = '&' ] && [ "$depth" -eq 0 ]; then
                     flush "$buf"
                     buf=""
@@ -364,6 +380,11 @@ split_subcommands() {
                 buf+="$ch"
                 ;;
             '|')
+                if [ "$i" -eq "$redir_at" ]; then
+                    buf+="$ch"
+                    i=$((i+1))
+                    continue
+                fi
                 if [ "$next" = '|' ] && [ "$depth" -eq 0 ]; then
                     flush "$buf"
                     buf=""
