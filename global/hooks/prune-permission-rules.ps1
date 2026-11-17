@@ -258,8 +258,12 @@ try {
     }
 
     # Logging is best-effort and must never surface on a SessionEnd hook.
+    # The home comes from the environment, as in memory-access-logger.ps1 and
+    # the bash twin, so a caller that redirects HOME (or USERPROFILE) moves the
+    # log too. On Windows the automatic $HOME need not follow either (#1030).
     try {
-        $logDir = Join-Path $HOME '.claude' 'logs'
+        $homeDir = if ($env:HOME) { $env:HOME } elseif ($env:USERPROFILE) { $env:USERPROFILE } else { [System.Environment]::GetFolderPath('UserProfile') }
+        $logDir = Join-Path $homeDir '.claude' 'logs'
         Ensure-Directory $logDir | Out-Null
         $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
         $msg = "[$stamp] prune-permission-rules: pruned $removed of $($kept.Count + $removed) -> $($kept.Count) kept  " +
