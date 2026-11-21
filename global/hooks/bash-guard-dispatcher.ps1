@@ -7,6 +7,11 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -WarningActio
 # Hook Type: PreToolUse (Bash)
 # Exit codes: 0 (always - the decision travels in the JSON payload)
 #
+# Second stage of the dispatcher since #1041: global/settings.windows.json
+# sources bash-guard-dispatcher.sh into the hook's Git Bash process, and that
+# first stage starts this script only for a call some guard rule could match.
+# Run on its own, this script still decides every payload, as before.
+#
 # Why this exists: the Bash guards (15 before #964, 4 since) were each
 # registered as their own hook command, so one Bash tool call spawned one
 # `pwsh -NoProfile` process per guard. Cold

@@ -32,8 +32,9 @@ duplicate execution.
 Ownership is per guard even where Windows does not register the guard
 directly. Two matchers are routed through a dispatcher that runs their
 guards in a single process instead of one process per guard:
-`PreToolUse: Bash` through `global/hooks/bash-guard-dispatcher.ps1`
-(issue #895) and `PreToolUse: Edit|Write` through
+`PreToolUse: Bash` through `global/hooks/bash-guard-dispatcher.sh` and
+`bash-guard-dispatcher.ps1`, the two stages of one dispatcher (issues #895
+and #1041), and `PreToolUse: Edit|Write` through
 `global/hooks/edit-guard-dispatcher.ps1` (issue #920). On those matchers
 `global/settings.windows.json` names only the dispatcher, and the guard
 list lives in the dispatcher's routing table;

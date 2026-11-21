@@ -49,7 +49,7 @@ claude-docker's entrypoint mirrors this exact layout into the container. Adding 
 `settings.json` hook commands MUST conform to one of these patterns to survive the container's pwsh-to-bash rewrite (`claude-docker/scripts/entrypoint.sh:50-61`):
 
 - **Supported (rewrites cleanly)**: `pwsh.exe -NoProfile [-ExecutionPolicy <X>] -File <path>.ps1 [args...]`
-- **Supported by passthrough**: command is already bash-native (`bash <path>.sh`, `~/.claude/hooks/<name>.sh`)
+- **Supported by passthrough**: command is already bash-native (`bash <path>.sh`, `~/.claude/hooks/<name>.sh`, `. ~/.claude/hooks/<name>.sh`)
 - **Not supported (silent failure)**: heredoc / multi-line `-Command`, `$env:VAR` expansion, quoted paths with spaces, `Join-Path` outside the `statusLine` slot
 
 If a new hook needs syntax outside the supported subset, the corresponding bash variant MUST do the equivalent work via shell-native means. The rewriter is best-effort, not a backstop.
@@ -63,6 +63,8 @@ Every script in `~/.claude/hooks/` and `~/.claude/scripts/` MUST exist as a `.sh
 **Exception — memory sync scripts (Unix-only).** `scripts/install.sh` and `bootstrap.sh` deploy `memory-sync.sh`, `memory-status.sh` and `memory-notify.sh` to `~/.claude/scripts/`, and the memory validators (`scripts/memory/*.sh`) to `~/.claude/scripts/memory/`, on every global install (claude-config issue #958). Memory sync is Unix-only (claude-config issue #795), so these files have no `.ps1` counterpart and the PowerShell installers do not deploy them. The exception does not reach the rewriter: no hook command in `global/settings.json` or `global/settings.windows.json` references them. They are run by the launchd / systemd scheduler, by the user, and by `memory-write-guard.sh`, which calls the validators by path from inside the hook rather than through a hook command.
 
 **Exception — Windows-only Bash guards.** Since claude-config issue #964, `bash-sensitive-read-guard.ps1` and `shell-env-secret-guard.ps1` have no `.sh` counterpart: macOS and Linux cover secret reads through the shell with the Bash sandbox read-deny (for files under the working directory and the home credential files with their own rule; see [ENFORCEMENT.md](../ENFORCEMENT.md#secrets-outside-the-working-directory)), and Windows has no OS sandbox. No hook command names them; `bash-guard-dispatcher.ps1` invokes them from inside the dispatcher, so the rewriter never sees them.
+
+**Exception — the two stages of the Bash dispatcher.** `bash-guard-dispatcher.sh` and `bash-guard-dispatcher.ps1` share a name and are not equivalents (claude-config issue #1041). The Windows hook command is bash-native, `. ~/.claude/hooks/bash-guard-dispatcher.sh`, so the rewriter passes it through. On Windows the `.sh` answers the calls no guard rule can match and hands the rest to the `.ps1`. In a container there is no `pwsh`: the `.sh` then runs `dangerous-command-guard.sh`, and `merge-gate-guard.sh` for a call that can be a merge, as `global/settings.json` registers them, and merges their decisions. Before #1041 the rewritten command named a `bash-guard-dispatcher.sh` that did not exist, so a container on a Windows configuration reported a missing hook script and ran no Bash guard. The container path is covered by `tests/hooks/test-bash-guard-dispatcher.sh`, which runs the stage with `pwsh` hidden; it has not been run inside a claude-docker container.
 
 ### 4. Probe Contract
 

@@ -73,10 +73,11 @@
       },
       {
         "matcher": "Bash",
+        "_note": "The command sources the first stage of the Bash dispatcher into the Git Bash process that Claude Code already starts for every hook command. bash-guard-dispatcher.sh decides there, with builtins only, whether a guard rule could match the call: if so it hands the payload to bash-guard-dispatcher.ps1, otherwise it writes the same plain allow from that one process. In one print-mode session on Claude Code 2.1.330 the calls the first stage answered took a median of 40 ms and the pwsh dispatcher on its own 641 ms, and on 7,746 recorded Bash commands 65% took the fast path. The first stage has no if: on 2.1.330 an if holds one rule, two handlers that share a command both run when both match, and a command with an unresolved expansion starts every if handler whatever its pattern, so one rule per guard word would start that many pwsh at once. The stage is coarser than every guard behind it, sends anything it cannot read to the second stage, which fails closed, and the guard suites put their deny and ask cases to it. See issue #1041.",
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File ~/.claude/hooks/bash-guard-dispatcher.ps1",
+            "command": ". ~/.claude/hooks/bash-guard-dispatcher.sh",
             "timeout": 30
           }
         ]

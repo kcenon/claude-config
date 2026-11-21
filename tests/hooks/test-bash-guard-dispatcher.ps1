@@ -147,6 +147,96 @@ Assert-ReasonMatches -InputJson $askDeny -Pattern '\[bash-sensitive-read-guard\]
 Assert-Decision      -InputJson $benign  -Expected 'allow' -Label 'allow only -> allow'
 
 Write-Host ''
+Write-Host '[Both stages, as settings.windows.json runs them (#1041)]'
+# The registered command sources bash-guard-dispatcher.sh into the Git Bash
+# process of the hook. That stage answers a call no guard rule can match and
+# hands every other payload to this dispatcher. The decisions must be the ones
+# the dispatcher gives on its own.
+function Get-HookBash {
+    # A bare `bash` on Windows can be the WSL launcher; take the one that ships
+    # with git, which is the one Claude Code uses.
+    if ($IsWindows) {
+        $git = Get-Command git -ErrorAction SilentlyContinue
+        if ($git) {
+            $dir = Split-Path -Parent $git.Source
+            foreach ($up in 1..3) {
+                $dir = Split-Path -Parent $dir
+                if (-not $dir) { break }
+                foreach ($rel in 'bin\bash.exe', 'usr\bin\bash.exe') {
+                    $candidate = Join-Path $dir $rel
+                    if (Test-Path -LiteralPath $candidate) { return $candidate }
+                }
+            }
+        }
+    }
+    $found = Get-Command bash -ErrorAction SilentlyContinue
+    if ($found) { return $found.Source }
+    return $null
+}
+
+function Invoke-BothStages {
+    param([string]$InputJson, [string]$FirstStage)
+    $raw = $InputJson | & $script:HookBash -c ". '$FirstStage'" 2>$null
+    $line = ($raw | Where-Object { $_ -match '"hookSpecificOutput"' } | Select-Object -Last 1)
+    if (-not $line) { return $null }
+    try { return ($line | ConvertFrom-Json).hookSpecificOutput } catch { return $null }
+}
+
+$script:HookBash = Get-HookBash
+if (-not $script:HookBash) {
+    Write-Host '  SKIP: no bash found; the Bash tool does not run on such a machine either'
+} else {
+    $firstStage = (Join-Path $script:RepoRoot 'global' 'hooks' 'bash-guard-dispatcher.sh') -replace '\\', '/'
+    $chainCases = @(
+        @($benign,        'allow', 'git status --short -> allow (first stage alone)'),
+        @($dangerous,     'deny',  'rm -rf / -> deny'),
+        @($readEnv,       'deny',  'cat .env -> deny'),
+        @($echoSecret,    'deny',  'echo $API_KEY -> deny'),
+        @($askOnly,       'ask',   'git stash clear -> ask'),
+        @($ghMerge,       'allow', 'gh pr merge --merge -> allow (through the guards)'),
+        @('',             'deny',  'Empty input -> deny'),
+        @('INVALID_JSON', 'deny',  'Malformed JSON -> deny')
+    )
+    foreach ($c in $chainCases) {
+        $r = Invoke-BothStages -InputJson $c[0] -FirstStage $firstStage
+        $got = if ($r) { $r.permissionDecision } else { '(no parseable response)' }
+        if ($got -eq $c[1]) {
+            $script:Passed++
+            Write-Host "  PASS: both stages: $($c[2])" -ForegroundColor Green
+        } else {
+            $script:Failed++
+            $script:Errors.Add("FAIL: both stages: $($c[2]) - expected $($c[1]), got: $got")
+            Write-Host "  FAIL: both stages: $($c[2])" -ForegroundColor Red
+        }
+    }
+
+    # The fast path must not need the second stage at all. Run the first stage
+    # from a directory that holds nothing else: a call it answers itself is
+    # still allowed, and one it hands on has nobody to answer it.
+    $aloneRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("bgd-first-" + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $aloneRoot -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $script:RepoRoot 'global' 'hooks' 'bash-guard-dispatcher.sh') -Destination $aloneRoot
+    $aloneStage = (Join-Path $aloneRoot 'bash-guard-dispatcher.sh') -replace '\\', '/'
+    $alone = Invoke-BothStages -InputJson $benign -FirstStage $aloneStage
+    $handed = Invoke-BothStages -InputJson $dangerous -FirstStage $aloneStage
+    Remove-Item -LiteralPath $aloneRoot -Recurse -Force -ErrorAction SilentlyContinue
+    $aloneChecks = @(
+        @('first stage answers git status --short without the second stage', ($alone -and $alone.permissionDecision -eq 'allow')),
+        @('first stage does not answer rm -rf / itself', (-not $handed -or $handed.permissionDecision -ne 'allow'))
+    )
+    foreach ($c in $aloneChecks) {
+        if ($c[1]) {
+            $script:Passed++
+            Write-Host "  PASS: $($c[0])" -ForegroundColor Green
+        } else {
+            $script:Failed++
+            $script:Errors.Add("FAIL: $($c[0])")
+            Write-Host "  FAIL: $($c[0])" -ForegroundColor Red
+        }
+    }
+}
+
+Write-Host ''
 Write-Host '[Decision logs go to CLAUDE_LOG_DIR (#1030)]'
 # The guards above wrote their lines here and nowhere else: each one logs to
 # a single directory, CLAUDE_LOG_DIR when it is set.
