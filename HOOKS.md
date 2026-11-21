@@ -798,7 +798,7 @@ this catalog for the canonical hook inventory.
 
 | Hook | Hook Type | PowerShell |
 |---|---|---|
-| [`bash-guard-dispatcher.sh`](#bash-guard-dispatcher) | PreToolUse (Bash) | yes |
+| [`bash-guard-dispatcher.sh`](#bash-guard-dispatcher) | PreToolUse (Bash) | dispatcher stage |
 | [`dangerous-command-guard.sh`](#dangerous-command-guard) | PreToolUse (Bash) | yes |
 | [`memory-access-logger.sh`](#memory-access-logger) | PostToolUse (Read) | yes |
 | [`memory-integrity-check.sh`](#memory-integrity-check) | SessionStart (sync) | yes |
@@ -806,7 +806,9 @@ this catalog for the canonical hook inventory.
 | [`merge-gate-guard.sh`](#merge-gate-guard) | PreToolUse (Bash) | yes |
 | [`prune-permission-rules.sh`](#prune-permission-rules) | SessionEnd | yes |
 
-_Total: 7 bash hooks, 7 with PowerShell counterparts._
+_Total: 6 bash hooks, 6 with PowerShell counterparts._
+
+_Dispatcher stages, not counted as hooks: 1._
 
 ### Hook Details
 
@@ -816,7 +818,7 @@ _File:_ `bash-guard-dispatcher.sh`
 
 _Anchor:_ `#bash-guard-dispatcher`
 
-(no summary)
+Decides in the hook's own bash process whether a Bash call needs the guards, as the first stage of the Windows Bash dispatcher.
 
 | Field | Value |
 |---|---|
@@ -825,7 +827,7 @@ _Anchor:_ `#bash-guard-dispatcher`
 | Exit codes | 0 (always - the decision travels in the JSON payload) |
 | Response format | hookSpecificOutput with hookEventName |
 | Fail policy | anything this stage cannot read as a Bash payload goes to bash-guard-dispatcher.ps1, which fails closed |
-| PowerShell counterpart | present (`bash-guard-dispatcher.ps1`) |
+| PowerShell counterpart | none: `bash-guard-dispatcher.ps1` is the next stage of the same dispatcher |
 | Source | `global/hooks/bash-guard-dispatcher.sh` |
 
 ### dangerous-command-guard
