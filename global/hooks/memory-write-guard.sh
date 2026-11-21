@@ -223,8 +223,22 @@ case "$TOOL_NAME" in
         fi
         ;;
     Edit)
-        OLD_STRING="$(printf '%s' "$INPUT" | jq -r '.tool_input.old_string // ""' 2>/dev/null)"
-        NEW_STRING="$(printf '%s' "$INPUT" | jq -r '.tool_input.new_string // ""' 2>/dev/null)"
+        # A native Windows jq writes CR LF for every newline inside a value.
+        # Under Git Bash or Cygwin a multi-line old_string then matched nothing
+        # in the file, and the unchanged file was validated in place of the
+        # edit (#1046). There sed takes the CR off each line end again;
+        # elsewhere the values are read as before.
+        case "${OSTYPE:-}" in
+            msys*|cygwin*)
+                _cr=$'\r'
+                OLD_STRING="$(printf '%s' "$INPUT" | jq -r '.tool_input.old_string // ""' 2>/dev/null | sed "s/${_cr}\$//")"
+                NEW_STRING="$(printf '%s' "$INPUT" | jq -r '.tool_input.new_string // ""' 2>/dev/null | sed "s/${_cr}\$//")"
+                ;;
+            *)
+                OLD_STRING="$(printf '%s' "$INPUT" | jq -r '.tool_input.old_string // ""' 2>/dev/null)"
+                NEW_STRING="$(printf '%s' "$INPUT" | jq -r '.tool_input.new_string // ""' 2>/dev/null)"
+                ;;
+        esac
         REPLACE_ALL="$(printf '%s' "$INPUT" | jq -r '.tool_input.replace_all // false' 2>/dev/null)"
 
         CURRENT=""
