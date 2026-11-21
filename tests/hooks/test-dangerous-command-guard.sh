@@ -19,9 +19,26 @@ export CLAUDE_LOG_DIR="$TEST_LOG_DIR"
 LOG_FILE="$TEST_LOG_DIR/dangerous-command-guard.log"
 trap 'rm -rf "$TEST_LOG_DIR"' EXIT
 
+# First stage of the Windows Bash dispatcher (#1041). On Windows a command
+# reaches this guard only if bash-guard-dispatcher.sh sends it on, so every
+# case this suite expects a deny or an ask for is also put to that stage, in
+# the compact payload Claude Code writes. A rule added here whose word the
+# first stage does not know fails at once, with the command that slipped by.
+BGD_LIB_ONLY=1 . global/hooks/bash-guard-dispatcher.sh
+FIRST_STAGE_SEEN=0
+FIRST_STAGE_MISSED=0
+first_stage_must_pass() {   # <payload> <shown>
+    FIRST_STAGE_SEEN=$((FIRST_STAGE_SEEN + 1))
+    if ! bgd_needs_guards "$1"; then
+        FIRST_STAGE_MISSED=$((FIRST_STAGE_MISSED + 1))
+        ((FAIL++)); ERRORS+=("FAIL: bash-guard-dispatcher.sh keeps this from the guards: $2"); echo "  FAIL: first stage skips: $2"
+    fi
+}
+
 assert_deny() {
     local input="$1" label="$2"
     local result
+    first_stage_must_pass "$input" "$label"
     result=$(echo "$input" | bash "$HOOK" 2>/dev/null)
     if echo "$result" | grep -q '"deny"'; then
         ((PASS++))
@@ -163,6 +180,9 @@ check() {
     local where="${cwd##*/}" shown="$cmd"
     # Over-budget commands are shown by their ends only.
     [ "${#shown}" -le 300 ] || shown="(${#cmd} bytes) ${cmd:0:24}...${cmd: -60}"
+    if [ "$expected" != "allow" ]; then
+        first_stage_must_pass "$(printf '%s' "$cmd" | jq -Rsc '{tool_name:"Bash",tool_input:{command:.,description:"d"},tool_use_id:"t"}')" "$shown"
+    fi
     if [ "$got" = "$expected" ]; then
         ((PASS++)); echo "  PASS: [$where] $shown → $expected"
     else
@@ -749,6 +769,7 @@ UP="../../../../../../../../../../../.."
 # check_reason <command> <text>: the decision reason holds <text>.
 check_reason() {
     local reason
+    first_stage_must_pass "$(jq -nc --arg c "$1" '{tool_name:"Bash",tool_input:{command:$c,description:"d"},tool_use_id:"t"}')" "$1"
     reason=$(jq -nc --arg c "$1" --arg d "$NOREPO" '{tool_input:{command:$c},cwd:$d}' \
         | "${HOOK_BASH:-bash}" "$HOOK" 2>/dev/null | jq -r '.hookSpecificOutput.permissionDecisionReason // empty')
     case "$reason" in
@@ -1104,6 +1125,12 @@ if grep -q '"command":"rm -rf /"' "$LOG_FILE"; then
     ((PASS++)); echo "  PASS: log preserves exact command string"
 else
     ((FAIL++)); ERRORS+=("FAIL: log missing exact command: $(cat "$LOG_FILE")"); echo "  FAIL: log missing exact command"
+fi
+
+echo ""
+echo "[First stage of the Windows dispatcher (#1041)]"
+if [ "$FIRST_STAGE_SEEN" -gt 0 ] && [ "$FIRST_STAGE_MISSED" -eq 0 ]; then
+    ((PASS++)); echo "  PASS: bash-guard-dispatcher.sh sends all $FIRST_STAGE_SEEN deny and ask commands of this suite to the guards"
 fi
 
 echo ""

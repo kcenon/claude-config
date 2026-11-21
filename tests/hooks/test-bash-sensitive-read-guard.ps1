@@ -3,7 +3,8 @@
 # Test suite for bash-sensitive-read-guard.ps1
 # Run: pwsh tests/hooks/test-bash-sensitive-read-guard.ps1
 #
-# Port of the Bash suite plus PowerShell parity regressions (72 assertions). The
+# Port of the Bash suite plus PowerShell parity regressions (72 assertions, and
+# one more that puts every denied command to the dispatcher's first stage). The
 # .ps1 guard is a whole-command regex approximation of the tokenizer-based .sh
 # guard, so a handful of bash cases legitimately diverge. Every ported case was
 # probed against the actual .ps1 guard first; matches are asserted plainly,
@@ -18,6 +19,10 @@ $script:HookPath = Join-Path $script:RepoRoot 'global' 'hooks' 'bash-sensitive-r
 $script:Passed = 0
 $script:Failed = 0
 $script:Errors = [System.Collections.Generic.List[string]]::new()
+# Every payload this suite expects a deny for, with its label. On Windows a
+# command reaches this guard only if the first stage of the Bash dispatcher
+# sends it on, so the list is put to bash-guard-dispatcher.sh at the end (#1041).
+$script:Denied = [System.Collections.Generic.List[object]]::new()
 
 # Build the hook JSON payload with ConvertTo-Json so commands containing quotes
 # and backslashes (echo "do not commit .env", find / -name .env -exec cat {} \;)
@@ -29,6 +34,7 @@ function New-BashPayload {
 
 function Assert-Deny {
     param([string]$InputJson, [string]$Label)
+    $script:Denied.Add(@($InputJson, $Label))
     $result = $InputJson | & pwsh -NoProfile -File $script:HookPath 2>$null
     if ($result -match '"deny"') {
         $script:Passed++
@@ -188,6 +194,68 @@ Assert-Deny -InputJson (New-BashPayload 'cat credentials/aws.json') -Label 'rela
 Assert-Deny -InputJson (New-BashPayload 'cat passwords/list.txt') -Label 'relative passwords/'
 Assert-Deny -InputJson (New-BashPayload 'find . -name id_rsa') -Label 'find -name id_rsa (bare credential filename)'
 Assert-Deny -InputJson (New-BashPayload 'cat credentials') -Label 'bare credentials filename'
+
+Write-Host ''
+Write-Host '[First stage of the Bash dispatcher sends every denied command on (#1041)]'
+# One bash process reads all denied payloads and prints the number of each one
+# bash-guard-dispatcher.sh would have answered itself. The snippet goes through
+# a file so that no quoting has to survive the trip from PowerShell to bash.
+$hookBash = $null
+if ($IsWindows) {
+    $git = Get-Command git -ErrorAction SilentlyContinue
+    if ($git) {
+        $dir = Split-Path -Parent $git.Source
+        foreach ($up in 1..3) {
+            $dir = Split-Path -Parent $dir
+            if (-not $dir) { break }
+            foreach ($rel in 'bin\bash.exe', 'usr\bin\bash.exe') {
+                $candidate = Join-Path $dir $rel
+                if (-not $hookBash -and (Test-Path -LiteralPath $candidate)) { $hookBash = $candidate }
+            }
+        }
+    }
+}
+if (-not $hookBash) {
+    $found = Get-Command bash -ErrorAction SilentlyContinue
+    if ($found) { $hookBash = $found.Source }
+}
+if (-not $hookBash) {
+    Write-Host '  SKIP: no bash found; the Bash tool does not run on such a machine either'
+} else {
+    $work = Join-Path ([System.IO.Path]::GetTempPath()) ("bsr-first-" + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $work -Force | Out-Null
+    $listFile = Join-Path $work 'denied.jsonl'
+    $snippetFile = Join-Path $work 'first-stage.sh'
+    [System.IO.File]::WriteAllText($listFile, (($script:Denied | ForEach-Object { $_[0] }) -join "`n") + "`n")
+    $snippet = @(
+        'BGD_LIB_ONLY=1 . "$1"'
+        'n=0'
+        'while IFS= read -r l || [ -n "$l" ]; do'
+        '    n=$((n + 1))'
+        '    bgd_needs_guards "$l" || echo "$n"'
+        'done < "$2"'
+    ) -join "`n"
+    [System.IO.File]::WriteAllText($snippetFile, $snippet + "`n")
+    $stage = (Join-Path $script:RepoRoot 'global' 'hooks' 'bash-guard-dispatcher.sh') -replace '\\', '/'
+    $skipped = @(& $hookBash ($snippetFile -replace '\\', '/') $stage ($listFile -replace '\\', '/') 2>$null | Where-Object { $_ -match '^\d+$' })
+    $ran = ($LASTEXITCODE -eq 0)
+    Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
+    if ($ran -and $skipped.Count -eq 0 -and $script:Denied.Count -gt 0) {
+        $script:Passed++
+        Write-Host "  PASS: all $($script:Denied.Count) denied commands reach the guards" -ForegroundColor Green
+    } elseif (-not $ran) {
+        $script:Failed++
+        $script:Errors.Add('FAIL: the first-stage check did not run')
+        Write-Host '  FAIL: the first-stage check did not run' -ForegroundColor Red
+    } else {
+        foreach ($n in $skipped) {
+            $label = $script:Denied[[int]$n - 1][1]
+            $script:Failed++
+            $script:Errors.Add("FAIL: bash-guard-dispatcher.sh keeps this from the guards: $label")
+            Write-Host "  FAIL: first stage skips: $label" -ForegroundColor Red
+        }
+    }
+}
 
 Write-Host ''
 Write-Host "=== Results: $($script:Passed) passed, $($script:Failed) failed ==="

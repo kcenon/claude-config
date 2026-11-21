@@ -479,7 +479,8 @@ try {
             throw "FAIL: windows: memory hooks named '$dropped'"
         }
         $kept = Get-HookNames $win
-        if ($kept -ne 'PreToolUse:bash-guard-dispatcher.ps1 SessionEnd:prune-permission-rules.ps1') {
+        # The Bash handler sources the dispatcher's first stage (#1041).
+        if ($kept -ne 'PreToolUse:bash-guard-dispatcher.sh SessionEnd:prune-permission-rules.ps1') {
             throw "FAIL: windows: hooks kept '$kept'"
         }
         # One handler left on an entry, and one entry on an event, stay arrays.

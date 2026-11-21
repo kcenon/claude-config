@@ -304,8 +304,9 @@ cp "$REPO_ROOT/global/settings.windows.json" "$MEM_DIR/windows.json"
 merge_eq "windows: memory hooks named" \
     "$(drop_memory_hooks_unless_synced "$MEM_DIR/windows.json" | one_line)" \
     "edit-guard-dispatcher.ps1 memory-integrity-check.ps1 memory-access-logger.ps1"
+# The Bash handler sources the dispatcher's first stage (#1041).
 merge_eq "windows: other hooks kept" "$(hook_names "$MEM_DIR/windows.json")" \
-    "PreToolUse:bash-guard-dispatcher.ps1 SessionEnd:prune-permission-rules.ps1"
+    "PreToolUse:bash-guard-dispatcher.sh SessionEnd:prune-permission-rules.ps1"
 
 # The Windows Edit|Write dispatcher is dropped whole, which is right only while
 # memory-write-guard is the one guard it routes (#964). A new guard there must
