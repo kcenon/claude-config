@@ -202,6 +202,79 @@ try {
         Assert-Decision (New-WritePayload 'Write' $dotted $SecretBody) 'deny' 'New file through a dot segment -> resolved and denied'
 
         Write-Host ''
+        Write-Host '[A validator that cannot run is reported, not passed (#1045)]'
+        # Stub validators under HOME come before the repo's copies in the
+        # guard's locator. Each stub only exits with the code it is given:
+        # 127 is what a shell answers when it cannot open the script, 64 is
+        # secret-check.sh's usage error.
+        $stubDir = Join-Path $testHome '.claude' 'scripts' 'memory'
+        New-Item -ItemType Directory -Path $stubDir -Force | Out-Null
+        function Set-ValidatorStubs {
+            param([int]$Validate, [int]$Secret, [int]$Injection)
+            [System.IO.File]::WriteAllText((Join-Path $stubDir 'validate.sh'), "#!/bin/bash`nexit $Validate`n")
+            [System.IO.File]::WriteAllText((Join-Path $stubDir 'secret-check.sh'), "#!/bin/bash`nexit $Secret`n")
+            [System.IO.File]::WriteAllText((Join-Path $stubDir 'injection-check.sh'), "#!/bin/bash`nexit $Injection`n")
+        }
+        $stubPayload = New-WritePayload 'Write' (Join-Path $mem 'feedback_stub.md') $CleanBody
+
+        Set-ValidatorStubs -Validate 127 -Secret 0 -Injection 0
+        $r = Invoke-Guard $stubPayload
+        $ctx = if ($r) { [string]$r.additionalContext } else { '' }
+        Assert-Condition ($r -and $r.permissionDecision -eq 'allow' -and $ctx -match 'could not run' -and $ctx -match 'validate\.sh \(exit 127\)') `
+            'validate.sh exits 127 -> allow that names the check that did not run' "decision: $(if ($r) { $r.permissionDecision } else { '(none)' }), context: $ctx"
+
+        Set-ValidatorStubs -Validate 0 -Secret 64 -Injection 0
+        $r = Invoke-Guard $stubPayload
+        $ctx = if ($r) { [string]$r.additionalContext } else { '' }
+        Assert-Condition ($r -and $r.permissionDecision -eq 'allow' -and $ctx -match 'secret-check\.sh \(exit 64\)') `
+            'secret-check.sh exits 64 -> allow that names the check that did not run' "decision: $(if ($r) { $r.permissionDecision } else { '(none)' }), context: $ctx"
+
+        Set-ValidatorStubs -Validate 127 -Secret 1 -Injection 0
+        $r = Invoke-Guard $stubPayload
+        $why = if ($r) { [string]$r.permissionDecisionReason } else { '' }
+        Assert-Condition ($r -and $r.permissionDecision -eq 'deny' -and $why -match 'validate\.sh \(exit 127\)') `
+            'a check that ran and blocks still denies, and the reason names the one that did not run' "decision: $(if ($r) { $r.permissionDecision } else { '(none)' }), reason: $why"
+
+        Set-ValidatorStubs -Validate 0 -Secret 0 -Injection 0
+        $r = Invoke-Guard $stubPayload
+        Assert-Condition ($r -and $r.permissionDecision -eq 'allow' -and -not $r.additionalContext) `
+            'all three ran clean -> plain allow with no note' "context: $(if ($r) { [string]$r.additionalContext } else { '(none)' })"
+
+        Remove-Item -LiteralPath $stubDir -Recurse -Force
+
+        Write-Host ''
+        Write-Host '[A bash that cannot run the validators, first on PATH (#1045)]'
+        # In a PowerShell process on Windows the first `bash` is usually the
+        # WSL launcher, which cannot open a Windows path. A stand-in that
+        # always exits 127 goes first on PATH here; the guard has to run the
+        # validators through the bash that ships with git all the same.
+        if (-not $IsWindows) {
+            Write-Host '  SKIP: only Windows has a launcher named bash ahead of the real one'
+        } else {
+            $fakeBin = Join-Path $homeReal 'fakebin'
+            New-Item -ItemType Directory -Path $fakeBin -Force | Out-Null
+            [System.IO.File]::WriteAllText((Join-Path $fakeBin 'bash.cmd'), "@exit /b 127`r`n")
+            $savedPath = $env:PATH
+            $env:PATH = "$fakeBin;$env:PATH"
+            try {
+                $first = (Get-Command bash -ErrorAction SilentlyContinue).Source
+                Assert-Condition ($first -and $first.StartsWith($fakeBin, [System.StringComparison]::OrdinalIgnoreCase)) `
+                    'the stand-in is the first bash on PATH' "first: $first"
+                Assert-Decision (New-WritePayload 'Write' (Join-Path $mem 'feedback_leak2.md') $SecretBody) 'deny' 'stand-in first on PATH -> validators still run, secret denied'
+                # The real validators may attach a semantic warning to this
+                # fixture; what must not appear is the note of a check that
+                # did not run.
+                $r = Invoke-Guard (New-WritePayload 'Write' (Join-Path $mem 'feedback_clean2.md') $CleanBody)
+                $ctx = if ($r) { [string]$r.additionalContext } else { '' }
+                Assert-Condition ($r -and $r.permissionDecision -eq 'allow' -and $ctx -notmatch 'could not run') `
+                    'stand-in first on PATH -> clean write allowed, every check ran' "context: $ctx"
+            }
+            finally {
+                $env:PATH = $savedPath
+            }
+        }
+
+        Write-Host ''
         Write-Host '[Symlinked HOME]'
         # Another spelling of the same memory file must not miss the prefix gate
         # and go unvalidated, as memory-write-guard.sh already ensures (#983).
