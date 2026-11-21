@@ -480,7 +480,9 @@ dispatcher. The `.sh`/`.ps1` parity audit in
 execution strategy rather than a policy guard. A POSIX install deploys the
 file with the other `.sh` hooks and never runs it. A Linux container that
 mounts a Windows `~/.claude` does run it: it finds no `pwsh` there and runs
-the POSIX guards itself (see
+the POSIX guards itself, when the shell that runs the hook command is bash.
+Where that shell is dash, the stage stops at a syntax error and no Bash guard
+runs (#1054; see
 [docs/CLAUDE_DOCKER_CONTRACT.md](docs/CLAUDE_DOCKER_CONTRACT.md)).
 
 **Routing table**: the prefilter is deliberately *coarser* than each guard's own
