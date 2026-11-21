@@ -12,7 +12,8 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 #
 # Allow-path output (issue #715 audit): plain allows already emit the minimal
 # allow JSON with no additionalContext; only warn-only validator findings and
-# internal-failure diagnostics intentionally attach context.
+# internal-failure diagnostics intentionally attach context. A validator that
+# could not run is such a failure: it is named in the context (#1045).
 #
 # See memory-write-guard.sh for full design notes.
 
@@ -94,8 +95,39 @@ if (-not $validateBin -or -not $secretBin -or -not $injectionBin) {
     exit 0
 }
 
-# Bash interpreter required to run the validators.
-$bashExe = (Get-Command bash -ErrorAction SilentlyContinue).Source
+# Bash interpreter required to run the validators. On Windows the first `bash`
+# on PATH is not good enough: in a PowerShell process it is usually
+# C:\Windows\System32\bash.exe, the WSL launcher, which cannot open a Windows
+# path. Every validator then ended with 127 and the write was allowed without a
+# note (#1045). Prefer the bash that ships with git, then any bash on PATH that
+# is not a WSL launcher.
+function Find-ValidatorBash {
+    if (-not $IsWindows) {
+        return (Get-Command bash -ErrorAction SilentlyContinue).Source
+    }
+    $git = Get-Command git -ErrorAction SilentlyContinue
+    if ($git -and $git.Source) {
+        $dir = Split-Path -Parent $git.Source
+        foreach ($up in 1..3) {
+            $dir = Split-Path -Parent $dir
+            if (-not $dir) { break }
+            foreach ($rel in 'bin\bash.exe', 'usr\bin\bash.exe') {
+                $candidate = Join-Path $dir $rel
+                if (Test-Path -LiteralPath $candidate) { return $candidate }
+            }
+        }
+    }
+    foreach ($c in @(Get-Command bash -All -ErrorAction SilentlyContinue)) {
+        $src = [string]$c.Source
+        if (-not $src) { continue }
+        if ($env:SystemRoot -and $src.StartsWith($env:SystemRoot, [System.StringComparison]::OrdinalIgnoreCase)) { continue }
+        if ($src -match '[\\/]WindowsApps[\\/]') { continue }
+        return $src
+    }
+    return $null
+}
+
+$bashExe = Find-ValidatorBash
 if (-not $bashExe) {
     Write-Output (New-HookAllowResponse -AdditionalContext 'memory-write-guard: bash not available; validation skipped')
     exit 0
@@ -160,6 +192,20 @@ try {
     # #618), mirroring memory-write-guard.sh lines 272-274.
     if ($secretRc -eq 1 -or $secretRc -eq 2) { $block = $true }
 
+    # A validator that could not run is not one that passed. validate.sh answers
+    # 0 to 3, secret-check.sh 0 to 2 and injection-check.sh 0 or 3; any other
+    # code (126 or 127 from the interpreter, 64 for a usage error, a crash)
+    # means that check did not happen. That is this guard's own failure, so the
+    # write is allowed, as #521 prescribes, but never without saying so (#1045).
+    $notRun = [System.Collections.Generic.List[string]]::new()
+    if ($validateRc  -notin 0, 1, 2, 3) { $notRun.Add("validate.sh (exit $validateRc)") }
+    if ($secretRc    -notin 0, 1, 2)    { $notRun.Add("secret-check.sh (exit $secretRc)") }
+    if ($injectionRc -notin 0, 3)       { $notRun.Add("injection-check.sh (exit $injectionRc)") }
+    $notRunNote = ''
+    if ($notRun.Count -gt 0) {
+        $notRunNote = 'memory-write-guard: validation incomplete, could not run ' + ($notRun -join ', ') + '; that check was skipped.'
+    }
+
     if ($block) {
         $reason = "memory-write-guard rejected write to $leaf"
         if ($validateRc -eq 1 -or $validateRc -eq 2) {
@@ -171,15 +217,20 @@ try {
         if ($secretRc -eq 2) {
             $reason = $reason + "`nsecret-check.sh requires configuration (#618):`n" + $secretOut.TrimEnd()
         }
+        if ($notRunNote) { $reason = $reason + "`n" + $notRunNote }
         Write-Output (New-HookDenyResponse -Reason $reason)
         exit 0
     }
 
-    $feedback = ''
+    $feedback = $notRunNote
+    $warning = ''
     if ($injectionRc -eq 3) {
-        $feedback = "memory-write-guard: write allowed but injection-check flagged:`n" + $injectionOut.TrimEnd() + "`nReview before merge."
+        $warning = "memory-write-guard: write allowed but injection-check flagged:`n" + $injectionOut.TrimEnd() + "`nReview before merge."
     } elseif ($validateRc -eq 3) {
-        $feedback = "memory-write-guard: write allowed with semantic warnings:`n" + $validateOut.TrimEnd()
+        $warning = "memory-write-guard: write allowed with semantic warnings:`n" + $validateOut.TrimEnd()
+    }
+    if ($warning) {
+        $feedback = if ($feedback) { $feedback + "`n" + $warning } else { $warning }
     }
 
     if ([string]::IsNullOrEmpty($feedback)) {

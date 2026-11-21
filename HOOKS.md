@@ -238,7 +238,7 @@ To turn them on after setting up `~/.claude/memory-shared` by hand, re-run the i
 
 | Hook | Event | Behavior |
 |------|-------|----------|
-| `memory-write-guard` | PreToolUse `Edit\|Write` | Validates an Edit or Write under `~/.claude/memory-shared/memories/` before it reaches disk: a structure, secret or owner-configuration failure denies, an injection finding only warns. Allows every other path. Timeout 30 s. |
+| `memory-write-guard` | PreToolUse `Edit\|Write` | Validates an Edit or Write under `~/.claude/memory-shared/memories/` before it reaches disk: a structure, secret or owner-configuration failure denies, an injection finding only warns. A validator that could not run does not count as passed: the write is allowed, as for the guard's other failures of its own (#521), with a note that names the check (#1045). Allows every other path. Timeout 30 s. |
 | `memory-integrity-check` | SessionStart | Prints a short `[memory]` health summary from local metadata, with no network call |
 | `memory-access-logger` | PostToolUse `Read` (async) | Logs the path of each read under the shared memory tree. On POSIX, the `if` rule `Read(~/.claude/**/memor*/**)` starts it only for memory directories, including a project memory symlink (#996). |
 
@@ -540,7 +540,11 @@ registration.
 `secret-check.sh` and `injection-check.sh`, and its own gate accepts nothing
 outside `$HOME/.claude/memory-shared/memories/*.md`. The prefilter matches the
 coarse `memory-shared` substring instead, keeping every path the guard could act
-on while skipping the subprocess cost for ordinary edits.
+on while skipping the subprocess cost for ordinary edits. The validators are
+bash scripts, and the guard runs them with the bash that ships with git, not
+the first `bash` on PATH: in a PowerShell process on Windows that one is
+usually `C:\Windows\System32\bash.exe`, the WSL launcher, which cannot open a
+Windows path (#1045).
 
 **Ordering**: the routing table also supports a `shortCircuit` flag, so that a
 deny from one guard can hide the target from the guards after it. The harness

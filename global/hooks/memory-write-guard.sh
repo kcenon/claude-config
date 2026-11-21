@@ -23,6 +23,8 @@
 #        secret-check.sh exit 2  -> deny  (OWNER_EMAILS not configured, #618)
 #        injection-check.sh exit 3 -> allow with feedback (warn-only, never blocks)
 #        validate.sh exit 3       -> allow with feedback (semantic warning)
+#        any other exit code      -> that validator did not run: allow with a
+#                                    note naming it (internal failure, #1045)
 #        else                     -> allow
 #   5. Cleanup temp file (trap on EXIT).
 #
@@ -253,6 +255,29 @@ INJECTION_OUT="$("$INJECTION_BIN" "$TMP_FILE" 2>&1)" || INJECTION_RC=$?
 
 # ----- decision --------------------------------------------------------------
 
+# A validator that could not run is not one that passed. validate.sh answers
+# 0 to 3, secret-check.sh 0 to 2 and injection-check.sh 0 or 3; any other code
+# (126 or 127 from the shell, 64 for a usage error, a crash) means that check
+# did not happen. That is this guard's own failure, so the write is allowed, as
+# #521 prescribes, but never without saying so (#1045).
+NOT_RUN=""
+case "$VALIDATE_RC" in
+    0|1|2|3) ;;
+    *) NOT_RUN="validate.sh (exit ${VALIDATE_RC})" ;;
+esac
+case "$SECRET_RC" in
+    0|1|2) ;;
+    *) NOT_RUN="${NOT_RUN}${NOT_RUN:+, }secret-check.sh (exit ${SECRET_RC})" ;;
+esac
+case "$INJECTION_RC" in
+    0|3) ;;
+    *) NOT_RUN="${NOT_RUN}${NOT_RUN:+, }injection-check.sh (exit ${INJECTION_RC})" ;;
+esac
+NOT_RUN_NOTE=""
+if [ -n "$NOT_RUN" ]; then
+    NOT_RUN_NOTE="memory-write-guard: validation incomplete, could not run ${NOT_RUN}; that check was skipped."
+fi
+
 build_deny_reason() {
     local reason
     reason="memory-write-guard rejected write to $(basename "$RESOLVED")"
@@ -264,6 +289,9 @@ build_deny_reason() {
     fi
     if [ "$SECRET_RC" -eq 2 ]; then
         reason="${reason}\nsecret-check.sh requires configuration (#618):\n${SECRET_OUT}"
+    fi
+    if [ -n "$NOT_RUN_NOTE" ]; then
+        reason="${reason}\n${NOT_RUN_NOTE}"
     fi
     printf '%s' "$reason"
 }
@@ -285,12 +313,17 @@ if [ "$BLOCK" -eq 1 ]; then
     emit_deny "$(build_deny_reason)"
 fi
 
-# Allowed path. Surface injection warnings as feedback (warn-only).
-FEEDBACK=""
+# Allowed path. Say which checks did not run, then surface injection warnings
+# as feedback (warn-only).
+FEEDBACK="$NOT_RUN_NOTE"
+WARNING=""
 if [ "$INJECTION_RC" -eq 3 ]; then
-    FEEDBACK="memory-write-guard: write allowed but injection-check flagged:\n${INJECTION_OUT}\nReview before merge."
+    WARNING="memory-write-guard: write allowed but injection-check flagged:\n${INJECTION_OUT}\nReview before merge."
 elif [ "$VALIDATE_RC" -eq 3 ]; then
-    FEEDBACK="memory-write-guard: write allowed with semantic warnings:\n${VALIDATE_OUT}"
+    WARNING="memory-write-guard: write allowed with semantic warnings:\n${VALIDATE_OUT}"
+fi
+if [ -n "$WARNING" ]; then
+    FEEDBACK="${FEEDBACK}${FEEDBACK:+\n}${WARNING}"
 fi
 
 emit_allow "$FEEDBACK"

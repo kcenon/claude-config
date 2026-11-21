@@ -182,6 +182,47 @@ assert_decision "$(build_edit_payload "$EDIT_FIXTURE" 'Original body.' 'AKIAIOSF
 assert_decision "$(build_edit_payload "$EDIT_FIXTURE" 'the' 'AKIAIOSFODNN7EXAMPLE' 'true')" 'deny' 'Edit replace_all injects secret -> deny'
 
 echo ""
+echo "[A validator that cannot run is reported, not passed (#1045)]"
+# Stub validators in a HOME of their own. Each stub only exits with the code
+# it is given: 127 is what a shell answers when it cannot run the script, 64
+# is secret-check.sh's usage error. The payload is built with printf, as the
+# warn-only case above, so that a native jq.exe never sees the path.
+STUB_HOME="$(mktemp -d -t mwg-stub.XXXXXX)"
+mkdir -p "$STUB_HOME/.claude/memory-shared/memories" "$STUB_HOME/.claude/scripts/memory"
+set_stubs() {   # <validate rc> <secret-check rc> <injection-check rc>
+    local pair
+    for pair in "validate:$1" "secret-check:$2" "injection-check:$3"; do
+        printf '#!/bin/bash\nexit %s\n' "${pair#*:}" > "$STUB_HOME/.claude/scripts/memory/${pair%%:*}.sh"
+        chmod +x "$STUB_HOME/.claude/scripts/memory/${pair%%:*}.sh"
+    done
+}
+stub_payload=$(printf '{"tool_name":"Write","tool_input":{"file_path":"%s","content":"%s"}}' \
+    "$STUB_HOME/.claude/memory-shared/memories/feedback_stub.md" "${CLEAN_BODY//$'\n'/\\n}")
+# stub_case <validate rc> <secret rc> <injection rc> <expected decision> <text the response must hold, or - for no note> <label>
+stub_case() {
+    local result decision ok=1
+    set_stubs "$1" "$2" "$3"
+    result=$(printf '%s' "$stub_payload" | HOME="$STUB_HOME" bash "$HOOK" 2>/dev/null)
+    decision=$(decision_of "$result")
+    [ "$decision" = "$4" ] || ok=0
+    if [ "$5" = "-" ]; then
+        if printf '%s' "$result" | grep -q '"additionalContext"'; then ok=0; fi
+    elif ! printf '%s' "$result" | grep -qF "$5"; then
+        ok=0
+    fi
+    if [ "$ok" -eq 1 ]; then
+        PASS=$((PASS + 1)); echo "  PASS: $6"
+    else
+        FAIL=$((FAIL + 1)); ERRORS+=("FAIL: $6 -- decision $decision, raw=$result"); echo "  FAIL: $6"
+    fi
+}
+stub_case 127 0 0 allow 'validate.sh (exit 127)' 'validate.sh exits 127 -> allow that names the check that did not run'
+stub_case 0 64 0 allow 'secret-check.sh (exit 64)' 'secret-check.sh exits 64 -> allow that names the check that did not run'
+stub_case 127 1 0 deny 'validate.sh (exit 127)' 'a check that ran and blocks still denies, and the reason names the one that did not run'
+stub_case 0 0 0 allow - 'all three ran clean -> plain allow with no note'
+rm -rf "$STUB_HOME"
+
+echo ""
 echo "[Internal-failure fail-open]"
 # Move validators away to simulate missing-validator condition.
 MISSING_HOME="$(mktemp -d -t mwg-missing.XXXXXX)"
