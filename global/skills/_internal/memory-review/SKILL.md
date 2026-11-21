@@ -143,10 +143,12 @@ the entry is treated as `s` (skipped) so the loop continues.
 #### `y` — verify
 
 Update the `last-verified` field in the file's YAML frontmatter to today's
-date (KST):
+date (KST). `KST-9` is the POSIX form of the zone and needs no zoneinfo
+database; a zone name such as `Asia/Seoul` falls back to UTC, without an
+error, on a host that has none (Git Bash for Windows):
 
 ```bash
-TODAY=$(TZ=Asia/Seoul date +%Y-%m-%d)
+TODAY=$(TZ=KST-9 date +%Y-%m-%d)
 ```
 
 Use `Read` then `Edit` (read-before-edit invariant). Replace the existing
@@ -169,7 +171,7 @@ Run the quarantine script:
 
 ```bash
 ~/.claude/memory-shared/scripts/quarantine-move.sh "<file>" \
-    --reason "/memory-review demoted on $(TZ=Asia/Seoul date -Iseconds)"
+    --reason "/memory-review demoted on $(TZ=KST-9 date -Iseconds)"
 ```
 
 Print the script's stdout. On non-zero exit, print `[WARN] quarantine

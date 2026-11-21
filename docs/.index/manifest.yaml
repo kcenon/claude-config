@@ -10,58 +10,58 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 124815
+    size: 125498
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "Unreleased", l: 8, e: 9}
       - {h: "Changed", l: 10, e: 13}
       - {h: "Removed", l: 14, e: 17}
-      - {h: "Fixed", l: 18, e: 23}
-      - {h: "1.17.0 - 2026-11-17", l: 24, e: 30}
-      - {h: "Added", l: 31, e: 37}
-      - {h: "Changed", l: 38, e: 50}
-      - {h: "Removed", l: 51, e: 54}
-      - {h: "Fixed", l: 55, e: 72}
-      - {h: "1.16.0 - 2026-10-30", l: 73, e: 93}
-      - {h: "Removed", l: 94, e: 127}
-      - {h: "Changed", l: 128, e: 166}
-      - {h: "Fixed", l: 167, e: 228}
-      - {h: "1.15.0 - 2026-10-23", l: 229, e: 230}
-      - {h: "Added", l: 231, e: 242}
-      - {h: "Changed", l: 243, e: 273}
-      - {h: "Fixed", l: 274, e: 280}
-      - {h: "1.14.0 - 2026-09-29", l: 281, e: 282}
-      - {h: "Added", l: 283, e: 291}
-      - {h: "Changed", l: 292, e: 314}
-      - {h: "Removed", l: 315, e: 346}
-      - {h: "Fixed", l: 347, e: 388}
-      - {h: "Security", l: 389, e: 425}
-      - {h: "1.13.0 - 2026-09-13", l: 426, e: 427}
-      - {h: "Added", l: 428, e: 613}
-      - {h: "Changed", l: 614, e: 666}
-      - {h: "Fixed", l: 667, e: 800}
-      - {h: "Security", l: 801, e: 819}
-      - {h: "Known limitation", l: 820, e: 827}
-      - {h: "1.12.0 - 2026-08-01", l: 828, e: 829}
-      - {h: "Added", l: 830, e: 961}
-      - {h: "Fixed", l: 962, e: 1204}
-      - {h: "1.11.0 - 2026-07-03", l: 1205, e: 1206}
-      - {h: "Fixed", l: 1207, e: 1220}
-      - {h: "Security", l: 1221, e: 1298}
-      - {h: "Added", l: 1299, e: 1327}
-      - {h: "Changed", l: 1328, e: 1374}
-      - {h: "1.10.0 - 2026-04-20", l: 1375, e: 1383}
-      - {h: "1.9.0 - 2026-04-13", l: 1384, e: 1393}
-      - {h: "1.8.0 - 2026-04-13", l: 1394, e: 1399}
-      - {h: "1.7.0 - 2026-04-06", l: 1400, e: 1414}
-      - {h: "1.6.0 - 2026-04-03", l: 1415, e: 1427}
-      - {h: "1.5.0 - 2026-03-21", l: 1428, e: 1446}
-      - {h: "1.4.0 - 2026-01-22", l: 1447, e: 1452}
-      - {h: "1.3.0 - 2026-01-15", l: 1453, e: 1461}
-      - {h: "1.2.0 - 2026-01-15", l: 1462, e: 1470}
-      - {h: "1.1.0 - 2025-01-15", l: 1471, e: 1481}
-      - {h: "1.0.0 - 2025-12-03", l: 1482, e: 1488}
+      - {h: "Fixed", l: 18, e: 24}
+      - {h: "1.17.0 - 2026-11-17", l: 25, e: 31}
+      - {h: "Added", l: 32, e: 38}
+      - {h: "Changed", l: 39, e: 51}
+      - {h: "Removed", l: 52, e: 55}
+      - {h: "Fixed", l: 56, e: 73}
+      - {h: "1.16.0 - 2026-10-30", l: 74, e: 94}
+      - {h: "Removed", l: 95, e: 128}
+      - {h: "Changed", l: 129, e: 167}
+      - {h: "Fixed", l: 168, e: 229}
+      - {h: "1.15.0 - 2026-10-23", l: 230, e: 231}
+      - {h: "Added", l: 232, e: 243}
+      - {h: "Changed", l: 244, e: 274}
+      - {h: "Fixed", l: 275, e: 281}
+      - {h: "1.14.0 - 2026-09-29", l: 282, e: 283}
+      - {h: "Added", l: 284, e: 292}
+      - {h: "Changed", l: 293, e: 315}
+      - {h: "Removed", l: 316, e: 347}
+      - {h: "Fixed", l: 348, e: 389}
+      - {h: "Security", l: 390, e: 426}
+      - {h: "1.13.0 - 2026-09-13", l: 427, e: 428}
+      - {h: "Added", l: 429, e: 614}
+      - {h: "Changed", l: 615, e: 667}
+      - {h: "Fixed", l: 668, e: 801}
+      - {h: "Security", l: 802, e: 820}
+      - {h: "Known limitation", l: 821, e: 828}
+      - {h: "1.12.0 - 2026-08-01", l: 829, e: 830}
+      - {h: "Added", l: 831, e: 962}
+      - {h: "Fixed", l: 963, e: 1205}
+      - {h: "1.11.0 - 2026-07-03", l: 1206, e: 1207}
+      - {h: "Fixed", l: 1208, e: 1221}
+      - {h: "Security", l: 1222, e: 1299}
+      - {h: "Added", l: 1300, e: 1328}
+      - {h: "Changed", l: 1329, e: 1375}
+      - {h: "1.10.0 - 2026-04-20", l: 1376, e: 1384}
+      - {h: "1.9.0 - 2026-04-13", l: 1385, e: 1394}
+      - {h: "1.8.0 - 2026-04-13", l: 1395, e: 1400}
+      - {h: "1.7.0 - 2026-04-06", l: 1401, e: 1415}
+      - {h: "1.6.0 - 2026-04-03", l: 1416, e: 1428}
+      - {h: "1.5.0 - 2026-03-21", l: 1429, e: 1447}
+      - {h: "1.4.0 - 2026-01-22", l: 1448, e: 1453}
+      - {h: "1.3.0 - 2026-01-15", l: 1454, e: 1462}
+      - {h: "1.2.0 - 2026-01-15", l: 1463, e: 1471}
+      - {h: "1.1.0 - 2025-01-15", l: 1472, e: 1482}
+      - {h: "1.0.0 - 2025-12-03", l: 1483, e: 1489}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -2907,7 +2907,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 10682
+    size: 10860
     tags: [global,memory,skill]
     sections:
       - {h: "Usage", l: 25, e: 33}
@@ -2917,20 +2917,20 @@ documents:
       - {h: "2. Parse sections", l: 87, e: 112}
       - {h: "3. Walk entries", l: 113, e: 137}
       - {h: "4. Apply the user's choice", l: 138, e: 142}
-      - {h: "`y` — verify", l: 143, e: 165}
-      - {h: "`n` — quarantine", l: 166, e: 177}
-      - {h: "`e` — edit", l: 178, e: 203}
-      - {h: "`s` — skip", l: 204, e: 207}
-      - {h: "`q` — quit", l: 208, e: 211}
-      - {h: "5. Summary", l: 212, e: 238}
-      - {h: "Output formatting", l: 239, e: 245}
-      - {h: "Edge cases", l: 246, e: 260}
-      - {h: "Halt conditions", l: 261, e: 270}
-      - {h: "State and side effects", l: 271, e: 279}
-      - {h: "External dependencies", l: 280, e: 291}
-      - {h: "Frontmatter rationale", l: 292, e: 300}
-      - {h: "Future work (not in this skill)", l: 301, e: 308}
-      - {h: "Cross-references", l: 309, e: 315}
+      - {h: "`y` — verify", l: 143, e: 167}
+      - {h: "`n` — quarantine", l: 168, e: 179}
+      - {h: "`e` — edit", l: 180, e: 205}
+      - {h: "`s` — skip", l: 206, e: 209}
+      - {h: "`q` — quit", l: 210, e: 213}
+      - {h: "5. Summary", l: 214, e: 240}
+      - {h: "Output formatting", l: 241, e: 247}
+      - {h: "Edge cases", l: 248, e: 262}
+      - {h: "Halt conditions", l: 263, e: 272}
+      - {h: "State and side effects", l: 273, e: 281}
+      - {h: "External dependencies", l: 282, e: 293}
+      - {h: "Frontmatter rationale", l: 294, e: 302}
+      - {h: "Future work (not in this skill)", l: 303, e: 310}
+      - {h: "Cross-references", l: 311, e: 317}
   - path: "global/skills/_internal/pr-work/SKILL.md"
     title: "ref_docs keys:"
     description: ""
