@@ -282,9 +282,10 @@ mkdir -p "$MEM_DIR"
 unset CLAUDE_MEMORY_REPO_URL
 # hook_names <settings.json>: event:file for every handler, sorted.
 hook_names() {
+    # tr drops the CR a native Windows jq writes before each newline (#1046).
     jq -r '(.hooks // {}) | to_entries[] | .key as $e | .value[] | .hooks[]
            | "\($e):\(.command | split(" ") | last | split("/") | last)"' "$1" \
-        | sort | tr '\n' ' ' | sed -e 's/ *$//'
+        | tr -d '\r' | sort | tr '\n' ' ' | sed -e 's/ *$//'
 }
 one_line() { tr '\n' ' ' | sed -e 's/ *$//'; }
 

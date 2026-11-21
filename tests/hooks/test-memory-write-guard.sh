@@ -20,7 +20,11 @@ cd "$(dirname "$0")/../.." || exit 1
 # normalized before comparing.
 TEST_HOME_REAL="$(mktemp -d -t mwg-home.XXXXXX)"
 TEST_HOME="${TEST_HOME_REAL}.link"
-if ! ln -s "$TEST_HOME_REAL" "$TEST_HOME" 2>/dev/null; then
+# Git Bash for Windows copies where `ln -s` should link, and reports success.
+# A copy is no stand-in for a link, and cleanup() left it behind (#1046).
+ln -s "$TEST_HOME_REAL" "$TEST_HOME" 2>/dev/null || true
+if [ ! -L "$TEST_HOME" ]; then
+    rm -rf "$TEST_HOME" 2>/dev/null || true
     TEST_HOME="$TEST_HOME_REAL"
 fi
 export HOME="$TEST_HOME"
@@ -71,16 +75,23 @@ assert_decision() {
     fi
 }
 
+# Under Git Bash, an argument that looks like a path is rewritten to a Windows
+# path before a native jq.exe sees it: /tmp/x became C:/.../Temp/x, which is
+# outside the hook's memory root, so every memory case passed the path gate
+# unvalidated (#1046). The two variables turn that rewriting off, for Git for
+# Windows and for MSYS2; they mean nothing elsewhere.
 build_payload() {
     # Use jq to safely encode tool_name + file_path + content as JSON.
     local tool="$1" fp="$2" content="$3"
-    jq -n -c --arg tool "$tool" --arg fp "$fp" --arg content "$content" \
+    MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' \
+        jq -n -c --arg tool "$tool" --arg fp "$fp" --arg content "$content" \
         '{tool_name:$tool,tool_input:{file_path:$fp,content:$content}}'
 }
 
 build_edit_payload() {
     local fp="$1" old="$2" new="$3" replace_all="${4:-false}"
-    jq -n -c --arg fp "$fp" --arg old "$old" --arg new "$new" --argjson r "$replace_all" \
+    MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' \
+        jq -n -c --arg fp "$fp" --arg old "$old" --arg new "$new" --argjson r "$replace_all" \
         '{tool_name:"Edit",tool_input:{file_path:$fp,old_string:$old,new_string:$new,replace_all:$r}}'
 }
 
@@ -182,6 +193,40 @@ assert_decision "$(build_edit_payload "$EDIT_FIXTURE" 'Original body.' 'AKIAIOSF
 assert_decision "$(build_edit_payload "$EDIT_FIXTURE" 'the' 'AKIAIOSFODNN7EXAMPLE' 'true')" 'deny' 'Edit replace_all injects secret -> deny'
 
 echo ""
+echo "[A jq that writes CR LF -- issue #1046]"
+# A native Windows jq writes CR LF for every newline inside a value, and Git
+# Bash drops the last one in a command substitution. A multi-line old_string
+# then matched nothing in the file, so the hook validated the unchanged file.
+# Where the jq on PATH does not write CR LF itself, a stand-in in front of it
+# does, so the case runs on every platform; OSTYPE tells the hook that it runs
+# under Git Bash.
+CR=$'\r'
+CRLF_JQ_PATH="$PATH"
+if ! printf '%s' '"a\nb"' | jq -r . | grep -q "$CR"; then
+    REAL_JQ="$(command -v jq)"
+    mkdir -p "$TEST_HOME_REAL/crlf-jq"
+    cat >"$TEST_HOME_REAL/crlf-jq/jq" <<SHIM_EOF
+#!/bin/bash
+set -o pipefail
+"$REAL_JQ" "\$@" | awk 'NR > 1 { printf "\r\n" } { printf "%s", \$0 } END { if (NR) printf "\n" }'
+SHIM_EOF
+    chmod +x "$TEST_HOME_REAL/crlf-jq/jq"
+    CRLF_JQ_PATH="$TEST_HOME_REAL/crlf-jq:$PATH"
+fi
+multiline_edit=$(build_edit_payload "$EDIT_FIXTURE" \
+    "name: Edit target
+description: An existing memory used to test edit-time validation." \
+    "name: Edit target")
+crlf_result=$(printf '%s' "$multiline_edit" | OSTYPE=msys PATH="$CRLF_JQ_PATH" bash "$HOOK" 2>/dev/null)
+crlf_decision=$(decision_of "$crlf_result")
+if [ "$crlf_decision" = "deny" ]; then
+    PASS=$((PASS + 1)); echo "  PASS: Edit with a multi-line old_string removes a required field -> deny"
+else
+    FAIL=$((FAIL + 1)); ERRORS+=("FAIL: Edit with a multi-line old_string removes a required field -- expected deny, got $crlf_decision; raw=$crlf_result")
+    echo "  FAIL: Edit with a multi-line old_string removes a required field (got $crlf_decision, expected deny)"
+fi
+
+echo ""
 echo "[A validator that cannot run is reported, not passed (#1045)]"
 # Stub validators in a HOME of their own. Each stub only exits with the code
 # it is given: 127 is what a shell answers when it cannot run the script, 64
@@ -227,7 +272,7 @@ echo "[Internal-failure fail-open]"
 # Move validators away to simulate missing-validator condition.
 MISSING_HOME="$(mktemp -d -t mwg-missing.XXXXXX)"
 mkdir -p "$MISSING_HOME/.claude/memory-shared/memories"
-HOME="$MISSING_HOME" assert_decision "$(HOME="$MISSING_HOME" jq -n -c --arg fp "$MISSING_HOME/.claude/memory-shared/memories/feedback_test.md" --arg content "$CLEAN_BODY" '{tool_name:"Write",tool_input:{file_path:$fp,content:$content}}')" 'allow' 'Missing validators -> fail-open allow'
+HOME="$MISSING_HOME" assert_decision "$(HOME="$MISSING_HOME" MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' jq -n -c --arg fp "$MISSING_HOME/.claude/memory-shared/memories/feedback_test.md" --arg content "$CLEAN_BODY" '{tool_name:"Write",tool_input:{file_path:$fp,content:$content}}')" 'allow' 'Missing validators -> fail-open allow'
 rm -rf "$MISSING_HOME"
 
 echo ""

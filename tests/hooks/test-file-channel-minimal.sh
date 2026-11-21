@@ -82,14 +82,16 @@ printf 'old line\n' >"$PROJECT/notes.md"
 # hooks_for <tool>
 #   Prints the repository path of every PreToolUse hook whose matcher applies
 #   to <tool> in global/settings.json. Matchers are tool-name alternations, so
-#   a block applies when its whole matcher matches the tool name.
+#   a block applies when its whole matcher matches the tool name. tr drops the
+#   CR a native Windows jq writes before each newline; with it the script name
+#   ended in a CR and every hook was reported missing (#1046).
 hooks_for() {
     local tool="$1" cmd script
     jq -r --arg t "$tool" '
         .hooks.PreToolUse[]
         | select((.matcher // "") as $m
                  | $m == "" or $m == "*" or ($t | test("^(" + $m + ")$")))
-        | .hooks[].command' "$SETTINGS" |
+        | .hooks[].command' "$SETTINGS" | tr -d '\r' |
         while IFS= read -r cmd; do
             [ -n "$cmd" ] || continue
             script="${cmd%% *}"
@@ -159,18 +161,25 @@ expect() {
     echo "  PASS: $label -> $got"
 }
 
+# Under Git Bash, an argument that looks like a path is rewritten to a Windows
+# path before a native jq.exe sees it, which put the memory files outside the
+# hook's memory root (#1046). The two variables turn that rewriting off, for
+# Git for Windows and for MSYS2; they mean nothing elsewhere.
 read_payload() {
-    jq -nc --arg s "$SESSION" --arg fp "$1" \
+    MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' \
+        jq -nc --arg s "$SESSION" --arg fp "$1" \
         '{session_id: $s, tool_name: "Read", tool_input: {file_path: $fp}}'
 }
 
 edit_payload() {
-    jq -nc --arg s "$SESSION" --arg fp "$1" --arg old "$2" --arg new "$3" \
+    MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' \
+        jq -nc --arg s "$SESSION" --arg fp "$1" --arg old "$2" --arg new "$3" \
         '{session_id: $s, tool_name: "Edit", tool_input: {file_path: $fp, old_string: $old, new_string: $new, replace_all: false}}'
 }
 
 write_payload() {
-    jq -nc --arg s "$SESSION" --arg fp "$1" --arg c "$2" \
+    MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' \
+        jq -nc --arg s "$SESSION" --arg fp "$1" --arg c "$2" \
         '{session_id: $s, tool_name: "Write", tool_input: {file_path: $fp, content: $c}}'
 }
 
