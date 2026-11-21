@@ -10,7 +10,7 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 126326
+    size: 126674
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
@@ -110,7 +110,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 59417
+    size: 59559
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
@@ -135,35 +135,35 @@ documents:
       - {h: "Windows Support (PowerShell)", l: 403, e: 404}
       - {h: "Overview", l: 405, e: 413}
       - {h: "How It Works", l: 414, e: 428}
-      - {h: "Bash Guard Dispatcher (Windows)", l: 429, e: 514}
-      - {h: "Edit Guard Dispatcher (Windows)", l: 515, e: 606}
-      - {h: "PowerShell Hook Scripts", l: 607, e: 621}
-      - {h: "Key Differences from Bash Hooks", l: 622, e: 630}
-      - {h: "Prerequisites", l: 631, e: 641}
-      - {h: "Troubleshooting (Windows)", l: 642, e: 643}
-      - {h: "\"File cannot be loaded because running scripts is disabled\"", l: 644, e: 648}
-      - {h: "Hooks not executing", l: 649, e: 654}
-      - {h: "\"pwsh is not recognized\"", l: 655, e: 659}
-      - {h: "Customization", l: 660, e: 661}
-      - {h: "Disabling Hooks", l: 662, e: 665}
-      - {h: "Adding New Hooks", l: 666, e: 682}
-      - {h: "Matcher Patterns", l: 683, e: 691}
-      - {h: "Troubleshooting", l: 692, e: 693}
-      - {h: "Hook is not executing", l: 694, e: 699}
-      - {h: "Timeout occurring", l: 700, e: 726}
-      - {h: "Formatter not working", l: 727, e: 735}
-      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 736, e: 775}
-      - {h: "References", l: 776, e: 788}
-      - {h: "Auto-Generated Hook Catalog", l: 789, e: 796}
-      - {h: "Index", l: 797, e: 812}
-      - {h: "Hook Details", l: 813, e: 814}
-      - {h: "bash-guard-dispatcher", l: 815, e: 832}
-      - {h: "dangerous-command-guard", l: 833, e: 849}
-      - {h: "memory-access-logger", l: 850, e: 866}
-      - {h: "memory-integrity-check", l: 867, e: 883}
-      - {h: "memory-write-guard", l: 884, e: 900}
-      - {h: "merge-gate-guard", l: 901, e: 918}
-      - {h: "prune-permission-rules", l: 919, e: 937}
+      - {h: "Bash Guard Dispatcher (Windows)", l: 429, e: 516}
+      - {h: "Edit Guard Dispatcher (Windows)", l: 517, e: 608}
+      - {h: "PowerShell Hook Scripts", l: 609, e: 623}
+      - {h: "Key Differences from Bash Hooks", l: 624, e: 632}
+      - {h: "Prerequisites", l: 633, e: 643}
+      - {h: "Troubleshooting (Windows)", l: 644, e: 645}
+      - {h: "\"File cannot be loaded because running scripts is disabled\"", l: 646, e: 650}
+      - {h: "Hooks not executing", l: 651, e: 656}
+      - {h: "\"pwsh is not recognized\"", l: 657, e: 661}
+      - {h: "Customization", l: 662, e: 663}
+      - {h: "Disabling Hooks", l: 664, e: 667}
+      - {h: "Adding New Hooks", l: 668, e: 684}
+      - {h: "Matcher Patterns", l: 685, e: 693}
+      - {h: "Troubleshooting", l: 694, e: 695}
+      - {h: "Hook is not executing", l: 696, e: 701}
+      - {h: "Timeout occurring", l: 702, e: 728}
+      - {h: "Formatter not working", l: 729, e: 737}
+      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 738, e: 777}
+      - {h: "References", l: 778, e: 790}
+      - {h: "Auto-Generated Hook Catalog", l: 791, e: 798}
+      - {h: "Index", l: 799, e: 814}
+      - {h: "Hook Details", l: 815, e: 816}
+      - {h: "bash-guard-dispatcher", l: 817, e: 834}
+      - {h: "dangerous-command-guard", l: 835, e: 851}
+      - {h: "memory-access-logger", l: 852, e: 868}
+      - {h: "memory-integrity-check", l: 869, e: 885}
+      - {h: "memory-write-guard", l: 886, e: 902}
+      - {h: "merge-gate-guard", l: 903, e: 920}
+      - {h: "prune-permission-rules", l: 921, e: 939}
   - path: "PREREQUISITES.md"
     title: "Prerequisites"
     description: ""
@@ -262,18 +262,18 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 9090
+    size: 10303
     tags: [docs]
     sections:
       - {h: "Scope", l: 5, e: 10}
       - {h: "Invariants", l: 11, e: 12}
       - {h: "1. Directory Structure Spec", l: 13, e: 46}
       - {h: "2. Hook Command Grammar", l: 47, e: 56}
-      - {h: "3. Dual-Variant Pairing", l: 57, e: 68}
-      - {h: "4. Probe Contract", l: 69, e: 80}
-      - {h: "5. CRLF Normalization Guarantee", l: 81, e: 96}
-      - {h: "Breaking-Change Process", l: 97, e: 105}
-      - {h: "Out of Scope", l: 106, e: 113}
+      - {h: "3. Dual-Variant Pairing", l: 57, e: 77}
+      - {h: "4. Probe Contract", l: 78, e: 89}
+      - {h: "5. CRLF Normalization Guarantee", l: 90, e: 105}
+      - {h: "Breaking-Change Process", l: 106, e: 114}
+      - {h: "Out of Scope", l: 115, e: 122}
   - path: "docs/CUSTOM_EXTENSIONS.md"
     title: "Custom Extensions vs Official Features"
     description: ""
