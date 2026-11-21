@@ -60,7 +60,7 @@ claude_config_backup/
 │   ├── .mcp.json.example       # MCP 설정 예시
 │   ├── claude-guidelines/      # 독립형 가이드라인 (.claude 비의존)
 │   └── .claude/
-│       ├── settings.json       # Hook 설정 (자동 포맷팅)
+│       ├── settings.json       # 권한 설정 (Hook 없음)
 │       ├── settings.local.json.template  # 로컬 설정 템플릿
 │       ├── rules/              # 통합 가이드라인 모듈 (자동 로드)
 │       │   ├── coding/         # 코딩 표준

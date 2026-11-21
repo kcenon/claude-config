@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Removed
+
+- The `SessionStart` hook in `project/.claude/settings.json`, which exported `TZ=Asia/Seoul` into the Bash tool; the project profile now registers no hook. On Windows the Bash tool runs in Git Bash, and Git for Windows ships no zoneinfo database, so the zone name could not be resolved and the tool reported UTC: on a machine set to KST, with Claude Code 2.1.330 and Git for Windows 2.54.0, `date '+%F %T %Z %z'` printed `13:19:53 GMT +0000` with the hook and `22:19:53 +0900` with `TZ` unset. On a host with zoneinfo the hook forced Seoul time whatever the host or container was set to. The Bash tool now uses the time zone of the machine; a container that needs another zone sets `TZ` in its own environment. `core/environment.md` still names the working time zone for the model. A reinstall replaces the project `settings.json` unless it was edited locally, and a session started before that keeps the export until it ends. The installers, `verify` and the structure guides call that file permission settings instead of hook settings. (#1040)
+
+### Fixed
+
+- `shell-env-secret-guard.ps1` no longer writes a log line for every Bash call it allows. It logged each allowed command in full to `~/.claude/logs/shell-env-secret-guard.log`, which nothing rotates: on the measuring machine the file held 113,149 lines and 42.1 MB since 2026-07-03, of which 6 were `deny` and 16 `allow-warn`. `deny` and `allow-warn` decisions are logged as before, as `dangerous-command-guard` has logged only `deny` and `ask` since #964. The installers do not manage `~/.claude/logs`: an existing `shell-env-secret-guard.log`, and a `dangerous-command-guard.log` that still holds allow lines from before #964, can be deleted by hand. (#1040)
+
 ## 1.17.0 - 2026-11-17
 
 Tracks: `suite` 1.17.0, `hooks` 3.0.0 (the four hook registrations
