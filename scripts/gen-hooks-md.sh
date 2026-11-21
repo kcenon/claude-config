@@ -45,6 +45,17 @@ case "${1:-}" in
         ;;
 esac
 
+# A dispatcher is a per-platform execution strategy, not a paired guard. The
+# parity audit in validate-hooks-doc.yml and the count in COMPATIBILITY.md
+# leave `*-dispatcher.*` out, and so does the total here: a .ps1 of the same
+# name is the next stage of the same dispatcher, not a counterpart (#1048).
+is_dispatcher() {
+    case "$1" in
+        *-dispatcher.sh) return 0 ;;
+    esac
+    return 1
+}
+
 # Build a slug from a filename for stable section anchors.
 slugify() {
     # e.g., merge-gate-guard.sh -> merge-gate-guard
@@ -128,7 +139,12 @@ render_hook() {
 
     local ps1="${file%.sh}.ps1"
     local ps1_status="absent"
-    if [[ -f "$ps1" ]]; then
+    if is_dispatcher "$file"; then
+        ps1_status="none: a dispatcher stage pairs with nothing"
+        if [[ -f "$ps1" ]]; then
+            ps1_status="none: \`$(basename "$ps1")\` is the next stage of the same dispatcher"
+        fi
+    elif [[ -f "$ps1" ]]; then
         ps1_status="present (\`$(basename "$ps1")\`)"
     fi
 
@@ -158,9 +174,10 @@ render_hook() {
 
 # Build the auto-generated section.
 build_generated_section() {
-    local total ps1_total
+    local total ps1_total stages
     total=0
     ps1_total=0
+    stages=0
 
     {
         printf '%s\n' "$BEGIN_MARKER"
@@ -190,17 +207,25 @@ build_generated_section() {
             [[ -z "$hook_type" ]] && hook_type="(unspecified)"
             ps1="${f%.sh}.ps1"
             local pcell="no"
-            if [[ -f "$ps1" ]]; then
-                pcell="yes"
-                ps1_total=$((ps1_total + 1))
+            if is_dispatcher "$f"; then
+                pcell="dispatcher stage"
+                stages=$((stages + 1))
+            else
+                if [[ -f "$ps1" ]]; then
+                    pcell="yes"
+                    ps1_total=$((ps1_total + 1))
+                fi
+                total=$((total + 1))
             fi
-            total=$((total + 1))
             printf '| [`%s`](#%s) | %s | %s |\n' \
                 "$base" "$(slugify "$base")" "$hook_type" "$pcell"
         done < <(find "$HOOKS_DIR" -maxdepth 1 -type f -name '*.sh' | sort)
 
         printf '\n_Total: %d bash hooks, %d with PowerShell counterparts._\n' \
             "$total" "$ps1_total"
+        if [[ "$stages" -gt 0 ]]; then
+            printf '\n_Dispatcher stages, not counted as hooks: %d._\n' "$stages"
+        fi
 
         printf '\n### Hook Details\n'
 

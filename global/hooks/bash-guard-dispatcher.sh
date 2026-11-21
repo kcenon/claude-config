@@ -1,6 +1,6 @@
 #!/bin/bash
 # bash-guard-dispatcher.sh
-# First stage of the Windows Bash dispatcher: decides in the hook's own bash process whether a Bash call needs the guards.
+# Decides in the hook's own bash process whether a Bash call needs the guards, as the first stage of the Windows Bash dispatcher.
 # Hook Type: PreToolUse (Bash)
 # Exit codes: 0 (always - the decision travels in the JSON payload)
 # Response format: hookSpecificOutput with hookEventName

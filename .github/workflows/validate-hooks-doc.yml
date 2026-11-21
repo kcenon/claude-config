@@ -115,3 +115,26 @@ jobs:
             echo "$expected" >&2
             exit 1
           fi
+
+      - name: Verify the HOOKS.md catalog total
+        run: |
+          # The generated catalog counts what the audit above counts: a
+          # dispatcher is left out of its total as well (#1048). The drift job
+          # pins HOOKS.md to the generator; this pins the generator's total to
+          # the audit, so the catalog and COMPATIBILITY.md cannot disagree.
+          sh_count=0
+          paired=0
+          for sh in global/hooks/*.sh; do
+            case "$sh" in */*-dispatcher.sh) continue ;; esac
+            sh_count=$((sh_count + 1))
+            if [ -f "${sh%.sh}.ps1" ]; then
+              paired=$((paired + 1))
+            fi
+          done
+          expected="_Total: ${sh_count} bash hooks, ${paired} with PowerShell counterparts._"
+          if ! grep -Fqx "$expected" HOOKS.md; then
+            echo "HOOKS.md catalog total does not match the parity audit." >&2
+            echo "Expected line:" >&2
+            echo "$expected" >&2
+            exit 1
+          fi

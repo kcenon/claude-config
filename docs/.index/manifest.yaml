@@ -10,58 +10,58 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 125498
+    size: 126326
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "Unreleased", l: 8, e: 9}
       - {h: "Changed", l: 10, e: 13}
       - {h: "Removed", l: 14, e: 17}
-      - {h: "Fixed", l: 18, e: 24}
-      - {h: "1.17.0 - 2026-11-17", l: 25, e: 31}
-      - {h: "Added", l: 32, e: 38}
-      - {h: "Changed", l: 39, e: 51}
-      - {h: "Removed", l: 52, e: 55}
-      - {h: "Fixed", l: 56, e: 73}
-      - {h: "1.16.0 - 2026-10-30", l: 74, e: 94}
-      - {h: "Removed", l: 95, e: 128}
-      - {h: "Changed", l: 129, e: 167}
-      - {h: "Fixed", l: 168, e: 229}
-      - {h: "1.15.0 - 2026-10-23", l: 230, e: 231}
-      - {h: "Added", l: 232, e: 243}
-      - {h: "Changed", l: 244, e: 274}
-      - {h: "Fixed", l: 275, e: 281}
-      - {h: "1.14.0 - 2026-09-29", l: 282, e: 283}
-      - {h: "Added", l: 284, e: 292}
-      - {h: "Changed", l: 293, e: 315}
-      - {h: "Removed", l: 316, e: 347}
-      - {h: "Fixed", l: 348, e: 389}
-      - {h: "Security", l: 390, e: 426}
-      - {h: "1.13.0 - 2026-09-13", l: 427, e: 428}
-      - {h: "Added", l: 429, e: 614}
-      - {h: "Changed", l: 615, e: 667}
-      - {h: "Fixed", l: 668, e: 801}
-      - {h: "Security", l: 802, e: 820}
-      - {h: "Known limitation", l: 821, e: 828}
-      - {h: "1.12.0 - 2026-08-01", l: 829, e: 830}
-      - {h: "Added", l: 831, e: 962}
-      - {h: "Fixed", l: 963, e: 1205}
-      - {h: "1.11.0 - 2026-07-03", l: 1206, e: 1207}
-      - {h: "Fixed", l: 1208, e: 1221}
-      - {h: "Security", l: 1222, e: 1299}
-      - {h: "Added", l: 1300, e: 1328}
-      - {h: "Changed", l: 1329, e: 1375}
-      - {h: "1.10.0 - 2026-04-20", l: 1376, e: 1384}
-      - {h: "1.9.0 - 2026-04-13", l: 1385, e: 1394}
-      - {h: "1.8.0 - 2026-04-13", l: 1395, e: 1400}
-      - {h: "1.7.0 - 2026-04-06", l: 1401, e: 1415}
-      - {h: "1.6.0 - 2026-04-03", l: 1416, e: 1428}
-      - {h: "1.5.0 - 2026-03-21", l: 1429, e: 1447}
-      - {h: "1.4.0 - 2026-01-22", l: 1448, e: 1453}
-      - {h: "1.3.0 - 2026-01-15", l: 1454, e: 1462}
-      - {h: "1.2.0 - 2026-01-15", l: 1463, e: 1471}
-      - {h: "1.1.0 - 2025-01-15", l: 1472, e: 1482}
-      - {h: "1.0.0 - 2025-12-03", l: 1483, e: 1489}
+      - {h: "Fixed", l: 18, e: 25}
+      - {h: "1.17.0 - 2026-11-17", l: 26, e: 32}
+      - {h: "Added", l: 33, e: 39}
+      - {h: "Changed", l: 40, e: 52}
+      - {h: "Removed", l: 53, e: 56}
+      - {h: "Fixed", l: 57, e: 74}
+      - {h: "1.16.0 - 2026-10-30", l: 75, e: 95}
+      - {h: "Removed", l: 96, e: 129}
+      - {h: "Changed", l: 130, e: 168}
+      - {h: "Fixed", l: 169, e: 230}
+      - {h: "1.15.0 - 2026-10-23", l: 231, e: 232}
+      - {h: "Added", l: 233, e: 244}
+      - {h: "Changed", l: 245, e: 275}
+      - {h: "Fixed", l: 276, e: 282}
+      - {h: "1.14.0 - 2026-09-29", l: 283, e: 284}
+      - {h: "Added", l: 285, e: 293}
+      - {h: "Changed", l: 294, e: 316}
+      - {h: "Removed", l: 317, e: 348}
+      - {h: "Fixed", l: 349, e: 390}
+      - {h: "Security", l: 391, e: 427}
+      - {h: "1.13.0 - 2026-09-13", l: 428, e: 429}
+      - {h: "Added", l: 430, e: 615}
+      - {h: "Changed", l: 616, e: 668}
+      - {h: "Fixed", l: 669, e: 802}
+      - {h: "Security", l: 803, e: 821}
+      - {h: "Known limitation", l: 822, e: 829}
+      - {h: "1.12.0 - 2026-08-01", l: 830, e: 831}
+      - {h: "Added", l: 832, e: 963}
+      - {h: "Fixed", l: 964, e: 1206}
+      - {h: "1.11.0 - 2026-07-03", l: 1207, e: 1208}
+      - {h: "Fixed", l: 1209, e: 1222}
+      - {h: "Security", l: 1223, e: 1300}
+      - {h: "Added", l: 1301, e: 1329}
+      - {h: "Changed", l: 1330, e: 1376}
+      - {h: "1.10.0 - 2026-04-20", l: 1377, e: 1385}
+      - {h: "1.9.0 - 2026-04-13", l: 1386, e: 1395}
+      - {h: "1.8.0 - 2026-04-13", l: 1396, e: 1401}
+      - {h: "1.7.0 - 2026-04-06", l: 1402, e: 1416}
+      - {h: "1.6.0 - 2026-04-03", l: 1417, e: 1429}
+      - {h: "1.5.0 - 2026-03-21", l: 1430, e: 1448}
+      - {h: "1.4.0 - 2026-01-22", l: 1449, e: 1454}
+      - {h: "1.3.0 - 2026-01-15", l: 1455, e: 1463}
+      - {h: "1.2.0 - 2026-01-15", l: 1464, e: 1472}
+      - {h: "1.1.0 - 2025-01-15", l: 1473, e: 1483}
+      - {h: "1.0.0 - 2025-12-03", l: 1484, e: 1490}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -110,7 +110,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 59205
+    size: 59417
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
@@ -155,15 +155,15 @@ documents:
       - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 736, e: 775}
       - {h: "References", l: 776, e: 788}
       - {h: "Auto-Generated Hook Catalog", l: 789, e: 796}
-      - {h: "Index", l: 797, e: 810}
-      - {h: "Hook Details", l: 811, e: 812}
-      - {h: "bash-guard-dispatcher", l: 813, e: 830}
-      - {h: "dangerous-command-guard", l: 831, e: 847}
-      - {h: "memory-access-logger", l: 848, e: 864}
-      - {h: "memory-integrity-check", l: 865, e: 881}
-      - {h: "memory-write-guard", l: 882, e: 898}
-      - {h: "merge-gate-guard", l: 899, e: 916}
-      - {h: "prune-permission-rules", l: 917, e: 935}
+      - {h: "Index", l: 797, e: 812}
+      - {h: "Hook Details", l: 813, e: 814}
+      - {h: "bash-guard-dispatcher", l: 815, e: 832}
+      - {h: "dangerous-command-guard", l: 833, e: 849}
+      - {h: "memory-access-logger", l: 850, e: 866}
+      - {h: "memory-integrity-check", l: 867, e: 883}
+      - {h: "memory-write-guard", l: 884, e: 900}
+      - {h: "merge-gate-guard", l: 901, e: 918}
+      - {h: "prune-permission-rules", l: 919, e: 937}
   - path: "PREREQUISITES.md"
     title: "Prerequisites"
     description: ""
