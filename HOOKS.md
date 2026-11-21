@@ -31,7 +31,7 @@ A guard decides by this rule:
 | PostToolUse `Read` | `memory-access-logger` | Log reads of shared-memory files (path only) |
 | SessionEnd | `prune-permission-rules` | Prune `permissions.allow` entries that can never match again |
 
-The installers register the three memory hooks only where memory sync is set up: `~/.claude/memory-shared` exists, or `CLAUDE_MEMORY_REPO_URL` is set for the install run (#1024). Without memory sync, `~/.claude/settings.json` holds the other three, so a Bash call starts one hook process, two when it contains `gh pr merge`, and an Edit, Write or Read starts none. `global/settings.windows.json` registers the same events, and its `Edit|Write` dispatcher goes with the memory hooks, because `memory-write-guard` is the only guard it routes. On Windows the `Bash` matcher goes through [`bash-guard-dispatcher.ps1`](#bash-guard-dispatcher-windows), which also runs the Windows-only `bash-sensitive-read-guard` and `shell-env-secret-guard`, because Windows has no OS sandbox.
+The installers register the three memory hooks only where memory sync is set up: `~/.claude/memory-shared` exists, or `CLAUDE_MEMORY_REPO_URL` is set for the install run (#1024). Without memory sync, `~/.claude/settings.json` holds the other three, so a Bash call starts one hook process, two when it contains `gh pr merge`, and an Edit, Write or Read starts none. `global/settings.windows.json` registers the same events, and its `Edit|Write` dispatcher goes with the memory hooks, because `memory-write-guard` is the only guard it routes. On Windows the `Bash` matcher goes through the [Bash dispatcher](#bash-guard-dispatcher-windows), which also runs the Windows-only `bash-sensitive-read-guard` and `shell-env-secret-guard`, because Windows has no OS sandbox. Its first stage answers, in the hook's own bash process, the calls no guard rule can match, and starts `pwsh` only for the rest (#1041).
 
 ### Where the removed rules live now
 
@@ -100,7 +100,7 @@ The installers deploy these libraries to `~/.claude/hooks/lib/`. Each one has a 
 > matchers.** On POSIX, `global/settings.json` registers each guard as its own
 > hook, so the per-guard `Timeout:` values in the sections below are the values
 > in force. On Windows, `global/settings.windows.json` registers exactly one hook
-> on each of those matchers — [`bash-guard-dispatcher.ps1`](#bash-guard-dispatcher-windows)
+> on each of those matchers — the [Bash dispatcher](#bash-guard-dispatcher-windows)
 > and [`edit-guard-dispatcher.ps1`](#edit-guard-dispatcher-windows) — which front
 > their guards: the guards share the dispatcher's 25 s internal budget rather
 > than carrying their own. Sections 2 and 3 describe the Bash-matcher guards;
@@ -428,22 +428,60 @@ Hook commands use `pwsh -NoProfile -File` for fast, profile-independent executio
 
 ### Bash Guard Dispatcher (Windows)
 
-*Single entry point for every Bash guard on Windows, in place of one hook registration per guard.*
+*Single entry point for every Bash guard on Windows, in place of one hook registration per guard, in two stages.*
 
 **Purpose**: Each registered hook is its own `pwsh -NoProfile` process. Before
 the dispatcher (#895), one Bash tool call started 15 of them, one per guard.
 Process start dominates the cost (~350 ms each, measured) while the guard logic
 itself costs ~13 ms. The dispatcher pays the process cost once, reads stdin
 once, imports `CommonHelpers` once, and invokes only the guards whose command
-family is present in the tool input. Since #964 it fronts four guards.
+family is present in the tool input. Since #964 it fronts four guards, and
+since #1041 most calls do not pay the process cost at all.
 
-**Registration**: `global/settings.windows.json` registers
-`bash-guard-dispatcher.ps1` as the only hook on the `Bash` matcher, with
-`timeout: 30`. POSIX registers its two `.sh` guards individually, because a
-`bash` process is cheap to start and there is nothing to consolidate. This is
-also why there is no `bash-guard-dispatcher.sh`: the `.sh`/`.ps1` parity audit
-in `.github/workflows/validate-hooks-doc.yml` exempts `*-dispatcher.*`, since a
-`.sh` twin would be exactly the dormant unwired file that audit exists to catch.
+**First stage** (`bash-guard-dispatcher.sh`, #1041): Claude Code runs every
+hook command in Git Bash, so the first stage is sourced into that process and
+decides there, with builtins only, whether any guard rule could match the
+call. If one could, it hands the payload to the second stage,
+`bash-guard-dispatcher.ps1`. If none can, it writes the same plain `allow` the
+second stage would have written and ends. In one print-mode session of 12 Bash
+calls on Claude Code 2.1.330, the nine calls the first stage answered took a
+median of 40 ms and the three it handed on 589 to 683 ms, while the `pwsh`
+dispatcher registered on its own took a median of 641 ms for the same twelve.
+On 7,746 recorded Bash commands the first stage answered 65% itself.
+
+The first stage is coarser than every guard behind it, on purpose: it may send
+a harmless command on, and must never keep one from the guards that a guard
+would deny, ask about or annotate. It matches the words the guards' rules name
+(`rm`, `push`, `reset`, `curl`, the shells, the secret file names and so on)
+and any `$` or backtick, since an expansion can stand for any command, after
+undoing the spellings a shell undoes: line continuations, backslashes and
+quotes inside a word. An empty or unreadable payload, one over 8 KiB, and one
+whose layout is not the compact JSON Claude Code writes all go to the second
+stage, which fails closed. The stage decides nothing a guard decides, and the
+guard suites put each of their deny and ask cases to it, so a guard rule whose
+word it does not know fails CI.
+
+It is not an `if` rule because of how `if` behaved on 2.1.330: a handler holds
+one rule, and neither `{a,b}` nor `|` joins two words in it; two handlers that
+share a command string both run when both match; and a command with an
+unresolved `$VAR`, a `$(...)` or a backtick starts every `if` handler whatever
+its pattern. One rule per guard word would have started one `pwsh` per rule at
+once, for the quarter of Bash calls that contain a `$`.
+
+**Registration**: `global/settings.windows.json` registers one hook on the
+`Bash` matcher, with `timeout: 30`. Its command,
+`. ~/.claude/hooks/bash-guard-dispatcher.sh`, sources the first stage, and the
+first stage starts `bash-guard-dispatcher.ps1`. POSIX registers its two `.sh`
+guards individually, because a `bash` process is cheap to start and there is
+nothing to consolidate. `bash-guard-dispatcher.sh` is therefore not a POSIX
+twin of the `.ps1`: the two files are the two stages of the one Windows
+dispatcher. The `.sh`/`.ps1` parity audit in
+`.github/workflows/validate-hooks-doc.yml` exempts `*-dispatcher.*`, as an
+execution strategy rather than a policy guard. A POSIX install deploys the
+file with the other `.sh` hooks and never runs it. A Linux container that
+mounts a Windows `~/.claude` does run it: it finds no `pwsh` there and runs
+the POSIX guards itself (see
+[docs/CLAUDE_DOCKER_CONTRACT.md](docs/CLAUDE_DOCKER_CONTRACT.md)).
 
 **Routing table**: the prefilter is deliberately *coarser* than each guard's own
 filter. It skips a guard only when its command family is definitely absent, and
@@ -566,7 +604,7 @@ after the change actually lands.
 
 | Hook | File | Description |
 |------|------|-------------|
-| Bash Guard Dispatcher | `bash-guard-dispatcher.ps1` | Runs the Bash guards in one process |
+| Bash Guard Dispatcher | `bash-guard-dispatcher.ps1` | Second stage of the Bash dispatcher: runs the Bash guards in one process. The first stage is `bash-guard-dispatcher.sh` |
 | Edit Guard Dispatcher | `edit-guard-dispatcher.ps1` | Runs the `Edit\|Write` guards in one process |
 | Dangerous Command Guard | `dangerous-command-guard.ps1` | Denies irreversible operations and asks before destructive ones |
 | Merge Gate Guard | `merge-gate-guard.ps1` | Blocks `gh pr merge` while any check is not green |
@@ -680,7 +718,7 @@ not its median.
 | Matcher | Registered | Timeout | Why |
 |---------|-----------|---------|-----|
 | `Edit\|Write` | `memory-write-guard` on POSIX; `edit-guard-dispatcher.ps1` on Windows | 30 s | Fail-open makes a skipped guard worse than a slow one. Measured before #964 with three guards on `Edit\|Write\|Read`: median 429 ms and p99 1,020 ms over 35,276 local runs, worst case 11,141 ms (#897). |
-| `Bash` | `dangerous-command-guard` and, for calls containing `gh pr merge`, `merge-gate-guard` on POSIX; `bash-guard-dispatcher.ps1` on Windows | 30 s | On the old 5 s budget a local `dangerous-command-guard` run was cancelled at 5,018 ms and its Bash call ran unguarded (#1023). `merge-gate-guard` makes a network call. The Windows dispatcher has a 25 s internal guard budget plus process-start slack, and names any guard it had to skip instead of truncating silently. |
+| `Bash` | `dangerous-command-guard` and, for calls containing `gh pr merge`, `merge-gate-guard` on POSIX; the Bash dispatcher (`bash-guard-dispatcher.sh`, then `bash-guard-dispatcher.ps1`) on Windows | 30 s | On the old 5 s budget a local `dangerous-command-guard` run was cancelled at 5,018 ms and its Bash call ran unguarded (#1023). `merge-gate-guard` makes a network call. The Windows dispatcher has a 25 s internal guard budget plus process-start slack, and names any guard it had to skip instead of truncating silently. The one timeout covers both of its stages. |
 
 ### Formatter not working
 
@@ -756,6 +794,7 @@ this catalog for the canonical hook inventory.
 
 | Hook | Hook Type | PowerShell |
 |---|---|---|
+| [`bash-guard-dispatcher.sh`](#bash-guard-dispatcher) | PreToolUse (Bash) | yes |
 | [`dangerous-command-guard.sh`](#dangerous-command-guard) | PreToolUse (Bash) | yes |
 | [`memory-access-logger.sh`](#memory-access-logger) | PostToolUse (Read) | yes |
 | [`memory-integrity-check.sh`](#memory-integrity-check) | SessionStart (sync) | yes |
@@ -763,9 +802,27 @@ this catalog for the canonical hook inventory.
 | [`merge-gate-guard.sh`](#merge-gate-guard) | PreToolUse (Bash) | yes |
 | [`prune-permission-rules.sh`](#prune-permission-rules) | SessionEnd | yes |
 
-_Total: 6 bash hooks, 6 with PowerShell counterparts._
+_Total: 7 bash hooks, 7 with PowerShell counterparts._
 
 ### Hook Details
+
+### bash-guard-dispatcher
+
+_File:_ `bash-guard-dispatcher.sh`
+
+_Anchor:_ `#bash-guard-dispatcher`
+
+(no summary)
+
+| Field | Value |
+|---|---|
+| Hook Type | PreToolUse (Bash) |
+| Trigger / Matcher | Bash |
+| Exit codes | 0 (always - the decision travels in the JSON payload) |
+| Response format | hookSpecificOutput with hookEventName |
+| Fail policy | anything this stage cannot read as a Bash payload goes to bash-guard-dispatcher.ps1, which fails closed |
+| PowerShell counterpart | present (`bash-guard-dispatcher.ps1`) |
+| Source | `global/hooks/bash-guard-dispatcher.sh` |
 
 ### dangerous-command-guard
 
