@@ -762,9 +762,21 @@ echo "[recursive rm of an absolute path — issue #1027]"
 # The links lead out of it, to a top-level directory and to the home directory.
 TMPROOT="$TEST_LOG_DIR/tmproot"
 mkdir -p "$TMPROOT/sub" "$TMPROOT/real"
-ln -s /usr "$TMPROOT/tousr"
-ln -s "$HOME" "$TMPROOT/tohome"
-ln -s "$TMPROOT/real" "$TMPROOT/inner"
+# Git Bash for Windows copies where `ln -s` should link, unless
+# MSYS=winsymlinks is set. A copy is no stand-in for a link, and copying /usr
+# and the home directory is no small thing (192 MB for /usr where this was
+# measured). The small link goes first; without it the link cases are skipped
+# and the two large ones are never attempted (#1046).
+HAVE_LINKS=0
+ln -s "$TMPROOT/real" "$TMPROOT/inner" 2>/dev/null
+if [ -L "$TMPROOT/inner" ]; then
+    HAVE_LINKS=1
+    ln -s /usr "$TMPROOT/tousr"
+    ln -s "$HOME" "$TMPROOT/tohome"
+else
+    rm -rf "$TMPROOT/inner"
+    echo "  SKIP: the cases through a symbolic link (ln -s does not make a link here)"
+fi
 UP="../../../../../../../../../../../.."
 # check_reason <command> <text>: the decision reason holds <text>.
 check_reason() {
@@ -792,8 +804,10 @@ run_abs_cases() {
     check deny - 'rm -rf "$HOME"/'
     check deny - "rm -rf $TMPROOT/$UP/etc"
     check deny - "rm -rf /tmp/claude-$UID/$UP/etc"
-    check deny - "rm -rf $TMPROOT/tousr/"
-    check deny - "rm -rf $TMPROOT/tohome/"
+    if [ "$HAVE_LINKS" = 1 ]; then
+        check deny - "rm -rf $TMPROOT/tousr/"
+        check deny - "rm -rf $TMPROOT/tohome/"
+    fi
     check deny - "rm -rf $TMPROOT/sub /usr"
     check deny - 'rm -rf /usr/local/x /usr'
     check deny - 'sudo rm -rf /etc'
@@ -802,8 +816,10 @@ run_abs_cases() {
     check allow - "rm -rf $TMPROOT/sub"
     check allow - "rm -rf $TMPROOT/sub/"
     check allow - "rm -rf $TMPROOT/missing/x"
-    check allow - "rm -rf $TMPROOT/tousr"
-    check allow - "rm -rf $TMPROOT/inner/"
+    if [ "$HAVE_LINKS" = 1 ]; then
+        check allow - "rm -rf $TMPROOT/tousr"
+        check allow - "rm -rf $TMPROOT/inner/"
+    fi
     check allow - "rm -rf /tmp/claude-$UID/x/y"
     check allow - "sudo rm -rf $TMPROOT/sub"
     check allow - "bash -c 'rm -rf $TMPROOT/sub'"
@@ -815,7 +831,7 @@ run_abs_cases() {
     check ask - 'rm -rf ~/x'
     check ask - 'rm -rf "$HOME/x"'
     check ask - "rm -rf /tmp/claude-$UID"
-    check ask - "rm -rf $TMPROOT/tousr/lib"
+    [ "$HAVE_LINKS" = 0 ] || check ask - "rm -rf $TMPROOT/tousr/lib"
     check ask - "rm -rf /usr/local/x $TMPROOT/sub"
     check ask - 'timeout 5 rm -rf /usr/local/x'
     check ask - '$X -rf /usr/local/x'
@@ -831,7 +847,7 @@ run_abs_cases() {
     check_reason 'rm -rf /' 'the root directory'
     check_reason 'rm -rf /usr' 'a top-level directory'
     check_reason 'rm -rf ~' 'the home directory'
-    check_reason "rm -rf $TMPROOT/tohome/" "is '"
+    [ "$HAVE_LINKS" = 0 ] || check_reason "rm -rf $TMPROOT/tohome/" "is '"
     check_reason 'rm -rf /usr/local/x' 'not inside a session temp directory'
     if [ -n "$saved" ]; then export TMPDIR="$saved"; else unset TMPDIR; fi
 }
@@ -1059,6 +1075,72 @@ run_subshell_word_cases() {
 run_subshell_word_cases
 
 echo ""
+echo "[a jq that writes CR LF — issue #1046]"
+# A native Windows jq writes CR LF for every newline inside a value, and Git
+# Bash drops the last one in a command substitution. Where the jq on PATH does
+# not do that itself, a stand-in in front of it does, so these cases run on
+# every platform. OSTYPE tells the hook that it runs under Git Bash or Cygwin.
+CR=$'\r'
+CRLF_JQ_PATH="$PATH"
+if ! printf '%s' '"a\nb"' | jq -r . | grep -q "$CR"; then
+    REAL_JQ="$(command -v jq)"
+    mkdir -p "$TEST_LOG_DIR/crlf-jq"
+    cat >"$TEST_LOG_DIR/crlf-jq/jq" <<SHIM_EOF
+#!/bin/bash
+set -o pipefail
+"$REAL_JQ" "\$@" | awk 'NR > 1 { printf "\r\n" } { printf "%s", \$0 } END { if (NR) printf "\n" }'
+SHIM_EOF
+    chmod +x "$TEST_LOG_DIR/crlf-jq/jq"
+    CRLF_JQ_PATH="$TEST_LOG_DIR/crlf-jq:$PATH"
+fi
+# crlf_check <expected> <OSTYPE> <command>
+crlf_check() {
+    local expected="$1" ostype="$2" cmd="$3" payload got shown
+    payload=$(printf '%s' "$cmd" | jq -Rsc --arg d "$NOREPO" '{tool_name:"Bash",tool_input:{command:.},cwd:$d}')
+    got=$(printf '%s' "$payload" | OSTYPE="$ostype" PATH="$CRLF_JQ_PATH" "${HOOK_BASH:-bash}" "$HOOK" 2>/dev/null \
+        | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null | tr -d '\r')
+    if [ "${#cmd}" -le 300 ]; then
+        shown=${cmd//$NL/\\n}
+        shown=${shown//$CR/\\r}
+    else
+        shown="(${#cmd} bytes) ...${cmd: -24}"
+    fi
+    if [ "$got" = "$expected" ]; then
+        ((PASS++)); echo "  PASS: [$ostype] $shown → $expected"
+    else
+        ((FAIL++)); ERRORS+=("FAIL: [$ostype] $shown — expected $expected, got: $got"); echo "  FAIL: [$ostype] $shown"
+    fi
+}
+# About 1 MB in 60,000 lines.
+MANY_LINES=$(printf 'echo 0123456789\n%.0s' $(seq 1 60000))
+run_crlf_jq_cases() {
+    local t0 t1 ms
+    # A line continuation is one command again.
+    crlf_check deny msys "rm \\${NL}-rf /"
+    crlf_check deny msys "git push origin \\${NL}main"
+    crlf_check deny cygwin "rm \\${NL}-rf /"
+    crlf_check ask msys "git stash \\${NL}clear"
+    crlf_check allow msys "echo one \\${NL}two"
+    # Two lines stay two commands, also when the command itself holds CR LF.
+    crlf_check deny msys "ls${NL}rm -rf /"
+    crlf_check deny msys "ls${CR}${NL}rm -rf /"
+    crlf_check allow msys "ls${NL}pwd"
+    # A long command of many lines: the CR has to come off in one pass. Taking
+    # it off with a pattern substitution in bash needed 15 s for 1 MB, and a
+    # hook that runs past its budget is skipped.
+    t0=$(python3 -c 'import time; print(int(time.time()*1000))')
+    crlf_check deny msys "${MANY_LINES}${NL}rm -rf ~"
+    t1=$(python3 -c 'import time; print(int(time.time()*1000))')
+    ms=$((t1 - t0))
+    if [ "$ms" -le 5000 ]; then
+        ((PASS++)); echo "    PASS: answered in ${ms} ms"
+    else
+        ((FAIL++)); ERRORS+=("FAIL: 1 MB in 60,000 lines answered in ${ms} ms, over the 5000 ms budget"); echo "    FAIL: answered in ${ms} ms"
+    fi
+}
+run_crlf_jq_cases
+
+echo ""
 echo "[shebang runtime: /bin/bash]"
 # Production runs the hook through its #!/bin/bash shebang, which is bash 3.2
 # on macOS, while the cases above use the first `bash` on PATH. Under bash
@@ -1080,6 +1162,7 @@ if [ -x /bin/bash ]; then
     run_stdin_cases
     run_redir_cases
     run_subshell_word_cases
+    run_crlf_jq_cases
     unset HOOK_BASH
 fi
 

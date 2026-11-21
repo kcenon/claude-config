@@ -68,13 +68,15 @@ git -C "$REPO" -c user.name=test-owner -c user.email=test-owner@example.com \
     -c commit.gpgsign=false commit -q --allow-empty -m "chore: init"
 
 # --- Registered Bash hooks, read from global/settings.json ---
+# tr drops the CR a native Windows jq writes before each newline; with it the
+# script name ended in a CR and no hook ran (#1046).
 HOOKS=()
 while IFS= read -r cmd; do
     [ -n "$cmd" ] || continue
     script="${cmd%% *}"
     base="${script##*/}"
     HOOKS+=("$REPO_ROOT/global/hooks/$base")
-done < <(jq -r '.hooks.PreToolUse[] | select(.matcher == "Bash") | .hooks[].command' "$SETTINGS")
+done < <(jq -r '.hooks.PreToolUse[] | select(.matcher == "Bash") | .hooks[].command' "$SETTINGS" | tr -d '\r')
 
 if [ "${#HOOKS[@]}" -eq 0 ]; then
     echo "FATAL: no PreToolUse Bash hooks found in $SETTINGS" >&2

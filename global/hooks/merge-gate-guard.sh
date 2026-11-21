@@ -95,7 +95,18 @@ if [ -z "$INPUT" ]; then
     allow_response
 fi
 
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || CMD=""
+# A native Windows jq writes CR LF for every newline inside the command. Under
+# Git Bash or Cygwin sed takes the CR off each line end again, as in
+# dangerous-command-guard.sh (#1046).
+case "${OSTYPE:-}" in
+    msys*|cygwin*)
+        _cr=$'\r'
+        CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null | sed "s/${_cr}\$//") || CMD=""
+        ;;
+    *)
+        CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || CMD=""
+        ;;
+esac
 if [ -z "$CMD" ]; then
     CMD="${CLAUDE_TOOL_INPUT:-}"
 fi

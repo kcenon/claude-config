@@ -158,8 +158,24 @@ if [ -z "$INPUT" ]; then
 fi
 
 # Capture jq's exit status without tripping set -e.
+#
+# A native Windows jq writes its output in text mode: under Git Bash or Cygwin
+# every newline inside a value arrives as CR LF. A backslash-newline then
+# reached the tokenizer as backslash, CR, newline, which is no continuation, so
+# `rm \<newline>-rf /` was judged as two harmless halves (#1046). There sed
+# takes the CR off each line end again, in one pass: a pattern substitution in
+# bash needed 15 s for a 1 MB command, and a hook that times out is skipped.
+# Elsewhere the value is read as before, with no extra process.
 JQ_RC=0
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || JQ_RC=$?
+case "${OSTYPE:-}" in
+    msys*|cygwin*)
+        _cr=$'\r'
+        CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null | sed "s/${_cr}\$//") || JQ_RC=$?
+        ;;
+    *)
+        CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || JQ_RC=$?
+        ;;
+esac
 
 if [ "$JQ_RC" -ne 0 ]; then
     deny_response "Failed to parse hook input JSON — denying for safety (fail-closed)"
@@ -172,6 +188,8 @@ fi
 # The work tree checks resolve paths against the session directory the hook
 # input reports, falling back to the hook process directory.
 HOOK_CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)
+# One line, so at most the CR before its newline is left (#1046).
+case "${OSTYPE:-}" in msys*|cygwin*) HOOK_CWD=${HOOK_CWD%$_cr} ;; esac
 [ -n "$HOOK_CWD" ] || HOOK_CWD="$PWD"
 
 # coarse_has <text> <ERE>: succeeds when a line of <text> matches. grep -c

@@ -27,7 +27,15 @@ SHARED="$REAL/.claude/memory-shared"
 MEM="$SHARED/memories"
 VIA_LINK="$LINK/.claude/memory-shared/memories"
 mkdir -p "$MEM" "$REAL/.claude/other" "$REAL/notes"
-ln -s "$REAL" "$LINK"
+# Git Bash for Windows copies where `ln -s` should link, unless
+# MSYS=winsymlinks is set. A copy is no stand-in for a link, so the cases
+# through one are skipped there (#1046).
+HAVE_LINKS=1
+ln -s "$REAL" "$LINK" 2>/dev/null
+if [ ! -L "$LINK" ]; then
+    HAVE_LINKS=0
+    rm -rf "$LINK"
+fi
 : >"$MEM/e.md"
 : >"$SHARED/MEMORY.md"
 : >"$REAL/notes/n.md"
@@ -61,32 +69,44 @@ check() {
     fi
 }
 
+# link_check: a check that needs a symbolic link.
+link_check() {
+    [ "$HAVE_LINKS" = 1 ] || return 0
+    check "$@"
+}
+
 echo "=== memory-access-logger.sh tests ==="
 echo ""
+if [ "$HAVE_LINKS" = 0 ]; then
+    echo "  SKIP: the cases through a symbolic link (ln -s does not make a link here)"
+    echo ""
+fi
 
 echo "[Path spellings of one memory file]"
 check "memories/e.md" "$REAL" Read "$MEM/e.md" "real HOME, real path"
-check "memories/e.md" "$REAL" Read "$VIA_LINK/e.md" "real HOME, path through a link"
-check "memories/e.md" "$LINK" Read "$VIA_LINK/e.md" "HOME on a link, path through the link"
-check "memories/e.md" "$LINK" Read "$MEM/e.md" "HOME on a link, real path"
+link_check "memories/e.md" "$REAL" Read "$VIA_LINK/e.md" "real HOME, path through a link"
+link_check "memories/e.md" "$LINK" Read "$VIA_LINK/e.md" "HOME on a link, path through the link"
+link_check "memories/e.md" "$LINK" Read "$MEM/e.md" "HOME on a link, real path"
 check "memories/e.md" "$REAL" Read "$MEM/../memories/e.md" "existing file, dot segment"
 
 echo ""
 echo "[A file that does not exist yet]"
 check "memories/n.md" "$REAL" Read "$MEM/../memories/n.md" "dot segment inside the memory root"
 check "memories/n.md" "$REAL" Read "$REAL/.claude/other/../memory-shared/memories/n.md" "dot segment outside the memory root"
-check "memories/n.md" "$LINK" Read "$VIA_LINK/n.md" "HOME on a link"
-check "memories/n.md" "$LINK" Read "$MEM/n.md" "HOME on a link, real path"
+link_check "memories/n.md" "$LINK" Read "$VIA_LINK/n.md" "HOME on a link"
+link_check "memories/n.md" "$LINK" Read "$MEM/n.md" "HOME on a link, real path"
 
 echo ""
 echo "[A memories directory that is itself a link]"
 HOME2="$ROOT/home2"
 STORE="$ROOT/store"
 mkdir -p "$HOME2/.claude/memory-shared" "$STORE"
-ln -s "$STORE" "$HOME2/.claude/memory-shared/memories"
+if [ "$HAVE_LINKS" = 1 ]; then
+    ln -s "$STORE" "$HOME2/.claude/memory-shared/memories"
+fi
 : >"$STORE/e.md"
-check "memories/e.md" "$HOME2" Read "$HOME2/.claude/memory-shared/memories/e.md" "path through the link"
-check "memories/e.md" "$HOME2" Read "$STORE/e.md" "path to the link target"
+link_check "memories/e.md" "$HOME2" Read "$HOME2/.claude/memory-shared/memories/e.md" "path through the link"
+link_check "memories/e.md" "$HOME2" Read "$STORE/e.md" "path to the link target"
 
 echo ""
 echo "[Not logged]"
