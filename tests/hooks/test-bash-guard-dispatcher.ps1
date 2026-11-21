@@ -101,6 +101,17 @@ Write-Host '[Routing: Windows-only sensitive-read guard (#964)]'
 Assert-Decision -InputJson $readEnv -Expected 'deny' -Label 'cat .env -> deny'
 
 Write-Host ''
+Write-Host '[Routing: Windows-only env-secret guard (#964)]'
+# A printed secret-bearing variable is denied; a bare environment dump is
+# allowed with a warning. Both leave a log line, checked further down (#1040).
+$echoSecret = '{"tool_name":"Bash","tool_input":{"command":"echo $API_KEY"}}'
+$envDump    = '{"tool_name":"Bash","tool_input":{"command":"env"}}'
+Assert-Decision      -InputJson $echoSecret -Expected 'deny'  -Label 'echo $API_KEY -> deny'
+Assert-ReasonMatches -InputJson $echoSecret -Pattern '\[shell-env-secret-guard\]' `
+    -Label 'env-secret deny is attributed to shell-env-secret-guard'
+Assert-Decision      -InputJson $envDump    -Expected 'allow' -Label 'env -> allow (warning only)'
+
+Write-Host ''
 Write-Host '[Routing: gh family]'
 # merge-gate-guard no longer restricts the merge method (#964). Without a PR
 # number it never calls gh, so the --merge decision is deterministic: allow.
@@ -142,9 +153,15 @@ Write-Host '[Decision logs go to CLAUDE_LOG_DIR (#1030)]'
 $dcgLog = Join-Path $script:LogRoot 'dangerous-command-guard.log'
 $secretLog = Join-Path $script:LogRoot 'shell-env-secret-guard.log'
 $dcgText = if (Test-Path -LiteralPath $dcgLog) { Get-Content -LiteralPath $dcgLog -Raw } else { '' }
+$secretText = if (Test-Path -LiteralPath $secretLog) { Get-Content -LiteralPath $secretLog -Raw } else { '' }
+# Every command above that shell-env-secret-guard allowed plainly must have
+# left no line: only deny and allow-warn are logged (#1040). The closing quote
+# keeps "allow" from matching "allow-warn".
 $logChecks = @(
     @('dangerous-command-guard logged the rm -rf / deny in the scratch directory', ($dcgText -match '"decision":"deny"[^\n]*"command":"rm -rf /"')),
-    @('shell-env-secret-guard logged in the scratch directory', (Test-Path -LiteralPath $secretLog))
+    @('shell-env-secret-guard logged the echo $API_KEY deny in the scratch directory', ($secretText -match '"decision":"deny"[^\n]*"command":"echo \$API_KEY"')),
+    @('shell-env-secret-guard logged the env dump as allow-warn', ($secretText -match '"decision":"allow-warn"[^\n]*"command":"env"')),
+    @('shell-env-secret-guard logged no plain allow', ($secretText -notmatch '"decision":"allow"'))
 )
 foreach ($c in $logChecks) {
     if ($c[1]) {

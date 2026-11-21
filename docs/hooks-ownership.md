@@ -20,7 +20,6 @@ that could be registered from multiple surfaces.
 | `PreToolUse` | `Bash` | `shell-env-secret-guard.ps1` (Windows-only, #964) | `global/settings.windows.json` |
 | `PreToolUse` | `Bash` | `merge-gate-guard.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `SessionStart` | — | `memory-integrity-check.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
-| `SessionStart` | — | `export TZ=Asia/Seoul` | `project/.claude/settings.json` |
 | `SessionEnd` | — | `prune-permission-rules.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |
 | `PostToolUse` | `Edit\|Write` | inline formatter (black/isort/prettier/clang-format/ktlint/gofmt/rustfmt) | **`plugin/hooks/hooks.json`** (canonical; do not duplicate in settings files) |
 | `PostToolUse` | `Read` | `memory-access-logger.{sh,ps1}` | `global/settings.json` + `global/settings.windows.json` |

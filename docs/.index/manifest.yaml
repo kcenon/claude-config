@@ -10,54 +10,57 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 117716
+    size: 119464
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
-      - {h: "1.17.0 - 2026-11-17", l: 8, e: 14}
-      - {h: "Added", l: 15, e: 21}
-      - {h: "Changed", l: 22, e: 34}
-      - {h: "Removed", l: 35, e: 38}
-      - {h: "Fixed", l: 39, e: 56}
-      - {h: "1.16.0 - 2026-10-30", l: 57, e: 77}
-      - {h: "Removed", l: 78, e: 111}
-      - {h: "Changed", l: 112, e: 150}
-      - {h: "Fixed", l: 151, e: 212}
-      - {h: "1.15.0 - 2026-10-23", l: 213, e: 214}
-      - {h: "Added", l: 215, e: 226}
-      - {h: "Changed", l: 227, e: 257}
-      - {h: "Fixed", l: 258, e: 264}
-      - {h: "1.14.0 - 2026-09-29", l: 265, e: 266}
-      - {h: "Added", l: 267, e: 275}
-      - {h: "Changed", l: 276, e: 298}
-      - {h: "Removed", l: 299, e: 330}
-      - {h: "Fixed", l: 331, e: 372}
-      - {h: "Security", l: 373, e: 409}
-      - {h: "1.13.0 - 2026-09-13", l: 410, e: 411}
-      - {h: "Added", l: 412, e: 597}
-      - {h: "Changed", l: 598, e: 650}
-      - {h: "Fixed", l: 651, e: 784}
-      - {h: "Security", l: 785, e: 803}
-      - {h: "Known limitation", l: 804, e: 811}
-      - {h: "1.12.0 - 2026-08-01", l: 812, e: 813}
-      - {h: "Added", l: 814, e: 945}
-      - {h: "Fixed", l: 946, e: 1188}
-      - {h: "1.11.0 - 2026-07-03", l: 1189, e: 1190}
-      - {h: "Fixed", l: 1191, e: 1204}
-      - {h: "Security", l: 1205, e: 1282}
-      - {h: "Added", l: 1283, e: 1311}
-      - {h: "Changed", l: 1312, e: 1358}
-      - {h: "1.10.0 - 2026-04-20", l: 1359, e: 1367}
-      - {h: "1.9.0 - 2026-04-13", l: 1368, e: 1377}
-      - {h: "1.8.0 - 2026-04-13", l: 1378, e: 1383}
-      - {h: "1.7.0 - 2026-04-06", l: 1384, e: 1398}
-      - {h: "1.6.0 - 2026-04-03", l: 1399, e: 1411}
-      - {h: "1.5.0 - 2026-03-21", l: 1412, e: 1430}
-      - {h: "1.4.0 - 2026-01-22", l: 1431, e: 1436}
-      - {h: "1.3.0 - 2026-01-15", l: 1437, e: 1445}
-      - {h: "1.2.0 - 2026-01-15", l: 1446, e: 1454}
-      - {h: "1.1.0 - 2025-01-15", l: 1455, e: 1465}
-      - {h: "1.0.0 - 2025-12-03", l: 1466, e: 1472}
+      - {h: "Unreleased", l: 8, e: 9}
+      - {h: "Removed", l: 10, e: 13}
+      - {h: "Fixed", l: 14, e: 17}
+      - {h: "1.17.0 - 2026-11-17", l: 18, e: 24}
+      - {h: "Added", l: 25, e: 31}
+      - {h: "Changed", l: 32, e: 44}
+      - {h: "Removed", l: 45, e: 48}
+      - {h: "Fixed", l: 49, e: 66}
+      - {h: "1.16.0 - 2026-10-30", l: 67, e: 87}
+      - {h: "Removed", l: 88, e: 121}
+      - {h: "Changed", l: 122, e: 160}
+      - {h: "Fixed", l: 161, e: 222}
+      - {h: "1.15.0 - 2026-10-23", l: 223, e: 224}
+      - {h: "Added", l: 225, e: 236}
+      - {h: "Changed", l: 237, e: 267}
+      - {h: "Fixed", l: 268, e: 274}
+      - {h: "1.14.0 - 2026-09-29", l: 275, e: 276}
+      - {h: "Added", l: 277, e: 285}
+      - {h: "Changed", l: 286, e: 308}
+      - {h: "Removed", l: 309, e: 340}
+      - {h: "Fixed", l: 341, e: 382}
+      - {h: "Security", l: 383, e: 419}
+      - {h: "1.13.0 - 2026-09-13", l: 420, e: 421}
+      - {h: "Added", l: 422, e: 607}
+      - {h: "Changed", l: 608, e: 660}
+      - {h: "Fixed", l: 661, e: 794}
+      - {h: "Security", l: 795, e: 813}
+      - {h: "Known limitation", l: 814, e: 821}
+      - {h: "1.12.0 - 2026-08-01", l: 822, e: 823}
+      - {h: "Added", l: 824, e: 955}
+      - {h: "Fixed", l: 956, e: 1198}
+      - {h: "1.11.0 - 2026-07-03", l: 1199, e: 1200}
+      - {h: "Fixed", l: 1201, e: 1214}
+      - {h: "Security", l: 1215, e: 1292}
+      - {h: "Added", l: 1293, e: 1321}
+      - {h: "Changed", l: 1322, e: 1368}
+      - {h: "1.10.0 - 2026-04-20", l: 1369, e: 1377}
+      - {h: "1.9.0 - 2026-04-13", l: 1378, e: 1387}
+      - {h: "1.8.0 - 2026-04-13", l: 1388, e: 1393}
+      - {h: "1.7.0 - 2026-04-06", l: 1394, e: 1408}
+      - {h: "1.6.0 - 2026-04-03", l: 1409, e: 1421}
+      - {h: "1.5.0 - 2026-03-21", l: 1422, e: 1440}
+      - {h: "1.4.0 - 2026-01-22", l: 1441, e: 1446}
+      - {h: "1.3.0 - 2026-01-15", l: 1447, e: 1455}
+      - {h: "1.2.0 - 2026-01-15", l: 1456, e: 1464}
+      - {h: "1.1.0 - 2025-01-15", l: 1465, e: 1475}
+      - {h: "1.0.0 - 2025-12-03", l: 1476, e: 1482}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -106,7 +109,7 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 55312
+    size: 55300
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
@@ -1633,7 +1636,7 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 10752
+    size: 10749
     tags: [docs]
     sections:
       - {h: "저장소 구조", l: 1, e: 4}
@@ -1695,11 +1698,11 @@ documents:
     description: ""
     category: docs
     scope: docs
-    size: 4647
+    size: 4563
     tags: [docs,hook,hooks]
     sections:
-      - {h: "Ownership Table", l: 13, e: 66}
-      - {h: "Adding a new hook", l: 67, e: 76}
+      - {h: "Ownership Table", l: 13, e: 65}
+      - {h: "Adding a new hook", l: 66, e: 75}
   - path: "docs/install.md"
     title: "Install Behavior"
     description: ""

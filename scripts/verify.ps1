@@ -240,7 +240,7 @@ Test-FileExists (Join-Path $BackupDir 'project' 'CLAUDE.md')                 '�
 Test-DirExists  (Join-Path $BackupDir 'project' '.claude')                   '.claude 디렉토리' | Out-Null
 Test-DirExists  (Join-Path $BackupDir 'project' '.claude' 'rules')           '.claude/rules 디렉토리' | Out-Null
 Test-DirExists  (Join-Path $BackupDir 'project' '.claude' 'reference')       '.claude/reference 디렉토리' | Out-Null
-Test-FileExists (Join-Path $BackupDir 'project' '.claude' 'settings.json')   '프로젝트 settings.json (Hook 설정)' | Out-Null
+Test-FileExists (Join-Path $BackupDir 'project' '.claude' 'settings.json')   '프로젝트 settings.json (권한 설정)' | Out-Null
 
 # Project settings.json JSON validity
 $projSettings = Join-Path $BackupDir 'project' '.claude' 'settings.json'

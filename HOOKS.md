@@ -297,8 +297,8 @@ through the `permissionDecision` field, not through the exit code.
 
 ## Project Hooks (project/.claude/settings.json)
 
-`project/.claude/settings.json` registers one hook: a SessionStart entry that
-exports `TZ=Asia/Seoul`. The formatter below is owned by the plugin
+`project/.claude/settings.json` registers no hook: it holds permission rules
+only (#1040). The formatter below is owned by the plugin
 (`plugin/hooks/hooks.json`); see [docs/hooks-ownership.md](docs/hooks-ownership.md).
 
 ### 1. Auto Formatting (PostToolUse)

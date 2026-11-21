@@ -63,7 +63,7 @@ claude_config_backup/
 │   ├── .mcp.json.example       # MCP configuration example
 │   ├── claude-guidelines/      # Standalone guidelines (no .claude dependency)
 │   └── .claude/
-│       ├── settings.json       # Hook settings (auto-formatting)
+│       ├── settings.json       # Permission overrides (no hooks)
 │       ├── settings.local.json.template  # Local settings template
 │       ├── rules/              # Consolidated guideline modules (auto-loaded)
 │       │   ├── coding/         # Coding standards
