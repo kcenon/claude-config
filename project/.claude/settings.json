@@ -11,19 +11,5 @@
       "Read(**/dist/**)",
       "Read(**/build/**)"
     ]
-  },
-
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo 'export TZ=Asia/Seoul' >> \"$CLAUDE_ENV_FILE\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ]
   }
 }

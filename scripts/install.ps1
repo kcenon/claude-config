@@ -957,7 +957,7 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
     $projectSettings = Join-Path $BackupDir "project/.claude/settings.json"
     if (Test-Path $projectSettings) {
         $null = Invoke-ManifestTrackedCopy -Src $projectSettings -Dest (Join-Path $projectClaudeDir "settings.json") -Key ".claude/settings.json"
-        Write-Success "Project hook settings (.claude/settings.json) installed!"
+        Write-Success "Project permission settings (.claude/settings.json) installed!"
     }
 
     # rules directory
@@ -1106,7 +1106,7 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
     Write-Host "    - $projectDir\CLAUDE.md"
     Write-Host "    - $projectDir\.claude\rules\ (Guidelines)"
     Write-Host "    - $projectDir\.claude\reference\ (On-demand reference docs)"
-    Write-Host "    - $projectDir\.claude\settings.json (Hook settings)"
+    Write-Host "    - $projectDir\.claude\settings.json (Permission settings)"
     $sourceSkills = Join-Path $BackupDir "project/.claude/skills"
     if (Test-Path $sourceSkills) {
         Write-Host "    - $projectDir\.claude\skills\ (Skills)"

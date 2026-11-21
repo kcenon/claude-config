@@ -24,6 +24,9 @@ Import-Module (Join-Path $PSScriptRoot 'lib' 'CommonHelpers.psm1') -Force -Warni
 # must be an underscore-delimited segment / suffix of an UPPER_SNAKE var name,
 # so API_KEY / AWS_SECRET_ACCESS_KEY / GITHUB_TOKEN match, while TOKENIZER /
 # KEYBOARD / monkey do not.
+#
+# Only deny and allow-warn decisions are logged, to
+# ${env:CLAUDE_LOG_DIR}/shell-env-secret-guard.log (defaults to ~/.claude/logs).
 
 $logDir  = if ($env:CLAUDE_LOG_DIR) { $env:CLAUDE_LOG_DIR } else { Join-Path $HOME '.claude/logs' }
 $logFile = Join-Path $logDir 'shell-env-secret-guard.log'
@@ -88,6 +91,7 @@ if ($CMD -cmatch '(^|[;&|]\s*)(env|printenv|set|export\s+-p|declare\s+-p|compgen
     exit 0
 }
 
-Write-Decision -Decision 'allow' -Reason 'no secret-exposure pattern matched' -Command $CMD
+# A plain allow is not logged (#1040), as in dangerous-command-guard (#964):
+# one line per Bash call, each with the whole command, grew without bound.
 New-HookAllowResponse
 exit 0

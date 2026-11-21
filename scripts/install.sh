@@ -1130,10 +1130,10 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
 
     # .claude 디렉토리 설치
 
-    # settings.json 설치 (Hook 설정)
+    # settings.json 설치 (권한 설정)
     if [ -f "$BACKUP_DIR/project/.claude/settings.json" ]; then
         manifest_copy_file "$BACKUP_DIR/project/.claude/settings.json" "$PROJECT_DIR/.claude/settings.json" ".claude/settings.json" || true
-        success "프로젝트 Hook 설정 (.claude/settings.json) 설치 완료!"
+        success "프로젝트 권한 설정 (.claude/settings.json) 설치 완료!"
     fi
 
     # rules 디렉토리 설치
@@ -1246,7 +1246,7 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     echo "    - $PROJECT_DIR/.claudeignore (Token Optimization)"
     echo "    - $PROJECT_DIR/.claude/rules/ (Guidelines)"
     echo "    - $PROJECT_DIR/.claude/reference/ (On-demand reference docs)"
-    echo "    - $PROJECT_DIR/.claude/settings.json (Hook 설정)"
+    echo "    - $PROJECT_DIR/.claude/settings.json (권한 설정)"
     if [ -d "$BACKUP_DIR/project/.claude/skills" ]; then
         echo "    - $PROJECT_DIR/.claude/skills/ (Skills)"
     fi
