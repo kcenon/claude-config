@@ -249,6 +249,57 @@ posix_case deny  'git stash clear && rm -rf /'
 posix_case allow 'gh pr merge --merge'
 
 echo ""
+echo "[Sourced by a shell that is not bash, the stage hands over to bash (#1054)]"
+# The registered command is ". ~/.claude/hooks/bash-guard-dispatcher.sh", and
+# the stage re-executes that path, so HOME points at a scratch home whose
+# hooks directory is this checkout's. The stage is a new bash process after
+# the hand-over and a function of the calling shell does not reach it: the
+# file BASH_ENV names hides pwsh there instead. It unsets BASH_ENV first, so
+# the guards, which are further bash processes, start as they do in a hook.
+SH_HOME="$TEST_LOG_DIR/home"
+mkdir -p "$SH_HOME/.claude"
+ln -s "$PWD/global/hooks" "$SH_HOME/.claude/hooks"
+SH_ENV="$TEST_LOG_DIR/no-pwsh.bash"
+printf '%s\n' 'unset BASH_ENV' 'OSTYPE=linux-gnu' 'command() { return 1; }' > "$SH_ENV"
+sh_case() {   # <shell> <expected> <command>
+    local got
+    got=$(payload "$3" | HOME="$SH_HOME" BASH_ENV="$SH_ENV" "$1" -c '. ~/.claude/hooks/bash-guard-dispatcher.sh' 2>/dev/null \
+        | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+    if [ "$got" = "$2" ]; then
+        ((PASS++)); echo "  PASS: sourced by $1: $3 → $2"
+    else
+        ((FAIL++)); ERRORS+=("FAIL: sourced by $1: $3 — expected $2, got: $got"); echo "  FAIL: sourced by $1: $3"
+    fi
+}
+if command -v dash >/dev/null 2>&1; then
+    sh_case dash allow 'ls -la'
+    sh_case dash deny  'rm -rf /'
+    sh_case dash ask   'git stash clear'
+    sh_case dash deny  'git push origin main'
+    sh_case dash deny  'git stash clear && rm -rf /'
+    sh_case dash allow 'gh pr merge --merge'
+else
+    echo "  SKIP: no dash here"
+fi
+# Under bash the stage must answer from the process that sourced it. With a
+# home that has no hooks directory, a hand-over would find no file to run.
+got=$(payload 'rm -rf /' | HOME="$TEST_LOG_DIR/no-such-home" bash -c "OSTYPE=linux-gnu; command() { return 1; }; . '$HOOK'" 2>/dev/null \
+    | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+if [ "$got" = "deny" ]; then
+    ((PASS++)); echo "  PASS: sourced by bash, the stage does not re-execute itself"
+else
+    ((FAIL++)); ERRORS+=("FAIL: sourced by bash with no hooks under HOME — expected deny, got: $got"); echo "  FAIL: sourced by bash, the stage re-executed itself"
+fi
+# The hand-over test itself may not fork under bash: no command substitution,
+# no pipe and no subshell in the condition.
+handover=$(grep -n 'BASH_VERSION' "$HOOK" | grep -v '^[0-9]*:[[:space:]]*#')
+if printf '%s\n' "$handover" | grep -qE '^[0-9]+:if \[ -z "\$\{BASH_VERSION:-\}" \]; then$'; then
+    ((PASS++)); echo "  PASS: the hand-over test is a plain test of BASH_VERSION"
+else
+    ((FAIL++)); ERRORS+=("FAIL: the hand-over test is not a plain test: $handover"); echo "  FAIL: hand-over test form"
+fi
+
+echo ""
 echo "[The fast path answers as the second stage does, from one process]"
 want='{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
 case "$OSTYPE" in msys*|cygwin*) has_second=1 ;; *) command -v pwsh >/dev/null 2>&1 && has_second=1 || has_second=0 ;; esac

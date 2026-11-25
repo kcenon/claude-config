@@ -32,6 +32,19 @@
 # tests/hooks/test-bash-guard-dispatcher.sh feeds it every deny and ask case of
 # the guards' corpus; a rule added to a guard without its word here fails there.
 
+# The registered command sources this file into the shell that runs the hook.
+# That is Git Bash on Windows. On Linux and macOS the hooks reference names
+# `sh -c`, and where sh is dash the file stopped at its first bash-only
+# construct without a decision, so the call went ahead unguarded (#1054). A
+# shell that is not bash therefore hands over to bash here. The lines up to
+# this test are POSIX sh, and dash runs what precedes a line it cannot parse.
+# The path is the one the registered command names: a sourced file cannot ask
+# a POSIX shell where it is. exec keeps the payload on standard input. Under
+# bash this is one test of a variable and starts no process.
+if [ -z "${BASH_VERSION:-}" ]; then
+    exec bash "$HOME/.claude/hooks/bash-guard-dispatcher.sh"
+fi
+
 # Payload size above which the second stage always runs: dangerous-command-guard
 # answers inputs over its 16 KiB tokenizer budget with a note of its own.
 BGD_MAX_BYTES=8192
