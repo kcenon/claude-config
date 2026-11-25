@@ -500,14 +500,28 @@ check_sync_settings() {
     # up (#1024), so compare with the profile as this machine receives it. The
     # installer's own helper builds it, in a subshell so that the set -e and
     # globals of install-manifest.sh stay out of this script.
-    local expected
-    expected="$(mktemp "${TMPDIR:-/tmp}/verify-settings.XXXXXX" 2> /dev/null)" || expected=""
-    if [ -n "$expected" ]; then
-        if cp "$src" "$expected" 2> /dev/null \
-            && ( . "$BACKUP_DIR/scripts/install-manifest.sh" \
-                && drop_memory_hooks_unless_synced "$expected" > /dev/null ) 2> /dev/null; then
-            src="$expected"
-        fi
+    #
+    # A step that fails here is reported as what it is. Comparing with the
+    # unfiltered profile instead showed a correct install as a difference in
+    # hooks, when all that had failed was a temp file (#1056).
+    local expected build_error=""
+    if ! expected="$(mktemp "${TMPDIR:-/tmp}/verify-settings.XXXXXX" 2>&1)"; then
+        build_error="$expected"
+        expected=""
+    elif ! build_error="$(cp "$src" "$expected" 2>&1)"; then
+        [ -n "$build_error" ] || build_error="cannot copy the profile"
+    elif build_error="$( ( . "$BACKUP_DIR/scripts/install-manifest.sh" \
+            && drop_memory_hooks_unless_synced "$expected" > /dev/null ) 2>&1 )"; then
+        build_error=""
+        src="$expected"
+    elif [ -z "$build_error" ]; then
+        build_error="drop_memory_hooks_unless_synced failed"
+    fi
+    if [ -n "$build_error" ]; then
+        [ -z "$expected" ] || rm -f "$expected"
+        error "FAIL: $label -- could not build the expected profile: $(printf '%s' "$build_error" | tr '\n' ' ')"
+        SYNC_DIFF=$((SYNC_DIFF + 1))
+        return
     fi
 
     local mismatch
@@ -560,7 +574,12 @@ INSTALLED_CONTENT_LANGUAGE="${INSTALLED_CONTENT_LANGUAGE:-english}"
 # check_sync_policy_tmpl <src.tmpl> <dst> <label>
 check_sync_policy_tmpl() {
     local rendered
-    rendered="$(mktemp "${TMPDIR:-/tmp}/verify-render.XXXXXX")"
+    if ! rendered="$(mktemp "${TMPDIR:-/tmp}/verify-render.XXXXXX" 2>&1)"; then
+        SYNC_TOTAL=$((SYNC_TOTAL + 1))
+        error "FAIL: $3 -- could not render the template: $(printf '%s' "$rendered" | tr '\n' ' ')"
+        SYNC_DIFF=$((SYNC_DIFF + 1))
+        return
+    fi
     CONTENT_LANGUAGE="$INSTALLED_CONTENT_LANGUAGE" render_policy_tmpl "$1" "$rendered"
     check_sync "$rendered" "$2" "$3"
     rm -f "$rendered"

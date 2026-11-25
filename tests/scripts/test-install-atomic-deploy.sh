@@ -175,6 +175,57 @@ assert_true "existing settings.json preserved when required runtime lib is missi
 assert_true "missing runtime lib failure reports blocked settings publication" \
     "grep -q 'settings.json을 변경하지 않았습니다' '$OUTPUT'"
 
+# Temp files of the settings helpers (#1056). The shim stands in for a
+# sandbox that allows writes under TMPDIR only; with MKTEMP_SHIM_DENY_ALL it
+# refuses every temp file. The live settings.json holds a machine-local key,
+# so the installer has a merged file to write.
+if command -v jq >/dev/null 2>&1; then
+    shim_bin="$WORK/shim-bin"
+    mkdir -p "$shim_bin"
+    cp "$REPO_ROOT/tests/scripts/lib/mktemp-sandbox-shim.sh" "$shim_bin/mktemp"
+    chmod +x "$shim_bin/mktemp"
+    MKTEMP_SHIM_REAL="$(command -v mktemp)"
+    : "${TMPDIR:=/tmp}"
+    export MKTEMP_SHIM_REAL TMPDIR
+
+    tmpdir_only_fixture="$WORK/tmpdir-only-fixture"
+    tmpdir_only_home="$WORK/tmpdir-only-home"
+    make_fixture "$tmpdir_only_fixture"
+    mkdir -p "$tmpdir_only_home/.claude"
+    printf '%s\n' '{"sentinel":"local"}' > "$tmpdir_only_home/.claude/settings.json"
+    if run_install "$tmpdir_only_home" "$tmpdir_only_fixture" "$shim_bin:$fake_bin"; then
+        pass "writes under TMPDIR only: the install exits 0"
+    else
+        fail "writes under TMPDIR only: the install exits 0"
+        sed 's/^/    /' "$OUTPUT"
+    fi
+    assert_true "writes under TMPDIR only: the profile is published with the machine-local key" \
+        "[ \"\$(jq -r '.fixture + \"/\" + .sentinel' '$tmpdir_only_home/.claude/settings.json')\" = 'bash/local' ]"
+
+    no_temp_fixture="$WORK/no-temp-fixture"
+    no_temp_home="$WORK/no-temp-home"
+    make_fixture "$no_temp_fixture"
+    mkdir -p "$no_temp_home/.claude"
+    printf '%s\n' '{"sentinel":"keep"}' > "$no_temp_home/.claude/settings.json"
+    MKTEMP_SHIM_DENY_ALL=1 run_install "$no_temp_home" "$no_temp_fixture" "$shim_bin:$fake_bin"
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+        pass "no temp file: the install exits non-zero"
+    else
+        fail "no temp file: the install exits non-zero"
+    fi
+    assert_true "no temp file: the existing settings.json is byte for byte the same" \
+        "[ \"\$(cat '$no_temp_home/.claude/settings.json')\" = '{\"sentinel\":\"keep\"}' ]"
+    assert_true "no temp file: the staged settings file is removed" \
+        "! find '$no_temp_home/.claude' -maxdepth 1 -name '.settings.json.tmp.*' | grep -q ."
+    assert_true "no temp file: the failure names the temp file and the unchanged settings.json" \
+        "grep -q 'cannot create a temp file' '$OUTPUT' && grep -q 'settings.json was not changed' '$OUTPUT'"
+    assert_true "no temp file: the install does not report settings.json as installed" \
+        "! grep -q 'settings.json) 설치 완료' '$OUTPUT'"
+else
+    echo "  SKIP: no jq, so the settings helpers do nothing here"
+fi
+
 echo ""
 echo "=== Results: ${PASS} passed, ${FAIL} failed ==="
 

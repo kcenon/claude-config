@@ -20,6 +20,7 @@
 # Fields are TAB-separated. Keep reasons specific and evidence-backed.
 
 tests/scripts/lib/ci-wiring-lib.sh	helper	Shared CI-wiring detection library sourced by test-ci-wiring.sh (#823) and test-nonstandard-test-wiring.sh (#833); not a standalone test entrypoint.
+tests/scripts/lib/mktemp-sandbox-shim.sh	helper	Stand-in for mktemp that fails like a sandbox allowing writes under TMPDIR only; copied onto PATH by the install and verify suites (#1056); not a standalone test entrypoint.
 tests/batch_drift_benchmark/aggregate-results.sh	helper	Result-aggregation library sourced by test-aggregate-results.sh; not a standalone test entrypoint.
 tests/batch_drift_benchmark/extractors.sh	helper	Metric-extraction library sourced by test-extractors.sh; not a standalone test entrypoint.
 tests/batch_drift_benchmark/run-benchmark.sh	helper	Benchmark orchestrator exercised by test-run-benchmark.sh and run manually; not a CI test entrypoint.

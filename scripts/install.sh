@@ -388,16 +388,36 @@ install_global_settings_and_hooks() {
     # policy still wins on the keys it owns (issue #915).
     local carried_keys retired_keys
     retired_keys="$(retired_local_settings_keys "$settings_tmp" "$settings_dst" | tr '\n' ' ' | sed -e 's/ *$//')"
-    carried_keys="$(merge_local_settings_keys "$settings_tmp" "$settings_dst" | tr '\n' ' ' | sed -e 's/ *$//')"
+    # Each helper below reports its own reason on stderr. Its status is read
+    # before the output goes through a pipe, which would hide it, and a
+    # failure stops here: settings.json is not published from a staged file a
+    # helper could not finish (#1056).
+    carried_keys="$(merge_local_settings_keys "$settings_tmp" "$settings_dst")" || {
+        rm -f "$settings_tmp"
+        error "machine-local settings keys could not be carried forward. settings.json was not changed."
+    }
+    carried_keys="$(printf '%s' "$carried_keys" | tr '\n' ' ' | sed -e 's/ *$//')"
 
     # CLAUDE_CONTENT_LANGUAGE env 주입 및 Agent Language 속성 업데이트
-    if update_claude_settings_json "$settings_tmp" "$AGENT_LANGUAGE" "$CONTENT_LANGUAGE"; then
-        settings_updated=1
-    fi
+    # Status 1 means there is no jq, which the summary below reports.
+    local update_status=0
+    update_claude_settings_json "$settings_tmp" "$AGENT_LANGUAGE" "$CONTENT_LANGUAGE" || update_status=$?
+    case "$update_status" in
+        0) settings_updated=1 ;;
+        1) ;;
+        *)
+            rm -f "$settings_tmp"
+            error "the language settings could not be written. settings.json was not changed."
+            ;;
+    esac
 
     # The memory hooks are registered only where memory sync is set up (#1024).
     local dropped_memory_hooks
-    dropped_memory_hooks="$(drop_memory_hooks_unless_synced "$settings_tmp" | tr '\n' ' ' | sed -e 's/ *$//')"
+    dropped_memory_hooks="$(drop_memory_hooks_unless_synced "$settings_tmp")" || {
+        rm -f "$settings_tmp"
+        error "the memory hooks could not be removed from the staged settings. settings.json was not changed."
+    }
+    dropped_memory_hooks="$(printf '%s' "$dropped_memory_hooks" | tr '\n' ' ' | sed -e 's/ *$//')"
 
     if ! deploy_install_hooks; then
         rm -f "$settings_tmp"
@@ -857,7 +877,7 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
             _src="$BACKUP_DIR/global/$gf"
             _seed_tmp=""
             if [ "$gf" = "git-identity.md" ]; then
-                _seed_tmp="$(mktemp)"
+                _seed_tmp="$(manifest_mktemp git-identity)" || error "git-identity.md could not be staged."
                 cp "$_src" "$_seed_tmp"
                 if seed_git_identity "$_seed_tmp"; then
                     _src="$_seed_tmp"
@@ -914,7 +934,10 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
             fi
         fi
 
-        if guarded_template_copy "$BACKUP_DIR/global/conversation-language.md.tmpl" "$HOME/.claude/conversation-language.md" "conversation-language.md" "$AGENT_DISPLAY_LANG"; then
+        template_status=0
+        guarded_template_copy "$BACKUP_DIR/global/conversation-language.md.tmpl" "$HOME/.claude/conversation-language.md" "conversation-language.md" "$AGENT_DISPLAY_LANG" || template_status=$?
+        [ "$template_status" -le 1 ] || error "conversation-language.md could not be rendered."
+        if [ "$template_status" -eq 0 ]; then
             manifest_track_key "conversation-language.md"
             chmod 644 "$HOME/.claude/conversation-language.md"
             success "conversation-language.md 설치됨 (언어: $AGENT_DISPLAY_LANG)"
@@ -958,7 +981,7 @@ if [ "$INSTALL_TYPE" = "1" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     # commit-settings.md 설치 (CLAUDE.md에서 @./commit-settings.md로 참조)
     # issue #411: .tmpl이 있으면 정책 phrase를 치환해서 생성. 없으면 원본 복사.
     if [ -f "$BACKUP_DIR/global/commit-settings.md.tmpl" ]; then
-        tmp_commit_settings=$(mktemp)
+        tmp_commit_settings="$(manifest_mktemp commit-settings)" || error "commit-settings.md could not be rendered."
         render_policy_tmpl "$BACKUP_DIR/global/commit-settings.md.tmpl" "$tmp_commit_settings"
         if manifest_copy_file "$tmp_commit_settings" "$HOME/.claude/commit-settings.md" "commit-settings.md"; then
             chmod 644 "$HOME/.claude/commit-settings.md"
@@ -1138,7 +1161,7 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
 
     # rules 디렉토리 설치
     if [ -d "$BACKUP_DIR/project/.claude/rules" ]; then
-        rules_tmp=$(mktemp -d)
+        rules_tmp="$(manifest_mktemp rules -d)" || error "the project rules could not be rendered."
         cp -R "$BACKUP_DIR/project/.claude/rules"/. "$rules_tmp/"
         # issue #411: rules/ 안의 .md.tmpl을 정책 phrase로 치환
         render_policy_tmpls_in_dir "$rules_tmp"
