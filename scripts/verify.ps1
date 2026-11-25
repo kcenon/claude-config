@@ -570,7 +570,12 @@ function Test-SyncSettings {
         $Source = $expected
     }
     catch {
-        # Compare with the profile as it is.
+        # Reported as what it is: comparing with the unfiltered profile instead
+        # would show a correct install as a difference in hooks (#1056).
+        Write-ErrorMessage "FAIL: $label -- could not build the expected profile: $($_.Exception.Message)"
+        $script:SYNC_DIFF++
+        Remove-Item -LiteralPath $expected -Force -ErrorAction SilentlyContinue
+        return
     }
 
     try {

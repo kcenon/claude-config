@@ -8,7 +8,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 source "$REPO_ROOT/scripts/install-manifest.sh"
 
-TEST_DIR=$(mktemp -d)
+TEST_DIR=$(mktemp -d "${TMPDIR:-/tmp}/manifest-helpers.XXXXXX")
 trap 'rm -rf "$TEST_DIR"' EXIT
 
 export MANIFEST_PATH="$TEST_DIR/.claude/.install-manifest.json"
@@ -329,6 +329,78 @@ merge_eq "CLAUDE_MEMORY_REPO_URL set: nothing dropped" \
 cmp -s "$MEM_DIR/url.json" "$REPO_ROOT/global/settings.json" \
     || { echo "FAIL: CLAUDE_MEMORY_REPO_URL set, but the profile changed"; exit 1; }
 echo "drop_memory_hooks_unless_synced: PASS"
+
+# Temp files follow TMPDIR, and a helper that cannot create one says so
+# (#1056). The shim stands in for a sandbox that allows writes under TMPDIR
+# only: a bare mktemp fails there, and on macOS so does the -t form.
+SHIM_DIR="$TEST_DIR/shim-bin"
+mkdir -p "$SHIM_DIR"
+cp "$REPO_ROOT/tests/scripts/lib/mktemp-sandbox-shim.sh" "$SHIM_DIR/mktemp"
+chmod +x "$SHIM_DIR/mktemp"
+MKTEMP_SHIM_REAL="$(command -v mktemp)"
+MKTEMP_SHIM_LOG="$TEST_DIR/shim.log"
+export MKTEMP_SHIM_REAL MKTEMP_SHIM_LOG
+: "${TMPDIR:=/tmp}"
+export TMPDIR
+ORIG_PATH="$PATH"
+PATH="$SHIM_DIR:$PATH"
+hash -r
+
+# 1. Writes allowed under TMPDIR only: every helper still does its work.
+cp "$REPO_ROOT/global/settings.json" "$MEM_DIR/shim-drop.json"
+merge_eq "TMPDIR-only: memory hooks removed" \
+    "$(drop_memory_hooks_unless_synced "$MEM_DIR/shim-drop.json" | one_line)" \
+    "memory-write-guard.sh memory-integrity-check.sh memory-access-logger.sh"
+merge_eq "TMPDIR-only: other hooks kept" "$(hook_names "$MEM_DIR/shim-drop.json")" \
+    "PreToolUse:dangerous-command-guard.sh PreToolUse:merge-gate-guard.sh SessionEnd:prune-permission-rules.sh"
+cp "$MERGE_DIR/profile.json" "$MEM_DIR/shim-merge.json"
+merge_eq "TMPDIR-only: machine-local keys carried" \
+    "$(merge_local_settings_keys "$MEM_DIR/shim-merge.json" "$MERGE_DIR/live-retired.json")" "env.SOME_LOCAL_KEY"
+echo '{"test": 1}' > "$MEM_DIR/shim-update.json"
+update_claude_settings_json "$MEM_DIR/shim-update.json" "english" "korean_plus_english"
+merge_eq "TMPDIR-only: language written" "$(jq -r .language "$MEM_DIR/shim-update.json")" "english"
+guarded_template_copy "$TEST_DIR/tmpl.md" "$TEST_DIR/shim-dest.md" "shim-dest.md" "Korean"
+merge_eq "TMPDIR-only: template rendered" "$(cat "$TEST_DIR/shim-dest.md")" "Language policy: Korean"
+[ -s "$MKTEMP_SHIM_LOG" ] || { echo "FAIL: the mktemp shim was never called"; exit 1; }
+if grep -vE "^mktemp (-d )?${TMPDIR%/}/" "$MKTEMP_SHIM_LOG"; then
+    echo "FAIL: a helper called mktemp without a template under TMPDIR"
+    exit 1
+fi
+
+# 2. No temp file at all: each helper fails with a message and leaves its
+# target byte for byte. `|| status=$?` keeps set -e from ending the suite.
+export MKTEMP_SHIM_DENY_ALL=1
+# loud_failure <label> <target> <pristine copy> <command...>
+loud_failure() {
+    local label="$1" target="$2" pristine="$3" status=0 err="$TEST_DIR/helper.err"
+    shift 3
+    "$@" > /dev/null 2> "$err" || status=$?
+    [ "$status" -ne 0 ] || { echo "FAIL: $label: returned 0 without a temp file"; exit 1; }
+    [ -s "$err" ] || { echo "FAIL: $label: failed without a message on stderr"; exit 1; }
+    cmp -s "$target" "$pristine" || { echo "FAIL: $label: the target file changed"; exit 1; }
+}
+cp "$REPO_ROOT/global/settings.json" "$MEM_DIR/deny-drop.json"
+loud_failure "drop_memory_hooks_unless_synced" "$MEM_DIR/deny-drop.json" "$REPO_ROOT/global/settings.json" \
+    drop_memory_hooks_unless_synced "$MEM_DIR/deny-drop.json"
+cp "$MERGE_DIR/profile.json" "$MEM_DIR/deny-merge.json"
+loud_failure "merge_local_settings_keys" "$MEM_DIR/deny-merge.json" "$MERGE_DIR/profile.json" \
+    merge_local_settings_keys "$MEM_DIR/deny-merge.json" "$MERGE_DIR/live-retired.json"
+echo '{"test": 1}' > "$MEM_DIR/deny-update.json"
+cp "$MEM_DIR/deny-update.json" "$MEM_DIR/deny-update.orig"
+loud_failure "update_claude_settings_json" "$MEM_DIR/deny-update.json" "$MEM_DIR/deny-update.orig" \
+    update_claude_settings_json "$MEM_DIR/deny-update.json" "english" "korean_plus_english"
+# The installers tell "no jq" (1) from a failed update (2).
+update_status=0
+update_claude_settings_json "$MEM_DIR/deny-update.json" "english" "korean_plus_english" 2> /dev/null || update_status=$?
+merge_eq "update_claude_settings_json: status of a failed update" "$update_status" "2"
+template_status=0
+guarded_template_copy "$TEST_DIR/tmpl.md" "$TEST_DIR/deny-dest.md" "deny-dest.md" "Korean" 2> /dev/null || template_status=$?
+merge_eq "guarded_template_copy: status of a failed render" "$template_status" "2"
+[ ! -e "$TEST_DIR/deny-dest.md" ] || { echo "FAIL: guarded_template_copy wrote a file it could not render"; exit 1; }
+unset MKTEMP_SHIM_DENY_ALL
+PATH="$ORIG_PATH"
+hash -r
+echo "temp files follow TMPDIR, and a missing one is an error: PASS"
 
 echo "All helper tests passed!"
 exit 0

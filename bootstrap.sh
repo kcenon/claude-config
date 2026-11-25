@@ -417,15 +417,35 @@ install_bootstrap_settings_and_hooks() {
     # policy still wins on the keys it owns (issue #915).
     local carried_keys retired_keys
     retired_keys="$(retired_local_settings_keys "$settings_tmp" "$settings_dst" | tr '\n' ' ' | sed -e 's/ *$//')"
-    carried_keys="$(merge_local_settings_keys "$settings_tmp" "$settings_dst" | tr '\n' ' ' | sed -e 's/ *$//')"
+    # Each helper below reports its own reason on stderr. Its status is read
+    # before the output goes through a pipe, which would hide it, and a
+    # failure stops here: settings.json is not published from a staged file a
+    # helper could not finish (#1056).
+    carried_keys="$(merge_local_settings_keys "$settings_tmp" "$settings_dst")" || {
+        rm -f "$settings_tmp"
+        error "machine-local settings keys could not be carried forward. settings.json was not changed."
+    }
+    carried_keys="$(printf '%s' "$carried_keys" | tr '\n' ' ' | sed -e 's/ *$//')"
 
-    if update_claude_settings_json "$settings_tmp" "$agent_language" "$content_language"; then
-        settings_updated=1
-    fi
+    # Status 1 means there is no jq, which the summary below reports.
+    local update_status=0
+    update_claude_settings_json "$settings_tmp" "$agent_language" "$content_language" || update_status=$?
+    case "$update_status" in
+        0) settings_updated=1 ;;
+        1) ;;
+        *)
+            rm -f "$settings_tmp"
+            error "the language settings could not be written. settings.json was not changed."
+            ;;
+    esac
 
     # The memory hooks are registered only where memory sync is set up (#1024).
     local dropped_memory_hooks
-    dropped_memory_hooks="$(drop_memory_hooks_unless_synced "$settings_tmp" | tr '\n' ' ' | sed -e 's/ *$//')"
+    dropped_memory_hooks="$(drop_memory_hooks_unless_synced "$settings_tmp")" || {
+        rm -f "$settings_tmp"
+        error "the memory hooks could not be removed from the staged settings. settings.json was not changed."
+    }
+    dropped_memory_hooks="$(printf '%s' "$dropped_memory_hooks" | tr '\n' ' ' | sed -e 's/ *$//')"
 
     if ! deploy_bootstrap_hooks; then
         rm -f "$settings_tmp"
@@ -491,7 +511,7 @@ install_global() {
         [ -f "$src" ] || continue
         seed_tmp=""
         if [ "$gf" = "git-identity.md" ]; then
-            seed_tmp="$(mktemp)"
+            seed_tmp="$(manifest_mktemp git-identity)" || error "git-identity.md could not be staged."
             cp "$src" "$seed_tmp"
             if seed_git_identity "$seed_tmp"; then
                 src="$seed_tmp"
@@ -519,7 +539,7 @@ install_global() {
     # commit-settings.md: the same rendered file scripts/install.sh deploys.
     if [ -f "$INSTALL_DIR/global/commit-settings.md.tmpl" ]; then
         local tmp_commit_settings
-        tmp_commit_settings="$(mktemp)"
+        tmp_commit_settings="$(manifest_mktemp commit-settings)" || error "commit-settings.md could not be rendered."
         render_policy_tmpl "$INSTALL_DIR/global/commit-settings.md.tmpl" "$tmp_commit_settings"
         if manifest_copy_file "$tmp_commit_settings" "$CLAUDE_DIR/commit-settings.md" "commit-settings.md"; then
             chmod 644 "$CLAUDE_DIR/commit-settings.md"
@@ -532,7 +552,10 @@ install_global() {
 
     # conversation-language.md 템플릿 처리
     if [ -f "$INSTALL_DIR/global/conversation-language.md.tmpl" ]; then
-        if guarded_template_copy "$INSTALL_DIR/global/conversation-language.md.tmpl" "$CLAUDE_DIR/conversation-language.md" "conversation-language.md" "$AGENT_DISPLAY_LANG"; then
+        local template_status=0
+        guarded_template_copy "$INSTALL_DIR/global/conversation-language.md.tmpl" "$CLAUDE_DIR/conversation-language.md" "conversation-language.md" "$AGENT_DISPLAY_LANG" || template_status=$?
+        [ "$template_status" -le 1 ] || error "conversation-language.md could not be rendered."
+        if [ "$template_status" -eq 0 ]; then
             manifest_track_key "conversation-language.md"
             success "conversation-language.md 설치됨 (언어: $AGENT_DISPLAY_LANG)"
         else
@@ -717,7 +740,7 @@ install_project() {
     # .claude 디렉토리 설치
     if [ -d "$INSTALL_DIR/project/.claude/rules" ]; then
         local rules_tmp
-        rules_tmp=$(mktemp -d)
+        rules_tmp="$(manifest_mktemp rules -d)" || error "the project rules could not be rendered."
         cp -R "$INSTALL_DIR/project/.claude/rules"/. "$rules_tmp/"
         # issue #760: 복사된 rules/ 안의 .md.tmpl을 정책 phrase로 치환
         # (install.sh와 동일한 single-source 렌더 함수)

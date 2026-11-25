@@ -29,6 +29,24 @@ manifest_available() {
     [ -n "$_manifest_json_tool" ]
 }
 
+# manifest_mktemp <name> [-d]
+# Creates a temp file, or with -d a temp directory, under ${TMPDIR:-/tmp} and
+# prints its path. The template is spelled out because a bare call, and on
+# macOS the -t form as well, uses the per-user temp directory even when TMPDIR
+# is set, and a sandbox that allows writes only under TMPDIR denies that
+# directory (#1056). On failure it prints the reason on stderr and returns 1,
+# so a caller cannot take a missing temp file for success.
+manifest_mktemp() {
+    local name="$1" kind="${2:-}" dir="${TMPDIR:-/tmp}" path
+    dir="${dir%/}"
+    if path="$(mktemp ${kind:+"-d"} "$dir/claude-$name.XXXXXX" 2>&1)"; then
+        printf '%s\n' "$path"
+        return 0
+    fi
+    printf 'install-manifest: cannot create a temp file under %s: %s\n' "$dir" "$path" >&2
+    return 1
+}
+
 # _manifest_run <cmd> [args...]
 # Runs a filesystem mutation, optionally through an elevation prefix.
 #
@@ -98,7 +116,7 @@ _manifest_write() {
     # heredoc depends on. Without elevation `out` is MANIFEST_PATH and the write
     # happens exactly where it always did.
     if [ -n "${MANIFEST_ELEVATE:-}" ]; then
-        out="$(mktemp)"
+        out="$(manifest_mktemp manifest)" || return 1
     fi
 
     _manifest_run mkdir -p "$(dirname "$MANIFEST_PATH")"
@@ -425,12 +443,16 @@ guarded_copy() {
 }
 
 # guarded_template_copy <src_tmpl> <dest> <key> <display_lang>
+# Returns 0 when the rendered file was copied, 1 when the local file was
+# kept, and 2 when the template could not be rendered (no temp file).
 guarded_template_copy() {
     local src_tmpl="$1" dest="$2" key="$3" display_lang="$4"
     [ -f "$src_tmpl" ] || return 0
 
     local tmp_lang
-    tmp_lang=$(mktemp)
+    # Status 2 is a failure to render, apart from 1, which guarded_copy uses
+    # for "the local file was kept".
+    tmp_lang="$(manifest_mktemp language)" || return 2
     # Strip the developer-only tmpl-contract comment line so it does not leak
     # into the rendered .md (issue #773, parity with the #771 render_policy_tmpl fix).
     sed -e "/tmpl-contract/d" -e "s/{{AGENT_LANGUAGE_POLICY}}/$display_lang/g" "$src_tmpl" > "$tmp_lang"
@@ -469,6 +491,8 @@ SETTINGS_RETIRED_ENV_KEYS='["MAX_TEAMS"]'
 # Carry machine-local top-level keys from the deployed settings.json into a
 # staged copy of the repo profile. Mirrors Merge-LocalSettingsKeys; see its
 # comment block for the rule order. Prints the carried key names, one per line.
+# Returns 1, with the staged file unchanged and a message on stderr, when
+# there are keys to carry and the merged file cannot be written.
 merge_local_settings_keys() {
     local staged="$1" live="$2"
     [ -f "$staged" ] || return 0
@@ -498,8 +522,10 @@ merge_local_settings_keys() {
     ' 2> /dev/null | tr -d '\r')" || return 0
     [ -n "$carried" ] || return 0
 
+    # Without the temp file the staged profile would be published without the
+    # machine-local keys, so this is a failure, not "nothing to carry" (#1056).
     local tmpfile
-    tmpfile=$(mktemp) || return 0
+    tmpfile="$(manifest_mktemp settings)" || return 1
     if jq -n --slurpfile s "$staged" --slurpfile l "$live" \
         --argjson policy "$SETTINGS_POLICY_KEYS" \
         --argjson runtime "$SETTINGS_RUNTIME_KEYS" \
@@ -518,10 +544,12 @@ merge_local_settings_keys() {
           then .env = (($lv.env // {}) * ($st.env // {}))
           else . end
     ' > "$tmpfile" 2> /dev/null; then
-        mv "$tmpfile" "$staged"
+        mv "$tmpfile" "$staged" || { rm -f "$tmpfile"; return 1; }
         printf '%s\n' "$carried"
     else
         rm -f "$tmpfile"
+        printf 'install-manifest: cannot merge the machine-local keys into %s\n' "$staged" >&2
+        return 1
     fi
 }
 
@@ -547,24 +575,35 @@ retired_local_settings_keys() {
 }
 
 # update_claude_settings_json <settings_json_path> <agent_language> <content_language>
+# Returns 0 when the file was updated, 1 when there is no jq to update it
+# with, and 2, with the file unchanged and a message on stderr, when the
+# update itself failed.
 update_claude_settings_json() {
     local settings_path="$1" agent_lang="$2" content_lang="$3"
     [ -f "$settings_path" ] || return 0
 
     if command -v jq >/dev/null 2>&1; then
-        local tmpfile
-        tmpfile=$(mktemp)
+        # The file is replaced only by a complete result. A caller runs this
+        # inside an `if`, where set -e does not apply, so each step is checked
+        # here: an unchecked temp file or jq failure used to end in a `mv`
+        # of nothing and status 0 (#1056).
+        local tmpfile ok=0
+        tmpfile="$(manifest_mktemp settings)" || return 2
         if [ "$content_lang" != "english" ]; then
             jq --arg v "$content_lang" --arg lang "$agent_lang" \
                '.env = (.env // {}) | .env.CLAUDE_CONTENT_LANGUAGE = $v | .language = $lang' \
-               "$settings_path" > "$tmpfile"
+               "$settings_path" > "$tmpfile" || ok=1
         else
             # Idempotent reset for english policy
             jq --arg lang "$agent_lang" \
                'del(.env.CLAUDE_CONTENT_LANGUAGE) | if .env == {} then del(.env) else . end | .language = $lang' \
-               "$settings_path" > "$tmpfile"
+               "$settings_path" > "$tmpfile" || ok=1
         fi
-        mv "$tmpfile" "$settings_path"
+        if [ "$ok" -ne 0 ] || ! mv "$tmpfile" "$settings_path"; then
+            rm -f "$tmpfile"
+            printf 'install-manifest: cannot update %s\n' "$settings_path" >&2
+            return 2
+        fi
         return 0
     else
         return 1
@@ -593,8 +632,9 @@ memory_sync_configured() {
 # those hooks exits early when ~/.claude/memory-shared is missing, but its
 # process still starts, and memory-write-guard starts on every Edit and Write.
 # Prints the file names of the removed commands, one per line. Without jq the
-# file is left as it is, which keeps the hooks. Mirrors
-# Remove-MemoryHooksUnlessSynced.
+# file is left as it is, which keeps the hooks. Returns 1, with the file
+# unchanged and a message on stderr, when there are hooks to remove and the
+# filtered file cannot be written. Mirrors Remove-MemoryHooksUnlessSynced.
 drop_memory_hooks_unless_synced() {
     local settings_path="$1"
     [ -f "$settings_path" ] || return 0
@@ -609,17 +649,22 @@ drop_memory_hooks_unless_synced() {
     ' "$settings_path" 2> /dev/null | tr -d '\r')" || return 0
     [ -n "$removed" ] || return 0
 
+    # There are hooks to remove from here on, so a missing temp file is a
+    # failure: returning 0 left them registered without a word, and verify.sh
+    # then compared the install with a profile that still held them (#1056).
     local tmpfile
-    tmpfile=$(mktemp) || return 0
+    tmpfile="$(manifest_mktemp settings)" || return 1
     if jq --argjson names "$MEMORY_HOOK_COMMANDS" "$def"'
         .hooks |= (with_entries(
                 .value |= (map(.hooks |= map(select(memory_hook | not)))
                            | map(select((.hooks | length) > 0))))
             | with_entries(select((.value | length) > 0)))
     ' "$settings_path" > "$tmpfile" 2> /dev/null; then
-        mv "$tmpfile" "$settings_path"
+        mv "$tmpfile" "$settings_path" || { rm -f "$tmpfile"; return 1; }
         printf '%s\n' "$removed"
     else
         rm -f "$tmpfile"
+        printf 'install-manifest: cannot remove the memory hooks from %s\n' "$settings_path" >&2
+        return 1
     fi
 }

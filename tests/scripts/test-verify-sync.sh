@@ -11,7 +11,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-TMP="$(mktemp -d)"
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/verify-sync.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
 HOME_DIR="$TMP/home"
@@ -154,6 +154,33 @@ expect "SYNC: settings.json (hooks + permissions)"
 rmdir "$CLAUDE/memory-shared"
 cp "$TMP/settings.json.dropped" "$CLAUDE/settings.json"
 echo "memory hooks in settings.json: PASS"
+
+# 4b. Where only TMPDIR is writable, the expected profile is still built, and
+# where no temp file can be created the check says so instead of reporting a
+# difference in hooks (#1056). The shim stands in for such a sandbox.
+SHIM_DIR="$TMP/shim-bin"
+mkdir -p "$SHIM_DIR"
+cp "$REPO_ROOT/tests/scripts/lib/mktemp-sandbox-shim.sh" "$SHIM_DIR/mktemp"
+chmod +x "$SHIM_DIR/mktemp"
+real_mktemp="$(command -v mktemp)"
+run_verify_shim() {
+    # $1: 1 to refuse every temp file, 0 to allow templates under TMPDIR.
+    (cd "$PROJ" && HOME="$HOME_DIR" PATH="$SHIM_DIR:$PATH" TMPDIR="${TMPDIR:-/tmp}" \
+        MKTEMP_SHIM_REAL="$real_mktemp" MKTEMP_SHIM_LOG="$TMP/shim.log" MKTEMP_SHIM_DENY_ALL="$1" \
+        bash "$REPO_ROOT/scripts/verify.sh" < /dev/null 2>&1 || true) \
+        | sed "s/${esc}\[[0-9;]*m//g" > "$OUT"
+}
+: > "$TMP/shim.log"
+run_verify_shim 0
+[ -s "$TMP/shim.log" ] || fail "verify.sh did not call the mktemp shim"
+[ -z "$(findings)" ] || fail "with writes under TMPDIR only, a complete install reported differences"
+expect "SYNC: settings.json (hooks + permissions)"
+run_verify_shim 1
+expect "FAIL: settings.json (hooks + permissions) -- could not build the expected profile"
+grep -qF "DIFF: settings.json (hooks + permissions)" "$OUT" \
+    && fail "a temp file failure was reported as a settings.json difference"
+[ -z "$(findings)" ] || fail "a temp file failure was reported as a difference"
+echo "temp files under TMPDIR, and a missing one reported as such: PASS"
 
 # 5. Each kind of drift is reported; a CRLF and BOM rewrite is not.
 if [ "$win" -eq 1 ]; then
