@@ -345,6 +345,8 @@ Once all workers have terminated:
 4. Render the final aggregated report (see **Final Report** below).
 5. Do NOT delete `_workspace/fleet/` — keep it for the audit trail.
 
+**Verification of worker results** follows `harness/reference/verification-contract.md`. A worker's terminal status and the CI result of its PR are the evidence for that repo: the supervisor reads them from the manifest and from `gh pr checks`, and does not check the repo out to run the worker's build or tests again. It looks at a repo again only when the PR head changed after the recorded result, and it reports a `code-review-needed` worker to the user instead of opening a review loop of its own.
+
 ### Phase 6: Cleanup
 
 - Cancel any still-running background tasks (should be none, but defensive).
@@ -468,6 +470,7 @@ Expected outcome: final report lists the 2 pre-excluded repos separately from th
 - **`issue-work`**: the per-repo workflow each worker executes. The worker template
   is a thin wrapper that adds manifest updates around `issue-work`'s Solo mode.
 - **`pr-work`**: the retry path when a worker's initial PR fails CI.
+- **Verification contract** (`harness/reference/verification-contract.md`): what the supervisor may verify again in Phase 5.
 
 ## References
 

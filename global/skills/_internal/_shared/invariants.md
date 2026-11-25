@@ -26,6 +26,15 @@ Skills with iterative work (batch loops, CI polling, multi-round research, per-r
 - Missing toolchain: skip local build, rely on CI, do not auto-install
 ```
 
+## Verification (2 lines, load when the skill runs a review loop)
+
+```
+- Round budget: one full review and one narrow recheck per unit; a further round is the user's decision
+- Stop signal: halt and report after two consecutive rounds without a change in the deliverable-level outcome
+```
+
+Defined in `global/skills/_internal/harness/reference/verification-contract.md`, with the evidence ledger, the severity scope and the conflict rule.
+
 ## How to use
 
 Skills prepend a context label when emitting inline (e.g., `[Item 5/30] Required rules:`) and then copy the Core block verbatim. Optional block is added only when the skill's current phase touches those dimensions (direct pushes, batch pacing, epic closure, toolchain checks).

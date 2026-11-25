@@ -138,6 +138,15 @@ Placing QA only at "Phase 4: After full completion" in the orchestrator leads to
 
 **Recommended pattern**: Run cross-verification on each backend API + corresponding hook immediately after API completion (incremental QA).
 
+### 3-5. Verify Under the Verification Contract
+
+A QA agent that sends work back for fixes is one half of a review loop, and `verification-contract.md` bounds that loop. Put these rules in the agent definition:
+
+- **Read the ledger first.** A check the producer already ran and recorded with its tree state stands while the files it covers are unchanged. The QA agent does not run it again; it runs what the ledger does not hold and records it there.
+- **Rate against the unit contract.** A finding is a blocker when it violates a numbered invariant of the unit, and major when behaviour that worked at the baseline now fails. Everything else is minor: it is reported once and recorded as a known boundary, and it does not send the unit back.
+- **A second pass is a recheck.** After fixes, the QA agent judges only the findings of its first pass and the files changed for them. It does not look again at what passed, and it does not widen the search to new inputs or areas.
+- **Two rounds, then the leader decides.** One full pass and one recheck per unit. With a blocker or major finding still open after the recheck, the QA agent reports to the leader, who takes it to the user.
+
 ---
 
 ## 4. Verification Checklist Template
@@ -205,6 +214,13 @@ For boundary verification, always **open both sides of the code simultaneously**
 | Routing | src/app/ page file paths | href, router.push values |
 | State transitions | STATE_TRANSITIONS map | .update({ status }) code |
 | DB -> API -> UI | Table column names | API response fields -> type definitions |
+
+## Review Loop (verification-contract.md)
+
+- Read `_workspace/verification-ledger.md` first. Do not re-run a recorded check whose covered files are unchanged; record every check you do run with its command and tree state
+- Blocker: a numbered invariant of the unit contract is violated. Major: behaviour that worked at the baseline now fails. Everything else is minor and is recorded, not sent back
+- Second pass: judge only the findings of the first pass and the files changed for them
+- One full pass and one recheck per unit; after that, report open findings to the leader
 
 ## Team Communication Protocol
 

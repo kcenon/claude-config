@@ -149,7 +149,7 @@ Generation and review agents work in pairs.
 
 **Best for:** Output quality assurance is important and objective review criteria exist.
 **Example:** Webtoon -- artist generates -> reviewer inspects -> problematic panels are regenerated.
-**Caution:** Set a maximum retry count (2-3) to prevent infinite loops.
+**Caution:** A retry count alone does not stop a loop: it limits how often the reviewer runs, not what is checked again. Follow the [verification contract](verification-contract.md): one full review and one narrow recheck per unit, checks re-run only when the files they cover changed, findings rated against the unit's contract, and a halt with a report to the user when two rounds end without a change in outcome.
 **Team mode fit:** Agent teams are useful. `SendMessage` enables real-time feedback exchange between producer and reviewer.
 
 ### 5. Supervisor
@@ -165,7 +165,7 @@ A central agent manages task state and dynamically distributes work to subordina
 **Best for:** Variable workloads or when task distribution must be decided at runtime.
 **Example:** Large-scale code migration -- supervisor analyzes the file list and assigns batches to workers.
 **Difference from fan-out:** Fan-out pre-assigns work; supervisor adjusts dynamically based on progress.
-**Caution:** Set delegation units large enough so the supervisor doesn't become a bottleneck.
+**Caution:** Set delegation units large enough so the supervisor doesn't become a bottleneck. A supervisor that verifies its workers' results does so under the [verification contract](verification-contract.md): a worker's reported run on an unchanged tree is evidence, and the supervisor does not run it again.
 **Team mode fit:** Agent teams' shared task list naturally matches the supervisor pattern. Tasks are registered via `TaskCreate`; members claim them.
 
 ### 6. Hierarchical Delegation
@@ -196,7 +196,7 @@ Generation and evaluation are strictly separated to prevent self-assessment bias
 **Best for:** Output quality is paramount and objective evaluation criteria exist.
 **Example:** Application development -- generator implements features, evaluator scores against sprint contract criteria with a calibrated rubric.
 **Difference from Producer-Reviewer:** P-R uses categorical verdicts (PASS/FIX/REDO) in paired retry loops. G-E uses quantitative scoring with calibrated few-shot examples and measurable criteria. Use P-R for discrete artifacts; use G-E for holistic multi-dimensional assessment.
-**Caution:** Evaluator prompt calibration is critical. Use skeptical prompts ("find every problem") over generic ones ("assess quality"). Include 2-3 few-shot scoring examples to prevent scale compression.
+**Caution:** Evaluator prompt calibration is critical. Use skeptical prompts ("find every problem") over generic ones ("assess quality"). Include 2-3 few-shot scoring examples to prevent scale compression. The revision loop follows the [verification contract](verification-contract.md): a skeptical first evaluation, then a recheck limited to the scored gaps and the changes made for them, with the same round budget and stop signal as Producer-Reviewer.
 **Team mode fit:** Agent teams enable real-time feedback between generator and evaluator. Use sub-agents if only the final score matters.
 
 > See `long-running-harness-guide.md` for the full Planner-Generator-Evaluator pattern with sprint contracts.
@@ -243,6 +243,14 @@ In practice, composite patterns are more common than single patterns:
 | **Producer + Reviewer** | Agent team | Real-time feedback between producer and reviewer minimizes rework |
 
 > Only consider mixing in sub-agents when a single agent performs a completely isolated, one-shot task.
+
+### Model Placement by Role
+
+In a pipeline with an orchestrator, workers and a verifier, the roles use a model differently. The verifier makes one run in a fresh context. The orchestrator holds the longest context and takes the most turns, so every token of its context is re-read on every turn.
+
+- Put the most capable and most expensive model in the verifier role, not in the orchestrator role.
+- An orchestrator that does run on such a model should run at medium effort: it routes and decides, and the checks belong to the worker and to the final run.
+- Any pipeline with a review loop (Producer-Reviewer, Generator-Evaluator, a verifying Supervisor) follows the [verification contract](verification-contract.md), which sets what may be verified again and when the loop stops.
 
 ---
 

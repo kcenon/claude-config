@@ -38,6 +38,8 @@ Agents evaluate their own output poorly. When the same agent generates and asses
 
 **Evaluator**: Scores output against the sprint contract's criteria. Provides specific, actionable feedback for revision. Never generates alternative implementations -- only identifies gaps and suggests directions.
 
+**Bounding the revision loop:** "max 2-3 rounds" limits how often the evaluator runs. It does not say what may be evaluated again. The loop follows `verification-contract.md`: the sprint contract is the unit contract, the first evaluation covers the whole sprint, and a later round is limited to the scored gaps and the changes made for them. A check is re-run only when the files it covers changed, and the orchestrator halts with a report to the user when two rounds end without a change in outcome.
+
 ### Evaluator Design Principles
 
 **1. Skeptical prompts beat generic assessment.**

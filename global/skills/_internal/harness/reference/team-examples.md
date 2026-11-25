@@ -254,6 +254,8 @@ Retry policy:
 - If 50%+ of panels are REDO, suggest prompt revision to the user
 ```
 
+This policy is an instance of `verification-contract.md`: the second round re-reviews only the regenerated panels, a panel that passed is not inspected again, and the loop ends after two rounds. A harness whose units are code follows the contract in full, with the evidence ledger and the severity scope.
+
 ---
 
 ## Example 4: Code Review Team (Agent Team Mode)
