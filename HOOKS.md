@@ -12,6 +12,8 @@ Hooks are user-defined commands that automatically execute during specific Claud
 
 Since #964 claude-config registers hooks only for destructive, irreversible operations and for a few functional contracts. Style, workflow and policy rules are not hooks: they are instructions in `global/CLAUDE.md` and `global/commit-settings.md`, or native controls: the tool contracts, `permissions.deny`, the Bash sandbox, the git hooks and the server-side workflows.
 
+The rules for a review loop between an orchestrator, a worker and a reviewer are of that kind. The [verification contract](global/skills/_internal/harness/reference/verification-contract.md) is guidance, enforced by the templates of the `harness` skill: no hook reads its evidence ledger, counts its rounds or blocks a tool call because of it (#1057).
+
 A guard decides by this rule:
 
 1. **Deny** an operation when it is irreversible **and** it reaches beyond the working tree or affects shared state.

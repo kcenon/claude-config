@@ -21,7 +21,8 @@ iso_class: none
 #   core     -> reference/agent-design-patterns.md, reference/agent-frontmatter-spec.md
 #   advanced -> reference/orchestrator-template.md, reference/team-examples.md,
 #               reference/skill-writing-guide.md, reference/skill-testing-guide.md,
-#               reference/qa-agent-guide.md, reference/long-running-harness-guide.md
+#               reference/qa-agent-guide.md, reference/long-running-harness-guide.md,
+#               reference/verification-contract.md
 ---
 
 # Harness -- Agent Team & Skill Architect
@@ -188,6 +189,17 @@ Include error handling policies in the orchestrator. Core principle: retry once,
 
 > See `reference/orchestrator-template.md` for error type strategy tables and implementation details.
 
+#### 5-3. Verification Contract
+
+Whenever one agent checks another's work (Producer-Reviewer, Generator-Evaluator, a QA agent, a supervisor that verifies), the orchestrator follows `reference/verification-contract.md`. A retry count limits how often a review loop runs; the contract limits what is verified again:
+
+- Every check result is recorded with its command and the tree state it ran on. A check is re-run only when the files it covers changed, and a worker's recorded run counts as evidence.
+- Each unit gets one full review and one recheck limited to the findings of the first round.
+- A finding blocks only when it cites an invariant of the unit's contract or a regression against the named baseline.
+- The orchestrator halts and reports to the user when the budget is used, when two rounds end without a change in outcome, or when two findings contradict each other and the contract does not decide.
+
+> See `reference/verification-contract.md` for the ledger format and the review and recheck brief templates.
+
 #### 5-4. Context Management
 
 For long-running harnesses that span multiple context windows, prefer **context reset** (clear window + hand off structured state via files) over automatic compaction. Compaction is lossy -- each summarization round loses detail. Context reset preserves full fidelity by writing all intermediate state to `_workspace/` files before clearing the window.
@@ -280,6 +292,7 @@ After generation, confirm:
 - Orchestrator templates: `reference/orchestrator-template.md`
 - **Skill writing guide**: `reference/skill-writing-guide.md` -- writing patterns, examples, data schema standards
 - **Skill testing guide**: `reference/skill-testing-guide.md` -- testing/evaluation/iterative improvement methodology
+- **Verification contract**: `reference/verification-contract.md` -- evidence ledger, round budget, severity scope, conflict rule, stop signal and the review and recheck brief templates for any review loop
 - **QA agent guide**: `reference/qa-agent-guide.md` -- for including a QA agent in build harnesses; covers integration coherence verification, boundary bug patterns, and QA agent definition templates based on 7 real-world bug cases
 
 ## Side Effects and Loop-Safety

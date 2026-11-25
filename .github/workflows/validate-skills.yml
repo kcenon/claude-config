@@ -31,6 +31,7 @@ on:
       - 'tests/scripts/test-check-references.ps1'
       - 'tests/scripts/test-check-skill-drift.sh'
       - 'tests/scripts/test-check-skill-drift.ps1'
+      - 'tests/scripts/test-verification-contract.sh'
       - 'tests/scripts/test-ci-wait-guidance.sh'
       - 'plugin/agents/**'
       - 'project/.claude/agents/**'
@@ -124,6 +125,9 @@ jobs:
 
       - name: Run skill drift guard test suite
         run: bash tests/scripts/test-check-skill-drift.sh
+
+      - name: Check that review loops link to the verification contract
+        run: bash tests/scripts/test-verification-contract.sh
 
       - name: Check cross-layer SKILL.md drift contracts (PowerShell)
         run: pwsh -NoProfile -File scripts/check_skill_drift.ps1

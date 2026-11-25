@@ -10,58 +10,58 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 131393
+    size: 134110
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "Unreleased", l: 8, e: 9}
-      - {h: "Changed", l: 10, e: 15}
-      - {h: "Removed", l: 16, e: 19}
-      - {h: "Fixed", l: 20, e: 29}
-      - {h: "1.17.0 - 2026-11-17", l: 30, e: 36}
-      - {h: "Added", l: 37, e: 43}
-      - {h: "Changed", l: 44, e: 56}
-      - {h: "Removed", l: 57, e: 60}
-      - {h: "Fixed", l: 61, e: 78}
-      - {h: "1.16.0 - 2026-10-30", l: 79, e: 99}
-      - {h: "Removed", l: 100, e: 133}
-      - {h: "Changed", l: 134, e: 172}
-      - {h: "Fixed", l: 173, e: 234}
-      - {h: "1.15.0 - 2026-10-23", l: 235, e: 236}
-      - {h: "Added", l: 237, e: 248}
-      - {h: "Changed", l: 249, e: 279}
-      - {h: "Fixed", l: 280, e: 286}
-      - {h: "1.14.0 - 2026-09-29", l: 287, e: 288}
-      - {h: "Added", l: 289, e: 297}
-      - {h: "Changed", l: 298, e: 320}
-      - {h: "Removed", l: 321, e: 352}
-      - {h: "Fixed", l: 353, e: 394}
-      - {h: "Security", l: 395, e: 431}
-      - {h: "1.13.0 - 2026-09-13", l: 432, e: 433}
-      - {h: "Added", l: 434, e: 619}
-      - {h: "Changed", l: 620, e: 672}
-      - {h: "Fixed", l: 673, e: 806}
-      - {h: "Security", l: 807, e: 825}
-      - {h: "Known limitation", l: 826, e: 833}
-      - {h: "1.12.0 - 2026-08-01", l: 834, e: 835}
-      - {h: "Added", l: 836, e: 967}
-      - {h: "Fixed", l: 968, e: 1210}
-      - {h: "1.11.0 - 2026-07-03", l: 1211, e: 1212}
-      - {h: "Fixed", l: 1213, e: 1226}
-      - {h: "Security", l: 1227, e: 1304}
-      - {h: "Added", l: 1305, e: 1333}
-      - {h: "Changed", l: 1334, e: 1380}
-      - {h: "1.10.0 - 2026-04-20", l: 1381, e: 1389}
-      - {h: "1.9.0 - 2026-04-13", l: 1390, e: 1399}
-      - {h: "1.8.0 - 2026-04-13", l: 1400, e: 1405}
-      - {h: "1.7.0 - 2026-04-06", l: 1406, e: 1420}
-      - {h: "1.6.0 - 2026-04-03", l: 1421, e: 1433}
-      - {h: "1.5.0 - 2026-03-21", l: 1434, e: 1452}
-      - {h: "1.4.0 - 2026-01-22", l: 1453, e: 1458}
-      - {h: "1.3.0 - 2026-01-15", l: 1459, e: 1467}
-      - {h: "1.2.0 - 2026-01-15", l: 1468, e: 1476}
-      - {h: "1.1.0 - 2025-01-15", l: 1477, e: 1487}
-      - {h: "1.0.0 - 2025-12-03", l: 1488, e: 1494}
+      - {h: "Changed", l: 10, e: 17}
+      - {h: "Removed", l: 18, e: 21}
+      - {h: "Fixed", l: 22, e: 31}
+      - {h: "1.17.0 - 2026-11-17", l: 32, e: 38}
+      - {h: "Added", l: 39, e: 45}
+      - {h: "Changed", l: 46, e: 58}
+      - {h: "Removed", l: 59, e: 62}
+      - {h: "Fixed", l: 63, e: 80}
+      - {h: "1.16.0 - 2026-10-30", l: 81, e: 101}
+      - {h: "Removed", l: 102, e: 135}
+      - {h: "Changed", l: 136, e: 174}
+      - {h: "Fixed", l: 175, e: 236}
+      - {h: "1.15.0 - 2026-10-23", l: 237, e: 238}
+      - {h: "Added", l: 239, e: 250}
+      - {h: "Changed", l: 251, e: 281}
+      - {h: "Fixed", l: 282, e: 288}
+      - {h: "1.14.0 - 2026-09-29", l: 289, e: 290}
+      - {h: "Added", l: 291, e: 299}
+      - {h: "Changed", l: 300, e: 322}
+      - {h: "Removed", l: 323, e: 354}
+      - {h: "Fixed", l: 355, e: 396}
+      - {h: "Security", l: 397, e: 433}
+      - {h: "1.13.0 - 2026-09-13", l: 434, e: 435}
+      - {h: "Added", l: 436, e: 621}
+      - {h: "Changed", l: 622, e: 674}
+      - {h: "Fixed", l: 675, e: 808}
+      - {h: "Security", l: 809, e: 827}
+      - {h: "Known limitation", l: 828, e: 835}
+      - {h: "1.12.0 - 2026-08-01", l: 836, e: 837}
+      - {h: "Added", l: 838, e: 969}
+      - {h: "Fixed", l: 970, e: 1212}
+      - {h: "1.11.0 - 2026-07-03", l: 1213, e: 1214}
+      - {h: "Fixed", l: 1215, e: 1228}
+      - {h: "Security", l: 1229, e: 1306}
+      - {h: "Added", l: 1307, e: 1335}
+      - {h: "Changed", l: 1336, e: 1382}
+      - {h: "1.10.0 - 2026-04-20", l: 1383, e: 1391}
+      - {h: "1.9.0 - 2026-04-13", l: 1392, e: 1401}
+      - {h: "1.8.0 - 2026-04-13", l: 1402, e: 1407}
+      - {h: "1.7.0 - 2026-04-06", l: 1408, e: 1422}
+      - {h: "1.6.0 - 2026-04-03", l: 1423, e: 1435}
+      - {h: "1.5.0 - 2026-03-21", l: 1436, e: 1454}
+      - {h: "1.4.0 - 2026-01-22", l: 1455, e: 1460}
+      - {h: "1.3.0 - 2026-01-15", l: 1461, e: 1469}
+      - {h: "1.2.0 - 2026-01-15", l: 1470, e: 1478}
+      - {h: "1.1.0 - 2025-01-15", l: 1479, e: 1489}
+      - {h: "1.0.0 - 2025-12-03", l: 1490, e: 1496}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -95,75 +95,75 @@ documents:
     description: ""
     category: config
     scope: root
-    size: 13367
+    size: 13846
     tags: [config]
     sections:
       - {h: "At-a-glance", l: 7, e: 30}
-      - {h: "Not checked by a hook", l: 31, e: 45}
-      - {h: "Secrets outside the working directory", l: 46, e: 69}
-      - {h: "CI gates (server-side)", l: 70, e: 82}
-      - {h: "Fail-policy quick reference", l: 83, e: 88}
-      - {h: "Bypass", l: 89, e: 93}
-      - {h: "See also", l: 94, e: 99}
+      - {h: "Not checked by a hook", l: 31, e: 46}
+      - {h: "Secrets outside the working directory", l: 47, e: 70}
+      - {h: "CI gates (server-side)", l: 71, e: 83}
+      - {h: "Fail-policy quick reference", l: 84, e: 89}
+      - {h: "Bypass", l: 90, e: 94}
+      - {h: "See also", l: 95, e: 100}
   - path: "HOOKS.md"
     title: "Claude Code Hook Configuration Guide"
     description: ""
     category: config
     scope: root
-    size: 59908
+    size: 60261
     tags: [config,hook,hooks]
     sections:
       - {h: "Overview", l: 7, e: 10}
-      - {h: "Hook Policy", l: 11, e: 20}
-      - {h: "Registered hooks", l: 21, e: 35}
-      - {h: "Where the removed rules live now", l: 36, e: 57}
-      - {h: "Shared libraries and their consumers", l: 58, e: 72}
-      - {h: "Quick Navigation", l: 73, e: 89}
-      - {h: "Configuration File Locations", l: 90, e: 96}
-      - {h: "Global Hooks (global/settings.json)", l: 97, e: 108}
-      - {h: "1. Sensitive File Protection (permissions.deny)", l: 109, e: 121}
-      - {h: "2. Destructive Command Guard (PreToolUse)", l: 122, e: 163}
-      - {h: "Absolute paths", l: 164, e: 177}
-      - {h: "3. Merge Gate Guard (PreToolUse)", l: 178, e: 232}
-      - {h: "4. Memory Hooks", l: 233, e: 246}
-      - {h: "5. Session-End Housekeeping (SessionEnd)", l: 247, e: 252}
-      - {h: "Hook Response Format", l: 253, e: 297}
-      - {h: "Project Hooks (project/.claude/settings.json)", l: 298, e: 303}
-      - {h: "1. Auto Formatting (PostToolUse)", l: 304, e: 324}
-      - {h: "Permission Settings", l: 325, e: 379}
-      - {h: "Over-length commands and the parse limit", l: 380, e: 402}
-      - {h: "Windows Support (PowerShell)", l: 403, e: 404}
-      - {h: "Overview", l: 405, e: 413}
-      - {h: "How It Works", l: 414, e: 428}
-      - {h: "Bash Guard Dispatcher (Windows)", l: 429, e: 520}
-      - {h: "Edit Guard Dispatcher (Windows)", l: 521, e: 612}
-      - {h: "PowerShell Hook Scripts", l: 613, e: 627}
-      - {h: "Key Differences from Bash Hooks", l: 628, e: 636}
-      - {h: "Prerequisites", l: 637, e: 647}
-      - {h: "Troubleshooting (Windows)", l: 648, e: 649}
-      - {h: "\"File cannot be loaded because running scripts is disabled\"", l: 650, e: 654}
-      - {h: "Hooks not executing", l: 655, e: 660}
-      - {h: "\"pwsh is not recognized\"", l: 661, e: 665}
-      - {h: "Customization", l: 666, e: 667}
-      - {h: "Disabling Hooks", l: 668, e: 671}
-      - {h: "Adding New Hooks", l: 672, e: 688}
-      - {h: "Matcher Patterns", l: 689, e: 697}
-      - {h: "Troubleshooting", l: 698, e: 699}
-      - {h: "Hook is not executing", l: 700, e: 705}
-      - {h: "Timeout occurring", l: 706, e: 732}
-      - {h: "Formatter not working", l: 733, e: 741}
-      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 742, e: 781}
-      - {h: "References", l: 782, e: 794}
-      - {h: "Auto-Generated Hook Catalog", l: 795, e: 802}
-      - {h: "Index", l: 803, e: 818}
-      - {h: "Hook Details", l: 819, e: 820}
-      - {h: "bash-guard-dispatcher", l: 821, e: 838}
-      - {h: "dangerous-command-guard", l: 839, e: 855}
-      - {h: "memory-access-logger", l: 856, e: 872}
-      - {h: "memory-integrity-check", l: 873, e: 889}
-      - {h: "memory-write-guard", l: 890, e: 906}
-      - {h: "merge-gate-guard", l: 907, e: 924}
-      - {h: "prune-permission-rules", l: 925, e: 943}
+      - {h: "Hook Policy", l: 11, e: 22}
+      - {h: "Registered hooks", l: 23, e: 37}
+      - {h: "Where the removed rules live now", l: 38, e: 59}
+      - {h: "Shared libraries and their consumers", l: 60, e: 74}
+      - {h: "Quick Navigation", l: 75, e: 91}
+      - {h: "Configuration File Locations", l: 92, e: 98}
+      - {h: "Global Hooks (global/settings.json)", l: 99, e: 110}
+      - {h: "1. Sensitive File Protection (permissions.deny)", l: 111, e: 123}
+      - {h: "2. Destructive Command Guard (PreToolUse)", l: 124, e: 165}
+      - {h: "Absolute paths", l: 166, e: 179}
+      - {h: "3. Merge Gate Guard (PreToolUse)", l: 180, e: 234}
+      - {h: "4. Memory Hooks", l: 235, e: 248}
+      - {h: "5. Session-End Housekeeping (SessionEnd)", l: 249, e: 254}
+      - {h: "Hook Response Format", l: 255, e: 299}
+      - {h: "Project Hooks (project/.claude/settings.json)", l: 300, e: 305}
+      - {h: "1. Auto Formatting (PostToolUse)", l: 306, e: 326}
+      - {h: "Permission Settings", l: 327, e: 381}
+      - {h: "Over-length commands and the parse limit", l: 382, e: 404}
+      - {h: "Windows Support (PowerShell)", l: 405, e: 406}
+      - {h: "Overview", l: 407, e: 415}
+      - {h: "How It Works", l: 416, e: 430}
+      - {h: "Bash Guard Dispatcher (Windows)", l: 431, e: 522}
+      - {h: "Edit Guard Dispatcher (Windows)", l: 523, e: 614}
+      - {h: "PowerShell Hook Scripts", l: 615, e: 629}
+      - {h: "Key Differences from Bash Hooks", l: 630, e: 638}
+      - {h: "Prerequisites", l: 639, e: 649}
+      - {h: "Troubleshooting (Windows)", l: 650, e: 651}
+      - {h: "\"File cannot be loaded because running scripts is disabled\"", l: 652, e: 656}
+      - {h: "Hooks not executing", l: 657, e: 662}
+      - {h: "\"pwsh is not recognized\"", l: 663, e: 667}
+      - {h: "Customization", l: 668, e: 669}
+      - {h: "Disabling Hooks", l: 670, e: 673}
+      - {h: "Adding New Hooks", l: 674, e: 690}
+      - {h: "Matcher Patterns", l: 691, e: 699}
+      - {h: "Troubleshooting", l: 700, e: 701}
+      - {h: "Hook is not executing", l: 702, e: 707}
+      - {h: "Timeout occurring", l: 708, e: 734}
+      - {h: "Formatter not working", l: 735, e: 743}
+      - {h: "Git Hooks: Pre-push Protected Branch Guard", l: 744, e: 783}
+      - {h: "References", l: 784, e: 796}
+      - {h: "Auto-Generated Hook Catalog", l: 797, e: 804}
+      - {h: "Index", l: 805, e: 820}
+      - {h: "Hook Details", l: 821, e: 822}
+      - {h: "bash-guard-dispatcher", l: 823, e: 840}
+      - {h: "dangerous-command-guard", l: 841, e: 857}
+      - {h: "memory-access-logger", l: 858, e: 874}
+      - {h: "memory-integrity-check", l: 875, e: 891}
+      - {h: "memory-write-guard", l: 892, e: 908}
+      - {h: "merge-gate-guard", l: 909, e: 926}
+      - {h: "prune-permission-rules", l: 927, e: 945}
   - path: "PREREQUISITES.md"
     title: "Prerequisites"
     description: ""
@@ -1904,13 +1904,13 @@ documents:
     description: ""
     category: root
     scope: global
-    size: 2505
+    size: 2945
     tags: [global,skill]
     sections:
       - {h: "Core (5 lines, re-anchor target)", l: 9, e: 18}
       - {h: "Optional (5 lines, load when the skill touches these dimensions)", l: 19, e: 28}
-      - {h: "How to use", l: 29, e: 34}
-      - {h: "Frontmatter Invariants", l: 35, e: 43}
+      - {h: "How to use", l: 38, e: 43}
+      - {h: "Frontmatter Invariants", l: 44, e: 52}
   - path: "global/skills/_internal/branch-cleanup/SKILL.md"
     title: "Branch Cleanup Command"
     description: ""
@@ -2171,7 +2171,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 22691
+    size: 23320
     tags: [global,skill]
     sections:
       - {h: "When to Use This Skill", l: 39, e: 51}
@@ -2190,23 +2190,23 @@ documents:
       - {h: "Phase 3: Fan-out Worker Dispatch", l: 268, e: 304}
       - {h: "Phase 4: Supervisor Polling Loop", l: 305, e: 327}
       - {h: "Phase 5: Aggregation and Reporting", l: 328, e: 347}
-      - {h: "Phase 6: Cleanup", l: 348, e: 355}
-      - {h: "Status Table Rendering", l: 356, e: 361}
-      - {h: "Fleet Status — fleet-20260420-071500", l: 362, e: 376}
-      - {h: "Final Report", l: 377, e: 379}
-      - {h: "Fleet Execution Report — fleet-20260420-071500", l: 380, e: 391}
-      - {h: "Per-Repo Outcomes", l: 392, e: 402}
-      - {h: "Action Required", l: 403, e: 409}
-      - {h: "Error Handling", l: 410, e: 421}
-      - {h: "Test Scenarios", l: 422, e: 423}
-      - {h: "Normal Flow", l: 424, e: 436}
-      - {h: "Failure Isolation Flow", l: 437, e: 446}
-      - {h: "Pre-flight Exclusion Flow", l: 447, e: 454}
-      - {h: "Dependencies and Related Skills", l: 455, e: 471}
-      - {h: "References", l: 472, e: 477}
-      - {h: "Output Checklist", l: 478, e: 488}
-      - {h: "Reanchoring Loop Invariants", l: 489, e: 494}
-      - {h: "Side Effects and Loop-Safety", l: 495, e: 497}
+      - {h: "Phase 6: Cleanup", l: 350, e: 357}
+      - {h: "Status Table Rendering", l: 358, e: 363}
+      - {h: "Fleet Status — fleet-20260420-071500", l: 364, e: 378}
+      - {h: "Final Report", l: 379, e: 381}
+      - {h: "Fleet Execution Report — fleet-20260420-071500", l: 382, e: 393}
+      - {h: "Per-Repo Outcomes", l: 394, e: 404}
+      - {h: "Action Required", l: 405, e: 411}
+      - {h: "Error Handling", l: 412, e: 423}
+      - {h: "Test Scenarios", l: 424, e: 425}
+      - {h: "Normal Flow", l: 426, e: 438}
+      - {h: "Failure Isolation Flow", l: 439, e: 448}
+      - {h: "Pre-flight Exclusion Flow", l: 449, e: 456}
+      - {h: "Dependencies and Related Skills", l: 457, e: 474}
+      - {h: "References", l: 475, e: 480}
+      - {h: "Output Checklist", l: 481, e: 491}
+      - {h: "Reanchoring Loop Invariants", l: 492, e: 497}
+      - {h: "Side Effects and Loop-Safety", l: 498, e: 500}
   - path: "global/skills/_internal/fleet-orchestrator/reference/worker-template.md"
     title: "Fleet Worker Prompt Template"
     description: ""
@@ -2242,44 +2242,44 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 18330
+    size: 19610
     tags: [global,skill]
     sections:
-      - {h: "Workflow", l: 35, e: 36}
-      - {h: "Phase 1: Domain Analysis", l: 37, e: 44}
-      - {h: "Phase 2: Team Architecture Design", l: 45, e: 46}
-      - {h: "2-1. Execution Mode: Agent Teams vs Sub-agents", l: 47, e: 54}
-      - {h: "2-2. Architecture Pattern Selection", l: 55, e: 67}
-      - {h: "2-3. Agent Separation Criteria", l: 68, e: 71}
-      - {h: "Phase 3: Agent Definition Generation", l: 72, e: 103}
-      - {h: "Phase 4: Skill Generation", l: 104, e: 107}
-      - {h: "4-1. Skill Structure", l: 108, e: 117}
-      - {h: "4-2. Description Writing -- Aggressive Trigger Induction", l: 118, e: 126}
-      - {h: "4-3. Body Writing Principles", l: 127, e: 136}
-      - {h: "4-4. Progressive Disclosure (Staged Information Loading)", l: 137, e: 151}
-      - {h: "4-5. Skill-Agent Connection Principles", l: 152, e: 157}
-      - {h: "Phase 5: Integration and Orchestration", l: 158, e: 161}
-      - {h: "5-0. Orchestrator Patterns by Mode", l: 162, e: 169}
-      - {h: "5-1. Data Passing Protocol", l: 170, e: 184}
-      - {h: "5-2. Error Handling", l: 185, e: 190}
-      - {h: "5-4. Context Management", l: 191, e: 200}
-      - {h: "5-5. Team Mode: Team Size Guidelines", l: 201, e: 210}
-      - {h: "Phase 6: Verification and Testing", l: 211, e: 214}
-      - {h: "6-1. Structural Verification", l: 215, e: 221}
-      - {h: "6-2. Execution Mode Verification", l: 222, e: 226}
-      - {h: "6-3. Skill Execution Testing", l: 227, e: 234}
-      - {h: "6-4. Trigger Verification", l: 235, e: 245}
-      - {h: "6-5. Dry-run Testing", l: 246, e: 252}
-      - {h: "6-6. Test Scenario Authoring", l: 253, e: 257}
-      - {h: "Output Checklist", l: 258, e: 273}
-      - {h: "References", l: 274, e: 284}
-      - {h: "Side Effects and Loop-Safety", l: 285, e: 287}
+      - {h: "Workflow", l: 36, e: 37}
+      - {h: "Phase 1: Domain Analysis", l: 38, e: 45}
+      - {h: "Phase 2: Team Architecture Design", l: 46, e: 47}
+      - {h: "2-1. Execution Mode: Agent Teams vs Sub-agents", l: 48, e: 55}
+      - {h: "2-2. Architecture Pattern Selection", l: 56, e: 68}
+      - {h: "2-3. Agent Separation Criteria", l: 69, e: 72}
+      - {h: "Phase 3: Agent Definition Generation", l: 73, e: 104}
+      - {h: "Phase 4: Skill Generation", l: 105, e: 108}
+      - {h: "4-1. Skill Structure", l: 109, e: 118}
+      - {h: "4-2. Description Writing -- Aggressive Trigger Induction", l: 119, e: 127}
+      - {h: "4-3. Body Writing Principles", l: 128, e: 137}
+      - {h: "4-4. Progressive Disclosure (Staged Information Loading)", l: 138, e: 152}
+      - {h: "4-5. Skill-Agent Connection Principles", l: 153, e: 158}
+      - {h: "Phase 5: Integration and Orchestration", l: 159, e: 162}
+      - {h: "5-0. Orchestrator Patterns by Mode", l: 163, e: 170}
+      - {h: "5-1. Data Passing Protocol", l: 171, e: 185}
+      - {h: "5-2. Error Handling", l: 186, e: 191}
+      - {h: "5-4. Context Management", l: 203, e: 212}
+      - {h: "5-5. Team Mode: Team Size Guidelines", l: 213, e: 222}
+      - {h: "Phase 6: Verification and Testing", l: 223, e: 226}
+      - {h: "6-1. Structural Verification", l: 227, e: 233}
+      - {h: "6-2. Execution Mode Verification", l: 234, e: 238}
+      - {h: "6-3. Skill Execution Testing", l: 239, e: 246}
+      - {h: "6-4. Trigger Verification", l: 247, e: 257}
+      - {h: "6-5. Dry-run Testing", l: 258, e: 264}
+      - {h: "6-6. Test Scenario Authoring", l: 265, e: 269}
+      - {h: "Output Checklist", l: 270, e: 285}
+      - {h: "References", l: 286, e: 297}
+      - {h: "Side Effects and Loop-Safety", l: 298, e: 300}
   - path: "global/skills/_internal/harness/reference/agent-design-patterns.md"
     title: "Agent Team Design Patterns"
     description: ""
     category: reference
     scope: global
-    size: 17062
+    size: 18653
     tags: [global,reference,skill]
     sections:
       - {h: "Table of Contents", l: 3, e: 15}
@@ -2297,21 +2297,21 @@ documents:
       - {h: "7. Generator-Evaluator", l: 186, e: 203}
       - {h: "8. Long-Running Session (Initializer-Worker)", l: 204, e: 221}
       - {h: "Composite Patterns", l: 222, e: 233}
-      - {h: "Execution Mode for Composite Patterns", l: 234, e: 248}
-      - {h: "Agent Type Selection", l: 249, e: 252}
-      - {h: "Built-in Types", l: 253, e: 260}
-      - {h: "Custom Types", l: 261, e: 264}
-      - {h: "Selection Criteria", l: 265, e: 280}
-      - {h: "Agent Definition Structure", l: 281, e: 304}
-      - {h: "Core Role", l: 305, e: 308}
-      - {h: "Working Principles", l: 309, e: 312}
-      - {h: "Input/Output Protocol", l: 313, e: 317}
-      - {h: "Team Communication Protocol (agent team mode)", l: 318, e: 322}
-      - {h: "Error Handling", l: 323, e: 326}
-      - {h: "Collaboration", l: 327, e: 332}
-      - {h: "Agent Separation Criteria", l: 333, e: 343}
-      - {h: "Skills vs Agents", l: 344, e: 358}
-      - {h: "Skill-Agent Connection Methods", l: 359, e: 369}
+      - {h: "Execution Mode for Composite Patterns", l: 234, e: 256}
+      - {h: "Agent Type Selection", l: 257, e: 260}
+      - {h: "Built-in Types", l: 261, e: 268}
+      - {h: "Custom Types", l: 269, e: 272}
+      - {h: "Selection Criteria", l: 273, e: 288}
+      - {h: "Agent Definition Structure", l: 289, e: 312}
+      - {h: "Core Role", l: 313, e: 316}
+      - {h: "Working Principles", l: 317, e: 320}
+      - {h: "Input/Output Protocol", l: 321, e: 325}
+      - {h: "Team Communication Protocol (agent team mode)", l: 326, e: 330}
+      - {h: "Error Handling", l: 331, e: 334}
+      - {h: "Collaboration", l: 335, e: 340}
+      - {h: "Agent Separation Criteria", l: 341, e: 351}
+      - {h: "Skills vs Agents", l: 352, e: 366}
+      - {h: "Skill-Agent Connection Methods", l: 367, e: 377}
   - path: "global/skills/_internal/harness/reference/agent-frontmatter-spec.md"
     title: "Agent Definition Frontmatter Specification"
     description: ""
@@ -2357,50 +2357,50 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 13684
+    size: 14187
     tags: [global,reference,skill]
     sections:
       - {h: "Table of Contents", l: 7, e: 17}
       - {h: "1. Generator-Evaluator Architecture", l: 18, e: 19}
       - {h: "The Self-Evaluation Problem", l: 20, e: 25}
-      - {h: "Three-Agent Pattern: Planner-Generator-Evaluator", l: 26, e: 40}
-      - {h: "Evaluator Design Principles", l: 41, e: 67}
-      - {h: "When to Use Generator-Evaluator vs Producer-Reviewer", l: 68, e: 81}
-      - {h: "2. Long-Running Session Pattern", l: 82, e: 83}
-      - {h: "Initializer + Incremental Worker", l: 84, e: 96}
-      - {h: "Session Initialization Sequence", l: 97, e: 107}
-      - {h: "Feature Specification Format", l: 108, e: 144}
-      - {h: "Single Feature Per Session", l: 145, e: 156}
-      - {h: "Quality Gate: Merge-Ready State", l: 157, e: 168}
-      - {h: "3. Context Management Strategies", l: 169, e: 170}
-      - {h: "Context Reset vs Compaction", l: 171, e: 177}
-      - {h: "Why Context Reset Wins for Long-Running Work", l: 178, e: 187}
-      - {h: "Reset Protocol", l: 188, e: 214}
-      - {h: "4. Sprint Contracts", l: 215, e: 216}
-      - {h: "What They Are", l: 217, e: 220}
-      - {h: "Structure", l: 221, e: 225}
-      - {h: "Scope", l: 226, e: 228}
-      - {h: "Success Criteria per Feature", l: 229, e: 230}
-      - {h: "[Feature ID]: [Title]", l: 231, e: 235}
-      - {h: "Constraints", l: 236, e: 240}
-      - {h: "Dependencies", l: 241, e: 244}
-      - {h: "Evaluation Rubric", l: 245, e: 252}
-      - {h: "Workflow", l: 253, e: 268}
-      - {h: "5. Session Continuity", l: 269, e: 270}
-      - {h: "Progress Tracking Files", l: 271, e: 278}
-      - {h: "progress.txt Format", l: 279, e: 291}
-      - {h: "Handoff Pattern", l: 292, e: 304}
-      - {h: "6. Harness Evolution", l: 305, e: 306}
-      - {h: "Simplification with Model Improvements", l: 307, e: 317}
-      - {h: "Tracking Harness Value", l: 318, e: 326}
-      - {h: "Weaving AI Features", l: 327, e: 330}
-      - {h: "Model Transition Guidance", l: 331, e: 337}
+      - {h: "Three-Agent Pattern: Planner-Generator-Evaluator", l: 26, e: 42}
+      - {h: "Evaluator Design Principles", l: 43, e: 69}
+      - {h: "When to Use Generator-Evaluator vs Producer-Reviewer", l: 70, e: 83}
+      - {h: "2. Long-Running Session Pattern", l: 84, e: 85}
+      - {h: "Initializer + Incremental Worker", l: 86, e: 98}
+      - {h: "Session Initialization Sequence", l: 99, e: 109}
+      - {h: "Feature Specification Format", l: 110, e: 146}
+      - {h: "Single Feature Per Session", l: 147, e: 158}
+      - {h: "Quality Gate: Merge-Ready State", l: 159, e: 170}
+      - {h: "3. Context Management Strategies", l: 171, e: 172}
+      - {h: "Context Reset vs Compaction", l: 173, e: 179}
+      - {h: "Why Context Reset Wins for Long-Running Work", l: 180, e: 189}
+      - {h: "Reset Protocol", l: 190, e: 216}
+      - {h: "4. Sprint Contracts", l: 217, e: 218}
+      - {h: "What They Are", l: 219, e: 222}
+      - {h: "Structure", l: 223, e: 227}
+      - {h: "Scope", l: 228, e: 230}
+      - {h: "Success Criteria per Feature", l: 231, e: 232}
+      - {h: "[Feature ID]: [Title]", l: 233, e: 237}
+      - {h: "Constraints", l: 238, e: 242}
+      - {h: "Dependencies", l: 243, e: 246}
+      - {h: "Evaluation Rubric", l: 247, e: 254}
+      - {h: "Workflow", l: 255, e: 270}
+      - {h: "5. Session Continuity", l: 271, e: 272}
+      - {h: "Progress Tracking Files", l: 273, e: 280}
+      - {h: "progress.txt Format", l: 281, e: 293}
+      - {h: "Handoff Pattern", l: 294, e: 306}
+      - {h: "6. Harness Evolution", l: 307, e: 308}
+      - {h: "Simplification with Model Improvements", l: 309, e: 319}
+      - {h: "Tracking Harness Value", l: 320, e: 328}
+      - {h: "Weaving AI Features", l: 329, e: 332}
+      - {h: "Model Transition Guidance", l: 333, e: 339}
   - path: "global/skills/_internal/harness/reference/orchestrator-template.md"
     title: "Orchestrator Skill Templates"
     description: ""
     category: reference
     scope: global
-    size: 14222
+    size: 18018
     tags: [global,reference,skill]
     sections:
       - {h: "Table of Contents", l: 5, e: 13}
@@ -2411,48 +2411,48 @@ documents:
       - {h: "Phase 1: Preparation", l: 40, e: 44}
       - {h: "Phase 2: Team Assembly", l: 45, e: 71}
       - {h: "Phase 3: {Main work -- e.g., investigation/generation/analysis}", l: 72, e: 95}
-      - {h: "Phase 4: {Follow-up work -- e.g., verification/integration}", l: 96, e: 101}
-      - {h: "Phase 5: Cleanup", l: 102, e: 109}
-      - {h: "Data Flow", l: 110, e: 124}
-      - {h: "Error Handling", l: 125, e: 134}
-      - {h: "Test Scenarios", l: 135, e: 136}
-      - {h: "Normal flow", l: 137, e: 145}
-      - {h: "Error flow", l: 146, e: 156}
-      - {h: "Template B: Sub-agent Mode (Lightweight)", l: 157, e: 170}
-      - {h: "Execution Mode: Sub-agent", l: 171, e: 172}
-      - {h: "Agent Configuration", l: 173, e: 180}
-      - {h: "Workflow", l: 181, e: 182}
-      - {h: "Phase 1: Preparation", l: 183, e: 187}
-      - {h: "Phase 2: {Main work -- e.g., investigation/generation/analysis}", l: 188, e: 210}
-      - {h: "Phase 3: {Follow-up work -- e.g., verification/integration}", l: 211, e: 215}
-      - {h: "Phase 4: Cleanup", l: 216, e: 219}
-      - {h: "Data Flow", l: 220, e: 227}
-      - {h: "Error Handling", l: 228, e: 236}
-      - {h: "Test Scenarios", l: 237, e: 238}
-      - {h: "Normal flow", l: 239, e: 245}
-      - {h: "Error flow", l: 246, e: 255}
-      - {h: "Template C: Long-Running Session Mode", l: 256, e: 269}
-      - {h: "Execution Mode: Long-Running Session", l: 270, e: 271}
-      - {h: "Feature Configuration", l: 272, e: 275}
-      - {h: "Workflow", l: 276, e: 277}
-      - {h: "Phase 1: Initialization (first session only)", l: 278, e: 284}
-      - {h: "Phase 2: Feature Selection (each session)", l: 285, e: 291}
-      - {h: "Phase 3: Implementation", l: 292, e: 297}
-      - {h: "Phase 4: Session Handoff", l: 298, e: 307}
-      - {h: "Context Reset Protocol (when approaching context limits)", l: 308, e: 313}
-      - {h: "Data Flow", l: 314, e: 324}
-      - {h: "Error Handling", l: 325, e: 333}
-      - {h: "Test Scenarios", l: 334, e: 335}
-      - {h: "Normal flow", l: 336, e: 341}
-      - {h: "Resume flow", l: 342, e: 350}
-      - {h: "Writing Principles", l: 351, e: 362}
-      - {h: "Reference", l: 363, e: 370}
+      - {h: "Phase 4: {Follow-up work -- e.g., verification/integration}", l: 96, e: 114}
+      - {h: "Phase 5: Cleanup", l: 115, e: 122}
+      - {h: "Data Flow", l: 123, e: 137}
+      - {h: "Error Handling", l: 138, e: 147}
+      - {h: "Test Scenarios", l: 148, e: 149}
+      - {h: "Normal flow", l: 150, e: 158}
+      - {h: "Error flow", l: 159, e: 169}
+      - {h: "Template B: Sub-agent Mode (Lightweight)", l: 170, e: 183}
+      - {h: "Execution Mode: Sub-agent", l: 184, e: 185}
+      - {h: "Agent Configuration", l: 186, e: 193}
+      - {h: "Workflow", l: 194, e: 195}
+      - {h: "Phase 1: Preparation", l: 196, e: 200}
+      - {h: "Phase 2: {Main work -- e.g., investigation/generation/analysis}", l: 201, e: 223}
+      - {h: "Phase 3: {Follow-up work -- e.g., verification/integration}", l: 224, e: 241}
+      - {h: "Phase 4: Cleanup", l: 242, e: 245}
+      - {h: "Data Flow", l: 246, e: 253}
+      - {h: "Error Handling", l: 254, e: 262}
+      - {h: "Test Scenarios", l: 263, e: 264}
+      - {h: "Normal flow", l: 265, e: 271}
+      - {h: "Error flow", l: 272, e: 281}
+      - {h: "Template C: Long-Running Session Mode", l: 282, e: 295}
+      - {h: "Execution Mode: Long-Running Session", l: 296, e: 297}
+      - {h: "Feature Configuration", l: 298, e: 301}
+      - {h: "Workflow", l: 302, e: 303}
+      - {h: "Phase 1: Initialization (first session only)", l: 304, e: 310}
+      - {h: "Phase 2: Feature Selection (each session)", l: 311, e: 317}
+      - {h: "Phase 3: Implementation", l: 318, e: 323}
+      - {h: "Phase 4: Session Handoff", l: 324, e: 333}
+      - {h: "Context Reset Protocol (when approaching context limits)", l: 334, e: 339}
+      - {h: "Data Flow", l: 340, e: 350}
+      - {h: "Error Handling", l: 351, e: 359}
+      - {h: "Test Scenarios", l: 360, e: 361}
+      - {h: "Normal flow", l: 362, e: 367}
+      - {h: "Resume flow", l: 368, e: 376}
+      - {h: "Writing Principles", l: 377, e: 389}
+      - {h: "Reference", l: 390, e: 400}
   - path: "global/skills/_internal/harness/reference/qa-agent-guide.md"
     title: "QA Agent Design Guide"
     description: ""
     category: reference
     scope: global
-    size: 10917
+    size: 12676
     tags: [global,reference,skill]
     sections:
       - {h: "Table of Contents", l: 7, e: 17}
@@ -2468,19 +2468,19 @@ documents:
       - {h: "3-1. Use general-purpose Type, Not Explore", l: 106, e: 114}
       - {h: "3-2. Prioritize \"Cross-comparison\" Over \"Existence Checking\"", l: 115, e: 123}
       - {h: "3-3. The \"Read Both Sides Simultaneously\" Principle", l: 124, e: 132}
-      - {h: "3-4. Run QA After Each Module, Not Just After Everything Is Complete", l: 133, e: 142}
-      - {h: "4. Verification Checklist Template", l: 143, e: 147}
-      - {h: "Integration Coherence Verification (Web App)", l: 148, e: 149}
-      - {h: "API <-> Front-end Connection", l: 150, e: 156}
-      - {h: "Routing Coherence", l: 157, e: 161}
-      - {h: "State Machine Coherence", l: 162, e: 167}
-      - {h: "Data Flow Coherence", l: 168, e: 175}
-      - {h: "5. QA Agent Definition Template", l: 176, e: 187}
-      - {h: "Core Role", l: 188, e: 190}
-      - {h: "Verification Priority", l: 191, e: 197}
-      - {h: "Verification Method: \"Read Both Sides Simultaneously\"", l: 198, e: 208}
-      - {h: "Team Communication Protocol", l: 209, e: 217}
-      - {h: "6. Real-world Case Study: 7 Bug Examples", l: 218, e: 230}
+      - {h: "3-4. Run QA After Each Module, Not Just After Everything Is Complete", l: 133, e: 151}
+      - {h: "4. Verification Checklist Template", l: 152, e: 156}
+      - {h: "Integration Coherence Verification (Web App)", l: 157, e: 158}
+      - {h: "API <-> Front-end Connection", l: 159, e: 165}
+      - {h: "Routing Coherence", l: 166, e: 170}
+      - {h: "State Machine Coherence", l: 171, e: 176}
+      - {h: "Data Flow Coherence", l: 177, e: 184}
+      - {h: "5. QA Agent Definition Template", l: 185, e: 196}
+      - {h: "Core Role", l: 197, e: 199}
+      - {h: "Verification Priority", l: 200, e: 206}
+      - {h: "Verification Method: \"Read Both Sides Simultaneously\"", l: 207, e: 217}
+      - {h: "Team Communication Protocol", l: 225, e: 233}
+      - {h: "6. Real-world Case Study: 7 Bug Examples", l: 234, e: 246}
   - path: "global/skills/_internal/harness/reference/skill-testing-guide.md"
     title: "Skill Testing & Iterative Improvement Guide"
     description: ""
@@ -2565,7 +2565,7 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 20098
+    size: 20404
     tags: [global,reference,skill]
     sections:
       - {h: "Table of Contents", l: 5, e: 16}
@@ -2597,37 +2597,75 @@ documents:
       - {h: "Input/Output Protocol", l: 230, e: 238}
       - {h: "Error Handling", l: 239, e: 242}
       - {h: "Collaboration", l: 243, e: 247}
-      - {h: "Error Handling", l: 248, e: 258}
-      - {h: "Example 4: Code Review Team (Agent Team Mode)", l: 259, e: 260}
-      - {h: "Team Architecture: Fan-out/Fan-in + Discussion", l: 261, e: 261}
-      - {h: "Execution Mode: Agent Team", l: 262, e: 274}
-      - {h: "Team Communication Patterns", l: 275, e: 286}
-      - {h: "Example 5: Supervisor Pattern -- Code Migration Team (Agent Team Mode)", l: 287, e: 288}
-      - {h: "Team Architecture: Supervisor", l: 289, e: 289}
-      - {h: "Execution Mode: Agent Team", l: 290, e: 299}
-      - {h: "Agent Configuration", l: 300, e: 306}
-      - {h: "Supervisor's Dynamic Distribution Logic (Agent Team)", l: 307, e: 323}
-      - {h: "Example 6: Debugging with Competing Hypotheses (Agent Team Mode)", l: 324, e: 325}
-      - {h: "Team Architecture: Fan-out + Debate", l: 326, e: 326}
-      - {h: "Execution Mode: Agent Team", l: 327, e: 339}
-      - {h: "Agent Configuration", l: 340, e: 348}
-      - {h: "Team Communication Patterns", l: 349, e: 363}
-      - {h: "Orchestrator Workflow", l: 364, e: 382}
-      - {h: "Example 7: Application Builder with Evaluator (Generator-Evaluator Pattern)", l: 383, e: 384}
-      - {h: "Team Architecture: Planner (sub-agent) + Generator-Evaluator (agent team)", l: 385, e: 385}
-      - {h: "Execution Mode: Mixed (sub-agent for planning, agent team for build-evaluate loop)", l: 386, e: 398}
-      - {h: "Agent Configuration", l: 399, e: 406}
-      - {h: "Agent File Example: `evaluator.md`", l: 407, e: 420}
-      - {h: "Core Role", l: 421, e: 426}
-      - {h: "Scoring Calibration", l: 427, e: 428}
-      - {h: "Example scores for \"Test quality\" criterion:", l: 429, e: 433}
-      - {h: "Working Principles", l: 434, e: 439}
-      - {h: "Team Communication Protocol", l: 440, e: 445}
-      - {h: "Sprint Contract Workflow", l: 446, e: 479}
-      - {h: "Output Pattern Summary", l: 480, e: 481}
-      - {h: "Agent Definition Files", l: 482, e: 486}
-      - {h: "Skill File Structure", l: 487, e: 490}
-      - {h: "Integration Skill (Orchestrator)", l: 491, e: 494}
+      - {h: "Error Handling", l: 248, e: 260}
+      - {h: "Example 4: Code Review Team (Agent Team Mode)", l: 261, e: 262}
+      - {h: "Team Architecture: Fan-out/Fan-in + Discussion", l: 263, e: 263}
+      - {h: "Execution Mode: Agent Team", l: 264, e: 276}
+      - {h: "Team Communication Patterns", l: 277, e: 288}
+      - {h: "Example 5: Supervisor Pattern -- Code Migration Team (Agent Team Mode)", l: 289, e: 290}
+      - {h: "Team Architecture: Supervisor", l: 291, e: 291}
+      - {h: "Execution Mode: Agent Team", l: 292, e: 301}
+      - {h: "Agent Configuration", l: 302, e: 308}
+      - {h: "Supervisor's Dynamic Distribution Logic (Agent Team)", l: 309, e: 325}
+      - {h: "Example 6: Debugging with Competing Hypotheses (Agent Team Mode)", l: 326, e: 327}
+      - {h: "Team Architecture: Fan-out + Debate", l: 328, e: 328}
+      - {h: "Execution Mode: Agent Team", l: 329, e: 341}
+      - {h: "Agent Configuration", l: 342, e: 350}
+      - {h: "Team Communication Patterns", l: 351, e: 365}
+      - {h: "Orchestrator Workflow", l: 366, e: 384}
+      - {h: "Example 7: Application Builder with Evaluator (Generator-Evaluator Pattern)", l: 385, e: 386}
+      - {h: "Team Architecture: Planner (sub-agent) + Generator-Evaluator (agent team)", l: 387, e: 387}
+      - {h: "Execution Mode: Mixed (sub-agent for planning, agent team for build-evaluate loop)", l: 388, e: 400}
+      - {h: "Agent Configuration", l: 401, e: 408}
+      - {h: "Agent File Example: `evaluator.md`", l: 409, e: 422}
+      - {h: "Core Role", l: 423, e: 428}
+      - {h: "Scoring Calibration", l: 429, e: 430}
+      - {h: "Example scores for \"Test quality\" criterion:", l: 431, e: 435}
+      - {h: "Working Principles", l: 436, e: 441}
+      - {h: "Team Communication Protocol", l: 442, e: 447}
+      - {h: "Sprint Contract Workflow", l: 448, e: 481}
+      - {h: "Output Pattern Summary", l: 482, e: 483}
+      - {h: "Agent Definition Files", l: 484, e: 488}
+      - {h: "Skill File Structure", l: 489, e: 492}
+      - {h: "Integration Skill (Orchestrator)", l: 493, e: 496}
+  - path: "global/skills/_internal/harness/reference/verification-contract.md"
+    title: "Verification Contract"
+    description: ""
+    category: reference
+    scope: global
+    size: 12702
+    tags: [global,reference,skill]
+    sections:
+      - {h: "Table of Contents", l: 7, e: 23}
+      - {h: "1. Terms", l: 24, e: 36}
+      - {h: "2. Unit contract", l: 37, e: 41}
+      - {h: "Unit contract: {unit-id}", l: 42, e: 57}
+      - {h: "3. Evidence ledger", l: 58, e: 91}
+      - {h: "4. Scope-matched checks", l: 92, e: 107}
+      - {h: "5. One orchestrator run per unit", l: 108, e: 115}
+      - {h: "6. Round budget", l: 116, e: 126}
+      - {h: "7. Severity scope", l: 127, e: 138}
+      - {h: "8. Conflict rule", l: 139, e: 149}
+      - {h: "9. Stop signal", l: 150, e: 154}
+      - {h: "Verification halted: {unit-id}", l: 155, e: 172}
+      - {h: "10. Role guidance", l: 173, e: 178}
+      - {h: "11. Brief templates", l: 179, e: 182}
+      - {h: "First review brief", l: 183, e: 187}
+      - {h: "Unit contract", l: 188, e: 190}
+      - {h: "What changed", l: 191, e: 193}
+      - {h: "Evidence already recorded", l: 194, e: 198}
+      - {h: "What to judge", l: 199, e: 201}
+      - {h: "How to rate", l: 202, e: 206}
+      - {h: "What to return", l: 207, e: 211}
+      - {h: "Recheck brief", l: 212, e: 216}
+      - {h: "Unit contract", l: 217, e: 219}
+      - {h: "Findings of round 1 and what was done", l: 220, e: 224}
+      - {h: "Conflict decisions", l: 225, e: 227}
+      - {h: "Evidence for the changes", l: 228, e: 230}
+      - {h: "What to judge", l: 231, e: 233}
+      - {h: "Limits", l: 234, e: 238}
+      - {h: "What to return", l: 239, e: 245}
+      - {h: "12. What enforces this", l: 246, e: 250}
   - path: "global/skills/_internal/implement-all-levels/SKILL.md"
     title: "Implement All Levels Command"
     description: ""

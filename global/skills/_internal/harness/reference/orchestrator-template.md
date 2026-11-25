@@ -99,6 +99,19 @@ The leader monitors progress and intervenes when necessary.
 3. {Integration/verification logic}
 4. Generate final deliverable: `{output-path}/{filename}`
 
+**Verification** (include when a member or the leader checks another member's work; rules in `verification-contract.md`):
+
+- Before work starts, write a unit contract per unit: numbered invariants, the baseline, the checks that apply.
+- Record every check result in `_workspace/verification-ledger.md` with its command, the paths it covers and the tree state it ran on:
+  `commit=$(git rev-parse HEAD)` and
+  `digest=$({ git status --porcelain; git diff HEAD; git ls-files --others --exclude-standard -z | xargs -0 git hash-object; } | git hash-object --stdin)`
+- Before running a check, compare the current tree state with the ledger. If no file the check covers changed since a recorded pass, skip the check and add a ledger line that names the entry it relies on. A result the member reported with its tree state counts as evidence.
+- Run only the checks that match the change (docs only -> doc checks; one module -> that module's tests). Run the full check set once per unit, immediately before the commit.
+- Round budget per unit: one full review, then one recheck limited to the findings of the first round. Use the two brief templates of `verification-contract.md` unchanged.
+- Findings are blocker or major only when they cite a numbered invariant or a baseline behaviour. Everything else is minor and goes to the unit's known boundaries.
+- A finding that contradicts an earlier finding or an accepted boundary: stop, decide which requirement wins, record the reason, state it in the next brief.
+- Halt and report to the user when the budget is used, or when two consecutive rounds end without a change in outcome.
+
 ### Phase 5: Cleanup
 1. Send shutdown request to members (SendMessage)
 2. Clean up team (TeamDelete)
@@ -212,6 +225,19 @@ Pass the previous agent's output as the next agent's input:
 1. Collect Phase 2 artifacts via Read
 2. {Integration/verification logic}
 3. Generate final deliverable: `{output-path}/{filename}`
+
+**Verification** (include when an agent or the main agent checks another agent's work; rules in `verification-contract.md`):
+
+- Before work starts, write a unit contract per unit: numbered invariants, the baseline, the checks that apply.
+- Record every check result in `_workspace/verification-ledger.md` with its command, the paths it covers and the tree state it ran on:
+  `commit=$(git rev-parse HEAD)` and
+  `digest=$({ git status --porcelain; git diff HEAD; git ls-files --others --exclude-standard -z | xargs -0 git hash-object; } | git hash-object --stdin)`
+- Before running a check, compare the current tree state with the ledger. If no file the check covers changed since a recorded pass, skip the check and add a ledger line that names the entry it relies on. A result the agent reported with its tree state counts as evidence.
+- Run only the checks that match the change (docs only -> doc checks; one module -> that module's tests). Run the full check set once per unit, immediately before the commit.
+- Round budget per unit: one full review, then one recheck limited to the findings of the first round. Use the two brief templates of `verification-contract.md` unchanged.
+- Findings are blocker or major only when they cite a numbered invariant or a baseline behaviour. Everything else is minor and goes to the unit's known boundaries.
+- A finding that contradicts an earlier finding or an accepted boundary: stop, decide which requirement wins, record the reason, state it in the next brief.
+- Halt and report to the user when the budget is used, or when two consecutive rounds end without a change in outcome.
 
 ### Phase 4: Cleanup
 1. Preserve `_workspace/` directory (do not delete intermediate artifacts -- for post-verification and audit trails)
@@ -359,6 +385,7 @@ Session N+1:
 7. **Make error handling realistic** -- do not assume everything succeeds.
 8. **Test scenarios are required** -- at least 1 normal + 1 error flow.
 9. **Specify context management strategy** -- for long-running harnesses, state whether to use compaction (automatic, lossy) or context reset (manual, lossless via file-based state handoff).
+10. **Bound every review loop by the verification contract** -- when one agent checks another's work, the orchestrator records each check with its tree state, skips a check whose covered files are unchanged, keeps to one full review and one narrow recheck per unit, and halts with a report when two rounds end without a change in outcome. A retry count alone is not a bound. See `verification-contract.md`.
 
 ## Reference
 
@@ -368,3 +395,6 @@ See the research team example in `team-examples.md`.
 
 For long-running session patterns, context reset protocol, and Generator-Evaluator architecture:
 See `long-running-harness-guide.md`.
+
+For the evidence ledger, the round budget, the severity scope and the review and recheck brief templates:
+See `verification-contract.md`.

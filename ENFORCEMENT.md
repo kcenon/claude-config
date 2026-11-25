@@ -42,6 +42,7 @@ Issue #964 removed the hooks that enforced these rules. They stay as instruction
 | Shell writes go through Edit/Write | Bash sandbox write allowlist (macOS, Linux); `global/CLAUDE.md` |
 | No secret-bearing environment variable printed to the transcript (macOS, Linux) | None; the sandbox read-deny covers files, not the environment |
 | Team and task limits | None; Claude Code allows one team per session |
+| Review loops between an orchestrator, a worker and a reviewer: what may be verified again, the round budget, the stop signal | The templates of the `harness` skill and its [verification contract](global/skills/_internal/harness/reference/verification-contract.md). No hook reads the evidence ledger or blocks a tool call because of it. CI checks only that a harness reference which mentions a review loop links to the contract (`tests/scripts/test-verification-contract.sh`) |
 
 ## Secrets outside the working directory
 
