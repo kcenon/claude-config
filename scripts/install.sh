@@ -1142,6 +1142,11 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
     fi
     previous_manifest_path="${MANIFEST_PATH:-}"
     MANIFEST_PATH="$PROJECT_DIR/.claude/.install-manifest.json"
+    # A manifest from an earlier run marks a reinstall. The project then has
+    # CLAUDE.local.md only if its owner kept it, so the default below is not
+    # to create it again (#1064).
+    had_project_install=0
+    if [ -f "$MANIFEST_PATH" ]; then had_project_install=1; fi
     manifest_reset_managed_keys
 
     # 파일 복사
@@ -1210,13 +1215,16 @@ if [ "$INSTALL_TYPE" = "2" ] || [ "$INSTALL_TYPE" = "3" ] || [ "$INSTALL_TYPE" =
 
     # CLAUDE.local.md 생성 (개인 설정용)
     echo ""
-    # Non-interactive guard: --yes accepts default (y).
+    # CREATE_LOCAL=y|n answers without a prompt. Otherwise the default is y on
+    # a first install and n on a reinstall; --yes accepts that default.
     if [ -z "${CREATE_LOCAL:-}" ]; then
+        default_local="y"
+        if [ "$had_project_install" = "1" ]; then default_local="n"; fi
         if [ "$FORCE_MODE" = "1" ]; then
-            CREATE_LOCAL="y"
+            CREATE_LOCAL="$default_local"
         else
-            read -p "개인용 CLAUDE.local.md를 생성하시겠습니까? (y/n) [기본값: y]: " CREATE_LOCAL
-            CREATE_LOCAL=${CREATE_LOCAL:-y}
+            read -p "개인용 CLAUDE.local.md를 생성하시겠습니까? (y/n) [기본값: $default_local]: " CREATE_LOCAL
+            CREATE_LOCAL=${CREATE_LOCAL:-$default_local}
         fi
     fi
     if [ "$CREATE_LOCAL" = "y" ]; then

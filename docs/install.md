@@ -143,6 +143,12 @@ Recognized prompt overrides: `INSTALL_TYPE`, `PROJECT_DIR`,
 PowerShell also accepts `FORCE_MODE=1`, which is the `bootstrap.ps1`
 equivalent of Bash `--yes`.
 
+`scripts/install.sh` and `scripts/install.ps1` also read `CREATE_LOCAL`
+(`y` or `n`) for the personal `CLAUDE.local.md` of a project install.
+Without it the default is `y` on a first project install and `n` where the
+project already has `.claude/.install-manifest.json`, so an unattended
+reinstall does not put the template back into a project that removed it.
+
 Manifest conflict resolution has a separate override:
 
 ```bash

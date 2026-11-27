@@ -319,6 +319,11 @@ jobs:
         shell: pwsh
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File tests/scripts/test-install-dual-variant.ps1
 
+      - name: Run CLAUDE.local.md installer test on native Windows
+        # #1064: a reinstall does not put a removed CLAUDE.local.md back.
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File tests/scripts/test-install-local-claude.ps1
+
       - name: Run verify sync coverage test on native Windows
         # #944: on Windows verify.ps1 must also compare the .ps1 hooks.
         shell: pwsh
