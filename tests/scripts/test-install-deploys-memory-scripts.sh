@@ -85,6 +85,11 @@ make_fixture() {
     # against the handlers it actually ships.
     cp "$REPO_ROOT/global/settings.json" "$fixture/global/settings.json"
     cp "$REPO_ROOT/global/hooks/memory-write-guard.sh" "$fixture/global/hooks/"
+    # The template the project install copies to CLAUDE.local.md, and one
+    # tracked project file, so that the install writes a project manifest
+    # (#1064).
+    mkdir -p "$fixture/project"
+    cp "$REPO_ROOT/project/CLAUDE.local.md.template" "$REPO_ROOT/project/.claudeignore" "$fixture/project/"
     for lib in tokenize-shell.sh timeout-wrapper.sh; do
         printf '%s\n' '#!/bin/sh' 'return 0 2>/dev/null || exit 0' > "$fixture/global/hooks/lib/$lib"
     done
@@ -302,6 +307,38 @@ else
 fi
 assert_true "HOME/.claude/scripts/memory not created" "[ ! -e '$home_p/.claude/scripts/memory' ]"
 assert_true "HOME/.claude/scripts/memory-sync.sh not created" "[ ! -e '$home_p/.claude/scripts/memory-sync.sh' ]"
+assert_true "CREATE_LOCAL=n: CLAUDE.local.md not created" "[ ! -e '$project/CLAUDE.local.md' ]"
+
+echo ""
+echo "[CLAUDE.local.md: created on a first install, not put back by a reinstall (#1064)]"
+project_l="$WORK/project-local"
+mkdir -p "$project_l"
+out7="$WORK/install-local-first.out"
+if run_install "$home_p" 2 "$out7" PROJECT_DIR="$project_l"; then
+    pass "first project install exits 0"
+else
+    fail "first project install exits 0"
+    sed 's/^/    /' "$out7"
+fi
+assert_true "first install creates CLAUDE.local.md" "[ -f '$project_l/CLAUDE.local.md' ]"
+assert_true "first install writes a project manifest" "[ -f '$project_l/.claude/.install-manifest.json' ]"
+rm -f "$project_l/CLAUDE.local.md"
+out8="$WORK/install-local-again.out"
+if run_install "$home_p" 2 "$out8" PROJECT_DIR="$project_l"; then
+    pass "reinstall exits 0"
+else
+    fail "reinstall exits 0"
+    sed 's/^/    /' "$out8"
+fi
+assert_true "reinstall leaves a removed CLAUDE.local.md removed" "[ ! -e '$project_l/CLAUDE.local.md' ]"
+out9="$WORK/install-local-asked.out"
+if run_install "$home_p" 2 "$out9" PROJECT_DIR="$project_l" CREATE_LOCAL=y; then
+    pass "reinstall with CREATE_LOCAL=y exits 0"
+else
+    fail "reinstall with CREATE_LOCAL=y exits 0"
+    sed 's/^/    /' "$out9"
+fi
+assert_true "CREATE_LOCAL=y creates it on a reinstall" "[ -f '$project_l/CLAUDE.local.md' ]"
 
 echo ""
 echo "=== Results: ${PASS} passed, ${FAIL} failed ==="

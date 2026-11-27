@@ -948,6 +948,10 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
     }
     $previousManifestPath = $env:MANIFEST_PATH
     $env:MANIFEST_PATH = Join-Path $projectClaudeDir ".install-manifest.json"
+    # A manifest from an earlier run marks a reinstall. The project then has
+    # CLAUDE.local.md only if its owner kept it, so the default below is not
+    # to create it again (#1064).
+    $hadProjectInstall = Test-Path -LiteralPath $env:MANIFEST_PATH -PathType Leaf
     Reset-ManifestManagedKeys
 
     # Copy files
@@ -1020,8 +1024,15 @@ if ($installType -eq '2' -or $installType -eq '3' -or $installType -eq '5') {
 
     # CLAUDE.local.md creation
     Write-Host ""
-    $createLocal = Read-Host "Create personal CLAUDE.local.md? (y/n) [default: y]"
-    if ([string]::IsNullOrEmpty($createLocal)) { $createLocal = 'y' }
+    # CREATE_LOCAL=y|n answers without a prompt, as in install.sh. Otherwise
+    # the default is y on a first install and n on a reinstall, which is what
+    # an unattended run gets when the prompt reads end of file.
+    $createLocal = $env:CREATE_LOCAL
+    if ([string]::IsNullOrEmpty($createLocal)) {
+        $defaultLocal = if ($hadProjectInstall) { 'n' } else { 'y' }
+        $createLocal = Read-Host "Create personal CLAUDE.local.md? (y/n) [default: $defaultLocal]"
+        if ([string]::IsNullOrEmpty($createLocal)) { $createLocal = $defaultLocal }
+    }
     if ($createLocal -eq 'y') {
         New-LocalClaude $projectDir
     }
