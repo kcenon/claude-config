@@ -519,17 +519,19 @@ function Test-SyncTree {
 function ConvertTo-CanonicalJson {
     # Order-insensitive rendering of a settings subtree: object keys sorted,
     # array order preserved (hook order within a matcher is significant).
-    param($Node)
+    # $SkipKeys names object keys left out at every depth.
+    param($Node, [string[]]$SkipKeys = @())
 
     if ($null -eq $Node) { return 'null' }
     if ($Node -is [System.Management.Automation.PSCustomObject]) {
         $parts = foreach ($p in ($Node.PSObject.Properties | Sort-Object Name)) {
-            '"{0}":{1}' -f $p.Name, (ConvertTo-CanonicalJson -Node $p.Value)
+            if ($SkipKeys -ccontains $p.Name) { continue }
+            '"{0}":{1}' -f $p.Name, (ConvertTo-CanonicalJson -Node $p.Value -SkipKeys $SkipKeys)
         }
         return '{' + ($parts -join ',') + '}'
     }
     if (($Node -is [System.Collections.IEnumerable]) -and ($Node -isnot [string])) {
-        $items = foreach ($i in $Node) { ConvertTo-CanonicalJson -Node $i }
+        $items = foreach ($i in $Node) { ConvertTo-CanonicalJson -Node $i -SkipKeys $SkipKeys }
         return '[' + ($items -join ',') + ']'
     }
     return ($Node | ConvertTo-Json -Compress -Depth 32)
@@ -591,8 +593,12 @@ function Test-SyncSettings {
         Remove-Item -LiteralPath $expected -Force -ErrorAction SilentlyContinue
     }
 
+    # A `_note` beside a matcher documents the profile and registers nothing.
+    # A deployed file loses it when it is rewritten after the install, and the
+    # hooks it registers are then still the profile's (#1063).
     foreach ($key in @('permissions', 'hooks')) {
-        if ((ConvertTo-CanonicalJson -Node $src.$key) -ne (ConvertTo-CanonicalJson -Node $dst.$key)) {
+        $skip = if ($key -eq 'hooks') { @('_note') } else { @() }
+        if ((ConvertTo-CanonicalJson -Node $src.$key -SkipKeys $skip) -ne (ConvertTo-CanonicalJson -Node $dst.$key -SkipKeys $skip)) {
             Write-ErrorMessage "DIFF: $label -- $key"
             $script:SYNC_DIFF++
             return

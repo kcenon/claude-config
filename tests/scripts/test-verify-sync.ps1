@@ -159,6 +159,38 @@ try {
     [System.IO.File]::WriteAllText($settingsPath, $settingsDropped, $utf8NoBom)
     Write-Host 'memory hooks in settings.json: PASS'
 
+    # 4c. A deployed settings.json that lost the `_note` keys of the profile
+    # still registers the profile's hooks, so it is in sync; a changed timeout
+    # is not (#1063).
+    if (-not $settingsDropped.Contains('"_note"')) {
+        throw 'FAIL: the staged settings.json has no _note to drop'
+    }
+    $settings = $settingsDropped | ConvertFrom-Json
+    foreach ($evt in $settings.hooks.PSObject.Properties) {
+        foreach ($group in $evt.Value) { $group.PSObject.Properties.Remove('_note') }
+    }
+    $noNotes = $settings | ConvertTo-Json -Depth 32
+    if ($noNotes.Contains('"_note"')) { throw 'FAIL: the _note keys were not dropped' }
+    [System.IO.File]::WriteAllText($settingsPath, $noNotes, $utf8NoBom)
+    $out = Invoke-Verify -Dir $proj -Arguments @()
+    if ((Get-Findings $out).Count -ne 0) {
+        throw "FAIL: a settings.json without _note keys reported differences`n$((Get-Findings $out) -join "`n")"
+    }
+    Assert-Contains $out 'SYNC: settings.json (hooks + permissions)'
+    $settings = $settingsDropped | ConvertFrom-Json
+    foreach ($evt in $settings.hooks.PSObject.Properties) {
+        foreach ($group in $evt.Value) {
+            foreach ($handler in $group.hooks) {
+                if ($handler.PSObject.Properties['timeout']) { $handler.timeout = $handler.timeout + 1 }
+            }
+        }
+    }
+    [System.IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 32), $utf8NoBom)
+    $out = Invoke-Verify -Dir $proj -Arguments @()
+    Assert-Contains $out 'DIFF: settings.json (hooks + permissions) -- hooks'
+    [System.IO.File]::WriteAllText($settingsPath, $settingsDropped, $utf8NoBom)
+    Write-Host '_note keys left out of the hooks comparison: PASS'
+
     # 5. Each kind of drift is reported; a CRLF and BOM rewrite is not.
     $hookVictim = if ($IsWindows) {
         'edit-guard-dispatcher.ps1'
