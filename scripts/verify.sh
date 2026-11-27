@@ -533,6 +533,16 @@ def canon(node):
     # because hook order within a matcher is significant.
     return json.dumps(node, sort_keys=True, separators=(",", ":"))
 
+def without_notes(node):
+    # A `_note` beside a matcher documents the profile and registers nothing.
+    # A deployed file loses it when it is rewritten after the install, and the
+    # hooks it registers are then still the profile's (#1063).
+    if isinstance(node, dict):
+        return {k: without_notes(v) for k, v in node.items() if k != "_note"}
+    if isinstance(node, list):
+        return [without_notes(v) for v in node]
+    return node
+
 try:
     with open(sys.argv[1], encoding="utf-8") as fh:
         a = json.load(fh)
@@ -543,7 +553,10 @@ except (OSError, ValueError):
     sys.exit(0)
 
 for key in ("permissions", "hooks"):
-    if canon(a.get(key)) != canon(b.get(key)):
+    left, right = a.get(key), b.get(key)
+    if key == "hooks":
+        left, right = without_notes(left), without_notes(right)
+    if canon(left) != canon(right):
         print(key)
         sys.exit(0)
 PY

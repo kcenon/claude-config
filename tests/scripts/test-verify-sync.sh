@@ -182,6 +182,23 @@ grep -qF "DIFF: settings.json (hooks + permissions)" "$OUT" \
 [ -z "$(findings)" ] || fail "a temp file failure was reported as a difference"
 echo "temp files under TMPDIR, and a missing one reported as such: PASS"
 
+# 4c. A deployed settings.json that lost the `_note` keys of the profile still
+# registers the profile's hooks, so it is in sync; a changed timeout is not
+# (#1063).
+grep -q '"_note"' "$CLAUDE/settings.json" || fail "the staged settings.json has no _note to drop"
+jq 'walk(if type == "object" then del(._note) else . end)' \
+    "$TMP/settings.json.dropped" > "$CLAUDE/settings.json"
+grep -q '"_note"' "$CLAUDE/settings.json" && fail "the _note keys were not dropped"
+run_verify "$PROJ"
+[ -z "$(findings)" ] || fail "a settings.json without _note keys reported differences"
+expect "SYNC: settings.json (hooks + permissions)"
+jq '(.hooks | .. | objects | select(has("timeout")) | .timeout) |= . + 1' \
+    "$TMP/settings.json.dropped" > "$CLAUDE/settings.json"
+run_verify "$PROJ"
+expect "DIFF: settings.json (hooks + permissions) -- hooks"
+cp "$TMP/settings.json.dropped" "$CLAUDE/settings.json"
+echo "_note keys left out of the hooks comparison: PASS"
+
 # 5. Each kind of drift is reported; a CRLF and BOM rewrite is not.
 if [ "$win" -eq 1 ]; then
     hook_victim="edit-guard-dispatcher.ps1"
