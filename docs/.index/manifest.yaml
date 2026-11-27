@@ -2844,7 +2844,7 @@ documents:
       - {h: "Toolchain Availability Check", l: 390, e: 405}
       - {h: "Strategy Selection", l: 406, e: 414}
       - {h: "Inline Strategy (short builds)", l: 415, e: 423}
-      - {h: "Background + Log Polling Strategy (long builds)", l: 424, e: 432}
+      - {h: "Background Strategy (long builds)", l: 424, e: 432}
       - {h: "On Build/Test Failure", l: 433, e: 442}
       - {h: "7. Documentation Update", l: 443, e: 505}
       - {h: "8. Push and Create PR", l: 506, e: 514}
