@@ -605,6 +605,24 @@ function Test-SyncSettings {
         }
     }
 
+    # The installers keep the profile's value for each env key the profile
+    # names and carry over only the keys it lacks (Merge-LocalSettingsKeys), so
+    # a profile key whose deployed value differs is what a reinstall replaces.
+    # Keys only the deployed file has are machine-local, among them the
+    # CLAUDE_CONTENT_LANGUAGE the installer writes for the chosen policy (#1062).
+    $srcEnv = $src.PSObject.Properties['env']
+    if ($srcEnv -and $srcEnv.Value) {
+        $dstEnv = $dst.PSObject.Properties['env']
+        foreach ($e in $srcEnv.Value.PSObject.Properties) {
+            $deployed = if ($dstEnv -and $dstEnv.Value) { $dstEnv.Value.PSObject.Properties[$e.Name] } else { $null }
+            if ((-not $deployed) -or ((ConvertTo-CanonicalJson -Node $deployed.Value) -cne (ConvertTo-CanonicalJson -Node $e.Value))) {
+                Write-ErrorMessage "DIFF: $label -- env"
+                $script:SYNC_DIFF++
+                return
+            }
+        }
+    }
+
     Write-SuccessMessage "SYNC: $label"
     $script:SYNC_OK++
 }

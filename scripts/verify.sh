@@ -559,6 +559,21 @@ for key in ("permissions", "hooks"):
     if canon(left) != canon(right):
         print(key)
         sys.exit(0)
+
+# The installers keep the profile's value for each env key the profile names
+# and carry over only the keys it lacks (merge_local_settings_keys), so a
+# profile key whose deployed value differs is what a reinstall replaces. Keys
+# only the deployed file has are machine-local, among them the
+# CLAUDE_CONTENT_LANGUAGE the installer writes for the chosen policy (#1062).
+profile_env = a.get("env")
+deployed_env = b.get("env")
+if isinstance(profile_env, dict):
+    if not isinstance(deployed_env, dict):
+        deployed_env = {}
+    for name, value in profile_env.items():
+        if name not in deployed_env or canon(deployed_env[name]) != canon(value):
+            print("env")
+            sys.exit(0)
 PY
 )"
     [ -z "$expected" ] || rm -f "$expected"

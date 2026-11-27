@@ -199,6 +199,27 @@ expect "DIFF: settings.json (hooks + permissions) -- hooks"
 cp "$TMP/settings.json.dropped" "$CLAUDE/settings.json"
 echo "_note keys left out of the hooks comparison: PASS"
 
+# 4d. The installers keep the profile's value for an env key the profile names,
+# so a deployed value that differs, or a missing key, is drift; a key only the
+# deployed file has is machine-local (#1062). Section 3 covers the
+# CLAUDE_CONTENT_LANGUAGE the installer writes.
+env_key="$(jq -r '.env | keys_unsorted[0]' "$TMP/settings.json.dropped" | tr -d '\r')"
+[ -n "$env_key" ] && [ "$env_key" != "null" ] || fail "the profile names no env key"
+jq --arg k "$env_key" '.env[$k] = "stale-" + (.env[$k] | tostring)' \
+    "$TMP/settings.json.dropped" > "$CLAUDE/settings.json"
+run_verify "$PROJ"
+expect "DIFF: settings.json (hooks + permissions) -- env"
+[ "$(findings | wc -l | tr -d ' ')" -eq 1 ] || fail "expected exactly 1 finding for a stale env value"
+jq --arg k "$env_key" 'del(.env[$k])' "$TMP/settings.json.dropped" > "$CLAUDE/settings.json"
+run_verify "$PROJ"
+expect "DIFF: settings.json (hooks + permissions) -- env"
+jq '.env.VERIFY_SYNC_MACHINE_LOCAL = "1"' "$TMP/settings.json.dropped" > "$CLAUDE/settings.json"
+run_verify "$PROJ"
+[ -z "$(findings)" ] || fail "an env key only the deployed file has reported differences"
+expect "SYNC: settings.json (hooks + permissions)"
+cp "$TMP/settings.json.dropped" "$CLAUDE/settings.json"
+echo "env values the profile owns: PASS"
+
 # 5. Each kind of drift is reported; a CRLF and BOM rewrite is not.
 if [ "$win" -eq 1 ]; then
     hook_victim="edit-guard-dispatcher.ps1"
