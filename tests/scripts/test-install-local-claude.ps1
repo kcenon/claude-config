@@ -36,8 +36,21 @@ $localFile = Join-Path $project 'CLAUDE.local.md'
 
 # The child pwsh takes $HOME from these at start, so they are set here.
 $saved = @{}
-foreach ($name in @('USERPROFILE', 'HOME', 'AGENT_LANGUAGE', 'CONTENT_LANGUAGE', 'CREATE_LOCAL')) {
+foreach ($name in @('USERPROFILE', 'HOME', 'PATH', 'AGENT_LANGUAGE', 'CONTENT_LANGUAGE', 'CREATE_LOCAL')) {
     $saved[$name] = [Environment]::GetEnvironmentVariable($name)
+}
+
+# A stand-in claude on PATH: without one the installer first asks whether to
+# install the CLI, and that question would take the install type below.
+$fakeBin = Join-Path $scratch 'bin'
+New-Item -ItemType Directory -Path $fakeBin -Force | Out-Null
+if ($IsWindows) {
+    @('@echo off', 'echo 0.0.0-test (Claude Code)', 'exit /b 0') |
+        Set-Content -LiteralPath (Join-Path $fakeBin 'claude.cmd')
+} else {
+    "#!/bin/sh`necho '0.0.0-test (Claude Code)'`n" |
+        Set-Content -LiteralPath (Join-Path $fakeBin 'claude') -NoNewline
+    & chmod +x (Join-Path $fakeBin 'claude')
 }
 
 function Invoke-ProjectInstall {
@@ -53,6 +66,7 @@ function Invoke-ProjectInstall {
 try {
     $env:USERPROFILE = $scratch
     $env:HOME = $scratch
+    $env:PATH = "$fakeBin$([System.IO.Path]::PathSeparator)$($saved['PATH'])"
     $env:AGENT_LANGUAGE = 'english'
     $env:CONTENT_LANGUAGE = 'english'
 
