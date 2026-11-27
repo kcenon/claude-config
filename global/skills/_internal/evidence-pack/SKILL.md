@@ -267,7 +267,7 @@ existing packs are evidence in their own right and must not be silently replaced
 
 - Manifest schema: `reference/manifest-schema.md`
 - Per-kind source mapping: `reference/source-mapping.md`
-- Sibling matrix producer: `global/skills/_internal/traceability/SKILL.md`
+- Sibling matrix producer: `~/.claude/skills/_internal/traceability/SKILL.md`
 - Compliance clause source files: `compliance/iec-62304.md`, `compliance/iso-13485.md`
 - Parent epic: `kcenon/claude-config#588`
 - Originating issue: `kcenon/claude-config#595`

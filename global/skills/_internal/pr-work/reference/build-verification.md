@@ -24,21 +24,16 @@ Bash(command="go build ./... && go test ./...", timeout=60000)
 Bash(command="cargo check && cargo test", timeout=60000)
 ```
 
-## Background + Log Polling Strategy (long builds)
+## Background Strategy (long builds)
 
 For builds expected over 30 seconds:
 
 **Step A**: Launch build in background
 ```
 Bash(command="cmake --build build/ --config Release 2>&1", run_in_background=true)
-# -> Returns task_id
 ```
 
-**Step B**: Poll build output (non-blocking, every 10-15 seconds)
-```
-TaskOutput(task_id="<id>", block=false, timeout=10000)
-# -> Check for error patterns or completion indicators
-```
+**Step B**: Wait for the exit notice. The harness reports when the command exits, so do other work until then and read the output once it has.
 
 **Step C**: Detect outcome from output
 

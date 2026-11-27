@@ -313,5 +313,5 @@ issue rather than silently skipping.
 - `docs/MEMORY_TRUST_MODEL.md` — promotion / demotion rules (#511)
 - `docs/MEMORY_SYNC.md` — operational reference for `memory-sync.sh` (#520)
 - `docs/MEMORY_VALIDATION_SPEC.md` — validator rules consumed by this skill
-- Existing skill patterns: `global/skills/_internal/issue-work/SKILL.md`,
-  `global/skills/_internal/branch-cleanup/SKILL.md`
+- Existing skill patterns: `~/.claude/skills/_internal/issue-work/SKILL.md`,
+  `~/.claude/skills/_internal/branch-cleanup/SKILL.md`

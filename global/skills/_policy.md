@@ -199,4 +199,4 @@ Required for every `SKILL.md` (default `iso_class: none`). The validator (`scrip
 - IEC 62304 §5.3 source: `project/.claude/rules/compliance/iec-62304.md`
 - ISO 14971 risk-management context: `project/.claude/rules/compliance/iso-14971.md`
 - Validator: `scripts/validate_skills.sh`
-- Invariant: `global/skills/_internal/_shared/invariants.md`
+- Invariant: `~/.claude/skills/_internal/_shared/invariants.md`

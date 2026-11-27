@@ -75,7 +75,7 @@ To add a new standard rule file:
 
 ## Cross-references
 
-- Traceability matrix schema (`clause_refs[]` definition): `global/skills/_internal/traceability/reference/matrix-schema.md`
-- Validation finding `dangling_clause_ref` definition: `global/skills/_internal/traceability/reference/validation-rules.md`
-- Sibling enforcement layer: the `pre-push` git hook and the `pr-work` skill, both through `hooks/lib/validate-traceability.sh`
+- Traceability matrix schema (`clause_refs[]` definition): `~/.claude/skills/_internal/traceability/reference/matrix-schema.md`
+- Validation finding `dangling_clause_ref` definition: `~/.claude/skills/_internal/traceability/reference/validation-rules.md`
+- Sibling enforcement layer: the `pre-push` git hook and the `pr-work` skill, both through `~/.claude/hooks/lib/validate-traceability.sh`
 - Organization-wide compliance (SOC 2 / GDPR / ISO 27001): `enterprise/rules/compliance.md`

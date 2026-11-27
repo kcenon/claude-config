@@ -88,7 +88,7 @@ the check fails.
 
 ## Shared Pattern Library
 
-Deprecated-API patterns live in `global/skills/_internal/ci-fix/reference/known-fixes.md` (the ci-fix
+Deprecated-API patterns live in `~/.claude/skills/_internal/ci-fix/reference/known-fixes.md` (the ci-fix
 skill's catalogue). `scripts/run-deprecated-api.sh` reads a generated pattern file at
 `/tmp/preflight-patterns.txt` that is derived from the ci-fix catalogue on first invocation.
 This keeps ci-fix as the single source of truth and avoids drift between the two skills.
@@ -103,7 +103,7 @@ This keeps ci-fix as the single source of truth and avoids drift between the two
 
 ## References
 
-- Pattern catalogue and diagnostic diffs: `global/skills/_internal/ci-fix/reference/known-fixes.md`
-- MSVC C4996 migration: `global/skills/_internal/ci-fix/reference/msvc-c4996.md`
-- CMake FetchContent deep-dive: `global/skills/_internal/ci-fix/reference/cmake-fetchcontent.md`
+- Pattern catalogue and diagnostic diffs: `~/.claude/skills/_internal/ci-fix/reference/known-fixes.md`
+- MSVC C4996 migration: `~/.claude/skills/_internal/ci-fix/reference/msvc-c4996.md`
+- CMake FetchContent deep-dive: `~/.claude/skills/_internal/ci-fix/reference/cmake-fetchcontent.md`
 - `act` (nektos/act): <https://github.com/nektos/act>

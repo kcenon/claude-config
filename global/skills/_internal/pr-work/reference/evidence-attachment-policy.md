@@ -80,7 +80,7 @@ at 24h.
 
 **Remediation when stale.** Regenerate the manifest with
 `/evidence-pack <version> --force` (see
-`global/skills/_internal/evidence-pack/SKILL.md` Phase 0 -- the `--force`
+`~/.claude/skills/_internal/evidence-pack/SKILL.md` Phase 0 -- the `--force`
 flag is the documented way to overwrite an existing pack). The next push
 or re-run of Phase 9b reads the fresh `_meta.generated` value and the
 gate passes.
