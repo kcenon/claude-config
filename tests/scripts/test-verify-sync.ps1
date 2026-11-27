@@ -191,6 +191,36 @@ try {
     [System.IO.File]::WriteAllText($settingsPath, $settingsDropped, $utf8NoBom)
     Write-Host '_note keys left out of the hooks comparison: PASS'
 
+    # 4d. The installers keep the profile's value for an env key the profile
+    # names, so a deployed value that differs, or a missing key, is drift; a
+    # key only the deployed file has is machine-local (#1062). Section 3 covers
+    # the CLAUDE_CONTENT_LANGUAGE the installer writes.
+    $settings = $settingsDropped | ConvertFrom-Json
+    $envKey = @($settings.env.PSObject.Properties.Name)[0]
+    if (-not $envKey) { throw 'FAIL: the profile names no env key' }
+    $settings.env.$envKey = "stale-$($settings.env.$envKey)"
+    [System.IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 32), $utf8NoBom)
+    $out = Invoke-Verify -Dir $proj -Arguments @()
+    Assert-Contains $out 'DIFF: settings.json (hooks + permissions) -- env'
+    if ((Get-Findings $out).Count -ne 1) {
+        throw "FAIL: expected exactly 1 finding for a stale env value`n$((Get-Findings $out) -join "`n")"
+    }
+    $settings = $settingsDropped | ConvertFrom-Json
+    $settings.env.PSObject.Properties.Remove($envKey)
+    [System.IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 32), $utf8NoBom)
+    $out = Invoke-Verify -Dir $proj -Arguments @()
+    Assert-Contains $out 'DIFF: settings.json (hooks + permissions) -- env'
+    $settings = $settingsDropped | ConvertFrom-Json
+    $settings.env | Add-Member -NotePropertyName 'VERIFY_SYNC_MACHINE_LOCAL' -NotePropertyValue '1'
+    [System.IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 32), $utf8NoBom)
+    $out = Invoke-Verify -Dir $proj -Arguments @()
+    if ((Get-Findings $out).Count -ne 0) {
+        throw "FAIL: an env key only the deployed file has reported differences`n$((Get-Findings $out) -join "`n")"
+    }
+    Assert-Contains $out 'SYNC: settings.json (hooks + permissions)'
+    [System.IO.File]::WriteAllText($settingsPath, $settingsDropped, $utf8NoBom)
+    Write-Host 'env values the profile owns: PASS'
+
     # 5. Each kind of drift is reported; a CRLF and BOM rewrite is not.
     $hookVictim = if ($IsWindows) {
         'edit-guard-dispatcher.ps1'
