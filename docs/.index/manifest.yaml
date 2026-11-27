@@ -10,58 +10,58 @@ documents:
     description: ""
     category: root
     scope: root
-    size: 136880
+    size: 138140
     tags: []
     sections:
       - {h: "Changelog", l: 1, e: 7}
       - {h: "Unreleased", l: 8, e: 9}
       - {h: "Changed", l: 10, e: 17}
       - {h: "Removed", l: 18, e: 21}
-      - {h: "Fixed", l: 22, e: 37}
-      - {h: "1.17.0 - 2026-11-17", l: 38, e: 44}
-      - {h: "Added", l: 45, e: 51}
-      - {h: "Changed", l: 52, e: 64}
-      - {h: "Removed", l: 65, e: 68}
-      - {h: "Fixed", l: 69, e: 86}
-      - {h: "1.16.0 - 2026-10-30", l: 87, e: 107}
-      - {h: "Removed", l: 108, e: 141}
-      - {h: "Changed", l: 142, e: 180}
-      - {h: "Fixed", l: 181, e: 242}
-      - {h: "1.15.0 - 2026-10-23", l: 243, e: 244}
-      - {h: "Added", l: 245, e: 256}
-      - {h: "Changed", l: 257, e: 287}
-      - {h: "Fixed", l: 288, e: 294}
-      - {h: "1.14.0 - 2026-09-29", l: 295, e: 296}
-      - {h: "Added", l: 297, e: 305}
-      - {h: "Changed", l: 306, e: 328}
-      - {h: "Removed", l: 329, e: 360}
-      - {h: "Fixed", l: 361, e: 402}
-      - {h: "Security", l: 403, e: 439}
-      - {h: "1.13.0 - 2026-09-13", l: 440, e: 441}
-      - {h: "Added", l: 442, e: 627}
-      - {h: "Changed", l: 628, e: 680}
-      - {h: "Fixed", l: 681, e: 814}
-      - {h: "Security", l: 815, e: 833}
-      - {h: "Known limitation", l: 834, e: 841}
-      - {h: "1.12.0 - 2026-08-01", l: 842, e: 843}
-      - {h: "Added", l: 844, e: 975}
-      - {h: "Fixed", l: 976, e: 1218}
-      - {h: "1.11.0 - 2026-07-03", l: 1219, e: 1220}
-      - {h: "Fixed", l: 1221, e: 1234}
-      - {h: "Security", l: 1235, e: 1312}
-      - {h: "Added", l: 1313, e: 1341}
-      - {h: "Changed", l: 1342, e: 1388}
-      - {h: "1.10.0 - 2026-04-20", l: 1389, e: 1397}
-      - {h: "1.9.0 - 2026-04-13", l: 1398, e: 1407}
-      - {h: "1.8.0 - 2026-04-13", l: 1408, e: 1413}
-      - {h: "1.7.0 - 2026-04-06", l: 1414, e: 1428}
-      - {h: "1.6.0 - 2026-04-03", l: 1429, e: 1441}
-      - {h: "1.5.0 - 2026-03-21", l: 1442, e: 1460}
-      - {h: "1.4.0 - 2026-01-22", l: 1461, e: 1466}
-      - {h: "1.3.0 - 2026-01-15", l: 1467, e: 1475}
-      - {h: "1.2.0 - 2026-01-15", l: 1476, e: 1484}
-      - {h: "1.1.0 - 2025-01-15", l: 1485, e: 1495}
-      - {h: "1.0.0 - 2025-12-03", l: 1496, e: 1502}
+      - {h: "Fixed", l: 22, e: 39}
+      - {h: "1.17.0 - 2026-11-17", l: 40, e: 46}
+      - {h: "Added", l: 47, e: 53}
+      - {h: "Changed", l: 54, e: 66}
+      - {h: "Removed", l: 67, e: 70}
+      - {h: "Fixed", l: 71, e: 88}
+      - {h: "1.16.0 - 2026-10-30", l: 89, e: 109}
+      - {h: "Removed", l: 110, e: 143}
+      - {h: "Changed", l: 144, e: 182}
+      - {h: "Fixed", l: 183, e: 244}
+      - {h: "1.15.0 - 2026-10-23", l: 245, e: 246}
+      - {h: "Added", l: 247, e: 258}
+      - {h: "Changed", l: 259, e: 289}
+      - {h: "Fixed", l: 290, e: 296}
+      - {h: "1.14.0 - 2026-09-29", l: 297, e: 298}
+      - {h: "Added", l: 299, e: 307}
+      - {h: "Changed", l: 308, e: 330}
+      - {h: "Removed", l: 331, e: 362}
+      - {h: "Fixed", l: 363, e: 404}
+      - {h: "Security", l: 405, e: 441}
+      - {h: "1.13.0 - 2026-09-13", l: 442, e: 443}
+      - {h: "Added", l: 444, e: 629}
+      - {h: "Changed", l: 630, e: 682}
+      - {h: "Fixed", l: 683, e: 816}
+      - {h: "Security", l: 817, e: 835}
+      - {h: "Known limitation", l: 836, e: 843}
+      - {h: "1.12.0 - 2026-08-01", l: 844, e: 845}
+      - {h: "Added", l: 846, e: 977}
+      - {h: "Fixed", l: 978, e: 1220}
+      - {h: "1.11.0 - 2026-07-03", l: 1221, e: 1222}
+      - {h: "Fixed", l: 1223, e: 1236}
+      - {h: "Security", l: 1237, e: 1314}
+      - {h: "Added", l: 1315, e: 1343}
+      - {h: "Changed", l: 1344, e: 1390}
+      - {h: "1.10.0 - 2026-04-20", l: 1391, e: 1399}
+      - {h: "1.9.0 - 2026-04-13", l: 1400, e: 1409}
+      - {h: "1.8.0 - 2026-04-13", l: 1410, e: 1415}
+      - {h: "1.7.0 - 2026-04-06", l: 1416, e: 1430}
+      - {h: "1.6.0 - 2026-04-03", l: 1431, e: 1443}
+      - {h: "1.5.0 - 2026-03-21", l: 1444, e: 1462}
+      - {h: "1.4.0 - 2026-01-22", l: 1463, e: 1468}
+      - {h: "1.3.0 - 2026-01-15", l: 1469, e: 1477}
+      - {h: "1.2.0 - 2026-01-15", l: 1478, e: 1486}
+      - {h: "1.1.0 - 2025-01-15", l: 1487, e: 1497}
+      - {h: "1.0.0 - 2025-12-03", l: 1498, e: 1504}
   - path: "COMPATIBILITY.md"
     title: "Compatibility Guide"
     description: ""
@@ -1904,7 +1904,7 @@ documents:
     description: ""
     category: root
     scope: global
-    size: 2945
+    size: 2951
     tags: [global,skill]
     sections:
       - {h: "Core (5 lines, re-anchor target)", l: 9, e: 18}
@@ -1952,7 +1952,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 5173
+    size: 5176
     tags: [ci,global,skill]
     sections:
       - {h: "Usage", l: 22, e: 30}
@@ -2100,7 +2100,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 15097
+    size: 15100
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 52, e: 63}
@@ -2128,7 +2128,7 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 15956
+    size: 15959
     tags: [global,reference,skill]
     sections:
       - {h: "Top-Level Document Layout", l: 10, e: 38}
@@ -2171,7 +2171,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 23320
+    size: 23323
     tags: [global,skill]
     sections:
       - {h: "When to Use This Skill", l: 39, e: 51}
@@ -2317,7 +2317,7 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 12635
+    size: 12638
     tags: [ci,global,reference,skill]
     sections:
       - {h: "Table of Contents", l: 7, e: 20}
@@ -2671,7 +2671,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 8755
+    size: 8771
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 15, e: 29}
@@ -2822,7 +2822,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 36675
+    size: 36686
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 36, e: 51}
@@ -2872,7 +2872,7 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 21555
+    size: 21564
     tags: [global,reference,skill]
     sections:
       - {h: "B-0. Batch Discovery", l: 10, e: 41}
@@ -2945,7 +2945,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 10860
+    size: 10866
     tags: [global,memory,skill]
     sections:
       - {h: "Usage", l: 25, e: 33}
@@ -2974,7 +2974,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 37109
+    size: 37118
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 40, e: 65}
@@ -3049,19 +3049,19 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 6123
+    size: 6047
     tags: [build,global,reference,skill]
     sections:
       - {h: "Strategy Selection", l: 10, e: 17}
       - {h: "Inline Strategy (short builds)", l: 18, e: 26}
-      - {h: "Background + Log Polling Strategy (long builds)", l: 27, e: 55}
-      - {h: "On Build/Test Failure", l: 56, e: 66}
-      - {h: "CI Monitoring After Push", l: 67, e: 109}
-      - {h: "Final Pre-Merge Verification (MANDATORY)", l: 110, e: 119}
-      - {h: "CI Wait Limits", l: 120, e: 134}
-      - {h: "Iteration Limits (Step 9)", l: 135, e: 143}
-      - {h: "Waiting for CI Between Attempts", l: 144, e: 153}
-      - {h: "Iteration Rules", l: 154, e: 160}
+      - {h: "Background Strategy (long builds)", l: 27, e: 50}
+      - {h: "On Build/Test Failure", l: 51, e: 61}
+      - {h: "CI Monitoring After Push", l: 62, e: 104}
+      - {h: "Final Pre-Merge Verification (MANDATORY)", l: 105, e: 114}
+      - {h: "CI Wait Limits", l: 115, e: 129}
+      - {h: "Iteration Limits (Step 9)", l: 130, e: 138}
+      - {h: "Waiting for CI Between Attempts", l: 139, e: 148}
+      - {h: "Iteration Rules", l: 149, e: 155}
   - path: "global/skills/_internal/pr-work/reference/comment-templates.md"
     title: "PR Comment Templates and Guidelines"
     description: ""
@@ -3107,7 +3107,7 @@ documents:
     description: ""
     category: reference
     scope: global
-    size: 10677
+    size: 10680
     tags: [global,reference,skill]
     sections:
       - {h: "Required Fields by Issue Type", l: 14, e: 55}
@@ -3155,7 +3155,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 4740
+    size: 4752
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 21, e: 34}
@@ -3171,7 +3171,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 19533
+    size: 19536
     tags: [global,release,skill]
     sections:
       - {h: "ref_docs keys:", l: 29, e: 29}
@@ -3277,7 +3277,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 14197
+    size: 14200
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 31, e: 41}
@@ -3398,7 +3398,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 18075
+    size: 18081
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 50, e: 66}
@@ -3569,7 +3569,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 21287
+    size: 21302
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 54, e: 68}
@@ -3658,7 +3658,7 @@ documents:
     description: ""
     category: skill
     scope: global
-    size: 12543
+    size: 12546
     tags: [global,skill]
     sections:
       - {h: "Usage", l: 46, e: 56}
@@ -3724,7 +3724,7 @@ documents:
     description: ""
     category: root
     scope: global
-    size: 12945
+    size: 12948
     tags: [ci,global,skill]
     sections:
       - {h: "Atomic Multi-Phase Execution", l: 3, e: 14}
@@ -5709,7 +5709,7 @@ documents:
     description: ""
     category: rule
     scope: project
-    size: 5418
+    size: 5434
     tags: [project,readme,rule]
     sections:
       - {h: "Populated Standards", l: 22, e: 29}
@@ -5979,7 +5979,7 @@ documents:
     description: ""
     category: rule
     scope: project
-    size: 1685
+    size: 1688
     tags: [project,rule,workflow]
     sections:
       - {h: "When to Write", l: 9, e: 18}

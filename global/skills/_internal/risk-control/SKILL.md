@@ -308,7 +308,7 @@ verbatim rather than inventing new mappings.
 - Risk record schema: `reference/risk-record-schema.md`
 - Default risk matrix and per-project override format: `reference/risk-matrix.md`
 - ISO 14971 clause source: `compliance/iso-14971.md` (project root, when present)
-- Sibling matrix consumer: `global/skills/_internal/traceability/SKILL.md`
-- Sibling release-time consumer: `global/skills/_internal/evidence-pack/SKILL.md`
+- Sibling matrix consumer: `~/.claude/skills/_internal/traceability/SKILL.md`
+- Sibling release-time consumer: `~/.claude/skills/_internal/evidence-pack/SKILL.md`
 - Parent epic: `kcenon/claude-config#588`
 - Originating issue: `kcenon/claude-config#596`

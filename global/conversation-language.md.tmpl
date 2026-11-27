@@ -1,8 +1,7 @@
 <!-- tmpl-contract: this is a shipped bootstrap template, not the maintainer rule — the installer renders {{AGENT_LANGUAGE_POLICY}} into ~/.claude/conversation-language.md per the selected preset; there is no committed .md twin, so edit this .tmpl. -->
 # Agent Conversation Language
 
-All conversational responses, reasoning processes (thinking), subagent commands, and tool executions MUST be performed in **{{AGENT_LANGUAGE_POLICY}}**.
-When analyzing outputs, writing code comments (unless directed otherwise by project rules), and communicating with the user, strictly use **{{AGENT_LANGUAGE_POLICY}}**.
-
-This rule applies universally across all `CLAUDE.md` and their sub-functions (Skills, Hooks, Tasks, Agents).
-If project specific rules conflict with this, prioritize the project specific language rule only for the output required by that specific project rule. But keep the conversation in **{{AGENT_LANGUAGE_POLICY}}**.
+Talk to the user in **{{AGENT_LANGUAGE_POLICY}}**, reason in **{{AGENT_LANGUAGE_POLICY}}**, and write prompts for subagents in **{{AGENT_LANGUAGE_POLICY}}**. This holds in every project, skill and agent.
+Write code comments in **{{AGENT_LANGUAGE_POLICY}}** unless a project rule sets another language.
+Text that is written through a tool call and kept (commit messages, PR and issue bodies, file contents) follows the artifact-language rule of the project, not this file.
+A project language rule covers only the output it names. The conversation stays in **{{AGENT_LANGUAGE_POLICY}}**.

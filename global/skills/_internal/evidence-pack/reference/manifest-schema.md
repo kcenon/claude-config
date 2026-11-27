@@ -132,7 +132,7 @@ The skill writes one of the three values; consumers must not invent new ones.
 ### Clause Reference Format
 
 `related_clauses` entries follow the same format as the `clause_refs` field in the
-traceability matrix (see `global/skills/_internal/traceability/reference/matrix-schema.md`):
+traceability matrix (see `~/.claude/skills/_internal/traceability/reference/matrix-schema.md`):
 `<STANDARD>-<NUMBER>` where `<STANDARD>` is uppercase with hyphens preserved and `<NUMBER>`
 is the dotted clause path verbatim from the standard.
 

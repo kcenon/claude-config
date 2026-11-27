@@ -45,7 +45,7 @@ the regulated-industry track. The skill is the third-party-software counterpart 
 requirements-to-evidence matrix): it produces and maintains the per-project SOUP file that
 the traceability matrix references via a new `soup_ids[]` field on each requirement row, and
 that the `evidence-pack` skill collects under the `soup_register` kind (see
-`global/skills/_internal/evidence-pack/reference/source-mapping.md`).
+`~/.claude/skills/_internal/evidence-pack/reference/source-mapping.md`).
 
 The skill does not invent regulatory content; it provides a structured, validatable home
 for the records that IEC 62304 sections 5.3.3 (specify functional and performance
@@ -323,7 +323,7 @@ verbatim rather than inventing new mappings.
 | Consumer | Use |
 |----------|-----|
 | `traceability` skill (P0-1) | Reads `soup.yaml` to populate `soup_ids[]` on requirement matrix rows. Bidirectional linking comes for free. |
-| `evidence-pack` skill (P1-1) | Mirrors `soup.yaml` (and the per-supplier `soup.md` report when present) under the `soup_register` kind in the per-release evidence pack. See `global/skills/_internal/evidence-pack/reference/source-mapping.md` (kind: `soup_register`) and `manifest-schema.md` (allowed kinds, schema `1.1.0`). |
+| `evidence-pack` skill (P1-1) | Mirrors `soup.yaml` (and the per-supplier `soup.md` report when present) under the `soup_register` kind in the per-release evidence pack. See `~/.claude/skills/_internal/evidence-pack/reference/source-mapping.md` (kind: `soup_register`) and `manifest-schema.md` (allowed kinds, schema `1.1.0`). |
 | `risk-control` skill (P1-2) | Cross-references SOUP records when a hazard's failure mode involves third-party software; the link is recorded as a `verification_refs[]` entry pointing to the relevant `H-NN` id. |
 | `pre-push` git hook and the skill itself (P0-2) | Could be extended to detect when a PR adds or bumps a lockfile entry without updating the SOUP register. |
 | External auditor | Reads `soup.yaml` and `soup.md` directly from the repo at any tagged release; consumes them alongside the matrix as the operational SOUP-management record. |
@@ -334,8 +334,8 @@ verbatim rather than inventing new mappings.
 - Per-language discovery sources: `reference/discovery-sources.md`
 - Default license policy and per-project override format: `reference/license-policy.md`
 - IEC 62304 clause source: `compliance/iec-62304.md` (project root, when present)
-- Sibling matrix consumer: `global/skills/_internal/traceability/SKILL.md`
-- Sibling release-time consumer: `global/skills/_internal/evidence-pack/SKILL.md`
-- Sibling risk-side consumer: `global/skills/_internal/risk-control/SKILL.md`
+- Sibling matrix consumer: `~/.claude/skills/_internal/traceability/SKILL.md`
+- Sibling release-time consumer: `~/.claude/skills/_internal/evidence-pack/SKILL.md`
+- Sibling risk-side consumer: `~/.claude/skills/_internal/risk-control/SKILL.md`
 - Parent epic: `kcenon/claude-config#588`
 - Originating issue: `kcenon/claude-config#601`

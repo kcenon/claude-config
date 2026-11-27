@@ -392,7 +392,7 @@ Based on workflow analysis, fix the identified issues:
 | **Link error** | Fix undefined references, library linking |
 
 **Known-pattern shortcut**: before hand-authoring a fix, check the `ci-fix` skill
-(`global/skills/_internal/ci-fix/SKILL.md`). It classifies the failure log against three recurring
+(`~/.claude/skills/_internal/ci-fix/SKILL.md`). It classifies the failure log against three recurring
 patterns (MSVC C4996, CMake FetchContent shallow clone, `__cpp_lib_format` probe) and applies
 a codified remediation. Invoke with `/ci-fix <pr-number>` — falls through to this manual
 workflow when no pattern matches.
@@ -536,7 +536,7 @@ must pass for the merge to proceed.
 least one issue (via `Closes #N`, `Fixes #N`, or `Resolves #N` in the body),
 and the linked issue body must open with the regulated YAML block per the
 six format invariants documented in
-`global/skills/_internal/issue-create/reference/regulated-fields.md`
+`~/.claude/skills/_internal/issue-create/reference/regulated-fields.md`
 "Embedded YAML block format":
 
 1. Block is the very first non-blank content of the issue body, fenced by
@@ -782,7 +782,7 @@ If CI failed or max retries exceeded, use this format instead:
 
 ## Reanchoring Loop Invariants
 
-`--reanchor-interval N` (default 5, `0` disables) controls how often the Core invariants block from `global/skills/_internal/_shared/invariants.md` is emitted inside long loops.
+`--reanchor-interval N` (default 5, `0` disables) controls how often the Core invariants block from `~/.claude/skills/_internal/_shared/invariants.md` is emitted inside long loops.
 
 Loop bind points for pr-work:
 - **Batch mode**: between items, same semantics as `issue-work` batch-mode (every N items).

@@ -245,7 +245,7 @@ or `router.yaml`. Those remain `doc-index`'s responsibility.
 
 - Schema for `traceability.yaml`: `reference/matrix-schema.md`
 - Validation rules and exit codes: `reference/validation-rules.md`
-- Catalogue producer: `global/skills/_internal/doc-index/SKILL.md`
+- Catalogue producer: `~/.claude/skills/_internal/doc-index/SKILL.md`
 - Parent epic: `kcenon/claude-config#588`
 
 ## Side Effects and Loop-Safety

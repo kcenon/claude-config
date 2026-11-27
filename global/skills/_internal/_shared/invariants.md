@@ -33,7 +33,7 @@ Skills with iterative work (batch loops, CI polling, multi-round research, per-r
 - Stop signal: halt and report after two consecutive rounds without a change in the deliverable-level outcome
 ```
 
-Defined in `global/skills/_internal/harness/reference/verification-contract.md`, with the evidence ledger, the severity scope and the conflict rule.
+Defined in `~/.claude/skills/_internal/harness/reference/verification-contract.md`, with the evidence ledger, the severity scope and the conflict rule.
 
 ## How to use
 
@@ -47,6 +47,6 @@ Every `SKILL.md` must declare the following frontmatter fields:
 
 - `name` -- skill identifier (lowercase, digits, hyphens; max 64 chars)
 - `description` -- non-empty trigger text (max 1024 chars)
-- `iso_class` -- IEC 62304 SW Safety Class applicability: `A | B | C | none`. Default `none` for skills that are not safety-relevant. See `global/skills/_policy.md` "Safety-Class Metadata" for the field contract and the optional `safety_class` and `applies_at_or_above` companion fields.
+- `iso_class` -- IEC 62304 SW Safety Class applicability: `A | B | C | none`. Default `none` for skills that are not safety-relevant. See `~/.claude/skills/_policy.md` "Safety-Class Metadata" for the field contract and the optional `safety_class` and `applies_at_or_above` companion fields.
 
 `scripts/validate_skills.sh` enforces these. The `iso_class` check is warn-only during the one-release grace period; subsequent releases convert the warning to a hard failure.

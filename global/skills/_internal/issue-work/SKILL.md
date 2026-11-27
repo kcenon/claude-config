@@ -421,12 +421,12 @@ Bash(command="go build ./...", timeout=60000)
 Bash(command="cargo check", timeout=60000)
 ```
 
-#### Background + Log Polling Strategy (long builds)
+#### Background Strategy (long builds)
 
 For builds expected over 30 seconds:
 
 1. Launch in background: `Bash(command="cmake --build build/ ...", run_in_background=true)`
-2. Poll output every 10-15s: `TaskOutput(task_id="<id>", block=false, timeout=10000)`
+2. Wait for the exit notice: the harness reports when the command exits, so do other work until then and read the output once it has
 3. Detect outcome: `Built target`/`Finished` = success, `error:`/`FAILED` = fix needed
 4. Run tests with same pattern: `Bash(command="ctest --test-dir build/ ...", run_in_background=true)`
 
@@ -748,7 +748,7 @@ If CI failed or the PR was not merged, use this format instead:
 ISSUE_WORK_RESULT: {"status":"failed","requested":"$REQUESTED_ISSUE","root":"$ROOT_ISSUE","active":"$ISSUE_NUMBER","pr_url":"<url-or-null>","reason":"<short reason>"}
 ```
 
-**IMPORTANT**: Always include the full PR URL in the output (e.g., `https://github.com/org/repo/pull/123`).
+Include the full PR URL in the output (e.g., `https://github.com/org/repo/pull/123`).
 
 ### Batch Mode Output
 
